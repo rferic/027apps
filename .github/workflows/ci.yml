@@ -24,7 +24,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
-      - run: pnpm tsc --noEmit
       - run: pnpm test --run
       - name: Build
         env:
@@ -32,3 +31,4 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
           SUPABASE_SERVICE_ROLE_KEY: dummy-service-key
         run: pnpm build
+      - run: pnpm tsc --noEmit
