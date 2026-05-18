@@ -2,6 +2,15 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  push:
+    branches:
+      - 'sprint/**'
+      - 'feature/**'
+      - 'fix/**'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
@@ -22,3 +31,4 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
           SUPABASE_SERVICE_ROLE_KEY: dummy-service-key
         run: pnpm build
+      - run: pnpm tsc --noEmit
