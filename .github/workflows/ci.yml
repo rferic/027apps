@@ -2,6 +2,15 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  push:
+    branches:
+      - 'sprint/**'
+      - 'feature/**'
+      - 'fix/**'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
@@ -15,6 +24,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      - run: pnpm tsc --noEmit
       - run: pnpm test --run
       - name: Build
         env:
