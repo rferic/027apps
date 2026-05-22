@@ -13,14 +13,12 @@ export default function UpdatePasswordPage({ params }: Props) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [invalidLink, setInvalidLink] = useState(false)
-  const [initialized, setInitialized] = useState(false)
+  const [pageState, setPageState] = useState<'loading' | 'invalid_link' | 'ready'>('loading')
 
   useEffect(() => {
     const hash = window.location.hash
     if (!hash) {
-      setInvalidLink(true)
-      setInitialized(true)
+      queueMicrotask(() => setPageState('invalid_link'))
       return
     }
 
@@ -28,17 +26,13 @@ export default function UpdatePasswordPage({ params }: Props) {
     const accessToken = params.get('access_token') || params.get('access_token%3D')
 
     if (!accessToken) {
-      setInvalidLink(true)
-      setInitialized(true)
+      queueMicrotask(() => setPageState('invalid_link'))
       return
     }
 
     const supabase = createClient()
     supabase.auth.setSession({ access_token: accessToken, refresh_token: '' }).then(({ error: sessionError }) => {
-      if (sessionError) {
-        setInvalidLink(true)
-      }
-      setInitialized(true)
+      setPageState(sessionError ? 'invalid_link' : 'ready')
     })
   }, [])
 
@@ -69,7 +63,7 @@ export default function UpdatePasswordPage({ params }: Props) {
     })
   }
 
-  if (!initialized) {
+  if (pageState === 'loading') {
     return (
       <div className="flex flex-1 items-center justify-center bg-slate-50 p-6">
         <p className="text-sm text-slate-400">{t('updating')}</p>
@@ -77,7 +71,7 @@ export default function UpdatePasswordPage({ params }: Props) {
     )
   }
 
-  if (invalidLink) {
+  if (pageState === 'invalid_link') {
     return (
       <div className="flex flex-1 items-center justify-center bg-slate-50 p-6">
         <div className="w-full max-w-sm text-center">
