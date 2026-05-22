@@ -444,23 +444,29 @@
     },
     "common": {
       "loading": "Cargando…"
-    },
-    "invite": {
-      "title": "Te han invitado",
-      "invalid": "Enlace de invitación no válido.",
-      "already_used": "Esta invitación ya ha sido utilizada.",
-      "expired": "Esta invitación ha expirado.",
-      "revoked": "Esta invitación ha sido revocada.",
-      "full_name": "Nombre completo",
-      "email": "Correo electrónico",
-      "password": "Contraseña",
-      "your_name": "Tu nombre",
-      "email_placeholder": "tu@ejemplo.com",
-      "min_chars": "Mín. 8 caracteres",
-      "creating": "Creando cuenta…",
-      "create_account": "Crear cuenta",
-      "joining_as": "Te estás uniendo como"
     }
+  },
+  "invite": {
+    "title": "Te han invitado",
+    "invalid": "Enlace de invitación no válido.",
+    "already_used": "Esta invitación ya ha sido utilizada.",
+    "expired": "Esta invitación ha expirado.",
+    "revoked": "Esta invitación ha sido revocada.",
+    "full_name": "Nombre completo",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "your_name": "Tu nombre",
+    "email_placeholder": "tu@ejemplo.com",
+    "min_chars": "Mín. 8 caracteres",
+    "creating": "Creando cuenta…",
+    "create_account": "Crear cuenta",
+    "joining_as": "Te estás uniendo como",
+    "all_fields_required": "All fields are required",
+    "password_min_length": "Password must be at least 8 characters",
+    "invalid_invitation": "Invalid invitation",
+    "invitation_status": "Invitation is {status}",
+    "email_mismatch": "Email does not match invitation",
+    "failed_to_create_user": "Failed to create user"
   },
   "user": {
     "editProfile": "Editar perfil",

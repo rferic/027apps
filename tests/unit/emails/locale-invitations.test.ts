@@ -112,6 +112,6 @@ describe('invitation locale handling', () => {
     } as any)
 
     const result = await acceptInvitation('abc', { displayName: 'User', password: 'password123', email: 'user@test.com' })
-    expect('error' in result).toBe(false)
+    expect('errorCode' in result).toBe(false)
   })
 })

@@ -270,22 +270,6 @@
         "locale_de": "Deutsch"
       }
     },
-  "invite": {
-    "title": "You have been invited",
-    "invalid": "Invalid invitation link.",
-    "already_used": "This invitation has already been used.",
-    "expired": "This invitation has expired.",
-    "revoked": "This invitation has been revoked.",
-    "full_name": "Full name",
-    "email": "Email",
-    "password": "Password",
-    "your_name": "Your name",
-    "email_placeholder": "you@example.com",
-    "min_chars": "Min. 8 characters",
-    "creating": "Creating account\u2026",
-    "create_account": "Create account",
-    "joining_as": "You are joining as"
-  },
   "profile": {
       "title": "My profile",
       "subtitle": "Edit your name and language preference.",
@@ -461,6 +445,28 @@
     "common": {
       "loading": "Loading…"
     }
+  },
+  "invite": {
+    "title": "You have been invited",
+    "invalid": "Invalid invitation link.",
+    "already_used": "This invitation has already been used.",
+    "expired": "This invitation has expired.",
+    "revoked": "This invitation has been revoked.",
+    "full_name": "Full name",
+    "email": "Email",
+    "password": "Password",
+    "your_name": "Your name",
+    "email_placeholder": "you@example.com",
+    "min_chars": "Min. 8 characters",
+    "creating": "Creating account\u2026",
+    "create_account": "Create account",
+    "joining_as": "You are joining as",
+    "all_fields_required": "All fields are required",
+    "password_min_length": "Password must be at least 8 characters",
+    "invalid_invitation": "Invalid invitation",
+    "invitation_status": "Invitation is {status}",
+    "email_mismatch": "Email does not match invitation",
+    "failed_to_create_user": "Failed to create user"
   },
   "user": {
     "editProfile": "Edit profile",

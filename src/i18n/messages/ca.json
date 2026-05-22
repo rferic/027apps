@@ -444,23 +444,29 @@
     },
     "common": {
       "loading": "Carregant…"
-    },
-    "invite": {
-      "title": "T'han convidat",
-      "invalid": "Enllaç d'invitació no vàlid.",
-      "already_used": "Aquesta invitació ja ha estat utilitzada.",
-      "expired": "Aquesta invitació ha expirat.",
-      "revoked": "Aquesta invitació ha estat revocada.",
-      "full_name": "Nom complet",
-      "email": "Correu electrònic",
-      "password": "Contrasenya",
-      "your_name": "El teu nom",
-      "email_placeholder": "tu@exemple.com",
-      "min_chars": "Mín. 8 caràcters",
-      "creating": "Creant compte…",
-      "create_account": "Crear compte",
-      "joining_as": "T'estàs unint com a"
     }
+  },
+  "invite": {
+    "title": "T'han convidat",
+    "invalid": "Enllaç d'invitació no vàlid.",
+    "already_used": "Aquesta invitació ja ha estat utilitzada.",
+    "expired": "Aquesta invitació ha expirat.",
+    "revoked": "Aquesta invitació ha estat revocada.",
+    "full_name": "Nom complet",
+    "email": "Correu electrònic",
+    "password": "Contrasenya",
+    "your_name": "El teu nom",
+    "email_placeholder": "tu@exemple.com",
+    "min_chars": "Mín. 8 caràcters",
+    "creating": "Creant compte…",
+    "create_account": "Crear compte",
+    "joining_as": "T'estàs unint com a",
+    "all_fields_required": "All fields are required",
+    "password_min_length": "Password must be at least 8 characters",
+    "invalid_invitation": "Invalid invitation",
+    "invitation_status": "Invitation is {status}",
+    "email_mismatch": "Email does not match invitation",
+    "failed_to_create_user": "Failed to create user"
   },
   "user": {
     "editProfile": "Editar perfil",
