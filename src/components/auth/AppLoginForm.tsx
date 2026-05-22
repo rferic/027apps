@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,11 +11,12 @@ import { BlockedOverlay } from '@/components/blocked-overlay'
 
 interface Props {
   locale: string
+  showResetSuccess?: boolean
 }
 
 const initialState: { error: string | null } = { error: null }
 
-export function AppLoginForm({ locale }: Props) {
+export function AppLoginForm({ locale, showResetSuccess }: Props) {
   const t = useTranslations('auth')
   const tCommon = useTranslations('common')
 
@@ -35,6 +37,11 @@ export function AppLoginForm({ locale }: Props) {
 
   return (
     <>
+      {showResetSuccess && (
+        <div className="mb-4 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+          {t('password_reset_success')}
+        </div>
+      )}
       {state.error === 'blocked' && <BlockedOverlay locale={locale} />}
       <form action={formAction} className="space-y-4">
         <div className="space-y-2">
@@ -51,6 +58,14 @@ export function AppLoginForm({ locale }: Props) {
         <Button type="submit" className="w-full bg-[#9B1C1C] hover:bg-[#7F1D1D] text-white" disabled={pending}>
           {pending ? tCommon('loading') : t('login')}
         </Button>
+        <div className="text-center">
+          <Link
+            href={`/${locale}/recover`}
+            className="text-sm text-slate-600 hover:text-slate-900 underline underline-offset-4"
+          >
+            {t('forgot_password')}
+          </Link>
+        </div>
       </form>
     </>
   )

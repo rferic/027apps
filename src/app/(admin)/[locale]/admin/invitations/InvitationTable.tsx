@@ -5,7 +5,8 @@ import { Menu } from '@base-ui/react/menu'
 import { useTranslations } from 'next-intl'
 import type { Invitation, InvitationStatus } from '@/lib/use-cases/invitations'
 import { getInvitationStatus } from '@/lib/use-cases/invitations'
-import { revokeInvitationAction, deleteInvitationAction } from './actions'
+import { revokeInvitationAction, deleteInvitationAction, sendInvitationEmailAction } from './actions'
+import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface Props {
@@ -102,6 +103,24 @@ function InviteRow({ inv, baseUrl }: { inv: Invitation; baseUrl: string }) {
                         className="block w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer outline-none"
                       >
                         {t('table.copyLink')}
+                      </Menu.Item>
+                    )}
+                    {status === 'pending' && inv.email && (
+                      <Menu.Item
+                        closeOnClick
+                        onClick={() => {
+                          startTransition(async () => {
+                            const result = await sendInvitationEmailAction(inv.token, inv.email!)
+                            if (result.error) {
+                              toast.error(result.error)
+                            } else {
+                              toast.success(t('email_resent', { email: inv.email! }))
+                            }
+                          })
+                        }}
+                        className="block w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer outline-none"
+                      >
+                        {t('resent_button')}
                       </Menu.Item>
                     )}
                     {canRevoke && (

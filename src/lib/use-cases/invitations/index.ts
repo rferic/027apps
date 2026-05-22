@@ -13,6 +13,7 @@ export type Invitation = {
   expiresAt: string | null
   createdAt: string
   groupIds: string[]
+  locale: string
 }
 
 export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked'
@@ -44,6 +45,7 @@ export async function getAdminInvitationList(): Promise<Invitation[]> {
     expiresAt: (row.expires_at as string) ?? null,
     createdAt: row.created_at as string,
     groupIds: (row.group_ids as string[]) ?? [],
+    locale: (row.locale as string) ?? 'es',
   }))
 }
 
@@ -54,6 +56,7 @@ export async function createInvitation(data: {
   expiresAt: string | null
   invitedBy: string
   groupIds: string[]
+  locale: string
 }): Promise<{ token: string } | { error: string }> {
   const supabase = createAdminClient()
   const { data: row, error } = await supabase
@@ -65,6 +68,7 @@ export async function createInvitation(data: {
       expires_at: data.expiresAt || null,
       invited_by: data.invitedBy,
       group_ids: data.groupIds,
+      locale: data.locale,
     })
     .select('token')
     .single()
@@ -117,6 +121,7 @@ export async function getInvitationByToken(token: string): Promise<Invitation | 
     expiresAt: row.expires_at ?? null,
     createdAt: row.created_at,
     groupIds: row.group_ids ?? [],
+    locale: row.locale ?? 'es',
   }
 }
 
@@ -139,7 +144,7 @@ export async function acceptInvitation(
     email: data.email,
     password: data.password,
     email_confirm: true,
-    user_metadata: { display_name: data.displayName },
+    user_metadata: { display_name: data.displayName, locale: invitation.locale },
   })
   if (createError || !authUser.user) return { error: createError?.message ?? 'Failed to create user' }
 
@@ -147,7 +152,7 @@ export async function acceptInvitation(
 
   // Upsert en lugar de insert: el trigger on_auth_user_created puede haber creado
   // el perfil antes de que lleguemos aquí. El upsert garantiza el nombre correcto.
-  await supabase.from('profiles').upsert({ id: userId, display_name: data.displayName })
+  await supabase.from('profiles').upsert({ id: userId, display_name: data.displayName, locale: invitation.locale })
 
   const groupIds = invitation.groupIds && invitation.groupIds.length > 0
     ? [...invitation.groupIds]

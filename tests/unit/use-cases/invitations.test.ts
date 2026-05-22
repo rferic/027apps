@@ -65,6 +65,7 @@ const baseInvitation: Invitation = {
   revokedAt: null,
   expiresAt: null,
   createdAt: new Date().toISOString(),
+  locale: 'es',
 }
 
 describe('getInvitationStatus', () => {
@@ -179,6 +180,7 @@ describe('createInvitation', () => {
       expiresAt: null,
       invitedBy: 'admin-id',
       groupIds: [],
+      locale: 'es',
     })
     expect(result).toEqual({ token: 'new-token' })
   })
@@ -192,6 +194,7 @@ describe('createInvitation', () => {
       expiresAt: null,
       invitedBy: 'admin-id',
       groupIds: [],
+      locale: 'es',
     })
     expect(result).toEqual({ error: 'DB error' })
   })

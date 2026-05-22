@@ -3,7 +3,7 @@
 import { useTransition, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { createInvitationAction } from './actions'
+import { createInvitationAction, sendInvitationEmailAction } from './actions'
 
 interface Props {
   baseUrl: string
@@ -18,7 +18,12 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(() =>
     availableGroups.length === 1 ? [availableGroups[0].id] : []
   )
+  const [sendOption, setSendOption] = useState<'create' | 'create_and_send'>('create')
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [emailValue, setEmailValue] = useState('')
+  const hasEmail = emailValue.trim().length > 0
   const t = useTranslations('admin.invitations.form')
+  const tI = useTranslations('admin.invitations')
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -27,9 +32,22 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
       const result = await createInvitationAction(formData)
       if ('error' in result) {
         toast.error(result.error)
-      } else {
-        setCreatedUrl(`${baseUrl}/invite/${result.token}`)
+        return
       }
+
+      const token = result.token
+      const email = formData.get('email') as string
+
+      if (sendOption === 'create_and_send' && email) {
+        const sendResult = await sendInvitationEmailAction(token, email)
+        if (sendResult.error) {
+          toast.error(tI('email_send_failed', { email }))
+        } else {
+          toast.success(tI('email_sent', { email }))
+        }
+      }
+
+      setCreatedUrl(`${baseUrl}/invite/${token}`)
     })
   }
 
@@ -113,6 +131,8 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
                 <input
                   name="email"
                   type="email"
+                  value={emailValue}
+                  onChange={e => setEmailValue(e.target.value)}
                   placeholder={t('emailPlaceholder')}
                   className={inputCls}
                 />
@@ -122,7 +142,7 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
               {availableGroups.length > 1 && (
                 <div>
                   <label className={labelCls}>
-                    {t('groups_label')} <span className="text-red-400">*</span>
+                    {tI('groups_label')} <span className="text-red-400">*</span>
                   </label>
                   <div className="space-y-1.5 max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2">
                     {availableGroups.map(group => (
@@ -145,11 +165,29 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
                     ))}
                   </div>
                   {selectedGroupIds.length === 0 && (
-                    <p className="text-xs text-red-400 mt-1">{t('groups_required')}</p>
+                    <p className="text-xs text-red-400 mt-1">{tI('groups_required')}</p>
                   )}
                 </div>
               )}
               <input type="hidden" name="group_ids" value={JSON.stringify(selectedGroupIds)} />
+
+              <div>
+                <label className={labelCls}>
+                  {t('localeLabel')} <span className="text-red-400">*</span>
+                </label>
+                <select
+                  name="locale"
+                  defaultValue="es"
+                  className={inputCls}
+                >
+                  <option value="es">{t('locale_es')}</option>
+                  <option value="en">{t('locale_en')}</option>
+                  <option value="it">{t('locale_it')}</option>
+                  <option value="ca">{t('locale_ca')}</option>
+                  <option value="fr">{t('locale_fr')}</option>
+                  <option value="de">{t('locale_de')}</option>
+                </select>
+              </div>
 
               <div>
                 <label className={labelCls}>
@@ -170,13 +208,45 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
                 >
                   {t('cancel')}
                 </button>
-                <button
-                  type="submit"
-                  disabled={pending}
-                  className="cursor-pointer px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-                >
-                  {pending ? t('submitting') : t('submit')}
-                </button>
+                <div className="relative">
+                  <button
+                    type="submit"
+                    disabled={pending}
+                    onClick={() => { if (sendOption === 'create_and_send' && !hasEmail) { toast.error(tI('email_required')); return } }}
+                    className="cursor-pointer px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-l-lg transition-colors"
+                  >
+                    {pending ? t('submitting') : sendOption === 'create' ? tI('send_option_create') : tI('send_option_create_and_send')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="cursor-pointer px-2 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 text-white rounded-r-lg border-l border-slate-700 transition-colors"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                      <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                    </svg>
+                  </button>
+                  {showDropdown && (
+                    <div className="absolute right-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
+                      <button
+                        type="button"
+                        onClick={() => { setSendOption('create'); setShowDropdown(false) }}
+                        className="block w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
+                      >
+                        {tI('send_option_create')}
+                      </button>
+                      {hasEmail && (
+                        <button
+                          type="button"
+                          onClick={() => { setSendOption('create_and_send'); setShowDropdown(false) }}
+                          className="block w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
+                        >
+                          {tI('send_option_create_and_send')}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </form>
           </>

@@ -1,15 +1,17 @@
 import { redirect } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { AppLoginForm } from '@/components/auth/AppLoginForm'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { getGroupSettings } from '@/lib/use-cases/settings'
 import { getUserGroups, getLastGroupCookie } from '@/lib/groups/context'
 
-type Props = { params: Promise<{ locale: string }> }
+type Props = { params: Promise<{ locale: string }>; searchParams: Promise<{ reset?: string }> }
 
-export default async function LoginPage({ params }: Props) {
+export default async function LoginPage({ params, searchParams }: Props) {
   const { locale } = await params
+  setRequestLocale(locale)
+  const { reset } = await searchParams
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -51,7 +53,7 @@ export default async function LoginPage({ params }: Props) {
         </div>
 
         <div className="mt-8 bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-          <AppLoginForm locale={locale} />
+          <AppLoginForm locale={locale} showResetSuccess={reset === 'success'} />
         </div>
       </div>
     </div>

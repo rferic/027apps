@@ -7,9 +7,21 @@ interface Props {
   token: string
   lockedEmail: string | null
   role: 'admin' | 'member'
+  locale: string
+  labels: {
+    full_name: string
+    email: string
+    password: string
+    your_name: string
+    email_placeholder: string
+    min_chars: string
+    creating: string
+    create_account: string
+    joining_as: string
+  }
 }
 
-export function InviteForm({ token, lockedEmail, role }: Props) {
+export function InviteForm({ token, lockedEmail, role, locale, labels: l }: Props) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -18,7 +30,7 @@ export function InviteForm({ token, lockedEmail, role }: Props) {
     setError(null)
     const formData = new FormData(e.currentTarget)
     startTransition(async () => {
-      const result = await acceptInvitationAction(token, formData)
+      const result = await acceptInvitationAction(token, formData, locale)
       if (result && 'error' in result) setError(result.error)
     })
   }
@@ -27,21 +39,21 @@ export function InviteForm({ token, lockedEmail, role }: Props) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
-          Full name
+          {l.full_name}
         </label>
         <input
           name="display_name"
           type="text"
           required
           autoFocus
-          placeholder="Your name"
+          placeholder={l.your_name}
           className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
       </div>
 
       <div>
         <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
-          Email
+          {l.email}
         </label>
         {lockedEmail ? (
           <input
@@ -56,7 +68,7 @@ export function InviteForm({ token, lockedEmail, role }: Props) {
             name="email"
             type="email"
             required
-            placeholder="you@example.com"
+            placeholder={l.email_placeholder}
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400"
           />
         )}
@@ -64,14 +76,14 @@ export function InviteForm({ token, lockedEmail, role }: Props) {
 
       <div>
         <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
-          Password
+          {l.password}
         </label>
         <input
           name="password"
           type="password"
           required
           minLength={8}
-          placeholder="Min. 8 characters"
+          placeholder={l.min_chars}
           className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
       </div>
@@ -83,13 +95,13 @@ export function InviteForm({ token, lockedEmail, role }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full py-2.5 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50"
+        className="w-full py-2.5 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50 cursor-pointer"
       >
-        {pending ? 'Creating account…' : 'Create account'}
+        {pending ? l.creating : l.create_account}
       </button>
 
       <p className="text-center text-xs text-slate-400">
-        You are joining as <span className="font-medium text-slate-600">{role}</span>
+        {l.joining_as} <span className="font-medium text-slate-600">{role}</span>
       </p>
     </form>
   )

@@ -8,7 +8,8 @@ import { routing } from '@/i18n/routing'
 
 export async function acceptInvitationAction(
   token: string,
-  formData: FormData
+  formData: FormData,
+  invitationLocale?: string
 ): Promise<{ error: string } | void> {
   const email = (formData.get('email') as string).trim()
   const displayName = (formData.get('display_name') as string).trim()
@@ -25,6 +26,8 @@ export async function acceptInvitationAction(
 
   const cookieStore = await cookies()
   const raw = cookieStore.get('preferred-locale')?.value
-  const locale = raw && routing.locales.includes(raw as typeof routing.locales[number]) ? raw : 'en'
+  const locale = invitationLocale && routing.locales.includes(invitationLocale as typeof routing.locales[number])
+    ? invitationLocale
+    : (raw && routing.locales.includes(raw as typeof routing.locales[number]) ? raw : 'en')
   redirect(`/${locale}/`)
 }

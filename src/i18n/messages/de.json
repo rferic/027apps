@@ -9,7 +9,24 @@
     "blockedTitle": "Konto gesperrt",
     "blockedDesc": "Dein Konto wurde gesperrt. Wende dich an den Administrator, um den Zugang wiederherzustellen.",
     "adminOnly": "Nur Administratoren können auf diesen Bereich zugreifen",
-    "subtitle": "Deine Gruppe, deine Apps."
+    "subtitle": "Deine Gruppe, deine Apps.",
+    "forgot_password": "Passwort vergessen?",
+    "password_reset_success": "Passwort erfolgreich aktualisiert. Melde dich mit deinem neuen Passwort an.",
+    "recover_title": "Passwort wiederherstellen",
+    "recover_email_label": "E-Mail",
+    "recover_submit": "Wiederherstellungslink senden",
+    "recover_success": "Überprüfe deinen Posteingang. Wenn die E-Mail existiert, erhältst du einen Link zum Zurücksetzen deines Passworts.",
+    "recover_back_to_login": "Zurück zur Anmeldung",
+    "update_password_title": "Neues Passwort",
+    "new_password": "Neues Passwort",
+    "confirm_password": "Passwort bestätigen",
+    "update_password_submit": "Passwort ändern",
+    "password_updated": "Passwort erfolgreich aktualisiert",
+    "go_to_dashboard": "Zum Dashboard",
+    "invalid_reset_link": "Ungültiger oder abgelaufener Link. Fordere einen neuen an.",
+    "password_min_length": "Das Passwort muss mindestens 8 Zeichen lang sein",
+    "password_mismatch": "Die Passwörter stimmen nicht überein",
+    "updating": "Passwort wird aktualisiert…"
   },
   "home": {
     "noApps": "Noch keine Apps verfügbar.",
@@ -235,8 +252,23 @@
         "copyFailed": "Kopieren fehlgeschlagen",
         "backToInvitations": "← Zurück zu Einladungen",
         "newTitle": "Neue Einladung",
-        "done": "Fertig"
-      }
+        "done": "Fertig",
+        "localeLabel": "Sprache des Empfängers",
+        "locale_es": "Español",
+        "locale_en": "English",
+        "locale_it": "Italiano",
+        "locale_ca": "Català",
+        "locale_fr": "Français",
+        "locale_de": "Deutsch"
+      },
+      "send_option_label": "Sendeoption",
+      "send_option_create": "Nur Einladung erstellen",
+      "send_option_create_and_send": "Erstellen und per E-Mail senden",
+      "email_sent": "Einladung erstellt und an {email} gesendet",
+      "email_send_failed": "Einladung erstellt, aber E-Mail konnte nicht an {email} gesendet werden",
+      "email_required": "E-Mail ist erforderlich, um die Einladung zu senden",
+      "email_resent": "E-Mail erneut an {email} gesendet",
+      "resent_button": "Erneut senden"
     },
     "profile": {
       "title": "Mein Profil",
@@ -412,6 +444,22 @@
     },
     "common": {
       "loading": "Wird geladen…"
+    },
+    "invite": {
+      "title": "Du wurdest eingeladen",
+      "invalid": "Ungültiger Einladungslink.",
+      "already_used": "Diese Einladung wurde bereits verwendet.",
+      "expired": "Diese Einladung ist abgelaufen.",
+      "revoked": "Diese Einladung wurde widerrufen.",
+      "full_name": "Vollständiger Name",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "your_name": "Ihr Name",
+      "email_placeholder": "du@beispiel.de",
+      "min_chars": "Mind. 8 Zeichen",
+      "creating": "Konto wird erstellt…",
+      "create_account": "Konto erstellen",
+      "joining_as": "Du trittst bei als"
     }
   },
   "user": {

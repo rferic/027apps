@@ -9,7 +9,24 @@
     "blockedTitle": "Compte suspès",
     "blockedDesc": "El teu compte ha estat suspès. Contacta amb l'administrador per recuperar l'accés.",
     "adminOnly": "Només els administradors poden accedir a aquesta àrea",
-    "subtitle": "El teu grup, les teves apps."
+    "subtitle": "El teu grup, les teves apps.",
+    "forgot_password": "Has oblidat la contrasenya?",
+    "password_reset_success": "Contrasenya actualitzada correctament. Inicia sessió amb la teva nova contrasenya.",
+    "recover_title": "Recuperar contrasenya",
+    "recover_email_label": "Correu electrònic",
+    "recover_submit": "Enviar enllaç de recuperació",
+    "recover_success": "Revisa la teva bústia d'entrada. Si el correu existeix, rebràs un enllaç per restablir la teva contrasenya.",
+    "recover_back_to_login": "Tornar a l'inici de sessió",
+    "update_password_title": "Nova contrasenya",
+    "new_password": "Nova contrasenya",
+    "confirm_password": "Confirmar contrasenya",
+    "update_password_submit": "Canviar contrasenya",
+    "password_updated": "Contrasenya actualitzada correctament",
+    "go_to_dashboard": "Anar al panell de control",
+    "invalid_reset_link": "Enllaç no vàlid o expirat. Sol·licita'n un de nou.",
+    "password_min_length": "La contrasenya ha de tenir almenys 8 caràcters",
+    "password_mismatch": "Les contrasenyes no coincideixen",
+    "updating": "Actualitzant contrasenya…"
   },
   "home": {
     "noApps": "Encara no hi ha apps disponibles.",
@@ -235,8 +252,23 @@
         "copyFailed": "Error en copiar",
         "backToInvitations": "← Tornar a invitacions",
         "newTitle": "Nova invitació",
-        "done": "Fet"
-      }
+        "done": "Fet",
+        "localeLabel": "Idioma del destinatari",
+        "locale_es": "Español",
+        "locale_en": "English",
+        "locale_it": "Italiano",
+        "locale_ca": "Català",
+        "locale_fr": "Français",
+        "locale_de": "Deutsch"
+      },
+      "send_option_label": "Opció d'enviament",
+      "send_option_create": "Crear invitació només",
+      "send_option_create_and_send": "Crear i enviar per correu",
+      "email_sent": "Invitació creada i enviada a {email}",
+      "email_send_failed": "Invitació creada però no s'ha pogut enviar el correu a {email}",
+      "email_required": "El correu és obligatori per enviar la invitació",
+      "email_resent": "Correu reenviat a {email}",
+      "resent_button": "Reenviar"
     },
     "profile": {
       "title": "El meu perfil",
@@ -412,6 +444,22 @@
     },
     "common": {
       "loading": "Carregant…"
+    },
+    "invite": {
+      "title": "T'han convidat",
+      "invalid": "Enllaç d'invitació no vàlid.",
+      "already_used": "Aquesta invitació ja ha estat utilitzada.",
+      "expired": "Aquesta invitació ha expirat.",
+      "revoked": "Aquesta invitació ha estat revocada.",
+      "full_name": "Nom complet",
+      "email": "Correu electrònic",
+      "password": "Contrasenya",
+      "your_name": "El teu nom",
+      "email_placeholder": "tu@exemple.com",
+      "min_chars": "Mín. 8 caràcters",
+      "creating": "Creant compte…",
+      "create_account": "Crear compte",
+      "joining_as": "T'estàs unint com a"
     }
   },
   "user": {
