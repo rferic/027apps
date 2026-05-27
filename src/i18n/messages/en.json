@@ -9,7 +9,24 @@
     "blockedTitle": "Account suspended",
     "blockedDesc": "Your account has been suspended. Contact the administrator to restore access.",
     "adminOnly": "Only administrators can access this area",
-    "subtitle": "Your group, your apps."
+    "subtitle": "Your group, your apps.",
+    "forgot_password": "Forgot your password?",
+    "password_reset_success": "Password updated successfully. Sign in with your new password.",
+    "recover_title": "Recover password",
+    "recover_email_label": "Email",
+    "recover_submit": "Send recovery link",
+    "recover_success": "Check your inbox. If the email exists, you will receive a link to reset your password.",
+    "recover_back_to_login": "Back to login",
+    "update_password_title": "New password",
+    "new_password": "New password",
+    "confirm_password": "Confirm password",
+    "update_password_submit": "Change password",
+    "password_updated": "Password updated successfully",
+    "go_to_dashboard": "Go to dashboard",
+    "invalid_reset_link": "Invalid or expired link. Request a new one.",
+    "password_min_length": "Password must be at least 8 characters",
+    "password_mismatch": "Passwords do not match",
+    "updating": "Updating password…"
   },
   "home": {
     "noApps": "No apps available yet.",
@@ -187,6 +204,14 @@
       "groups_label": "Assign to groups",
       "groups_hint": "The user will join these groups upon accepting the invitation",
       "groups_required": "Select at least one group",
+      "send_option_label": "Send option",
+      "send_option_create": "Create invitation only",
+      "send_option_create_and_send": "Create and send email",
+      "email_sent": "Invitation created and sent to {email}",
+      "email_send_failed": "Invitation created but email could not be sent to {email}",
+      "email_required": "Email is required to send the invitation",
+      "email_resent": "Email resent to {email}",
+      "resent_button": "Resend",
       "new": "New invitation",
       "newTitle": "New invitation",
       "newSubtitle": "Create a link to invite someone to the platform.",
@@ -235,10 +260,17 @@
         "copyFailed": "Copy failed",
         "backToInvitations": "← Back to invitations",
         "newTitle": "New invitation",
-        "done": "Done"
+        "done": "Done",
+        "localeLabel": "Recipient language",
+        "locale_es": "Español",
+        "locale_en": "English",
+        "locale_it": "Italiano",
+        "locale_ca": "Català",
+        "locale_fr": "Français",
+        "locale_de": "Deutsch"
       }
     },
-    "profile": {
+  "profile": {
       "title": "My profile",
       "subtitle": "Edit your name and language preference.",
       "personalInfo": "Personal information",
@@ -413,6 +445,28 @@
     "common": {
       "loading": "Loading…"
     }
+  },
+  "invite": {
+    "title": "You have been invited",
+    "invalid": "Invalid invitation link.",
+    "already_used": "This invitation has already been used.",
+    "expired": "This invitation has expired.",
+    "revoked": "This invitation has been revoked.",
+    "full_name": "Full name",
+    "email": "Email",
+    "password": "Password",
+    "your_name": "Your name",
+    "email_placeholder": "you@example.com",
+    "min_chars": "Min. 8 characters",
+    "creating": "Creating account\u2026",
+    "create_account": "Create account",
+    "joining_as": "You are joining as",
+    "all_fields_required": "All fields are required",
+    "password_min_length": "Password must be at least 8 characters",
+    "invalid_invitation": "Invalid invitation",
+    "invitation_status": "Invitation is {status}",
+    "email_mismatch": "Email does not match invitation",
+    "failed_to_create_user": "Failed to create user"
   },
   "user": {
     "editProfile": "Edit profile",

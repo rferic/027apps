@@ -13,6 +13,7 @@ export type Invitation = {
   expiresAt: string | null
   createdAt: string
   groupIds: string[]
+  locale: string
 }
 
 export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked'
@@ -44,6 +45,7 @@ export async function getAdminInvitationList(): Promise<Invitation[]> {
     expiresAt: (row.expires_at as string) ?? null,
     createdAt: row.created_at as string,
     groupIds: (row.group_ids as string[]) ?? [],
+    locale: (row.locale as string) ?? 'es',
   }))
 }
 
@@ -54,6 +56,7 @@ export async function createInvitation(data: {
   expiresAt: string | null
   invitedBy: string
   groupIds: string[]
+  locale: string
 }): Promise<{ token: string } | { error: string }> {
   const supabase = createAdminClient()
   const { data: row, error } = await supabase
@@ -65,6 +68,7 @@ export async function createInvitation(data: {
       expires_at: data.expiresAt || null,
       invited_by: data.invitedBy,
       group_ids: data.groupIds,
+      locale: data.locale,
     })
     .select('token')
     .single()
@@ -117,37 +121,44 @@ export async function getInvitationByToken(token: string): Promise<Invitation | 
     expiresAt: row.expires_at ?? null,
     createdAt: row.created_at,
     groupIds: row.group_ids ?? [],
+    locale: row.locale ?? 'es',
   }
 }
+
+type AcceptInvitationError =
+  | { errorCode: 'invalid_invitation' }
+  | { errorCode: 'invitation_status'; status: string }
+  | { errorCode: 'email_mismatch' }
+  | { errorCode: 'failed_to_create_user' }
 
 export async function acceptInvitation(
   token: string,
   data: { email: string; displayName: string; password: string }
-): Promise<{ error: string } | { success: true }> {
+): Promise<AcceptInvitationError | { success: true }> {
   const supabase = createAdminClient()
 
   const invitation = await getInvitationByToken(token)
-  if (!invitation) return { error: 'Invalid invitation' }
+  if (!invitation) return { errorCode: 'invalid_invitation' }
 
   const status = getInvitationStatus(invitation)
-  if (status !== 'pending') return { error: `Invitation is ${status}` }
+  if (status !== 'pending') return { errorCode: 'invitation_status', status }
   if (invitation.email && invitation.email.toLowerCase() !== data.email.toLowerCase()) {
-    return { error: 'Email does not match invitation' }
+    return { errorCode: 'email_mismatch' }
   }
 
   const { data: authUser, error: createError } = await supabase.auth.admin.createUser({
     email: data.email,
     password: data.password,
     email_confirm: true,
-    user_metadata: { display_name: data.displayName },
+    user_metadata: { display_name: data.displayName, locale: invitation.locale },
   })
-  if (createError || !authUser.user) return { error: createError?.message ?? 'Failed to create user' }
+  if (createError || !authUser.user) return { errorCode: 'failed_to_create_user' }
 
   const userId = authUser.user.id
 
   // Upsert en lugar de insert: el trigger on_auth_user_created puede haber creado
   // el perfil antes de que lleguemos aquí. El upsert garantiza el nombre correcto.
-  await supabase.from('profiles').upsert({ id: userId, display_name: data.displayName })
+  await supabase.from('profiles').upsert({ id: userId, display_name: data.displayName, locale: invitation.locale })
 
   const groupIds = invitation.groupIds && invitation.groupIds.length > 0
     ? [...invitation.groupIds]

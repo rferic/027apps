@@ -9,7 +9,24 @@
     "blockedTitle": "Compte suspendu",
     "blockedDesc": "Votre compte a été suspendu. Contactez l'administrateur pour rétablir l'accès.",
     "adminOnly": "Seuls les administrateurs peuvent accéder à cette zone",
-    "subtitle": "Votre groupe, vos apps."
+    "subtitle": "Votre groupe, vos apps.",
+    "forgot_password": "Mot de passe oublié ?",
+    "password_reset_success": "Mot de passe mis à jour avec succès. Connectez-vous avec votre nouveau mot de passe.",
+    "recover_title": "Récupérer le mot de passe",
+    "recover_email_label": "E-mail",
+    "recover_submit": "Envoyer le lien de récupération",
+    "recover_success": "Vérifiez votre boîte de réception. Si l'e-mail existe, vous recevrez un lien pour réinitialiser votre mot de passe.",
+    "recover_back_to_login": "Retour à la connexion",
+    "update_password_title": "Nouveau mot de passe",
+    "new_password": "Nouveau mot de passe",
+    "confirm_password": "Confirmer le mot de passe",
+    "update_password_submit": "Changer le mot de passe",
+    "password_updated": "Mot de passe mis à jour avec succès",
+    "go_to_dashboard": "Aller au tableau de bord",
+    "invalid_reset_link": "Lien invalide ou expiré. Demandez-en un nouveau.",
+    "password_min_length": "Le mot de passe doit contenir au moins 8 caractères",
+    "password_mismatch": "Les mots de passe ne correspondent pas",
+    "updating": "Mise à jour du mot de passe…"
   },
   "home": {
     "noApps": "Aucune app disponible pour l'instant.",
@@ -235,8 +252,23 @@
         "copyFailed": "Échec de la copie",
         "backToInvitations": "← Retour aux invitations",
         "newTitle": "Nouvelle invitation",
-        "done": "Terminer"
-      }
+        "done": "Terminer",
+        "localeLabel": "Langue du destinataire",
+        "locale_es": "Español",
+        "locale_en": "English",
+        "locale_it": "Italiano",
+        "locale_ca": "Català",
+        "locale_fr": "Français",
+        "locale_de": "Deutsch"
+      },
+      "send_option_label": "Option d'envoi",
+      "send_option_create": "Créer l'invitation uniquement",
+      "send_option_create_and_send": "Créer et envoyer par e-mail",
+      "email_sent": "Invitation créée et envoyée à {email}",
+      "email_send_failed": "Invitation créée mais l'e-mail n'a pas pu être envoyé à {email}",
+      "email_required": "L'e-mail est requis pour envoyer l'invitation",
+      "email_resent": "E-mail renvoyé à {email}",
+      "resent_button": "Renvoyer"
     },
     "profile": {
       "title": "Mon profil",
@@ -413,6 +445,28 @@
     "common": {
       "loading": "Chargement…"
     }
+  },
+  "invite": {
+    "title": "Vous avez été invité",
+    "invalid": "Lien d'invitation invalide.",
+    "already_used": "Cette invitation a déjà été utilisée.",
+    "expired": "Cette invitation a expiré.",
+    "revoked": "Cette invitation a été révoquée.",
+    "full_name": "Nom complet",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "your_name": "Votre nom",
+    "email_placeholder": "vous@exemple.com",
+    "min_chars": "Min. 8 caractères",
+    "creating": "Création du compte…",
+    "create_account": "Créer un compte",
+    "joining_as": "Vous rejoignez en tant que",
+    "all_fields_required": "All fields are required",
+    "password_min_length": "Password must be at least 8 characters",
+    "invalid_invitation": "Invalid invitation",
+    "invitation_status": "Invitation is {status}",
+    "email_mismatch": "Email does not match invitation",
+    "failed_to_create_user": "Failed to create user"
   },
   "user": {
     "editProfile": "Modifier le profil",

@@ -35,7 +35,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   if (rawPath.startsWith('http')) {
     try { pathname = new URL(rawPath).pathname } catch { pathname = '' }
   }
-  if (!user && pathname && !pathname.endsWith('/login')) {
+  if (!user && pathname && !pathname.endsWith('/login') && !pathname.endsWith('/recover') && !pathname.endsWith('/update-password')) {
     redirect(`/${locale}/login`)
   }
 
@@ -64,7 +64,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   // pathname: "/en/mi-familia/dashboard" → segments: ["en", "mi-familia", "dashboard"]
   // segments[0] = locale, segments[1] = potential group-slug
   const slugFromUrl =
-    segments.length >= 2 && segments[1] !== 'login' && segments[1] !== 'profile'
+    segments.length >= 2 && segments[1] !== 'login' && segments[1] !== 'profile' && segments[1] !== 'recover' && segments[1] !== 'update-password'
       ? segments[1]
       : null
 

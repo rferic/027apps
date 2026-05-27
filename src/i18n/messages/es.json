@@ -9,7 +9,24 @@
     "blockedTitle": "Cuenta suspendida",
     "blockedDesc": "Tu cuenta ha sido suspendida. Contacta con el administrador para recuperar el acceso.",
     "adminOnly": "Solo administradores pueden acceder aquí",
-    "subtitle": "Tu grupo, tus apps."
+    "subtitle": "Tu grupo, tus apps.",
+    "forgot_password": "¿Has olvidado tu contraseña?",
+    "password_reset_success": "Contraseña actualizada correctamente. Inicia sesión con tu nueva contraseña.",
+    "recover_title": "Recuperar contraseña",
+    "recover_email_label": "Correo electrónico",
+    "recover_submit": "Enviar enlace de recuperación",
+    "recover_success": "Revisa tu bandeja de entrada. Si el correo existe, recibirás un enlace para restablecer tu contraseña.",
+    "recover_back_to_login": "Volver al inicio de sesión",
+    "update_password_title": "Nueva contraseña",
+    "new_password": "Nueva contraseña",
+    "confirm_password": "Confirmar contraseña",
+    "update_password_submit": "Cambiar contraseña",
+    "password_updated": "Contraseña actualizada correctamente",
+    "go_to_dashboard": "Ir al panel de control",
+    "invalid_reset_link": "Enlace inválido o expirado. Solicita uno nuevo.",
+    "password_min_length": "La contraseña debe tener al menos 8 caracteres",
+    "password_mismatch": "Las contraseñas no coinciden",
+    "updating": "Actualizando contraseña…"
   },
   "home": {
     "noApps": "Aún no tienes apps disponibles.",
@@ -235,8 +252,23 @@
         "copyFailed": "Error al copiar",
         "backToInvitations": "← Volver a invitaciones",
         "newTitle": "Nueva invitación",
-        "done": "Listo"
-      }
+        "done": "Listo",
+        "localeLabel": "Idioma del destinatario",
+        "locale_es": "Español",
+        "locale_en": "English",
+        "locale_it": "Italiano",
+        "locale_ca": "Català",
+        "locale_fr": "Français",
+        "locale_de": "Deutsch"
+      },
+      "send_option_label": "Opción de envío",
+      "send_option_create": "Crear invitación solamente",
+      "send_option_create_and_send": "Crear y enviar por correo",
+      "email_sent": "Invitación creada y enviada a {email}",
+      "email_send_failed": "Invitación creada pero no se pudo enviar el correo a {email}",
+      "email_required": "El correo es obligatorio para enviar la invitación",
+      "email_resent": "Correo reenviado a {email}",
+      "resent_button": "Reenviar"
     },
     "profile": {
       "title": "Mi perfil",
@@ -413,6 +445,28 @@
     "common": {
       "loading": "Cargando…"
     }
+  },
+  "invite": {
+    "title": "Te han invitado",
+    "invalid": "Enlace de invitación no válido.",
+    "already_used": "Esta invitación ya ha sido utilizada.",
+    "expired": "Esta invitación ha expirado.",
+    "revoked": "Esta invitación ha sido revocada.",
+    "full_name": "Nombre completo",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "your_name": "Tu nombre",
+    "email_placeholder": "tu@ejemplo.com",
+    "min_chars": "Mín. 8 caracteres",
+    "creating": "Creando cuenta…",
+    "create_account": "Crear cuenta",
+    "joining_as": "Te estás uniendo como",
+    "all_fields_required": "All fields are required",
+    "password_min_length": "Password must be at least 8 characters",
+    "invalid_invitation": "Invalid invitation",
+    "invitation_status": "Invitation is {status}",
+    "email_mismatch": "Email does not match invitation",
+    "failed_to_create_user": "Failed to create user"
   },
   "user": {
     "editProfile": "Editar perfil",

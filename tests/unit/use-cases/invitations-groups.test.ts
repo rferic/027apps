@@ -46,6 +46,7 @@ describe('createInvitation with groupIds', () => {
       expiresAt: null,
       invitedBy: 'admin-id',
       groupIds: ['g1', 'g2'],
+      locale: 'es',
     })
 
     expect('token' in result).toBe(true)
@@ -72,6 +73,7 @@ describe('createInvitation with groupIds', () => {
       expiresAt: null,
       invitedBy: 'admin-id',
       groupIds: [],
+      locale: 'es',
     })
 
     expect('token' in result).toBe(true)

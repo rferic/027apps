@@ -65,6 +65,7 @@ const baseInvitation: Invitation = {
   revokedAt: null,
   expiresAt: null,
   createdAt: new Date().toISOString(),
+  locale: 'es',
 }
 
 describe('getInvitationStatus', () => {
@@ -179,6 +180,7 @@ describe('createInvitation', () => {
       expiresAt: null,
       invitedBy: 'admin-id',
       groupIds: [],
+      locale: 'es',
     })
     expect(result).toEqual({ token: 'new-token' })
   })
@@ -192,6 +194,7 @@ describe('createInvitation', () => {
       expiresAt: null,
       invitedBy: 'admin-id',
       groupIds: [],
+      locale: 'es',
     })
     expect(result).toEqual({ error: 'DB error' })
   })
@@ -274,7 +277,7 @@ describe('acceptInvitation', () => {
       displayName: 'User',
       password: 'pass123',
     })
-    expect(result).toEqual({ error: 'Invalid invitation' })
+    expect(result).toEqual({ errorCode: 'invalid_invitation' })
   })
 
   it('returns error when invitation is revoked', async () => {
@@ -285,7 +288,7 @@ describe('acceptInvitation', () => {
       displayName: 'User',
       password: 'pass123',
     })
-    expect(result).toEqual({ error: 'Invitation is revoked' })
+    expect(result).toEqual({ errorCode: 'invitation_status', status: 'revoked' })
   })
 
   it('returns error when invitation is expired', async () => {
@@ -299,7 +302,7 @@ describe('acceptInvitation', () => {
       displayName: 'User',
       password: 'pass123',
     })
-    expect(result).toEqual({ error: 'Invitation is expired' })
+    expect(result).toEqual({ errorCode: 'invitation_status', status: 'expired' })
   })
 
   it('returns error when email does not match a restricted invitation', async () => {
@@ -310,7 +313,7 @@ describe('acceptInvitation', () => {
       displayName: 'User',
       password: 'pass123',
     })
-    expect(result).toEqual({ error: 'Email does not match invitation' })
+    expect(result).toEqual({ errorCode: 'email_mismatch' })
   })
 
   it('allows accepting when email matches (case-insensitive)', async () => {
@@ -345,7 +348,7 @@ describe('acceptInvitation', () => {
       displayName: 'User',
       password: 'pass123',
     })
-    expect(result).toEqual({ error: 'Email already in use' })
+    expect(result).toEqual({ errorCode: 'failed_to_create_user' })
   })
 
   it('returns success on happy path (open invitation)', async () => {
