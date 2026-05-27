@@ -51,7 +51,7 @@ export async function sendEmail({ to, subject, html }: SendParams): Promise<Send
   try {
     const resend = getResend()
     await resend.emails.send({
-      from: '027Apps <onboarding@resend.dev>',
+      from: process.env.SENDER_EMAIL ?? '027Apps <onboarding@resend.dev>',
       to,
       subject,
       html,

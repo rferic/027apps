@@ -23,7 +23,7 @@ export default function UpdatePasswordPage({ params }: Props) {
     }
 
     const params = new URLSearchParams(hash.substring(1))
-    const accessToken = params.get('access_token') || params.get('access_token%3D')
+    const accessToken = params.get('access_token')
 
     if (!accessToken) {
       queueMicrotask(() => setPageState('invalid_link'))

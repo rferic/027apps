@@ -40,8 +40,10 @@ export async function sendInvitationEmail(
   }
   const subject = labels[invitation.locale] ?? labels.en
 
+  if (!invitation.email) return { error: 'Invitation has no email' }
+
   return sendEmail({
-    to: invitation.email ?? '',
+    to: invitation.email,
     subject,
     html,
   })

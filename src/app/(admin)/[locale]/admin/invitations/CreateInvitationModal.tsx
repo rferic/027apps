@@ -27,6 +27,12 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
+    if (sendOption === 'create_and_send' && !hasEmail) {
+      toast.error(tI('email_required'))
+      return
+    }
+
     const formData = new FormData(e.currentTarget)
     startTransition(async () => {
       const result = await createInvitationAction(formData)
@@ -212,7 +218,6 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
                   <button
                     type="submit"
                     disabled={pending}
-                    onClick={() => { if (sendOption === 'create_and_send' && !hasEmail) { toast.error(tI('email_required')); return } }}
                     className="cursor-pointer px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-l-lg transition-colors"
                   >
                     {pending ? t('submitting') : sendOption === 'create' ? tI('send_option_create') : tI('send_option_create_and_send')}

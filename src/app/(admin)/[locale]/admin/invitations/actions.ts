@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { requireAdmin } from '@/lib/auth/helpers'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { createInvitation as _create, revokeInvitation as _revoke, deleteInvitation as _delete } from '@/lib/use-cases/invitations'
 import { sendInvitationEmail } from '@/lib/use-cases/invitations/send-invitation-email'
 
@@ -36,6 +37,10 @@ export async function createInvitationAction(formData: FormData): Promise<{ erro
 export async function sendInvitationEmailAction(token: string, email: string): Promise<{ error: string | null }> {
   await requireAdmin()
   if (!email) return { error: 'Email is required' }
+
+  const rateCheck = checkRateLimit(`send-invite:${token}`, 2, 60_000)
+  if (!rateCheck.allowed) return { error: 'Too many requests. Try again later.' }
+
   return sendInvitationEmail(token)
 }
 
