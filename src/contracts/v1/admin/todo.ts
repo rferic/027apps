@@ -5,13 +5,13 @@ import { ErrorResponseSchema, UnauthorizedResponseSchema, ForbiddenResponseSchem
 const c = initContract()
 
 const TodoItemSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  completed: z.boolean(),
-  created_at: z.string(),
-  user_id: z.string(),
-  group_id: z.string(),
-  visibility: z.string(),
+  id: z.number().describe('Todo item ID'),
+  title: z.string().describe('Todo title'),
+  completed: z.boolean().describe('Whether the todo is completed'),
+  created_at: z.string().describe('ISO 8601 creation timestamp'),
+  user_id: z.string().describe('Owner user UUID'),
+  group_id: z.string().describe('Group UUID'),
+  visibility: z.string().describe('Visibility: public, private'),
 })
 
 export const adminTodoContract = c.router({

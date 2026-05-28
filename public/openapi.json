@@ -21,13 +21,15 @@
                       "type": "string",
                       "enum": [
                         "v1"
-                      ]
+                      ],
+                      "description": "API version"
                     },
                     "status": {
                       "type": "string",
                       "enum": [
                         "ok"
-                      ]
+                      ],
+                      "description": "Service status"
                     }
                   },
                   "required": [
@@ -75,24 +77,30 @@
                     "type": "object",
                     "properties": {
                       "slug": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Unique app identifier"
                       },
                       "name": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "App display name"
                       },
                       "description": {
                         "type": "string",
+                        "description": "App description",
                         "nullable": true
                       },
                       "icon_url": {
                         "type": "string",
+                        "description": "App icon URL",
                         "nullable": true
                       },
                       "status": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "App status: active, inactive"
                       },
                       "visibility": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "App visibility: public, private"
                       }
                     },
                     "required": [
@@ -116,10 +124,12 @@
                   "type": "object",
                   "properties": {
                     "error": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Error code identifier"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Human-readable error description"
                     }
                   },
                   "required": [
@@ -211,10 +221,12 @@
                   "type": "object",
                   "properties": {
                     "error": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Error code, e.g. unauthorized"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Details about the authentication failure"
                     }
                   },
                   "required": [
@@ -233,10 +245,12 @@
                   "type": "object",
                   "properties": {
                     "error": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Error code, e.g. forbidden"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Details about why access was denied"
                     }
                   },
                   "required": [
@@ -269,13 +283,16 @@
                     "type": "object",
                     "properties": {
                       "code": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Locale code (e.g. en, es, ca)"
                       },
                       "name": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Locale display name"
                       },
                       "is_default": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether this is the default locale"
                       }
                     },
                     "required": [
@@ -321,25 +338,32 @@
                     "type": "object",
                     "properties": {
                       "id": {
-                        "type": "number"
+                        "type": "number",
+                        "description": "Todo item ID"
                       },
                       "title": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Todo title"
                       },
                       "completed": {
-                        "type": "boolean"
+                        "type": "boolean",
+                        "description": "Whether the todo is completed"
                       },
                       "created_at": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "ISO 8601 creation timestamp"
                       },
                       "user_id": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Owner user UUID"
                       },
                       "group_id": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Group UUID"
                       },
                       "visibility": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "Visibility: public, private"
                       }
                     },
                     "required": [
@@ -364,10 +388,12 @@
                   "type": "object",
                   "properties": {
                     "error": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Error code, e.g. unauthorized"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Details about the authentication failure"
                     }
                   },
                   "required": [
@@ -386,10 +412,12 @@
                   "type": "object",
                   "properties": {
                     "error": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Error code, e.g. forbidden"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Details about why access was denied"
                     }
                   },
                   "required": [
@@ -408,10 +436,12 @@
                   "type": "object",
                   "properties": {
                     "error": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Error code identifier"
                     },
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Human-readable error description"
                     }
                   },
                   "required": [
@@ -427,9 +457,9 @@
     }
   },
   "info": {
-    "title": "027apps API",
+    "title": "027Apps API",
     "version": "1.0.0",
-    "description": "API pública de 027apps"
+    "description": "# 027Apps API\n\nAPI pública de la plataforma 027Apps — espacio compartido para aplicaciones, tareas y herramientas entre grupos.\n\n## Autenticación\n\nLa API soporta dos métodos de autenticación:\n\n- **JWT Bearer Token** (recomendado): obtenido al iniciar sesión. Enviar como `Authorization: Bearer <token>`.\n- **API Key**: para acceso de servidor a servidor. Enviar como `X-API-Key: <key>`.\n\n## Estados de respuesta\n\n| Código | Significado |\n|--------|-------------|\n| 200 | Success |\n| 201 | Created |\n| 400 | Bad Request |\n| 401 | Unauthorized |\n| 403 | Forbidden |\n| 404 | Not Found |\n| 422 | Validation Error |\n| 500 | Internal Server Error |\n\n## Notas\n\n- Todos los endpoints que requieren autenticación devuelven `401` si falta el token.\n- Los endpoints de administración requieren rol `admin`.\n- Los endpoints de apps dinámicas (proxy) no están documentados aquí por ser específicos de cada app instalada."
   },
   "servers": [
     {
@@ -446,12 +476,14 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT"
+        "bearerFormat": "JWT",
+        "description": "JWT token obtenido al iniciar sesión en la aplicación"
       },
       "apiKey": {
         "type": "apiKey",
         "in": "header",
-        "name": "X-API-Key"
+        "name": "X-API-Key",
+        "description": "API Key generada desde el panel de administración"
       }
     }
   }

@@ -4,8 +4,8 @@ import { z } from 'zod'
 const c = initContract()
 
 const HealthResponseSchema = z.object({
-  version: z.literal('v1'),
-  status: z.literal('ok'),
+  version: z.literal('v1').describe('API version'),
+  status: z.literal('ok').describe('Service status'),
 })
 
 export const healthContract = c.router({
