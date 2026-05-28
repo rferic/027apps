@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
 import { apiOk } from '@/lib/api/response'
 
@@ -14,12 +14,11 @@ const LOCALE_NAMES: Record<string, string> = {
 export async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'public')
   if (auth instanceof Response) return auth
-  const ctx = auth
 
-  const { data: settings } = await ctx.supabase
+  const { data: settings } = await auth.supabase
     .from('group_settings')
     .select('active_locales, default_locale')
-    .eq('group_id', ctx.groupId)
+    .eq('group_id', auth.groupId)
     .maybeSingle()
 
   if (!settings || !settings.active_locales) {
