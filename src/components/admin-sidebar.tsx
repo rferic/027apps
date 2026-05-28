@@ -16,6 +16,7 @@ import {
   Settings,
   SlidersHorizontal,
   Key,
+  FileText,
   X,
   Package,
   Building2,
@@ -318,6 +319,16 @@ export function AdminSidebar({ locale, initialCollapsed }: Props) {
               </div>
             </>
           )}
+
+          {/* API Docs */}
+          <Link
+            href="/api-docs"
+            className={collapsed ? collapsedLinkCls('/api-docs') : linkCls('/api-docs')}
+            title="API Docs"
+          >
+            <FileText size={collapsed ? 18 : 16} className="flex-shrink-0" />
+            {!collapsed && <span>API Docs</span>}
+          </Link>
         </nav>
 
         {!forceExpanded && (
