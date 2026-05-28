@@ -3,6 +3,8 @@
   "paths": {
     "/api/v1": {
       "get": {
+        "description": "Returns the API version and status. No authentication required.",
+        "summary": "Health check",
         "tags": [
           "health"
         ],
@@ -41,6 +43,8 @@
     },
     "/api/v1/apps": {
       "get": {
+        "description": "Returns all active installed apps for the authenticated group. Authenticate with JWT or API key.",
+        "summary": "List installed apps",
         "tags": [
           "apps"
         ],
@@ -131,6 +135,8 @@
     },
     "/api/v1/me": {
       "get": {
+        "description": "Returns the authenticated user's profile information including display name, avatar, locale, role, and group membership.",
+        "summary": "Get current user profile",
         "tags": [
           "me"
         ],
@@ -153,28 +159,35 @@
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "User UUID"
                     },
                     "email": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "User email address"
                     },
                     "display_name": {
                       "type": "string",
+                      "description": "Display name",
                       "nullable": true
                     },
                     "avatar_url": {
                       "type": "string",
+                      "description": "Avatar URL",
                       "nullable": true
                     },
                     "locale": {
                       "type": "string",
+                      "description": "Preferred locale code",
                       "nullable": true
                     },
                     "role": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "User role: admin or member"
                     },
                     "group_id": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Primary group UUID"
                     }
                   },
                   "required": [
@@ -239,6 +252,8 @@
     },
     "/api/v1/locales": {
       "get": {
+        "description": "Returns the active locales configured for the group, with their display names and default flag.",
+        "summary": "List active locales",
         "tags": [
           "locales"
         ],
@@ -278,6 +293,8 @@
     },
     "/api/v1/admin/apps/todo": {
       "get": {
+        "description": "Returns all todo items across all groups. Requires admin role.",
+        "summary": "List all todo items (admin)",
         "tags": [
           "admin",
           "apps",

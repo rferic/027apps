@@ -17,6 +17,8 @@ export const appsContract = c.router({
   listApps: {
     method: 'GET',
     path: '/api/v1/apps',
+    summary: 'List installed apps',
+    description: 'Returns all active installed apps for the authenticated group. Authenticate with JWT or API key.',
     responses: {
       200: z.array(AppSchema),
       401: ErrorResponseSchema,

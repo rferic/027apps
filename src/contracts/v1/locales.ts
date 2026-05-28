@@ -13,6 +13,8 @@ export const localesContract = c.router({
   getLocales: {
     method: 'GET',
     path: '/api/v1/locales',
+    summary: 'List active locales',
+    description: 'Returns the active locales configured for the group, with their display names and default flag.',
     responses: {
       200: z.array(LocaleSchema),
     },

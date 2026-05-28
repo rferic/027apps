@@ -12,6 +12,8 @@ export const healthContract = c.router({
   getHealth: {
     method: 'GET',
     path: '/api/v1',
+    summary: 'Health check',
+    description: 'Returns the API version and status. No authentication required.',
     responses: {
       200: HealthResponseSchema,
     },

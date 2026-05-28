@@ -18,6 +18,8 @@ export const adminTodoContract = c.router({
   listAdminTodos: {
     method: 'GET',
     path: '/api/v1/admin/apps/todo',
+    summary: 'List all todo items (admin)',
+    description: 'Returns all todo items across all groups. Requires admin role.',
     responses: {
       200: z.array(TodoItemSchema),
       401: UnauthorizedResponseSchema,
