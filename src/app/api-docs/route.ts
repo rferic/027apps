@@ -80,7 +80,7 @@ const THEME_CSS = `
 export async function GET() {
   const res = await scalarHandler()
   const html = await res.text()
-  const themed = html.replace('</head>', `<style>${THEME_CSS}</style>\n  <link rel="icon" href="/favicon.ico" sizes="any" />\n  <link rel="icon" href="/icon.svg" type="image/svg+xml" />\n</head>`)
+  const themed = html.replace('</head>', `<style>${THEME_CSS}</style>\n  <link rel="icon" href="/favicon.png" />\n  <link rel="apple-touch-icon" href="/logo-icon.png" />\n</head>`)
 
   return new Response(themed, {
     headers: { 'Content-Type': 'text/html' },

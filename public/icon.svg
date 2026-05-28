@@ -1,25 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
-  <!-- Background -->
-  <rect width="80" height="80" rx="16" fill="#9B1C1C"/>
-
-  <!-- Heartbeat / EKG line -->
-  <polyline
-    points="10,28 20,28 23,23 26,28 30,28 32,31 35,12 38,40 41,28 45,22 49,28 70,28"
-    fill="none"
-    stroke="white"
-    stroke-width="2.8"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-
-  <!-- 027 -->
-  <text
-    x="40" y="64"
-    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
-    font-size="19"
-    font-weight="800"
-    fill="white"
-    text-anchor="middle"
-    letter-spacing="4"
-  >027</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" rx="6" fill="#9B1C1C"/>
+  <polyline points="4,12 8,12 10,10 12,12 14,12 16,14 18,6 20,18 22,12 24,10 26,14 28,12" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="16" y="26" font-family="sans-serif" font-size="8" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="1.5">027</text>
 </svg>

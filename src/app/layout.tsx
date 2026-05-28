@@ -8,9 +8,9 @@ export const metadata: Metadata = {
   title: 'apps027',
   description: 'Group apps platform',
   icons: {
-    icon: '/icon.svg',
-    shortcut: '/icon.svg',
-    apple: '/icon.svg',
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/logo-icon.png',
   },
 }
 
