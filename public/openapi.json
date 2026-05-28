@@ -140,7 +140,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKey": []
+          }
+        ]
       }
     },
     "/api/v1/me": {
@@ -261,7 +269,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKey": []
+          }
+        ]
       }
     },
     "/api/v1/locales": {
@@ -315,7 +331,8 @@
         "tags": [
           "admin",
           "apps",
-          "todo"
+          "todo",
+          "Admin"
         ],
         "parameters": [
           {
@@ -452,7 +469,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKey": []
+          }
+        ]
       }
     }
   },
