@@ -7,9 +7,6 @@ import { readManifest } from '@/lib/apps/manifest'
 import { Sparkles } from 'lucide-react'
 import { AppInstalledWidget } from '@/components/app-installed-widget'
 import { hasAppModule, loadAppModule } from '@/lib/apps/registry'
-import { AppContext } from '@/lib/apps/context'
-import type { AppContextValue } from '@/lib/apps/context'
-import type { AppManifest } from '@/types/apps'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
