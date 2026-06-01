@@ -7,7 +7,6 @@ import { readManifest } from '@/lib/apps/manifest'
 import { resolveGroupContext } from '@/lib/groups/context'
 import { Sparkles } from 'lucide-react'
 import { AppInstalledWidget } from '@/components/app-installed-widget'
-import { hasAppModule, loadAppModule } from '@/lib/apps/registry'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
@@ -44,9 +43,11 @@ async function loadWidgets(groupId: string): Promise<WidgetEntry[]> {
     try {
       const manifest = await readManifest(app.slug)
       if (!manifest.views.widget) continue
-      if (!hasAppModule(app.slug, 'widget')) continue
-      const Component = await loadAppModule(app.slug, 'widget')
-      results.push({ slug: app.slug, Component })
+      const mod = await import(
+        /* webpackIgnore: true */
+        `${process.cwd()}/apps/${app.slug}/widget`
+      ) as { default: React.ComponentType }
+      results.push({ slug: app.slug, Component: mod.default })
     } catch {
       // App has no valid widget — skip silently
     }
