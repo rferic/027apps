@@ -1,7 +1,6 @@
 import { createApiClient, createApiAdminClient } from '@/lib/supabase/api'
 import { apiError } from '@/lib/api/response'
-import type { UseCaseContext } from '@/lib/api/types'
-import type { AuthLevel } from '@/lib/api/types'
+import type { UseCaseContext, AuthLevel } from '@/lib/api/types'
 
 export async function authenticate(
   req: Request,
@@ -71,7 +70,7 @@ async function validateApiKey(key: string): Promise<UseCaseContext | Response> {
 
   const { data: apiKey } = await admin
     .from('api_keys')
-    .select('group_id, scope, user_id, revoked_at')
+    .select('group_id, user_id, revoked_at')
     .eq('key_hash', hash)
     .maybeSingle()
 

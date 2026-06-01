@@ -50,22 +50,7 @@
         "tags": [
           "apps"
         ],
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-api-key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "200",
@@ -273,9 +258,6 @@
         "security": [
           {
             "bearerAuth": []
-          },
-          {
-            "apiKey": []
           }
         ]
       }
@@ -473,9 +455,6 @@
         "security": [
           {
             "bearerAuth": []
-          },
-          {
-            "apiKey": []
           }
         ]
       }

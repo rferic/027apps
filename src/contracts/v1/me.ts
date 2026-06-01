@@ -1,6 +1,6 @@
 import { initContract } from '@ts-rest/core'
 import { z } from 'zod'
-import { ErrorResponseSchema, UnauthorizedResponseSchema, ForbiddenResponseSchema } from '../common'
+import { UnauthorizedResponseSchema, ForbiddenResponseSchema } from '../common'
 
 const c = initContract()
 

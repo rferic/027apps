@@ -77,7 +77,8 @@
       "api_keys": "API Keys",
       "menu": "Menu",
       "apps": "Apps",
-      "groups": "Groups"
+      "groups": "Groups",
+      "api_docs": "API Docs"
     },
     "dashboard": {
       "title": "Dashboard",

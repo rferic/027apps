@@ -1,6 +1,6 @@
 import { initContract } from '@ts-rest/core'
 import { z } from 'zod'
-import { ErrorResponseSchema } from '../common'
+import { ErrorResponseSchema, AuthHeadersSchema } from '../common'
 
 const c = initContract()
 
@@ -23,9 +23,6 @@ export const appsContract = c.router({
       200: z.array(AppSchema),
       401: ErrorResponseSchema,
     },
-    headers: z.object({
-      authorization: z.string().optional(),
-      'x-api-key': z.string().optional(),
-    }),
+    headers: AuthHeadersSchema,
   },
 })

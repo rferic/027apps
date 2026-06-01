@@ -2,6 +2,8 @@ import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
 import { apiOk } from '@/lib/api/response'
 
+// NOTE: locale fallback uses English as default. Per-group default comes from
+// group_settings.default_locale when configured.
 const LOCALE_NAMES: Record<string, string> = {
   en: 'English',
   es: 'Spanish',

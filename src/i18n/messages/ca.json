@@ -77,7 +77,8 @@
       "api_keys": "Claus API",
       "menu": "Menú",
       "apps": "Aplicacions",
-      "groups": "Grups"
+      "groups": "Grups",
+      "api_docs": "API Docs"
     },
     "dashboard": {
       "title": "Inici",
