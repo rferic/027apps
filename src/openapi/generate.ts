@@ -46,7 +46,7 @@ La API soporta dos métodos de autenticación:
       description: 'Local development',
     },
     {
-      url: 'https://027app-eric-rf.vercel.app',
+      url: 'https://027apps-eric-rf.vercel.app',
       description: 'Production',
     },
   ],
