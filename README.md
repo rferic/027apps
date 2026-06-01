@@ -2,7 +2,7 @@
 
 Open-source platform for group apps — for families, teams, or any collective.
 
-[![CI](https://github.com/rferic/027app/actions/workflows/ci.yml/badge.svg)](https://github.com/rferic/027app/actions/workflows/ci.yml)
+[![CI](https://github.com/rferic/027apps/actions/workflows/ci.yml/badge.svg)](https://github.com/rferic/027apps/actions/workflows/ci.yml)
 
 ## What is this?
 
@@ -61,7 +61,7 @@ Open-source platform for group apps — for families, teams, or any collective.
 ### Installation
 
 ```bash
-git clone https://github.com/rferic/027app.git
+git clone https://github.com/rferic/027apps.git
 cd 027app
 pnpm install
 ```
