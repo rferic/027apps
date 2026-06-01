@@ -7,6 +7,11 @@ import type { AppContextValue } from '@/lib/apps/context'
 // Mocks
 // ---------------------------------------------------------------------------
 
+vi.mock('next-intl', () => ({
+  useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
+  useLocale: () => 'en',
+}))
+
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: React.ReactNode; href: string }) => {
     // eslint-disable-next-line @next/next/no-html-link-for-pages
