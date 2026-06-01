@@ -58,10 +58,12 @@ export default async function AdminAppViewPage({ params }: Props) {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <div
-          className="w-10 h-10 rounded-lg flex-shrink-0"
+          className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-sm font-bold"
           style={{ backgroundColor: manifest.primaryColor }}
-        />
-        <div>
+        >
+          {manifest.name.slice(0, 2).toUpperCase()}
+        </div>
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-gray-900">{manifest.name}</h1>
           <p className="text-sm text-gray-500">{manifest.description}</p>
         </div>

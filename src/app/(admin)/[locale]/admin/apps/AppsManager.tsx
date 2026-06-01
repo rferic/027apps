@@ -66,13 +66,13 @@ function AppCard({ app }: { app: CombinedApp }) {
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 p-5">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
         <div className="flex items-start gap-3 min-w-0">
           <div
-            className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+            className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-bold"
             style={{ backgroundColor: app.manifest?.primaryColor ?? '#e2e8f0' }}
           >
-            <Package size={20} className="text-white" />
+            {(app.manifest?.name ?? app.slug).slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -109,7 +109,7 @@ function AppCard({ app }: { app: CombinedApp }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-auto">
           {isInstalled && isActive && (
             <Link
               href={`/${locale}/admin/apps/${app.slug}`}
