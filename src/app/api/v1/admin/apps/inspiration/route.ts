@@ -60,12 +60,20 @@ export async function GET(req: NextRequest) {
   }
 
   // Count
-  const countQuery = applyFilters(
-    adminClient.from('inspiration_requests').select('id', { count: 'exact' })
-  ).limit(0)
-  const { count: total, error: countError } = await countQuery
+  let total: number | null = null
+  let countError: unknown = null
+  try {
+    const countQuery = applyFilters(
+      adminClient.from('inspiration_requests').select('id', { count: 'exact' })
+    )
+    const result = await countQuery
+    total = result.count
+    countError = result.error
+  } catch (e) {
+    return apiError('QUERY_ERROR', `Count exception: ${e instanceof Error ? e.message : String(e)}`, 500)
+  }
 
-  if (countError) return apiError('QUERY_ERROR', `Count failed: ${countError.message} (${countError.code || 'no code'})`, 500)
+  if (countError) return apiError('QUERY_ERROR', `Count failed: ${JSON.stringify({ message: (countError as any).message, code: (countError as any).code, details: (countError as any).details, hint: (countError as any).hint })}`, 500)
   if (!total || total === 0) {
     return apiOk({ data: [], pagination: { page, limit, total: total ?? 0, total_pages: 0 } })
   }
