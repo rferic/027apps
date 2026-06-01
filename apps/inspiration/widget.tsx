@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useLocale } from 'next-intl'
 import { Lightbulb, Flame, CheckCircle2, ArrowUp, ArrowRight, Loader2 } from 'lucide-react'
 import { useAppContext } from '@/lib/apps/context'
 
@@ -16,6 +17,7 @@ interface InspirationItem {
 
 export default function InspirationWidget() {
   const { groupSlug } = useAppContext()
+  const locale = useLocale()
   const [activeCount, setActiveCount] = useState<number>(0)
   const [topSupported, setTopSupported] = useState<InspirationItem[]>([])
   const [recentlyCompleted, setRecentlyCompleted] = useState<InspirationItem[]>([])
@@ -178,7 +180,7 @@ export default function InspirationWidget() {
 
       {/* View all */}
       <Link
-        href="/apps/inspiration"
+        href={`/${locale}/${groupSlug}/apps/inspiration`}
         className="flex items-center justify-center gap-1 text-xs font-medium mt-3 pt-3 border-t border-slate-100"
         style={{ color: 'var(--app-primary)' }}
       >

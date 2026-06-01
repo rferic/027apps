@@ -1,23 +1,29 @@
--- ENUM types
-create type inspiration_type as enum (
-  'bug',
-  'improvement',
-  'new_app',
-  'new_app_feature',
-  'new_general_functionality',
-  'other'
-);
+-- ENUM types (idempotent — safe to run multiple times)
+do $$ begin
+  create type inspiration_type as enum (
+    'bug',
+    'improvement',
+    'new_app',
+    'new_app_feature',
+    'new_general_functionality',
+    'other'
+  );
+exception when duplicate_object then null;
+end $$;
 
-create type inspiration_status as enum (
-  'pending',
-  'reviewing',
-  'approved',
-  'in_progress',
-  'completed',
-  'rejected',
-  'on_hold',
-  'duplicate'
-);
+do $$ begin
+  create type inspiration_status as enum (
+    'pending',
+    'reviewing',
+    'approved',
+    'in_progress',
+    'completed',
+    'rejected',
+    'on_hold',
+    'duplicate'
+  );
+exception when duplicate_object then null;
+end $$;
 
 -- Tabla principal
 create table if not exists inspiration_requests (

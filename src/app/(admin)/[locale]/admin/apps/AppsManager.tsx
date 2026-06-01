@@ -115,6 +115,14 @@ function AppCard({ app }: { app: CombinedApp }) {
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-auto">
+          {isInstalled && isActive && app.manifest?.views.admin && (
+            <Link
+              href={`/${locale}/admin/apps/${app.slug}`}
+              className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-700 cursor-pointer transition-colors"
+            >
+              {t('manageTab')}
+            </Link>
+          )}
           {isInstalled && isActive && (app.manifest?.config?.length ?? 0) > 0 && (
             <Link
               href={`/${locale}/admin/apps/${app.slug}#config`}
