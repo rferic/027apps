@@ -173,7 +173,8 @@
       "comments_label": "Comentaris",
       "voters": "Votants",
       "error": "No s'han pogut carregar els detalls"
-    }
+    },
+    "search": "Cerca idees..."
   },
   "time": {
     "just_now": "ara mateix",

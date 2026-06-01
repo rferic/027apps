@@ -140,6 +140,7 @@
   "admin": {
     "title": "Inspiration — Admin",
     "subtitle": "Manage idea lifecycle",
+    "search": "Search ideas...",
     "error": "Failed to load requests",
     "retry": "Try again",
     "change_status": "Change status",

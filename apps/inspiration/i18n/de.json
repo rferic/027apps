@@ -173,7 +173,8 @@
       "comments_label": "Kommentare",
       "voters": "Abstimmer",
       "error": "Details konnten nicht geladen werden"
-    }
+    },
+    "search": "Ideen suchen..."
   },
   "time": {
     "just_now": "gerade eben",

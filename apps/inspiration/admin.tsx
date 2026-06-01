@@ -337,8 +337,8 @@ export default function InspirationAdmin() {
       {/* Filters */}
       <div className="space-y-3 mb-4">
         {/* Search + Sort */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative flex-1 max-w-sm w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
@@ -356,7 +356,7 @@ export default function InspirationAdmin() {
           <select
             value={sort}
             onChange={e => { setSort(e.target.value); setPage(1) }}
-            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
+            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer w-full sm:w-auto"
           >
             {SORT_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
