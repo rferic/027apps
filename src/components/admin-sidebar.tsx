@@ -321,14 +321,25 @@ export function AdminSidebar({ locale, initialCollapsed }: Props) {
           )}
 
           {/* API Docs */}
-          <Link
-            href="/api-docs"
-            className={collapsed ? collapsedLinkCls('/api-docs') : linkCls('/api-docs')}
-            title="API Docs"
+          <div
+            className="relative"
+            onMouseEnter={() => collapsed && handleMenuEnter('api_docs')}
+            onMouseLeave={handleMenuLeave}
           >
-            <FileText size={collapsed ? 18 : 16} className="flex-shrink-0" />
-            {!collapsed && <span>API Docs</span>}
-          </Link>
+            <Link
+              href="/api-docs"
+              className={collapsed ? collapsedLinkCls('/api-docs') : linkCls('/api-docs')}
+              title={t('api_docs')}
+            >
+              <FileText size={collapsed ? 18 : 16} className="flex-shrink-0" />
+              {!collapsed && <span>{t('api_docs')}</span>}
+            </Link>
+            {collapsed && hoveredMenu === 'api_docs' && (
+              <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                {t('api_docs')}
+              </div>
+            )}
+          </div>
         </nav>
 
         {!forceExpanded && (

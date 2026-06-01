@@ -235,7 +235,6 @@ describe("authenticate — 'apikey'", () => {
     // Key exists but has revoked_at set
     const revokedKey = {
       group_id: 'group-abc',
-      scope: 'group',
       user_id: null,
       revoked_at: '2024-01-01T00:00:00Z',
     }
@@ -258,7 +257,6 @@ describe("authenticate — 'apikey'", () => {
 
     const validKey = {
       group_id: 'group-abc',
-      scope: 'group',
       user_id: null,
       revoked_at: null,
     }
@@ -290,7 +288,6 @@ describe("authenticate — 'apikey'", () => {
 
     const validUserKey = {
       group_id: 'group-abc',
-      scope: 'user',
       user_id: 'user-42',
       revoked_at: null,
     }

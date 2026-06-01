@@ -2,7 +2,8 @@ import { generateOpenApi } from '@ts-rest/open-api'
 import { writeFileSync } from 'fs'
 import { apiContract } from '../contracts'
 
-const PROTECTED_PATHS = ['/api/v1/apps', '/api/v1/me', '/api/v1/admin/apps/todo']
+const JWT_OR_API_KEY_PATHS = ['/api/v1/apps']
+const JWT_ONLY_PATHS = ['/api/v1/me', '/api/v1/admin/apps/todo']
 const ADMIN_PATHS = ['/api/v1/admin/apps/todo']
 
 const openApiDocument = generateOpenApi(apiContract, {
@@ -72,8 +73,10 @@ for (const [path, methods] of Object.entries(openApiDocument.paths)) {
   const methodEntries = methods as Record<string, unknown>
   for (const method of Object.values(methodEntries)) {
     const def = method as Record<string, unknown>
-    if (PROTECTED_PATHS.includes(path)) {
+    if (JWT_OR_API_KEY_PATHS.includes(path)) {
       def.security = [{ bearerAuth: [] }, { apiKey: [] }]
+    } else if (JWT_ONLY_PATHS.includes(path)) {
+      def.security = [{ bearerAuth: [] }]
     }
     if (ADMIN_PATHS.includes(path)) {
       def.tags = [...new Set([...(def.tags as string[] || []), 'Admin'])]

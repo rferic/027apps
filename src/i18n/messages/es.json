@@ -77,7 +77,8 @@
       "api_keys": "Claves API",
       "menu": "Menú",
       "apps": "Aplicaciones",
-      "groups": "Grupos"
+      "groups": "Grupos",
+      "api_docs": "API Docs"
     },
     "dashboard": {
       "title": "Inicio",
