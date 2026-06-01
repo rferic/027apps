@@ -214,7 +214,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
       {/* Panel */}
       <div
         ref={panelRef}
-        className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 fade-in"
+        className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-lg mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 fade-in"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
@@ -261,7 +261,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
 
         {/* =========== STEP 1: Type selection =========== */}
         {step1only && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {REQUEST_TYPES.map(t => (
               <button
                 key={t.value}

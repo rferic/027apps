@@ -6,6 +6,10 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { readManifest } from '@/lib/apps/manifest'
 import { Sparkles } from 'lucide-react'
 import { AppInstalledWidget } from '@/components/app-installed-widget'
+import { hasAppModule, loadAppModule } from '@/lib/apps/registry'
+import { AppContext } from '@/lib/apps/context'
+import type { AppContextValue } from '@/lib/apps/context'
+import type { AppManifest } from '@/types/apps'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
@@ -35,8 +39,9 @@ async function loadWidgets(): Promise<WidgetEntry[]> {
     try {
       const manifest = await readManifest(app.slug)
       if (!manifest.views.widget) continue
-      const mod = await import(/* webpackIgnore: true */ `${process.cwd()}/apps/${app.slug}/widget`) as { default: React.ComponentType }
-      results.push({ slug: app.slug, Component: mod.default })
+      if (!hasAppModule(app.slug, 'widget')) continue
+      const Component = await loadAppModule(app.slug, 'widget')
+      results.push({ slug: app.slug, Component })
     } catch {
       // App has no valid widget — skip silently
     }
