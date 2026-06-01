@@ -1,0 +1,109 @@
+{
+  "title": "Inspiració",
+  "description": "Idees i suggeriments per millorar 027apps",
+  "new_idea": "Nova idea",
+  "changelog": "Registre de canvis",
+  "active": "Actiu",
+  "filters": {
+    "search_placeholder": "Cercar idees...",
+    "sort_newest": "Més recents",
+    "sort_oldest": "Més antigues",
+    "sort_most_supported": "Més recolzades",
+    "sort_most_commented": "Més comentades",
+    "type_label": "Tipus",
+    "status_label": "Estat",
+    "all_types": "Tots els tipus",
+    "all_statuses": "Tots els estats"
+  },
+  "types": {
+    "bug": "Error",
+    "improvement": "Millora",
+    "new_app": "Nova app",
+    "new_app_feature": "Funcionalitat d'app",
+    "new_general_functionality": "Funcionalitat general",
+    "other": "Altre"
+  },
+  "statuses": {
+    "pending": "Pendent",
+    "reviewing": "En revisió",
+    "approved": "Aprovada",
+    "in_progress": "En progrés",
+    "completed": "Completada",
+    "rejected": "Rebutjada",
+    "on_hold": "En pausa",
+    "duplicate": "Duplicada"
+  },
+  "create": {
+    "step1_title": "Què vols proposar?",
+    "step1_bug_desc": "Informar d'un error o problema",
+    "step1_improvement_desc": "Suggerir una millora",
+    "step1_new_app_desc": "Proposar una nova app",
+    "step1_feature_desc": "Sol·licitar una funcionalitat per a una app existent",
+    "step1_general_desc": "Proposar una millora general",
+    "step1_other_desc": "Alguna altra cosa",
+    "step2_title": "Explica'ns més",
+    "bug_app_label": "A quina app?",
+    "bug_steps_label": "Passos per reproduir",
+    "bug_expected_label": "Què esperaves que passés?",
+    "bug_actual_label": "Què va passar realment?",
+    "improvement_app_label": "App relacionada (opcional)",
+    "new_app_name_label": "Nom proposat per a l'app",
+    "new_app_description_label": "Què faria aquesta app?",
+    "feature_app_label": "A quina app s'hauria d'afegir?",
+    "title_label": "Títol",
+    "title_placeholder": "Dona a la teva idea un títol curt i clar",
+    "description_label": "Descripció",
+    "description_placeholder": "Explica la teva idea en detall...",
+    "app_label": "Assignar a app (opcional)",
+    "app_none": "Cap",
+    "submit": "Publicar idea",
+    "success": "La teva idea ha estat publicada!",
+    "cancel": "Cancel·lar",
+    "back": "Tornar"
+  },
+  "card": {
+    "votes": "{count, plural, one {# vot} other {# vots}}",
+    "comments": "{count, plural, one {# comentari} other {# comentaris}}",
+    "vote_button": "Recolzar aquesta idea",
+    "voted_button": "Ja recolzes aquesta idea",
+    "assigned_to_app": "Assignada a {app}",
+    "by": "per",
+    "view_details": "Veure detalls"
+  },
+  "comments": {
+    "title": "Comentaris",
+    "empty": "Encara no hi ha comentaris. Sigues el primer a comentar!",
+    "placeholder": "Escriu un comentari...",
+    "submit": "Comentar",
+    "deleted": "Comentari eliminat",
+    "error": "Error en carregar els comentaris. Torna-ho a provar.",
+    "retry": "Reintentar"
+  },
+  "empty": {
+    "title": "Encara no hi ha idees",
+    "description": "Sigues el primer a proposar una idea per millorar 027apps!",
+    "filtered": "Cap idea coincideix amb els teus filtres. Prova d'ajustar-los."
+  },
+  "widget": {
+    "active_ideas": "{count} idees actives",
+    "view_all": "Veure totes les idees",
+    "recently_completed": "Completades recentment",
+    "most_supported": "Més recolzades",
+    "no_ideas": "Encara no hi ha idees. Sigues el primer!",
+    "not_available": "No disponible",
+    "couldnt_load": "No s'ha pogut carregar"
+  },
+  "admin": {
+    "title": "Inspiració — Admin",
+    "subtitle": "Gestionar el cicle de vida de les idees",
+    "change_status": "Canviar estat",
+    "status_changed": "Estat actualitzat a {status}",
+    "send_closure_email": "Enviar correu de tancament",
+    "closure_email_sent": "Correu de tancament enviat",
+    "closure_email_error": "Error en enviar el correu de tancament",
+    "no_ideas_found": "No s'han trobat idees",
+    "confirm_final_status": "Estàs segur? Es notificarà al creador i als votants.",
+    "confirm": "Confirmar",
+    "cancel": "Cancel·lar"
+  }
+}

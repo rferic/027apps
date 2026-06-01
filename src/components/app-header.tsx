@@ -63,14 +63,6 @@ export async function AppHeader({ locale, displayName, isAdmin, userGroups, curr
           />
         )}
 
-        {isAdmin && (
-          <Link
-            href={`/${locale}/admin/dashboard`}
-            className="text-xs font-medium text-slate-400 hover:text-slate-700 transition-colors"
-          >
-            {tNav('backoffice')} →
-          </Link>
-        )}
       </div>
 
       <div className="flex items-center gap-3">
@@ -83,7 +75,7 @@ export async function AppHeader({ locale, displayName, isAdmin, userGroups, curr
           />
         )}
         <LocaleSwitcher currentLocale={locale} locales={settings.activeLocales} saveToDb />
-        <UserDropdown locale={locale} displayName={displayName} />
+        <UserDropdown locale={locale} displayName={displayName} isAdmin={isAdmin} />
       </div>
     </header>
   )

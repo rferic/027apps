@@ -1,0 +1,109 @@
+{
+  "title": "Inspiración",
+  "description": "Ideas y sugerencias para mejorar 027apps",
+  "new_idea": "Nueva idea",
+  "changelog": "Registro de cambios",
+  "active": "Activo",
+  "filters": {
+    "search_placeholder": "Buscar ideas...",
+    "sort_newest": "Más recientes",
+    "sort_oldest": "Más antiguas",
+    "sort_most_supported": "Más apoyadas",
+    "sort_most_commented": "Más comentadas",
+    "type_label": "Tipo",
+    "status_label": "Estado",
+    "all_types": "Todos los tipos",
+    "all_statuses": "Todos los estados"
+  },
+  "types": {
+    "bug": "Error",
+    "improvement": "Mejora",
+    "new_app": "Nueva app",
+    "new_app_feature": "Funcionalidad de app",
+    "new_general_functionality": "Funcionalidad general",
+    "other": "Otro"
+  },
+  "statuses": {
+    "pending": "Pendiente",
+    "reviewing": "En revisión",
+    "approved": "Aprobada",
+    "in_progress": "En progreso",
+    "completed": "Completada",
+    "rejected": "Rechazada",
+    "on_hold": "En pausa",
+    "duplicate": "Duplicada"
+  },
+  "create": {
+    "step1_title": "¿Qué quieres proponer?",
+    "step1_bug_desc": "Reportar un error o problema",
+    "step1_improvement_desc": "Sugerir una mejora",
+    "step1_new_app_desc": "Proponer una nueva app",
+    "step1_feature_desc": "Solicitar una funcionalidad para una app existente",
+    "step1_general_desc": "Proponer una mejora general",
+    "step1_other_desc": "Otra cosa",
+    "step2_title": "Cuéntanos más",
+    "bug_app_label": "¿En qué app?",
+    "bug_steps_label": "Pasos para reproducir",
+    "bug_expected_label": "¿Qué esperabas que pasara?",
+    "bug_actual_label": "¿Qué pasó realmente?",
+    "improvement_app_label": "App relacionada (opcional)",
+    "new_app_name_label": "Nombre propuesto para la app",
+    "new_app_description_label": "¿Qué haría esta app?",
+    "feature_app_label": "¿A qué app debería añadirse?",
+    "title_label": "Título",
+    "title_placeholder": "Dale a tu idea un título corto y claro",
+    "description_label": "Descripción",
+    "description_placeholder": "Explica tu idea en detalle...",
+    "app_label": "Asignar a app (opcional)",
+    "app_none": "Ninguna",
+    "submit": "Publicar idea",
+    "success": "¡Tu idea ha sido publicada!",
+    "cancel": "Cancelar",
+    "back": "Volver"
+  },
+  "card": {
+    "votes": "{count, plural, one {# voto} other {# votos}}",
+    "comments": "{count, plural, one {# comentario} other {# comentarios}}",
+    "vote_button": "Apoyar esta idea",
+    "voted_button": "Ya apoyas esta idea",
+    "assigned_to_app": "Asignada a {app}",
+    "by": "por",
+    "view_details": "Ver detalles"
+  },
+  "comments": {
+    "title": "Comentarios",
+    "empty": "Aún no hay comentarios. ¡Sé el primero en comentar!",
+    "placeholder": "Escribe un comentario...",
+    "submit": "Comentar",
+    "deleted": "Comentario eliminado",
+    "error": "Error al cargar comentarios. Intenta de nuevo.",
+    "retry": "Reintentar"
+  },
+  "empty": {
+    "title": "Aún no hay ideas",
+    "description": "¡Sé el primero en proponer una idea para mejorar 027apps!",
+    "filtered": "Ninguna idea coincide con tus filtros. Prueba a ajustarlos."
+  },
+  "widget": {
+    "active_ideas": "{count} ideas activas",
+    "view_all": "Ver todas las ideas",
+    "recently_completed": "Completadas recientemente",
+    "most_supported": "Más apoyadas",
+    "no_ideas": "Aún no hay ideas. ¡Sé el primero!",
+    "not_available": "No disponible",
+    "couldnt_load": "No se pudo cargar"
+  },
+  "admin": {
+    "title": "Inspiración — Admin",
+    "subtitle": "Gestionar el ciclo de vida de las ideas",
+    "change_status": "Cambiar estado",
+    "status_changed": "Estado actualizado a {status}",
+    "send_closure_email": "Enviar correo de cierre",
+    "closure_email_sent": "Correo de cierre enviado",
+    "closure_email_error": "Error al enviar el correo de cierre",
+    "no_ideas_found": "No se encontraron ideas",
+    "confirm_final_status": "¿Estás seguro? Se notificará al creador y a los votantes.",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar"
+  }
+}

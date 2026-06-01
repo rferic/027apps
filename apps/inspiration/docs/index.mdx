@@ -1,0 +1,74 @@
+---
+title: Inspiration
+description: A family idea board — propose improvements, report bugs, request new features, and vote on what matters most.
+---
+
+# Inspiration
+
+Inspiration is the family idea board for 027apps. It lets every family member propose improvements, report bugs, request new features, and vote on what matters most.
+
+## How it works
+
+1. **Create an idea** — Anyone can propose a new idea. Choose the type (Bug, Improvement, New App, App Feature, General Functionality, or Other) and describe what you want.
+2. **Get support** — Other family members can vote on your idea to show they want it too.
+3. **Discuss** — Leave comments to add details, ask questions, or refine the idea.
+4. **Track progress** — The admin reviews, approves, and implements ideas. You'll get email notifications when your idea's status changes.
+5. **Celebrate** — When your idea is completed, you'll receive a special celebration email!
+
+## Types of requests
+
+| Type | Icon | Color | Description |
+|------|------|-------|-------------|
+| Bug | Bug | Red `#EF4444` | Report a bug or issue in an existing app |
+| Improvement | Sparkles | Amber `#F59E0B` | Suggest an improvement to an existing app |
+| New app | AppWindow | Violet `#8B5CF6` | Propose a brand new app |
+| App feature | Puzzle | Blue `#3B82F6` | Request a new feature for an existing app |
+| General functionality | Lightbulb | Emerald `#10B981` | Propose a platform-wide improvement |
+| Other | MoreHorizontal | Gray `#6B7280` | Anything else |
+
+## Lifecycle
+
+| Status | Meaning |
+|--------|---------|
+| 🟡 Pending | Just created, waiting for admin review |
+| 🔵 Reviewing | Admin is evaluating the request |
+| 🟢 Approved | Accepted, added to backlog |
+| 🟠 In Progress | Being worked on right now |
+| ✅ Completed | Implemented and live! |
+| ❌ Rejected | Won't be implemented |
+| ⏸️ On Hold | Approved but temporarily paused |
+| 🔄 Duplicate | Already exists as another request |
+
+## Voting
+
+- Each person gets one vote per request
+- Click the vote button to support an idea, click again to remove your support
+- Ideas are sorted by "Most supported" so the most popular rise to the top
+
+## Views
+
+### Public view
+The main view at `/apps/inspiration` shows all active ideas with filters, search, and sorting. You can create new ideas, vote, and comment.
+
+### Admin panel
+Admins access the management panel at `/admin/apps/inspiration` to review, approve, reject, and track the lifecycle of all ideas.
+
+### Dashboard widget
+The Inspiration widget appears on the dashboard showing active idea count, the most supported ideas, and recently completed ones.
+
+### Changelog
+Toggle to "Changelog" view to see all completed ideas — a mini release notes for 027apps.
+
+## Email notifications
+
+You'll receive email notifications when:
+- Someone comments on your idea or an idea you've supported
+- Your idea's status changes (pending → reviewing → approved → ...)
+- Your idea is completed (special celebration email!)
+
+## Uninstallation
+
+To uninstall Inspiration, go to the admin Apps page and click "Uninstall". This will:
+- Drop all Inspiration tables (`inspiration_requests`, `inspiration_votes`, `inspiration_comments`)
+- Drop custom enum types (`inspiration_status`, `inspiration_type`)
+- Remove all Inspiration data permanently

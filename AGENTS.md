@@ -286,3 +286,33 @@ Syntax segura: busca el key en en.json con grep/read antes de usarlo.
 ## 5. `toLocaleDateString()` siempre con locale
 Usar `toLocaleDateString(locale)` (no sin argumentos) para evitar hydration mismatch.
 <!-- END:i18n-rules -->
+
+<!-- BEGIN:pagination-convention -->
+# Paginación en listas API (OBLIGATORIO)
+
+TODOS los endpoints de listado (`GET ...`) DEBEN usar paginación.
+
+## Parámetros
+- `page`: número de página (default 1, mínimo 1)
+- `limit`: items por página (default 20, mínimo 1, **máximo 500**)
+
+## Response format
+```json
+{
+  "data": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 150,
+    "total_pages": 8
+  }
+}
+```
+
+## Reglas
+- El `total` debe contar TODOS los items que matchean los filtros (sin aplicar limit/offset)
+- NUNCA devolver un array plano sin paginación en endpoints de listado
+- NUNCA permitir un limit > 500
+- No implementar paginación con cursor a menos que sea explícitamente requerido (page/limit es suficiente)
+- Esta convención aplica a TODAS las apps del proyecto, presentes y futuras
+<!-- END:pagination-convention -->

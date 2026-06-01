@@ -37,6 +37,7 @@
   "nav": {
     "dashboard": "Home",
     "backoffice": "Backoffice",
+    "website": "Website",
     "docs": "Documentation"
   },
   "common": {

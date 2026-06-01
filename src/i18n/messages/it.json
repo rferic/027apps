@@ -37,7 +37,8 @@
   "nav": {
     "dashboard": "Home",
     "backoffice": "Backoffice",
-    "docs": "Documentazione"
+    "docs": "Documentazione",
+    "website": "Website"
   },
   "common": {
     "loading": "Caricamento...",

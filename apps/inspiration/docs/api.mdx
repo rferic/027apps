@@ -1,0 +1,131 @@
+---
+title: Inspiration API Reference
+description: Complete API reference for the Inspiration app endpoints.
+---
+
+# Inspiration API Reference
+
+All endpoints are prefixed with `/api/v1/{groupSlug}/apps/inspiration`.
+
+## Authentication
+
+All endpoints require JWT authentication via `Bearer` token in the `Authorization` header.
+
+## Endpoints
+
+### List requests
+
+`GET /api/v1/{groupSlug}/apps/inspiration`
+
+| Query Param | Type | Description |
+|-------------|------|-------------|
+| `status` | string | Comma-separated statuses (e.g. `pending,reviewing`) |
+| `type` | string | Comma-separated types (e.g. `bug,improvement`) |
+| `search` | string | Full-text search in title and description |
+| `sort` | string | `newest`, `oldest`, `most_supported`, `most_commented` |
+| `app_slug` | string | Filter by assigned app |
+| `page` | number | Page number (default: 1) |
+| `limit` | number | Items per page (default: 20, max: 500) |
+
+Each item is enriched with `vote_count`, `comment_count`, and `user_has_voted`.
+
+**Response:** `{ data: Request[], pagination: { page, limit, total, total_pages } }`
+
+### Create request
+
+`POST /api/v1/{groupSlug}/apps/inspiration`
+
+**Body:** `{ title: string, description?: string, type: RequestType, app_slug?: string }`
+
+New requests start with status `pending`.
+
+**Response:** `201` with the created request.
+
+### Update request
+
+`PUT /api/v1/{groupSlug}/apps/inspiration/{id}`
+
+**Body:** `{ title?, description?, type?, app_slug?, status? }`
+
+- Creator can update: `title`, `description`, `app_slug`
+- Admin can also update: `status`
+- Status change to `completed` or `rejected` triggers email notification
+
+**Response:** `200` with updated request.
+
+### Delete request
+
+`DELETE /api/v1/{groupSlug}/apps/inspiration/{id}`
+
+Creator or admin only. Cascades to votes and comments.
+
+**Response:** `200` `{ deleted: true }`
+
+### Toggle vote
+
+`POST /api/v1/{groupSlug}/apps/inspiration/{id}/vote`
+
+Toggle support: adds vote if not voted, removes if already voted. Only POST method is accepted.
+
+**Response:** `200` `{ voted: boolean, vote_count: number }`
+
+### List comments
+
+`GET /api/v1/{groupSlug}/apps/inspiration/{id}/comments`
+
+| Query Param | Type | Description |
+|-------------|------|-------------|
+| `page` | number | Page number (default: 1) |
+| `limit` | number | Items per page (default: 20, max: 100) |
+
+Comments sorted by `created_at` ascending (oldest first). Enriched with user profile info (`display_name`, `avatar_url`) when available.
+
+**Response:** `{ data: Comment[], pagination: { page, limit, total, total_pages } }`
+
+### Create comment
+
+`POST /api/v1/{groupSlug}/apps/inspiration/{id}/comments`
+
+**Body:** `{ body: string }`
+
+Triggers email notification to request creator and supporters (excluding comment author).
+
+**Response:** `201` with created comment.
+
+## Data types
+
+### RequestType
+`'bug' | 'improvement' | 'new_app' | 'new_app_feature' | 'new_general_functionality' | 'other'`
+
+### RequestStatus
+`'pending' | 'reviewing' | 'approved' | 'in_progress' | 'completed' | 'rejected' | 'on_hold' | 'duplicate'`
+
+## Examples
+
+### Create a bug report
+```bash
+curl -X POST https://027apps.com/api/v1/family/apps/inspiration \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Dark mode toggle is broken","type":"bug","description":"The toggle in settings does nothing"}'
+```
+
+### List most supported ideas
+```bash
+curl "https://027apps.com/api/v1/family/apps/inspiration?sort=most_supported&limit=5" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Vote on an idea
+```bash
+curl -X POST https://027apps.com/api/v1/family/apps/inspiration/abc-123/vote \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Admin: approve an idea
+```bash
+curl -X PUT https://027apps.com/api/v1/family/apps/inspiration/abc-123 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"approved"}'
+```

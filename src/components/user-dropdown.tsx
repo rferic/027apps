@@ -10,14 +10,16 @@ interface Props {
   displayName: string
   /** Href for the "Edit profile" link. Defaults to /{locale}/profile */
   profileHref?: string
+  isAdmin?: boolean
 }
 
 function initials(name: string): string {
   return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) || '?'
 }
 
-export function UserDropdown({ locale, displayName, profileHref }: Props) {
+export function UserDropdown({ locale, displayName, profileHref, isAdmin }: Props) {
   const t = useTranslations('user')
+  const tNav = useTranslations('nav')
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const ref = useRef<HTMLDivElement>(null)
@@ -57,6 +59,29 @@ export function UserDropdown({ locale, displayName, profileHref }: Props) {
             </svg>
             {t('editProfile')}
           </Link>
+          {profileHref?.includes('/admin/') ? (
+            <Link
+              href={`/${locale}/`}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              {tNav('website')}
+            </Link>
+          ) : isAdmin && (
+            <Link
+              href={`/${locale}/admin/dashboard`}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {tNav('backoffice')}
+            </Link>
+          )}
           <hr className="my-1 border-slate-100" />
           <button
             disabled={pending}
