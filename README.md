@@ -1,46 +1,71 @@
 # 027Apps
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./public/logo-dark.svg">
+  <img alt="027Apps Logo" src="./public/logo.svg" width="240">
+</picture>
+
+**Your apps. Your group.**  
 Open-source platform for group apps — for families, teams, or any collective.
 
 [![CI](https://github.com/rferic/027apps/actions/workflows/ci.yml/badge.svg)](https://github.com/rferic/027apps/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## What is this?
+---
 
-027Apps is a unified platform where groups manage users, roles, and app permissions in one place. It provides a ready-to-use backoffice, invitation-based auth, multilingual UI, and an extensible app system so you can build custom modules for your group's needs.
+## 🧭 What is 027Apps?
 
-## Features
+A unified platform where groups manage users, roles, and app permissions in one place. It provides a ready-to-use backoffice, invitation-based auth, multilingual UI, and an extensible app system so you can build custom modules for your group's needs.
 
-**Multi-group & Auth**
+Think of it as a **self-hosted app ecosystem** for your family or team — install, configure, and use apps without managing separate logins or permissions.
+
+---
+
+## ✨ Features
+
+### 👥 Multi-group & Auth
 - Invitation-based user management with Supabase Auth
 - Group-scoped roles and permissions (admin / member)
-- Persistent JWT sessions (no expiry — users stay logged in until they sign out)
+- Persistent JWT sessions (no expiry)
 - Block/unblock users
 
-**Backoffice (admin panel)**
+### ⚙️ Backoffice (admin panel)
 - Multilingual admin panel at `/{locale}/admin`
 - Collapsible vertical sidebar (state persisted across reloads)
-- Dashboard with group stats
+- Dashboard with group stats and widgets
 - User & administrator management with inline block/role actions
 - Invitation management (create, revoke, delete)
 - Profile editing with password change
+- API key management with scope-based access
 - Settings > General: configure active languages and default locale
 
-**Internationalization**
+### 🌍 Internationalization
 - 6 supported locales: English, Spanish, Italian, Catalan, French, German
 - Per-user locale preference stored in the database
 - Per-group active locales configurable from the admin panel
 - All UI strings translated — no hardcoded English
 
-**App Permissions**
-- Per-app module access control
-- Role-based feature toggles
-- Extensible app architecture
+### 🔌 App System
+- Installable app modules with `manifest.json` configuration
+- Per-app permissions and role-based access
+- Public views, admin panels, dashboard widgets
+- REST API routes per app
+- Documentation site for app developers: [`/doc`](https://027apps-eric-rf.vercel.app/en/doc)
 
-## Stack
+### 📦 Available Apps
+
+| App | Description | Views |
+|-----|-------------|-------|
+| **Todo** | Simple task list — create, complete, and remove to-do items | public, admin, widget, native |
+| **Inspiration** *(coming soon)* | Family idea board — propose improvements, report bugs, request features | public, admin, widget |
+
+---
+
+## 🛠️ Stack
 
 | Technology | Purpose |
 |-----------|---------|
-| Next.js 16 | Frontend framework (App Router) |
+| Next.js 16 | Frontend framework (App Router, Turbopack) |
 | React 19 | UI library |
 | TypeScript | Strict typing |
 | Supabase | PostgreSQL + Auth + RLS |
@@ -50,8 +75,12 @@ Open-source platform for group apps — for families, teams, or any collective.
 | Vitest | Unit testing |
 | Playwright | E2E testing |
 | pnpm | Package manager |
+| Resend | Email delivery |
+| React Email | Email templates |
 
-## Getting started
+---
+
+## 🚀 Getting Started
 
 ### Requirements
 - Node.js 22+
@@ -62,11 +91,11 @@ Open-source platform for group apps — for families, teams, or any collective.
 
 ```bash
 git clone https://github.com/rferic/027apps.git
-cd 027app
+cd 027apps
 pnpm install
 ```
 
-### Environment variables
+### Environment Variables
 
 Copy `.env.local.example` to `.env.local`:
 
@@ -79,27 +108,27 @@ Fill in your Supabase credentials:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-### Start local Supabase
+### Start Local Supabase
 
 ```bash
 supabase start
 ```
 
-### Apply database migrations
+### Apply Database Migrations
 
 ```bash
 # If supabase db push fails (remote already has earlier migrations), apply directly:
 docker exec -i supabase_db_027apps psql -U postgres -d postgres < supabase/migrations/<file>.sql
 ```
 
-### Generate Supabase types
+### Generate Supabase Types
 
 ```bash
 supabase gen types typescript --local > src/types/supabase.ts
-# Remove "Connecting to db" line at the top if present
+# Remove the "Connecting to db" line at the top if present
 ```
 
-### Start the development server
+### Start Development Server
 
 ```bash
 pnpm dev
@@ -107,7 +136,9 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Commands
+---
+
+## 📋 Commands
 
 | Command | Purpose |
 |---------|---------|
@@ -117,8 +148,11 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `pnpm lint` | Run ESLint |
 | `pnpm test` | Run Vitest unit tests |
 | `pnpm test:e2e` | Run Playwright E2E tests |
+| `pnpm tsc --noEmit` | TypeScript type checking |
 
-## Project structure
+---
+
+## 📁 Project Structure
 
 ```
 src/
@@ -132,16 +166,45 @@ apps/           App modules (extensible modules)
   README.md     App developer guide
 .github/
   workflows/    CI and release automation
+public/         Static assets (logos, icons, favicon)
 ```
 
-## Creating apps
+---
 
-See [apps/README.md](apps/README.md) and the documentation site at `/doc`.
+## 🧩 Creating Apps
 
-## Contributing
+See the [App Developer Guide](apps/README.md) and the [documentation site](https://027apps-eric-rf.vercel.app/en/doc) for the complete reference.
 
-See [CONTRIBUTING.md](.github/CONTRIBUTING.md)
+Each app lives in `apps/[slug]/` and declares its capabilities in a `manifest.json`. The platform handles:
+- Installation / uninstallation (DDL, data init, rollback)
+- Routing (public views, admin, widgets, REST API)
+- Configuration schema and validation
+- i18n integration
 
-## License
+---
+
+## 📄 Documentation
+
+Full documentation is available at [027apps-eric-rf.vercel.app/en/doc](https://027apps-eric-rf.vercel.app/en/doc), including:
+- API reference (authentication, endpoints, errors)
+- App development guide
+- Environment configuration
+
+---
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md).
+
+### Branch & Commit Conventions
+
+- Branch naming: `sprint/{N}-{description}`, `feature/{description}`, `fix/{description}`
+- Commit format: `Sprint N: type(scope): message` (conventional commits)
+- Merge: squash merge to `main` via PR
+- Preview-first: push → Vercel preview → test → merge → deploy
+
+---
+
+## 📜 License
 
 MIT
