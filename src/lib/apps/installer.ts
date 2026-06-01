@@ -9,6 +9,16 @@ import { hasAppModule, loadAppModule } from '@/lib/apps/registry'
 type InstallModule = { install: (ctx: AppInstallContext) => Promise<void> }
 type UninstallModule = { uninstall: (ctx: AppInstallContext) => Promise<void> }
 
+function extractCreateTableNames(sql: string): string[] {
+  const names: string[] = []
+  const re = /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?["']?(\w+)["']?\s*\(/gi
+  let match: RegExpExecArray | null
+  while ((match = re.exec(sql)) !== null) {
+    names.push(match[1])
+  }
+  return names
+}
+
 export class InstallerError extends Error {
   constructor(
     public readonly code: string,
@@ -125,6 +135,17 @@ export async function installApp(slug: string): Promise<void> {
         .update({ status: 'error', error: sqlError.message })
         .eq('slug', slug)
       throw new Error(`Migrations failed for "${slug}": ${sqlError.message}`)
+    }
+
+    // Grant permissions on all app tables to service_role (needed for PostgREST)
+    const grantSql = extractCreateTableNames(migrationSql)
+      .map(t => `grant select, insert, update, delete on ${t} to service_role;`)
+      .join('\n')
+    if (grantSql) {
+      const { error: grantError } = await adminClient.rpc('exec_sql', { sql: grantSql })
+      if (grantError) {
+        console.error(`[installer] grant failed for "${slug}": ${grantError.message}`)
+      }
     }
   }
 

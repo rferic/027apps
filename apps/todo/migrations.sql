@@ -49,3 +49,5 @@ create policy "Users can update own todos"
 create policy "Users can delete own todos"
   on todo_items for delete
   using (auth.uid() = user_id);
+
+grant select, insert, update, delete on todo_items to service_role;

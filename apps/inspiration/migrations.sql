@@ -68,6 +68,11 @@ create table if not exists inspiration_comments (
 
 create index idx_inspiration_comments_request on inspiration_comments(request_id);
 
+-- Grant permissions to service_role (needed for admin client queries via PostgREST)
+grant select, insert, update, delete on inspiration_requests to service_role;
+grant select, insert, update, delete on inspiration_votes to service_role;
+grant select, insert, update, delete on inspiration_comments to service_role;
+
 -- =============================================================================
 -- ROW LEVEL SECURITY
 -- =============================================================================
