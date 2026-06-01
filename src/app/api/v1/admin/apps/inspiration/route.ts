@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   const sort = url.searchParams.get('sort') || 'newest'
   const appSlug = url.searchParams.get('app_slug')
   const groupSlug = url.searchParams.get('group_slug')
+  const myParam = url.searchParams.get('my')
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1)
   const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(url.searchParams.get('limit') || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT))
 
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest) {
     if (appSlug) q = q.eq('app_slug', appSlug)
     if (groupId) q = q.eq('group_id', groupId)
     if (search) q = q.or(`title.ilike.%${search}%,description.ilike.%${search}%`)
+    if (myParam === '1' && !(auth instanceof Response) && auth.userId) q = q.eq('user_id', auth.userId)
 
     return q
   }

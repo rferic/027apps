@@ -13,7 +13,8 @@
     "type_label": "Tipus",
     "status_label": "Estat",
     "all_types": "Tots els tipus",
-    "all_statuses": "Tots els estats"
+    "all_statuses": "Tots els estats",
+    "my_ideas": "Les meves idees"
   },
   "types": {
     "bug": "Error",

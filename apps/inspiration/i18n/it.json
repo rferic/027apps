@@ -13,7 +13,8 @@
     "type_label": "Tipo",
     "status_label": "Stato",
     "all_types": "Tutti i tipi",
-    "all_statuses": "Tutti gli stati"
+    "all_statuses": "Tutti gli stati",
+    "my_ideas": "Le mie idee"
   },
   "types": {
     "bug": "Bug",

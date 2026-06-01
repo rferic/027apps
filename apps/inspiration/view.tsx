@@ -389,6 +389,7 @@ export default function InspirationView() {
   const statusFilter = searchParams.get('status') ?? STATUS_ALL
   const sortBy = searchParams.get('sort') ?? 'newest'
   const viewTab = searchParams.get('tab') ?? 'active'
+  const myIdeas = searchParams.get('my') === '1'
 
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -446,11 +447,13 @@ export default function InspirationView() {
       params.set('type', typeFilter.join(','))
     }
 
+    if (myIdeas) params.set('my', '1')
+
     const s = overrides?.search ?? searchQuery
     if (s) params.set('search', s)
 
     return params.toString()
-  }, [sortBy, viewTab, statusFilter, typeFilter, searchQuery])
+  }, [sortBy, viewTab, statusFilter, typeFilter, searchQuery, myIdeas])
 
   // ─── Fetch data ──────────────────────────────────────────────────────────
 
@@ -541,7 +544,7 @@ export default function InspirationView() {
   const updateUrl = useCallback((updates: Record<string, string>) => {
     const params = new URLSearchParams(searchParams.toString())
     Object.entries(updates).forEach(([key, value]) => {
-      if (value === '' || value === TYPE_ALL || value === STATUS_ALL || value === 'newest' || (key === 'tab' && value === 'active')) {
+      if (value === '' || value === TYPE_ALL || value === STATUS_ALL || value === 'newest' || (key === 'tab' && value === 'active') || (key === 'my' && value === '')) {
         params.delete(key)
       } else {
         params.set(key, value)
@@ -585,6 +588,10 @@ export default function InspirationView() {
   const handleSortChange = useCallback((sort: string) => {
     updateUrl({ sort })
   }, [updateUrl])
+
+  const handleMyIdeasToggle = useCallback(() => {
+    updateUrl({ my: myIdeas ? '' : '1' })
+  }, [updateUrl, myIdeas])
 
   const handleTabChange = useCallback((tab: string) => {
     setExpandedId(null)
@@ -928,6 +935,18 @@ export default function InspirationView() {
               )
             })}
           </div>
+
+          {/* My ideas toggle */}
+          <button
+            type="button"
+            onClick={handleMyIdeasToggle}
+            className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full cursor-pointer transition-colors ${
+              myIdeas ? 'text-white bg-violet-600' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
+            }`}
+          >
+            <User size={14} />
+            {t('filters.my_ideas')}
+          </button>
         </div>
       )}
 

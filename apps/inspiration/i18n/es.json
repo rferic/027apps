@@ -13,7 +13,8 @@
     "type_label": "Tipo",
     "status_label": "Estado",
     "all_types": "Todos los tipos",
-    "all_statuses": "Todos los estados"
+    "all_statuses": "Todos los estados",
+    "my_ideas": "Mis ideas"
   },
   "types": {
     "bug": "Error",

@@ -20,7 +20,8 @@
     "type_label": "Type",
     "status_label": "Status",
     "all_types": "All types",
-    "all_statuses": "All statuses"
+    "all_statuses": "All statuses",
+    "my_ideas": "My ideas"
   },
   "types": {
     "bug": "Bug",
