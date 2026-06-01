@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Lightbulb, Flame, CheckCircle2, ArrowUp, ArrowRight, Loader2 } from 'lucide-react'
 import { useAppContext } from '@/lib/apps/context'
 
@@ -18,6 +18,7 @@ interface InspirationItem {
 export default function InspirationWidget() {
   const { groupSlug } = useAppContext()
   const locale = useLocale()
+  const t = useTranslations('apps.inspiration')
   const [activeCount, setActiveCount] = useState<number>(0)
   const [topSupported, setTopSupported] = useState<InspirationItem[]>([])
   const [recentlyCompleted, setRecentlyCompleted] = useState<InspirationItem[]>([])
@@ -77,7 +78,7 @@ export default function InspirationWidget() {
   if (!groupSlug) {
     return (
       <div className="p-4 text-center text-xs text-slate-400">
-        Not available
+        {t('widget.not_available')}
       </div>
     )
   }
@@ -93,7 +94,7 @@ export default function InspirationWidget() {
   if (error) {
     return (
       <div className="p-4 text-center text-xs text-slate-400">
-        Couldn&apos;t load
+        {t('widget.couldnt_load')}
       </div>
     )
   }
@@ -106,21 +107,21 @@ export default function InspirationWidget() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <Lightbulb className="w-4 h-4" style={{ color: 'var(--app-primary)' }} />
-          <h3 className="text-sm font-semibold text-slate-700">Inspiration</h3>
+          <h3 className="text-sm font-semibold text-slate-700">{t('widget.heading')}</h3>
         </div>
         {activeCount > 0 && (
           <span
             className="text-xs font-medium px-2 py-0.5 rounded-full"
             style={{ backgroundColor: 'var(--app-primary)', color: '#fff' }}
           >
-            {activeCount} active
+            {t('widget.active_ideas', { count: activeCount })}
           </span>
         )}
       </div>
 
       {!hasData ? (
         <p className="text-xs text-slate-400 py-2 text-center">
-          No ideas yet. Be the first!
+          {t('widget.no_ideas')}
         </p>
       ) : (
         <>
@@ -130,7 +131,7 @@ export default function InspirationWidget() {
               <div className="flex items-center gap-1.5 mb-2">
                 <Flame className="w-3.5 h-3.5" style={{ color: 'var(--app-primary)' }} />
                 <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                  Most supported
+                  {t('widget.most_supported')}
                 </span>
               </div>
               <div className="space-y-1.5">
@@ -158,7 +159,7 @@ export default function InspirationWidget() {
                   style={{ color: 'var(--app-primary)' }}
                 />
                 <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                  Recently completed
+                  {t('widget.recently_completed')}
                 </span>
               </div>
               <div className="space-y-1.5">
@@ -184,7 +185,7 @@ export default function InspirationWidget() {
         className="flex items-center justify-center gap-1 text-xs font-medium mt-3 pt-3 border-t border-slate-100"
         style={{ color: 'var(--app-primary)' }}
       >
-        View all ideas <ArrowRight className="w-3 h-3" />
+        {t('widget.view_all')} <ArrowRight className="w-3 h-3" />
       </Link>
     </div>
   )

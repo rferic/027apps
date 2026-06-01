@@ -36,9 +36,9 @@
   },
   "nav": {
     "dashboard": "Inici",
-    "backoffice": "Backoffice",
+    "backoffice": "Panell de control",
     "docs": "Documentació",
-    "website": "Website"
+    "website": "Lloc web"
   },
   "common": {
     "loading": "Carregant...",
@@ -443,9 +443,9 @@
         "none": "Cap",
         "api": "API"
       },
-      "manageTab": "Manage",
-      "settingsTab": "Settings",
-      "noAdminView": "This app has no admin management view."
+      "manageTab": "Gestiona",
+      "settingsTab": "Configuració",
+      "noAdminView": "Aquesta aplicació no té vista d'administració."
     },
     "common": {
       "loading": "Carregant…"

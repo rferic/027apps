@@ -4,6 +4,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
   Lightbulb, Search, Bug, Sparkles, AppWindow, Puzzle, MoreHorizontal,
@@ -59,32 +60,25 @@ interface AppInfo {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; color: string; label: string }> = {
-  bug: { icon: Bug, color: '#EF4444', label: 'Bug' },
-  improvement: { icon: Sparkles, color: '#F59E0B', label: 'Improvement' },
-  new_app: { icon: AppWindow, color: '#8B5CF6', label: 'New app' },
-  new_app_feature: { icon: Puzzle, color: '#3B82F6', label: 'App feature' },
-  new_general_functionality: { icon: Lightbulb, color: '#10B981', label: 'Functionality' },
-  other: { icon: MoreHorizontal, color: '#6B7280', label: 'Other' },
+const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; color: string }> = {
+  bug: { icon: Bug, color: '#EF4444' },
+  improvement: { icon: Sparkles, color: '#F59E0B' },
+  new_app: { icon: AppWindow, color: '#8B5CF6' },
+  new_app_feature: { icon: Puzzle, color: '#3B82F6' },
+  new_general_functionality: { icon: Lightbulb, color: '#10B981' },
+  other: { icon: MoreHorizontal, color: '#6B7280' },
 }
 
-const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
-  pending: { color: '#F59E0B', label: 'Pending' },
-  reviewing: { color: '#3B82F6', label: 'Reviewing' },
-  approved: { color: '#10B981', label: 'Approved' },
-  in_progress: { color: '#F97316', label: 'In progress' },
-  completed: { color: '#7C3AED', label: 'Completed' },
-  rejected: { color: '#EF4444', label: 'Rejected' },
-  on_hold: { color: '#6B7280', label: 'On hold' },
-  duplicate: { color: '#8B5CF6', label: 'Duplicate' },
+const STATUS_CONFIG: Record<string, { color: string }> = {
+  pending: { color: '#F59E0B' },
+  reviewing: { color: '#3B82F6' },
+  approved: { color: '#10B981' },
+  in_progress: { color: '#F97316' },
+  completed: { color: '#7C3AED' },
+  rejected: { color: '#EF4444' },
+  on_hold: { color: '#6B7280' },
+  duplicate: { color: '#8B5CF6' },
 }
-
-const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest', icon: Clock },
-  { value: 'oldest', label: 'Oldest', icon: Clock },
-  { value: 'most_supported', label: 'Most supported', icon: Flame },
-  { value: 'most_commented', label: 'Most commented', icon: MessageSquare },
-] as const
 
 const ACTIVE_STATUSES = 'pending,reviewing,approved,in_progress,on_hold'
 
@@ -93,20 +87,21 @@ const STATUS_ALL = 'all'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatTimeAgo(dateStr: string): string {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function formatTimeAgo(dateStr: string, t: any): string {
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return ''
   const now = Date.now()
   const diff = now - d.getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
+  if (mins < 1) return t('time.just_now')
+  if (mins < 60) return t('time.m_ago', { m: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return t('time.h_ago', { h: hours })
   const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}d ago`
+  if (days < 7) return t('time.d_ago', { d: days })
   const weeks = Math.floor(days / 7)
-  if (weeks < 4) return `${weeks}w ago`
+  if (weeks < 4) return t('time.w_ago', { w: weeks })
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
@@ -121,7 +116,7 @@ function getTypeConfig(type: string) {
 }
 
 function getStatusConfig(status: string) {
-  return STATUS_CONFIG[status] ?? { color: '#6B7280', label: status }
+  return STATUS_CONFIG[status] ?? { color: '#6B7280' }
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -183,6 +178,7 @@ function RequestCard({
   onRetryComments: () => void
   apps: AppInfo[]
 }) {
+  const t = useTranslations('apps.inspiration')
   const typeCfg = getTypeConfig(item.type)
   const statusCfg = getStatusConfig(item.status)
   const TypeIcon = typeCfg.icon
@@ -203,13 +199,13 @@ function RequestCard({
             style={{ backgroundColor: typeCfg.color + '18', color: typeCfg.color }}
           >
             <TypeIcon size={12} />
-            {typeCfg.label}
+            {t(`types.${item.type}` as never)}
           </span>
           <span
             className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full"
             style={{ backgroundColor: statusCfg.color + '18', color: statusCfg.color }}
           >
-            {statusCfg.label}
+            {t(`statuses.${item.status}` as never)}
           </span>
         </div>
 
@@ -239,7 +235,7 @@ function RequestCard({
           </span>
           <span className="inline-flex items-center gap-1 ml-auto">
             <User size={12} />
-            {formatTimeAgo(item.created_at)}
+            {formatTimeAgo(item.created_at, t)}
           </span>
         </div>
       </div>
@@ -249,23 +245,23 @@ function RequestCard({
         <div className="border-t border-slate-100 px-5 py-4 space-y-4">
           {/* Full description */}
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Description</p>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('card.description')}</p>
             <p className="text-sm text-slate-700 whitespace-pre-line">{item.description}</p>
           </div>
 
           {/* Comments section */}
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">Comments</p>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">{t('comments.title')}</p>
 
             {commentsError ? (
               <div className="py-2">
-                <p className="text-sm text-red-500 mb-2">Failed to load comments.</p>
+                <p className="text-sm text-red-500 mb-2">{t('comments.error')}</p>
                 <button
                   type="button"
                   onClick={onRetryComments}
                   className="text-xs text-blue-500 cursor-pointer"
                 >
-                  Retry
+                  {t('comments.retry')}
                 </button>
               </div>
             ) : commentsLoading ? (
@@ -273,7 +269,7 @@ function RequestCard({
                 <Loader2 size={16} className="animate-spin text-slate-200" />
               </div>
             ) : comments.length === 0 ? (
-              <p className="text-sm text-slate-400 py-2">No comments yet. Be the first!</p>
+              <p className="text-sm text-slate-400 py-2">{t('comments.empty')}</p>
             ) : (
               <div className="space-y-3">
                 {comments.map(c => (
@@ -284,9 +280,9 @@ function RequestCard({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-slate-700">
-                          {c.user?.display_name ?? 'User'}
+                          {c.user?.display_name ?? t('card.user')}
                         </span>
-                        <span className="text-xs text-slate-400">{formatTimeAgo(c.created_at)}</span>
+                        <span className="text-xs text-slate-400">{formatTimeAgo(c.created_at, t)}</span>
                       </div>
                       <p className="text-sm text-slate-600 mt-0.5 whitespace-pre-line">{c.body}</p>
                     </div>
@@ -302,7 +298,7 @@ function RequestCard({
                 className="text-xs font-medium mt-2 cursor-pointer"
                 style={{ color: 'var(--app-primary)' }}
               >
-                Load more ({commentsPagination.total - comments.length} remaining)
+                {t('card.load_more')}
               </button>
             )}
 
@@ -313,7 +309,7 @@ function RequestCard({
                 value={newCommentText}
                 onChange={(e) => onNewCommentChange(e.target.value)}
                 onKeyDown={onNewCommentKeyDown}
-                placeholder="Add a comment..."
+                placeholder={t('comments.placeholder')}
                 className="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white placeholder:text-slate-400 transition-colors"
               />
               <button
@@ -326,7 +322,7 @@ function RequestCard({
                 {submittingComment ? (
                   <Loader2 size={12} className="animate-spin" />
                 ) : (
-                  'Send'
+                  t('card.send')
                 )}
               </button>
             </div>
@@ -340,6 +336,7 @@ function RequestCard({
 // ─── Changelog Item ───────────────────────────────────────────────────────────
 
 function ChangelogItem({ item, apps }: { item: RequestItem; apps: AppInfo[] }) {
+  const t = useTranslations('apps.inspiration')
   const typeCfg = getTypeConfig(item.type)
   const TypeIcon = typeCfg.icon
   const appName = item.app_slug ? (apps.find(a => a.slug === item.app_slug)?.name ?? item.app_slug) : null
@@ -356,7 +353,7 @@ function ChangelogItem({ item, apps }: { item: RequestItem; apps: AppInfo[] }) {
             style={{ backgroundColor: typeCfg.color + '14', color: typeCfg.color }}
           >
             <TypeIcon size={10} />
-            {typeCfg.label}
+            {t(`types.${item.type}` as never)}
           </span>
           {appName && (
             <span className="text-xs text-slate-400">· {appName}</span>
@@ -376,6 +373,14 @@ export default function InspirationView() {
   const { groupSlug } = useAppContext()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const t = useTranslations('apps.inspiration')
+
+  const SORT_OPTIONS = [
+    { value: 'newest', label: t('filters.sort_newest'), icon: Clock },
+    { value: 'oldest', label: t('filters.sort_oldest'), icon: Clock },
+    { value: 'most_supported', label: t('filters.sort_most_supported'), icon: Flame },
+    { value: 'most_commented', label: t('filters.sort_most_commented'), icon: MessageSquare },
+  ] as const
 
   // ─── Filter state (synced from URL) ──────────────────────────────────────
 
@@ -810,7 +815,7 @@ export default function InspirationView() {
             <Lightbulb size={18} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Inspiration</h1>
+            <h1 className="text-xl font-bold text-slate-900">{t('title')}</h1>
             <p className="text-xs text-slate-400">
               {counts.total} total · {counts.pending} active · {counts.completed} completed
             </p>
@@ -824,7 +829,7 @@ export default function InspirationView() {
             style={{ backgroundColor: 'var(--app-primary)' }}
           >
             <Plus size={16} />
-            New idea
+            {t('new_idea')}
           </button>
         )}
       </div>
@@ -840,7 +845,7 @@ export default function InspirationView() {
                 type="text"
                 value={localSearch}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search ideas..."
+                placeholder={t('filters.search_placeholder')}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white placeholder:text-slate-400 transition-colors"
               />
               {localSearch && (
@@ -871,7 +876,7 @@ export default function InspirationView() {
 
           {/* Type chips */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            {[{ value: TYPE_ALL, label: 'All' }, ...Object.entries(TYPE_CONFIG).map(([k, v]) => ({ value: k, label: v.label, color: v.color }))].map(chip => {
+            {[{ value: TYPE_ALL, label: t('card.all') }, ...Object.entries(TYPE_CONFIG).map(([k, v]) => ({ value: k, label: t(`types.${k}` as never), color: v.color }))].map(chip => {
               const isActive = typeFilter.includes(chip.value) || (chip.value === TYPE_ALL && typeFilter.includes(TYPE_ALL))
               return (
                 <button
@@ -903,7 +908,7 @@ export default function InspirationView() {
               }`}
               style={statusFilter === STATUS_ALL ? { backgroundColor: '#6B7280' } : undefined}
             >
-              All
+              {t('card.all')}
             </button>
             {['pending', 'reviewing', 'approved', 'in_progress', 'completed'].map(st => {
               const cfg = getStatusConfig(st)
@@ -918,7 +923,7 @@ export default function InspirationView() {
                   }`}
                   style={isActive ? { backgroundColor: cfg.color } : undefined}
                 >
-                  {cfg.label}
+                  {t(`statuses.${st}` as never)}
                 </button>
               )
             })}
@@ -935,7 +940,7 @@ export default function InspirationView() {
             !isChangelog ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          Active
+          {t('active')}
         </button>
         <button
           type="button"
@@ -944,7 +949,7 @@ export default function InspirationView() {
             isChangelog ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          Changelog
+          {t('changelog')}
         </button>
       </div>
 
@@ -956,14 +961,14 @@ export default function InspirationView() {
           <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
             <X size={24} className="text-red-400" />
           </div>
-          <p className="text-sm text-slate-500 mb-4">Something went wrong loading ideas.</p>
+          <p className="text-sm text-slate-500 mb-4">{t('card.error_loading')}</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
             className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-lg cursor-pointer transition-colors"
             style={{ backgroundColor: 'var(--app-primary)' }}
           >
-            Retry
+            {t('card.error_retry')}
           </button>
         </div>
       ) : loading ? (
@@ -985,12 +990,12 @@ export default function InspirationView() {
           </div>
           {searchQuery || !typeFilter.includes(TYPE_ALL) || statusFilter !== STATUS_ALL ? (
             <>
-              <p className="text-sm text-slate-500 mb-1">No ideas match your filters.</p>
-              <p className="text-xs text-slate-400">Try adjusting them.</p>
+              <p className="text-sm text-slate-500 mb-1">{t('card.filtered')}</p>
+              <p className="text-xs text-slate-400">{t('card.filtered_hint')}</p>
             </>
           ) : (
             <>
-              <p className="text-sm text-slate-500 mb-1">No ideas yet. Be the first!</p>
+              <p className="text-sm text-slate-500 mb-1">{t('card.no_ideas_first')}</p>
               <button
                 type="button"
                 onClick={() => setShowModal(true)}
@@ -998,7 +1003,7 @@ export default function InspirationView() {
                 style={{ backgroundColor: 'var(--app-primary)' }}
               >
                 <Plus size={16} />
-                New idea
+                {t('new_idea')}
               </button>
             </>
           )}
@@ -1041,7 +1046,7 @@ export default function InspirationView() {
       {!loading && requests.length > 0 && (
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
           <span className="text-xs text-slate-400">
-            {viewFrom}&ndash;{viewTo} of {pagination.total}
+            {viewFrom}&ndash;{viewTo} {t('card.of')} {pagination.total}
           </span>
           {showLoadMore && (
             <button
@@ -1049,7 +1054,7 @@ export default function InspirationView() {
               onClick={handleLoadMore}
               className="text-xs font-medium px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
             >
-              Load more
+              {t('card.load_more')}
             </button>
           )}
         </div>

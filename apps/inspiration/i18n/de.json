@@ -59,7 +59,28 @@
     "submit": "Idee veröffentlichen",
     "success": "Deine Idee wurde veröffentlicht!",
     "cancel": "Abbrechen",
-    "back": "Zurück"
+    "back": "Zurück",
+    "step3_title": "Review your idea",
+    "step_label": "Step {step} of 3",
+    "review": "Review",
+    "publishing": "Publishing...",
+    "request_failed": "Request failed",
+    "publish_error": "Something went wrong",
+    "no_apps": "No apps available",
+    "app_placeholder": "-- Select an app --",
+    "type_colon": "Type:",
+    "title_colon": "Title:",
+    "description_colon": "Description:",
+    "app_colon": "App:",
+    "bug_suggestion_label": "Suggestion",
+    "bug_suggestion_placeholder": "How would you improve it?",
+    "improvement_label": "Suggestion",
+    "improvement_placeholder": "How would you improve it?",
+    "new_app_title_label": "Proposed name",
+    "new_app_title_placeholder": "What should we call it?",
+    "new_app_description_placeholder": "Describe what the app would do...",
+    "feature_details_label": "Feature details",
+    "feature_details_placeholder": "Describe the feature you'd like to see..."
   },
   "card": {
     "votes": "{count, plural, one {# Stimme} other {# Stimmen}}",
@@ -68,7 +89,21 @@
     "voted_button": "Du unterstützt diese Idee",
     "assigned_to_app": "Zugewiesen zu {app}",
     "by": "von",
-    "view_details": "Details anzeigen"
+    "view_details": "Details anzeigen",
+    "load_more": "Load more",
+    "description": "Description",
+    "send": "Send",
+    "retry": "Retry",
+    "filtered": "No ideas match your filters.",
+    "filtered_hint": "Try adjusting them.",
+    "user": "User",
+    "no_ideas_first": "No ideas yet. Be the first!",
+    "active_tab": "Active",
+    "changelog_tab": "Changelog",
+    "of": "of",
+    "all": "All",
+    "error_loading": "Something went wrong loading ideas.",
+    "error_retry": "Retry"
   },
   "comments": {
     "title": "Kommentare",
@@ -91,7 +126,8 @@
     "most_supported": "Meist unterstützt",
     "no_ideas": "Noch keine Ideen. Sei der Erste!",
     "not_available": "Nicht verfügbar",
-    "couldnt_load": "Konnte nicht geladen werden"
+    "couldnt_load": "Konnte nicht geladen werden",
+    "heading": "Inspiration"
   },
   "admin": {
     "title": "Inspiration — Admin",
@@ -104,6 +140,45 @@
     "no_ideas_found": "Keine Ideen gefunden",
     "confirm_final_status": "Bist du sicher? Dies benachrichtigt den Ersteller und die Unterstützer.",
     "confirm": "Bestätigen",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "error": "Failed to load requests",
+    "retry": "Try again",
+    "confirm_title": "Confirm status change",
+    "columns": {
+      "type": "Type",
+      "title": "Title",
+      "creator": "Creator",
+      "votes": "Votes",
+      "app": "App",
+      "group": "Group",
+      "status": "Status"
+    },
+    "filter": {
+      "type": "Type:",
+      "status": "Status:"
+    },
+    "pagination": {
+      "of": "of",
+      "prev": "Prev",
+      "next": "Next"
+    },
+    "detail": {
+      "no_description": "No description",
+      "created_by": "Created by",
+      "unknown": "Unknown",
+      "created_at": "Created",
+      "updated_at": "Updated",
+      "votes_label": "Votes",
+      "comments_label": "Comments",
+      "voters": "Voters",
+      "error": "Could not load details"
+    }
+  },
+  "time": {
+    "just_now": "just now",
+    "m_ago": "{m}m ago",
+    "h_ago": "{h}h ago",
+    "d_ago": "{d}d ago",
+    "w_ago": "{w}w ago"
   }
 }

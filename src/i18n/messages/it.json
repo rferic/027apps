@@ -36,9 +36,9 @@
   },
   "nav": {
     "dashboard": "Home",
-    "backoffice": "Backoffice",
+    "backoffice": "Pannello di controllo",
     "docs": "Documentazione",
-    "website": "Website"
+    "website": "Sito web"
   },
   "common": {
     "loading": "Caricamento...",
@@ -443,9 +443,9 @@
         "none": "Nessuna",
         "api": "API"
       },
-      "manageTab": "Manage",
-      "settingsTab": "Settings",
-      "noAdminView": "This app has no admin management view."
+      "manageTab": "Gestisci",
+      "settingsTab": "Impostazioni",
+      "noAdminView": "Questa app non ha una vista di amministrazione."
     },
     "common": {
       "loading": "Caricamento…"

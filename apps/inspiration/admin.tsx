@@ -1,6 +1,7 @@
 'use client'
 
 // TODO i18n: TASK-95 — strings hardcoded in English
+import { useTranslations } from 'next-intl'
 import { useState, useEffect, useCallback } from 'react'
 import {
   Search, ChevronDown, ArrowUp, X, Loader2,
@@ -27,26 +28,6 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
 
 // ---- CONSTANTS ----
 
-const REQUEST_TYPES = [
-  { value: 'bug', label: 'Bug', icon: Bug, color: '#EF4444' },
-  { value: 'improvement', label: 'Improvement', icon: Sparkles, color: '#F59E0B' },
-  { value: 'new_app', label: 'New App', icon: AppWindow, color: '#8B5CF6' },
-  { value: 'new_app_feature', label: 'App Feature', icon: Puzzle, color: '#3B82F6' },
-  { value: 'new_general_functionality', label: 'General', icon: Lightbulb, color: '#10B981' },
-  { value: 'other', label: 'Other', icon: MoreHorizontal, color: '#6B7280' },
-] as const
-
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pending', color: '#F59E0B' },
-  reviewing: { label: 'Reviewing', color: '#3B82F6' },
-  approved: { label: 'Approved', color: '#10B981' },
-  in_progress: { label: 'In Progress', color: '#F97316' },
-  completed: { label: 'Completed', color: '#7C3AED' },
-  rejected: { label: 'Rejected', color: '#EF4444' },
-  on_hold: { label: 'On Hold', color: '#6B7280' },
-  duplicate: { label: 'Duplicate', color: '#8B5CF6' },
-}
-
 const VALID_TRANSITIONS: Record<string, string[]> = {
   pending: ['reviewing', 'rejected', 'duplicate'],
   reviewing: ['approved', 'rejected', 'duplicate'],
@@ -57,13 +38,6 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   on_hold: ['in_progress', 'approved'],
   duplicate: [],
 }
-
-const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest' },
-  { value: 'oldest', label: 'Oldest' },
-  { value: 'most_supported', label: 'Most Supported' },
-  { value: 'most_commented', label: 'Most Commented' },
-]
 
 const FINAL_STATUSES = ['completed', 'rejected', 'duplicate']
 
@@ -116,6 +90,36 @@ interface VoterItem {
 // ---- COMPONENT ----
 
 export default function InspirationAdmin() {
+  const t = useTranslations('apps.inspiration')
+
+  // Constants (moved inside to access t())
+  const REQUEST_TYPES = [
+    { value: 'bug', label: t('types.bug'), icon: Bug, color: '#EF4444' },
+    { value: 'improvement', label: t('types.improvement'), icon: Sparkles, color: '#F59E0B' },
+    { value: 'new_app', label: t('types.new_app'), icon: AppWindow, color: '#8B5CF6' },
+    { value: 'new_app_feature', label: t('types.new_app_feature'), icon: Puzzle, color: '#3B82F6' },
+    { value: 'new_general_functionality', label: t('types.new_general_functionality'), icon: Lightbulb, color: '#10B981' },
+    { value: 'other', label: t('types.other'), icon: MoreHorizontal, color: '#6B7280' },
+  ] as const
+
+  const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+    pending: { label: t('statuses.pending'), color: '#F59E0B' },
+    reviewing: { label: t('statuses.reviewing'), color: '#3B82F6' },
+    approved: { label: t('statuses.approved'), color: '#10B981' },
+    in_progress: { label: t('statuses.in_progress'), color: '#F97316' },
+    completed: { label: t('statuses.completed'), color: '#7C3AED' },
+    rejected: { label: t('statuses.rejected'), color: '#EF4444' },
+    on_hold: { label: t('statuses.on_hold'), color: '#6B7280' },
+    duplicate: { label: t('statuses.duplicate'), color: '#8B5CF6' },
+  }
+
+  const SORT_OPTIONS = [
+    { value: 'newest', label: t('filters.sort_newest') },
+    { value: 'oldest', label: t('filters.sort_oldest') },
+    { value: 'most_supported', label: t('filters.sort_most_supported') },
+    { value: 'most_commented', label: t('filters.sort_most_commented') },
+  ]
+
   // Data
   const [requests, setRequests] = useState<RequestItem[]>([])
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, total_pages: 0 })
@@ -161,7 +165,7 @@ export default function InspirationAdmin() {
       setRequests(json.data ?? [])
       setPagination(json.pagination ?? { page: 1, limit: 20, total: 0, total_pages: 0 })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load requests')
+      setError(err instanceof Error ? err.message : t('admin.error'))
       setRequests([])
     } finally {
       setLoading(false)
@@ -296,7 +300,7 @@ export default function InspirationAdmin() {
 
   const getCreatorName = (item: RequestItem) => {
     if (item.creator?.display_name) return item.creator.display_name
-    return (item.user_id?.slice(0, 8) ?? 'Unknown') + '\u2026'
+    return (item.user_id?.slice(0, 8) ?? t('admin.detail.unknown')) + '\u2026'
   }
 
   const statusLabel = (s: string) => STATUS_CONFIG[s]?.label ?? s
@@ -326,8 +330,8 @@ export default function InspirationAdmin() {
     <div className="p-6 max-w-7xl">
       {/* Header */}
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-gray-900">Inspiration — Admin</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage idea lifecycle</p>
+        <h1 className="text-xl font-bold text-gray-900">{t('admin.title')}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{t('admin.subtitle')}</p>
       </div>
 
       {/* Filters */}
@@ -340,7 +344,7 @@ export default function InspirationAdmin() {
               type="text"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
-              placeholder="Search ideas..."
+              placeholder={t('admin.search')}
               className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 bg-white placeholder:text-slate-400"
             />
             {searchInput && (
@@ -362,7 +366,7 @@ export default function InspirationAdmin() {
 
         {/* Type chips */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-medium text-slate-500 mr-1">Type:</span>
+          <span className="text-xs font-medium text-slate-500 mr-1">{t('admin.filter.type')}</span>
           {REQUEST_TYPES.map(t => (
             <button
               key={t.value}
@@ -381,7 +385,7 @@ export default function InspirationAdmin() {
 
         {/* Status chips */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-medium text-slate-500 mr-1">Status:</span>
+          <span className="text-xs font-medium text-slate-500 mr-1">{t('admin.filter.status')}</span>
           {Object.entries(STATUS_CONFIG).map(([value, config]) => (
             <button
               key={value}
@@ -410,8 +414,8 @@ export default function InspirationAdmin() {
       {!loading && error && (
         <div className="bg-white rounded-xl border border-slate-100 p-8 text-center">
           <p className="text-sm text-red-600 mb-2">{error}</p>
-          <button onClick={fetchRequests} className="text-xs text-slate-600 hover:text-slate-900 underline cursor-pointer">
-            Try again
+           <button onClick={fetchRequests} className="text-xs text-slate-600 hover:text-slate-900 underline cursor-pointer">
+            {t('admin.retry')}
           </button>
         </div>
       )}
@@ -419,7 +423,7 @@ export default function InspirationAdmin() {
       {/* Empty */}
       {!loading && !error && requests.length === 0 && (
         <div className="bg-white rounded-xl border border-slate-100 p-8 text-center">
-          <p className="text-sm text-slate-400">No ideas found</p>
+           <p className="text-sm text-slate-400">{t('admin.no_ideas_found')}</p>
         </div>
       )}
 
@@ -429,13 +433,13 @@ export default function InspirationAdmin() {
           <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
             {/* Table header */}
             <div className="grid grid-cols-[44px_1fr_120px_60px_80px_100px_100px_44px] gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-              <span>Type</span>
-              <span>Title</span>
-              <span>Creator</span>
-              <span>Votes</span>
-              <span>App</span>
-              <span>Group</span>
-              <span>Status</span>
+              <span>{t('admin.columns.type')}</span>
+              <span>{t('admin.columns.title')}</span>
+              <span>{t('admin.columns.creator')}</span>
+              <span>{t('admin.columns.votes')}</span>
+              <span>{t('admin.columns.app')}</span>
+              <span>{t('admin.columns.group')}</span>
+              <span>{t('admin.columns.status')}</span>
               <span />
             </div>
 
@@ -547,7 +551,7 @@ export default function InspirationAdmin() {
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4">
             <span className="text-xs text-slate-500">
-              {(pagination.page - 1) * pagination.limit + 1}\u2013{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+              {(pagination.page - 1) * pagination.limit + 1}\u2013{Math.min(pagination.page * pagination.limit, pagination.total)} {t('admin.pagination.of')} {pagination.total}
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -556,7 +560,7 @@ export default function InspirationAdmin() {
                 className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:bg-slate-50 transition-colors flex items-center gap-1"
               >
                 <ChevronLeft size={14} />
-                Prev
+                {t('admin.pagination.prev')}
               </button>
               <span className="text-xs text-slate-500 px-2">
                 {pagination.page} / {pagination.total_pages || 1}
@@ -566,7 +570,7 @@ export default function InspirationAdmin() {
                 disabled={page >= pagination.total_pages}
                 className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:bg-slate-50 transition-colors flex items-center gap-1"
               >
-                Next
+                {t('admin.pagination.next')}
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -615,21 +619,21 @@ export default function InspirationAdmin() {
 
                 {/* Description */}
                 <div className="text-sm text-slate-600 whitespace-pre-line mb-4 leading-relaxed">
-                  {detail.description || 'No description'}
+                  {detail.description || t('admin.detail.no_description')}
                 </div>
 
                 {/* Meta grid */}
                 <div className="grid grid-cols-2 gap-3 mb-4 p-3 bg-slate-50 rounded-lg">
                   {detail.creator && (
                     <div>
-                      <p className="text-xs text-slate-400 mb-0.5">Created by</p>
+                      <p className="text-xs text-slate-400 mb-0.5">{t('admin.detail.created_by')}</p>
                       <p className="text-sm text-slate-700 flex items-center gap-1.5">
                         {detail.creator.avatar_url ? (
                           <img src={detail.creator.avatar_url} alt="" className="w-5 h-5 rounded-full" />
                         ) : (
                           <User size={14} className="text-slate-400" />
                         )}
-                        {detail.creator.display_name ?? 'Unknown'}
+                        {detail.creator.display_name ?? t('admin.detail.unknown')}
                       </p>
                     </div>
                   )}
@@ -646,19 +650,19 @@ export default function InspirationAdmin() {
                     </div>
                   )}
                   <div>
-                    <p className="text-xs text-slate-400 mb-0.5">Created</p>
+                    <p className="text-xs text-slate-400 mb-0.5">{t('admin.detail.created_at')}</p>
                     <p className="text-sm text-slate-700">{formatDateFull(detail.created_at)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 mb-0.5">Updated</p>
+                    <p className="text-xs text-slate-400 mb-0.5">{t('admin.detail.updated_at')}</p>
                     <p className="text-sm text-slate-700">{formatDateFull(detail.updated_at)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 mb-0.5">Votes</p>
+                    <p className="text-xs text-slate-400 mb-0.5">{t('admin.detail.votes_label')}</p>
                     <p className="text-sm text-slate-700">{detail.vote_count}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 mb-0.5">Comments</p>
+                    <p className="text-xs text-slate-400 mb-0.5">{t('admin.detail.comments_label')}</p>
                     <p className="text-sm text-slate-700">{detail.comment_count}</p>
                   </div>
                 </div>
@@ -668,7 +672,7 @@ export default function InspirationAdmin() {
                   <div className="mb-4">
                     <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
                       <MessageCircle size={14} />
-                      Comments ({detail.comments.length})
+                      {t('admin.detail.comments_label')} ({detail.comments.length})
                     </h3>
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {detail.comments.map(c => (
@@ -691,7 +695,7 @@ export default function InspirationAdmin() {
                   <div>
                     <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
                       <ArrowUp size={14} />
-                      Voters ({detail.voters.length})
+                      {t('admin.detail.voters')} ({detail.voters.length})
                     </h3>
                     <div className="flex flex-wrap gap-1.5">
                       {detail.voters.map((v, i) => (
@@ -709,7 +713,7 @@ export default function InspirationAdmin() {
                 )}
               </div>
             ) : (
-              <div className="p-6 text-center text-sm text-slate-400">Could not load details</div>
+              <div className="p-6 text-center text-sm text-slate-400">{t('admin.detail.error')}</div>
             )}
           </div>
         </div>
@@ -720,22 +724,22 @@ export default function InspirationAdmin() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmChange(null)} />
           <div className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
-            <h3 className="text-base font-semibold text-slate-900">Confirm status change</h3>
+            <h3 className="text-base font-semibold text-slate-900">{t('admin.confirm_title')}</h3>
             <p className="text-sm text-slate-500">
-              Change to <strong>{statusLabel(confirmChange.newStatus)}</strong>? This will notify the creator and voters.
+              {t('admin.confirm_final_status')}
             </p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setConfirmChange(null)}
                 className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
               >
-                Cancel
+                {t('admin.cancel')}
               </button>
               <button
                 onClick={() => executeStatusChange(confirmChange.requestId, confirmChange.newStatus)}
                 className="px-3 py-1.5 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-700 cursor-pointer transition-colors"
               >
-                Confirm
+                {t('admin.confirm')}
               </button>
             </div>
           </div>

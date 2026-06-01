@@ -1,23 +1,14 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   X, Bug, Sparkles, AppWindow, Puzzle, Lightbulb, MoreHorizontal,
   ChevronLeft, Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-// Type definitions
-const REQUEST_TYPES = [
-  { value: 'bug', label: 'Bug report', description: 'Report a bug or issue', icon: Bug, color: '#EF4444' },
-  { value: 'improvement', label: 'Improvement', description: 'Suggest an improvement', icon: Sparkles, color: '#F59E0B' },
-  { value: 'new_app', label: 'New app', description: 'Propose a new app', icon: AppWindow, color: '#8B5CF6' },
-  { value: 'new_app_feature', label: 'App feature', description: 'New feature for an app', icon: Puzzle, color: '#3B82F6' },
-  { value: 'new_general_functionality', label: 'General functionality', description: 'Platform-wide idea', icon: Lightbulb, color: '#10B981' },
-  { value: 'other', label: 'Other', description: 'Anything else', icon: MoreHorizontal, color: '#6B7280' },
-] as const
-
-type RequestType = typeof REQUEST_TYPES[number]['value']
+type RequestType = 'bug' | 'improvement' | 'new_app' | 'new_app_feature' | 'new_general_functionality' | 'other'
 
 interface InstalledApp {
   slug: string
@@ -35,6 +26,17 @@ const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg fo
 const labelCls = 'block text-sm font-medium text-slate-700 mb-1'
 
 export default function CreateRequestModal({ open, onClose, onCreated, groupSlug }: CreateRequestModalProps) {
+  const t = useTranslations('apps.inspiration')
+
+  const REQUEST_TYPES = [
+    { value: 'bug', label: t('types.bug'), description: t('create.step1_bug_desc'), icon: Bug, color: '#EF4444' },
+    { value: 'improvement', label: t('types.improvement'), description: t('create.step1_improvement_desc'), icon: Sparkles, color: '#F59E0B' },
+    { value: 'new_app', label: t('types.new_app'), description: t('create.step1_new_app_desc'), icon: AppWindow, color: '#8B5CF6' },
+    { value: 'new_app_feature', label: t('types.new_app_feature'), description: t('create.step1_feature_desc'), icon: Puzzle, color: '#3B82F6' },
+    { value: 'new_general_functionality', label: t('types.new_general_functionality'), description: t('create.step1_general_desc'), icon: Lightbulb, color: '#10B981' },
+    { value: 'other', label: t('types.other'), description: t('create.step1_other_desc'), icon: MoreHorizontal, color: '#6B7280' },
+  ] as const
+
   const [step, setStep] = useState(1)
   const [selectedType, setSelectedType] = useState<RequestType | null>(null)
   const [title, setTitle] = useState('')
@@ -118,19 +120,19 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
     const type = selectedType!
 
     if (type === 'bug') {
-      if (stepsToReproduce.trim()) full += `\n\n---\n**Steps to reproduce:**\n${stepsToReproduce.trim()}`
-      if (expectedBehavior.trim()) full += `\n\n**Expected behavior:**\n${expectedBehavior.trim()}`
-      if (actualBehavior.trim()) full += `\n\n**Actual behavior:**\n${actualBehavior.trim()}`
+      if (stepsToReproduce.trim()) full += `\n\n---\n**${t('create.bug_steps_label')}:**\n${stepsToReproduce.trim()}`
+      if (expectedBehavior.trim()) full += `\n\n**${t('create.bug_expected_label')}:**\n${expectedBehavior.trim()}`
+      if (actualBehavior.trim()) full += `\n\n**${t('create.bug_actual_label')}:**\n${actualBehavior.trim()}`
     }
     if (type === 'improvement') {
-      if (suggestion.trim()) full += `\n\n---\n**Suggestion:**\n${suggestion.trim()}`
+      if (suggestion.trim()) full += `\n\n---\n**${t('create.improvement_label')}:**\n${suggestion.trim()}`
     }
     if (type === 'new_app') {
-      if (proposedName.trim()) full += `\n\n---\n**Proposed name:** ${proposedName.trim()}`
-      if (appDescription.trim()) full += `\n\n**What it would do:**\n${appDescription.trim()}`
+      if (proposedName.trim()) full += `\n\n---\n**${t('create.new_app_title_label')}:** ${proposedName.trim()}`
+      if (appDescription.trim()) full += `\n\n**${t('create.new_app_description_label')}:**\n${appDescription.trim()}`
     }
     if (type === 'new_app_feature') {
-      if (appDescription.trim()) full += `\n\n---\n**Feature details:**\n${appDescription.trim()}`
+      if (appDescription.trim()) full += `\n\n---\n**${t('create.feature_details_label')}:**\n${appDescription.trim()}`
     }
     return full
   }
@@ -178,15 +180,15 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
       })
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: 'Request failed' }))
+        const err = await res.json().catch(() => ({ message: t('create.request_failed') }))
         throw new Error(err.message || `Error ${res.status}`)
       }
 
-      toast.success('Idea published successfully')
+      toast.success(t('create.success'))
       reset()
       onCreated()
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Something went wrong'
+      const msg = err instanceof Error ? err.message : t('create.publish_error')
       setError(msg)
     } finally {
       setSubmitting(false)
@@ -227,14 +229,14 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
               </button>
             )}
             <h2 className="text-base font-semibold text-slate-900">
-              {step1only && 'What do you want to propose?'}
+              {step1only && t('create.step1_title')}
               {step2only && typeMeta && (
                 <span className="flex items-center gap-2">
                   <typeMeta.icon size={18} style={{ color: typeMeta.color }} />
                   {typeMeta.label}
                 </span>
               )}
-              {step3only && 'Review your idea'}
+              {step3only && t('create.step3_title')}
             </h2>
           </div>
           <button
@@ -254,7 +256,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
               className={`h-1 flex-1 rounded-full transition-colors ${s <= step ? 'bg-violet-500' : 'bg-slate-200'}`}
             />
           ))}
-          <span className="text-xs text-slate-400 ml-2 tabular-nums">Step {step} of 3</span>
+          <span className="text-xs text-slate-400 ml-2 tabular-nums">{t('create.step_label', { step })}</span>
         </div>
 
         {/* =========== STEP 1: Type selection =========== */}
@@ -288,12 +290,12 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
           <div className="space-y-4">
             {/* Title — common */}
             <div>
-              <label className={labelCls}>Title <span className="text-red-400">*</span></label>
+              <label className={labelCls}>{t('create.title_label')} <span className="text-red-400">*</span></label>
               <input
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                placeholder="Give your idea a short, clear title"
+                placeholder={t('create.title_placeholder')}
                 className={inputCls}
                 autoFocus
               />
@@ -301,11 +303,11 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
 
             {/* Description — common */}
             <div>
-              <label className={labelCls}>Description <span className="text-red-400">*</span></label>
+              <label className={labelCls}>{t('create.description_label')} <span className="text-red-400">*</span></label>
               <textarea
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                placeholder="Explain your idea in detail..."
+                placeholder={t('create.description_placeholder')}
                 rows={4}
                 className={inputCls + ' resize-y'}
               />
@@ -315,15 +317,17 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
             <div>
               <label className={labelCls}>
                 {selectedType === 'new_app_feature' ? (
-                  <>Which app? <span className="text-red-400">*</span></>
-                ) : selectedType === 'bug' || selectedType === 'improvement' ? (
-                  <>Related app <span className="text-slate-400 font-normal">(optional)</span></>
+                  <>{t('create.feature_app_label')} <span className="text-red-400">*</span></>
+                ) : selectedType === 'improvement' ? (
+                  <>{t('create.improvement_app_label')}</>
+                ) : selectedType === 'bug' ? (
+                  <>{t('create.bug_app_label')}</>
                 ) : (
-                  <>Assign to app <span className="text-slate-400 font-normal">(optional)</span></>
+                  <>{t('create.app_label')}</>
                 )}
               </label>
               {installedApps.length === 0 ? (
-                <p className="text-xs text-slate-400">No apps available</p>
+                <p className="text-xs text-slate-400">{t('create.no_apps')}</p>
               ) : (
                 <select
                   value={selectedType === 'new_app_feature' ? featureAppSlug : appSlug}
@@ -336,7 +340,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                   }}
                   className={inputCls}
                 >
-                  <option value="">-- Select an app --</option>
+                  <option value="">{t('create.app_placeholder')}</option>
                   {installedApps.map(app => (
                     <option key={app.slug} value={app.slug}>{app.name}</option>
                   ))}
@@ -348,7 +352,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
             {selectedType === 'bug' && (
               <>
                 <div>
-                  <label className={labelCls}>Steps to reproduce</label>
+                  <label className={labelCls}>{t('create.bug_steps_label')}</label>
                   <textarea
                     value={stepsToReproduce}
                     onChange={e => setStepsToReproduce(e.target.value)}
@@ -358,7 +362,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>What did you expect?</label>
+                  <label className={labelCls}>{t('create.bug_expected_label')}</label>
                   <textarea
                     value={expectedBehavior}
                     onChange={e => setExpectedBehavior(e.target.value)}
@@ -368,7 +372,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>What actually happened?</label>
+                  <label className={labelCls}>{t('create.bug_actual_label')}</label>
                   <textarea
                     value={actualBehavior}
                     onChange={e => setActualBehavior(e.target.value)}
@@ -383,11 +387,11 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
             {/* === Improvement extra fields === */}
             {selectedType === 'improvement' && (
               <div>
-                <label className={labelCls}>Suggestion</label>
+                <label className={labelCls}>{t('create.improvement_label')}</label>
                 <textarea
                   value={suggestion}
                   onChange={e => setSuggestion(e.target.value)}
-                  placeholder="How would you improve it?"
+                  placeholder={t('create.improvement_placeholder')}
                   rows={3}
                   className={inputCls + ' resize-y'}
                 />
@@ -398,21 +402,21 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
             {selectedType === 'new_app' && (
               <>
                 <div>
-                  <label className={labelCls}>Proposed name <span className="text-red-400">*</span></label>
+                  <label className={labelCls}>{t('create.new_app_title_label')} <span className="text-red-400">*</span></label>
                   <input
                     type="text"
                     value={proposedName}
                     onChange={e => setProposedName(e.target.value)}
-                    placeholder="What should we call it?"
+                    placeholder={t('create.new_app_title_placeholder')}
                     className={inputCls}
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>What would it do?</label>
+                  <label className={labelCls}>{t('create.new_app_description_label')}</label>
                   <textarea
                     value={appDescription}
                     onChange={e => setAppDescription(e.target.value)}
-                    placeholder="Describe what the app would do..."
+                    placeholder={t('create.new_app_description_placeholder')}
                     rows={3}
                     className={inputCls + ' resize-y'}
                   />
@@ -423,11 +427,11 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
             {/* === App feature extra fields === */}
             {selectedType === 'new_app_feature' && (
               <div>
-                <label className={labelCls}>Feature details</label>
+                <label className={labelCls}>{t('create.feature_details_label')}</label>
                 <textarea
                   value={appDescription}
                   onChange={e => setAppDescription(e.target.value)}
-                  placeholder="Describe the feature you'd like to see..."
+                  placeholder={t('create.feature_details_placeholder')}
                   rows={3}
                   className={inputCls + ' resize-y'}
                 />
@@ -441,7 +445,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                 onClick={handleClose}
                 className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 cursor-pointer transition-colors"
               >
-                Cancel
+                {t('create.cancel')}
               </button>
               <button
                 type="button"
@@ -449,7 +453,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                 disabled={!canGoToStep3()}
                 className="px-5 py-2 text-sm font-medium bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg cursor-pointer transition-colors"
               >
-                Review
+                {t('create.review')}
               </button>
             </div>
           </div>
@@ -461,25 +465,25 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
             {/* Summary */}
             <div className="bg-slate-50 rounded-lg p-4 space-y-3 text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-slate-500 w-24 shrink-0">Type:</span>
+                <span className="text-slate-500 w-24 shrink-0">{t('create.type_colon')}</span>
                 <span className="flex items-center gap-1.5 font-medium" style={{ color: typeMeta.color }}>
                   <typeMeta.icon size={14} />
                   {typeMeta.label}
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-slate-500 w-24 shrink-0">Title:</span>
+                <span className="text-slate-500 w-24 shrink-0">{t('create.title_colon')}</span>
                 <span className="text-slate-800 font-medium">{title.trim()}</span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-slate-500 w-24 shrink-0">Description:</span>
+                <span className="text-slate-500 w-24 shrink-0">{t('create.description_colon')}</span>
                 <span className="text-slate-700 line-clamp-3 whitespace-pre-line">
                   {buildDescription()}
                 </span>
               </div>
               {getEffectiveAppSlug() && (
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-500 w-24 shrink-0">App:</span>
+                  <span className="text-slate-500 w-24 shrink-0">{t('create.app_colon')}</span>
                   <span className="text-slate-700">
                     {installedApps.find(a => a.slug === getEffectiveAppSlug())?.name ?? getEffectiveAppSlug()}
                   </span>
@@ -502,7 +506,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                 disabled={submitting}
                 className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 cursor-pointer transition-colors disabled:opacity-50"
               >
-                Cancel
+                {t('create.cancel')}
               </button>
               <button
                 type="button"
@@ -513,10 +517,10 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                 {submitting ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Publishing...
+                    {t('create.publishing')}
                   </>
                 ) : (
-                  'Publish idea'
+                  t('create.submit')
                 )}
               </button>
             </div>

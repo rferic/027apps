@@ -78,7 +78,7 @@ describe('InspirationWidget', () => {
     const { default: Widget } = await import('../../apps/inspiration/widget')
     render(wrapWithAppContext(<Widget />, { groupSlug: undefined }))
 
-    expect(screen.getByText('Not available')).toBeDefined()
+    expect(screen.getByText('apps.inspiration.widget.not_available')).toBeDefined()
   })
 
   it('shows loading spinner initially when groupSlug is set', async () => {
@@ -123,14 +123,14 @@ describe('InspirationWidget', () => {
 
     // Wait for async state updates
     await vi.waitFor(() => {
-      expect(container.textContent).toContain('Inspiration')
+      expect(container.textContent).toContain('apps.inspiration.widget.heading')
     }, { timeout: 2000 })
 
-    expect(container.textContent).toContain('3 active')
-    expect(container.textContent).toContain('Most supported')
+    expect(container.textContent).toContain('apps.inspiration.widget.active_ideas')
+    expect(container.textContent).toContain('apps.inspiration.widget.most_supported')
     expect(container.textContent).toContain('Dark mode')
     expect(container.textContent).toContain('Export CSV')
-    expect(container.textContent).toContain('Recently completed')
+    expect(container.textContent).toContain('apps.inspiration.widget.recently_completed')
     expect(container.textContent).toContain('Keyboard shortcuts')
   })
 
@@ -148,7 +148,7 @@ describe('InspirationWidget', () => {
     const { container } = render(wrapWithAppContext(<Widget />, { groupSlug: 'test' }))
 
     await vi.waitFor(() => {
-      expect(container.textContent).toContain('No ideas yet')
+      expect(container.textContent).toContain('apps.inspiration.widget.no_ideas')
     }, { timeout: 2000 })
   })
 
@@ -166,7 +166,7 @@ describe('InspirationWidget', () => {
     render(wrapWithAppContext(<Widget />, { groupSlug: 'test' }))
 
     await vi.waitFor(() => {
-      expect(screen.getByText('View all ideas')).toBeDefined()
+      expect(screen.getByText('apps.inspiration.widget.view_all')).toBeDefined()
     }, { timeout: 2000 })
   })
 })
@@ -210,10 +210,10 @@ describe('CreateRequestModal', () => {
     )
 
     await vi.waitFor(() => {
-      expect(screen.getByText('What do you want to propose?')).toBeDefined()
+      expect(screen.getByText('apps.inspiration.create.step1_title')).toBeDefined()
     }, { timeout: 2000 })
 
-    const types = ['Bug report', 'Improvement', 'New app', 'App feature', 'General functionality', 'Other']
+    const types = ['apps.inspiration.types.bug', 'apps.inspiration.types.improvement', 'apps.inspiration.types.new_app', 'apps.inspiration.types.new_app_feature', 'apps.inspiration.types.new_general_functionality', 'apps.inspiration.types.other']
     for (const t of types) {
       expect(screen.getByText(t)).toBeDefined()
     }
