@@ -13,13 +13,13 @@ Skill mixta: verificaciones automáticas + checkpoints de confirmación manual.
 ### 1. Health check HTTP
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}" https://027app-snowy.vercel.app/
+curl -s -o /dev/null -w "%{http_code}" https://027apps-eric-rf.vercel.app/
 ```
 
 Debe responder `200`. Si no, parar e informar.
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}" https://027app-snowy.vercel.app/es/login
+curl -s -o /dev/null -w "%{http_code}" https://027apps-eric-rf.vercel.app/es/login
 ```
 
 Debe responder `200`.

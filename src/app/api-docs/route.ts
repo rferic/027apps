@@ -4,7 +4,7 @@ const scalarHandler = ApiReference({
   spec: { url: '/openapi.json' },
   servers: [
     { url: 'http://localhost:3000', description: 'Local development' },
-    { url: 'https://027app-eric-rf.vercel.app', description: 'Production' },
+    { url: 'https://027apps-eric-rf.vercel.app', description: 'Production' },
   ],
   metaData: {
     title: '027Apps API Documentation',
