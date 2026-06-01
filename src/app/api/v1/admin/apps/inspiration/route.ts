@@ -61,8 +61,8 @@ export async function GET(req: NextRequest) {
 
   // Count
   const countQuery = applyFilters(
-    adminClient.from('inspiration_requests').select('*', { count: 'exact', head: true })
-  )
+    adminClient.from('inspiration_requests').select('id', { count: 'exact' })
+  ).limit(0)
   const { count: total, error: countError } = await countQuery
 
   if (countError) return apiError('QUERY_ERROR', `Count failed: ${countError.message} (${countError.code || 'no code'})`, 500)
