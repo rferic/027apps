@@ -8,7 +8,7 @@ import { AppConfigSection } from './AppConfigSection'
 import { AdminAppPermissions } from '@/components/admin-app-permissions'
 import { AdminAppTabs } from './AdminAppTabs'
 import { getAppPermissionsAction } from '@/lib/apps/actions'
-import { loadAppModule, hasAppModule } from '@/lib/apps/registry'
+import { loadAppModule } from '@/lib/apps/registry'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
