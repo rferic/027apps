@@ -59,13 +59,13 @@ export async function GET(req: NextRequest) {
     return q
   }
 
-  // Count — head:true returns only count (no rows)
+  // Count
   const countQuery = applyFilters(
     adminClient.from('inspiration_requests').select('*', { count: 'exact', head: true })
   )
   const { count: total, error: countError } = await countQuery
 
-  if (countError) return apiError('QUERY_ERROR', countError.message, 500)
+  if (countError) return apiError('QUERY_ERROR', `Count failed: ${countError.message} (${countError.code || 'no code'})`, 500)
   if (!total || total === 0) {
     return apiOk({ data: [], pagination: { page, limit, total: total ?? 0, total_pages: 0 } })
   }
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
     const allRequests = allQueryResult.data as Array<Record<string, unknown>> | null
     const allError = allQueryResult.error
 
-    if (allError) return apiError('QUERY_ERROR', allError.message, 500)
+    if (allError) return apiError('QUERY_ERROR', `All query: ${allError.message} (${allError.code || 'no code'})`, 500)
     if (!allRequests || allRequests.length === 0) {
       return apiOk({ data: [], pagination: { page, limit, total: 0, total_pages: 0 } })
     }
