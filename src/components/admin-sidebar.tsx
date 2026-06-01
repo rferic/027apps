@@ -23,9 +23,15 @@ import {
 } from 'lucide-react'
 import { useAdminMobile } from './admin-mobile-context'
 
+interface SidebarApp {
+  slug: string
+  name: string
+}
+
 interface Props {
   locale: string
   initialCollapsed: boolean
+  apps?: SidebarApp[]
 }
 
 const STORAGE_KEY = 'admin-sidebar-collapsed'
@@ -261,6 +267,24 @@ export function AdminSidebar({ locale, initialCollapsed }: Props) {
                 <Package size={16} className="flex-shrink-0" />
                 {t('apps')}
               </Link>
+
+              {apps && apps.length > 0 && (
+                <div className="ml-7 space-y-0.5">
+                  {apps.map(app => (
+                    <Link
+                      key={app.slug}
+                      href={`${base}/apps/${app.slug}`}
+                      className={`block text-sm py-1 px-2 rounded-lg transition-colors ${
+                        pathname === `${base}/apps/${app.slug}`
+                          ? 'text-rose-700 bg-rose-50 font-medium'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {app.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
 
               {/* Groups */}
               <Link href={`${base}/groups`} className={linkCls(`${base}/groups`)}>

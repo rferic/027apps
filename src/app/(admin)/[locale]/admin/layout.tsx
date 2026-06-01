@@ -4,7 +4,9 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getUserWithRole } from '@/lib/auth/helpers'
+import { readManifest } from '@/lib/apps/manifest'
 import { AdminHeader } from '@/components/admin-header'
 import { AdminSidebar } from '@/components/admin-sidebar'
 import { AdminMobileProvider } from '@/components/admin-mobile-context'
@@ -41,6 +43,26 @@ export default async function AdminLayout({ children, params }: Props) {
   const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'Admin'
   const messages = await getMessages()
 
+  // Load installed apps with admin views for sidebar navigation
+  const adminClient = createAdminClient()
+  const { data: installedApps } = await adminClient
+    .from('installed_apps')
+    .select('slug')
+    .eq('status', 'active')
+  const sidebarApps: { slug: string; name: string }[] = []
+  if (installedApps) {
+    for (const app of installedApps) {
+      try {
+        const manifest = await readManifest(app.slug)
+        if (manifest.views.admin) {
+          sidebarApps.push({ slug: app.slug, name: manifest.name })
+        }
+      } catch {
+        // skip apps with invalid manifests
+      }
+    }
+  }
+
   return (
     <NextIntlClientProvider messages={messages}>
       <AdminMobileProvider>
@@ -49,7 +71,7 @@ export default async function AdminLayout({ children, params }: Props) {
         <div className="min-h-screen bg-gray-100 flex flex-col isolate">
           <AdminHeader displayName={displayName} locale={locale} />
           <div className="flex flex-1 overflow-hidden">
-            <AdminSidebar locale={locale} initialCollapsed={sidebarCollapsed} />
+            <AdminSidebar locale={locale} initialCollapsed={sidebarCollapsed} apps={sidebarApps} />
             <main className="flex-1 overflow-y-auto">
               {children}
             </main>

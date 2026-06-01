@@ -110,9 +110,9 @@ function AppCard({ app }: { app: CombinedApp }) {
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-auto">
-          {isInstalled && isActive && (
+          {isInstalled && isActive && (app.manifest?.config?.length ?? 0) > 0 && (
             <Link
-              href={`/${locale}/admin/apps/${app.slug}`}
+              href={`/${locale}/admin/apps/${app.slug}#config`}
               className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
             >
               {t('configure')}
