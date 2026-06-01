@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import type { AppInstallContext } from '@/types/apps'
 import { readManifest } from '@/lib/apps/manifest'
 import { scanApps } from '@/lib/apps/scanner'
+import { hasAppModule, loadAppModule } from '@/lib/apps/registry'
 
 type InstallModule = { install: (ctx: AppInstallContext) => Promise<void> }
 type UninstallModule = { uninstall: (ctx: AppInstallContext) => Promise<void> }
@@ -21,7 +22,9 @@ export class InstallerError extends Error {
 
 async function tryImportInstall(slug: string): Promise<InstallModule | null> {
   try {
-    return await import(/* webpackIgnore: true */ `${process.cwd()}/apps/${slug}/install`) as InstallModule
+    if (!hasAppModule(slug, 'install')) return null
+    const mod = await loadAppModule(slug, 'install')
+    return { install: (ctx: AppInstallContext) => mod.install(ctx) }
   } catch {
     return null
   }
@@ -29,7 +32,9 @@ async function tryImportInstall(slug: string): Promise<InstallModule | null> {
 
 async function tryImportUninstall(slug: string): Promise<UninstallModule | null> {
   try {
-    return await import(/* webpackIgnore: true */ `${process.cwd()}/apps/${slug}/uninstall`) as UninstallModule
+    if (!hasAppModule(slug, 'uninstall')) return null
+    const mod = await loadAppModule(slug, 'uninstall')
+    return { uninstall: (ctx: AppInstallContext) => mod.uninstall(ctx) }
   } catch {
     return null
   }

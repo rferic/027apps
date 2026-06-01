@@ -8,6 +8,7 @@ import { AppConfigSection } from './AppConfigSection'
 import { AdminAppPermissions } from '@/components/admin-app-permissions'
 import { AdminAppTabs } from './AdminAppTabs'
 import { getAppPermissionsAction } from '@/lib/apps/actions'
+import { loadAppModule, hasAppModule } from '@/lib/apps/registry'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
@@ -46,8 +47,7 @@ export default async function AdminAppViewPage({ params }: Props) {
   let AdminComponent: React.ComponentType | null = null
   if (manifest.views.admin) {
     try {
-      const mod = await import(/* webpackIgnore: true */ `${process.cwd()}/apps/${slug}/admin`) as { default: React.ComponentType }
-      AdminComponent = mod.default
+      AdminComponent = await loadAppModule(slug, 'admin')
     } catch {
       // app declared views.admin but file missing — show page without admin view
     }

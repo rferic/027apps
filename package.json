@@ -5,7 +5,8 @@
   "packageManager": "pnpm@10.33.3",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build:registry": "tsx scripts/generate-registry.ts",
+    "build": "pnpm build:registry && next build",
     "start": "next start",
     "lint": "eslint src --ext .ts,.tsx",
     "tsc": "tsc --noEmit",
