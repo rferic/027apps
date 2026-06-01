@@ -36,7 +36,7 @@ interface Props {
 
 const STORAGE_KEY = 'admin-sidebar-collapsed'
 
-export function AdminSidebar({ locale, initialCollapsed }: Props) {
+export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
   const [collapsed, setCollapsed] = useState(initialCollapsed)
   const [usersOpen, setUsersOpen] = useState(true)
   const [settingsOpen, setSettingsOpen] = useState(false)
