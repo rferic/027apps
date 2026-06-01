@@ -81,7 +81,10 @@
     "new_app_title_placeholder": "Com s'hauria de dir?",
     "new_app_description_placeholder": "Descriu què faria l'app...",
     "feature_details_label": "Detalls de la funcionalitat",
-    "feature_details_placeholder": "Descriu la funcionalitat que t'agradaria veure..."
+    "feature_details_placeholder": "Descriu la funcionalitat que t'agradaria veure...",
+    "bug_steps_placeholder": "1. Ves a...\n2. Fes clic a...\n3. Mira l'error...",
+    "bug_expected_placeholder": "Esperava que...",
+    "bug_actual_placeholder": "En canvi, va passar..."
   },
   "card": {
     "votes": "{count, plural, one {# vot} other {# vots}}",

@@ -2,7 +2,7 @@
 
 // TODO i18n: TASK-95 — strings hardcoded in English
 import { useTranslations } from 'next-intl'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Search, ChevronDown, ArrowUp, X, Loader2,
   Bug, Sparkles, AppWindow, Puzzle, Lightbulb, MoreHorizontal,
@@ -136,11 +136,25 @@ export default function InspirationAdmin() {
 
   // UI state
   const [openRowId, setOpenRowId] = useState<string | null>(null)
+  const [sortOpen, setSortOpen] = useState(false)
+  const sortRef = useRef<HTMLDivElement>(null)
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detail, setDetail] = useState<RequestDetail | null>(null)
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set())
   const [confirmChange, setConfirmChange] = useState<{ requestId: string; newStatus: string } | null>(null)
+
+  // Close sort dropdown on outside click
+  useEffect(() => {
+    if (!sortOpen) return
+    const handler = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setSortOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [sortOpen])
 
   // Fetch list
   const fetchRequests = useCallback(async () => {
@@ -353,15 +367,32 @@ export default function InspirationAdmin() {
               </button>
             )}
           </div>
-          <select
-            value={sort}
-            onChange={e => { setSort(e.target.value); setPage(1) }}
-            className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer w-full sm:w-auto"
-          >
-            {SORT_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+          <div className="relative w-full sm:w-auto" ref={sortRef}>
+            <button
+              type="button"
+              onClick={() => setSortOpen(o => !o)}
+              className="flex items-center justify-between gap-2 w-full sm:w-auto px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
+            >
+              <span>{SORT_OPTIONS.find(o => o.value === sort)?.label ?? sort}</span>
+              <ChevronDown size={14} className={`text-slate-400 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {sortOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-1">
+                {SORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => { setSort(opt.value); setPage(1); setSortOpen(false) }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 transition-colors cursor-pointer ${
+                      sort === opt.value ? 'font-medium text-slate-900' : 'text-slate-600'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Type chips */}

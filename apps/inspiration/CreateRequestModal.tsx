@@ -356,7 +356,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                   <textarea
                     value={stepsToReproduce}
                     onChange={e => setStepsToReproduce(e.target.value)}
-                    placeholder="1. Go to...&#10;2. Click on...&#10;3. See error..."
+                    placeholder={t('create.bug_steps_placeholder')}
                     rows={3}
                     className={inputCls + ' resize-y'}
                   />
@@ -366,7 +366,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                   <textarea
                     value={expectedBehavior}
                     onChange={e => setExpectedBehavior(e.target.value)}
-                    placeholder="I expected..."
+                    placeholder={t('create.bug_expected_placeholder')}
                     rows={2}
                     className={inputCls + ' resize-y'}
                   />
@@ -376,7 +376,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                   <textarea
                     value={actualBehavior}
                     onChange={e => setActualBehavior(e.target.value)}
-                    placeholder="Instead, this happened..."
+                    placeholder={t('create.bug_actual_placeholder')}
                     rows={2}
                     className={inputCls + ' resize-y'}
                   />

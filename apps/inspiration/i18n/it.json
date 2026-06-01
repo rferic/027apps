@@ -81,7 +81,10 @@
     "new_app_title_placeholder": "Come dovrebbe chiamarsi?",
     "new_app_description_placeholder": "Descrivi cosa farebbe l'app...",
     "feature_details_label": "Dettagli funzionalità",
-    "feature_details_placeholder": "Descrivi la funzionalità che vorresti vedere..."
+    "feature_details_placeholder": "Descrivi la funzionalità che vorresti vedere...",
+    "bug_steps_placeholder": "1. Vai a...\n2. Clicca su...\n3. Vedi l'errore...",
+    "bug_expected_placeholder": "Mi aspettavo che...",
+    "bug_actual_placeholder": "Invece è successo..."
   },
   "card": {
     "votes": "{count, plural, one {# voto} other {# voti}}",
