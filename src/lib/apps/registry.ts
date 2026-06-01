@@ -3,25 +3,25 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const registry = new Map<string, () => Promise<any>>()
+type RegistryEntry = () => Promise<any>
+const registry = new Map<string, { loader: RegistryEntry; named: boolean }>()
 
-registry.set('inspiration/view', () => import('../../../apps/inspiration/view'))
-registry.set('inspiration/admin', () => import('../../../apps/inspiration/admin'))
-registry.set('inspiration/widget', () => import('../../../apps/inspiration/widget'))
-registry.set('inspiration/install', () => import('../../../apps/inspiration/install'))
-registry.set('inspiration/uninstall', () => import('../../../apps/inspiration/uninstall'))
-registry.set('todo/view', () => import('../../../apps/todo/view'))
-registry.set('todo/admin', () => import('../../../apps/todo/admin'))
-registry.set('todo/widget', () => import('../../../apps/todo/widget'))
-registry.set('todo/install', () => import('../../../apps/todo/install'))
-registry.set('todo/uninstall', () => import('../../../apps/todo/uninstall'))
+registry.set('inspiration/view', { loader: () => import('../../../apps/inspiration/view'), named: false })
+registry.set('inspiration/admin', { loader: () => import('../../../apps/inspiration/admin'), named: false })
+registry.set('inspiration/widget', { loader: () => import('../../../apps/inspiration/widget'), named: false })
+registry.set('inspiration/install', { loader: () => import('../../../apps/inspiration/install'), named: true })
+registry.set('inspiration/uninstall', { loader: () => import('../../../apps/inspiration/uninstall'), named: true })
+registry.set('todo/view', { loader: () => import('../../../apps/todo/view'), named: false })
+registry.set('todo/admin', { loader: () => import('../../../apps/todo/admin'), named: false })
+registry.set('todo/widget', { loader: () => import('../../../apps/todo/widget'), named: false })
+registry.set('todo/install', { loader: () => import('../../../apps/todo/install'), named: true })
+registry.set('todo/uninstall', { loader: () => import('../../../apps/todo/uninstall'), named: true })
 
 export async function loadAppModule(slug: string, type: string): Promise<any> {
-  const key = `${slug}/${type}`
-  const loader = registry.get(key)
-  if (!loader) throw new Error(`App module not found: ${key}`)
-  const mod = await loader()
-  return mod.default
+  const entry = registry.get(`${slug}/${type}`)
+  if (!entry) throw new Error(`App module not found: ${slug}/${type}`)
+  const mod = await entry.loader()
+  return entry.named ? mod[type] : mod.default
 }
 
 export function hasAppModule(slug: string, type: string): boolean {
