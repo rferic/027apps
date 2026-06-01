@@ -73,7 +73,11 @@ export async function GET(req: NextRequest) {
     return apiError('QUERY_ERROR', `Count exception: ${e instanceof Error ? e.message : String(e)}`, 500)
   }
 
-  if (countError) return apiError('QUERY_ERROR', `Count failed: ${JSON.stringify({ message: (countError as any).message, code: (countError as any).code, details: (countError as any).details, hint: (countError as any).hint })}`, 500)
+  if (countError) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ce = countError as any
+    return apiError('QUERY_ERROR', `Count failed: ${JSON.stringify({ message: ce.message, code: ce.code, details: ce.details, hint: ce.hint })}`, 500)
+  }
   if (!total || total === 0) {
     return apiOk({ data: [], pagination: { page, limit, total: total ?? 0, total_pages: 0 } })
   }
