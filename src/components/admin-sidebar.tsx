@@ -26,6 +26,7 @@ import { useAdminMobile } from './admin-mobile-context'
 interface SidebarApp {
   slug: string
   name: string
+  primaryColor: string
 }
 
 interface Props {
@@ -160,6 +161,36 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                 )}
               </div>
 
+              {/* Installed apps in collapsed mode */}
+              {apps && apps.length > 0 && apps.map(app => (
+                <div
+                  key={app.slug}
+                  className="relative"
+                  onMouseEnter={() => handleMenuEnter(`app_${app.slug}`)}
+                  onMouseLeave={handleMenuLeave}
+                >
+                  <Link
+                    href={`${base}/apps/${app.slug}`}
+                    className={`flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer ${
+                      isActive(`${base}/apps/${app.slug}`)
+                        ? 'bg-rose-50 text-rose-700'
+                        : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <img
+                      src={`/api/apps/${app.slug}/logo`}
+                      alt={app.name}
+                      className="w-[18px] h-[18px] rounded"
+                    />
+                  </Link>
+                  {hoveredMenu === `app_${app.slug}` && (
+                    <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                      {app.name}
+                    </div>
+                  )}
+                </div>
+              ))}
+
               {/* Groups */}
               <div
                 className="relative"
@@ -268,23 +299,20 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                 {t('apps')}
               </Link>
 
-              {apps && apps.length > 0 && (
-                <div className="ml-7 space-y-0.5">
-                  {apps.map(app => (
-                    <Link
-                      key={app.slug}
-                      href={`${base}/apps/${app.slug}`}
-                      className={`block text-sm py-1 px-2 rounded-lg transition-colors ${
-                        pathname === `${base}/apps/${app.slug}`
-                          ? 'text-rose-700 bg-rose-50 font-medium'
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {app.name}
-                    </Link>
-                  ))}
-                </div>
-              )}
+              {apps && apps.length > 0 && apps.map(app => (
+                <Link
+                  key={app.slug}
+                  href={`${base}/apps/${app.slug}`}
+                  className={linkCls(`${base}/apps/${app.slug}`)}
+                >
+                  <img
+                    src={`/api/apps/${app.slug}/logo`}
+                    alt={app.name}
+                    className="w-4 h-4 rounded flex-shrink-0"
+                  />
+                  {app.name}
+                </Link>
+              ))}
 
               {/* Groups */}
               <Link href={`${base}/groups`} className={linkCls(`${base}/groups`)}>

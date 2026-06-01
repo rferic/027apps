@@ -442,7 +442,10 @@
         "dependencies": "Dipendenze",
         "none": "Nessuna",
         "api": "API"
-      }
+      },
+      "manageTab": "Manage",
+      "settingsTab": "Settings",
+      "noAdminView": "This app has no admin management view."
     },
     "common": {
       "loading": "Caricamento…"

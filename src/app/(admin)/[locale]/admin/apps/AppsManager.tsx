@@ -68,12 +68,17 @@ function AppCard({ app }: { app: CombinedApp }) {
     <div className="bg-white rounded-xl border border-slate-100 p-5">
       <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
         <div className="flex items-start gap-3 min-w-0">
-          <div
-            className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-bold"
-            style={{ backgroundColor: app.manifest?.primaryColor ?? '#e2e8f0' }}
-          >
-            {(app.manifest?.name ?? app.slug).slice(0, 2).toUpperCase()}
-          </div>
+          {app.manifest ? (
+            <img
+              src={`/api/apps/${app.slug}/logo`}
+              alt={app.manifest.name}
+              className="flex-shrink-0 w-10 h-10 rounded-lg"
+            />
+          ) : (
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-bold bg-slate-300">
+              {app.slug.slice(0, 2).toUpperCase()}
+            </div>
+          )}
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-gray-900 text-sm">{app.manifest?.name ?? app.slug}</span>

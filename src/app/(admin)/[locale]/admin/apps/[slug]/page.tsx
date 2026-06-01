@@ -6,6 +6,7 @@ import { readManifest } from '@/lib/apps/manifest'
 import { AppValidationError } from '@/types/apps'
 import { AppConfigSection } from './AppConfigSection'
 import { AdminAppPermissions } from '@/components/admin-app-permissions'
+import { AdminAppTabs } from './AdminAppTabs'
 import { getAppPermissionsAction } from '@/lib/apps/actions'
 
 const SLUG_RE = /^[a-z0-9-]+$/
@@ -55,41 +56,56 @@ export default async function AdminAppViewPage({ params }: Props) {
   const t = await getTranslations('admin.apps')
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div
-          className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-sm font-bold"
-          style={{ backgroundColor: manifest.primaryColor }}
-        >
-          {manifest.name.slice(0, 2).toUpperCase()}
-        </div>
+    <div className="p-6 max-w-5xl mx-auto">
+      {/* Header with logo */}
+      <div className="flex items-center gap-3 mb-6">
+        <img
+          src={`/api/apps/${slug}/logo`}
+          alt={manifest.name}
+          className="w-10 h-10 rounded-lg flex-shrink-0"
+        />
         <div className="min-w-0">
           <h1 className="text-xl font-bold text-gray-900">{manifest.name}</h1>
           <p className="text-sm text-gray-500">{manifest.description}</p>
         </div>
       </div>
 
-      {AdminComponent && <AdminComponent />}
+      <AdminAppTabs
+        manageLabel={t('manageTab')}
+        settingsLabel={t('settingsTab')}
+        manageContent={
+          AdminComponent ? (
+            <AdminComponent />
+          ) : (
+            <div className="bg-white rounded-xl border border-slate-100 p-8 text-center">
+              <p className="text-sm text-gray-500">{t('noAdminView')}</p>
+            </div>
+          )
+        }
+        settingsContent={
+          <>
+            <div className="bg-white rounded-xl border border-slate-100 p-5">
+              <h2 className="text-sm font-semibold text-gray-700 mb-4">{t('permissions.title')}</h2>
+              <AdminAppPermissions
+                slug={slug}
+                visibility={installedApp.visibility as 'public' | 'private'}
+                groups={permissionsGroups}
+              />
+            </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">{t('permissions.title')}</h2>
-        <AdminAppPermissions
-          slug={slug}
-          visibility={installedApp.visibility as 'public' | 'private'}
-          groups={permissionsGroups}
-        />
-      </div>
-
-      {manifest.config.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-100 p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">{t('configure')}</h2>
-          <AppConfigSection
-            slug={slug}
-            fields={manifest.config}
-            savedConfig={(installedApp.config as Record<string, unknown>) ?? {}}
-          />
-        </div>
-      )}
+            {manifest.config.length > 0 && (
+              <div className="bg-white rounded-xl border border-slate-100 p-5">
+                <h2 className="text-sm font-semibold text-gray-700 mb-4">{t('configure')}</h2>
+                <AppConfigSection
+                  slug={slug}
+                  fields={manifest.config}
+                  savedConfig={(installedApp.config as Record<string, unknown>) ?? {}}
+                />
+              </div>
+            )}
+          </>
+        }
+      />
     </div>
   )
 }

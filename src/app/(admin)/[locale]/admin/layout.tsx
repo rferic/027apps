@@ -49,13 +49,13 @@ export default async function AdminLayout({ children, params }: Props) {
     .from('installed_apps')
     .select('slug')
     .eq('status', 'active')
-  const sidebarApps: { slug: string; name: string }[] = []
+  const sidebarApps: { slug: string; name: string; primaryColor: string }[] = []
   if (installedApps) {
     for (const app of installedApps) {
       try {
         const manifest = await readManifest(app.slug)
         if (manifest.views.admin) {
-          sidebarApps.push({ slug: app.slug, name: manifest.name })
+          sidebarApps.push({ slug: app.slug, name: manifest.name, primaryColor: manifest.primaryColor })
         }
       } catch {
         // skip apps with invalid manifests
