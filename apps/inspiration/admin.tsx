@@ -430,121 +430,123 @@ export default function InspirationAdmin() {
       {/* Table */}
       {!loading && !error && requests.length > 0 && (
         <>
-          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-            {/* Table header */}
-            <div className="grid grid-cols-[44px_1fr_120px_60px_80px_100px_100px_44px] gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-              <span>{t('admin.columns.type')}</span>
-              <span>{t('admin.columns.title')}</span>
-              <span>{t('admin.columns.creator')}</span>
-              <span>{t('admin.columns.votes')}</span>
-              <span>{t('admin.columns.app')}</span>
-              <span>{t('admin.columns.group')}</span>
-              <span>{t('admin.columns.status')}</span>
-              <span />
-            </div>
+          <div className="bg-white rounded-xl border border-slate-100 overflow-x-auto">
+            <div className="min-w-[700px]">
+              {/* Table header */}
+              <div className="grid grid-cols-[44px_1fr_120px_60px_80px_100px_100px_44px] gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <span>{t('admin.columns.type')}</span>
+                <span>{t('admin.columns.title')}</span>
+                <span>{t('admin.columns.creator')}</span>
+                <span>{t('admin.columns.votes')}</span>
+                <span>{t('admin.columns.app')}</span>
+                <span>{t('admin.columns.group')}</span>
+                <span>{t('admin.columns.status')}</span>
+                <span />
+              </div>
 
-            {/* Table body */}
-            <div className="divide-y divide-slate-100">
-              {requests.map(item => {
-                const typeMeta = getTypeMeta(item.type)
-                const TypeIcon = typeMeta?.icon ?? MoreHorizontal
-                const isUpdating = updatingIds.has(item.id)
+              {/* Table body */}
+              <div className="divide-y divide-slate-100">
+                {requests.map(item => {
+                  const typeMeta = getTypeMeta(item.type)
+                  const TypeIcon = typeMeta?.icon ?? MoreHorizontal
+                  const isUpdating = updatingIds.has(item.id)
 
-                return (
-                  <div
-                    key={item.id}
-                    className="grid grid-cols-[44px_1fr_120px_60px_80px_100px_100px_44px] gap-2 px-4 py-3 items-center hover:bg-slate-50/50 transition-colors"
-                  >
-                    {/* Type */}
+                  return (
                     <div
-                      className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0"
-                      style={{ backgroundColor: `${typeMeta?.color ?? '#6B7280'}14` }}
+                      key={item.id}
+                      className="grid grid-cols-[44px_1fr_120px_60px_80px_100px_100px_44px] gap-2 px-4 py-3 items-center hover:bg-slate-50/50 transition-colors"
                     >
-                      <TypeIcon size={16} style={{ color: typeMeta?.color ?? '#6B7280' }} />
-                    </div>
-
-                    {/* Title — clickable for detail */}
-                    <button
-                      onClick={() => fetchDetail(item.id)}
-                      className="text-sm font-medium text-slate-800 text-left truncate cursor-pointer hover:text-slate-600 transition-colors"
-                      title={item.title}
-                    >
-                      {truncate(item.title, 60)}
-                    </button>
-
-                    {/* Creator */}
-                    <span className="text-xs text-slate-500 truncate" title={getCreatorName(item)}>
-                      {getCreatorName(item)}
-                    </span>
-
-                    {/* Votes */}
-                    <span className="text-xs text-slate-500 flex items-center gap-1">
-                      <ArrowUp size={12} className="text-slate-400" />
-                      {item.vote_count}
-                    </span>
-
-                    {/* App */}
-                    <span className="text-xs text-slate-500 truncate">
-                      {item.app_slug ? (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[10px]">
-                          {item.app_slug}
-                        </span>
-                      ) : (
-                        '\u2014'
-                      )}
-                    </span>
-
-                    {/* Group */}
-                    <span className="text-xs text-slate-500 truncate">
-                      {item.group_name ?? item.group_slug ?? '\u2014'}
-                    </span>
-
-                    {/* Status */}
-                    <span
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap w-fit"
-                      style={{ backgroundColor: `${statusColor(item.status)}18`, color: statusColor(item.status) }}
-                    >
-                      {statusLabel(item.status)}
-                    </span>
-
-                    {/* Actions */}
-                    <div className="relative flex justify-center">
-                      <button
-                        onClick={e => {
-                          e.stopPropagation()
-                          setOpenRowId(openRowId === item.id ? null : item.id)
-                        }}
-                        disabled={isUpdating || VALID_TRANSITIONS[item.status].length === 0}
-                        className="p-1 rounded-md hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                      {/* Type */}
+                      <div
+                        className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0"
+                        style={{ backgroundColor: `${typeMeta?.color ?? '#6B7280'}14` }}
                       >
-                        {isUpdating ? (
-                          <Loader2 size={16} className="animate-spin text-slate-400" />
-                        ) : (
-                          <ChevronDown size={16} className="text-slate-400" />
-                        )}
+                        <TypeIcon size={16} style={{ color: typeMeta?.color ?? '#6B7280' }} />
+                      </div>
+
+                      {/* Title — clickable for detail */}
+                      <button
+                        onClick={() => fetchDetail(item.id)}
+                        className="text-sm font-medium text-slate-800 text-left truncate cursor-pointer hover:text-slate-600 transition-colors"
+                        title={item.title}
+                      >
+                        {truncate(item.title, 60)}
                       </button>
 
-                      {openRowId === item.id && (
-                        <div className="absolute right-0 top-8 z-10 bg-white rounded-lg shadow-lg border border-slate-200 py-1 min-w-[150px]">
-                          {VALID_TRANSITIONS[item.status].map(status => (
-                            <button
-                              key={status}
-                              onClick={e => {
-                                e.stopPropagation()
-                                handleStatusChange(item.id, status)
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-2"
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor(status) }} />
-                              {statusLabel(status)}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      {/* Creator */}
+                      <span className="text-xs text-slate-500 truncate" title={getCreatorName(item)}>
+                        {getCreatorName(item)}
+                      </span>
+
+                      {/* Votes */}
+                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                        <ArrowUp size={12} className="text-slate-400" />
+                        {item.vote_count}
+                      </span>
+
+                      {/* App */}
+                      <span className="text-xs text-slate-500 truncate">
+                        {item.app_slug ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[10px]">
+                            {item.app_slug}
+                          </span>
+                        ) : (
+                          '\u2014'
+                        )}
+                      </span>
+
+                      {/* Group */}
+                      <span className="text-xs text-slate-500 truncate">
+                        {item.group_name ?? item.group_slug ?? '\u2014'}
+                      </span>
+
+                      {/* Status */}
+                      <span
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap w-fit"
+                        style={{ backgroundColor: `${statusColor(item.status)}18`, color: statusColor(item.status) }}
+                      >
+                        {statusLabel(item.status)}
+                      </span>
+
+                      {/* Actions */}
+                      <div className="relative flex justify-center">
+                        <button
+                          onClick={e => {
+                            e.stopPropagation()
+                            setOpenRowId(openRowId === item.id ? null : item.id)
+                          }}
+                          disabled={isUpdating || VALID_TRANSITIONS[item.status].length === 0}
+                          className="p-1 rounded-md hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                        >
+                          {isUpdating ? (
+                            <Loader2 size={16} className="animate-spin text-slate-400" />
+                          ) : (
+                            <ChevronDown size={16} className="text-slate-400" />
+                          )}
+                        </button>
+
+                        {openRowId === item.id && (
+                          <div className="absolute right-0 top-8 z-10 bg-white rounded-lg shadow-lg border border-slate-200 py-1 min-w-[150px]">
+                            {VALID_TRANSITIONS[item.status].map(status => (
+                              <button
+                                key={status}
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  handleStatusChange(item.id, status)
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-2"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor(status) }} />
+                                {statusLabel(status)}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           </div>
 
