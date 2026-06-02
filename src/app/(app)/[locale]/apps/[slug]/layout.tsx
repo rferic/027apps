@@ -1,12 +1,13 @@
 import { notFound, redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient, createAdminClientUntyped } from '@/lib/supabase/admin'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getUserGroups } from '@/lib/groups/context'
+import AppProvider from '@/components/app-provider'
+import AppTheme from '@/components/app-theme'
 import { readManifest } from '@/lib/apps/manifest'
 import { resolveAppConfig } from '@/lib/apps/config'
 import { AppValidationError } from '@/types/apps'
-import AppProvider from '@/components/app-provider'
-import AppTheme from '@/components/app-theme'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
@@ -31,48 +32,12 @@ export default async function AppSlugLayout({ children, params }: Props) {
     throw err
   }
 
-  const adminClient = createAdminClient()
-  const { data: installedApp } = await adminClient
-    .from('installed_apps')
-    .select('status, visibility, config')
-    .eq('slug', slug)
-    .eq('status', 'active')
-    .single()
-
-  if (!installedApp) notFound()
-
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/${locale}/login`)
 
-  if (installedApp.visibility === 'private') {
-    // Check if user belongs to any group with access
-    const { data: userGroups } = await adminClient
-      .from('group_members')
-      .select('group_id')
-      .eq('user_id', user.id)
-
-    if (!userGroups || userGroups.length === 0) notFound()
-
-    const groupIds = userGroups.map(g => g.group_id)
-    const untypedClient = createAdminClientUntyped()
-    const { data: accessEntries } = await untypedClient
-      .from('group_app_access')
-      .select('id')
-      .eq('app_slug', slug)
-      .in('group_id', groupIds)
-      .limit(1)
-
-    if (!accessEntries || accessEntries.length === 0) notFound()
-  }
-
-  const resolvedConfig = resolveAppConfig(manifest, (installedApp.config as Record<string, unknown>) ?? {})
-
-  return (
-    <AppTheme primaryColor={manifest.primaryColor} secondaryColor={manifest.secondaryColor}>
-      <AppProvider slug={slug} manifest={manifest} config={resolvedConfig}>
-        {children}
-      </AppProvider>
-    </AppTheme>
-  )
+  // Redirect to group-scoped URL so the view can resolve groupSlug
+  const groups = await getUserGroups(user.id)
+  if (groups.length === 0) notFound()
+  redirect(`/${locale}/${groups[0].slug}/apps/${slug}`)
 }
