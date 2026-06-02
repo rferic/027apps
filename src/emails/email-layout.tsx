@@ -44,12 +44,8 @@ export default function EmailLayout({ children, preview, appSlug, appName, appPr
               <td align="center" style={logoSection}>
                 <table cellPadding="0" cellSpacing="0">
                   <tr>
-                    <td style={{ ...badge, backgroundColor: appPrimaryColor, padding: 0 }}>
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="44" height="44" style={{ display: 'block' }}>
-                        <rect width="56" height="56" rx="11" fill={appPrimaryColor} />
-                        <polyline points="7,22 14,22 16.5,18 19,22 22,22 23.5,25 25.5,10 27.5,32 30,22 32,18 34.5,22 49,22" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        <text x="28" y="46" font-family="apple-system,BlinkMacSystemFont,sans-serif" font-size="10" font-weight="800" fill="rgba(255,255,255,0.75)" text-anchor="middle" letter-spacing="2.5">027</text>
-                      </svg>
+                    <td style={badge}>
+                      <img src={`${base}/logo.svg`} alt="027" width="44" height="44" style={{ display: 'block', borderRadius: 10 }} />
                     </td>
                     <td style={plusSpacer}>
                       <span style={plusText}>+</span>
