@@ -108,7 +108,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   }
 
   // 3. Enrich with vote/comment counts
-  const allIds = rows.map(r => r.id)
+  const allIds = rows.map((r: Record<string, unknown>) => r.id as string)
   const [votesRes, commentsRes, userVotesRes] = await Promise.all([
     adminClient.from('inspiration_votes').select('request_id').in('request_id', allIds),
     adminClient.from('inspiration_comments').select('request_id').in('request_id', allIds),
