@@ -147,12 +147,7 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
     expect(body.pagination.total_pages).toBe(0)
   })
 
-  it('returns data when unauthenticated (public read)', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(
-      new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-    )
-
+  it('returns data without userId in context', async () => {
     mockFrom.mockReturnValueOnce(makeCountChain(1))
     mockFrom.mockReturnValueOnce(makeChain([sampleRequest]))
     mockFrom.mockReturnValueOnce(makeChain([]))
