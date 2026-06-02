@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { readManifest } from '@/lib/apps/manifest'
 import { resolveGroupContext } from '@/lib/groups/context'
 import { loadAppModule } from '@/lib/apps/registry'
+import { loadAppMessages } from '@/lib/apps/i18n'
 import { Sparkles } from 'lucide-react'
 import { AppInstalledWidget } from '@/components/app-installed-widget'
 
@@ -53,7 +54,7 @@ async function loadWidgets(groupId: string): Promise<WidgetEntry[]> {
   return results
 }
 
-async function loadAppWidgets(groupId: string): Promise<AppWidgetData[]> {
+async function loadAppWidgets(locale: string, groupId: string): Promise<AppWidgetData[]> {
   const adminClient = createAdminClient()
   const { data: installedApps } = await adminClient
     .from('installed_apps')
@@ -74,10 +75,11 @@ async function loadAppWidgets(groupId: string): Promise<AppWidgetData[]> {
     if (app.visibility === 'private' && !accessSet.has(app.slug)) continue
     try {
       const manifest = await readManifest(app.slug)
+      const messages = await loadAppMessages(app.slug, locale)
       results.push({
         slug: app.slug,
         name: manifest.name,
-        description: manifest.description,
+        description: (messages.description as string) ?? manifest.description,
         primaryColor: manifest.primaryColor,
         secondaryColor: manifest.secondaryColor,
       })
@@ -142,7 +144,7 @@ export default async function DashboardPage({ params }: Props) {
   const groupCtx = await resolveGroupContext(groupSlug, user.id)
   if (!groupCtx) redirect(`/${locale}/`)
 
-  const apps = await loadAppWidgets(groupCtx.id)
+  const apps = await loadAppWidgets(locale, groupCtx.id)
 
   return (
     <main className="p-6 max-w-5xl mx-auto">

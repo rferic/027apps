@@ -9,6 +9,7 @@ import { AdminAppPermissions } from '@/components/admin-app-permissions'
 import { AdminAppTabs } from './AdminAppTabs'
 import { getAppPermissionsAction } from '@/lib/apps/actions'
 import { loadAppModule } from '@/lib/apps/registry'
+import { loadAppMessages } from '@/lib/apps/i18n'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
@@ -54,6 +55,8 @@ export default async function AdminAppViewPage({ params }: Props) {
   }
 
   const t = await getTranslations('admin.apps')
+  const appMessages = await loadAppMessages(slug, locale)
+  const appDescription = (appMessages.description as string) ?? manifest.description
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -66,7 +69,7 @@ export default async function AdminAppViewPage({ params }: Props) {
         />
         <div className="min-w-0">
           <h1 className="text-xl font-bold text-gray-900">{manifest.name}</h1>
-          <p className="text-sm text-gray-500">{manifest.description}</p>
+          <p className="text-sm text-gray-500">{appDescription}</p>
         </div>
       </div>
 
