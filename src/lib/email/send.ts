@@ -50,14 +50,18 @@ export async function sendEmail({ to, subject, html }: SendParams): Promise<Send
 
   try {
     const resend = getResend()
-    await resend.emails.send({
-      from: process.env.SENDER_EMAIL ?? '027Apps <onboarding@resend.dev>',
+    const from = process.env.SENDER_EMAIL ?? '027Apps <onboarding@resend.dev>'
+    console.log(`[email] Sending to ${to} from ${from} subject="${subject}"`)
+    const result = await resend.emails.send({
+      from,
       to,
       subject,
       html,
     })
+    console.log(`[email] Sent ok:`, JSON.stringify(result))
     return { error: null }
-  } catch {
+  } catch (err) {
+    console.error(`[email] Failed to send to ${to}:`, err)
     return { error: 'Could not send email. Please try again later.' }
   }
 }
