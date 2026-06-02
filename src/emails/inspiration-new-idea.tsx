@@ -18,7 +18,7 @@ interface Props {
   locale: string
 }
 
-const year = new Date().getFullYear()
+const LOGO_DATA_URI = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NiA1NiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2Ij48cmVjdCB3aWR0aD0iNTYiIGhlaWdodD0iNTYiIHJ4PSIxMSIgZmlsbD0iIzlCMUMxQyIvPjxwb2x5bGluZSBwb2ludHM9IjcsMjIgMTQsMjIgMTYuNSwxOCAxOSwyMiAyMiwyMiAyMy41LDI1IDI1LjUsMTAgMjcuNSwzMiAzMCwyMiAzMiwxOCAzNC41LDIyIDQ5LDIyIiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjx0ZXh0IHg9IjI4IiB5PSI0NiIgZm9udC1mYW1pbHk9Ii1hcHBsZS1zeXN0ZW0sc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjgwMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjc1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgbGV0dGVyLXNwYWNpbmc9IjIuNSI+MDI3PC90ZXh0Pjwvc3ZnPg=='
 
 const labels = (locale: string) => {
   const all: Record<string, { preview: string; heading: string; cta: string; footer: string; noDesc: string; via: string }> = {
@@ -101,7 +101,7 @@ export default function InspirationNewIdeaEmail({ authorName, title, description
                 <table cellPadding="0" cellSpacing="0">
                   <tr>
                     <td style={logoBadge}>
-                      <span style={logoText}>027</span>
+                      <img src={LOGO_DATA_URI} alt="027" width="44" height="44" style={{ display: 'block', borderRadius: 10 }} />
                     </td>
                     {appName && (
                       <>
@@ -203,13 +203,6 @@ const logoBadge: CSSProperties = {
   backgroundColor: '#7C3AED',
   textAlign: 'center' as const,
   verticalAlign: 'middle' as const,
-}
-
-const logoText: CSSProperties = {
-  color: '#ffffff',
-  fontSize: 16,
-  fontWeight: 700,
-  lineHeight: '44px',
 }
 
 const logoPlus: CSSProperties = {
