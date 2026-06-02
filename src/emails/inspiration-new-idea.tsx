@@ -103,22 +103,26 @@ export default function InspirationNewIdeaEmail({ authorName, title, description
                     <td style={logoBadge}>
                       <span style={logoText}>027</span>
                     </td>
-                    <td style={logoPlus}>
-                      <span style={plusText}>+</span>
-                    </td>
-                    <td>
-                      <table cellPadding="0" cellSpacing="0">
-                        <tr>
-                          <td style={appBadge}>
-                            {appLogoUrl ? (
-                              <img src={appLogoUrl} alt={appName ?? ''} width="36" height="36" style={{ display: 'block', borderRadius: 6 }} />
-                            ) : (
-                              <span style={appBadgeText}>{appName?.slice(0, 2).toUpperCase() ?? '?'}</span>
-                            )}
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
+                    {appName && (
+                      <>
+                        <td style={logoPlus}>
+                          <span style={plusText}>+</span>
+                        </td>
+                        <td>
+                          <table cellPadding="0" cellSpacing="0">
+                            <tr>
+                              <td style={appBadge}>
+                                {appLogoUrl ? (
+                                  <img src={appLogoUrl} alt={appName} width="36" height="36" style={{ display: 'block', borderRadius: 6 }} />
+                                ) : (
+                                  <span style={appBadgeText}>{appName.slice(0, 2).toUpperCase()}</span>
+                                )}
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 </table>
               </td>

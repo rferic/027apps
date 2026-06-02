@@ -73,7 +73,7 @@ async function getUserDisplayName(userId: string): Promise<string> {
 }
 
 function buildRequestUrl(requestId: string): string {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://027apps.vercel.app'
   return `${base}/apps/inspiration?request=${requestId}`
 }
 
@@ -97,7 +97,8 @@ export async function notifyNewIdea(
         const { readManifest } = await import('@/lib/apps/manifest')
         const manifest = await readManifest(request.app_slug)
         appNameResolved = manifest.name
-        appLogoUrlResolved = `/api/apps/${request.app_slug}/logo`
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://027apps.vercel.app'
+        appLogoUrlResolved = `${baseUrl}/api/apps/${request.app_slug}/logo`
       } catch {
         // ignore
       }
