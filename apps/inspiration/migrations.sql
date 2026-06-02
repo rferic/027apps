@@ -2,6 +2,16 @@
 alter table inspiration_requests drop column if exists group_id;
 drop index if exists idx_inspiration_requests_group;
 
+-- Drop old group-scoped RLS policies (renamed below)
+drop policy if exists "Members can view requests in their group" on inspiration_requests;
+drop policy if exists "Members can create requests in their group" on inspiration_requests;
+drop policy if exists "Admin can update any request in their group" on inspiration_requests;
+drop policy if exists "Admin can delete any request in their group" on inspiration_requests;
+drop policy if exists "Members can view votes in their group" on inspiration_votes;
+drop policy if exists "Users can vote on requests in their group" on inspiration_votes;
+drop policy if exists "Members can view comments in their group" on inspiration_comments;
+drop policy if exists "Members can comment on requests in their group" on inspiration_comments;
+
 -- ENUM types (idempotent — safe to run multiple times)
 do $$ begin
   create type inspiration_type as enum (
