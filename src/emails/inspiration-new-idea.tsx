@@ -13,22 +13,25 @@ interface Props {
   title: string
   description: string
   requestUrl: string
-  appName?: string
-  appLogoUrl?: string
+  assignedAppName?: string
+  assignedAppLogoUrl?: string
   locale: string
 }
 
 const LOGO_DATA_URI = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NiA1NiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2Ij48cmVjdCB3aWR0aD0iNTYiIGhlaWdodD0iNTYiIHJ4PSIxMSIgZmlsbD0iIzlCMUMxQyIvPjxwb2x5bGluZSBwb2ludHM9IjcsMjIgMTQsMjIgMTYuNSwxOCAxOSwyMiAyMiwyMiAyMy41LDI1IDI1LjUsMTAgMjcuNSwzMiAzMCwyMiAzMiwxOCAzNC41LDIyIDQ5LDIyIiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjx0ZXh0IHg9IjI4IiB5PSI0NiIgZm9udC1mYW1pbHk9Ii1hcHBsZS1zeXN0ZW0sc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjgwMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjc1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgbGV0dGVyLXNwYWNpbmc9IjIuNSI+MDI3PC90ZXh0Pjwvc3ZnPg=='
 
+const APP_PRIMARY = '#7C3AED'
+const APP_ICON_URL = 'https://027apps.vercel.app/api/apps/inspiration/logo'
+
 const labels = (locale: string) => {
-  const all: Record<string, { preview: string; heading: string; cta: string; footer: string; noDesc: string; via: string }> = {
+  const all: Record<string, { preview: string; heading: string; cta: string; footer: string; noDesc: string; from: string }> = {
     en: {
       preview: 'New idea submitted — 027Apps',
       heading: 'New idea submitted',
       cta: 'View idea',
       footer: 'Sent from 027Apps',
       noDesc: '(no description)',
-      via: 'via',
+      from: 'from {author} via Inspiration',
     },
     es: {
       preview: 'Nueva idea publicada — 027Apps',
@@ -36,7 +39,7 @@ const labels = (locale: string) => {
       cta: 'Ver idea',
       footer: 'Enviado desde 027Apps',
       noDesc: '(sin descripción)',
-      via: 'vía',
+      from: 'de {author} vía Inspiration',
     },
     it: {
       preview: 'Nuova idea pubblicata — 027Apps',
@@ -44,7 +47,7 @@ const labels = (locale: string) => {
       cta: 'Vedi idea',
       footer: 'Inviato da 027Apps',
       noDesc: '(nessuna descrizione)',
-      via: 'tramite',
+      from: 'da {author} tramite Inspiration',
     },
     ca: {
       preview: 'Nova idea publicada — 027Apps',
@@ -52,7 +55,7 @@ const labels = (locale: string) => {
       cta: 'Veure idea',
       footer: 'Enviat des de 027Apps',
       noDesc: '(sense descripció)',
-      via: 'a través de',
+      from: 'de {author} via Inspiration',
     },
     fr: {
       preview: 'Nouvelle idée soumise — 027Apps',
@@ -60,7 +63,7 @@ const labels = (locale: string) => {
       cta: "Voir l'idée",
       footer: 'Envoyé depuis 027Apps',
       noDesc: '(aucune description)',
-      via: 'via',
+      from: 'de {author} via Inspiration',
     },
     de: {
       preview: 'Neue Idee eingereicht — 027Apps',
@@ -68,7 +71,7 @@ const labels = (locale: string) => {
       cta: 'Idee ansehen',
       footer: 'Gesendet von 027Apps',
       noDesc: '(keine Beschreibung)',
-      via: 'via',
+      from: 'von {author} via Inspiration',
     },
   }
   return all[locale] ?? all.en
@@ -83,7 +86,7 @@ export const NEW_IDEA_SUBJECT: Record<string, string> = {
   de: 'Neue Idee: {title}',
 }
 
-export default function InspirationNewIdeaEmail({ authorName, title, description, requestUrl, appName, appLogoUrl, locale }: Props) {
+export default function InspirationNewIdeaEmail({ authorName, title, description, requestUrl, assignedAppName, assignedAppLogoUrl, locale }: Props) {
   const l = labels(locale)
 
   return (
@@ -94,35 +97,27 @@ export default function InspirationNewIdeaEmail({ authorName, title, description
         <Container style={container}>
           <table cellPadding="0" cellSpacing="0" style={tableInner}>
             <tr>
-              <td style={headerBar}>&nbsp;</td>
+              <td style={{ ...headerBar, backgroundColor: APP_PRIMARY }}>&nbsp;</td>
             </tr>
             <tr>
               <td align="center" style={logoSection}>
                 <table cellPadding="0" cellSpacing="0">
                   <tr>
-                    <td style={logoBadge}>
+                    <td style={{ ...logoBadge, backgroundColor: APP_PRIMARY }}>
                       <img src={LOGO_DATA_URI} alt="027" width="44" height="44" style={{ display: 'block', borderRadius: 10 }} />
                     </td>
-                    {appName && (
-                      <>
-                        <td style={logoPlus}>
-                          <span style={plusText}>+</span>
-                        </td>
-                        <td>
-                          <table cellPadding="0" cellSpacing="0">
-                            <tr>
-                              <td style={appBadge}>
-                                {appLogoUrl ? (
-                                  <img src={appLogoUrl} alt={appName} width="36" height="36" style={{ display: 'block', borderRadius: 6 }} />
-                                ) : (
-                                  <span style={appBadgeText}>{appName.slice(0, 2).toUpperCase()}</span>
-                                )}
-                              </td>
-                            </tr>
-                          </table>
-                        </td>
-                      </>
-                    )}
+                    <td style={logoPlus}>
+                      <span style={plusText}>+</span>
+                    </td>
+                    <td>
+                      <table cellPadding="0" cellSpacing="0">
+                        <tr>
+                          <td style={{ ...appBadge, backgroundColor: APP_PRIMARY + '20' }}>
+                            <img src={APP_ICON_URL} alt="Inspiration" width="36" height="36" style={{ display: 'block', borderRadius: 6 }} />
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
                   </tr>
                 </table>
               </td>
@@ -131,7 +126,10 @@ export default function InspirationNewIdeaEmail({ authorName, title, description
               <td style={contentSection}>
                 <h1 style={h1}>{l.heading}</h1>
                 <p style={paragraph}>
-                  <strong>{authorName}</strong> {appName ? `${l.via} ${appName}` : ''}
+                  {(() => {
+                    const parts = l.from.split('{author}')
+                    return parts.map((p, i) => i < parts.length - 1 ? <>{p}<strong>{authorName}</strong></> : p)
+                  })()}
                 </p>
                 <table cellPadding="0" cellSpacing="0" style={ideaBox}>
                   <tr>
@@ -145,10 +143,32 @@ export default function InspirationNewIdeaEmail({ authorName, title, description
                     </td>
                   </tr>
                 </table>
+                {assignedAppName && (
+                  <table cellPadding="0" cellSpacing="0" style={assignedBox}>
+                    <tr>
+                      <td style={assignedBoxInner}>
+                        <table cellPadding="0" cellSpacing="0">
+                          <tr>
+                            <td style={assignedIconCell}>
+                              {assignedAppLogoUrl ? (
+                                <img src={assignedAppLogoUrl} alt={assignedAppName} width="20" height="20" style={{ display: 'block', borderRadius: 4 }} />
+                              ) : (
+                                <span style={assignedIconText}>{assignedAppName.slice(0, 2).toUpperCase()}</span>
+                              )}
+                            </td>
+                            <td style={assignedLabelCell}>
+                              <span style={assignedLabel}>{assignedAppName}</span>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                )}
                 <table cellPadding="0" cellSpacing="0" style={ctaSection}>
                   <tr>
                     <td align="center">
-                      <Link href={requestUrl} style={ctaButton}>
+                      <Link href={requestUrl} style={{ ...ctaButton, backgroundColor: APP_PRIMARY }}>
                         {l.cta}
                       </Link>
                     </td>
@@ -220,16 +240,45 @@ const appBadge: CSSProperties = {
   width: 36,
   height: 36,
   borderRadius: 8,
-  backgroundColor: '#e4e4e7',
   textAlign: 'center' as const,
   verticalAlign: 'middle' as const,
 }
 
-const appBadgeText: CSSProperties = {
-  color: '#52525b',
-  fontSize: 13,
+const assignedBox: CSSProperties = {
+  width: '100%',
+  marginBottom: 16,
+}
+
+const assignedBoxInner: CSSProperties = {
+  backgroundColor: '#f4f4f5',
+  borderRadius: 6,
+  padding: '8px 12px',
+}
+
+const assignedIconCell: CSSProperties = {
+  width: 20,
+  height: 20,
+  borderRadius: 4,
+  backgroundColor: '#e4e4e7',
+  textAlign: 'center' as const,
+  verticalAlign: 'middle' as const,
+  paddingRight: 8,
+}
+
+const assignedIconText: CSSProperties = {
+  fontSize: 9,
   fontWeight: 700,
-  lineHeight: '36px',
+  color: '#52525b',
+  lineHeight: '20px',
+}
+
+const assignedLabelCell: CSSProperties = {
+  verticalAlign: 'middle' as const,
+}
+
+const assignedLabel: CSSProperties = {
+  fontSize: 13,
+  color: '#52525b',
 }
 
 const contentSection: CSSProperties = {

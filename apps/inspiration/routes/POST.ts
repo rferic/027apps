@@ -51,20 +51,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   if (error) return apiError('INSERT_ERROR', error.message, 500)
 
-  // Determine locale from request (Accept-Language)
-  const acceptLang = req.headers.get('Accept-Language') ?? ''
-  const locale = acceptLang.split(',')[0]?.split('-')[0] ?? 'en'
-
-  // Look up app name if app_slug is set
-  let appName: string | undefined
-  if (slug) {
-    try {
-      const { readManifest } = await import('@/lib/apps/manifest')
-      const manifest = await readManifest(slug)
-      appName = manifest.name
-    } catch { /* ignore */ }
-  }
-
   // Notify admins asynchronously (best-effort)
   const { data: profile } = await adminClient
     .from('profiles')
@@ -73,7 +59,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .maybeSingle()
 
   const authorName = (profile as { display_name?: string } | null)?.display_name ?? 'Someone'
-  void notifyNewIdea(data.id as string, auth.userId, authorName, locale, appName)
+  void notifyNewIdea(data.id as string, auth.userId, authorName, slug)
 
   return apiOk(data, 201)
 }

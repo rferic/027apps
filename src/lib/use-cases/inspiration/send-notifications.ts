@@ -81,24 +81,23 @@ export async function notifyNewIdea(
   requestId: string,
   authorId: string,
   authorName: string,
-  locale: string = 'en',
-  appName?: string,
-  appLogoUrl?: string
+  assignedAppSlug?: string | null
 ): Promise<void> {
   try {
     const request = await getRequest(requestId)
     if (!request) return
 
-    // Look up app name from manifest
-    let appNameResolved = appName
-    let appLogoUrlResolved = appLogoUrl
-    if (request.app_slug && !appName) {
+    // Look up assigned app info (app the idea is about)
+    let assignedAppName: string | undefined
+    let assignedAppLogoUrl: string | undefined
+    const assignedSlug = assignedAppSlug ?? request.app_slug
+    if (assignedSlug) {
       try {
         const { readManifest } = await import('@/lib/apps/manifest')
-        const manifest = await readManifest(request.app_slug)
-        appNameResolved = manifest.name
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://027apps.vercel.app'
-        appLogoUrlResolved = `${baseUrl}/api/apps/${request.app_slug}/logo`
+        const manifest = await readManifest(assignedSlug)
+        assignedAppName = manifest.name
+        const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://027apps.vercel.app'
+        assignedAppLogoUrl = `${base}/api/apps/${assignedSlug}/logo`
       } catch {
         // ignore
       }
@@ -117,32 +116,44 @@ export async function notifyNewIdea(
     const adminIds = admins.map((a: { user_id: string }) => a.user_id).filter((id: string) => id !== authorId)
     if (adminIds.length === 0) return
 
+    // Get emails AND locales for each admin
+    const [{ data: profiles }] = await Promise.all([
+      client.from('profiles').select('id, locale').in('id', adminIds),
+    ])
+    const localeMap = new Map<string, string>()
+    if (profiles) {
+      for (const p of profiles as Array<{ id: string; locale: string }>) {
+        if (p.locale) localeMap.set(p.id, p.locale)
+      }
+    }
+
     const emailMap = await getUserEmailMap(adminIds)
     const validRecipients = adminIds.filter((id) => emailMap.has(id))
     if (validRecipients.length === 0) return
 
     const requestUrl = buildRequestUrl(requestId)
-    const html = await render(
-      InspirationNewIdeaEmail({
-        authorName,
-        title: request.title,
-        description: request.description,
-        requestUrl,
-        appName: appNameResolved,
-        appLogoUrl: appLogoUrlResolved,
-        locale,
-      })
-    )
 
-    const rawSubject = NEW_IDEA_SUBJECT[locale] ?? NEW_IDEA_SUBJECT.en
-    const subject = rawSubject.replace('{title}', request.title)
-
+    // Send personalized email per admin (different locale)
     await Promise.all(
-      validRecipients.map((to) =>
-        sendEmail({ to: emailMap.get(to)!, subject, html }).catch((err) =>
-          console.error(`[Inspiration] Failed to send new idea email to ${to}:`, err)
+      validRecipients.map(async (adminId) => {
+        const adminLocale = localeMap.get(adminId) ?? 'en'
+        const html = await render(
+          InspirationNewIdeaEmail({
+            authorName,
+            title: request.title,
+            description: request.description,
+            requestUrl,
+            assignedAppName,
+            assignedAppLogoUrl,
+            locale: adminLocale,
+          })
         )
-      )
+        const rawSubject = NEW_IDEA_SUBJECT[adminLocale] ?? NEW_IDEA_SUBJECT.en
+        const subject = rawSubject.replace('{title}', request.title)
+        await sendEmail({ to: emailMap.get(adminId)!, subject, html }).catch((err) =>
+          console.error(`[Inspiration] Failed to send new idea email to ${adminId}:`, err)
+        )
+      })
     )
   } catch (err) {
     console.error('[Inspiration] notifyNewIdea failed:', err)
