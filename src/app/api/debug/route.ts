@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { sendEmail } from '@/lib/email/send'
+import nodemailer from 'nodemailer'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,17 +7,32 @@ export async function GET() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  const results: Record<string, unknown> = {
-    env: { urlSet: !!url, keySet: !!key, smtpHost: !!process.env.SMTP_HOST, smtpUser: !!process.env.SMTP_USER, smtpPass: !!process.env.SMTP_PASS },
+  // Direct SMTP test (no sendEmail wrapper)
+  let smtpTest: Record<string, unknown> = { attempted: false }
+  const host = process.env.SMTP_HOST
+  const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : undefined
+  const user = process.env.SMTP_USER
+  const pass = process.env.SMTP_PASS
+  if (host && port && user && pass) {
+    try {
+      const transporter = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } })
+      await transporter.sendMail({
+        from: `"027Apps" <${process.env.SMTP_FROM ?? user}>`,
+        to: '027apps@gmail.com',
+        subject: '027Apps debug test',
+        html: '<p>If you see this, email works!</p>',
+      })
+      smtpTest = { attempted: true, ok: true }
+    } catch (err) {
+      smtpTest = { attempted: true, ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  } else {
+    smtpTest = { attempted: false, reason: 'missing vars', host: !!host, port: !!port, user: !!user, pass: !!pass }
   }
 
-  // Test email
-  const emailResult = await sendEmail({
-    to: '027apps@gmail.com',
-    subject: '027Apps debug test',
-    html: '<p>If you see this, email works!</p>',
-  })
-  results.emailTest = emailResult
+  const results: Record<string, unknown> = {
+    env: { urlSet: !!url, keySet: !!key, smtpHost: !!host, smtpUser: !!user, smtpPass: !!pass, smtpPort: port },
+    smtpTest,
 
   try {
     const supabase = createClient(url!, key!, { auth: { autoRefreshToken: false, persistSession: false } })
