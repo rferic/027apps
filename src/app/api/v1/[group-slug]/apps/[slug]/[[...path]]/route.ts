@@ -1,5 +1,5 @@
 import { type NextRequest } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, createAdminClientUntyped } from '@/lib/supabase/admin'
 import { apiError } from '@/lib/api/response'
 import { authenticate } from '@/lib/api/auth'
 import { resolveGroupContext } from '@/lib/groups/context'
@@ -11,12 +11,27 @@ const SLUG_RE = /^[a-z0-9-]+$/
 async function dispatch(req: NextRequest, slug: string, segments: string[], groupSlug: string): Promise<Response> {
   if (!SLUG_RE.test(slug)) return apiError('INVALID_SLUG', 'Invalid app slug', 400)
 
+  // Try authenticate — if it fails, we still try to resolve group from slug
   const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
+  let groupId: string | null = null
 
-  const groupCtx = await resolveGroupContext(groupSlug, auth.userId)
-  if (!groupCtx) return apiError('NOT_FOUND', 'Group not found', 404)
+  if (!(auth instanceof Response) && auth.userId) {
+    const groupCtx = await resolveGroupContext(groupSlug, auth.userId)
+    if (groupCtx) groupId = groupCtx.id
+  }
+
+  // Fallback: resolve group from slug without user membership check
+  if (!groupId) {
+    const adminClient = createAdminClientUntyped()
+    const { data: group } = await adminClient
+      .from('groups')
+      .select('id')
+      .eq('slug', groupSlug)
+      .maybeSingle()
+    if (group) groupId = (group as Record<string, unknown>).id as string
+  }
+
+  if (!groupId) return apiError('NOT_FOUND', 'Group not found', 404)
 
   const adminClient = createAdminClient()
   const { data: app } = await adminClient
@@ -36,7 +51,7 @@ async function dispatch(req: NextRequest, slug: string, segments: string[], grou
     return apiError('NOT_FOUND', 'Route not found', 404)
   }
 
-  const ctx: HandlerContext = { groupId: groupCtx.id, groupSlug }
+  const ctx: HandlerContext = { groupId, groupSlug }
   return handler(req, ctx)
 }
 
