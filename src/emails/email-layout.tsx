@@ -54,7 +54,7 @@ export default function EmailLayout({ children, preview, appSlug, appName, appPr
                     <td>
                       <table cellPadding="0" cellSpacing="0">
                         <tr>
-                          <td style={{ ...iconBox, backgroundColor: appPrimaryColor }}>
+                          <td style={iconBox}>
                             <img src={appLogoSrc} alt={appName} width="36" height="36" style={{ display: 'block', borderRadius: 6 }} />
                           </td>
                         </tr>
@@ -127,6 +127,7 @@ const iconBox: CSSProperties = {
   width: 36,
   height: 36,
   borderRadius: 8,
+  backgroundColor: '#ffffff',
   textAlign: 'center' as const,
   verticalAlign: 'middle' as const,
 }
