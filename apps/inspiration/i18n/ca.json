@@ -107,7 +107,8 @@
     "of": "de",
     "all": "Tots",
     "error_loading": "Alguna cosa ha anat malament en carregar les idees.",
-    "error_retry": "Reintentar"
+    "error_retry": "Reintentar",
+    "counts": "{total} total · {active} active · {completed} completed"
   },
   "comments": {
     "title": "Comentaris",

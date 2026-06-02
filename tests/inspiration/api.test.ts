@@ -35,28 +35,15 @@ vi.mock('@/lib/supabase/admin', () => ({
 // ---------------------------------------------------------------------------
 
 /** Creates a minimal Supabase-like chainable mock for makeChain. */
-function makeChain(data: unknown, error: unknown = null) {
-  const resolved = { data, error }
+function makeChain(data: unknown, error: unknown = null, count?: number) {
+  const resolved: Record<string, unknown> = { data, error }
+  if (count !== undefined) resolved.count = count
   const chain: Record<string, unknown> = {
     then: (fn: (v: unknown) => unknown) => Promise.resolve(resolved).then(fn),
     catch: (fn: (v: unknown) => unknown) => Promise.resolve(resolved).catch(fn),
     finally: (fn: () => void) => Promise.resolve(resolved).finally(fn),
     single: vi.fn().mockResolvedValue(resolved),
     maybeSingle: vi.fn().mockResolvedValue(resolved),
-  }
-  for (const m of ['select', 'insert', 'update', 'upsert', 'delete', 'eq', 'in', 'limit', 'order', 'rpc', 'filter', 'or', 'range', 'not', 'is', 'neq']) {
-    chain[m] = vi.fn().mockReturnValue(chain)
-  }
-  return chain
-}
-
-/** Mock for `count: exact, head: true` style queries */
-function makeCountChain(count: number) {
-  const resolved = { count, error: null }
-  const chain: Record<string, unknown> = {
-    then: (fn: (v: unknown) => unknown) => Promise.resolve(resolved).then(fn),
-    catch: (fn: (v: unknown) => unknown) => Promise.resolve(resolved).catch(fn),
-    finally: (fn: () => void) => Promise.resolve(resolved).finally(fn),
   }
   for (const m of ['select', 'insert', 'update', 'upsert', 'delete', 'eq', 'in', 'limit', 'order', 'rpc', 'filter', 'or', 'range', 'not', 'is', 'neq']) {
     chain[m] = vi.fn().mockReturnValue(chain)
@@ -112,18 +99,22 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
     const { authenticate } = await import('@/lib/api/auth')
     vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
 
-    // count query → has data
-    mockFrom.mockReturnValueOnce(makeCountChain(5))
-    // data query → returns 2 rows
-    mockFrom.mockReturnValueOnce(makeChain([sampleRequest, { ...sampleRequest, id: 'r2', title: 'Second idea' }]))
-    // enrich: votes, comments, userVotes
-    mockFrom.mockReturnValueOnce(makeChain([]))
+    // Single select with count returns all rows + total count
+    const allRows = [
+      sampleRequest,
+      { ...sampleRequest, id: 'r2', title: 'Second idea', created_at: '2025-01-16T10:30:00Z' },
+      { ...sampleRequest, id: 'r3', title: 'Third idea', created_at: '2025-01-14T10:30:00Z' },
+      { ...sampleRequest, id: 'r4', title: 'Fourth idea', created_at: '2025-01-13T10:30:00Z' },
+      { ...sampleRequest, id: 'r5', title: 'Fifth idea', created_at: '2025-01-12T10:30:00Z' },
+    ]
+    mockFrom.mockReturnValueOnce(makeChain(allRows, null, 5))
+    // enrich: votes, comments
     mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
 
-      const { default: handler } = await import('../../apps/inspiration/routes/GET')
-      const req = makeRequest('/api/v1/test/apps/inspiration?limit=2&page=1')
-      const res = await handler(req, Ctx)
+    const { default: handler } = await import('../../apps/inspiration/routes/GET')
+    const req = makeRequest('/api/v1/test/apps/inspiration?limit=2&page=1')
+    const res = await handler(req, Ctx)
 
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -135,9 +126,7 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
     const { authenticate } = await import('@/lib/api/auth')
     vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
 
-    mockFrom.mockReturnValueOnce(makeCountChain(0))
-    // Fallback verify — empty, confirming count=0 is correct
-    mockFrom.mockReturnValueOnce(makeChain([]))
+    mockFrom.mockReturnValueOnce(makeChain([], null, 0))
 
     const { default: handler } = await import('../../apps/inspiration/routes/GET')
     const req = makeRequest('/api/v1/test/apps/inspiration')
@@ -151,8 +140,7 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
   })
 
   it('returns data without userId in context', async () => {
-    mockFrom.mockReturnValueOnce(makeCountChain(1))
-    mockFrom.mockReturnValueOnce(makeChain([sampleRequest]))
+    mockFrom.mockReturnValueOnce(makeChain([sampleRequest], null, 1))
     mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
 
@@ -167,9 +155,7 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
     const { authenticate } = await import('@/lib/api/auth')
     vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
 
-    mockFrom.mockReturnValueOnce(makeCountChain(1))
-    mockFrom.mockReturnValueOnce(makeChain([sampleRequest]))
-    mockFrom.mockReturnValueOnce(makeChain([]))
+    mockFrom.mockReturnValueOnce(makeChain([sampleRequest], null, 1))
     mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
 
@@ -373,7 +359,7 @@ describe('POST /api/v1/:groupSlug/apps/inspiration/:id/vote', () => {
     // Insert succeeds
     mockFrom.mockReturnValueOnce(makeChain(null))
     // Count votes
-    mockFrom.mockReturnValueOnce(makeCountChain(3))
+    mockFrom.mockReturnValueOnce(makeChain(null, null, 3))
 
     const { default: handler } = await import('../../apps/inspiration/routes/[id]/vote')
     const req = makeRequest('/api/v1/test/apps/inspiration/r1/vote', 'POST')
@@ -395,7 +381,7 @@ describe('POST /api/v1/:groupSlug/apps/inspiration/:id/vote', () => {
     // Delete succeeds
     mockFrom.mockReturnValueOnce(makeChain(null))
     // Count votes
-    mockFrom.mockReturnValueOnce(makeCountChain(2))
+    mockFrom.mockReturnValueOnce(makeChain(null, null, 2))
 
     const { default: handler } = await import('../../apps/inspiration/routes/[id]/vote')
     const req = makeRequest('/api/v1/test/apps/inspiration/r1/vote', 'POST')
@@ -493,7 +479,7 @@ describe('GET /api/v1/:groupSlug/apps/inspiration/:id/comments', () => {
     // verify request exists
     mockFrom.mockReturnValueOnce(makeChain({ id: 'r1' }))
     // count comments
-    mockFrom.mockReturnValueOnce(makeCountChain(2))
+    mockFrom.mockReturnValueOnce(makeChain(null, null, 2))
     // fetch comments
     mockFrom.mockReturnValueOnce(makeChain([sampleComment, { ...sampleComment, id: 'c2', body: 'Agreed!' }]))
     // enrich profiles
@@ -518,7 +504,7 @@ describe('GET /api/v1/:groupSlug/apps/inspiration/:id/comments', () => {
     vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
 
     mockFrom.mockReturnValueOnce(makeChain({ id: 'r1' }))
-    mockFrom.mockReturnValueOnce(makeCountChain(0))
+    mockFrom.mockReturnValueOnce(makeChain(null, null, 0))
 
     const { default: handler } = await import('../../apps/inspiration/routes/[id]/comments/GET')
     const req = makeRequest('/api/v1/test/apps/inspiration/r1/comments')

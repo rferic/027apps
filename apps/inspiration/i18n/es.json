@@ -105,6 +105,7 @@
     "active_tab": "Activo",
     "changelog_tab": "Registro de cambios",
     "of": "de",
+    "counts": "{total} total · {active} activas · {completed} completadas",
     "all": "Todos",
     "error_loading": "Algo salió mal al cargar las ideas.",
     "error_retry": "Reintentar"

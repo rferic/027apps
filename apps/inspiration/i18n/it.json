@@ -107,7 +107,8 @@
     "of": "di",
     "all": "Tutti",
     "error_loading": "Qualcosa è andato storto caricando le idee.",
-    "error_retry": "Riprova"
+    "error_retry": "Riprova",
+    "counts": "{total} total · {active} active · {completed} completed"
   },
   "comments": {
     "title": "Commenti",

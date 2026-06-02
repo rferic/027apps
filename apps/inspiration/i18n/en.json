@@ -112,6 +112,7 @@
     "active_tab": "Active",
     "changelog_tab": "Changelog",
     "of": "of",
+    "counts": "{total} total · {active} active · {completed} completed",
     "all": "All",
     "error_loading": "Something went wrong loading ideas.",
     "error_retry": "Retry"

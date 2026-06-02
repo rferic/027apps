@@ -107,7 +107,8 @@
     "of": "von",
     "all": "Alle",
     "error_loading": "Beim Laden der Ideen ist etwas schief gelaufen.",
-    "error_retry": "Wiederholen"
+    "error_retry": "Wiederholen",
+    "counts": "{total} total · {active} active · {completed} completed"
   },
   "comments": {
     "title": "Kommentare",

@@ -107,7 +107,8 @@
     "of": "sur",
     "all": "Tous",
     "error_loading": "Quelque chose s'est mal passé en chargeant les idées.",
-    "error_retry": "Réessayer"
+    "error_retry": "Réessayer",
+    "counts": "{total} total · {active} active · {completed} completed"
   },
   "comments": {
     "title": "Commentaires",

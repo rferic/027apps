@@ -835,7 +835,7 @@ export default function InspirationView() {
           <div>
             <h1 className="text-xl font-bold text-slate-900">{t('title')}</h1>
             <p className="text-xs text-slate-400">
-              {counts.total} total · {counts.pending} active · {counts.completed} completed
+              {t('card.counts', { total: counts.total, active: counts.pending, completed: counts.completed })}
             </p>
           </div>
         </div>
