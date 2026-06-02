@@ -3,12 +3,9 @@ import {
   Container,
   Head,
   Html,
-  Link,
   Preview,
 } from '@react-email/components'
 import type { CSSProperties, ReactNode } from 'react'
-
-const LOGO_DATA_URI = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NiA1NiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2Ij48cmVjdCB3aWR0aD0iNTYiIGhlaWdodD0iNTYiIHJ4PSIxMSIgZmlsbD0iIzlCMUMxQyIvPjxwb2x5bGluZSBwb2ludHM9IjcsMjIgMTQsMjIgMTYuNSwxOCAxOSwyMiAyMiwyMiAyMy41LDI1IDI1LjUsMTAgMjcuNSwzMiAzMCwyMiAzMiwxOCAzNC41LDIyIDQ5LDIyIiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjx0ZXh0IHg9IjI4IiB5PSI0NiIgZm9udC1mYW1pbHk9Ii1hcHBsZS1zeXN0ZW0sc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjgwMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjc1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgbGV0dGVyLXNwYWNpbmc9IjIuNSI+MDI3PC90ZXh0Pjwvc3ZnPg=='
 
 interface Props {
   children: ReactNode
@@ -48,7 +45,7 @@ export default function EmailLayout({ children, preview, appSlug, appName, appPr
                 <table cellPadding="0" cellSpacing="0">
                   <tr>
                     <td style={{ ...badge, backgroundColor: appPrimaryColor }}>
-                      <img src={LOGO_DATA_URI} alt="027" width="44" height="44" style={{ display: 'block', borderRadius: 10 }} />
+                      <span style={{ ...badgeText, lineHeight: '44px' }}>027</span>
                     </td>
                     <td style={plusSpacer}>
                       <span style={plusText}>+</span>
@@ -116,6 +113,12 @@ const badge: CSSProperties = {
   borderRadius: 10,
   textAlign: 'center' as const,
   verticalAlign: 'middle' as const,
+}
+
+const badgeText: CSSProperties = {
+  color: '#ffffff',
+  fontSize: 16,
+  fontWeight: 700,
 }
 
 const plusSpacer: CSSProperties = {
