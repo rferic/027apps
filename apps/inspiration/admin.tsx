@@ -566,10 +566,10 @@ export default function InspirationAdmin() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:bg-slate-50 transition-colors flex items-center gap-1"
+                className="px-2 sm:px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:bg-slate-50 transition-colors flex items-center gap-1"
               >
                 <ChevronLeft size={14} />
-                {t('admin.pagination.prev')}
+                <span className="hidden sm:inline">{t('admin.pagination.prev')}</span>
               </button>
               <span className="text-xs text-slate-500 px-2">
                 {pagination.page} / {pagination.total_pages || 1}
@@ -577,9 +577,9 @@ export default function InspirationAdmin() {
               <button
                 onClick={() => setPage(p => Math.min(pagination.total_pages, p + 1))}
                 disabled={page >= pagination.total_pages}
-                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:bg-slate-50 transition-colors flex items-center gap-1"
+                className="px-2 sm:px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:bg-slate-50 transition-colors flex items-center gap-1"
               >
-                {t('admin.pagination.next')}
+                <span className="hidden sm:inline">{t('admin.pagination.next')}</span>
                 <ChevronRight size={14} />
               </button>
             </div>
