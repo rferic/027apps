@@ -33,6 +33,7 @@ export async function GET() {
   const results: Record<string, unknown> = {
     env: { urlSet: !!url, keySet: !!key, smtpHost: !!host, smtpUser: !!user, smtpPass: !!pass, smtpPort: port },
     smtpTest,
+  }
 
   try {
     const supabase = createClient(url!, key!, { auth: { autoRefreshToken: false, persistSession: false } })
