@@ -155,7 +155,7 @@ export async function notifyNewIdea(
             assignedAppName,
             assignedAppLogoUrl,
             locale: adminLocale,
-            baseUrl,
+            baseUrl: `${baseUrl}?v=${cacheBust}`,
           })
         )
         const rawSubject = NEW_IDEA_SUBJECT[adminLocale] ?? NEW_IDEA_SUBJECT.en

@@ -29,8 +29,9 @@ const footerLabels: Record<string, string> = {
 
 export default function EmailLayout({ children, preview, appSlug, appName, locale, baseUrl }: Props) {
   const footer = footerLabels[locale] ?? footerLabels.en
-  const logoSrc = `${baseUrl}/email-logo.png`
-  const appLogoSrc = `${baseUrl}/email-app-${appSlug}.png`
+  const cb = Date.now()
+  const logoSrc = `${baseUrl}/email-logo.png?cb=${cb}`
+  const appLogoSrc = `${baseUrl}/email-app-${appSlug}.png?cb=${cb}`
 
   return (
     <Html>
