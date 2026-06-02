@@ -81,11 +81,27 @@ export async function notifyNewIdea(
   requestId: string,
   authorId: string,
   authorName: string,
-  locale: string = 'en'
+  locale: string = 'en',
+  appName?: string,
+  appLogoUrl?: string
 ): Promise<void> {
   try {
     const request = await getRequest(requestId)
     if (!request) return
+
+    // Look up app name from manifest
+    let appNameResolved = appName
+    let appLogoUrlResolved = appLogoUrl
+    if (request.app_slug && !appName) {
+      try {
+        const { readManifest } = await import('@/lib/apps/manifest')
+        const manifest = await readManifest(request.app_slug)
+        appNameResolved = manifest.name
+        appLogoUrlResolved = `/api/apps/${request.app_slug}/logo`
+      } catch {
+        // ignore
+      }
+    }
 
     // Find all admins of the group
     const client = createAdminClientUntyped()
@@ -111,6 +127,8 @@ export async function notifyNewIdea(
         title: request.title,
         description: request.description,
         requestUrl,
+        appName: appNameResolved,
+        appLogoUrl: appLogoUrlResolved,
         locale,
       })
     )
