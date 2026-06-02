@@ -1,10 +1,18 @@
 import { render } from '@react-email/components'
+import { promises as fs } from 'fs'
+import path from 'path'
+import sharp from 'sharp'
 import { sendEmail } from '@/lib/email/send'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import InspirationNewCommentEmail, { NEW_COMMENT_SUBJECT } from '@/emails/inspiration-new-comment'
 import InspirationStatusChangeEmail, { STATUS_CHANGE_SUBJECT } from '@/emails/inspiration-status-change'
 import InspirationClosureEmail, { CLOSURE_SUBJECT } from '@/emails/inspiration-closure'
 import InspirationNewIdeaEmail, { NEW_IDEA_SUBJECT } from '@/emails/inspiration-new-idea'
+
+async function svgToPngDataUri(svg: string, w = 44, h = 44): Promise<string> {
+  const png = await sharp(Buffer.from(svg)).resize(w, h).png().toBuffer()
+  return `data:image/png;base64,${png.toString('base64')}`
+}
 
 type RequestInfo = {
   id: string
@@ -135,6 +143,20 @@ export async function notifyNewIdea(
 
     const requestUrl = buildRequestUrl(requestId)
 
+    // Convert SVGs to PNG data URIs for email compatibility
+    const logoPath = path.join(process.cwd(), 'public', 'logo.svg')
+    const appLogoPath = path.join(process.cwd(), 'apps', 'inspiration', 'logo.svg')
+    let logoDataUri = ''
+    let appLogoDataUri = ''
+    try {
+      const [logoSvg, appLogoSvg] = await Promise.all([
+        fs.readFile(logoPath, 'utf-8').catch(() => ''),
+        fs.readFile(appLogoPath, 'utf-8').catch(() => ''),
+      ])
+      if (logoSvg) logoDataUri = await svgToPngDataUri(logoSvg, 88, 88)
+      if (appLogoSvg) appLogoDataUri = await svgToPngDataUri(appLogoSvg, 72, 72)
+    } catch { /* best-effort */ }
+
     // Send personalized email per admin (different locale)
     await Promise.all(
       validRecipients.map(async (adminId) => {
@@ -148,6 +170,8 @@ export async function notifyNewIdea(
             assignedAppName,
             assignedAppLogoUrl,
             locale: adminLocale,
+            logoDataUri,
+            appLogoDataUri,
           })
         )
         const rawSubject = NEW_IDEA_SUBJECT[adminLocale] ?? NEW_IDEA_SUBJECT.en

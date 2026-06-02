@@ -14,6 +14,8 @@ interface Props {
   appName: string
   appPrimaryColor: string
   locale: string
+  logoDataUri: string
+  appLogoDataUri: string
 }
 
 const footerLabels: Record<string, string> = {
@@ -25,10 +27,7 @@ const footerLabels: Record<string, string> = {
   de: 'Gesendet von 027Apps',
 }
 
-export default function EmailLayout({ children, preview, appSlug, appName, appPrimaryColor, locale }: Props) {
-  const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? vercelUrl ?? 'https://027apps.vercel.app'
-  const appLogoUrl = `${base}/api/apps/${appSlug}/logo`
+export default function EmailLayout({ children, preview, appSlug, appName, appPrimaryColor, locale, logoDataUri, appLogoDataUri }: Props) {
   const footer = footerLabels[locale] ?? footerLabels.en
 
   return (
@@ -46,11 +45,7 @@ export default function EmailLayout({ children, preview, appSlug, appName, appPr
                 <table cellPadding="0" cellSpacing="0">
                   <tr>
                     <td style={badge}>
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="44" height="44" style={{ display: 'block' }}>
-                        <rect width="56" height="56" rx="11" fill={appPrimaryColor} />
-                        <polyline points="7,22 14,22 16.5,18 19,22 22,22 23.5,25 25.5,10 27.5,32 30,22 32,18 34.5,22 49,22" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        <text x="28" y="46" fontFamily="apple-system,BlinkMacSystemFont,sans-serif" fontSize="10" fontWeight="800" fill="rgba(255,255,255,0.75)" textAnchor="middle" letterSpacing="2.5">027</text>
-                      </svg>
+                      <img src={logoDataUri} alt="027" width="44" height="44" style={{ display: 'block', borderRadius: 10 }} />
                     </td>
                     <td style={plusSpacer}>
                       <span style={plusText}>+</span>
@@ -59,7 +54,7 @@ export default function EmailLayout({ children, preview, appSlug, appName, appPr
                       <table cellPadding="0" cellSpacing="0">
                         <tr>
                           <td style={{ ...iconBox, backgroundColor: appPrimaryColor + '20' }}>
-                            <img src={appLogoUrl} alt={appName} width="36" height="36" style={{ display: 'block', borderRadius: 6 }} />
+                            <img src={appLogoDataUri} alt={appName} width="36" height="36" style={{ display: 'block', borderRadius: 6 }} />
                           </td>
                         </tr>
                       </table>

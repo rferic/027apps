@@ -10,6 +10,8 @@ interface Props {
   assignedAppName?: string
   assignedAppLogoUrl?: string
   locale: string
+  logoDataUri: string
+  appLogoDataUri: string
 }
 
 const APP_SLUG = 'inspiration'
@@ -39,14 +41,14 @@ function t(locale: string, key: string): string {
   return (l as Record<string, string>)[key] ?? key
 }
 
-export default function InspirationNewIdeaEmail({ authorName, title, description, requestUrl, assignedAppName, assignedAppLogoUrl, locale }: Props) {
+export default function InspirationNewIdeaEmail({ authorName, title, description, requestUrl, assignedAppName, assignedAppLogoUrl, locale, logoDataUri, appLogoDataUri }: Props) {
   const heading = t(locale, 'heading')
   const ctaLabel = t(locale, 'cta')
   const noDesc = t(locale, 'noDesc')
   const rawFrom = t(locale, 'from')
 
   return (
-    <EmailLayout preview={t(locale, 'preview')} appSlug={APP_SLUG} appName={APP_NAME} appPrimaryColor={APP_PRIMARY} locale={locale}>
+    <EmailLayout preview={t(locale, 'preview')} appSlug={APP_SLUG} appName={APP_NAME} appPrimaryColor={APP_PRIMARY} locale={locale} logoDataUri={logoDataUri} appLogoDataUri={appLogoDataUri}>
       <h1 style={h1}>{heading}</h1>
       <p style={paragraph}>
         {(() => {
