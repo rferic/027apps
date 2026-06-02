@@ -14,8 +14,7 @@ interface Props {
   appName: string
   appPrimaryColor: string
   locale: string
-  logoDataUri: string
-  appLogoDataUri: string
+  baseUrl: string
 }
 
 const footerLabels: Record<string, string> = {
@@ -27,8 +26,10 @@ const footerLabels: Record<string, string> = {
   de: 'Gesendet von 027Apps',
 }
 
-export default function EmailLayout({ children, preview, appSlug, appName, appPrimaryColor, locale, logoDataUri, appLogoDataUri }: Props) {
+export default function EmailLayout({ children, preview, appSlug, appName, appPrimaryColor, locale, baseUrl }: Props) {
   const footer = footerLabels[locale] ?? footerLabels.en
+  const logoSrc = `${baseUrl}/email-logo.png`
+  const appLogoSrc = `${baseUrl}/email-app-${appSlug}.png`
 
   return (
     <Html>
@@ -45,7 +46,7 @@ export default function EmailLayout({ children, preview, appSlug, appName, appPr
                 <table cellPadding="0" cellSpacing="0">
                   <tr>
                     <td style={badge}>
-                      <img src={logoDataUri} alt="027" width="44" height="44" style={{ display: 'block', borderRadius: 10 }} />
+                      <img src={logoSrc} alt="027" width="44" height="44" style={{ display: 'block', borderRadius: 10 }} />
                     </td>
                     <td style={plusSpacer}>
                       <span style={plusText}>+</span>
@@ -53,8 +54,8 @@ export default function EmailLayout({ children, preview, appSlug, appName, appPr
                     <td>
                       <table cellPadding="0" cellSpacing="0">
                         <tr>
-                          <td style={{ ...iconBox, backgroundColor: appPrimaryColor + '20' }}>
-                            <img src={appLogoDataUri} alt={appName} width="36" height="36" style={{ display: 'block', borderRadius: 6 }} />
+                          <td style={{ ...iconBox, backgroundColor: appPrimaryColor }}>
+                            <img src={appLogoSrc} alt={appName} width="36" height="36" style={{ display: 'block', borderRadius: 6 }} />
                           </td>
                         </tr>
                       </table>
