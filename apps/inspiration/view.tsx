@@ -12,7 +12,24 @@ import {
   CheckCircle2, Flame, Clock, User,
 } from 'lucide-react'
 import { useAppContext } from '@/lib/apps/context'
+import { createClient } from '@/lib/supabase/client'
 import CreateRequestModal from './CreateRequestModal'
+
+const supabase = createClient()
+
+async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const headers: Record<string, string> = {}
+  if (options.headers) {
+    for (const [k, v] of Object.entries(options.headers as Record<string, string>)) {
+      headers[k] = v
+    }
+  }
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`
+  }
+  return fetch(url, { ...options, headers, credentials: 'include' })
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -473,8 +490,7 @@ export default function InspirationView() {
       try {
         // Main fetch
         const apiParams = buildApiParams()
-        const res = await fetch(`/api/v1/${groupSlug}/apps/inspiration?${apiParams}`, {
-          credentials: 'include',
+        const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/inspiration?${apiParams}`, {
           signal: abort.signal,
         })
 
@@ -487,18 +503,18 @@ export default function InspirationView() {
         setPagination(pag ?? { page: 1, limit: 20, total: 0, total_pages: 0 })
 
         // Fetch counts (total + pending + completed)
-        const countRes = await fetch(
+        const countRes = await fetchWithAuth(
           `/api/v1/${groupSlug}/apps/inspiration?limit=1&page=1`,
-          { credentials: 'include', signal: abort.signal },
+          { signal: abort.signal },
         )
         if (countRes.ok) {
           const countData = await countRes.json()
           const total = countData.pagination?.total ?? 0
 
           // Pending count
-          const pendingRes = await fetch(
+          const pendingRes = await fetchWithAuth(
             `/api/v1/${groupSlug}/apps/inspiration?status=${ACTIVE_STATUSES}&limit=1&page=1`,
-            { credentials: 'include', signal: abort.signal },
+            { signal: abort.signal },
           )
           let pending = 0
           if (pendingRes.ok) {
@@ -507,9 +523,9 @@ export default function InspirationView() {
           }
 
           // Completed count
-          const completedRes = await fetch(
+          const completedRes = await fetchWithAuth(
             `/api/v1/${groupSlug}/apps/inspiration?status=completed&limit=1&page=1`,
-            { credentials: 'include', signal: abort.signal },
+            { signal: abort.signal },
           )
           let completed = 0
           if (completedRes.ok) {
@@ -533,7 +549,7 @@ export default function InspirationView() {
   // Fetch installed apps for app_slug display
   useEffect(() => {
     if (!groupSlug) return
-    fetch(`/api/v1/${groupSlug}/apps/inspiration/apps`, { credentials: 'include' })
+    fetchWithAuth(`/api/v1/${groupSlug}/apps/inspiration/apps`)
       .then(r => r.ok ? r.json() : Promise.reject(r))
       .then(data => setApps(data.apps ?? []))
       .catch(() => setApps([]))
@@ -604,9 +620,7 @@ export default function InspirationView() {
     params.set('page', String(nextPage))
 
     try {
-      const res = await fetch(`/api/v1/${groupSlug}/apps/inspiration?${params.toString()}`, {
-        credentials: 'include',
-      })
+      const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/inspiration?${params.toString()}`)
       if (!res.ok) return
       const { data } = await res.json()
       setRequests(prev => [...prev, ...(data ?? [])])
@@ -636,9 +650,8 @@ export default function InspirationView() {
     }))
 
     try {
-      const res = await fetch(`/api/v1/${groupSlug}/apps/inspiration/${requestId}/vote`, {
+      const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/inspiration/${requestId}/vote`, {
         method: 'POST',
-        credentials: 'include',
       })
       if (!res.ok) throw new Error('Vote failed')
       const { voted, vote_count } = await res.json()
@@ -688,9 +701,9 @@ export default function InspirationView() {
     const abort = new AbortController()
     abortRef.current = abort
 
-    fetch(
+    fetchWithAuth(
       `/api/v1/${groupSlug}/apps/inspiration/${id}/comments?page=1&limit=20`,
-      { credentials: 'include', signal: abort.signal },
+      { signal: abort.signal },
     )
       .then(r => r.ok ? r.json() : Promise.reject(r))
       .then(({ data, pagination: pag }) => {
@@ -718,9 +731,8 @@ export default function InspirationView() {
 
     setCommentsLoadingMore(true)
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `/api/v1/${groupSlug}/apps/inspiration/${expandedId}/comments?page=${nextPage}&limit=20`,
-        { credentials: 'include' },
       )
       if (res.ok) {
         const { data, pagination: pag } = await res.json()
@@ -740,12 +752,11 @@ export default function InspirationView() {
     setSubmittingComment(true)
 
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `/api/v1/${groupSlug}/apps/inspiration/${expandedId}/comments`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ body: newCommentText.trim() }),
         },
       )
@@ -777,9 +788,9 @@ export default function InspirationView() {
     const abort = new AbortController()
     abortRef.current = abort
 
-    fetch(
+    fetchWithAuth(
       `/api/v1/${groupSlug}/apps/inspiration/${expandedId}/comments?page=1&limit=20`,
-      { credentials: 'include', signal: abort.signal },
+      { signal: abort.signal },
     )
       .then(r => r.ok ? r.json() : Promise.reject(r))
       .then(({ data, pagination: pag }) => {
