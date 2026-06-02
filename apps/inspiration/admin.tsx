@@ -3,6 +3,7 @@
 // TODO i18n: TASK-95 — strings hardcoded in English
 import { useTranslations } from 'next-intl'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Search, ChevronDown, ArrowUp, X, Loader2,
   Bug, Sparkles, AppWindow, Puzzle, Lightbulb, MoreHorizontal,
@@ -135,7 +136,6 @@ export default function InspirationAdmin() {
   const [page, setPage] = useState(1)
 
   // UI state
-  const [openRowId, setOpenRowId] = useState<string | null>(null)
   const [sortOpen, setSortOpen] = useState(false)
   const sortRef = useRef<HTMLDivElement>(null)
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
@@ -143,6 +143,7 @@ export default function InspirationAdmin() {
   const [detail, setDetail] = useState<RequestDetail | null>(null)
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set())
   const [confirmChange, setConfirmChange] = useState<{ requestId: string; newStatus: string } | null>(null)
+  const [rowMenuPos, setRowMenuPos] = useState<{ x: number; y: number; requestId: string } | null>(null)
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -246,7 +247,7 @@ export default function InspirationAdmin() {
 
   // Status change
   const handleStatusChange = async (requestId: string, newStatus: string) => {
-    setOpenRowId(null)
+    setRowMenuPos(null)
 
     // Confirm for final statuses
     if (FINAL_STATUSES.includes(newStatus)) {
@@ -319,14 +320,6 @@ export default function InspirationAdmin() {
 
   const statusLabel = (s: string) => STATUS_CONFIG[s]?.label ?? s
   const statusColor = (s: string) => STATUS_CONFIG[s]?.color ?? '#6B7280'
-
-  // Click outside handler for dropdown
-  useEffect(() => {
-    if (!openRowId) return
-    const handler = () => setOpenRowId(null)
-    document.addEventListener('click', handler)
-    return () => document.removeEventListener('click', handler)
-  }, [openRowId])
 
   // Escape key for detail panel
   useEffect(() => {
@@ -544,7 +537,8 @@ export default function InspirationAdmin() {
                         <button
                           onClick={e => {
                             e.stopPropagation()
-                            setOpenRowId(openRowId === item.id ? null : item.id)
+                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                            setRowMenuPos(rowMenuPos?.requestId === item.id ? null : { x: rect.right - 150, y: rect.bottom + 4, requestId: item.id })
                           }}
                           disabled={isUpdating || VALID_TRANSITIONS[item.status].length === 0}
                           className="p-1 rounded-md hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
@@ -555,24 +549,6 @@ export default function InspirationAdmin() {
                             <ChevronDown size={16} className="text-slate-400" />
                           )}
                         </button>
-
-                        {openRowId === item.id && (
-                          <div className="absolute right-0 top-8 z-10 bg-white rounded-lg shadow-lg border border-slate-200 py-1 min-w-[150px]">
-                            {VALID_TRANSITIONS[item.status].map(status => (
-                              <button
-                                key={status}
-                                onClick={e => {
-                                  e.stopPropagation()
-                                  handleStatusChange(item.id, status)
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-2"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor(status) }} />
-                                {statusLabel(status)}
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     </div>
                   )
@@ -609,6 +585,39 @@ export default function InspirationAdmin() {
             </div>
           </div>
         </>
+      )}
+
+      {/* ====== ROW MENU (portal) ====== */}
+      {rowMenuPos && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-50"
+          onClick={() => setRowMenuPos(null)}
+        >
+          <div
+            className="absolute bg-white rounded-lg shadow-lg border border-slate-200 py-1 min-w-[150px]"
+            style={{ left: rowMenuPos.x, top: rowMenuPos.y }}
+            onClick={e => e.stopPropagation()}
+          >
+            {(() => {
+              const request = requests.find(r => r.id === rowMenuPos.requestId)
+              if (!request) return null
+              return VALID_TRANSITIONS[request.status].map(status => (
+                <button
+                  key={status}
+                  onClick={() => {
+                    handleStatusChange(request.id, status)
+                    setRowMenuPos(null)
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-2"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor(status) }} />
+                  {statusLabel(status)}
+                </button>
+              ))
+            })()}
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* ====== DETAIL PANEL ====== */}
