@@ -1,6 +1,7 @@
 import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
+import { notifyNewIdea } from '@/lib/use-cases/inspiration/send-notifications'
 import type { HandlerContext } from '@/lib/apps/router-types'
 
 const VALID_TYPES = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_general_functionality', 'other']
@@ -49,5 +50,16 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .single()
 
   if (error) return apiError('INSERT_ERROR', error.message, 500)
+
+  // Notify admins asynchronously (best-effort)
+  const { data: profile } = await adminClient
+    .from('profiles')
+    .select('display_name')
+    .eq('id', auth.userId)
+    .maybeSingle()
+
+  const authorName = (profile as { display_name?: string } | null)?.display_name ?? 'Someone'
+  void notifyNewIdea(data.id as string, auth.userId, authorName)
+
   return apiOk(data, 201)
 }

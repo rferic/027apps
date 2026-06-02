@@ -4,6 +4,7 @@ import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import InspirationNewCommentEmail, { NEW_COMMENT_SUBJECT } from '@/emails/inspiration-new-comment'
 import InspirationStatusChangeEmail, { STATUS_CHANGE_SUBJECT } from '@/emails/inspiration-status-change'
 import InspirationClosureEmail, { CLOSURE_SUBJECT } from '@/emails/inspiration-closure'
+import InspirationNewIdeaEmail, { NEW_IDEA_SUBJECT } from '@/emails/inspiration-new-idea'
 
 type RequestInfo = {
   id: string
@@ -74,6 +75,59 @@ async function getUserDisplayName(userId: string): Promise<string> {
 function buildRequestUrl(requestId: string): string {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
   return `${base}/apps/inspiration?request=${requestId}`
+}
+
+export async function notifyNewIdea(
+  requestId: string,
+  authorId: string,
+  authorName: string,
+  locale: string = 'en'
+): Promise<void> {
+  try {
+    const request = await getRequest(requestId)
+    if (!request) return
+
+    // Find all admins of the group
+    const client = createAdminClientUntyped()
+    const { data: admins } = await client
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', request.group_id)
+      .eq('role', 'admin')
+
+    if (!admins || admins.length === 0) return
+
+    const adminIds = admins.map((a: { user_id: string }) => a.user_id).filter((id: string) => id !== authorId)
+    if (adminIds.length === 0) return
+
+    const emailMap = await getUserEmailMap(adminIds)
+    const validRecipients = adminIds.filter((id) => emailMap.has(id))
+    if (validRecipients.length === 0) return
+
+    const requestUrl = buildRequestUrl(requestId)
+    const html = await render(
+      InspirationNewIdeaEmail({
+        authorName,
+        title: request.title,
+        description: request.description,
+        requestUrl,
+        locale,
+      })
+    )
+
+    const rawSubject = NEW_IDEA_SUBJECT[locale] ?? NEW_IDEA_SUBJECT.en
+    const subject = rawSubject.replace('{title}', request.title)
+
+    await Promise.all(
+      validRecipients.map((to) =>
+        sendEmail({ to: emailMap.get(to)!, subject, html }).catch((err) =>
+          console.error(`[Inspiration] Failed to send new idea email to ${to}:`, err)
+        )
+      )
+    )
+  } catch (err) {
+    console.error('[Inspiration] notifyNewIdea failed:', err)
+  }
 }
 
 export async function notifyNewComment(
