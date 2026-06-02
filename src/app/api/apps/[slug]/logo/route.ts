@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { readManifest } from '@/lib/apps/manifest'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
@@ -15,13 +16,21 @@ export async function GET(
   }
 
   try {
-    const logoPath = path.join(process.cwd(), 'apps', slug, 'logo.svg')
-    const svg = await fs.readFile(logoPath, 'utf-8')
+    const [manifest, svg] = await Promise.all([
+      readManifest(slug).catch(() => null),
+      fs.readFile(path.join(process.cwd(), 'apps', slug, 'logo.svg'), 'utf-8'),
+    ])
 
-    return new NextResponse(svg, {
+    const color = manifest?.primaryColor ?? '#6B7280'
+    const injected = svg.replace(/(stroke|fill)="[^"]*"/g, (match, attr) => {
+      if (attr === 'fill' && match.includes('none')) return match
+      return `${attr}="${color}"`
+    })
+
+    return new NextResponse(injected, {
       headers: {
         'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'public, max-age=86400, immutable',
+        'Cache-Control': 'public, max-age=3600',
       },
     })
   } catch {
