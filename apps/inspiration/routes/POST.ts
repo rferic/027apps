@@ -59,7 +59,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .maybeSingle()
 
   const authorName = (profile as { display_name?: string } | null)?.display_name ?? 'Someone'
-  void notifyNewIdea(data.id as string, auth.userId, authorName, slug)
+  const origin = req.headers.get('Origin') ?? new URL(req.url).origin
+  void notifyNewIdea(data.id as string, auth.userId, authorName, slug, origin)
 
   return apiOk(data, 201)
 }

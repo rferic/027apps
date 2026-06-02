@@ -87,7 +87,8 @@ export async function notifyNewIdea(
   requestId: string,
   authorId: string,
   authorName: string,
-  assignedAppSlug?: string | null
+  assignedAppSlug?: string | null,
+  origin?: string
 ): Promise<void> {
   try {
     const request = await getRequest(requestId)
@@ -138,7 +139,7 @@ export async function notifyNewIdea(
     const validRecipients = adminIds.filter((id) => emailMap.has(id))
     if (validRecipients.length === 0) return
 
-    const baseUrl = resolveBaseUrl()
+    const baseUrl = origin ?? resolveBaseUrl()
     const requestUrl = `${baseUrl}/apps/inspiration?request=${requestId}`
 
     // Send personalized email per admin (different locale)
