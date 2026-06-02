@@ -16,6 +16,7 @@ function mockAuth(overrides: Partial<{ userId: string; groupId: string; role: 'a
 vi.mock('@/lib/use-cases/inspiration/send-notifications', () => ({
   notifyNewComment: vi.fn(() => Promise.resolve()),
   notifyStatusChange: vi.fn(() => Promise.resolve()),
+  notifyNewIdea: vi.fn(() => Promise.resolve()),
 }))
 
 vi.mock('@/lib/apps/manifest', () => ({
@@ -193,6 +194,7 @@ describe('POST /api/v1/:groupSlug/apps/inspiration', () => {
 
     const created = { ...sampleRequest, id: 'new-id' }
     mockFrom.mockReturnValueOnce(makeChain(created))
+    mockFrom.mockReturnValueOnce(makeChain([{ display_name: 'Test User' }]))
 
     const { default: handler } = await import('../../apps/inspiration/routes/POST')
     const req = makeRequest('/api/v1/test/apps/inspiration', 'POST', {
