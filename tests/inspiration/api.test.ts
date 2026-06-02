@@ -99,15 +99,14 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
     const { authenticate } = await import('@/lib/api/auth')
     vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
 
-    // Single select with count returns all rows + total count
-    const allRows = [
+    // count query
+    mockFrom.mockReturnValueOnce(makeChain(null, null, 5))
+    // data query (with order + range)
+    const twoRows = [
       sampleRequest,
       { ...sampleRequest, id: 'r2', title: 'Second idea', created_at: '2025-01-16T10:30:00Z' },
-      { ...sampleRequest, id: 'r3', title: 'Third idea', created_at: '2025-01-14T10:30:00Z' },
-      { ...sampleRequest, id: 'r4', title: 'Fourth idea', created_at: '2025-01-13T10:30:00Z' },
-      { ...sampleRequest, id: 'r5', title: 'Fifth idea', created_at: '2025-01-12T10:30:00Z' },
     ]
-    mockFrom.mockReturnValueOnce(makeChain(allRows, null, 5))
+    mockFrom.mockReturnValueOnce(makeChain(twoRows))
     // enrich: votes, comments
     mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
@@ -126,7 +125,9 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
     const { authenticate } = await import('@/lib/api/auth')
     vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
 
-    mockFrom.mockReturnValueOnce(makeChain([], null, 0))
+    mockFrom.mockReturnValueOnce(makeChain(null, null, 0))
+    // verify query returns no rows
+    mockFrom.mockReturnValueOnce(makeChain([]))
 
     const { default: handler } = await import('../../apps/inspiration/routes/GET')
     const req = makeRequest('/api/v1/test/apps/inspiration')
@@ -140,7 +141,8 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
   })
 
   it('returns data without userId in context', async () => {
-    mockFrom.mockReturnValueOnce(makeChain([sampleRequest], null, 1))
+    mockFrom.mockReturnValueOnce(makeChain(null, null, 1))
+    mockFrom.mockReturnValueOnce(makeChain([sampleRequest]))
     mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
 
@@ -155,7 +157,8 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
     const { authenticate } = await import('@/lib/api/auth')
     vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
 
-    mockFrom.mockReturnValueOnce(makeChain([sampleRequest], null, 1))
+    mockFrom.mockReturnValueOnce(makeChain(null, null, 1))
+    mockFrom.mockReturnValueOnce(makeChain([sampleRequest]))
     mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
 
