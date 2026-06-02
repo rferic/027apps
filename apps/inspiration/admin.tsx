@@ -560,7 +560,7 @@ export default function InspirationAdmin() {
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4">
             <span className="text-xs text-slate-500">
-              {(pagination.page - 1) * pagination.limit + 1}\u2013{Math.min(pagination.page * pagination.limit, pagination.total)} {t('admin.pagination.of')} {pagination.total}
+              {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} {t('admin.pagination.of')} {pagination.total}
             </span>
             <div className="flex items-center gap-1">
               <button
