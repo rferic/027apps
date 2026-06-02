@@ -72,9 +72,14 @@ async function getUserDisplayName(userId: string): Promise<string> {
   return (data as { display_name?: string } | null)?.display_name ?? 'Someone'
 }
 
+function resolveBaseUrl(): string {
+  const vercelUrl = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL || ''
+  if (vercelUrl) return `https://${vercelUrl.replace(/^https?:\/\//, '')}`
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://027apps.vercel.app'
+}
+
 function buildRequestUrl(requestId: string): string {
-  const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? vercelUrl ?? 'https://027apps.vercel.app'
+  const base = resolveBaseUrl()
   return `${base}/apps/inspiration?request=${requestId}`
 }
 
@@ -133,11 +138,8 @@ export async function notifyNewIdea(
     const validRecipients = adminIds.filter((id) => emailMap.has(id))
     if (validRecipients.length === 0) return
 
-    const requestUrl = buildRequestUrl(requestId)
-
-    // Build base URL for static PNG assets
-    const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? vercelUrl ?? 'https://027apps.vercel.app'
+    const baseUrl = resolveBaseUrl()
+    const requestUrl = `${baseUrl}/apps/inspiration?request=${requestId}`
 
     // Send personalized email per admin (different locale)
     await Promise.all(
