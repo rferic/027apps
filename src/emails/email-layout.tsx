@@ -7,12 +7,13 @@ import {
 } from '@react-email/components'
 import type { CSSProperties, ReactNode } from 'react'
 
+export const BRAND_COLOR = '#9B1C1C'
+
 interface Props {
   children: ReactNode
   preview: string
   appSlug: string
   appName: string
-  appPrimaryColor: string
   locale: string
   baseUrl: string
 }
@@ -26,7 +27,7 @@ const footerLabels: Record<string, string> = {
   de: 'Gesendet von 027Apps',
 }
 
-export default function EmailLayout({ children, preview, appSlug, appName, appPrimaryColor, locale, baseUrl }: Props) {
+export default function EmailLayout({ children, preview, appSlug, appName, locale, baseUrl }: Props) {
   const footer = footerLabels[locale] ?? footerLabels.en
   const logoSrc = `${baseUrl}/email-logo.png`
   const appLogoSrc = `${baseUrl}/email-app-${appSlug}.png`
@@ -39,7 +40,7 @@ export default function EmailLayout({ children, preview, appSlug, appName, appPr
         <Container style={container}>
           <table cellPadding="0" cellSpacing="0" style={tableInner}>
             <tr>
-              <td style={{ ...headerBar, backgroundColor: appPrimaryColor }}>&nbsp;</td>
+              <td style={{ ...headerBar, backgroundColor: BRAND_COLOR }}>&nbsp;</td>
             </tr>
             <tr>
               <td align="center" style={logoSection}>

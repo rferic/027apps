@@ -47,7 +47,7 @@ export default function InspirationNewIdeaEmail({ authorName, title, description
   const rawFrom = t(locale, 'from')
 
   return (
-    <EmailLayout preview={t(locale, 'preview')} appSlug={APP_SLUG} appName={APP_NAME} appPrimaryColor={APP_PRIMARY} locale={locale} baseUrl={baseUrl}>
+    <EmailLayout preview={t(locale, 'preview')} appSlug={APP_SLUG} appName={APP_NAME} locale={locale} baseUrl={baseUrl}>
       <h1 style={h1}>{heading}</h1>
       <p style={paragraph}>
         {(() => {

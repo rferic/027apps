@@ -7,6 +7,7 @@ import {
   Preview,
 } from '@react-email/components'
 import type { CSSProperties } from 'react'
+import { BRAND_COLOR } from './email-layout'
 
 interface InspirationNewCommentEmailProps {
   requestTitle: string
@@ -200,7 +201,7 @@ const tableInner: CSSProperties = {
 }
 
 const headerBar: CSSProperties = {
-  backgroundColor: '#7C3AED',
+  backgroundColor: BRAND_COLOR,
   height: '4px',
   fontSize: '1px',
   lineHeight: '1px',
