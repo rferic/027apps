@@ -22,7 +22,6 @@ export async function getInspirationAdminStats(): Promise<InspirationAdminStats>
 
   let hotIdeas: InspirationAdminStats['hotIdeas'] = []
   if (allRequests && allRequests.length > 0) {
-    const allIds = allRequests.map(r => r.id)
     const [{ data: votes }, { data: comments }] = await Promise.all([
       db.from('inspiration_votes').select('request_id'),
       db.from('inspiration_comments').select('request_id'),

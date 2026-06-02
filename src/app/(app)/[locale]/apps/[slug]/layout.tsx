@@ -1,24 +1,17 @@
 import { notFound, redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getUserGroups } from '@/lib/groups/context'
-import AppProvider from '@/components/app-provider'
-import AppTheme from '@/components/app-theme'
 import { readManifest } from '@/lib/apps/manifest'
-import { resolveAppConfig } from '@/lib/apps/config'
 import { AppValidationError } from '@/types/apps'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
-import type { ReactNode } from 'react'
-
 interface Props {
-  children: ReactNode
   params: Promise<{ locale: string; slug: string }>
 }
 
-export default async function AppSlugLayout({ children, params }: Props) {
+export default async function AppSlugLayout({ params }: Props) {
   const { locale, slug } = await params
   setRequestLocale(locale)
 
