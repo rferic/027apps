@@ -74,6 +74,10 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
   const base = `/${locale}/admin`
 
   function isActive(href: string) {
+    return pathname === href
+  }
+
+  function isActivePrefix(href: string) {
     return pathname === href || pathname.startsWith(href + '/')
   }
 
@@ -109,8 +113,8 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
     { href: `${base}/settings/api-keys`, label: t('api_keys'), icon: Key },
   ]
 
-  const isUsersSection = userSubItems.some((item) => isActive(item.href))
-  const isSettingsSection = settingsSubItems.some((item) => isActive(item.href))
+  const isUsersSection = userSubItems.some((item) => isActivePrefix(item.href))
+  const isSettingsSection = settingsSubItems.some((item) => isActivePrefix(item.href))
 
   // Auto-open sections on mount/remount when the active route belongs to them
   useEffect(() => {
@@ -216,7 +220,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                 <button
                   type="button"
                   className={`flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer ${
-                    isUsersSection ? 'bg-rose-50 text-rose-700' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/users`) || isActivePrefix(`${base}/users`) ? 'bg-rose-50 text-rose-700' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <Users size={18} />
@@ -255,7 +259,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                 <button
                   type="button"
                   className={`flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer ${
-                    isSettingsSection ? 'bg-rose-50 text-rose-700' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/settings`) || isActivePrefix(`${base}/settings`) ? 'bg-rose-50 text-rose-700' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <Settings size={18} />
@@ -326,7 +330,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                   type="button"
                   onClick={() => setUsersOpen((open) => !open)}
                   className={`cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isUsersSection ? 'text-rose-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/users`) || isActivePrefix(`${base}/users`) ? 'text-rose-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <Users size={16} className="flex-shrink-0" />
@@ -351,7 +355,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                   type="button"
                   onClick={() => setSettingsOpen((open) => !open)}
                   className={`cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isSettingsSection ? 'text-rose-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/settings`) || isActivePrefix(`${base}/settings`) ? 'text-rose-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <Settings size={16} className="flex-shrink-0" />
