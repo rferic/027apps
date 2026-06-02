@@ -29,7 +29,6 @@ const footerLabels: Record<string, string> = {
 
 export default function EmailLayout({ children, preview, appSlug, appName, locale, baseUrl }: Props) {
   const footer = footerLabels[locale] ?? footerLabels.en
-  const logoSrc = `${baseUrl}/email-logo.png`
   const appLogoSrc = `${baseUrl}/email-app-${appSlug}.png`
 
   return (
@@ -46,8 +45,8 @@ export default function EmailLayout({ children, preview, appSlug, appName, local
               <td align="center" style={logoSection}>
                 <table cellPadding="0" cellSpacing="0">
                   <tr>
-                    <td style={badge}>
-                      <img src={logoSrc} alt="027" width="44" height="44" style={{ display: 'block', borderRadius: 10 }} />
+                    <td style={{ ...badge, backgroundColor: BRAND_COLOR }}>
+                      <span style={badgeText}>027</span>
                     </td>
                     <td style={plusSpacer}>
                       <span style={plusText}>+</span>
@@ -110,7 +109,18 @@ const logoSection: CSSProperties = {
 }
 
 const badge: CSSProperties = {
+  width: 44,
+  height: 44,
   borderRadius: 10,
+  textAlign: 'center' as const,
+  verticalAlign: 'middle' as const,
+}
+
+const badgeText: CSSProperties = {
+  color: '#ffffff',
+  fontSize: 16,
+  fontWeight: 700,
+  lineHeight: '44px',
 }
 
 const plusSpacer: CSSProperties = {
