@@ -18,5 +18,6 @@
   "visibility_public": "Pública",
   "assigned_to": "Asignado a",
   "assigned_to_me": "Yo",
-  "assign_to_me": "Asignarme"
+  "assign_to_me": "Asignarme",
+  "description": "Lista de tareas simple: crea, completa y elimina tareas pendientes."
 }

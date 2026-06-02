@@ -18,5 +18,6 @@
   "visibility_public": "Pública",
   "assigned_to": "Assignat a",
   "assigned_to_me": "Jo",
-  "assign_to_me": "Assigna'm"
+  "assign_to_me": "Assigna'm",
+  "description": "Llista de tasques simple: crea, completa i elimina tasques pendents."
 }

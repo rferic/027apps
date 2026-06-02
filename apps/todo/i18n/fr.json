@@ -18,5 +18,6 @@
   "visibility_public": "Publique",
   "assigned_to": "Assigné à",
   "assigned_to_me": "Moi",
-  "assign_to_me": "M'assigner"
+  "assign_to_me": "M'assigner",
+  "description": "Liste de tâches simple : créez, complétez et supprimez des tâches."
 }

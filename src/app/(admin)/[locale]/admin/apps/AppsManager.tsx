@@ -31,6 +31,7 @@ function StatusBadge({ status }: { status: string }) {
 function AppCard({ app }: { app: CombinedApp }) {
   const t = useTranslations('admin.apps')
   const tErrors = useTranslations('apps.errors')
+  const tApp = useTranslations(`apps.${app.slug}`)
   const locale = useLocale()
   const [isPending, startTransition] = useTransition()
   const [isPendingVisibility, startVisibilityTransition] = useTransition()
@@ -95,7 +96,7 @@ function AppCard({ app }: { app: CombinedApp }) {
               )}
               {app.installed && <StatusBadge status={app.installed.status} />}
             </div>
-            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{app.manifest?.description ?? ''}</p>
+            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{tApp('description')}</p>
             {app.manifest?.author?.name && (
               <p className="text-xs text-gray-400 mt-0.5">{app.manifest.author.name}</p>
             )}

@@ -18,5 +18,6 @@
   "visibility_public": "Public",
   "assigned_to": "Assigned to",
   "assigned_to_me": "Me",
-  "assign_to_me": "Assign to me"
+  "assign_to_me": "Assign to me",
+  "description": "Simple task list — create, complete, and remove to-do items."
 }
