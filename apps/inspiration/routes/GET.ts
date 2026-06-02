@@ -21,8 +21,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const adminClient = createAdminClientUntyped()
 
-  type Q = ReturnType<ReturnType<typeof createAdminClientUntyped>['from']>
-
   // Apply filters on a PostgrestFilterBuilder (after .select)
   function applyFilters(q: any): any {
     if (statusParam) {
@@ -39,38 +37,38 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     return q
   }
 
-  const base = adminClient.from('inspiration_requests')
-
-  // Try head count first; if it reports 0, verify with a direct SELECT
-  const countRes = await applyFilters(base.select('*', { count: 'exact', head: true }))
+  // Count via head:true; if it reports 0, verify with a direct SELECT
+  const countRes = await applyFilters(
+    adminClient.from('inspiration_requests').select('*', { count: 'exact', head: true })
+  )
   const { count: total, error: countError } = await countRes
 
   if (countError) return apiError('QUERY_ERROR', countError.message, 500)
 
-  let effectiveTotal = total ?? 0
-  if (!effectiveTotal) {
-    const verifyRes = await applyFilters(base.select('id').limit(1))
-    const { data: verifyRows, error: verifyErr } = await verifyRes
-    if (verifyErr) return apiError('QUERY_ERROR', verifyErr.message, 500)
+  // head:true can return 0 after schema changes (PostgREST cache) — verify
+  if (!total) {
+    const verifyRes = await applyFilters(
+      adminClient.from('inspiration_requests').select('id').limit(1)
+    )
+    const { data: verifyRows } = await verifyRes
     if (verifyRows && verifyRows.length > 0) {
-      // head:true returned 0 but data exists — recount via direct SELECT
-      const dataRes = await applyFilters(base.select('*'))
+      // Recount via full SELECT
+      const dataRes = await applyFilters(adminClient.from('inspiration_requests').select('*'))
       const { data: allRows } = await dataRes
-      effectiveTotal = (allRows && Array.isArray(allRows)) ? allRows.length : 0
-      if (!effectiveTotal) {
+      const realTotal = (allRows && Array.isArray(allRows)) ? allRows.length : 0
+      if (!realTotal) {
         return apiOk({ data: [], pagination: { page, limit, total: 0, total_pages: 0 } })
       }
-      return buildResponse(adminClient, base, applyFilters, page, limit, sort, ctx, effectiveTotal, allRows!)
+      return buildResponse(adminClient, applyFilters, page, limit, sort, ctx, realTotal, allRows!)
     }
     return apiOk({ data: [], pagination: { page, limit, total: 0, total_pages: 0 } })
   }
 
-  return buildResponse(adminClient, base, applyFilters, page, limit, sort, ctx, effectiveTotal)
+  return buildResponse(adminClient, applyFilters, page, limit, sort, ctx, total)
 }
 
 async function buildResponse(
   adminClient: any,
-  base: any,
   applyFilters: (q: any) => any,
   page: number,
   limit: number,
@@ -85,7 +83,7 @@ async function buildResponse(
   let requests: Record<string, unknown>[]
 
   if (isAggregateSort || preFetchedRows) {
-    const allRequests = preFetchedRows ?? (await applyFilters(base.select('*')).then((r: any) => r.data)) ?? []
+    const allRequests = preFetchedRows ?? (await applyFilters(adminClient.from('inspiration_requests').select('*')).then((r: any) => r.data)) ?? []
     if (!Array.isArray(allRequests) || allRequests.length === 0) {
       return apiOk({ data: [], pagination: { page, limit, total: 0, total_pages: 0 } })
     }
@@ -121,7 +119,7 @@ async function buildResponse(
     requests = enriched.slice(offset, offset + limit)
   } else {
     const offset = (page - 1) * limit
-    let dataQuery = applyFilters(base.select('*'))
+    let dataQuery = applyFilters(adminClient.from('inspiration_requests').select('*'))
       .order('created_at', { ascending: sort === 'oldest' })
       .range(offset, offset + limit - 1)
 

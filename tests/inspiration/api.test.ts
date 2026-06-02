@@ -136,6 +136,8 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
     vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
 
     mockFrom.mockReturnValueOnce(makeCountChain(0))
+    // Fallback verify — empty, confirming count=0 is correct
+    mockFrom.mockReturnValueOnce(makeChain([]))
 
     const { default: handler } = await import('../../apps/inspiration/routes/GET')
     const req = makeRequest('/api/v1/test/apps/inspiration')
