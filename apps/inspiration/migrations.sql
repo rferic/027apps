@@ -1,16 +1,44 @@
--- Migration: remove group_id from inspiration_requests (global ideas, not group-scoped)
-alter table inspiration_requests drop column if exists group_id;
-drop index if exists idx_inspiration_requests_group;
-
--- Drop old group-scoped RLS policies (renamed below)
-drop policy if exists "Members can view requests in their group" on inspiration_requests;
-drop policy if exists "Members can create requests in their group" on inspiration_requests;
-drop policy if exists "Admin can update any request in their group" on inspiration_requests;
-drop policy if exists "Admin can delete any request in their group" on inspiration_requests;
-drop policy if exists "Members can view votes in their group" on inspiration_votes;
-drop policy if exists "Users can vote on requests in their group" on inspiration_votes;
-drop policy if exists "Members can view comments in their group" on inspiration_comments;
-drop policy if exists "Members can comment on requests in their group" on inspiration_comments;
+-- Safe migration: remove group_id + old RLS (idempotent — works on fresh install too)
+do $$ begin
+  alter table inspiration_requests drop column if exists group_id;
+exception when undefined_table then null;
+end $$;
+do $$ begin
+  drop index if exists idx_inspiration_requests_group;
+exception when undefined_table then null;
+end $$;
+do $$ begin
+  drop policy if exists "Members can view requests in their group" on inspiration_requests;
+exception when undefined_table then null;
+end $$;
+do $$ begin
+  drop policy if exists "Members can create requests in their group" on inspiration_requests;
+exception when undefined_table then null;
+end $$;
+do $$ begin
+  drop policy if exists "Admin can update any request in their group" on inspiration_requests;
+exception when undefined_table then null;
+end $$;
+do $$ begin
+  drop policy if exists "Admin can delete any request in their group" on inspiration_requests;
+exception when undefined_table then null;
+end $$;
+do $$ begin
+  drop policy if exists "Members can view votes in their group" on inspiration_votes;
+exception when undefined_table then null;
+end $$;
+do $$ begin
+  drop policy if exists "Users can vote on requests in their group" on inspiration_votes;
+exception when undefined_table then null;
+end $$;
+do $$ begin
+  drop policy if exists "Members can view comments in their group" on inspiration_comments;
+exception when undefined_table then null;
+end $$;
+do $$ begin
+  drop policy if exists "Members can comment on requests in their group" on inspiration_comments;
+exception when undefined_table then null;
+end $$;
 
 -- ENUM types (idempotent — safe to run multiple times)
 do $$ begin
