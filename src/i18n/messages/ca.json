@@ -502,7 +502,8 @@
       "prefix_conflict": "El prefix de taula '{prefix}' ja està en ús per l'app '{slug}'",
       "table_prefix_mismatch": "La taula '{table}' a migrations.sql no fa servir el prefix '{prefix}' declarat al manifest",
       "uninstall_prefix_mismatch": "L'arxiu uninstall.sql opera sobre '{table}', que no pertany a aquesta app (prefix: '{prefix}')",
-      "migration_pending": "Hi ha una migració de base de dades pendents. Executa la migració pendent a l'editor SQL de Supabase abans d'instal·lar aquesta app."
+      "migration_pending": "Hi ha una migració de base de dades pendents. Executa la migració pendent a l'editor SQL de Supabase abans d'instal·lar aquesta app.",
+      "uninstall_failed": "Desinstal·lació fallida"
     },
     "todo": {
       "title": "Tasques",

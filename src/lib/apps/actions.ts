@@ -20,13 +20,13 @@ function isMigrationPendingError(msg: string): boolean {
   return msg.includes('does not exist') && (msg.includes('table_prefix') || msg.includes('42703'))
 }
 
-function classifyError(err: unknown): AppActionError {
+function classifyError(err: unknown, operation: 'install' | 'uninstall' = 'install'): AppActionError {
   const msg = err instanceof Error ? err.message : String(err)
   if (isMigrationPendingError(msg)) return { code: 'migration_pending' }
   if (err instanceof InstallerError) {
     return { code: err.code, params: err.params as Record<string, string> | undefined }
   }
-  return { code: 'install_failed' }
+  return { code: operation === 'uninstall' ? 'uninstall_failed' : 'install_failed' }
 }
 
 type InstalledAppRow = Database['public']['Tables']['installed_apps']['Row']
@@ -62,7 +62,7 @@ export async function installAppAction(slug: string): Promise<{ success: true } 
     revalidatePath('/', 'layout')
     return { success: true }
   } catch (err) {
-    const { code, params } = classifyError(err)
+    const { code, params } = classifyError(err, 'install')
     return { errorCode: code, ...(params ? { errorParams: params } : {}) }
   }
 }
@@ -74,7 +74,7 @@ export async function uninstallAppAction(slug: string): Promise<{ success: true 
     revalidatePath('/', 'layout')
     return { success: true }
   } catch (err) {
-    const { code, params } = classifyError(err)
+    const { code, params } = classifyError(err, 'uninstall')
     return { errorCode: code, ...(params ? { errorParams: params } : {}) }
   }
 }

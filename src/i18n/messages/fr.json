@@ -502,7 +502,8 @@
       "prefix_conflict": "Le préfixe de table '{prefix}' est déjà utilisé par l'app '{slug}'",
       "table_prefix_mismatch": "La table '{table}' dans migrations.sql n'utilise pas le préfixe '{prefix}' déclaré dans le manifeste",
       "uninstall_prefix_mismatch": "Le fichier uninstall.sql opère sur '{table}', qui n'appartient pas à cette app (préfixe : '{prefix}')",
-      "migration_pending": "Une migration de base de données est en attente. Exécutez la migration en attente dans l'éditeur SQL de Supabase avant d'installer cette app."
+      "migration_pending": "Une migration de base de données est en attente. Exécutez la migration en attente dans l'éditeur SQL de Supabase avant d'installer cette app.",
+      "uninstall_failed": "Désinstallation échouée"
     },
     "todo": {
       "title": "Tâches",

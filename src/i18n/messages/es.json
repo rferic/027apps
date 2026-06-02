@@ -502,7 +502,8 @@
       "prefix_conflict": "El prefijo de tabla '{prefix}' ya está en uso por la app '{slug}'",
       "table_prefix_mismatch": "La tabla '{table}' en migrations.sql no usa el prefijo '{prefix}' declarado en el manifiesto",
       "uninstall_prefix_mismatch": "El archivo uninstall.sql opera sobre '{table}', que no pertenece a esta app (prefijo: '{prefix}')",
-      "migration_pending": "Hay una migración de base de datos pendiente. Ejecuta la migración pendiente en el editor SQL de Supabase antes de instalar esta app."
+      "migration_pending": "Hay una migración de base de datos pendiente. Ejecuta la migración pendiente en el editor SQL de Supabase antes de instalar esta app.",
+      "uninstall_failed": "Desinstalación fallida"
     },
     "todo": {
       "title": "Tareas",

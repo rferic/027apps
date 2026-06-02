@@ -498,6 +498,7 @@
       "dependency_not_installed": "App \"{dep}\" must be installed first",
       "extension_point_not_found": "App \"{base}\" does not expose extension point \"{point}\"",
       "install_failed": "Installation failed",
+      "uninstall_failed": "Uninstallation failed",
       "uninstall_blocked": "Cannot uninstall: other apps depend on this one",
       "prefix_conflict": "Table prefix '{prefix}' is already in use by app '{slug}'",
       "table_prefix_mismatch": "Table '{table}' in migrations.sql does not use the declared prefix '{prefix}'",

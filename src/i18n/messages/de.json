@@ -502,7 +502,8 @@
       "prefix_conflict": "Das Tabellenpräfix '{prefix}' wird bereits von App '{slug}' verwendet",
       "table_prefix_mismatch": "Tabelle '{table}' in migrations.sql verwendet nicht das im Manifest deklarierte Präfix '{prefix}'",
       "uninstall_prefix_mismatch": "uninstall.sql operiert auf Tabelle '{table}', die nicht zu dieser App gehört (Präfix: '{prefix}')",
-      "migration_pending": "Eine Datenbankmigrierung steht aus. Führe die ausstehende Migration im Supabase SQL-Editor aus, bevor du diese App installierst."
+      "migration_pending": "Eine Datenbankmigrierung steht aus. Führe die ausstehende Migration im Supabase SQL-Editor aus, bevor du diese App installierst.",
+      "uninstall_failed": "Deinstallation fehlgeschlagen"
     },
     "todo": {
       "title": "Aufgaben",

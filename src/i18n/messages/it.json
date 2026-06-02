@@ -502,7 +502,8 @@
       "prefix_conflict": "Il prefisso di tabella '{prefix}' è già in uso dall'app '{slug}'",
       "table_prefix_mismatch": "La tabella '{table}' in migrations.sql non usa il prefisso '{prefix}' dichiarato nel manifesto",
       "uninstall_prefix_mismatch": "Il file uninstall.sql opera sulla tabella '{table}', che non appartiene a questa app (prefisso: '{prefix}')",
-      "migration_pending": "È in attesa una migrazione del database. Esegui la migrazione in attesa nell'editor SQL di Supabase prima di installare questa app."
+      "migration_pending": "È in attesa una migrazione del database. Esegui la migrazione in attesa nell'editor SQL di Supabase prima di installare questa app.",
+      "uninstall_failed": "Disinstallazione fallita"
     },
     "todo": {
       "title": "Attività",
