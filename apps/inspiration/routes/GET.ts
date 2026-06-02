@@ -23,7 +23,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   // Helper: apply filters to an existing query builder (no .select() — caller decides)
   function applyFilters<T>(query: T): T {
-    let q: any = (query as any).eq('group_id', ctx.groupId)
+    let q: any = query as any
 
     if (statusParam) {
       const statuses = statusParam.split(',').map(s => s.trim()).filter(s => VALID_STATUSES.includes(s as typeof VALID_STATUSES[number]))

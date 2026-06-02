@@ -36,7 +36,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .from('inspiration_requests')
     .select('*')
     .eq('id', id)
-    .eq('group_id', ctx.groupId)
     .single()
 
   if (fetchError || !existing) return apiError('NOT_FOUND', 'Request not found', 404)
@@ -84,7 +83,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .from('inspiration_requests')
     .update(updates)
     .eq('id', id)
-    .eq('group_id', ctx.groupId)
     .select('*')
     .single()
 

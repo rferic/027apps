@@ -20,7 +20,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .from('inspiration_requests')
     .select('user_id')
     .eq('id', id)
-    .eq('group_id', ctx.groupId)
     .single()
 
   if (fetchError || !existing) return apiError('NOT_FOUND', 'Request not found', 404)
@@ -36,7 +35,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .from('inspiration_requests')
     .delete()
     .eq('id', id)
-    .eq('group_id', ctx.groupId)
 
   if (error) return apiError('DELETE_ERROR', error.message, 500)
   return apiOk({ deleted: true })

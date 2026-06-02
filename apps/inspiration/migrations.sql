@@ -1,3 +1,7 @@
+-- Migration: remove group_id from inspiration_requests (global ideas, not group-scoped)
+alter table inspiration_requests drop column if exists group_id;
+drop index if exists idx_inspiration_requests_group;
+
 -- ENUM types (idempotent — safe to run multiple times)
 do $$ begin
   create type inspiration_type as enum (
@@ -34,7 +38,6 @@ create table if not exists inspiration_requests (
   type              inspiration_type not null,
   status            inspiration_status not null default 'pending',
   app_slug          text,
-  group_id          uuid not null references public.groups(id) on delete cascade,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );
@@ -42,7 +45,6 @@ create table if not exists inspiration_requests (
 -- Indices para busqueda y filtros
 create index idx_inspiration_requests_status on inspiration_requests(status);
 create index idx_inspiration_requests_type on inspiration_requests(type);
-create index idx_inspiration_requests_group on inspiration_requests(group_id);
 create index idx_inspiration_requests_search on inspiration_requests using gin (to_tsvector('simple', title || ' ' || description));
 
 -- Tabla de votos
@@ -81,36 +83,23 @@ alter table inspiration_requests enable row level security;
 alter table inspiration_votes enable row level security;
 alter table inspiration_comments enable row level security;
 
--- inspiration_requests: SELECT para miembros del grupo
-create policy "Members can view requests in their group"
+-- inspiration_requests: SELECT para cualquier usuario autenticado
+create policy "Members can view all requests"
   on inspiration_requests for select
-  using (
-    exists (
-      select 1 from group_members
-      where group_members.group_id = inspiration_requests.group_id
-        and group_members.user_id = auth.uid()
-    )
-  );
+  using (auth.role() = 'authenticated');
 
--- inspiration_requests: INSERT para cualquier miembro del grupo
-create policy "Members can create requests in their group"
+-- inspiration_requests: INSERT para cualquier usuario autenticado
+create policy "Members can create requests"
   on inspiration_requests for insert
-  with check (
-    exists (
-      select 1 from group_members
-      where group_members.group_id = inspiration_requests.group_id
-        and group_members.user_id = auth.uid()
-    )
-  );
+  with check (auth.role() = 'authenticated');
 
 -- inspiration_requests: UPDATE - admin puede cambiar status, creador puede editar sus campos
-create policy "Admin can update any request in their group"
+create policy "Admin can update any request"
   on inspiration_requests for update
   using (
     exists (
       select 1 from group_members
-      where group_members.group_id = inspiration_requests.group_id
-        and group_members.user_id = auth.uid()
+      where group_members.user_id = auth.uid()
         and group_members.role = 'admin'
     )
   );
@@ -124,69 +113,42 @@ create policy "Creator can delete own requests"
   on inspiration_requests for delete
   using (user_id = auth.uid());
 
-create policy "Admin can delete any request in their group"
+create policy "Admin can delete any request"
   on inspiration_requests for delete
   using (
     exists (
       select 1 from group_members
-      where group_members.group_id = inspiration_requests.group_id
-        and group_members.user_id = auth.uid()
+      where group_members.user_id = auth.uid()
         and group_members.role = 'admin'
     )
   );
 
--- inspiration_votes: SELECT para miembros del grupo (via JOIN con requests)
-create policy "Members can view votes in their group"
+-- inspiration_votes: SELECT para cualquier usuario autenticado
+create policy "Members can view all votes"
   on inspiration_votes for select
-  using (
-    exists (
-      select 1 from inspiration_requests
-        join group_members on group_members.group_id = inspiration_requests.group_id
-      where inspiration_requests.id = inspiration_votes.request_id
-        and group_members.user_id = auth.uid()
-    )
-  );
+  using (auth.role() = 'authenticated');
 
 -- inspiration_votes: INSERT/DELETE para el propio usuario
-create policy "Users can vote on requests in their group"
+create policy "Users can vote on requests"
   on inspiration_votes for insert
   with check (
     user_id = auth.uid()
-    and exists (
-      select 1 from inspiration_requests
-        join group_members on group_members.group_id = inspiration_requests.group_id
-      where inspiration_requests.id = inspiration_votes.request_id
-        and group_members.user_id = auth.uid()
-    )
+    and auth.role() = 'authenticated'
   );
 
 create policy "Users can remove their own votes"
   on inspiration_votes for delete
   using (user_id = auth.uid());
 
--- inspiration_comments: SELECT para miembros del grupo (via JOIN con requests)
-create policy "Members can view comments in their group"
+-- inspiration_comments: SELECT para cualquier usuario autenticado
+create policy "Members can view all comments"
   on inspiration_comments for select
-  using (
-    exists (
-      select 1 from inspiration_requests
-        join group_members on group_members.group_id = inspiration_requests.group_id
-      where inspiration_requests.id = inspiration_comments.request_id
-        and group_members.user_id = auth.uid()
-    )
-  );
+  using (auth.role() = 'authenticated');
 
--- inspiration_comments: INSERT para cualquier miembro del grupo
-create policy "Members can comment on requests in their group"
+-- inspiration_comments: INSERT para cualquier usuario autenticado
+create policy "Members can comment on requests"
   on inspiration_comments for insert
-  with check (
-    exists (
-      select 1 from inspiration_requests
-        join group_members on group_members.group_id = inspiration_requests.group_id
-      where inspiration_requests.id = inspiration_comments.request_id
-        and group_members.user_id = auth.uid()
-    )
-  );
+  with check (auth.role() = 'authenticated');
 
 -- inspiration_comments: UPDATE/DELETE solo para el creador del comentario
 create policy "Users can update their own comments"

@@ -20,12 +20,11 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const adminClient = createAdminClientUntyped()
 
-  // Verify request exists and belongs to group
+  // Verify request exists
   const { data: request } = await adminClient
     .from('inspiration_requests')
     .select('id')
     .eq('id', requestId)
-    .eq('group_id', ctx.groupId)
     .maybeSingle()
 
   if (!request) return apiError('NOT_FOUND', 'Request not found', 404)

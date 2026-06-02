@@ -43,7 +43,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
       description: desc,
       type,
       app_slug: slug,
-      group_id: ctx.groupId,
       status: 'pending',
     })
     .select('*')
