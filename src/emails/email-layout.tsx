@@ -26,7 +26,8 @@ const footerLabels: Record<string, string> = {
 }
 
 export default function EmailLayout({ children, preview, appSlug, appName, appPrimaryColor, locale }: Props) {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://027apps.vercel.app'
+  const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? vercelUrl ?? 'https://027apps.vercel.app'
   const appLogoUrl = `${base}/api/apps/${appSlug}/logo`
   const footer = footerLabels[locale] ?? footerLabels.en
 

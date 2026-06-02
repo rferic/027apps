@@ -73,7 +73,8 @@ async function getUserDisplayName(userId: string): Promise<string> {
 }
 
 function buildRequestUrl(requestId: string): string {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://027apps.vercel.app'
+  const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? vercelUrl ?? 'https://027apps.vercel.app'
   return `${base}/apps/inspiration?request=${requestId}`
 }
 
@@ -96,8 +97,9 @@ export async function notifyNewIdea(
         const { readManifest } = await import('@/lib/apps/manifest')
         const manifest = await readManifest(assignedSlug)
         assignedAppName = manifest.name
-        const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://027apps.vercel.app'
-        assignedAppLogoUrl = `${base}/api/apps/${assignedSlug}/logo`
+        const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null
+        const appUrl = process.env.NEXT_PUBLIC_SITE_URL ?? vercelUrl ?? 'https://027apps.vercel.app'
+        assignedAppLogoUrl = `${appUrl}/api/apps/${assignedSlug}/logo`
       } catch {
         // ignore
       }
@@ -239,8 +241,10 @@ export async function notifyStatusChange(
 
     if (isClosure) {
       const appName = request.app_slug ?? undefined
+      const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null
+      const siteBase = process.env.NEXT_PUBLIC_SITE_URL ?? vercelUrl ?? 'https://027apps.vercel.app'
       const appUrl = request.app_slug
-        ? `${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/apps/${request.app_slug}`
+        ? `${siteBase}/apps/${request.app_slug}`
         : undefined
 
       html = await render(
