@@ -1,4 +1,6 @@
 -- Safe migration: remove group_id + old RLS (idempotent — works on fresh install too)
+-- Force PostgREST schema reload to pick up new table structure
+notify pgrst, 'reload schema';
 do $$ begin
   alter table inspiration_requests drop column if exists group_id;
 exception when undefined_table then null;
