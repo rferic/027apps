@@ -11,8 +11,7 @@ const MAX_LIMIT = 500
 
 export default async function handler(req: Request, ctx: HandlerContext) {
   const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
+  const userId = !(auth instanceof Response) && auth.userId ? auth.userId : undefined
 
   const url = new URL(req.url)
   const statusParam = url.searchParams.get('status')
@@ -48,8 +47,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
       q = q.or(`title.ilike.%${search}%,description.ilike.%${search}%`)
     }
 
-    if (myParam === '1' && !(auth instanceof Response) && auth.userId) {
-      q = q.eq('user_id', auth.userId)
+    if (myParam === '1' && userId) {
+      q = q.eq('user_id', userId)
     }
 
     return q as T
@@ -93,8 +92,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     const [{ data: votes }, { data: comments }, { data: userVotes }] = await Promise.all([
       adminClient.from('inspiration_votes').select('request_id').in('request_id', allIds),
       adminClient.from('inspiration_comments').select('request_id').in('request_id', allIds),
-      auth.userId
-        ? adminClient.from('inspiration_votes').select('request_id').in('request_id', allIds).eq('user_id', auth.userId)
+      userId
+        ? adminClient.from('inspiration_votes').select('request_id').in('request_id', allIds).eq('user_id', userId)
         : Promise.resolve({ data: [] }),
     ])
 
@@ -146,8 +145,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     const [{ data: votes }, { data: comments }, { data: userVotes }] = await Promise.all([
       adminClient.from('inspiration_votes').select('request_id').in('request_id', rowIds),
       adminClient.from('inspiration_comments').select('request_id').in('request_id', rowIds),
-      auth.userId
-        ? adminClient.from('inspiration_votes').select('request_id').in('request_id', rowIds).eq('user_id', auth.userId)
+      userId
+        ? adminClient.from('inspiration_votes').select('request_id').in('request_id', rowIds).eq('user_id', userId)
         : Promise.resolve({ data: [] }),
     ])
 
