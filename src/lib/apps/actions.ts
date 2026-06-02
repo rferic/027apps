@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient, createAdminClientUntyped } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/helpers'
-import { scanApps } from '@/lib/apps/scanner'
+import { scanApps, invalidateSlugsCache } from '@/lib/apps/scanner'
 import { installApp, uninstallApp, InstallerError } from '@/lib/apps/installer'
 import { readManifest } from '@/lib/apps/manifest'
 import type { CombinedApp, InstalledApp } from '@/types/apps'
@@ -58,6 +58,7 @@ export async function getAppsListAction(): Promise<{ apps: CombinedApp[] } | { e
 export async function installAppAction(slug: string): Promise<{ success: true } | { errorCode: string; errorParams?: Record<string, string> }> {
   try {
     await requireAdmin()
+    invalidateSlugsCache()
     await installApp(slug)
     revalidatePath('/', 'layout')
     return { success: true }
@@ -70,6 +71,7 @@ export async function installAppAction(slug: string): Promise<{ success: true } 
 export async function uninstallAppAction(slug: string): Promise<{ success: true } | { errorCode: string; errorParams?: Record<string, string> }> {
   try {
     await requireAdmin()
+    invalidateSlugsCache()
     await uninstallApp(slug)
     revalidatePath('/', 'layout')
     return { success: true }
