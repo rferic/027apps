@@ -147,17 +147,22 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
     expect(body.pagination.total_pages).toBe(0)
   })
 
-  it('returns 401 when unauthenticated', async () => {
+  it('returns data when unauthenticated (public read)', async () => {
     const { authenticate } = await import('@/lib/api/auth')
     vi.mocked(authenticate).mockResolvedValue(
       new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
     )
 
+    mockFrom.mockReturnValueOnce(makeCountChain(1))
+    mockFrom.mockReturnValueOnce(makeChain([sampleRequest]))
+    mockFrom.mockReturnValueOnce(makeChain([]))
+    mockFrom.mockReturnValueOnce(makeChain([]))
+
     const { default: handler } = await import('../../apps/inspiration/routes/GET')
     const req = makeRequest('/api/v1/test/apps/inspiration')
     const res = await handler(req, Ctx)
 
-    expect(res.status).toBe(401)
+    expect(res.status).toBe(200)
   })
 
   it('filters by status and type', async () => {
