@@ -33,8 +33,8 @@ export class InstallerError extends Error {
 async function tryImportInstall(slug: string): Promise<InstallModule | null> {
   try {
     if (!hasAppModule(slug, 'install')) return null
-    const mod = await loadAppModule(slug, 'install')
-    return { install: (ctx: AppInstallContext) => mod.install(ctx) }
+    const install = await loadAppModule(slug, 'install')
+    return { install: (ctx: AppInstallContext) => install(ctx) }
   } catch {
     return null
   }
@@ -43,8 +43,8 @@ async function tryImportInstall(slug: string): Promise<InstallModule | null> {
 async function tryImportUninstall(slug: string): Promise<UninstallModule | null> {
   try {
     if (!hasAppModule(slug, 'uninstall')) return null
-    const mod = await loadAppModule(slug, 'uninstall')
-    return { uninstall: (ctx: AppInstallContext) => mod.uninstall(ctx) }
+    const uninstall = await loadAppModule(slug, 'uninstall')
+    return { uninstall: (ctx: AppInstallContext) => uninstall(ctx) }
   } catch {
     return null
   }
