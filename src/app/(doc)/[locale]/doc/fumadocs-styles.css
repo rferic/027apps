@@ -1,41 +1,138 @@
-/* Import Fumadocs CSS into a named layer declared before Tailwind's layers in globals.css.
-   This ensures Tailwind utilities always beat Fumadocs utilities when both are loaded
-   in the browser simultaneously (client-side navigation from /doc to /admin). */
+/* Import Fumadocs CSS into a named layer declared before Tailwind's layers in globals.css */
 @import 'fumadocs-ui/style.css' layer(fumadocs-ui);
 
-/* ── Code block styling ── */
-/* Inline code */
-.fd-content code:not(pre code) {
-  background: #f1f5f9;
-  color: #9B1C1C;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.3rem;
-  border: 1px solid #e2e8f0;
+/* ── Theme Variables ── */
+:root {
+  --color-fd-primary: oklch(0.36 0.148 18.5);
+  --color-fd-primary-foreground: hsl(0, 0%, 98%);
+  --color-fd-ring: oklch(0.36 0.148 18.5);
+  --fd-bg: #ffffff;
+  --fd-card-bg: #f8fafc;
+  --fd-border: #e2e8f0;
+  --fd-text: #0f172a;
+  --fd-text-secondary: #64748b;
+  --fd-accent: #9B1C1C;
 }
 
-/* Code blocks (pre > code) */
-.fd-content pre {
-  background: #0f172a !important;
-  border: 1px solid #1e293b;
-  border-radius: 0.5rem !important;
-  padding: 1.25rem !important;
+.dark {
+  --fd-bg: #0f172a;
+  --fd-card-bg: #1e293b;
+  --fd-border: #334155;
+  --fd-text: #f1f5f9;
+  --fd-text-secondary: #94a3b8;
+}
+
+/* ── Typography ── */
+/* Body */
+.fd-content {
+  color: var(--fd-text);
+  line-height: 1.75;
+  font-size: 0.9375rem;
+}
+
+/* Headings */
+.fd-content h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.fd-content h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1e293b;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.fd-content h3 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: #334155;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ── Links ── */
+.fd-content a {
+  color: #9B1C1C;
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.fd-content a:hover {
+  border-bottom-color: #9B1C1C;
+}
+
+/* ── Paragraphs ── */
+.fd-content p {
+  margin-bottom: 1rem;
+  line-height: 1.75;
+}
+
+/* ── Inline code ── */
+.fd-content code:not(pre code) {
+  background: linear-gradient(135deg, #fef2f2, #fff1f2);
+  color: #9B1C1C;
   font-size: 0.8125rem;
-  line-height: 1.6;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  font-weight: 600;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid #fecaca;
+}
+
+.dark .fd-content code:not(pre code) {
+  background: linear-gradient(135deg, #1e293b, #1a1a2e);
+  color: #fca5a5;
+  border-color: #450a0a;
+}
+
+/* ── Code blocks ── */
+.fd-content pre {
+  background: linear-gradient(135deg, #0f172a 0%, #1a1a2e 100%) !important;
+  border: 1px solid #1e293b;
+  border-radius: 0.75rem !important;
+  padding: 1.5rem !important;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  position: relative;
+  overflow-x: auto;
+}
+
+/* Add a subtle header bar to code blocks */
+.fd-content pre::before {
+  content: '';
+  display: block;
+  height: 8px;
+  width: 100%;
+  background: linear-gradient(90deg, #9B1C1C, #c0392b);
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 0.75rem 0.75rem 0 0;
+  opacity: 0.6;
 }
 
 .fd-content pre code {
   color: #e2e8f0;
-  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, monospace;
-  background: transparent;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  background: transparent !important;
   border: none;
   padding: 0;
   font-weight: 400;
+  font-size: 0.8125rem;
 }
 
-/* Syntax highlighting overrides for Fumadocs default theme */
+/* Syntax highlighting */
 .fd-content pre .token.keyword { color: #c084fc; }
 .fd-content pre .token.string { color: #34d399; }
 .fd-content pre .token.number { color: #fbbf24; }
@@ -47,32 +144,55 @@
 .fd-content pre .token.property { color: #a78bfa; }
 .fd-content pre .token.constant { color: #fb923c; }
 
-/* ── Table styling ── */
+/* ── Tables ── */
 .fd-content table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
   font-size: 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin: 1.25rem 0;
 }
 
 .fd-content table th {
   background: #f8fafc;
   font-weight: 600;
   text-align: left;
-  padding: 0.625rem 0.75rem;
-  border-bottom: 2px solid #e2e8f0;
-  font-size: 0.8125rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: #64748b;
 }
 
 .fd-content table td {
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 1rem;
   border-bottom: 1px solid #f1f5f9;
 }
 
-/* ── App icons in sidebar ── */
-/* Inspiration: amber dot + lightbulb */
+.fd-content table tr:last-child td {
+  border-bottom: none;
+}
+
+.fd-content table tr:hover td {
+  background: #f8fafc;
+}
+
+/* ── Blockquotes ── */
+.fd-content blockquote {
+  border-left: 3px solid #9B1C1C;
+  background: #fef2f2;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: #475569;
+  font-size: 0.875rem;
+}
+
+/* ── App sidebar dots ── */
 aside a[href*='/apps/inspiration']::before {
   content: '';
   display: inline-block;
@@ -84,7 +204,6 @@ aside a[href*='/apps/inspiration']::before {
   flex-shrink: 0;
 }
 
-/* To-Do: indigo dot + checkmark */
 aside a[href*='/apps/todo']::before {
   content: '';
   display: inline-block;
@@ -94,4 +213,46 @@ aside a[href*='/apps/todo']::before {
   background: #4F46E5;
   margin-right: 8px;
   flex-shrink: 0;
+}
+
+/* ── Fumadocs Cards ── */
+.fd-content .fd-card-group {
+  gap: 12px !important;
+}
+
+.fd-content .fd-card {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.625rem !important;
+  padding: 1rem 1.25rem !important;
+  transition: all 0.15s ease !important;
+  background: #ffffff !important;
+}
+
+.fd-content .fd-card:hover {
+  border-color: #9B1C1C !important;
+  box-shadow: 0 2px 12px rgba(155, 28, 28, 0.08) !important;
+}
+
+.fd-content .fd-card p {
+  color: #64748b !important;
+  font-size: 0.8125rem !important;
+  margin-top: 0.25rem !important;
+}
+
+/* ── Sidebar customization ── */
+[data-fd-layout="docs"] [data-fd-toc] {
+  border-left: 1px solid #f1f5f9;
+}
+
+/* ── Nav bar ── */
+[data-fd-layout="docs"] [data-fd-nav] {
+  border-bottom: 1px solid #f1f5f9;
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.9);
+}
+
+/* ── Cursor ── */
+button:not([disabled]),
+[role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
 }
