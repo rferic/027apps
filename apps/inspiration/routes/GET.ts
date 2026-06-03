@@ -37,57 +37,23 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     return q
   }
 
-  // 1. Get total count
+  // 1. Get total count (no head:true — unreliable with PostgREST schema cache)
   const countRes = await applyFilters(
-    adminClient.from('inspiration_requests').select('*', { count: 'exact', head: true })
+    adminClient.from('inspiration_requests').select('id', { count: 'exact' })
   )
-  const { count: total, error: countError } = await countRes
-
-  // Count query failed — treat as 0, don't block
-  const effectiveTotal = (countError || !total) ? 0 : total
-  const totalPages = effectiveTotal > 0 ? Math.ceil(effectiveTotal / limit) : 0
-
-  if (!effectiveTotal) {
-    // Double-check: maybe the table is empty
-    const { data: verifyRows, error: verifyErr } = await adminClient
-      .from('inspiration_requests')
-      .select('id')
-      .limit(1)
-    if (verifyErr) return apiError('QUERY_ERROR', `count_failed:${countError?.message} verify_failed:${verifyErr.message}`, 500)
-    if (!verifyRows || verifyRows.length === 0) {
-      return apiOk({
-        data: [],
-        pagination: { page, limit, total: 0, total_pages: 0 },
-      })
-    }
-    // Count was 0 but rows exist — recount the hard way
-    const { data: allRows } = await adminClient.from('inspiration_requests').select('id')
-    const realTotal = allRows?.length ?? 0
-    if (realTotal === 0) {
-      return apiOk({
-        data: [],
-        pagination: { page, limit, total: 0, total_pages: 0 },
-      })
-    }
-    const offset2 = (page - 1) * limit
-    const { data: rows2, error: dataErr2 } = await applyFilters(
-      adminClient.from('inspiration_requests').select('*')
-    )
-    if (dataErr2) return apiError('QUERY_ERROR', dataErr2.message, 500)
-    if (!rows2 || rows2.length === 0) {
-      return apiOk({
-        data: [],
-        pagination: { page, limit, total: realTotal, total_pages: Math.ceil(realTotal / limit) },
-      })
-    }
-    const sorted2 = [...rows2].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    if (sort === 'oldest') sorted2.reverse()
-    const sliced2 = sorted2.slice(offset2, offset2 + limit)
+  const total = countRes.count ?? 0
+  const countError = countRes.error
+  if (countError) {
+    return apiError('QUERY_ERROR', `Count failed: ${countError.message}`, 500)
+  }
+  if (total === 0) {
     return apiOk({
-      data: sliced2,
-      pagination: { page, limit, total: realTotal, total_pages: Math.ceil(realTotal / limit) },
+      data: [],
+      pagination: { page, limit, total: 0, total_pages: 0 },
     })
   }
+
+  const totalPages = Math.ceil(total / limit)
 
   // 2. Fetch paginated data
   let dataQuery = applyFilters(adminClient.from('inspiration_requests').select('*'))
@@ -103,17 +69,21 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   if (!rows || rows.length === 0) {
     return apiOk({
       data: [],
-      pagination: { page, limit, total: effectiveTotal, total_pages: totalPages },
+      pagination: { page, limit, total, total_pages: totalPages },
     })
   }
 
-  // 3. Enrich with vote/comment counts
+  // 3. Enrich with vote/comment counts + creator info
   const allIds = rows.map((r: Record<string, unknown>) => r.id as string)
-  const [votesRes, commentsRes, userVotesRes] = await Promise.all([
+  const allUserIds = [...new Set(rows.map((r: Record<string, unknown>) => r.user_id as string))]
+  const [votesRes, commentsRes, userVotesRes, profilesRes] = await Promise.all([
     adminClient.from('inspiration_votes').select('request_id').in('request_id', allIds),
     adminClient.from('inspiration_comments').select('request_id').in('request_id', allIds),
     ctx.userId
       ? adminClient.from('inspiration_votes').select('request_id').in('request_id', allIds).eq('user_id', ctx.userId)
+      : Promise.resolve({ data: [] }),
+    allUserIds.length > 0
+      ? adminClient.from('profiles').select('id, display_name, avatar_url').in('id', allUserIds)
       : Promise.resolve({ data: [] }),
   ])
 
@@ -123,16 +93,23 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   commentsRes.data?.forEach((c: any) => commentCounts.set(c.request_id, (commentCounts.get(c.request_id) || 0) + 1))
   const userVoteSet = new Set<string>()
   userVotesRes.data?.forEach((v: any) => userVoteSet.add(v.request_id))
+  const profileMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]))
 
-  const enriched = rows.map((r: Record<string, unknown>) => ({
-    ...r,
-    vote_count: voteCounts.get(r.id as string) || 0,
-    comment_count: commentCounts.get(r.id as string) || 0,
-    user_has_voted: userVoteSet.has(r.id as string),
-  }))
+  const enriched = rows.map((r: Record<string, unknown>) => {
+    const profile = profileMap.get(r.user_id as string)
+    return {
+      ...r,
+      vote_count: voteCounts.get(r.id as string) || 0,
+      comment_count: commentCounts.get(r.id as string) || 0,
+      user_has_voted: userVoteSet.has(r.id as string),
+      creator: profile
+        ? { display_name: profile.display_name, avatar_url: profile.avatar_url }
+        : null,
+    }
+  })
 
   return apiOk({
     data: enriched,
-    pagination: { page, limit, total: effectiveTotal, total_pages: totalPages },
+    pagination: { page, limit, total, total_pages: totalPages },
   })
 }

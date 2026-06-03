@@ -21,7 +21,13 @@
     "status_label": "Status",
     "all_types": "All types",
     "all_statuses": "All statuses",
-    "my_ideas": "My ideas"
+    "my_ideas": "My ideas",
+    "apply": "Apply filters",
+    "title": "Filters"
+  },
+  "pagination": {
+    "prev": "Prev",
+    "next": "Next"
   },
   "types": {
     "bug": "Bug",

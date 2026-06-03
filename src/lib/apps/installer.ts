@@ -147,6 +147,13 @@ export async function installApp(slug: string): Promise<void> {
         console.error(`[installer] grant failed for "${slug}": ${grantError.message}`)
       }
     }
+
+    // Force PostgREST schema reload so it picks up the new tables
+    try {
+      await adminClient.rpc('exec_sql', { sql: "notify pgrst, 'reload schema';" })
+    } catch (e) {
+      console.error(`[installer] schema reload failed for "${slug}":`, e)
+    }
   }
 
   const ctx: AppInstallContext = { supabase: adminClient, manifest, slug }

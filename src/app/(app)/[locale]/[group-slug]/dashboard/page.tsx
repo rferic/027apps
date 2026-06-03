@@ -133,6 +133,11 @@ interface Props {
   params: Promise<{ locale: string; 'group-slug': string }>
 }
 
+async function AppInstalledWidgetAsync({ locale, groupId, groupSlug }: { locale: string; groupId: string; groupSlug: string }) {
+  const apps = await loadAppWidgets(locale, groupId)
+  return <AppInstalledWidget apps={apps} locale={locale} groupSlug={groupSlug} />
+}
+
 export default async function DashboardPage({ params }: Props) {
   const { locale, 'group-slug': groupSlug } = await params
   setRequestLocale(locale)
@@ -144,11 +149,11 @@ export default async function DashboardPage({ params }: Props) {
   const groupCtx = await resolveGroupContext(groupSlug, user.id)
   if (!groupCtx) redirect(`/${locale}/`)
 
-  const apps = await loadAppWidgets(locale, groupCtx.id)
-
   return (
     <main className="p-6 max-w-5xl mx-auto">
-      <AppInstalledWidget apps={apps} locale={locale} groupSlug={groupSlug} />
+      <Suspense fallback={<DashboardSkeleton />}>
+        <AppInstalledWidgetAsync locale={locale} groupId={groupCtx.id} groupSlug={groupSlug} />
+      </Suspense>
       <Suspense fallback={<DashboardSkeleton />}>
         <WidgetGrid locale={locale} groupId={groupCtx.id} />
       </Suspense>

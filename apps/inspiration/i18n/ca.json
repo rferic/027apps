@@ -14,7 +14,9 @@
     "status_label": "Estat",
     "all_types": "Tots els tipus",
     "all_statuses": "Tots els estats",
-    "my_ideas": "Les meves idees"
+    "my_ideas": "Les meves idees",
+    "apply": "Aplicar filtres",
+    "title": "Filtres"
   },
   "types": {
     "bug": "Error",
@@ -186,5 +188,9 @@
     "h_ago": "fa {h}h",
     "d_ago": "fa {d}d",
     "w_ago": "fa {w} set."
+  },
+  "pagination": {
+    "prev": "Anterior",
+    "next": "Següent"
   }
 }

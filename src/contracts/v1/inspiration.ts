@@ -26,7 +26,8 @@ const InspirationRequestSchema = z.object({
   type: RequestTypeEnum,
   status: RequestStatusEnum,
   app_slug: z.string().nullable(),
-  group_id: z.string().uuid(),
+  // group_id was removed from schema (global ideas, not scoped to a group)
+  // group_id: z.string().uuid(),
   created_at: z.string(),
   updated_at: z.string(),
   vote_count: z.number().int().min(0),

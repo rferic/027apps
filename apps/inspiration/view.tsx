@@ -1,15 +1,12 @@
-// TODO i18n: TASK-95 — All user-facing strings are hardcoded in English.
-// Replace with useTranslations('apps.inspiration') once translations are defined.
-
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, type ComponentType, type KeyboardEvent } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
   Lightbulb, Search, Bug, Sparkles, AppWindow, Puzzle, MoreHorizontal,
-  ArrowUp, MessageSquare, Plus, X, Loader2, ChevronDown,
-  CheckCircle2, Flame, Clock, User,
+  Heart, MessageSquare, Plus, X, Loader2, ChevronDown, ChevronUp,
+  CheckCircle2, Flame, Clock, User, SlidersHorizontal, ExternalLink,
 } from 'lucide-react'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
@@ -33,6 +30,11 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+interface Creator {
+  display_name: string | null
+  avatar_url: string | null
+}
+
 interface RequestItem {
   id: string
   title: string
@@ -45,6 +47,7 @@ interface RequestItem {
   vote_count: number
   comment_count: number
   user_has_voted: boolean
+  creator: Creator | null
 }
 
 interface PaginationInfo {
@@ -77,7 +80,7 @@ interface AppInfo {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; color: string }> = {
+const TYPE_CONFIG: Record<string, { icon: ComponentType<{ size?: number; className?: string }>; color: string }> = {
   bug: { icon: Bug, color: '#EF4444' },
   improvement: { icon: Sparkles, color: '#F59E0B' },
   new_app: { icon: AppWindow, color: '#8B5CF6' },
@@ -119,13 +122,15 @@ function formatTimeAgo(dateStr: string, t: any): string {
   if (days < 7) return t('time.d_ago', { d: days })
   const weeks = Math.floor(days / 7)
   if (weeks < 4) return t('time.w_ago', { w: weeks })
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const locale = typeof window !== 'undefined' ? window.navigator.language : 'en'
+  return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
 }
 
 function formatDateFull(dateStr: string): string {
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return ''
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  const locale = typeof window !== 'undefined' ? window.navigator.language : 'en'
+  return d.toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
 function getTypeConfig(type: string) {
@@ -189,7 +194,7 @@ function RequestCard({
   newCommentText: string
   onNewCommentChange: (v: string) => void
   onNewCommentSubmit: () => void
-  onNewCommentKeyDown: (e: React.KeyboardEvent) => void
+  onNewCommentKeyDown: (e: KeyboardEvent) => void
   submittingComment: boolean
   commentsError: boolean
   onRetryComments: () => void
@@ -203,10 +208,10 @@ function RequestCard({
 
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-100 shadow-xs transition-shadow ${
-        isExpanded ? 'shadow-md border-slate-200' : 'hover:shadow-sm cursor-pointer'
+      className={`bg-white rounded-xl border border-slate-100 shadow-xs transition-shadow cursor-pointer ${
+        isExpanded ? 'shadow-md border-slate-200' : 'hover:shadow-sm'
       }`}
-      onClick={isExpanded ? undefined : onToggleExpand}
+      onClick={onToggleExpand}
     >
       {/* Card header */}
       <div className="p-5">
@@ -229,10 +234,19 @@ function RequestCard({
         <h3 className="text-sm font-semibold text-slate-800 mb-1.5">{item.title}</h3>
         <p className="text-sm text-slate-500 line-clamp-2 whitespace-pre-line">{item.description}</p>
 
-        <div className="flex items-center gap-4 mt-3 text-xs text-slate-400">
+        <div className="flex items-center gap-3 mt-3 text-xs text-slate-400 flex-wrap">
+          {item.creator?.display_name && (
+            <span className="inline-flex items-center gap-1" title="Created by">
+              <User size={12} />
+              <span className="truncate max-w-[100px]">{item.creator.display_name}</span>
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1" title="Created">
+            {formatTimeAgo(item.created_at, t)}
+          </span>
           {appName && (
-            <span className="inline-flex items-center gap-1">
-              <AppWindow size={12} />
+            <span className="inline-flex items-center gap-1" title="App">
+              <ExternalLink size={12} />
               {appName}
             </span>
           )}
@@ -242,24 +256,30 @@ function RequestCard({
             className={`inline-flex items-center gap-1 font-medium transition-colors cursor-pointer ${
               item.user_has_voted ? 'text-red-500' : 'text-slate-400 hover:text-red-400'
             }`}
+            title={item.user_has_voted ? 'Remove support' : 'Support this idea'}
           >
-            <ArrowUp size={14} className={item.user_has_voted ? 'fill-current' : ''} />
-            {item.vote_count}
+            <Heart size={14} className={item.user_has_voted ? 'fill-current' : ''} />
+            <span>{item.vote_count}</span>
           </button>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1" title="Comments">
             <MessageSquare size={12} />
             {item.comment_count}
-          </span>
-          <span className="inline-flex items-center gap-1 ml-auto">
-            <User size={12} />
-            {formatTimeAgo(item.created_at, t)}
           </span>
         </div>
       </div>
 
       {/* Expanded detail */}
       {isExpanded && (
-        <div className="border-t border-slate-100 px-5 py-4 space-y-4">
+        <div className="border-t border-slate-100 px-5 py-4 space-y-4 relative">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onToggleExpand() }}
+            className="absolute top-3 right-3 flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+            title="Collapse"
+          >
+            <ChevronUp size={14} />
+            <X size={12} />
+          </button>
           {/* Full description */}
           <div>
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('card.description')}</p>
@@ -292,7 +312,7 @@ function RequestCard({
                 {comments.map(c => (
                   <div key={c.id} className="flex gap-3">
                     <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center shrink-0 text-xs font-medium text-violet-600">
-                      {c.user?.display_name?.[0]?.toUpperCase() ?? '?'}
+                      {c.user?.display_name?.[0]?.toUpperCase() ?? c.user_id?.[0]?.toUpperCase() ?? 'U'}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -359,9 +379,9 @@ function ChangelogItem({ item, apps }: { item: RequestItem; apps: AppInfo[] }) {
   const appName = item.app_slug ? (apps.find(a => a.slug === item.app_slug)?.name ?? item.app_slug) : null
 
   return (
-    <div className="flex items-start gap-3 py-3 px-1">
+    <div className="bg-white rounded-xl border border-slate-100 shadow-xs p-4 flex items-start gap-3">
       <div className="shrink-0 mt-0.5">
-        <CheckCircle2 size={16} style={{ color: 'var(--app-primary)' }} />
+        <CheckCircle2 size={18} style={{ color: 'var(--app-primary)' }} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap mb-0.5">
@@ -377,8 +397,14 @@ function ChangelogItem({ item, apps }: { item: RequestItem; apps: AppInfo[] }) {
           )}
           <span className="text-xs text-slate-400">{formatDateFull(item.created_at)}</span>
         </div>
-        <p className="text-sm font-medium text-slate-700">{item.title}</p>
-        <p className="text-sm text-slate-500 mt-0.5 line-clamp-2">{item.description}</p>
+        <p className="text-sm font-medium text-slate-700 mt-1">{item.title}</p>
+        <p className="text-sm text-slate-500 mt-0.5 line-clamp-2 whitespace-pre-line">{item.description}</p>
+        {item.creator?.display_name && (
+          <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+            <User size={12} />
+            {item.creator.display_name}
+          </p>
+        )}
       </div>
     </div>
   )
@@ -408,6 +434,7 @@ export default function InspirationView() {
   const viewTab = searchParams.get('tab') ?? 'active'
   const myIdeas = searchParams.get('my') === '1'
 
+  const [refreshCounter, setRefreshCounter] = useState(0)
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const abortRef = useRef<AbortController | null>(null)
@@ -425,6 +452,7 @@ export default function InspirationView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [counts, setCounts] = useState({ total: 0, pending: 0, completed: 0 })
   const [apps, setApps] = useState<AppInfo[]>([])
@@ -442,36 +470,6 @@ export default function InspirationView() {
   // Vote loading tracking
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set())
 
-  // ─── Build API params ────────────────────────────────────────────────────
-
-  const buildApiParams = useCallback((overrides?: Record<string, string>) => {
-    const params = new URLSearchParams()
-    params.set('sort', sortBy)
-    params.set('page', '1')
-    params.set('limit', '20')
-
-    if (viewTab === 'changelog') {
-      params.set('status', 'completed')
-    } else if (overrides?.status) {
-      params.set('status', overrides.status)
-    } else if (statusFilter !== STATUS_ALL) {
-      params.set('status', statusFilter)
-    }
-
-    if (overrides?.type) {
-      params.set('type', overrides.type)
-    } else if (typeFilter.length > 0 && !typeFilter.includes(TYPE_ALL)) {
-      params.set('type', typeFilter.join(','))
-    }
-
-    if (myIdeas) params.set('my', '1')
-
-    const s = overrides?.search ?? searchQuery
-    if (s) params.set('search', s)
-
-    return params.toString()
-  }, [sortBy, viewTab, statusFilter, typeFilter, searchQuery, myIdeas])
-
   // ─── Fetch data ──────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -488,8 +486,33 @@ export default function InspirationView() {
       setError(false)
 
       try {
-        // Main fetch
-        const apiParams = buildApiParams()
+        // Build API params inside the effect to break the reference-equality loop
+        const params = new URLSearchParams()
+        params.set('sort', searchParams.get('sort') ?? 'newest')
+        params.set('page', searchParams.get('page') || '1')
+        params.set('limit', '20')
+
+        const tab = searchParams.get('tab') ?? 'active'
+        const typeRaw = searchParams.get('type') ?? ''
+        const statusRaw = searchParams.get('status') ?? STATUS_ALL
+        const myRaw = searchParams.get('my')
+        const searchRaw = searchParams.get('search') ?? ''
+
+        if (tab === 'changelog') {
+          params.set('status', 'completed')
+        } else if (statusRaw !== STATUS_ALL) {
+          params.set('status', statusRaw)
+        }
+
+        if (typeRaw && typeRaw !== TYPE_ALL) {
+          params.set('type', typeRaw)
+        }
+
+        if (myRaw === '1') params.set('my', '1')
+        if (searchRaw) params.set('search', searchRaw)
+
+        const apiParams = params.toString()
+
         const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/inspiration?${apiParams}`, {
           signal: abort.signal,
         })
@@ -511,7 +534,6 @@ export default function InspirationView() {
           const countData = await countRes.json()
           const total = countData.pagination?.total ?? 0
 
-          // Pending count
           const pendingRes = await fetchWithAuth(
             `/api/v1/${groupSlug}/apps/inspiration?status=${ACTIVE_STATUSES}&limit=1&page=1`,
             { signal: abort.signal },
@@ -522,7 +544,6 @@ export default function InspirationView() {
             pending = pData.pagination?.total ?? 0
           }
 
-          // Completed count
           const completedRes = await fetchWithAuth(
             `/api/v1/${groupSlug}/apps/inspiration?status=completed&limit=1&page=1`,
             { signal: abort.signal },
@@ -544,7 +565,7 @@ export default function InspirationView() {
 
     load()
     return () => { cancelled = true; abort.abort() }
-  }, [groupSlug, buildApiParams])
+  }, [groupSlug, searchParams, refreshCounter])
 
   // Fetch installed apps for app_slug display
   useEffect(() => {
@@ -614,19 +635,9 @@ export default function InspirationView() {
     updateUrl({ tab })
   }, [updateUrl])
 
-  const handleLoadMore = useCallback(async () => {
-    const nextPage = pagination.page + 1
-    const params = new URLSearchParams(buildApiParams())
-    params.set('page', String(nextPage))
-
-    try {
-      const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/inspiration?${params.toString()}`)
-      if (!res.ok) return
-      const { data } = await res.json()
-      setRequests(prev => [...prev, ...(data ?? [])])
-      setPagination(prev => ({ ...prev, page: nextPage }))
-    } catch { /* ignore */ }
-  }, [groupSlug, buildApiParams, pagination.page])
+  const handlePageChange = useCallback((newPage: number) => {
+    updateUrl({ page: String(newPage) })
+  }, [updateUrl])
 
   // ─── Vote ────────────────────────────────────────────────────────────────
 
@@ -773,7 +784,7 @@ export default function InspirationView() {
     setSubmittingComment(false)
   }, [expandedId, newCommentText, submittingComment, groupSlug])
 
-  const handleCommentKeyDown = useCallback((e: React.KeyboardEvent) => {
+  const handleCommentKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmitComment()
@@ -810,10 +821,11 @@ export default function InspirationView() {
 
   // ─── Derived state ───────────────────────────────────────────────────────
 
-  const showLoadMore = pagination.page < pagination.total_pages
-  const viewFrom = requests.length > 0 ? ((pagination.page - 1) * pagination.limit + 1) : 0
+  const currentPage = parseInt(searchParams.get('page') || '1', 10)
+  const viewFrom = requests.length > 0 ? ((currentPage - 1) * pagination.limit + 1) : 0
   const viewTo = Math.min(viewFrom + requests.length - 1, pagination.total)
   const isChangelog = viewTab === 'changelog'
+  const totalPages = pagination.total_pages
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
@@ -855,9 +867,9 @@ export default function InspirationView() {
       {/* ── Filters ────────────────────────────────────────────────────── */}
       {!isChangelog && (
         <div className="space-y-4 mb-6">
-          {/* Search + Sort */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative flex-1 max-w-sm w-full sm:w-auto">
+          {/* Search (always visible) */}
+          <div className="flex items-stretch gap-2">
+            <div className="relative flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
@@ -876,88 +888,254 @@ export default function InspirationView() {
                 </button>
               )}
             </div>
+            {/* Mobile filter toggle */}
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters(true)}
+              className="sm:hidden inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+            >
+              <SlidersHorizontal size={16} />
+              {t('filters.title')}
+            </button>
+          </div>
 
+          {/* Desktop filters (hidden on mobile) */}
+          <div className="hidden sm:block space-y-4">
             {/* Sort dropdown */}
-            <div className="relative w-full sm:w-auto">
+            <div className="w-full sm:w-auto">
               <select
                 value={sortBy}
                 onChange={(e) => handleSortChange(e.target.value)}
-                className="appearance-none w-full sm:w-auto pl-3 pr-8 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 cursor-pointer transition-colors"
+                className="w-full sm:w-auto px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 cursor-pointer transition-colors"
               >
                 {SORT_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
-          </div>
 
-          {/* Type chips */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {[{ value: TYPE_ALL, label: t('card.all') }, ...Object.entries(TYPE_CONFIG).map(([k, v]) => ({ value: k, label: t(`types.${k}` as never), color: v.color }))].map(chip => {
-              const isActive = typeFilter.includes(chip.value) || (chip.value === TYPE_ALL && typeFilter.includes(TYPE_ALL))
-              return (
-                <button
-                  key={chip.value}
-                  type="button"
-                  onClick={() => handleTypeToggle(chip.value)}
-                  className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
-                    isActive
-                      ? 'text-white'
-                      : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
-                  }`}
-                  style={isActive ? { backgroundColor: chip.value === TYPE_ALL ? '#6B7280' : (chip as { color?: string }).color ?? '#6B7280' } : undefined}
-                >
-                  {chip.label}
-                </button>
-              )
-            })}
-          </div>
+            {/* Type chips */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[{ value: TYPE_ALL, label: t('card.all') }, ...Object.entries(TYPE_CONFIG).map(([k, v]) => ({ value: k, label: t(`types.${k}` as never), icon: v.icon, color: v.color }))].map((chip: { value: string; label: string; icon?: ComponentType<{ size?: number; className?: string }>; color?: string }) => {
+                const isActive = typeFilter.includes(chip.value) || (chip.value === TYPE_ALL && typeFilter.includes(TYPE_ALL))
+                const TypeIcon = chip.icon
+                return (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    onClick={() => handleTypeToggle(chip.value)}
+                    className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
+                      isActive
+                        ? 'text-white'
+                        : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
+                    }`}
+                    style={isActive ? { backgroundColor: chip.value === TYPE_ALL ? '#6B7280' : chip.color ?? '#6B7280' } : undefined}
+                  >
+                    {TypeIcon && <TypeIcon size={12} />}
+                    {chip.label}
+                  </button>
+                )
+              })}
+            </div>
 
-          {/* Status chips */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Status chips */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handleStatusChange(STATUS_ALL)}
+                className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
+                  statusFilter === STATUS_ALL
+                    ? 'text-white'
+                    : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
+                }`}
+                style={statusFilter === STATUS_ALL ? { backgroundColor: '#6B7280' } : undefined}
+              >
+                {t('card.all')}
+              </button>
+              {['pending', 'reviewing', 'approved', 'in_progress', 'completed'].map(st => {
+                const cfg = getStatusConfig(st)
+                const isActive = statusFilter === st
+                return (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => handleStatusChange(isActive ? STATUS_ALL : st)}
+                    className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
+                      isActive ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
+                    }`}
+                    style={isActive ? { backgroundColor: cfg.color } : undefined}
+                  >
+                    {t(`statuses.${st}` as never)}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* My ideas toggle */}
             <button
               type="button"
-              onClick={() => handleStatusChange(STATUS_ALL)}
-              className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
-                statusFilter === STATUS_ALL
-                  ? 'text-white'
-                  : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
+              onClick={handleMyIdeasToggle}
+              className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full cursor-pointer transition-colors ${
+                myIdeas ? 'text-white bg-violet-600' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
               }`}
-              style={statusFilter === STATUS_ALL ? { backgroundColor: '#6B7280' } : undefined}
             >
-              {t('card.all')}
+              <User size={14} />
+              {t('filters.my_ideas')}
             </button>
-            {['pending', 'reviewing', 'approved', 'in_progress', 'completed'].map(st => {
-              const cfg = getStatusConfig(st)
-              const isActive = statusFilter === st
-              return (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => handleStatusChange(isActive ? STATUS_ALL : st)}
-                  className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
-                    isActive ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
-                  }`}
-                  style={isActive ? { backgroundColor: cfg.color } : undefined}
-                >
-                  {t(`statuses.${st}` as never)}
-                </button>
-              )
-            })}
           </div>
 
-          {/* My ideas toggle */}
-          <button
-            type="button"
-            onClick={handleMyIdeasToggle}
-            className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full cursor-pointer transition-colors ${
-              myIdeas ? 'text-white bg-violet-600' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
-            }`}
+          {/* Active filter pills on mobile */}
+          <div className="sm:hidden flex items-center gap-1.5 flex-wrap">
+            {statusFilter !== STATUS_ALL && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                {t(`statuses.${statusFilter}` as never)}
+                <button type="button" onClick={() => handleStatusChange(STATUS_ALL)} className="cursor-pointer"><X size={12} /></button>
+              </span>
+            )}
+            {typeFilter.filter(t => t !== TYPE_ALL).map(type => {
+              const cfg = getTypeConfig(type)
+              const TypeIcon = cfg.icon
+              return (
+                <span key={type} className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: cfg.color + '18', color: cfg.color }}>
+                  {TypeIcon && <TypeIcon size={12} />}
+                  {t(`types.${type}` as never)}
+                  <button type="button" onClick={() => handleTypeToggle(type)} className="cursor-pointer opacity-60 hover:opacity-100"><X size={12} /></button>
+                </span>
+              )
+            })}
+            {myIdeas && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-violet-100 text-violet-600">
+                <User size={12} />
+                {t('filters.my_ideas')}
+                <button type="button" onClick={handleMyIdeasToggle} className="cursor-pointer"><X size={12} /></button>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Mobile Filters Modal ─────────────────────────────────────────── */}
+      {showMobileFilters && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 sm:hidden"
+          onClick={() => setShowMobileFilters(false)}
+        >
+          <div
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto shadow-xl"
+            onClick={e => e.stopPropagation()}
           >
-            <User size={14} />
-            {t('filters.my_ideas')}
-          </button>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-semibold text-slate-900">{t('filters.sort_newest')}</h3>
+              <button
+                type="button"
+                onClick={() => setShowMobileFilters(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Sort */}
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filters.sort_newest')}</label>
+              <div className="flex flex-wrap gap-2">
+                {SORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleSortChange(opt.value)}
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${
+                      sortBy === opt.value ? 'bg-violet-100 text-violet-700 font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Type */}
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filters.type_label')}</label>
+              <div className="flex flex-wrap gap-2">
+                {[{ value: TYPE_ALL, label: t('card.all') }, ...Object.entries(TYPE_CONFIG).map(([k, v]) => ({ value: k, label: t(`types.${k}` as never), icon: v.icon, color: v.color }))].map((chip: { value: string; label: string; icon?: ComponentType<{ size?: number; className?: string }>; color?: string }) => {
+                  const isActive = typeFilter.includes(chip.value) || (chip.value === TYPE_ALL && typeFilter.includes(TYPE_ALL))
+                  const TypeIcon = chip.icon
+                  return (
+                    <button
+                      key={chip.value}
+                      type="button"
+                      onClick={() => handleTypeToggle(chip.value)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${
+                        isActive ? 'text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                      style={isActive ? { backgroundColor: chip.value === TYPE_ALL ? '#6B7280' : chip.color ?? '#6B7280' } : undefined}
+                    >
+                      {TypeIcon && <TypeIcon size={14} />}
+                      {chip.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filters.status_label')}</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleStatusChange(STATUS_ALL)}
+                  className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${
+                    statusFilter === STATUS_ALL ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {t('card.all')}
+                </button>
+                {['pending', 'reviewing', 'approved', 'in_progress', 'completed', 'rejected', 'on_hold', 'duplicate'].map(st => {
+                  const cfg = getStatusConfig(st)
+                  const isActive = statusFilter === st
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => handleStatusChange(isActive ? STATUS_ALL : st)}
+                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${
+                        isActive ? 'text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                      style={isActive ? { backgroundColor: cfg.color } : undefined}
+                    >
+                      {t(`statuses.${st}` as never)}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* My ideas toggle */}
+            <div className="mb-4 flex justify-center">
+              <button
+                type="button"
+                onClick={() => { handleMyIdeasToggle(); setShowMobileFilters(false) }}
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg cursor-pointer transition-colors ${
+                  myIdeas ? 'text-violet-700 bg-violet-50 font-medium' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <User size={16} />
+                {t('filters.my_ideas')}
+              </button>
+            </div>
+
+            <hr className="border-t border-slate-100 mb-4" />
+
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters(false)}
+              className="w-full py-3 text-sm font-semibold text-white bg-violet-600 rounded-xl cursor-pointer hover:bg-violet-700 shadow-sm transition-colors"
+            >
+              {t('filters.apply')}
+            </button>
+          </div>
         </div>
       )}
 
@@ -994,7 +1172,7 @@ export default function InspirationView() {
           <p className="text-sm text-slate-500 mb-4">{t('card.error_loading')}</p>
           <button
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={() => setRefreshCounter(c => c + 1)}
             className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-lg cursor-pointer transition-colors"
             style={{ backgroundColor: 'var(--app-primary)' }}
           >
@@ -1040,7 +1218,7 @@ export default function InspirationView() {
         </div>
       ) : isChangelog ? (
         /* Changelog view */
-        <div className="divide-y divide-slate-100">
+        <div className="space-y-3">
           {requests.map(item => (
             <ChangelogItem key={item.id} item={item} apps={apps} />
           ))}
@@ -1073,20 +1251,49 @@ export default function InspirationView() {
       )}
 
       {/* ── Pagination ──────────────────────────────────────────────────── */}
-      {!loading && requests.length > 0 && (
+      {!loading && requests.length > 0 && totalPages > 1 && (
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
           <span className="text-xs text-slate-400">
             {viewFrom}&ndash;{viewTo} {t('card.of')} {pagination.total}
           </span>
-          {showLoadMore && (
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={handleLoadMore}
-              className="text-xs font-medium px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+              disabled={currentPage <= 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
             >
-              {t('card.load_more')}
+              {t('pagination.prev')}
             </button>
-          )}
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4))
+              const page = start + i
+              if (page > totalPages) return null
+              const isCurrent = page === currentPage
+              return (
+                <button
+                  key={page}
+                  type="button"
+                  onClick={() => handlePageChange(page)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                    isCurrent
+                      ? 'bg-violet-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50 border border-slate-200'
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            })}
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => handlePageChange(currentPage + 1)}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+            >
+              {t('pagination.next')}
+            </button>
+          </div>
         </div>
       )}
 
@@ -1096,8 +1303,7 @@ export default function InspirationView() {
         onClose={() => setShowModal(false)}
         onCreated={() => {
           setShowModal(false)
-          // Refresh by reloading the page (simplest approach)
-          window.location.reload()
+          setRefreshCounter(c => c + 1)
         }}
         groupSlug={groupSlug}
       />

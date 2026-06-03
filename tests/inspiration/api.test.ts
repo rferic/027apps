@@ -107,7 +107,9 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
       { ...sampleRequest, id: 'r2', title: 'Second idea', created_at: '2025-01-16T10:30:00Z' },
     ]
     mockFrom.mockReturnValueOnce(makeChain(twoRows))
-    // enrich: votes, comments
+    // enrich: votes, comments, userVotes, profiles
+    mockFrom.mockReturnValueOnce(makeChain([]))
+    mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
 
@@ -145,6 +147,7 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
     mockFrom.mockReturnValueOnce(makeChain([sampleRequest]))
     mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
+    mockFrom.mockReturnValueOnce(makeChain([]))
 
     const { default: handler } = await import('../../apps/inspiration/routes/GET')
     const req = makeRequest('/api/v1/test/apps/inspiration')
@@ -159,6 +162,8 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
 
     mockFrom.mockReturnValueOnce(makeChain(null, null, 1))
     mockFrom.mockReturnValueOnce(makeChain([sampleRequest]))
+    mockFrom.mockReturnValueOnce(makeChain([]))
+    mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
 

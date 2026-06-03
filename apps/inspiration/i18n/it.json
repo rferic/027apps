@@ -14,7 +14,9 @@
     "status_label": "Stato",
     "all_types": "Tutti i tipi",
     "all_statuses": "Tutti gli stati",
-    "my_ideas": "Le mie idee"
+    "my_ideas": "Le mie idee",
+    "apply": "Applica filtri",
+    "title": "Filtri"
   },
   "types": {
     "bug": "Bug",
@@ -186,5 +188,9 @@
     "h_ago": "{h}h fa",
     "d_ago": "{d}d fa",
     "w_ago": "{w} sett. fa"
+  },
+  "pagination": {
+    "prev": "Prec",
+    "next": "Succ"
   }
 }

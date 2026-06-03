@@ -72,7 +72,8 @@ export default function InspirationWidget() {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
     if (isNaN(d.getTime())) return '\u2014'
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const locale = typeof window !== 'undefined' ? window.navigator.language : 'en'
+    return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
   }
 
   if (!groupSlug) {

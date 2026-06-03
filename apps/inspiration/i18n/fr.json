@@ -14,7 +14,9 @@
     "status_label": "Statut",
     "all_types": "Tous les types",
     "all_statuses": "Tous les statuts",
-    "my_ideas": "Mes idées"
+    "my_ideas": "Mes idées",
+    "apply": "Appliquer filtres",
+    "title": "Filtres"
   },
   "types": {
     "bug": "Bug",
@@ -186,5 +188,9 @@
     "h_ago": "il y a {h}h",
     "d_ago": "il y a {d}j",
     "w_ago": "il y a {w} sem."
+  },
+  "pagination": {
+    "prev": "Préc",
+    "next": "Suiv"
   }
 }

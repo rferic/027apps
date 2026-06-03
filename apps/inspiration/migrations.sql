@@ -1,6 +1,4 @@
 -- Safe migration: remove group_id + old RLS (idempotent — works on fresh install too)
--- Force PostgREST schema reload to pick up new table structure
-notify pgrst, 'reload schema';
 do $$ begin
   alter table inspiration_requests drop column if exists group_id;
 exception when undefined_table then null;
@@ -198,3 +196,6 @@ create policy "Users can update their own comments"
 create policy "Users can delete their own comments"
   on inspiration_comments for delete
   using (user_id = auth.uid());
+
+-- Force PostgREST schema reload to pick up the new tables and policies
+notify pgrst, 'reload schema';

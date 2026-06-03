@@ -1,6 +1,5 @@
 'use client'
 
-// TODO i18n: TASK-95 — strings hardcoded in English
 import { useTranslations } from 'next-intl'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
@@ -302,7 +301,8 @@ export default function InspirationAdmin() {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
     if (isNaN(d.getTime())) return '\u2014'
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    const locale = typeof window !== 'undefined' ? window.navigator.language : 'en'
+    return d.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
   const formatDateFull = (dateStr: string) => {
