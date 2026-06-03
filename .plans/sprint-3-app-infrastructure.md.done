@@ -1,0 +1,356 @@
+# Sprint 3: Infraestructura de Apps — i18n, Config, Assets y Theming
+
+## Contexto del proyecto
+
+- **Stack:** Next.js 16.2.4 (App Router, Turbopack), React 19, TypeScript strict, Tailwind CSS v4
+- **DB:** Supabase (PostgreSQL + RLS). Sin ORM — cliente Supabase directo con tipos generados.
+- **Auth:** Supabase Auth. Roles: `admin` / `member`.
+- **i18n:** next-intl v4, 6 idiomas. Mensajes en `src/i18n/messages/[locale].json`.
+- **Apps:** Sistema de apps en `apps/{slug}/` con manifest.json, views (view.tsx, admin.tsx, widget.tsx, native.tsx), routes/, migrations.sql.
+- **Package manager:** pnpm
+
+---
+
+## Objetivo del sprint
+
+Las apps actuales (ej. `todo`) tienen textos hardcodeados en inglés, usan colores fijos sin respetar su `primaryColor`, consumen su propia config (`max_items`) sin una API estandarizada, y no tienen convención para assets estáticos propios. Este sprint crea la infraestructura de soporte que necesita cualquier app para ser un ciudadano de primera clase en la plataforma:
+
+1. **i18n por app** — cada app carga sus propias traducciones desde `apps/{slug}/i18n/{locale}.json`, fusionadas con los mensajes globales bajo el namespace `apps.{slug}`
+2. **Config de app en runtime** — utility para que los componentes de una app lean su config activa (`installed_apps.config`) sin llamadas ad-hoc a la DB
+3. **Assets estáticos de app** — convención y route handler para servir archivos desde `apps/{slug}/assets/`
+4. **Theming por app** — CSS variables inyectadas en runtime según `primaryColor`/`secondaryColor` del manifest
+5. **App context provider** — contexto React que expone manifest + config a todos los componentes de una app sin prop drilling
+6. **Migración de la app todo** para adoptar toda la infraestructura nueva como caso de prueba
+
+---
+
+## Arquitectura propuesta
+
+```
+apps/{slug}/
+  i18n/
+    en.json          ← traducciones obligatorias (fallback)
+    es.json
+    it.json
+    ca.json
+    fr.json
+    de.json
+  assets/            ← assets estáticos propios de la app
+
+src/lib/apps/
+  i18n.ts            ← loadAppMessages(slug, locale)
+  config.ts          ← getAppConfig + resolveAppConfig
+  context.ts         ← AppContext + useAppContext()
+
+src/components/
+  app-provider.tsx   ← <AppProvider slug config manifest>
+  app-theme.tsx      ← <AppTheme primaryColor secondaryColor>
+
+src/app/(app)/[locale]/apps/[slug]/
+  layout.tsx         ← inyecta AppProvider + AppTheme, verifica acceso
+
+src/app/api/v1/apps/[slug]/assets/[filename]/
+  route.ts           ← serving de assets con cache headers
+```
+
+---
+
+## Tareas del sprint
+
+---
+
+### TASK-29 — i18n loader por app
+
+**Archivo:** `src/lib/apps/i18n.ts`
+
+Implementar:
+```typescript
+// Carga las traducciones de una app para un locale dado.
+// Fallback: si no existe {locale}.json, intenta en.json.
+// Si tampoco existe: retorna {}.
+export async function loadAppMessages(
+  slug: string,
+  locale: string
+): Promise<Record<string, unknown>>
+
+// Verifica si una app tiene directorio i18n/
+export async function hasAppI18n(slug: string): Promise<boolean>
+```
+
+- Lee desde `apps/{slug}/i18n/{locale}.json` con `fs.readFile`
+- Si el archivo no existe (catch), intenta `apps/{slug}/i18n/en.json`
+- Las claves retornadas se montarán bajo `apps.{slug}` por quien llame a esta función
+- No lanza excepciones — retorna `{}` en caso de error irrecuperable
+
+Añadir en **`src/lib/apps/scanner.ts`**:
+```typescript
+// Retorna slugs de apps activas consultando installed_apps (admin client)
+export async function scanInstalledAppSlugs(): Promise<string[]>
+```
+
+Modificar **`src/i18n/request.ts`**:
+- Importar `scanInstalledAppSlugs` y `loadAppMessages`
+- Tras cargar los mensajes globales, cargar en paralelo los de cada app activa con `Promise.all`
+- Fusionar: `messages = { ...globalMessages, apps: { slug1: msgs1, slug2: msgs2, ... } }`
+- Si `scanInstalledAppSlugs` falla (DB no disponible en build time): continuar sin mensajes de apps — no romper el build
+
+---
+
+### TASK-30 — Tipo i18n en AppManifest + validación
+
+**Archivo:** `src/types/apps.ts`
+
+Añadir campo opcional:
+```typescript
+export interface AppManifest {
+  // ...existente...
+  i18n?: boolean  // true si la app declara soporte i18n propio
+}
+```
+
+Modificar **`src/lib/apps/manifest.ts`** — función `assertManifest` y `readManifest`:
+- `assertManifest`: aceptar `i18n` como campo booleano opcional (no requerido, no lanzar error si ausente)
+- `readManifest`: si `manifest.i18n === true`, verificar que existe `apps/{slug}/i18n/en.json` — si no: `AppValidationError`
+
+Modificar **`apps/todo/manifest.json`**:
+- Añadir `"i18n": true`
+
+---
+
+### TASK-31 — Traducciones de la app todo (6 idiomas)
+
+**Archivos:** `apps/todo/i18n/{en,es,it,ca,fr,de}.json`
+
+Extraer todos los textos hardcodeados de `view.tsx`, `widget.tsx` y `admin.tsx`. Estructura de `en.json` (base):
+
+```json
+{
+  "title": "To-Do",
+  "add_placeholder": "New task…",
+  "add_button": "Add",
+  "pending_label": "{count, plural, one {# pending} other {# pending}}",
+  "done_label": "{count, plural, one {# done} other {# done}}",
+  "empty": "No tasks yet.",
+  "all_done": "All done!",
+  "open": "Open →",
+  "loading": "Loading…",
+  "more_tasks": "+{count} more",
+  "admin_title": "To-Do — Admin",
+  "admin_subtitle": "{total} total · {pending} pending · {done} done",
+  "admin_empty": "No tasks found.",
+  "limit_reached": "You've reached the maximum of {max} tasks."
+}
+```
+
+Traducir a los 5 idiomas restantes (es, it, ca, fr, de). Usar ICU message format para plurales.
+
+---
+
+### TASK-32 — Config de app en runtime
+
+**Archivo:** `src/lib/apps/config.ts`
+
+```typescript
+// Server-side only. Consulta installed_apps.config para el slug dado.
+// Retorna {} si la app no está activa o no tiene config guardada.
+export async function getAppConfig(
+  slug: string
+): Promise<Record<string, unknown>>
+
+// Merge de config activa con defaults del manifest.
+// Los valores de installedConfig tienen precedencia sobre los defaults.
+export function resolveAppConfig(
+  manifest: AppManifest,
+  installedConfig: Record<string, unknown>
+): Record<string, unknown>
+```
+
+Actualizar **`src/types/apps.ts`**:
+```typescript
+export type ResolvedAppConfig = Record<string, string | number | boolean>
+```
+
+Reglas de `resolveAppConfig`:
+- Itera `manifest.config` — para cada campo con `default`, si la clave no está en `installedConfig`, usa el default
+- No incluye claves que no estén definidas en `manifest.config` (filtro estricto)
+- Los tipos se respetan: si el manifest dice `type: 'number'`, el valor final es `number`
+
+---
+
+### TASK-33 — App Context y Provider
+
+**Archivo:** `src/lib/apps/context.ts`:
+```typescript
+import { createContext, useContext } from 'react'
+import type { AppManifest, ResolvedAppConfig } from '@/types/apps'
+
+export interface AppContextValue {
+  slug: string
+  manifest: AppManifest
+  config: ResolvedAppConfig
+}
+
+export const AppContext = createContext<AppContextValue | null>(null)
+
+export function useAppContext(): AppContextValue {
+  const ctx = useContext(AppContext)
+  if (!ctx) throw new Error('useAppContext must be used inside <AppProvider>')
+  return ctx
+}
+```
+
+**Archivo:** `src/components/app-provider.tsx` — `'use client'`:
+- Recibe `slug`, `manifest`, `config` como props serializables
+- Renderiza `<AppContext.Provider value={{ slug, manifest, config }}>{children}</AppContext.Provider>`
+- No lógica adicional — es un wrapper puro de contexto
+
+---
+
+### TASK-34 — Layout de app con inyección de contexto
+
+**Archivo:** `src/app/(app)/[locale]/apps/[slug]/layout.tsx`
+
+Server Component:
+1. `readManifest(slug)` — si lanza `AppValidationError`: `notFound()`
+2. Consulta `installed_apps` donde `slug = slug AND status = 'active'` — si no existe: `notFound()`
+3. Verifica acceso: si `visibility === 'private'`, comprueba `app_permissions` para el usuario actual — si no tiene acceso: `notFound()`
+4. Llama `resolveAppConfig(manifest, installedApp.config)`
+5. Renderiza:
+```tsx
+<AppTheme primaryColor={manifest.primaryColor} secondaryColor={manifest.secondaryColor}>
+  <AppProvider slug={slug} manifest={manifest} config={resolvedConfig}>
+    {children}
+  </AppProvider>
+</AppTheme>
+```
+
+**Importante:** Este layout absorbe la verificación de acceso. Ninguna `page.tsx` bajo este layout necesita verificar acceso individualmente.
+
+---
+
+### TASK-35 — Assets estáticos de app
+
+**Archivo:** `src/lib/apps/assets.ts`:
+```typescript
+// Genera la URL pública de un asset de una app.
+// Lanza Error si filename contiene '..' o empieza por '/'.
+export function getAppAssetUrl(slug: string, filename: string): string
+// Retorna: /api/v1/apps/{slug}/assets/{filename}
+```
+
+**Route handler:** `src/app/api/v1/apps/[slug]/assets/[filename]/route.ts`
+
+```typescript
+// GET:
+// 1. Validar slug (SLUG_RE) y filename (sin '..', sin '/')
+// 2. Verificar que la app existe y está activa en installed_apps
+// 3. Leer desde apps/{slug}/assets/{filename}
+// 4. Inferir Content-Type por extensión (.svg → image/svg+xml, .png, .jpg, .webp, .ico)
+// 5. Responder con Cache-Control: public, max-age=31536000, immutable
+// 6. Si el archivo no existe: Response 404
+// Autenticación: pública (los assets son públicos para facilitar su uso en widgets)
+```
+
+---
+
+### TASK-36 — Theming por app
+
+**Archivo:** `src/components/app-theme.tsx` — `'use client'`:
+
+```typescript
+interface AppThemeProps {
+  primaryColor: string
+  secondaryColor: string
+  scope?: 'global' | 'local'  // 'global' aplica en documentElement, 'local' en wrapper div
+  children: React.ReactNode
+}
+```
+
+Implementación:
+- `scope === 'global'` (default para vistas de app): `useEffect` que aplica `--app-primary` / `--app-secondary` en `document.documentElement`, con cleanup al desmontar
+- `scope === 'local'` (para widgets en dashboard): aplica las variables inline en un `<div style={{ ... }}>` wrapper — evita que múltiples widgets se sobreescriban
+- Durante SSR: el wrapper lleva `style` como fallback para ambos modos
+
+---
+
+### TASK-37 — Migración de la app todo a la nueva infraestructura
+
+**Archivos:** `apps/todo/view.tsx`, `apps/todo/widget.tsx`, `apps/todo/admin.tsx`
+
+1. **i18n:** sustituir todos los strings hardcodeados por `useTranslations('apps.todo')`
+   - Usar las claves definidas en TASK-31
+   - ICU para contadores: `t('pending_label', { count: pending.length })`
+
+2. **Config:** en `view.tsx`:
+   - Leer `useAppContext().config.max_items` (con default 50 como fallback si no disponible)
+   - Al intentar añadir tarea: si `todos.length >= maxItems`, mostrar `t('limit_reached', { max: maxItems })` y bloquear el submit
+
+3. **Colores de acento:** sustituir colores indigo hardcodeados por variables CSS:
+   - `text-indigo-600` → `style={{ color: 'var(--app-primary)' }}`
+   - `bg-indigo-600` → `style={{ backgroundColor: 'var(--app-primary)' }}`
+   - Mantener `text-slate-*` — son colores de texto del sistema, no del tema de la app
+
+4. **Verificar** que `useAppContext()` lanza el error descriptivo si se usa fuera del layout
+
+---
+
+### TASK-38 — Tests
+
+**Archivos:**
+
+`tests/apps/i18n.test.ts`:
+- `loadAppMessages('todo', 'en')` retorna objeto con las claves de `en.json`
+- `loadAppMessages('todo', 'xx')` hace fallback a `en.json` y retorna su contenido
+- `loadAppMessages('nonexistent', 'en')` retorna `{}`
+- Los mensajes retornados NO incluyen el prefijo `apps.todo` — eso lo hace el caller
+
+`tests/apps/config.test.ts`:
+- `resolveAppConfig(todoManifest, {})` retorna `{ max_items: 50 }` (el default del manifest)
+- `resolveAppConfig(todoManifest, { max_items: 10 })` retorna `{ max_items: 10 }` (respeta el valor instalado)
+- `resolveAppConfig(todoManifest, { extra_key: 'ignored' })` NO incluye `extra_key` en el resultado
+
+`tests/apps/assets.test.ts`:
+- `getAppAssetUrl('todo', 'icon.svg')` retorna `/api/v1/apps/todo/assets/icon.svg`
+- `getAppAssetUrl('todo', '../secret.txt')` lanza `Error`
+- `getAppAssetUrl('todo', '/etc/passwd')` lanza `Error`
+
+`tests/e2e/todo-i18n.e2e.ts` (Playwright):
+- Miembro navega a `/es/apps/todo`
+- Los textos de la UI están en español
+- Cambia locale a inglés y los textos cambian
+
+---
+
+## Orden de ejecución recomendado
+
+```
+TASK-29 (i18n loader)
+    ↓
+TASK-30    TASK-32      ← en paralelo
+    ↓
+TASK-31                 ← depende de TASK-30
+    ↓
+TASK-33                 ← depende de TASK-32
+    ↓
+TASK-34                 ← depende de TASK-32 + TASK-33
+    ↓
+TASK-35    TASK-36      ← en paralelo, independientes
+    ↓
+TASK-37                 ← depende de TASK-29+31+33+34+36
+    ↓
+TASK-38                 ← depende de todo lo anterior
+```
+
+---
+
+## Notas para el agente implementador
+
+1. **`scanInstalledAppSlugs` usa admin client** — se llama desde `request.ts` fuera del contexto de sesión. Si la DB no está disponible retornar `[]`, no propagar el error.
+
+2. **`request.ts` se ejecuta en cada request** — la carga paralela con `Promise.all` es crítica.
+
+3. **El layout de app (TASK-34) es el único lugar donde se verifica acceso** a apps privadas. Las pages bajo él pueden asumir acceso garantizado.
+
+4. **Theming en dashboard:** usar `scope="local"` en widgets para evitar que múltiples apps se sobreescriban las variables CSS globales.
+
+5. **Namespace de i18n:** los archivos JSON de la app NO incluyen el prefijo `apps.{slug}` — eso lo añade el loader al fusionar con los mensajes globales.

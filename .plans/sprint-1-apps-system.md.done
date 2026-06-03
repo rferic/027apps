@@ -1,0 +1,611 @@
+# Sprint 1: Sistema de Apps
+
+## Contexto del proyecto
+
+- **Stack:** Next.js 16.2.4 (App Router, Turbopack), React 19, TypeScript strict, Tailwind CSS v4
+- **DB:** Supabase (PostgreSQL + RLS). Sin ORM — cliente Supabase directo con tipos generados.
+- **Auth:** Supabase Auth. Roles: `admin` / `member`. Helpers en `src/lib/auth/helpers.ts`.
+- **i18n:** next-intl v4, 6 idiomas. Mensajes en `src/i18n/messages/[locale].json`.
+- **UI:** shadcn/ui (estilo base-nova), Tailwind v4, Framer Motion, Lucide React.
+- **Rutas:** Route groups `(app)/[locale]/` (usuario) y `(admin)/[locale]/` (admin).
+- **Package manager:** pnpm
+
+---
+
+## Decisiones de diseño
+
+| Punto | Decisión |
+|---|---|
+| Archivos de vista | Convención estricta: `view.tsx`, `admin.tsx`, `widget.tsx` |
+| Rollback en install | Automático si `install()` lanza error |
+| `extends` vs `dependencies` | Si `extends: "slug"`, ese slug se añade automáticamente a `dependencies` |
+| Validación de extensionPoints | En tiempo de instalación, no en runtime |
+| Config avanzada | Soporta `min`, `max`, `regex`, `options` |
+| Notificaciones | Campo reservado en manifiesto (`notifications: false`), sin implementación por ahora |
+| DDL en apps | `migrations.sql` por app. El sistema ejecuta el SQL antes de llamar a `install()`. `install.ts` no ejecuta DDL. |
+| App visibility | `installed_apps.visibility` = `'public'` (todos los miembros) o `'private'` (solo usuarios con registro en `app_permissions`) |
+| Rutas públicas | `/apps/[slug]/...` — slug fijo, resto definido por la app |
+| Rutas API | `/api/apps/[slug]/...` — mismo patrón |
+| Permisos de instalación | Solo admins |
+| Multitenancy | No aplica |
+
+---
+
+## Contrato de una App
+
+### Estructura de carpetas
+
+```
+/apps/
+  [slug]/
+    manifest.json      # OBLIGATORIO
+    migrations.sql     # OBLIGATORIO si la app necesita tablas propias
+    uninstall.sql      # OBLIGATORIO si hay migrations.sql
+    install.ts         # OBLIGATORIO — solo init de datos, sin DDL
+    uninstall.ts       # OBLIGATORIO — solo cleanup de datos, sin DDL
+    view.tsx           # Requerido si manifest.views.public === true
+    admin.tsx          # Requerido si manifest.views.admin === true
+    widget.tsx         # Requerido si manifest.views.widget === true
+    native.tsx         # Requerido si manifest.views.native === true (React Native / Expo)
+    routes/            # Requerido si manifest.api === true
+      GET.ts           # Handler GET /api/v1/apps/[slug]
+      POST.ts          # Handler POST /api/v1/apps/[slug]
+      [id]/
+        GET.ts         # Handler GET /api/v1/apps/[slug]/[id]
+        PUT.ts         # Handler PUT /api/v1/apps/[slug]/[id]
+        DELETE.ts      # Handler DELETE /api/v1/apps/[slug]/[id]
+    docs/
+      index.mdx        # Requerido si existe la carpeta docs/
+      api.mdx          # Recomendado si manifest.api === true — ref. de endpoints de la app
+      config.mdx       # Opcional — referencia de campos de configuración
+      [...]            # Cualquier sección adicional
+  README.md            # Guía general para desarrolladores de apps
+```
+
+### Tipo `AppManifest` (TypeScript)
+
+```typescript
+export interface AppManifest {
+  slug: string                        // identificador único, solo minúsculas y guiones
+  name: string
+  version: string                     // semver
+  description: string
+  logo: string                        // path relativo al archivo en la carpeta de la app
+  primaryColor: string                // hex
+  secondaryColor: string              // hex
+  author: {
+    name: string
+    url?: string
+  }
+  minPlatformVersion: string          // semver
+  views: {
+    public: boolean
+    admin: boolean
+    widget: boolean
+    native: boolean                     // pantalla React Native (Expo)
+  }
+  api: boolean                        // true si la app expone endpoints en apps/[slug]/routes/
+  dependencies: string[]              // slugs de apps requeridas
+  extends?: string                    // slug de la app base (auto-añade a dependencies)
+  extensionPoints?: string[]          // puntos que esta app expone para que otras extiendan
+  notifications: boolean              // reservado, siempre false por ahora
+  config: AppConfigField[]
+}
+
+export interface AppConfigField {
+  key: string
+  type: 'string' | 'number' | 'boolean' | 'select' | 'textarea'
+  label: Record<string, string>       // { en: '...', es: '...', ... }
+  required: boolean
+  default?: unknown
+  // Validaciones opcionales según tipo
+  min?: number                        // number
+  max?: number                        // number
+  regex?: string                      // string
+  options?: { value: string; label: Record<string, string> }[]  // select
+}
+```
+
+### Contrato de `install.ts` / `uninstall.ts`
+
+```typescript
+// install.ts
+export async function install(context: AppInstallContext): Promise<void> {
+  // Crear tablas, insertar config por defecto, etc.
+  // Si lanza error, el sistema hace rollback automático (llama a uninstall)
+}
+
+// uninstall.ts
+export async function uninstall(context: AppInstallContext): Promise<void> {
+  // Eliminar tablas, limpiar configuraciones, etc.
+}
+
+export interface AppInstallContext {
+  supabase: SupabaseClient   // cliente admin (bypass RLS)
+  manifest: AppManifest
+  slug: string               // identificador de la app — usar para paths y queries
+}
+```
+
+---
+
+## Esquema de base de datos (nuevas tablas)
+
+### `installed_apps`
+
+```sql
+create table installed_apps (
+  id           uuid primary key default gen_random_uuid(),
+  slug         text not null unique,
+  version      text not null,
+  status       text not null check (status in ('installing', 'active', 'error', 'uninstalling')),
+  visibility   text not null default 'public' check (visibility in ('public', 'private')),
+  error        text,                          -- mensaje de error si status = 'error'
+  config       jsonb not null default '{}',   -- valores de configuración actuales
+  installed_at timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+```
+
+> RLS: select para autenticados, insert/update/delete solo service role.
+
+### `app_permissions`
+
+```sql
+create table app_permissions (
+  id         uuid primary key default gen_random_uuid(),
+  app_slug   text not null,
+  user_id    uuid not null references auth.users on delete cascade,
+  granted_at timestamptz not null default now(),
+  unique(app_slug, user_id)
+);
+```
+
+> RLS: select para el propio usuario y admins, insert/delete solo service role.
+
+---
+
+## Tareas del sprint
+
+---
+
+### TASK-01 — Tipos e interfaces del sistema de apps
+
+**Archivo:** `src/types/apps.ts`
+
+Crear el archivo con todos los tipos TypeScript:
+- `AppManifest` y `AppConfigField` (definidos arriba, incluye `views.native: boolean`)
+- `AppInstallContext` (incluye `slug: string`)
+- `InstalledApp` (reflejo de la tabla `installed_apps`, incluye campo `visibility: AppVisibility`)
+- Los tipos standalone deben estar definidos explícitamente antes de usarse en interfaces:
+  ```typescript
+  export type AppStatus = 'installing' | 'active' | 'error' | 'uninstalling'
+  export type AppVisibility = 'public' | 'private'
+  ```
+- `AppValidationError` — clase de error para representar errores de validación del manifiesto
+- `ScannedApp` — resultado del scanner:
+  ```typescript
+  interface ScannedApp {
+    slug: string
+    manifest: AppManifest | null
+    validationError: string | null   // null si es válida
+  }
+  ```
+
+---
+
+### TASK-02 — Migración SQL: tabla `installed_apps`
+
+**Archivo:** `supabase/migrations/[timestamp]_installed_apps.sql`
+
+Crear la migración con:
+- Tabla `installed_apps` según el esquema definido arriba (incluye columna `visibility`)
+- Tabla `app_permissions` según el esquema definido arriba
+- Políticas RLS para ambas tablas
+- Trigger `updated_at` en `installed_apps` (igual que el resto de tablas del proyecto)
+- Función PostgreSQL `exec_sql(sql text) SECURITY DEFINER` — restringida a service role:
+  ```sql
+  REVOKE ALL ON FUNCTION exec_sql(text) FROM PUBLIC;
+  GRANT EXECUTE ON FUNCTION exec_sql(text) TO service_role;
+  ```
+
+Después de crear la migración, regenerar tipos con:
+```bash
+supabase gen types typescript --local > src/types/supabase.ts
+```
+
+---
+
+### TASK-03 — Lector y validador de manifiestos
+
+**Archivo:** `src/lib/apps/manifest.ts`
+
+Función `readManifest(slug: string): Promise<AppManifest>`:
+- Lee `apps/[slug]/manifest.json` desde el filesystem (usar `fs/promises`)
+- Valida que todos los campos obligatorios existan y tengan el tipo correcto
+- Valida que los archivos declarados en `views` existan físicamente (`view.tsx`, `admin.tsx`, `widget.tsx`)
+- Si `manifest.views.native === true`, verifica que `apps/[slug]/native.tsx` existe
+- Si `manifest.api === true`, verifica que `apps/[slug]/routes/` existe con al menos un handler `.ts`
+- Si `migrations.sql` existe, verifica que `uninstall.sql` también existe (y viceversa)
+- Si la carpeta `apps/[slug]/docs/` existe, verifica que contiene al menos `index.mdx`
+- Si `manifest.logo` no está vacío, verifica que el archivo existe en `apps/[slug]/[manifest.logo]`
+- Si `extends` está definido, verifica que ese slug esté en `dependencies` (y lo añade automáticamente si no está)
+- Retorna `AppManifest` válido o lanza `AppValidationError` con mensaje descriptivo
+
+---
+
+### TASK-04 — Scanner de apps en disco
+
+**Archivo:** `src/lib/apps/scanner.ts`
+
+Función `scanApps(): Promise<ScannedApp[]>`:
+- Lee todas las subcarpetas de `/apps` (ruta desde la raíz del proyecto)
+- Para cada una intenta `readManifest(slug)`
+- Retorna lista de `ScannedApp` (tipo definido en `src/types/apps.ts`)
+
+---
+
+### TASK-05 — Servicio de instalación / desinstalación
+
+**Archivo:** `src/lib/apps/installer.ts`
+
+**`installApp(slug: string): Promise<void>`**
+1. Llama a `readManifest(slug)` — si falla, lanza error (app inválida)
+2. Verifica que todas las `dependencies` estén en `installed_apps` con status `active`
+3. Si `extends` está definido, verifica que los `extensionPoints` declarados existan en el manifiesto de la app base
+4. Inserta registro en `installed_apps` con status `'installing'`
+5. Si `apps/[slug]/migrations.sql` existe: ejecuta el SQL via cliente admin (`createAdminClient().rpc('exec_sql', { sql })`) — si falla, actualiza status `'error'` y lanza error (no continúa)
+6. Importa dinámicamente `apps/[slug]/install.ts` y llama a `install(context)`
+7. Si `install()` lanza error:
+   - Ejecuta `uninstall.sql` si existe (rollback DDL)
+   - Llama a `uninstall(context)` para rollback de datos
+   - Actualiza el registro a `status: 'error', error: message`
+   - Relanza el error
+8. Si todo OK: actualiza el registro a `status: 'active'`
+
+**`uninstallApp(slug: string): Promise<void>`**
+1. Verifica que ninguna app activa en `installed_apps` tenga este slug en sus `dependencies` (cruzar con manifiestos en disco)
+2. Actualiza status a `'uninstalling'`
+3. Importa dinámicamente `apps/[slug]/uninstall.ts` y llama a `uninstall(context)`
+4. Si `apps/[slug]/uninstall.sql` existe: ejecuta el SQL via cliente admin
+5. Si falla en cualquier paso: actualiza a `status: 'error', error: message`
+6. Si OK: elimina el registro de `installed_apps`
+
+---
+
+### TASK-06 — Server Actions para el panel de admin
+
+**Archivo:** `src/lib/apps/actions.ts`
+
+Usando `"use server"` de Next.js:
+
+- `getAppsListAction()` — combina `scanApps()` con datos de `installed_apps`. Retorna lista unificada con estado de cada app.
+- `installAppAction(slug: string)` — llama a `requireAdmin()` + `installApp(slug)`. Revalida caché con `revalidatePath`.
+- `uninstallAppAction(slug: string)` — llama a `requireAdmin()` + `uninstallApp(slug)`. Revalida caché.
+- `updateAppConfigAction(slug: string, config: Record<string, unknown>)` — valida los valores contra `manifest.config` (tipo, required, min, max, regex, options) y actualiza `installed_apps.config`.
+
+---
+
+### TASK-07 — Página de gestión de apps en el panel de admin
+
+**Ruta:** `src/app/(admin)/[locale]/admin/apps/page.tsx`
+
+Página server component que:
+- Llama a `getAppsListAction()`
+- Renderiza `<AdminAppsList apps={apps} />`
+
+**Componentes a crear en `src/components/`:**
+
+**`admin-apps-list.tsx`**
+- Grid de tarjetas de apps
+- Separadas visualmente en dos secciones: "Instaladas" y "Disponibles"
+
+**`admin-app-card.tsx`**
+- Logo, nombre, descripción, versión
+- Franja de color con `primaryColor` del manifiesto (estilo inline, no clase Tailwind)
+- Badge de estado: `Activa` / `No instalada` / `Instalando...` / `Error` / `Inválida`
+- Si `status === 'error'` o app inválida: mostrar mensaje de error en rojo con icono
+- Botón "Instalar": deshabilitado si app inválida (con tooltip del error) o si dependencias no están instaladas
+- Botón "Desinstalar": visible solo si está activa
+- Botón "Configurar": visible solo si está activa y `manifest.config.length > 0`
+
+**`admin-app-config-dialog.tsx`**
+- Dialog/modal usando shadcn `Dialog`
+- Formulario generado dinámicamente a partir de `manifest.config`
+- Campos según tipo:
+  - `string` → `<Input>`
+  - `number` → `<Input type="number">` con min/max
+  - `boolean` → `<Switch>`
+  - `select` → `<Select>` con las opciones del manifiesto
+  - `textarea` → `<Textarea>`
+- Labels traducidos: usar la clave del locale actual del manifiesto, fallback a `en`
+- Al guardar: llama a `updateAppConfigAction`
+
+---
+
+### TASK-08 — Registro dinámico de rutas de apps
+
+**Archivo:** `src/app/(app)/[locale]/apps/[slug]/[[...path]]/page.tsx`
+
+Page server component que:
+- Obtiene `slug` de los params
+- Consulta `installed_apps` donde `slug = params.slug AND status = 'active'`
+- Si no existe: `notFound()`
+- Sanitiza el slug (solo `/^[a-z0-9-]+$/`) antes de usarlo en la importación dinámica
+- Importa `../../../../apps/[slug]/view` dinámicamente
+- Renderiza el componente exportado por defecto
+
+**Archivo:** `src/app/(admin)/[locale]/admin/apps/[slug]/page.tsx`
+
+Mismo patrón pero importa `admin.tsx` de la app.
+
+**Archivo:** `src/app/api/apps/[slug]/[...path]/route.ts`
+
+Route handler que:
+- Sanitiza el slug
+- Intenta importar `apps/[slug]/api.ts` (archivo opcional, convención conocida)
+- Si no existe: 404
+- Delega el `Request` al handler exportado por la app
+
+---
+
+### TASK-09 — Widgets en el dashboard
+
+**Modificar:** `src/app/(app)/[locale]/dashboard/page.tsx`
+
+- Obtener de `installed_apps` las apps activas donde `manifest.views.widget === true`
+- Para cada una, importar dinámicamente `apps/[slug]/widget.tsx` y renderizarlo
+
+**Contrato del widget** (documentar en `apps/README.md`):
+```typescript
+// widget.tsx debe exportar por defecto un componente sin props
+export default function Widget(): React.ReactNode
+// La app obtiene sus propios datos internamente (fetch, supabase, etc.)
+```
+
+---
+
+### TASK-10 — App de ejemplo: `todo`
+
+**Carpeta:** `apps/todo/`
+
+Implementar una app TODO completa que sirva como referencia:
+
+- **`manifest.json`**: slug `todo`, con un campo de config `max_items` (number, opcional, default 50), `views.widget: true`, `views.public: true`, `views.admin: true`, `views.native: true`, `api: true`
+- **`migrations.sql`**: crea tabla `todo_items` (`id`, `title`, `completed`, `created_at`) con RLS habilitado
+- **`uninstall.sql`**: `DROP TABLE IF EXISTS todo_items`
+- **`install.ts`**: seed opcional (sin DDL) — puede estar vacío o insertar datos de ejemplo
+- **`uninstall.ts`**: limpieza de datos de usuario (sin DDL, la tabla ya se elimina via `uninstall.sql`)
+- **`view.tsx`**: lista de TODOs con formulario para añadir (ruta `/apps/todo`)
+- **`admin.tsx`**: gestión completa desde el panel admin
+- **`widget.tsx`**: resumen compacto — número de tareas pendientes y las 3 más recientes
+- **`native.tsx`**: pantalla React Native funcional mínima — lista de TODOs con `FlatList`, formulario con `TextInput`, usando componentes de React Native core. Sin dependencias nativas extras. Conecta a Supabase via el mismo cliente usado en web.
+- **`routes/GET.ts`**: lista todos del usuario autenticado — llama al use-case `listTodos(ctx)`
+- **`routes/POST.ts`**: crear todo — llama al use-case `createTodo(ctx, input)`
+- **`routes/[id]/PUT.ts`**: actualizar todo — llama al use-case `updateTodo(ctx, id, input)`
+- **`routes/[id]/DELETE.ts`**: eliminar todo — llama al use-case `deleteTodo(ctx, id)`
+- **`docs/index.mdx`**: descripción de la app, prerrequisitos, instalación, campos de configuración
+- **`docs/api.mdx`**: schema de `todo_items`, referencia de endpoints REST, ejemplos curl/fetch
+
+---
+
+### TASK-11 — Navegación en el panel de admin
+
+**Modificar** `src/app/(admin)/[locale]/admin/layout.tsx` y `src/components/admin-sidebar.tsx`:
+
+- En `layout.tsx` (Server Component): añadir llamada a `getInstalledAdminApps()` — función que devuelve las apps activas con `manifest.views.admin === true`. Pasar el resultado como prop `installedApps` al `AdminSidebar`.
+- En `AdminSidebar`: añadir prop `installedApps?: InstalledApp[]`. Añadir enlace "Apps" en la navegación principal. Bajo ese enlace, renderizar una subsección "Apps instaladas" con enlace individual por cada app en `installedApps`.
+- `getInstalledAdminApps()` puede vivir en `src/lib/apps/actions.ts` o en un nuevo `src/lib/apps/queries.ts`.
+
+---
+
+### TASK-12 — i18n: traducciones del sistema de apps
+
+**Archivos:** `src/i18n/messages/[locale].json` para los 6 idiomas (es, en, it, ca, fr, de)
+
+Añadir claves bajo el namespace `apps`:
+```json
+{
+  "apps": {
+    "title": "Apps",
+    "install": "Instalar",
+    "uninstall": "Desinstalar",
+    "configure": "Configurar",
+    "status": {
+      "active": "Activa",
+      "installing": "Instalando...",
+      "uninstalling": "Desinstalando...",
+      "error": "Error",
+      "invalid": "Inválida",
+      "not_installed": "No instalada"
+    },
+    "errors": {
+      "missing_manifest": "No se encontró manifest.json",
+      "missing_view": "Falta el archivo view.tsx declarado en el manifiesto",
+      "missing_admin": "Falta el archivo admin.tsx declarado en el manifiesto",
+      "missing_widget": "Falta el archivo widget.tsx declarado en el manifiesto",
+      "dependency_not_installed": "La app '{dep}' debe estar instalada primero",
+      "extension_point_not_found": "La app '{base}' no expone el punto de extensión '{point}'",
+      "install_failed": "Error durante la instalación",
+      "uninstall_blocked": "No se puede desinstalar: otras apps dependen de esta"
+    }
+  }
+}
+```
+
+Traducir al idioma correspondiente en cada archivo. **Nota:** el JSON de ejemplo usa texto en español — no copiar los valores literales. `en.json` debe tener texto en inglés, `ca.json` en catalán, etc.
+
+---
+
+### TASK-13 — Tests
+
+**Archivos en `tests/`**
+
+- `tests/apps/manifest.test.ts` — tests unitarios del validador:
+  - Manifiesto válido completo
+  - Campo obligatorio faltante
+  - Archivo de vista declarado pero no existente en disco
+  - `extends` auto-añade la dependency
+  - Slug con caracteres inválidos
+
+- `tests/apps/installer.test.ts` — tests del instalador (mockeando Supabase):
+  - Install exitoso → status `active`
+  - Install con `install()` que lanza error → rollback → status `error`
+  - Uninstall bloqueado porque otra app depende de esta
+  - Uninstall exitoso
+
+- `tests/apps/scanner.test.ts` — tests del scanner:
+  - Carpeta con apps válidas
+  - Carpeta con app inválida (manifiesto roto)
+  - Carpeta vacía
+
+- `tests/apps/admin-apps.e2e.ts` — test Playwright:
+  - Admin navega a `/admin/apps`
+  - Ve la app `todo` en la lista como "No instalada"
+  - Pulsa "Instalar" → pasa a "Activa"
+  - Pulsa "Desinstalar" → vuelve a "No instalada"
+
+---
+
+### TASK-14 — Skill `/create-app` para creación de apps via IA
+
+**Archivo:** `.agents/skills/create-app.md`
+
+Skill de proyecto usable desde Claude Code y OpenCode. Guía al desarrollador pregunta a pregunta para crear una nueva app del sistema, asegurando que todos los requisitos están claros antes de generar ningún archivo.
+
+**Flujo obligatorio de la skill:**
+
+1. **Fase de preguntas** — una pregunta a la vez, en orden:
+   - Nombre y slug de la app (validar `/^[a-z0-9-]+$/`)
+   - Descripción breve
+   - Autor (nombre, url opcional)
+   - ¿Necesita vista pública web? (`views.public`) — si sí, describir qué hace
+   - ¿Necesita vista admin web? (`views.admin`) — si sí, describir qué hace
+   - ¿Necesita widget en dashboard? (`views.widget`) — si sí, describir qué muestra
+   - ¿Necesita pantalla React Native? (`views.native`) — si sí, describir qué hace en mobile
+   - ¿Necesita tablas propias en BD? — si sí, listar tablas y campos
+   - ¿Tiene campos de configuración? — si sí, nombre, tipo, required, default
+   - ¿Depende de otras apps? (slugs de dependencias)
+   - Color primario y secundario (hex)
+   - `minPlatformVersion` (por defecto `1.0.0`)
+   - ¿Tendrá documentación técnica? — si sí, listar secciones (ej: api, config, webhooks)
+
+2. **Fase de plan** — antes de generar ningún archivo, presentar:
+   - `manifest.json` completo en preview
+   - Árbol de archivos a crear
+   - Contenido previsto de `migrations.sql` si aplica
+   - Resumen de vistas a implementar
+   - **Esperar confirmación explícita** ("OK", "Adelante" o "Aprobado")
+
+3. **Fase de ejecución** — solo tras aprobación:
+   - Generar todos los archivos siguiendo el contrato del sistema de apps
+   - `view.tsx`, `admin.tsx`, `widget.tsx` con implementación funcional mínima (no placeholders vacíos)
+   - `native.tsx` si `views.native === true` — pantalla RN con componentes core (`FlatList`, `TextInput`, `View`, `Text`)
+   - `install.ts` / `uninstall.ts` con lógica real si hay config inicial
+   - `migrations.sql` / `uninstall.sql` si hay tablas
+   - `docs/index.mdx` siempre si la app tiene documentación; secciones adicionales según lo declarado
+   - Todos los strings de UI usando `useTranslations` (nunca hardcodeados)
+
+**Reglas de la skill:**
+- Nunca asume respuestas — si falta información, pregunta
+- Valida slug antes de continuar (rechaza mayúsculas, espacios, caracteres especiales)
+- Si `views.widget: false`, `views.public: false`, `views.admin: false` y `views.native: false` simultáneamente — error: una app necesita al menos una vista
+- Si hay tablas, verificar que `migrations.sql` + `uninstall.sql` se crean en par
+- Si `docs/` se crea, verificar que `index.mdx` existe
+- Seguir las convenciones visuales del área correspondiente (admin palette para `admin.tsx`, estilo app pública para `view.tsx`, React Native core para `native.tsx`)
+- Usar el locale activo del usuario para los labels de config del manifiesto; añadir todos los locales del proyecto
+
+---
+
+### TASK-15 — Sitio de documentación `/doc` con Fumadocs
+
+**Framework:** [Fumadocs](https://fumadocs.vercel.app) — docs framework para Next.js App Router con menú dinámico, búsqueda integrada y MDX avanzado.
+
+**Dependencias a instalar:** `fumadocs-ui`, `fumadocs-core`, `fumadocs-mdx`
+
+**Estructura de rutas** en `src/app/doc/` (públicas, sin auth):
+
+```
+src/app/
+  doc/
+    layout.tsx                    ← Fumadocs RootLayout (sidebar + header + search)
+    page.tsx                      ← /doc — landing: qué es el sistema, enlace a apps
+    [[...slug]]/
+      page.tsx                    ← rutas dinámicas manejadas por Fumadocs
+```
+
+**Fuente de contenido** (`source.config.ts` en raíz del proyecto):
+- Fumadocs lee MDX desde `apps/[slug]/docs/*.mdx` vía `loader()` con fuente custom
+- El `pageTree` se construye automáticamente agrupando por app slug
+- Sección por app instalada con `docs/index.mdx` — aparece en el sidebar izquierdo
+- Búsqueda full-text integrada (Orama, funciona sin servidor externo)
+
+**Sanitización de paths:** Fumadocs maneja el routing internamente — no hay acceso directo al filesystem desde la URL, elimina el riesgo de path traversal.
+
+**Diseño:**
+- Usar tema de Fumadocs como base — sobreescribir colores con la paleta del proyecto
+- Sidebar izquierdo colapsable con secciones por app
+- Header con logo/nombre, breadcrumb, buscador
+- Distinto visualmente del admin y la app pública (fondo blanco, tipografía prose)
+
+---
+
+### TASK-16 — `apps/README.md` — Guía general para desarrolladores
+
+**Archivo:** `apps/README.md`
+
+Documento de referencia para desarrolladores externos que quieran crear o integrar apps en el sistema. Contenido:
+
+1. **Qué es el sistema de apps** — concepto, casos de uso
+2. **Estructura de carpetas completa** — árbol con todos los archivos y sus roles
+3. **Contrato del manifest.json** — todos los campos con tipos, ejemplos y restricciones
+4. **DDL: migrations.sql / uninstall.sql** — cómo declarar tablas, convenciones RLS
+5. **install.ts / uninstall.ts** — qué se puede hacer, qué no (sin DDL), el contexto disponible
+6. **Vistas web: view.tsx, admin.tsx, widget.tsx** — convenciones, cómo importar datos
+7. **Pantalla nativa: native.tsx** — componentes React Native disponibles, cómo conectar a Supabase
+8. **Documentación: docs/index.mdx** — estructura MDX, convenciones de contenido
+9. **Cómo usar la skill `/create-app`** — guía rápida de inicio
+10. **Referencia TypeScript: AppManifest** — tipos completos con comentarios
+
+---
+
+## Orden de ejecución recomendado
+
+```
+TASK-01 → TASK-02 → TASK-03 → TASK-04 → TASK-05 → TASK-06
+                                                        ↓
+TASK-12 ← TASK-11 ← TASK-09 ← TASK-08 ← TASK-07 ←────┘
+                                                        ↓
+                                                    TASK-10
+                                                        ↓
+                                                    TASK-13
+                                                        ↓
+                                          TASK-14  TASK-15  TASK-16
+                                          (paralelo entre los tres)
+```
+
+Las tareas 01-06 son el núcleo del sistema y deben completarse en orden.
+Las tareas 07-12 pueden paralelizarse una vez el núcleo esté listo.
+TASK-13 (tests) al final, o en paralelo con TASK-10.
+TASK-14, TASK-15 y TASK-16 pueden ejecutarse en paralelo entre sí:
+- TASK-14 (skill): solo necesita el contrato cerrado (TASK-01 completada)
+- TASK-15 (docs site): independiente del código de apps
+- TASK-16 (README): solo necesita el contrato final del sistema
+
+---
+
+## Notas para el agente implementador
+
+1. **Importaciones dinámicas de apps:** Usar `import()` de Node.js/Next.js. La carpeta `/apps` está en la raíz del proyecto, fuera de `src/`. Verificar que `tsconfig.json` incluya esa ruta o usar paths absolutos desde `process.cwd()`.
+
+2. **Cliente Supabase en install/uninstall:** Usar el cliente admin (`src/lib/supabase/admin.ts`) para el `AppInstallContext`, ya que necesita bypass de RLS.
+
+3. **DDL desde apps:** Usar `migrations.sql` en la carpeta de la app. El installer lo ejecuta via `createAdminClient()` antes de llamar a `install()`. `install.ts` solo realiza operaciones de datos (inserts, updates). La migración de TASK-02 debe crear también la función `exec_sql(sql text)` como función PostgreSQL SECURITY DEFINER, restringida a service role.
+
+4. **Tipos generados de Supabase:** Después de aplicar la migración de TASK-02, regenerar `src/types/supabase.ts`.
+
+5. **Colores dinámicos:** Usar `style={{ backgroundColor: manifest.primaryColor }}` en lugar de clases Tailwind para los colores del manifiesto, ya que son valores dinámicos desconocidos en build time.
+
+6. **Seguridad — path traversal:** Antes de cualquier importación dinámica con el slug, validar con `/^[a-z0-9-]+$/`. Rechazar slugs que no cumplan.
+
+7. **`apps/README.md`:** Crear un README en la carpeta `/apps` documentando el contrato completo para desarrolladores de terceros.
