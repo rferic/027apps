@@ -1,6 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import 'fumadocs-ui/style.css' layer(fumadocs-ui);
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
   --color-fd-primary: #9B1C1C;
@@ -9,61 +8,26 @@
 }
 
 .fd-content {
-  max-width: 720px;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  line-height: 1.75;
+  line-height: 1.8;
   color: #334155;
+  max-width: 720px;
 }
 
-.fd-content h1 {
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: #0f172a;
-  margin-bottom: 0.75rem;
-}
-
-.fd-content h2 {
-  font-size: 1.375rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #1e293b;
-  margin-top: 2.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.fd-content h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #334155;
-  margin-top: 2rem;
-  margin-bottom: 0.5rem;
-}
-
-.fd-content p {
-  margin-bottom: 1.125rem;
-  color: #475569;
-}
-
-.fd-content a {
-  color: #9B1C1C;
-  font-weight: 500;
-  text-decoration: none;
-  border-bottom: 1.5px solid transparent;
-  transition: border-color .15s;
-}
-
-.fd-content a:hover {
-  border-bottom-color: #9B1C1C;
-}
+.fd-content h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.03em; color: #0f172a; margin-bottom: .5rem; }
+.fd-content h2 { font-size: 1.375rem; font-weight: 700; color: #1e293b; margin-top: 2.5rem; margin-bottom: .75rem; }
+.fd-content h3 { font-size: 1.125rem; font-weight: 600; color: #334155; margin-top: 2rem; margin-bottom: .5rem; }
+.fd-content p { margin-bottom: 1.125rem; color: #475569; }
+.fd-content a { color: #9B1C1C; font-weight: 500; text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color .15s; }
+.fd-content a:hover { text-decoration-color: #9B1C1C; }
 
 .fd-content code:not(pre code) {
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: .8125rem;
   font-weight: 600;
   color: #be123c;
   background: #fff1f2;
-  padding: .125rem .4375rem;
+  padding: .1875rem .5rem;
   border-radius: .25rem;
   border: 1px solid #fecaca;
 }
@@ -73,13 +37,12 @@
   border-radius: .5rem !important;
   padding: 1.25rem !important;
   font-size: .8125rem;
-  line-height: 1.65;
+  line-height: 1.7;
   border: 1px solid #1e293b;
-  box-shadow: 0 1px 3px rgba(0,0,0,.1);
 }
 
 .fd-content pre code {
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   color: #e2e8f0;
   background: transparent !important;
   border: none;
@@ -94,11 +57,11 @@
 
 .fd-content table {
   border-collapse: collapse;
-  width: 100%;
   font-size: .875rem;
   border: 1px solid #e2e8f0;
   border-radius: .5rem;
   overflow: hidden;
+  margin: 1.25rem 0;
 }
 
 .fd-content table th {
@@ -112,11 +75,7 @@
   color: #64748b;
 }
 
-.fd-content table td {
-  padding: .5rem .75rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
+.fd-content table td { padding: .5rem .75rem; border-bottom: 1px solid #f1f5f9; }
 .fd-content table tr:last-child td { border-bottom: none; }
 
 .fd-content blockquote {
@@ -133,7 +92,6 @@
   border: 1px solid #e2e8f0 !important;
   border-radius: .5rem !important;
   padding: 1rem 1.25rem !important;
-  transition: all .15s !important;
 }
 
 .fd-content .fd-card:hover {
@@ -143,27 +101,14 @@
 
 .fd-content .fd-card p { color: #64748b !important; font-size: .8125rem !important; }
 
+aside a[href*='/apps/inspiration'] { position: relative; padding-left: 1.25rem; }
 aside a[href*='/apps/inspiration']::before {
-  content: '';
-  display: inline-block;
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: #F59E0B;
-  margin-right: 8px;
-  flex-shrink: 0;
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 6px; height: 6px; border-radius: 50%; background: #F59E0B;
 }
 
+aside a[href*='/apps/todo'] { position: relative; padding-left: 1.25rem; }
 aside a[href*='/apps/todo']::before {
-  content: '';
-  display: inline-block;
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: #4F46E5;
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-
-button:not([disabled]),
-[role='button']:not([aria-disabled='true']) {
-  cursor: pointer;
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 6px; height: 6px; border-radius: 50%; background: #4F46E5;
 }

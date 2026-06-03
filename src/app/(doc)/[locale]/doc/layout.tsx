@@ -1,4 +1,4 @@
-import { DocsLayout } from 'fumadocs-ui/layouts/docs'
+import { DocsLayout } from 'fumadocs-ui/layouts/notebook'
 import type { ReactNode } from 'react'
 import { source, i18nConfig } from '@/lib/source'
 import { DocRootProvider } from './language-provider'
@@ -26,9 +26,6 @@ export default async function DocLayout({ children, params }: Props) {
               <Image src="/logo-dark.svg" alt="027Apps" width={120} height={28} priority className="hidden dark:block" />
             </>
           ),
-        }}
-        theme={{
-          enabled: true,
         }}
       >
         {children}
