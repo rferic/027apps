@@ -3,12 +3,70 @@
    in the browser simultaneously (client-side navigation from /doc to /admin). */
 @import 'fumadocs-ui/style.css' layer(fumadocs-ui);
 
-/* Code block styling */
-.fd-content pre {
-  border-radius: 0.375rem !important;
-  padding: 1rem !important;
+/* ── Code block styling ── */
+/* Inline code */
+.fd-content code:not(pre code) {
+  background: #f1f5f9;
+  color: #9B1C1C;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.3rem;
+  border: 1px solid #e2e8f0;
 }
 
-.fd-content code {
-  border-radius: 0.25rem;
+/* Code blocks (pre > code) */
+.fd-content pre {
+  background: #0f172a !important;
+  border: 1px solid #1e293b;
+  border-radius: 0.5rem !important;
+  padding: 1.25rem !important;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.fd-content pre code {
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, monospace;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-weight: 400;
+}
+
+/* Syntax highlighting overrides for Fumadocs default theme */
+.fd-content pre .token.keyword { color: #c084fc; }
+.fd-content pre .token.string { color: #34d399; }
+.fd-content pre .token.number { color: #fbbf24; }
+.fd-content pre .token.function { color: #60a5fa; }
+.fd-content pre .token.boolean { color: #f87171; }
+.fd-content pre .token.comment { color: #64748b; font-style: italic; }
+.fd-content pre .token.operator { color: #94a3b8; }
+.fd-content pre .token.punctuation { color: #64748b; }
+.fd-content pre .token.property { color: #a78bfa; }
+.fd-content pre .token.constant { color: #fb923c; }
+
+/* ── Table styling ── */
+.fd-content table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.fd-content table th {
+  background: #f8fafc;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 2px solid #e2e8f0;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.fd-content table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
 }
