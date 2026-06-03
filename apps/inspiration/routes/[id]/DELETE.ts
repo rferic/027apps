@@ -37,5 +37,5 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .eq('id', id)
 
   if (error) return apiError('DELETE_ERROR', error.message, 500)
-  return apiOk({ deleted: true })
+  return new Response(null, { status: 204 })
 }

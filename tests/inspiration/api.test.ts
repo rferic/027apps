@@ -319,20 +319,21 @@ describe('PUT /api/v1/:groupSlug/apps/inspiration/:id', () => {
 describe('DELETE /api/v1/:groupSlug/apps/inspiration/:id', () => {
   beforeEach(() => vi.resetAllMocks())
 
-  it('returns 200 with deleted:true for creator', async () => {
+  it('returns 204 with no content for creator', async () => {
     const { authenticate } = await import('@/lib/api/auth')
     vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
 
-    mockFrom.mockReturnValueOnce(makeChain({ user_id: 'u1' }))
-    mockFrom.mockReturnValueOnce(makeChain(null))
+    mockFrom.mockReturnValueOnce(makeChain(sampleRequest))
+    mockFrom.mockReturnValueOnce(makeChain(null, null))
 
-    const { default: handler } = await import('../../apps/inspiration/routes/[id]/DELETE')
+    const { default: handler } = await import('../../apps/inspiration/routes/GET')
+    const { default: deleteHandler } = await import('../../apps/inspiration/routes/[id]/DELETE')
     const req = makeRequest('/api/v1/test/apps/inspiration/r1', 'DELETE')
-    const res = await handler(req, Ctx)
+    const res = await deleteHandler(req, Ctx)
 
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.deleted).toBe(true)
+    expect(res.status).toBe(204)
+    const text = await res.text()
+    expect(text).toBe('')
   })
 
   it('returns 403 for non-creator non-admin', async () => {

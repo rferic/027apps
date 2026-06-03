@@ -153,11 +153,11 @@ paths = {
         },
         "delete": {
             "summary": "Delete inspiration request (admin)",
-            "description": "Permanently deletes a request. Requires admin role.",
+            "description": "Permanently deletes a request. Requires admin role. Returns 204 on success.",
             "tags": ["Admin - Inspiration"],
             "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"}],
             "responses": {
-                "200": resp({"type": "object", "properties": {"deleted": {"type": "boolean", "description": "Whether the request was deleted"}, "id": {"type": "string", "description": "UUID of the deleted request"}}}, {"deleted": True, "id": "550e8400-e29b-41d4-a716-446655440000"}),
+                "204": {"description": "No Content — deleted successfully"},
                 "401": error_resp("Unauthorized"),
                 "403": error_resp("Forbidden"),
                 "404": error_resp("Not found"),
@@ -364,14 +364,14 @@ paths = {
         },
         "delete": {
             "summary": "Delete an inspiration idea",
-            "description": "Deletes a request. Creator or admin. Returns JSON confirmation.",
+            "description": "Deletes a request. Creator or admin. Returns 204 on success.",
             "tags": ["Inspiration"],
             "parameters": [
                 {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
                 {"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"},
             ],
             "responses": {
-                "200": resp({"type": "object", "properties": {"deleted": {"type": "boolean", "description": "Whether the request was deleted"}}}, {"deleted": True}),
+                "204": {"description": "No Content — deleted successfully"},
                 "401": error_resp("Unauthorized"),
                 "403": error_resp("Forbidden"),
                 "404": error_resp("Not found"),
@@ -499,14 +499,14 @@ paths = {
         },
         "delete": {
             "summary": "Delete a todo item",
-            "description": "Deletes a todo item. Owner or admin. Returns JSON confirmation.",
+            "description": "Deletes a todo item. Owner or admin. Returns 204 on success.",
             "tags": ["Todo"],
             "parameters": [
                 {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
                 {"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}, "description": "Todo item ID"},
             ],
             "responses": {
-                "200": resp({"type": "object", "properties": {"deleted": {"type": "boolean", "description": "Whether the item was deleted"}}}, {"deleted": True}),
+                "204": {"description": "No Content — deleted successfully"},
                 "401": error_resp("Unauthorized"),
                 "404": error_resp("Not found"),
             },

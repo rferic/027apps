@@ -199,5 +199,5 @@ export async function DELETE(
 
   if (deleteError) return apiError('DELETE_ERROR', deleteError.message, 500)
 
-  return apiOk({ deleted: true, id })
+  return new Response(null, { status: 204 })
 }
