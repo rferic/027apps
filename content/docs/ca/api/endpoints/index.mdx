@@ -11,10 +11,10 @@ Totes les rutes són relatives a la URL base `/api/v1`.
 
 | Mètode | Ruta | Auth | Descripció |
 |---|---|---|---|
-| `GET` | `/api/v1` | Públic | [Verificació d'estat](/docs/api) — retorna versió i estat |
-| `GET` | [`/api/v1/me`](/docs/api/endpoints/me) | JWT | Informació de l'usuari autenticat, pertinença al grup i perfil |
-| `GET` | [`/api/v1/apps`](/docs/api/endpoints/apps) | JWT o API Key | Aplicacions disponibles per al grup (o filtrades per permisos d'usuari) |
-| `GET` | [`/api/v1/locales`](/docs/api/endpoints/locales) | Públic | Idiomes actius configurats per al grup |
+| `GET` | `/api/v1` | Públic | [Verificació d'estat](/doc/api) — retorna versió i estat |
+| `GET` | [`/api/v1/me`](/doc/api/endpoints/me) | JWT | Informació de l'usuari autenticat, pertinença al grup i perfil |
+| `GET` | [`/api/v1/apps`](/doc/api/endpoints/apps) | JWT o API Key | Aplicacions disponibles per al grup (o filtrades per permisos d'usuari) |
+| `GET` | [`/api/v1/locales`](/doc/api/endpoints/locales) | Públic | Idiomes actius configurats per al grup |
 
 ## Nivells d'autenticació
 
@@ -23,4 +23,4 @@ Totes les rutes són relatives a la URL base `/api/v1`.
 - **API Key** — Requereix `X-API-Key: sk_027_...`. La clau ha d'estar activa (no revocada).
 - **JWT o API Key** — S'accepta qualsevol dels dos tipus de credencial; la resposta pot variar segons quin s'utilitzi.
 
-Consulta [Autenticació](/docs/api/authentication) per saber com obtenir credencials.
+Consulta [Autenticació](/doc/api/authentication) per saber com obtenir credencials.

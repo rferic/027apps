@@ -316,3 +316,19 @@ TODOS los endpoints de listado (`GET ...`) DEBEN usar paginación.
 - No implementar paginación con cursor a menos que sea explícitamente requerido (page/limit es suficiente)
 - Esta convención aplica a TODAS las apps del proyecto, presentes y futuras
 <!-- END:pagination-convention -->
+
+<!-- BEGIN:delete-convention -->
+# DELETE endpoints: 204 No Content
+
+Todos los endpoints DELETE en la API DEBEN devolver:
+
+- `204 No Content` (sin body) cuando la operación es exitosa
+- `404 Not Found` cuando el recurso no existe
+- `403 Forbidden` cuando el usuario no tiene permisos
+- `401 Unauthorized` cuando no está autenticado
+
+**Prohibido:** devolver `200` con `{deleted: true}` en DELETE exitosos.
+
+**Implementación:** `return new Response(null, { status: 204 })`.
+NUNCA usar `apiOk()` en handlers DELETE exitosos.
+<!-- END:delete-convention -->

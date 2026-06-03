@@ -1,4 +1,11 @@
 {
   "title": "Endpoints Principaux",
-  "pages": ["index", "me", "apps", "locales"]
+  "pages": [
+    "index",
+    "me",
+    "apps",
+    "locales",
+    "admin-todo",
+    "admin-inspiration"
+  ]
 }

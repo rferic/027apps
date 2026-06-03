@@ -1,0 +1,983 @@
+# Sprint 10: Nueva app Inspiration — buzón de ideas familiar
+
+## Objetivo del sprint
+
+Crear la app **Inspiration** desde cero: un buzón de ideas/sugerencias donde cualquier miembro de la familia propone bugs, nuevas apps, mejoras de apps existentes o funcionalidades generales. Los demás miembros votan/apoyan las propuestas, el admin gestiona el ciclo de vida de cada solicitud, y al cerrarse se notifica con un email de diseño cuidado.
+
+La app `todo` existente **no se modifica** — se queda como está para retomarla en un futuro sprint.
+
+## Contexto del proyecto
+
+- **Stack:** Next.js 16 (App Router, Turbopack), React 19, TypeScript strict, Tailwind CSS v4
+- **DB:** Supabase (PostgreSQL + RLS). Sin ORM — cliente Supabase directo con tipos generados.
+- **Auth:** Supabase Auth. Roles: `admin` (platform-wide) / `member`.
+- **i18n:** next-intl v4, 6 idiomas (en, es, it, ca, fr, de).
+- **Package manager:** pnpm
+- **Emails:** Resend (configurado en Sprint 8), React Email para templates.
+- **Último sprint completado:** Sprint 9 — API Contracts con ts-rest + Documentación interactiva con Scalar (TASK-79 a TASK-85)
+
+## Stack y decisiones de diseño
+
+| Decisión | Elección | Motivo |
+|---|---|---|
+| **Persistencia** | Supabase (tablas nuevas con prefijo `inspiration_`) | El proyecto ya usa Supabase. Consistencia con el resto de apps. |
+| **Tipos de solicitud** | Enum fijo en BD con `create type inspiration_type as enum (...)` | Confirmados: bug, improvement, new_app, new_app_feature, new_general_functionality, other. Con color + icono asociado. |
+| **Votos** | Tabla `inspiration_votes` con constraint unique (request_id, user_id) | Un voto por usuario y solicitud. Sin downvotes — solo apoyo. |
+| **Emails** | Resend + React Email (ya configurados en Sprint 8) | Templates existentes en `src/emails/`. Se añade `inspiration-closure.tsx` con diseño cuidado. |
+| **Asignación a app** | Campo `app_slug` en `inspiration_requests` | Relación débil por slug — no FK a installed_apps (una app puede no estar instalada o su slug cambiar). |
+| **Notificaciones email** | Server Actions que disparan envío via Resend tras crear comentario o cambiar estado | Sin sistema de notificaciones genérico. Cada acción dispara su email específico. |
+| **i18n** | next-intl con claves bajo `apps.inspiration.*` | Mismo patrón que el resto de apps. 6 idiomas. |
+| **Mobile** | `native: false` en el manifest | No se requiere vista nativa en este sprint. Se puede añadir en el futuro. |
+| **Handler API type** | `(req: Request, ctx: HandlerContext) => Promise<Response>` | Según tipo `RouteHandler` en `src/lib/apps/router-types.ts`. No usar `NextRequest`. |
+| **Admin endpoint** | El admin fetch desde `/api/v1/admin/apps/inspiration` | Mismo patrón que app todo (`/api/v1/admin/apps/todo`). |
+
+## Funcionalidades confirmadas
+
+1. ✅ Cualquier usuario crea una solicitud con tipo y descripción
+2. ✅ Templates por tipo: formulario guiado que cambia según el tipo seleccionado
+3. ✅ Otros usuarios ven solicitudes y pueden dar apoyo (votar)
+4. ✅ Mostrar quién ha apoyado (transparencia — lista de avatares/nombres)
+5. ✅ Admin cambia el estado de la solicitud
+6. ✅ Tipos (enum fijo): `bug`, `improvement`, `new_app`, `new_app_feature`, `new_general_functionality`, `other`
+7. ✅ Cada tipo tiene color + icono asociado
+8. ✅ Comentarios en las solicitudes
+9. ✅ Notificaciones email al creador, admins y apoyantes cuando hay: nuevo comentario, cambio de estado
+10. ✅ La solicitud se puede asignar a una app existente (o no)
+11. ✅ Mail final de cierre con diseño general bonito/comercial (cuando pasa a `completed`)
+12. ✅ Ordenar por "most supported" (más votos)
+13. ✅ Search & filters por texto, tipo, estado
+14. ✅ Changelog view: listado de solicitudes completadas como mini-changelog
+
+## Estados del ciclo de vida
+
+| Estado | DB value | Significado | Transiciones permitidas |
+|---|---|---|---|
+| 🟡 Pendiente | `pending` | Recién creada, esperando revisión del admin | → reviewing, rejected, duplicate |
+| 🔵 En revisión | `reviewing` | El admin la está evaluando | → approved, rejected, duplicate |
+| 🟢 Aprobada | `approved` | Aceptada, entra en backlog | → in_progress, on_hold, rejected |
+| 🟠 En progreso | `in_progress` | Se está trabajando en ello | → completed, on_hold |
+| ✅ Completada | `completed` | Implementada/resuelta. Dispara email de cierre. | — (estado final) |
+| ❌ Rechazada | `rejected` | No se hará. Dispara email de cierre. | — (estado final) |
+| ⏸️ En pausa | `on_hold` | Aprobada pero bloqueada | → in_progress, approved |
+| 🔄 Duplicada | `duplicate` | Ya existe una solicitud similar | — (estado final) |
+
+**Estado inicial al crear:** `pending`
+
+## Tipos de solicitud
+
+| Tipo | DB value | Color | Icono (lucide-react) |
+|---|---|---|---|
+| Bug | `bug` | `#EF4444` (red) | `Bug` |
+| Mejora | `improvement` | `#F59E0B` (amber) | `Sparkles` |
+| Nueva app | `new_app` | `#8B5CF6` (violet) | `AppWindow` |
+| Feature de app | `new_app_feature` | `#3B82F6` (blue) | `Puzzle` |
+| Funcionalidad general | `new_general_functionality` | `#10B981` (emerald) | `Lightbulb` |
+| Otro | `other` | `#6B7280` (gray) | `MoreHorizontal` |
+
+## Arquitectura de la app
+
+```
+apps/
+  inspiration/
+    manifest.json          ← metadatos completos (ver sección manifest)
+    logo.svg               ← logo principal de la app
+    assets/
+      icon.svg             ← icono cuadrado para el dashboard (misma paleta)
+    migrations.sql         ← DDL: tablas, índices, RLS
+    uninstall.sql          ← DROP de tablas
+    install.ts             ← init data (vacío o seed mínimo)
+    uninstall.ts           ← cleanup (vacío)
+    view.tsx               ← vista pública: lista de solicitudes con filtros
+    admin.tsx              ← vista admin: gestión de estados
+    widget.tsx             ← widget dashboard: últimas solicitudes / completadas
+    routes/
+      GET.ts               ← GET: listar solicitudes (filtros, search, ordenación)
+      POST.ts              ← POST: crear solicitud
+      [id]/
+        PUT.ts             ← PUT: editar solicitud, cambiar estado
+        DELETE.ts          ← DELETE: eliminar solicitud
+        vote.ts            ← POST: toggle voto (crear/quitar)
+        comments/
+          GET.ts           ← GET: listar comentarios
+          POST.ts          ← POST: añadir comentario
+    i18n/
+      en.json              ← claves en inglés (fuente de verdad)
+      es.json              ← español
+      it.json              ← italiano
+      ca.json              ← catalán
+      fr.json              ← francés
+      de.json              ← alemán
+    docs/
+      index.mdx            ← documentación de la app
+      api.mdx              ← referencia de la API
+
+src/
+  emails/
+    inspiration-new-comment.tsx      ← template: nuevo comentario en solicitud apoyada/creada
+    inspiration-status-change.tsx    ← template: cambio de estado
+    inspiration-closure.tsx          ← template: email de cierre (diseño cuidado)
+  contracts/
+    v1/
+      inspiration.ts                 ← contrato ts-rest para endpoints de inspiration
+```
+
+## Base de datos
+
+### Tabla: `inspiration_requests`
+
+```sql
+create type inspiration_type as enum (
+  'bug',
+  'improvement',
+  'new_app',
+  'new_app_feature',
+  'new_general_functionality',
+  'other'
+);
+
+create type inspiration_status as enum (
+  'pending',
+  'reviewing',
+  'approved',
+  'in_progress',
+  'completed',
+  'rejected',
+  'on_hold',
+  'duplicate'
+);
+
+create table if not exists inspiration_requests (
+  id                uuid primary key default gen_random_uuid(),
+  user_id           uuid not null references auth.users on delete cascade,
+  title             text not null,
+  description       text not null default '',
+  type              inspiration_type not null,
+  status            inspiration_status not null default 'pending',
+  app_slug          text,                                    -- nullable: asignado a una app existente
+  group_id          uuid not null references public.groups(id) on delete cascade,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+
+-- Índices para filtros y búsqueda
+create index idx_inspiration_requests_status on inspiration_requests(status);
+create index idx_inspiration_requests_type on inspiration_requests(type);
+create index idx_inspiration_requests_group on inspiration_requests(group_id);
+create index idx_inspiration_requests_search on inspiration_requests using gin (to_tsvector('simple', title || ' ' || description));
+```
+
+### Tabla: `inspiration_votes`
+
+```sql
+create table if not exists inspiration_votes (
+  id            uuid primary key default gen_random_uuid(),
+  request_id    uuid not null references inspiration_requests on delete cascade,
+  user_id       uuid not null references auth.users on delete cascade,
+  created_at    timestamptz not null default now(),
+  unique(request_id, user_id)   -- un voto por usuario y solicitud
+);
+
+create index idx_inspiration_votes_request on inspiration_votes(request_id);
+```
+
+### Tabla: `inspiration_comments`
+
+```sql
+create table if not exists inspiration_comments (
+  id            uuid primary key default gen_random_uuid(),
+  request_id    uuid not null references inspiration_requests on delete cascade,
+  user_id       uuid not null references auth.users on delete cascade,
+  body          text not null,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index idx_inspiration_comments_request on inspiration_comments(request_id);
+```
+
+### Políticas RLS
+
+- **inspiration_requests:** SELECT para miembros del grupo. INSERT para cualquier miembro del grupo. UPDATE de `status` solo para admin (usar service role o check de rol). UPDATE de campos propios solo para creador. DELETE solo para creador o admin.
+- **inspiration_votes:** SELECT para miembros del grupo. INSERT/DELETE para el propio usuario (toggle).
+- **inspiration_comments:** SELECT para miembros del grupo. INSERT para cualquier miembro. UPDATE/DELETE para el creador del comentario.
+
+## Tareas del sprint
+
+---
+
+### TASK-86 — Scaffold de la app y base de datos
+
+**Objetivo:** Crear la estructura de archivos de la app `inspiration` y las tablas en Supabase.
+
+**Subtareas:**
+
+1. **Crear directorio `apps/inspiration/`** con la estructura completa:
+   - `manifest.json`, `logo.svg`, `assets/icon.svg`
+   - `migrations.sql`, `uninstall.sql`
+   - `install.ts`, `uninstall.ts`
+   - `view.tsx`, `admin.tsx`, `widget.tsx` (stubs)
+
+2. **`manifest.json`** completo con todos los campos requeridos:
+   ```json
+   {
+     "slug": "inspiration",
+     "tablePrefix": "inspiration_",
+     "name": "Inspiration",
+     "version": "1.0.0",
+     "description": "A family idea board — propose improvements, report bugs, request new features, and vote on what matters most.",
+     "logo": "logo.svg",
+     "primaryColor": "#7C3AED",
+     "secondaryColor": "#F5F3FF",
+     "author": {
+       "name": "Eric RF",
+       "url": "https://github.com/rferic"
+     },
+     "minPlatformVersion": "1.0.0",
+     "views": {
+       "public": true,
+       "admin": true,
+       "widget": true,
+       "native": false
+     },
+     "api": true,
+     "dependencies": [],
+     "notifications": true,
+     "config": []
+   }
+   ```
+
+3. **`logo.svg`**: icono de bombilla (Lightbulb de lucide) en formato SVG, estilizado con `primaryColor: #7C3AED`.
+
+4. **`assets/icon.svg`**: icono cuadrado para el dashboard, misma paleta que el logo.
+
+5. **`migrations.sql`**: DDL completo con tipos enum, tablas, índices y políticas RLS (según las definiciones arriba).
+
+6. **`uninstall.sql`**: DROP de las 3 tablas + DROP TYPE de los enums.
+
+7. **`install.ts` y `uninstall.ts`**: vacíos (sin seed data necesario).
+
+**Archivos creados:**
+- `apps/inspiration/manifest.json`
+- `apps/inspiration/logo.svg`
+- `apps/inspiration/assets/icon.svg`
+- `apps/inspiration/migrations.sql`
+- `apps/inspiration/uninstall.sql`
+- `apps/inspiration/install.ts`
+- `apps/inspiration/uninstall.ts`
+
+---
+
+### TASK-87 — API: endpoints CRUD de solicitudes
+
+**Objetivo:** Implementar los endpoints REST para crear, listar, editar y eliminar solicitudes.
+
+**Archivos:**
+
+- `apps/inspiration/routes/GET.ts` — Listar solicitudes con filtros, búsqueda y ordenación
+
+  **Query params soportados:**
+  - `status` — filtrar por estado (uno o varios, separados por coma)
+  - `type` — filtrar por tipo (uno o varios, separados por coma)
+  - `search` — búsqueda full-text en título y descripción
+  - `sort` — `newest` (default), `oldest`, `most_supported` (por número de votos), `most_commented`
+  - `app_slug` — filtrar por app asignada
+
+  **Response:** array de `inspiration_requests` con campos añadidos:
+  ```json
+  {
+    "id": "...",
+    "title": "...",
+    "description": "...",
+    "type": "bug",
+    "status": "pending",
+    "app_slug": "todo",
+    "user_id": "...",
+    "group_id": "...",
+    "created_at": "...",
+    "updated_at": "...",
+    "vote_count": 5,
+    "comment_count": 3,
+    "user_has_voted": true
+  }
+  ```
+
+- `apps/inspiration/routes/POST.ts` — Crear solicitud
+
+  **Body:**
+  ```json
+  {
+    "title": "...",
+    "description": "...",
+    "type": "bug",
+    "app_slug": "todo"  // opcional
+  }
+  ```
+
+- `apps/inspiration/routes/[id]/PUT.ts` — Editar solicitud
+  - Creador puede editar `title`, `description`, `app_slug`
+  - Admin puede editar `status` además
+  - Si `status` cambia a `completed` o `rejected` → disparar email de cierre
+
+- `apps/inspiration/routes/[id]/DELETE.ts` — Eliminar solicitud (creador o admin)
+
+**Todos los handlers:** autenticación JWT con `authenticate(req, 'jwt')`, grupo correcto vía `ctx.groupId`, usar `createAdminClientUntyped()`. Firma del handler: `(req: Request, ctx: HandlerContext) => Promise<Response>`.
+
+---
+
+### TASK-88 — API: votos y comentarios
+
+**Objetivo:** Implementar los endpoints para votar/apoyar solicitudes y gestionar comentarios.
+
+**Archivos:**
+
+- `apps/inspiration/routes/[id]/vote.ts` — Toggle voto
+  - `POST`: si el usuario ya votó → quitar voto. Si no → añadir voto.
+  - Response: `{ voted: true/false, vote_count: N }`
+  - Un voto por usuario y solicitud (enforced por unique constraint en DB)
+
+- `apps/inspiration/routes/[id]/comments/GET.ts` — Listar comentarios
+  - Ordenados por `created_at` ascendente (cronológico)
+  - Incluye `user` info: display_name, avatar_url (JOIN con auth.users o tabla profiles)
+
+- `apps/inspiration/routes/[id]/comments/POST.ts` — Añadir comentario
+  - Body: `{ "body": "..." }`
+  - Tras crear el comentario, disparar email de notificación a:
+    - Creador de la solicitud
+    - Admins del grupo
+    - Usuarios que han votado la solicitud (excepto el autor del comentario)
+
+**Nota:** La ruta `vote.ts` es un endpoint adicional que no sigue el patrón REST estándar de `routes/[id]/GET.ts`. El router de apps debe soportar este path adicional `[id]/vote`.
+
+---
+
+### TASK-89 — Vista pública (view.tsx)
+
+**Objetivo:** Implementar la vista principal de la app Inspiration donde los usuarios ven, filtran y crean solicitudes.
+
+**Archivo:** `apps/inspiration/view.tsx`
+
+**Componentes y funcionalidades:**
+
+1. **Header:** título "Inspiration" + contadores (total, pendientes, completadas)
+
+2. **Barra de filtros:**
+   - **Search:** input de texto con debounce (300ms), búsqueda en título y descripción
+   - **Filtro por tipo:** chips o dropdown con los 6 tipos, cada uno con su color e icono
+   - **Filtro por estado:** chips con los estados activos
+   - **Ordenación:** dropdown con opciones: Más recientes, Más antiguos, Más apoyados, Más comentados
+   - Los filtros se reflejan en query params de la URL (compartibles)
+
+3. **Botón "Nueva idea":** abre modal de creación (ver TASK-91) o navega a un estado inline del formulario.
+
+4. **Lista de solicitudes (tarjetas):**
+   - Cada tarjeta muestra:
+     - Tipo (badge con color + icono)
+     - Estado (badge con color)
+     - Título
+     - Descripción (truncada a 2 líneas)
+     - App asignada (si tiene) — badge con nombre de la app
+     - Nº de votos + botón de votar (corazón/lightbulb con contador)
+     - Nº de comentarios
+     - Creador (avatar/nombre) + fecha relativa
+     - Si el usuario actual ya ha votado → botón resaltado
+   - Click en tarjeta → expande detalle (modal o navegación a detalle)
+
+5. **Changelog view (toggle):**
+   - Switch/tab entre "Activas" y "Changelog"
+   - Changelog muestra solo solicitudes `completed`, ordenadas por fecha de completado descendente
+   - Diseño más compacto, estilo release notes
+
+6. **Estados de carga/empty:**
+   - Skeleton cards durante carga
+   - Empty state: ilustración + "Aún no hay ideas. ¡Sé el primero en proponer algo!"
+
+**Estilo:**
+- Mobile-first, tarjetas apiladas verticalmente
+- Paleta de la app: violeta (#7C3AED) como acento principal
+- Tarjetas: `bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow`
+- Votos: botón heart/like con animación suave al hacer toggle
+- Usar `useAppContext()` para obtener `groupSlug` y configuración
+
+---
+
+### TASK-90 — Vista admin (admin.tsx)
+
+**Objetivo:** Panel de administración para gestionar el ciclo de vida de las solicitudes.
+
+**Archivo:** `apps/inspiration/admin.tsx`
+
+**Columnas de la tabla:**
+- Tipo (badge con color + icono)
+- Título (truncado)
+- Creador (avatar + nombre)
+- Votos (contador)
+- App asignada (si tiene)
+- Estado actual (badge)
+- Acciones: cambiar estado (dropdown)
+
+**Funcionalidades:**
+
+1. **Filtros admin:** igual que la vista pública pero sin restricción de "mis solicitudes" — ve todas las del grupo.
+
+2. **Selector de estado inline:** dropdown en cada fila para cambiar el estado.
+   - Solo muestra transiciones válidas
+   - Confirmación para estados finales (`completed`, `rejected`, `duplicate`)
+   - Al cambiar a `completed`: opción de enviar email de cierre
+
+3. **Modal de detalle rápido** (click en fila): título completo, descripción, timeline de estados, comentarios, lista de votantes.
+
+4. **Envío manual de email de cierre:** botón en solicitudes `completed` por si no se envió automáticamente.
+
+**Estilo:**
+- Consistente con admin de otras apps: `bg-white rounded-xl border border-slate-100`
+- Badges de estado con colores semánticos
+- Acciones con dropdown menu (shadcn DropdownMenu si está instalado, o alternativo nativo)
+
+---
+
+### TASK-91 — Modal de creación con templates por tipo
+
+**Objetivo:** Formulario guiado para crear solicitudes que cambia según el tipo seleccionado.
+
+**Componente:** `apps/inspiration/view.tsx` (inline) o componente separado `CreateRequestModal.tsx`
+
+**Paso 1 — Seleccionar tipo:**
+```
+┌──────────────────────────────────────┐
+│  ¿Qué quieres proponer?              │
+│                                      │
+│  🐛  Bug            Reportar error   │
+│  ✨  Mejora          Sugerir mejora   │
+│  📱  Nueva app       Proponer app    │
+│  🧩  Feature         Nueva función   │
+│  💡  Funcionalidad   Mejora general  │
+│  ⋯  Otro            Lo que sea      │
+│                                      │
+│  [Cancelar]                          │
+└──────────────────────────────────────┘
+```
+Cada opción es una tarjeta clickable con icono grande, color del tipo, y descripción corta.
+
+**Paso 2 — Formulario específico según tipo:**
+
+| Tipo | Campos extra |
+|---|---|
+| `bug` | App afectada (dropdown de apps instaladas), pasos para reproducir, comportamiento esperado vs actual |
+| `improvement` | App afectada (opcional), sugerencia detallada |
+| `new_app` | Nombre propuesto, descripción de qué haría, ¿app similar que conozcas? |
+| `new_app_feature` | App destino (dropdown), descripción de la feature |
+| `new_general_functionality` | Descripción libre |
+| `other` | Título + descripción libre |
+
+**Campos comunes en todos:**
+- Título (obligatorio)
+- Descripción (obligatorio, textarea)
+
+**Paso 3 — Confirmación:**
+- Resumen de lo que se va a enviar
+- Botón "Publicar idea"
+
+**UI:** Modal con backdrop blur, animación de entrada, navegación entre pasos con transición suave.
+
+---
+
+### TASK-92 — Widget del dashboard
+
+**Objetivo:** Widget compacto para el dashboard que muestre un resumen de Inspiration.
+
+**Archivo:** `apps/inspiration/widget.tsx`
+
+**Contenido:**
+- Título "Inspiration" + contador de ideas activas (no completadas ni rechazadas)
+- Top 3 solicitudes más apoyadas (solo título + votos)
+- Si hay solicitudes completadas recientemente: mini-changelog (últimas 2, con fecha)
+- Link "Ver todas" → `/apps/inspiration`
+
+**Estilo:**
+- Compacto: `p-4`, mismos estilos que otros widgets
+- Color primario de la app (violeta) para acentos
+- Sin acciones (solo lectura)
+
+---
+
+### TASK-93 — Templates de email con React Email
+
+**Objetivo:** Crear los templates de email para notificaciones de Inspiration.
+
+**Archivos:**
+
+1. **`src/emails/inspiration-new-comment.tsx`**
+   - Asunto: "Nuevo comentario en '{titulo}' — 027apps"
+   - Destinatarios: creador de la solicitud + usuarios que votaron (excepto el autor del comentario)
+   - Contenido: quién comentó, en qué solicitud, snippet del comentario, link a la solicitud
+   - Props: `requestTitle`, `commentAuthor`, `commentSnippet`, `requestUrl`, `locale`
+
+2. **`src/emails/inspiration-status-change.tsx`**
+   - Asunto: "Tu idea '{titulo}' ha cambiado a {estado} — 027apps"
+   - Destinatarios: creador de la solicitud + usuarios que votaron
+   - Contenido: estado anterior → nuevo estado, mensaje según el estado, link
+   - Props: `requestTitle`, `oldStatus`, `newStatus`, `message`, `requestUrl`, `locale`
+
+3. **`src/emails/inspiration-closure.tsx`** ⭐ (el email bonito)
+   - Asunto: "¡Tu idea '{titulo}' ha sido completada! — 027apps"
+   - Destinatarios: creador + todos los votantes
+   - Diseño cuidado: header con gradiente, sección de "Lo que pediste", sección de "Lo que se ha hecho", celebración
+   - Props: `requestTitle`, `requestDescription`, `closureMessage`, `appName`, `appUrl`, `locale`
+   - Si la solicitud resultó en una nueva app/versión: incluir badge de la app, link a la app
+
+**Estilo de todos los emails:**
+- Consistente con `src/emails/invitation.tsx` (ya existente de Sprint 8)
+- Paleta de la app (violeta) para acentos
+- Footer estándar de 027apps
+
+---
+
+### TASK-94 — Lógica de envío de emails (Server Actions)
+
+**Objetivo:** Implementar las Server Actions que disparan los emails cuando ocurren eventos.
+
+**Archivo:** `src/lib/use-cases/inspiration/send-notifications.ts`
+
+**Funciones:**
+
+1. **`notifyNewComment(requestId, commentAuthorId, commentSnippet, locale)`**
+   - Obtiene la solicitud y sus datos
+   - Encuentra destinatarios: creador + votantes (excluyendo al autor del comentario)
+   - Obtiene emails de los destinatarios
+   - Renderiza `inspiration-new-comment.tsx` → envía via Resend
+
+2. **`notifyStatusChange(requestId, oldStatus, newStatus, locale)`**
+   - Obtiene la solicitud
+   - Encuentra destinatarios: creador + votantes
+   - Si es estado final (`completed`, `rejected`, `duplicate`): usa `inspiration-closure.tsx`
+   - Si es estado intermedio: usa `inspiration-status-change.tsx`
+   - Envía via Resend
+
+**Manejo de errores:**
+- Si el envío de email falla: loggear error, NO bloquear la operación principal
+- Opcionalmente: flag en la solicitud `closure_email_sent: boolean` para reintentar desde admin
+
+**Integración:**
+- Llamar `notifyNewComment` desde el handler POST de comentarios (TASK-88)
+- Llamar `notifyStatusChange` desde el handler PUT de solicitud (TASK-87, cuando cambia `status`)
+
+---
+
+### TASK-95 — i18n de la app Inspiration
+
+**Objetivo:** Añadir todas las claves de traducción para la app Inspiration en los 6 idiomas.
+
+**Archivos:** `apps/inspiration/i18n/{en,es,it,ca,fr,de}.json`
+
+**Claves principales en `en.json`:**
+
+```json
+{
+  "title": "Inspiration",
+  "description": "Ideas and suggestions for improving 027apps",
+  "new_idea": "New idea",
+  "changelog": "Changelog",
+  "active": "Active",
+  "filters": {
+    "search_placeholder": "Search ideas...",
+    "sort_newest": "Newest",
+    "sort_oldest": "Oldest",
+    "sort_most_supported": "Most supported",
+    "sort_most_commented": "Most commented",
+    "type_label": "Type",
+    "status_label": "Status",
+    "all_types": "All types",
+    "all_statuses": "All statuses"
+  },
+  "types": {
+    "bug": "Bug",
+    "improvement": "Improvement",
+    "new_app": "New app",
+    "new_app_feature": "App feature",
+    "new_general_functionality": "General functionality",
+    "other": "Other"
+  },
+  "statuses": {
+    "pending": "Pending",
+    "reviewing": "Reviewing",
+    "approved": "Approved",
+    "in_progress": "In progress",
+    "completed": "Completed",
+    "rejected": "Rejected",
+    "on_hold": "On hold",
+    "duplicate": "Duplicate"
+  },
+  "create": {
+    "step1_title": "What do you want to propose?",
+    "step1_bug_desc": "Report a bug or issue",
+    "step1_improvement_desc": "Suggest an improvement",
+    "step1_new_app_desc": "Propose a new app",
+    "step1_feature_desc": "Request a new feature for an existing app",
+    "step1_general_desc": "Propose a general improvement",
+    "step1_other_desc": "Anything else",
+    "step2_title": "Tell us more",
+    "bug_app_label": "Which app?",
+    "bug_steps_label": "Steps to reproduce",
+    "bug_expected_label": "What did you expect to happen?",
+    "bug_actual_label": "What actually happened?",
+    "improvement_app_label": "Related app (optional)",
+    "new_app_name_label": "Proposed app name",
+    "new_app_description_label": "What would this app do?",
+    "feature_app_label": "Which app should this be added to?",
+    "title_label": "Title",
+    "title_placeholder": "Give your idea a short, clear title",
+    "description_label": "Description",
+    "description_placeholder": "Explain your idea in detail...",
+    "app_label": "Assign to app (optional)",
+    "app_none": "None",
+    "submit": "Publish idea",
+    "success": "Your idea has been published!",
+    "cancel": "Cancel",
+    "back": "Back"
+  },
+  "card": {
+    "votes": "{count, plural, one {# vote} other {# votes}}",
+    "comments": "{count, plural, one {# comment} other {# comments}}",
+    "vote_button": "Support this idea",
+    "voted_button": "You support this",
+    "assigned_to_app": "Assigned to {app}",
+    "by": "by",
+    "view_details": "View details"
+  },
+  "comments": {
+    "title": "Comments",
+    "empty": "No comments yet. Be the first to comment!",
+    "placeholder": "Write a comment...",
+    "submit": "Comment",
+    "deleted": "Comment deleted"
+  },
+  "empty": {
+    "title": "No ideas yet",
+    "description": "Be the first to propose an idea for improving 027apps!",
+    "filtered": "No ideas match your filters. Try adjusting them."
+  },
+  "widget": {
+    "active_ideas": "{count} active ideas",
+    "view_all": "View all ideas",
+    "recently_completed": "Recently completed"
+  },
+  "admin": {
+    "title": "Inspiration — Admin",
+    "subtitle": "Manage idea lifecycle",
+    "change_status": "Change status",
+    "status_changed": "Status updated to {status}",
+    "send_closure_email": "Send closure email",
+    "closure_email_sent": "Closure email sent",
+    "closure_email_error": "Failed to send closure email"
+  },
+  "emails": {
+    "new_comment_subject": "New comment on '{title}' — 027apps",
+    "new_comment_body": "{name} commented on your idea \"{title}\"",
+    "status_change_subject": "Your idea '{title}' is now {status} — 027apps",
+    "closure_subject": "Your idea '{title}' has been completed! — 027apps",
+    "closure_header": "Your idea has become reality!",
+    "closure_body": "We've implemented your idea \"{title}\"",
+    "closure_cta": "Check it out",
+    "closure_footer": "Thank you for helping make 027apps better!"
+  }
+}
+```
+
+**Procedimiento:**
+1. Escribir `en.json` completo
+2. Ejecutar script de sincronización para propagar claves a es, it, ca, fr, de
+3. Traducir valores a cada idioma
+4. Avisar al usuario que reinicie el dev server tras modificar JSON de i18n
+
+---
+
+### TASK-96 — Tests unitarios y de integración
+
+**Objetivo:** Garantizar que la app funciona correctamente.
+
+**Tests unitarios:**
+
+`tests/inspiration/requests.test.ts`:
+- `createRequest` guarda correctamente con todos los campos
+- `listRequests` aplica filtros (status, type, search, sort)
+- `updateRequest` permite cambio de estado solo si es admin
+- `updateRequest` no permite transiciones de estado inválidas
+- `deleteRequest` solo para creador o admin
+
+`tests/inspiration/votes.test.ts`:
+- Toggle voto: crear si no existe, eliminar si existe
+- Unique constraint previene duplicados
+- `vote_count` se actualiza correctamente
+
+`tests/inspiration/comments.test.ts`:
+- Crear comentario vinculado a request
+- Listar comentarios ordenados cronológicamente
+- Eliminar comentario solo el autor
+
+`tests/emails/inspiration-closure.test.ts`:
+- `render(inspirationClosureEmail)` produce HTML válido
+- Props requeridas están presentes en el output
+- i18n funciona según locale
+
+**Tests de integración (API):**
+
+`tests/api/inspiration.test.ts`:
+- `GET /api/v1/{group}/apps/inspiration` → 200 con array
+- `POST` → 201 con la solicitud creada
+- `PUT /[id]` como admin → cambio de estado exitoso
+- `PUT /[id]` como miembro → solo puede editar campos propios
+- `POST /[id]/vote` → toggle funciona
+- `POST /[id]/comments` → 201 con comentario creado
+
+`tests/e2e/inspiration-create.e2e.ts`:
+- Usuario navega a `/apps/inspiration`
+- Abre modal "Nueva idea"
+- Selecciona tipo "Bug"
+- Rellena formulario de bug (app, pasos, expected, actual)
+- Submit → aparece en la lista
+
+`tests/e2e/inspiration-admin.e2e.ts`:
+- Admin ve todas las solicitudes
+- Cambia estado de pending a reviewing
+- Solicitud se mueve en la UI
+- Cambia a completed → se muestra opción de email de cierre
+
+---
+
+### TASK-97 — Contrato ts-rest de Inspiration
+
+**Objetivo:** Definir contrato tipado para la API de Inspiration, siguiendo el patrón del Sprint 9.
+
+**Archivo:** `src/contracts/v1/inspiration.ts`
+
+```typescript
+import { initContract } from '@ts-rest/core'
+import { z } from 'zod'
+
+const c = initContract()
+
+const RequestTypeEnum = z.enum([
+  'bug', 'improvement', 'new_app', 'new_app_feature',
+  'new_general_functionality', 'other'
+])
+
+const RequestStatusEnum = z.enum([
+  'pending', 'reviewing', 'approved', 'in_progress',
+  'completed', 'rejected', 'on_hold', 'duplicate'
+])
+
+const InspirationRequestSchema = z.object({
+  id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  title: z.string(),
+  description: z.string(),
+  type: RequestTypeEnum,
+  status: RequestStatusEnum,
+  app_slug: z.string().nullable(),
+  group_id: z.string().uuid(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  vote_count: z.number(),
+  comment_count: z.number(),
+  user_has_voted: z.boolean(),
+})
+
+// ... contratos para cada endpoint
+```
+
+**Nota:** Los endpoint handlers actuales de apps usan la firma `(req: Request, ctx: HandlerContext) => Promise<Response>` (no ts-rest). La creación del contrato es para documentación y type-safety futura. Los handlers en `apps/inspiration/routes/` se implementan con el patrón actual de `authenticate()` + `apiOk/apiError` + `createAdminClientUntyped()`, igual que el resto de apps.
+
+---
+
+### TASK-98 — Documentación de la app
+
+**Objetivo:** Escribir la documentación para el sitio de docs (Fumadocs) y la API.
+
+**Archivos:**
+
+1. **`apps/inspiration/docs/index.mdx`**
+   - Qué es Inspiration
+   - Cómo crear una solicitud
+   - Estados del ciclo de vida
+   - Tipos de solicitud con sus colores
+   - Cómo votar y comentar
+   - Vista admin
+   - Widget
+
+2. **`apps/inspiration/docs/api.mdx`**
+   - Referencia de endpoints
+   - Schema de request/response
+   - Query params de filtrado
+   - Ejemplos con cURL
+
+---
+
+## Orden de ejecución
+
+```
+TASK-86 (scaffold + DB)
+  │  ← SIN DEPENDENCIAS. Base de datos y estructura de archivos.
+  │
+  ├── TASK-87 (API: CRUD solicitudes)
+  │     ← Depende de TASK-86 (tablas existentes)
+  │
+  ├── TASK-88 (API: votos y comentarios)
+  │     ← Depende de TASK-86, paralela a TASK-87
+  │
+  ├── TASK-91 (modal creación con templates)
+  │     ← Depende de TASK-86, puede empezar en paralelo con diseño
+  │
+  ├── TASK-93 (templates email)
+  │     ← Depende de TASK-86 (saber tipos y estados para diseñar)
+  │
+  └── TASK-94 (lógica envío emails)
+        ← Depende de TASK-93 + TASK-87 + TASK-88
+        │
+        ├── TASK-89 (view.tsx)
+        │     ← Depende de TASK-87 + TASK-88 + TASK-91
+        │
+        ├── TASK-90 (admin.tsx)
+        │     ← Depende de TASK-87 + TASK-88 + TASK-94
+        │
+        ├── TASK-92 (widget)
+        │     ← Depende de TASK-87
+        │
+        ├── TASK-95 (i18n)
+        │     ← Depende de todas las anteriores (consolidar claves)
+        │
+        ├── TASK-97 (contrato ts-rest)
+        │     ← Depende de TASK-87 + TASK-88 (endpoints definidos)
+        │
+        ├── TASK-98 (documentación)
+        │     ← Depende de todas las anteriores
+        │
+        └── TASK-96 (tests)
+              ← Depende de todas las anteriores
+```
+
+**Resumen de dependencias:**
+```
+TASK-86 ─┬─ TASK-87 ────────────────────────────┐
+         ├─ TASK-88 ────────────────────────────┤
+         ├─ TASK-91 ────────────────────────────┤
+         └─ TASK-93 ─── TASK-94 ────────────────┤
+                                                  │
+         ┌────────────────────────────────────────┤
+         │                                        │
+         ├─ TASK-89 ◄── view.tsx                  │
+         ├─ TASK-90 ◄── admin.tsx                 │
+         ├─ TASK-92 ◄── widget.tsx                │
+         ├─ TASK-95 ◄── i18n (consolidar)         │
+         ├─ TASK-97 ◄── contrato ts-rest          │
+         ├─ TASK-98 ◄── documentación             │
+         └─ TASK-96 ◄── tests                     │
+```
+
+**Paralelismo posible:**
+- TASK-87, TASK-88, TASK-91 y TASK-93 pueden ejecutarse en paralelo tras TASK-86
+- TASK-89, TASK-90 y TASK-92 pueden ejecutarse en paralelo tras sus dependencias
+- TASK-95, TASK-96, TASK-97 y TASK-98 son secuenciales al final
+
+## Dependencias nuevas
+
+No se requieren nuevas dependencias npm. Todo usa paquetes ya instalados:
+- `next-intl` para i18n
+- `resend` + `@react-email/components` para emails (ya instalados en Sprint 8)
+- `lucide-react` para iconos (ya instalado)
+- `@ts-rest/core` para contratos (ya instalado en Sprint 9)
+- `zod` para validación de schemas (ya instalado)
+
+## Impacto entre módulos
+
+| Módulo/Sistema | Impacto |
+|---|---|
+| **Apps** | Nueva app `inspiration` en `apps/inspiration/`. Sin afectar a `todo` ni otras apps. |
+| **Base de datos** | 3 tablas nuevas (`inspiration_requests`, `inspiration_votes`, `inspiration_comments`) + 2 enums. Policies RLS por grupo. |
+| **API** | Nuevos endpoints bajo `/api/v1/{group}/apps/inspiration/...` |
+| **Emails** | 3 nuevos templates en `src/emails/`. Nueva Server Action en `src/lib/use-cases/inspiration/`. |
+| **Dashboard** | Nuevo widget en el grid del dashboard. |
+| **Admin** | Nueva vista en `/admin/apps/inspiration`. |
+| **i18n** | ~60 claves nuevas en `apps/inspiration/i18n/` para los 6 idiomas. |
+| **Documentación** | Nuevas páginas en el sitio de docs (Fumadocs). |
+| **Contratos ts-rest** | Nuevo archivo `src/contracts/v1/inspiration.ts`. |
+
+## 🐛 Bug: Public GET returns 0 rows (2 Jun 2026)
+
+### Síntoma
+- Admin dashboard (`getInspirationAdminStats`) muestra datos correctamente
+- Public view (`apps/inspiration/view.tsx`) muestra "0 total · 0 active · 0 completed"
+- POST /api/v1/mi-familia/apps/inspiration → 201 (insert OK)
+- GET /api/v1/mi-familia/apps/inspiration → 200 but `data: []`
+- Sin errores visibles (API devuelve 200)
+
+### Diferencia clave entre Path A (works) y Path B (broken)
+
+| | Path A (Admin) | Path B (Public view) |
+|---|---|---|
+| Entry point | Server Component (SSR) | Browser → Route Handler |
+| Supabase client | `createAdminClientUntyped()` direct | `createAdminClientUntyped()` via handler |
+| Query | `.select('*', { count: 'exact', head: true })` | `.select('*', { count: 'exact', head: true })` + fallback |
+| Auth context | None (service_role) | dispatch auth → `ctx.userId` |
+
+### Cambios aplicados (sin éxito)
+1. ✅ Eliminado `group_id` de schema, handlers, RLS, migrations
+2. ✅ Migration segura con DO blocks + NOTIFY pgrst
+3. ✅ Logo endpoint con color dinámico desde manifest
+4. ✅ Cache-Control: no-cache en logo endpoint
+5. ✅ Count fallback (si head:true da 0, verifica con SELECT real)
+6. ✅ Handler simplificado a SELECT único sin head:true
+7. ✅ `apiError` en vez de `apiOk` para errores de DB
+
+### Hipótesis pendientes
+1. **Los datos del admin dashboard son de ANTES de la reinstalación** (caché del navegador). Después de reinstalar, la tabla está vacía. El POST 201 inserta pero el GET no lo ve.
+2. **Problema de schema cache de PostgREST** a pesar de NOTIFY. Probar creando una RPC function que haga SELECT directo (bypass PostgREST).
+3. **El entorno Vercel preview tiene variables de entorno distintas** entre SSR y Route Handler.
+4. **La tabla `inspiration_requests` no existe realmente** en el schema que PostgREST consulta (creada en otro schema).
+
+### Para debug desde ordenador
+1. Conectar a Supabase staging (`tsphkmbtnahjgsivdhaj`) y verificar:
+   ```sql
+   select * from inspiration_orders;  -- ¿existe? ¿tiene datos?
+   select count(*) from inspiration_requests;
+   ```
+2. Probar la API directamente con curl + token de sesión:
+   ```bash
+   curl -H "Authorization: Bearer <token>" https://xxx.vercel.app/api/v1/mi-familia/apps/inspiration
+   ```
+3. Ver logs de Supabase (no Vercel) para ver la query real que envía PostgREST.
+
+## Notas para los agentes implementadores
+
+1. **La app `todo` NO se toca.** Este sprint crea `inspiration` desde cero. La app `todo` se queda exactamente como está.
+
+2. **El router de apps maneja las rutas automáticamente.** No hay que tocar `src/app/api/v1/` ni el proxy dinámico. Las rutas en `apps/inspiration/routes/` son montadas por el sistema de apps existente.
+
+3. **El endpoint de votos (`[id]/vote.ts`)** es una ruta adicional fuera del CRUD estándar. Verificar que el router de apps soporta rutas extra dentro de `[id]/`. Si no, implementarlo con un path param adicional o mover la lógica al PUT de la request.
+
+4. **La búsqueda full-text** usa `to_tsvector('simple', ...)` para evitar dependencia de diccionarios de idioma. La búsqueda es básica pero funcional para los 6 idiomas sin configuración extra.
+
+5. **Los emails se envían tras la operación principal.** Si el envío de email falla, la operación (crear comentario, cambiar estado) igualmente se completa. El error se loggea pero no se revierte la operación. Esto evita que un fallo de Resend bloquee la funcionalidad de la app.
+
+6. **El modal de creación con templates por tipo** usa estado local (React state) para los pasos. No requiere rutas separadas. Sigue el patrón MODAL definido en las convenciones del proyecto (backdrop, cierre con X/escape/backdrop click).
+
+7. **`createAdminClientUntyped()`** para todas las queries — las tablas de `inspiration_` no están en los tipos generados de Supabase.
+
+8. **El manifest NO declara `native: true`** — no hay vista React Native en este sprint. Se puede añadir en el futuro.
+
+9. **Los colores e iconos por tipo** se definen como constantes en un archivo `apps/inspiration/constants.ts` para reutilizar en view, admin y widget.
+
+10. **El changelog view** es un filtro predefinido (`status=completed`) con diseño alternativo, no una tabla o vista separada.
+
+11. **Para los avatares y nombres de usuario**, usar la tabla `profiles` si existe, o hacer JOIN con `auth.users` via el admin client. Si no hay tabla de perfiles, mostrar solo el UUID truncado (mismo patrón que el admin de `todo`).
+
+12. **La asignación a app (`app_slug`)** se valida contra la lista de apps instaladas en el grupo. El dropdown del formulario obtiene las apps instaladas vía API. Si una app se desinstala después, el slug queda como texto histórico (sin FK).
+
+13. **La notificación de nuevo comentario** debe excluir al autor del comentario de los destinatarios. Un usuario no recibe email de su propio comentario.
+
+14. **Transiciones de estado:** aunque el admin puede técnicamente saltar de cualquier estado a cualquier otro (no se bloquea en DB, solo en UI), la UI debe guiar con las transiciones esperadas según la tabla de estados.
+
+15. **Admin endpoint:** El admin fetch desde `/api/v1/admin/apps/inspiration` (ruta admin global), no desde la ruta con grupo. Mismo patrón que app todo.
+
+16. **Route handlers** firma correcta: `export default async function handler(req: Request, ctx: HandlerContext): Promise<Response>`. NO usar `NextRequest`. Ver `src/lib/apps/router-types.ts`.
+
+17. **CSS dinámico:** usar `style={{ backgroundColor: 'var(--app-primary)' }}` o `style={{ color: 'var(--app-primary)' }}` para el color primario, no Tailwind classes hardcodeadas. La variable `--app-primary` la inyecta el sistema de apps.

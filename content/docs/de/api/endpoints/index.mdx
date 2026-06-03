@@ -11,10 +11,10 @@ Alle Pfade sind relativ zur Basis-URL `/api/v1`.
 
 | Methode | Pfad | Auth | Beschreibung |
 |---|---|---|---|
-| `GET` | `/api/v1` | Öffentlich | [Statusprüfung](/docs/api) — gibt Version und Status zurück |
-| `GET` | [`/api/v1/me`](/docs/api/endpoints/me) | JWT | Informationen zum authentifizierten Benutzer, Gruppenmitgliedschaft und Profil |
-| `GET` | [`/api/v1/apps`](/docs/api/endpoints/apps) | JWT oder API Key | Für die Gruppe verfügbare Apps (oder nach Benutzerberechtigungen gefiltert) |
-| `GET` | [`/api/v1/locales`](/docs/api/endpoints/locales) | Öffentlich | Aktive, für die Gruppe konfigurierte Sprachen |
+| `GET` | `/api/v1` | Öffentlich | [Statusprüfung](/doc/api) — gibt Version und Status zurück |
+| `GET` | [`/api/v1/me`](/doc/api/endpoints/me) | JWT | Informationen zum authentifizierten Benutzer, Gruppenmitgliedschaft und Profil |
+| `GET` | [`/api/v1/apps`](/doc/api/endpoints/apps) | JWT oder API Key | Für die Gruppe verfügbare Apps (oder nach Benutzerberechtigungen gefiltert) |
+| `GET` | [`/api/v1/locales`](/doc/api/endpoints/locales) | Öffentlich | Aktive, für die Gruppe konfigurierte Sprachen |
 
 ## Authentifizierungsebenen
 
@@ -23,4 +23,4 @@ Alle Pfade sind relativ zur Basis-URL `/api/v1`.
 - **API Key** — Erfordert `X-API-Key: sk_027_...`. Der Schlüssel muss aktiv (nicht widerrufen) sein.
 - **JWT oder API Key** — Beide Arten von Anmeldedaten werden akzeptiert; die Antwort kann je nach verwendetem Typ abweichen.
 
-Informationen zum Erhalt von Anmeldedaten finden Sie unter [Authentifizierung](/docs/api/authentication).
+Informationen zum Erhalt von Anmeldedaten finden Sie unter [Authentifizierung](/doc/api/authentication).

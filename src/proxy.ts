@@ -72,14 +72,14 @@ export async function proxy(request: NextRequest) {
   }
 
   // Redirect old /doc/{lang}/... and /doc/path/... to /{locale}/doc/...
-  if (pathname === '/doc' || pathname.startsWith('/doc/')) {
-    const after = pathname === '/doc' ? '' : pathname.slice(5) // strip '/doc/'
+  if (pathname === '/doc' || pathname.startsWith('/doc/') || pathname === '/docs' || pathname.startsWith('/docs/')) {
+    const isDocs = pathname.startsWith('/docs')
+    const base = isDocs ? '/docs' : '/doc'
+    const after = pathname === base ? '' : pathname.slice(base.length)
     const first = after.split('/')[0]
     if (VALID_LOCALES.includes(first)) {
-      // /doc/en/api → /en/doc/api
       return NextResponse.redirect(new URL(`/${first}/doc${after.slice(first.length)}`, request.url))
     }
-    // /doc/api/i18n → /en/doc/api/i18n  (no locale prefix)
     return NextResponse.redirect(new URL(`/${preferredLocale(request)}/doc${after ? `/${after}` : ''}`, request.url))
   }
 

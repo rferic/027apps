@@ -1,0 +1,64 @@
+---
+title: Inspiration
+description: Family idea board — propose, vote, and track ideas.
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card'
+
+<div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+  <img src="/api/apps/inspiration/logo" alt="Inspiration" width={48} height={48} style={{ borderRadius: 12 }} />
+  <div>
+    <h1 style={{ margin: 0 }}>Inspiration</h1>
+    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 15 }}>Family idea board — propose, vote, and track ideas.</p>
+  </div>
+</div>
+
+<div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 20, backgroundColor: '#FFFBEB', color: '#F59E0B', fontSize: 13, fontWeight: 500, marginBottom: 20 }}>
+  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#F59E0B' }} />
+  Primary: #F59E0B
+  <span style={{ width: 1, height: 14, backgroundColor: '#FDE68A', margin: '0 4px' }} />
+  Slug: <code>inspiration</code>
+</div>
+
+Inspiration lets group members submit ideas, report bugs, request features, and vote on what matters most. Every request goes through a status lifecycle: `pending → reviewing → approved → in_progress → completed`.
+
+## Features
+
+- **6 request types**: Bug, Improvement, New App, App Feature, General Functionality, Other
+- **Voting**: Members can support ideas they like
+- **Comments**: Discuss ideas with threaded comments
+- **Status workflow**: Track ideas from submission to completion
+- **Email notifications**: Admins get notified on new ideas and comments
+- **Widget**: Dashboard widget showing most supported and recently completed
+- **Changelog**: View completed ideas as a changelog
+
+## API Endpoints
+
+<Cards>
+  <Card
+    title="Public API"
+    href="/doc/api/endpoints"
+    description="List, create, update, delete ideas. Vote and comment."
+  />
+  <Card
+    title="Admin API"
+    href="/doc/api/endpoints/admin-inspiration"
+    description="Manage all ideas across groups. Change statuses."
+  />
+  <Card
+    title="Interactive Reference"
+    href="/api-docs"
+    description="Test endpoints live in the browser."
+  />
+</Cards>
+
+## Type colors
+
+| Type | Color | Icon |
+|------|-------|------|
+| Bug | `#EF4444` | 🐛 |
+| Improvement | `#F59E0B` | ✨ |
+| New App | `#8B5CF6` | 🪟 |
+| App Feature | `#3B82F6` | 🧩 |
+| General Functionality | `#10B981` | 💡 |
+| Other | `#6B7280` | ⋯ |

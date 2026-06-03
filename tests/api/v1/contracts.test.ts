@@ -18,15 +18,19 @@ describe('OpenAPI generation', () => {
     expect(doc.paths).toHaveProperty('/api/v1/admin/apps/todo')
   })
 
-  it('committed spec has same endpoints as generated spec', async () => {
+  it('committed spec contains all generated spec endpoints (plus app-specific extras)', async () => {
     const { generateOpenApi } = await import('@ts-rest/open-api')
     const doc = generateOpenApi(apiContract, {
       info: { title: 'Test', version: '1.0.0' },
     })
 
-    const genPaths = Object.keys(doc.paths).sort()
-    const comPaths = Object.keys(committed.paths).sort()
-    expect(comPaths).toEqual(genPaths)
+    const genPaths = Object.keys(doc.paths)
+    const comPaths = Object.keys(committed.paths)
+    for (const p of genPaths) {
+      expect(comPaths).toContain(p)
+    }
+    // committed should have MORE paths (app endpoints not in ts-rest contracts)
+    expect(comPaths.length).toBeGreaterThanOrEqual(genPaths.length)
   })
 })
 

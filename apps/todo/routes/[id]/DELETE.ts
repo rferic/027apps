@@ -22,5 +22,5 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .eq('user_id', auth.userId)
 
   if (error) return apiError('DELETE_ERROR', error.message, 500)
-  return apiOk({ deleted: true })
+  return new Response(null, { status: 204 })
 }

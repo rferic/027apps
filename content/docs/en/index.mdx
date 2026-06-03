@@ -3,39 +3,128 @@ title: 027Apps Documentation
 description: Open-source platform for group apps — API reference, guides, and integration docs.
 ---
 
-# 027Apps Docs
+<div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+  <img src="/logo.svg" alt="027Apps" width={120} height={28} />
+  <span style={{ fontSize: 32, fontWeight: 700, color: '#9B1C1C' }}>Docs</span>
+</div>
 
-Platform documentation for developers building with or integrating 027Apps.
+027Apps is an **open-source platform for group apps** — for families, teams, or any collective. Each group manages its own users, roles, and app permissions.
 
-027Apps is an open-source platform for group apps — for families, teams, or any collective. Each group manages its own users, roles, and app permissions.
+The platform exposes a **REST API** under `/api/v1/` for authentication, user management, app access, and locale configuration. An interactive OpenAPI reference is available at [/api-docs](/api-docs).
 
-## Getting started
+---
 
-The platform exposes a REST API for authentication, user management, app access, and locale configuration. All endpoints are versioned under `/api/v1/`.
+## What are Apps?
 
-Start with [Authentication](/doc/api/authentication) to obtain a session token, then explore the available endpoints.
+Apps are **pluggable modules** that live in the group workspace. Each app has its own:
 
-## Sections
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16, margin: '24px 0' }}>
+
+<div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+<strong style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>Database</strong>
+<p style={{ marginTop: 8, fontSize: 15 }}>Own tables with automatic migrations, grants, and RLS policies.</p>
+</div>
+
+<div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+<strong style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>API</strong>
+<p style={{ marginTop: 8, fontSize: 15 }}>REST endpoints dispatched to app route handlers automatically.</p>
+</div>
+
+<div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+<strong style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>Views</strong>
+<p style={{ marginTop: 8, fontSize: 15 }}>Public UI, admin panel, dashboard widget, and native mobile screen.</p>
+</div>
+
+<div style={{ padding: 20, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+<strong style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>i18n</strong>
+<p style={{ marginTop: 8, fontSize: 15 }}>Translated to 6 languages with locale-aware dates and messages.</p>
+</div>
+
+</div>
+
+---
+
+## Available Apps
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16, margin: '24px 0' }}>
+
+<div style={{ borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+<div style={{ height: 6, backgroundColor: '#4F46E5' }} />
+<div style={{ padding: 20 }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+<img src="/api/apps/todo/logo" alt="To-Do" width={36} height={36} style={{ borderRadius: 8 }} />
+<div>
+<strong style={{ fontSize: 17 }}>To-Do</strong>
+<span style={{ fontSize: 12, color: '#64748b', display: 'block' }}>Simple task list</span>
+</div>
+</div>
+<p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6 }}>
+Create, complete, and remove to-do items. Supports per-user limits and private/public visibility.
+</p>
+<hr style={{ margin: '16px 0', border: 'none', borderTop: '1px solid #f1f5f9' }} />
+<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+<a href="/doc/apps/todo" style={{ fontSize: 13, padding: '4px 14px', borderRadius: 20, backgroundColor: '#EEF2FF', color: '#4F46E5', fontWeight: 500, textDecoration: 'none' }}>Docs</a>
+<a href="/api-docs" style={{ fontSize: 13, padding: '4px 14px', borderRadius: 20, backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: 500, textDecoration: 'none' }}>API</a>
+</div>
+</div>
+</div>
+
+<div style={{ borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+<div style={{ height: 6, backgroundColor: '#F59E0B' }} />
+<div style={{ padding: 20 }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+<img src="/api/apps/inspiration/logo" alt="Inspiration" width={36} height={36} style={{ borderRadius: 8 }} />
+<div>
+<strong style={{ fontSize: 17 }}>Inspiration</strong>
+<span style={{ fontSize: 12, color: '#64748b', display: 'block' }}>Idea board</span>
+</div>
+</div>
+<p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6 }}>
+Propose improvements, report bugs, request new features, and vote on what matters most. Includes comments, status tracking, and email notifications.
+</p>
+<hr style={{ margin: '16px 0', border: 'none', borderTop: '1px solid #f1f5f9' }} />
+<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+<a href="/doc/apps/inspiration" style={{ fontSize: 13, padding: '4px 14px', borderRadius: 20, backgroundColor: '#FFFBEB', color: '#F59E0B', fontWeight: 500, textDecoration: 'none' }}>Docs</a>
+<a href="/api-docs" style={{ fontSize: 13, padding: '4px 14px', borderRadius: 20, backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: 500, textDecoration: 'none' }}>API</a>
+</div>
+</div>
+</div>
+
+</div>
+
+---
+
+## Quick Links
 
 <Cards>
   <Card
-    title="REST API"
+    title="REST API Reference"
     href="/doc/api"
     description="Full reference for the 027Apps HTTP API — authentication, users, apps, and locales."
   />
   <Card
+    title="Interactive API (Scalar)"
+    href="/api-docs"
+    description="Explore and test every endpoint live in your browser with the OpenAPI reference."
+  />
+  <Card
+    title="Authentication"
+    href="/doc/api/authentication"
+    description="How to obtain a JWT token, use API keys, and authenticate requests."
+  />
+  <Card
     title="Internationalization"
     href="/doc/api/i18n"
-    description="6 supported locales. User preferences, group settings, URL structure, and message files."
+    description="6 supported locales. User preferences, group settings, and URL structure."
   />
   <Card
-    title="Core Endpoints"
-    href="/doc/api/endpoints"
-    description="Endpoints for users, apps, and locales — request/response schemas and examples."
-  />
-  <Card
-    title="Errors"
+    title="Error Reference"
     href="/doc/api/errors"
     description="Error codes, HTTP status reference, and field-level validation error format."
+  />
+  <Card
+    title="Endpoints"
+    href="/doc/api/endpoints"
+    description="Complete list of all API endpoints with request/response schemas."
   />
 </Cards>

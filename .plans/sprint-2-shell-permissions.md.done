@@ -1,0 +1,287 @@
+# Sprint 2: Shell Pública + Permisos de Apps
+
+## Contexto del proyecto
+
+- **Stack:** Next.js 16.2.4 (App Router, Turbopack), React 19, TypeScript strict, Tailwind CSS v4
+- **DB:** Supabase (PostgreSQL + RLS). Sin ORM — cliente Supabase directo con tipos generados.
+- **Auth:** Supabase Auth. Roles: `admin` / `member`. Helpers en `src/lib/auth/helpers.ts`.
+- **i18n:** next-intl v4, 6 idiomas. Mensajes en `src/i18n/messages/[locale].json`.
+- **UI:** shadcn/ui (estilo base-nova), Tailwind v4, Framer Motion, Lucide React.
+- **Rutas:** Route groups `(app)/[locale]/` (usuario) y `(admin)/[locale]/` (admin).
+- **Package manager:** pnpm
+
+---
+
+## Objetivo del sprint
+
+### Parte A — Shell pública
+
+El área `(app)` no tiene diseño ni navegación definidos. CLAUDE.md especifica *"estilo a definir cuando se implemente el primer módulo"* — ese momento es ahora, con el sistema de apps del Sprint 1. Sin la shell, las apps del sistema (incluida `todo`) se renderizan en un layout genérico sin header, sin navegación y sin identidad visual. Este sprint define y construye el envoltorio permanente de la experiencia del miembro.
+
+### Parte B — Permisos de apps (admin)
+
+Sprint 1 crea `installed_apps.visibility` y la tabla `app_permissions`, pero el admin no puede gestionarlos desde la UI. Este sprint completa el ciclo: el admin puede marcar una app como pública o privada, y si es privada, gestionar el acceso usuario a usuario.
+
+---
+
+## Decisiones de diseño del área pública
+
+> Estas decisiones deben tomarse al inicio del sprint (TASK-17). El Capitán presenta opciones al usuario y espera aprobación antes de cualquier implementación visual.
+
+| Punto | Decisión |
+|---|---|
+| Paleta principal | A definir en TASK-17 — distinta al admin (no slate/rose) |
+| Tipografía | Heredar la del proyecto o definir una específica |
+| Estilo general | Mobile-first — fluido, cálido, sin formalidad del backoffice |
+| Header | Logo/nombre del grupo + avatar de usuario |
+| Navegación | Bottom navigation bar (patrón de app nativa) |
+| Transiciones | Framer Motion sutil — no interferir con rendimiento mobile |
+| Estado vacío | Dashboard sin widgets instalados → pantalla de bienvenida |
+
+---
+
+## Arquitectura de componentes nuevos
+
+```
+src/components/
+  app-header.tsx           ← Header del área pública
+  app-bottom-nav.tsx       ← Bottom navigation bar dinámica
+  app-shell.tsx            ← Wrapper que combina header + bottom nav + children
+  admin-app-permissions.tsx ← UI de permisos por usuario (panel admin)
+```
+
+---
+
+## Tareas del sprint
+
+---
+
+### TASK-17 — Decisiones de diseño del área pública
+
+**Prerequisito de todas las tareas visuales de la Parte A.**
+
+El Capitán presenta al usuario 2-3 opciones de sistema de diseño para el área pública:
+- Paleta de colores (con preview de cards, botones, fondo)
+- Estilo de header (minimal vs. más visual)
+- Estilo de bottom nav (iconos solos vs. iconos + labels)
+
+Solo continuar con TASK-18 tras aprobación explícita. Documentar las decisiones en CLAUDE.md bajo la sección "Public app" del apartado de visual style.
+
+---
+
+### TASK-18 — Layout del área pública con shell
+
+**Archivo:** `src/app/(app)/[locale]/layout.tsx`
+
+Modificar el layout existente:
+- Envolver `children` con `<AppShell>`
+- `AppShell` recibe: `user` (display_name, avatar_url), lista de apps instaladas con `views.public === true` y `status === 'active'` (para construir el bottom nav)
+- Obtener datos en el layout (Server Component): usuario via `supabase.auth.getUser()` + profile, apps via query a `installed_apps`
+- Pasar datos como props a los componentes cliente
+
+---
+
+### TASK-19 — Componente AppHeader
+
+**Archivo:** `src/components/app-header.tsx`
+
+Componente `'use client'`:
+- Logo o nombre del grupo (obtenido de `group_settings.group_name`)
+- Avatar del usuario con iniciales como fallback
+- Al pulsar el avatar: dropdown con "Perfil" y "Cerrar sesión" (reusar o adaptar `UserDropdown`)
+- Locale switcher para el área pública
+- Responsive: en desktop puede ser sidebar o top bar según decisión TASK-17
+
+---
+
+### TASK-20 — Componente AppBottomNav
+
+**Archivo:** `src/components/app-bottom-nav.tsx`
+
+Componente `'use client'`:
+- Ítems fijos: "Inicio" (dashboard) + "Perfil"
+- Ítems dinámicos: una app activa con `views.public === true` = un ítem en el nav
+- Máximo 5 ítems en total — si hay más apps, las extra van en un ítem "Más" (overflow)
+- Ítem activo: resaltado con el color primario del sistema de diseño aprobado en TASK-17
+- Cada app usa su `manifest.primaryColor` como acento o el color del sistema — decidir en TASK-17
+- `usePathname()` para determinar el ítem activo
+- Solo visible en móvil (`md:hidden`); en desktop la navegación va en otro lugar (según TASK-17)
+
+---
+
+### TASK-21 — Dashboard público: layout mobile + estado vacío
+
+**Archivo:** `src/app/(app)/[locale]/dashboard/page.tsx`
+
+Modificar la página existente:
+- Grid de widgets de apps (inyectados por Sprint 1): `grid grid-cols-1 gap-4` en mobile, `grid-cols-2` en tablet
+- **Estado vacío** — si no hay widgets: pantalla de bienvenida con mensaje motivacional, icono, y enlace a "pídele al admin que instale apps"
+- **Estado cargando** — skeleton cards mientras se resuelven los widgets dinámicos
+
+---
+
+### TASK-22 — Animaciones de transición de página
+
+**Archivo:** `src/components/app-shell.tsx`
+
+Usando Framer Motion:
+- Transición `opacity` + `y` sutil (8px) al navegar entre rutas
+- Solo en el área de contenido (no en header ni bottom nav)
+- Respetar `prefers-reduced-motion` — si el usuario lo tiene activado, sin animaciones
+- Duración: ≤ 200ms para no penalizar rendimiento mobile
+
+---
+
+### TASK-23 — i18n: claves del shell público
+
+**Archivos:** `src/i18n/messages/[locale].json` para los 6 idiomas
+
+Añadir claves bajo namespace `app`:
+```json
+{
+  "app": {
+    "nav": {
+      "home": "Inicio",
+      "profile": "Perfil",
+      "more": "Más"
+    },
+    "dashboard": {
+      "welcome_title": "Bienvenido",
+      "welcome_subtitle": "Tu grupo no tiene apps activas aún.",
+      "widgets_loading": "Cargando..."
+    },
+    "header": {
+      "open_menu": "Abrir menú"
+    }
+  }
+}
+```
+
+Traducir a los 6 idiomas (en, es, it, ca, fr, de). El JSON de ejemplo usa español — `en.json` debe tener inglés, etc.
+
+---
+
+### TASK-24 — Server actions de visibilidad y permisos de app
+
+**Archivo:** `src/lib/apps/actions.ts` (ampliar el existente de Sprint 1)
+
+Añadir:
+
+- `updateAppVisibilityAction(slug: string, visibility: 'public' | 'private')` — requiere admin, actualiza `installed_apps.visibility`, revalida caché
+- `grantAppAccessAction(slug: string, userId: string)` — requiere admin, inserta en `app_permissions`, verifica que la app exista y esté activa
+- `revokeAppAccessAction(slug: string, userId: string)` — requiere admin, elimina de `app_permissions`
+- `getAppPermissionsAction(slug: string)` — retorna lista de usuarios con acceso + lista de miembros sin acceso (para poblar la UI)
+
+---
+
+### TASK-25 — Componente AdminAppPermissions
+
+**Archivo:** `src/components/admin-app-permissions.tsx`
+
+Componente `'use client'`:
+- Toggle `visibility`: `Pública` / `Privada` (switch o radio buttons, estilo admin)
+- Si `visibility === 'private'`:
+  - Lista de todos los miembros del grupo
+  - Cada fila: avatar, nombre, badge "Con acceso" / sin badge
+  - Botón "Dar acceso" / "Revocar" (mismo patrón que `AdminBlockButton`)
+  - Estado optimista: el botón cambia visualmente antes de confirmar el server action
+- Si `visibility === 'public'`: mensaje informativo "Todos los miembros tienen acceso"
+
+---
+
+### TASK-26 — Integración en página de detalle de app (admin)
+
+**Archivo:** `src/app/(admin)/[locale]/admin/apps/[slug]/page.tsx`
+
+Page server component que:
+- Carga el manifiesto de la app
+- Carga datos de `installed_apps` para ese slug
+- Llama a `getAppPermissionsAction(slug)` si `visibility === 'private'`
+- Renderiza `<AdminAppPermissions>` con los datos
+
+---
+
+### TASK-27 — i18n: claves de permisos
+
+**Archivos:** `src/i18n/messages/[locale].json` para los 6 idiomas
+
+Añadir bajo `apps`:
+```json
+{
+  "apps": {
+    "permissions": {
+      "title": "Acceso",
+      "visibility_public": "Pública",
+      "visibility_private": "Privada",
+      "visibility_description_public": "Todos los miembros del grupo pueden acceder",
+      "visibility_description_private": "Solo los miembros con acceso explícito",
+      "grant_access": "Dar acceso",
+      "revoke_access": "Revocar",
+      "has_access": "Con acceso",
+      "no_members": "No hay miembros en el grupo"
+    }
+  }
+}
+```
+
+---
+
+### TASK-28 — Tests
+
+**Archivos en `tests/`**
+
+- `tests/apps/permissions.test.ts` — tests unitarios de las server actions:
+  - `grantAppAccessAction` inserta correctamente
+  - `grantAppAccessAction` falla si app no existe o no está activa
+  - `revokeAppAccessAction` elimina correctamente
+  - `updateAppVisibilityAction` actualiza el campo
+  - Acceso bloqueado si no es admin
+
+- `tests/e2e/admin-app-permissions.e2e.ts` — test Playwright:
+  - Admin navega a detalle de app activa
+  - Cambia visibility a "Privada"
+  - Da acceso a un miembro
+  - Verifica que el miembro aparece con badge "Con acceso"
+  - Revoca el acceso
+  - Vuelve a "Pública"
+
+- `tests/e2e/app-shell.e2e.ts` — test Playwright:
+  - Miembro entra al dashboard
+  - Ve el header con nombre del grupo
+  - Ve la bottom nav
+  - Navega a una app via bottom nav
+  - Bottom nav refleja la ruta activa
+
+---
+
+## Orden de ejecución recomendado
+
+```
+TASK-17 (decisiones diseño — BLOQUEANTE)
+    ↓
+TASK-18 → TASK-19 → TASK-20 → TASK-21 → TASK-22 → TASK-23
+(Parte A — en orden, cada uno depende del anterior)
+
+TASK-24 → TASK-25 → TASK-26 → TASK-27
+(Parte B — en orden, independiente de Parte A)
+
+TASK-28 (al final, depende de A y B)
+```
+
+Parte A y Parte B pueden ejecutarse en paralelo una vez TASK-17 está aprobada.
+
+---
+
+## Notas para el agente implementador
+
+1. **TASK-17 es bloqueante.** Sin las decisiones de diseño aprobadas, ningún componente visual de Parte A puede implementarse. El Capitán gestiona esta tarea.
+
+2. **No usar la paleta del admin.** Rose, slate-900, gray-100 son exclusivos del backoffice. El área pública tiene su propio sistema de diseño definido en TASK-17.
+
+3. **Bottom nav overflow.** Si hay más de 3 apps con `views.public === true`, el quinto slot es "Más" con drawer/sheet que lista el resto. shadcn `Sheet` es la opción recomendada.
+
+4. **Acceso a apps privadas.** La verificación de acceso en las rutas públicas (`(app)/[locale]/apps/[slug]/page.tsx`) debe chequearse contra `app_permissions` si `visibility === 'private'`. Si el usuario no tiene acceso: `notFound()` o redirect a dashboard con mensaje.
+
+5. **`getAppPermissionsAction`** necesita datos de `group_members` (para listar todos los miembros) cruzados con `app_permissions` (para saber quién ya tiene acceso). Ambas tablas ya existen del Sprint 1 / schema inicial.
+
+6. **Estado optimista en TASK-25.** Usar `useOptimistic` de React 19 para las acciones de grant/revoke — misma experiencia que `AdminBlockButton` existente.

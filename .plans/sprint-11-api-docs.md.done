@@ -1,0 +1,57 @@
+# Sprint 11: Documentación de API y revisión de endpoints
+
+## Objetivo
+
+Completar la documentación de la API REST y revisar el correcto funcionamiento de todos los endpoints.
+
+## Tareas
+
+### TASK-96: Correcciones estéticas Fumadocs
+- Ajustar border-radius de cajas de código (menor)
+- Añadir padding a cajas de código
+- Verificar theme de Fumadocs
+
+### TASK-97: Endpoints faltantes en OpenAPI
+Los siguientes endpoints NO están documentados en `/public/openapi.json`:
+- `GET /api/v1/admin/apps/inspiration`
+- `GET/PUT/DELETE /api/v1/admin/apps/inspiration/[id]`
+- `GET /api/v1/{group}/apps/{slug}/[[...path]]` (app proxy router)
+- `GET /api/v1/{group}/apps/{slug}/assets/{filename}` (app assets)
+
+### TASK-98: Endpoints faltantes en MDX docs
+Los docs en `content/docs/{locale}/api/endpoints/` solo cubren:
+- `me.mdx` ✅
+- `apps.mdx` ✅
+- `locales.mdx` ✅
+
+Faltan por documentar en MDX:
+- Admin endpoints (inspiration, todo)
+- App proxy
+- Error handling, paginación, ejemplos
+
+### TASK-99: Scalar integration
+- Verificar que `/api-docs` carga correctamente el OpenAPI spec
+- Confirmar que el theme CSS se aplica
+- Añadir link desde Fumadocs a Scalar (y viceversa si aplica)
+
+### TASK-100: Test de todos los endpoints API
+Probar contra local o staging:
+- `GET /api/v1` — health
+- `GET /api/v1/me` — auth JWT
+- `GET /api/v1/apps` — auth any
+- `GET /api/v1/locales` — public
+- `GET /api/v1/admin/apps/inspiration` — admin
+- `GET/PUT/DELETE /api/v1/admin/apps/inspiration/[id]` — admin
+- `GET /api/v1/admin/apps/todo` — admin
+- App dynamic routes
+
+### TASK-101: i18n de docs
+- Verificar que los MDX están traducidos a los 6 idiomas
+- Completar traducciones faltantes en `content/docs/`
+
+## Criterios de aceptación
+- [ ] OpenAPI spec completo con todos los endpoints
+- [ ] Scalar refleja todos los endpoints
+- [ ] Fumadocs tiene documentación de todos los endpoints
+- [ ] Todos los endpoints responden correctamente
+- [ ] Código bien formateado (sin hardcodeos)

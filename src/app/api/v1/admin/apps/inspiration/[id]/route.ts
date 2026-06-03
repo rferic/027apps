@@ -170,3 +170,34 @@ export async function PUT(
 
   return apiOk(data)
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+  if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
+
+  const { id } = await params
+  if (!id) return apiError('BAD_REQUEST', 'Missing request ID', 400)
+
+  const adminClient = createAdminClientUntyped()
+
+  const { data: existing, error: fetchError } = await adminClient
+    .from('inspiration_requests')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (fetchError || !existing) return apiError('NOT_FOUND', 'Request not found', 404)
+
+  const { error: deleteError } = await adminClient
+    .from('inspiration_requests')
+    .delete()
+    .eq('id', id)
+
+  if (deleteError) return apiError('DELETE_ERROR', deleteError.message, 500)
+
+  return new Response(null, { status: 204 })
+}

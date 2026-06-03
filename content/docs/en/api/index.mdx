@@ -40,7 +40,7 @@ The API supports three authentication levels:
 | API Key | `X-API-Key: sk_027_...` | Server-to-server integrations |
 | JWT | `Authorization: Bearer <token>` | Mobile app and browser clients |
 
-See [Authentication](/docs/api/authentication) for details on how to obtain credentials and how each method behaves.
+See [Authentication](/doc/api/authentication) for details on how to obtain credentials and how each method behaves.
 
 ## Response format
 
@@ -86,15 +86,9 @@ Validation errors include a `fields` object:
 }
 ```
 
-See [Errors](/docs/api/errors) for the full error reference.
+See [Errors](/doc/api/errors) for the full error reference.
 
-## Endpoints
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/v1` | Public | Health check |
-| `GET` | `/api/v1/me` | JWT | Authenticated user info |
-| `GET` | `/api/v1/apps` | JWT or API Key | Group apps |
-| `GET` | `/api/v1/locales` | Public | Active locales for the group |
+## Interactive API reference
 
-See [Endpoints](/docs/api/endpoints) for the full reference.
+An interactive OpenAPI reference is available at [/api-docs](/api-docs). You can explore, test, and debug every endpoint directly from your browser.

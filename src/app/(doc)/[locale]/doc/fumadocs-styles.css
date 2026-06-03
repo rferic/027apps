@@ -1,4 +1,0 @@
-/* Import Fumadocs CSS into a named layer declared before Tailwind's layers in globals.css.
-   This ensures Tailwind utilities always beat Fumadocs utilities when both are loaded
-   in the browser simultaneously (client-side navigation from /doc to /admin). */
-@import 'fumadocs-ui/style.css' layer(fumadocs-ui);

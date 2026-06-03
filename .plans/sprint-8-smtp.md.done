@@ -1,0 +1,576 @@
+# Sprint 8: Configuración SMTP y emails transaccionales
+
+## Objetivo del sprint
+
+Implementar envío de emails usando Supabase Auth + Resend, con reset password nativo, invitaciones por email con templates React Email maquetados en la línea estilística de la web, y registro multilingüe (el idioma del destinatario se respeta desde la invitación).
+
+## Contexto del proyecto
+
+- **Stack:** Next.js 16.2.4 (App Router, Turbopack), React 19, TypeScript strict, Tailwind CSS v4
+- **DB:** Supabase (PostgreSQL + RLS). Sin ORM — cliente Supabase directo con tipos generados.
+- **Auth:** Supabase Auth. Roles: `admin` (platform-wide) / `member`.
+- **i18n:** next-intl v4, 6 idiomas (en, es, it, ca, fr, de).
+- **Package manager:** pnpm
+- **Último sprint completado:** Sprint 7 — CI/CD Pipeline (TASK-75 a TASK-78)
+
+---
+
+## Stack y decisiones de diseño
+
+| Decisión | Elección | Motivo |
+|---|---|---|
+| **Proveedor SMTP** | Resend (plan gratuito: 100 emails/día) | SDK moderno para Node.js, React Email para templates, usado por Supabase Auth como SMTP por defecto |
+| **Reset password** | Supabase Auth (nativo) | Flujo battle-tested. Cero reinvención. Solo configurar SMTP + templates en dashboard de Supabase. |
+| **Invitaciones custom** | Resend API desde Server Actions | Control total del contenido: datos del grupo, nombre del admin, link de registro, idioma del destinatario. |
+| **Templates email** | React Email (`@react-email/components`) | Componentes React con misma paleta Tailwind que la web. Consistencia visual con 027apps. |
+| **Dominio** | `@resend.dev` (dominio compartido de Resend) | Para pruebas. Configurable a dominio propio más adelante. |
+| **Archivo de templates** | `src/emails/` | Invitación: `invitation.tsx`. Futuros emails transaccionales en el mismo directorio. |
+| **i18n en emails** | next-intl `t()` en el template React Email | El email de invitación recibe el locale como prop y se renderiza en el idioma del destinatario. |
+| **API key Resend** | Variable de entorno `RESEND_API_KEY` | En `.env.local` para desarrollo. En Vercel env vars para staging/producción. |
+| **Stub local (invitaciones)** | Inbucket (ya corre con `supabase start`) | Misma herramienta que reset password. UI web en `http://127.0.0.1:54324`. Cero config extra. |
+| **Error handling (envío fallido)** | Opción B: fallo explícito | Toast rojo "Invitación creada pero email no enviado. Reintentar." Admin sabe que debe reenviar. |
+| **Proyectos Supabase** | 2 proyectos cloud bajo misma cuenta | Staging (`tsphkmbtnahjgsivdhaj`) / Producción (`zbwvvzeljiymwqcbemyy`) — cada uno con su SMTP configurado. |
+
+---
+
+## Arquitectura del flujo de emails
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Reset password (Supabase Auth SMTP)                        │
+│                                                             │
+│  Usuario → /recover (email)                                 │
+│    → supabase.auth.resetPasswordForEmail(email, redirectTo) │
+│    → Supabase envía email via SMTP (Resend)                 │
+│    → Usuario recibe link: /update-password?token=xxx        │
+│    → supabase.auth.updateUser({ password })                 │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  Invitación con email (Resend API desde Server Action)      │
+│                                                             │
+│  Admin → CreateInvitationModal                              │
+│    → rellena email + locale del destinatario                │
+│    → dropdown: "Crear invitación" / "Crear y enviar email"  │
+│    → si "Crear y enviar email":                             │
+│        → Server Action createInvitation() → INSERT en DB    │
+│        → Server Action renderiza invitation.tsx con React   │
+│          Email → HTML → Resend API → email al destinatario  │
+│    → si "Crear invitación": solo INSERT en DB               │
+│                                                             │
+│  Admin → listado invitaciones → botón "Reenviar"            │
+│    → solo si status=pending y tiene email                   │
+│    → Server Action reenvía el mismo email                   │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  Registro en el idioma de la invitación                     │
+│                                                             │
+│  Usuario recibe email → link: /invite/{token}               │
+│    → page.tsx lee invitation.locale                         │
+│    → setRequestLocale(locale)                               │
+│    → formulario de registro en ese idioma                   │
+│    → acceptInvitation → profile.locale = invitation.locale  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Tareas del sprint
+
+---
+
+### TASK-61 — Configurar Resend + Supabase Auth SMTP
+
+**Objetivo:** Dejar el backend de emails operativo antes de tocar código.
+
+**Subtareas:**
+
+1. **Crear cuenta en Resend** (https://resend.com)
+   - Plan gratuito: 100 emails/día, 3.000/mes
+   - Obtener API key desde el dashboard
+
+2. **Guardar API key en el proyecto**
+   - Añadir a `.env.local`: `RESEND_API_KEY=re_xxxxx`
+   - Añadir a `.env.example` (sin valor): `RESEND_API_KEY=`
+   - Documentar en README o docs que se necesita esta variable
+
+3. **Configurar SMTP en dashboard de Supabase Auth**
+   - Ir a Authentication → Email Templates → SMTP Settings
+   - Host: `smtp.resend.com`, Port: `465` (TLS)
+   - Username: `resend`, Password: la API key de Resend
+   - Verificar conexión desde el dashboard de Supabase
+
+4. **Configurar Site URL y Redirect URLs en Supabase Auth**
+   - Site URL: `http://localhost:3000` (dev) / URLs de Vercel (staging/prod)
+   - Redirect URLs: añadir `**` o explícitamente:
+     - `http://localhost:3000/**`
+     - `https://*.vercel.app/**`
+     - `https://027apps.com/**`
+
+5. **Verificar que Supabase Auth envía emails**
+   - Probar `confirm signup` desde el dashboard (Send test email)
+   - Probar `reset password` desde el formulario de login (cuando esté implementado en TASK-62)
+
+**No toca código de la app.** Solo configuración externa.
+
+**Archivos tocados:** `.env.local`, `.env.example`
+
+---
+
+### TASK-62 — Página "Olvidé mi contraseña"
+
+**Archivo:** `src/app/(app)/[locale]/recover/page.tsx` (nueva ruta)
+
+**Ruta:** `/[locale]/recover`
+
+**Funcionalidad:**
+1. Formulario con campo email + botón "Enviar link de recuperación"
+2. Llama a `supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/{locale}/update-password` })`
+3. Muestra mensaje de éxito: "Revisa tu bandeja de entrada. Si el email existe, recibirás un link para restablecer tu contraseña."
+4. Link "Volver al login"
+
+**Implementación:**
+- Client Component con `"use client"`
+- Usar `useTranslations` para textos
+- usar `useParams` para obtener el locale actual y pasarlo a `redirectTo`
+- Mensaje de éxito/error con `useState`
+- Diseño: centrado en la pantalla, consistente con la página de login (`/[locale]/login`)
+
+**Link en login:** Añadir en `src/app/(app)/[locale]/login/page.tsx`:
+```
+"¿Olvidaste tu contraseña?" → link a /{locale}/recover
+```
+
+**i18n — claves nuevas en `en.json`:**
+```json
+{
+  "auth": {
+    "recover_title": "Recuperar contraseña",
+    "recover_email_label": "Email",
+    "recover_submit": "Enviar link de recuperación",
+    "recover_success": "Revisa tu bandeja de entrada. Si el email existe, recibirás un link para restablecer tu contraseña.",
+    "recover_back_to_login": "Volver al login",
+    "forgot_password": "¿Olvidaste tu contraseña?"
+  }
+}
+```
+
+**Traducciones:** Añadir a los 6 idiomas y sincronizar (se hace en TASK-66).
+
+---
+
+### TASK-63 — Página de cambio de contraseña
+
+**Archivo:** `src/app/(app)/[locale]/update-password/page.tsx` (nueva ruta)
+
+**Ruta:** `/[locale]/update-password`
+
+**Funcionalidad:**
+1. Al cargar la página, el hash de la URL contiene `#access_token=xxx&refresh_token=yyy` (lo pone Supabase)
+2. Leer `access_token` del hash (`window.location.hash`)
+3. Llamar a `supabase.auth.setSession({ access_token, refresh_token: '' })` para autenticar
+4. Si no hay `access_token` en la URL → mostrar mensaje de error "Link inválido o expirado"
+5. Formulario: nueva contraseña + confirmar contraseña
+6. Validación client-side: mínimo 8 caracteres, ambas coinciden
+7. Al enviar: `supabase.auth.updateUser({ password })`
+8. Éxito → mostrar "Contraseña actualizada correctamente" → link "Ir al dashboard"
+9. El token expira en 1h (configuración por defecto de Supabase Auth)
+
+**Implementación:**
+- Client Component con `"use client"`
+- `useEffect` para leer el hash en el cliente (solo navegador)
+- `useTranslations` para textos
+- `useParams` para el locale
+
+**Consideraciones de seguridad:**
+- La contraseña nunca se envía al servidor propio (Supabase Auth gestiona el cambio)
+- `setSession` valida el access_token contra Supabase Auth
+- Sin token válido → sin acceso al formulario
+
+**i18n — claves nuevas en `en.json`:**
+```json
+{
+  "auth": {
+    "update_password_title": "Nueva contraseña",
+    "new_password": "Nueva contraseña",
+    "confirm_password": "Confirmar contraseña",
+    "update_password_submit": "Cambiar contraseña",
+    "password_updated": "Contraseña actualizada correctamente",
+    "go_to_dashboard": "Ir al dashboard",
+    "invalid_reset_link": "Link inválido o expirado. Solicita uno nuevo.",
+    "password_min_length": "La contraseña debe tener al menos 8 caracteres",
+    "password_mismatch": "Las contraseñas no coinciden",
+    "updating": "Actualizando contraseña..."
+  }
+}
+```
+
+**Traducciones:** Añadir a los 6 idiomas y sincronizar (se hace en TASK-66).
+
+---
+
+### TASK-64 — Invitaciones con envío de email
+
+Esta tarea tiene tres partes: template React Email, modificación del modal de invitación, y botón de reenviar.
+
+#### Parte A: Template React Email de invitación
+
+**Instalar dependencias:**
+```bash
+pnpm add @react-email/components react-email resend
+```
+
+**Archivo:** `src/emails/invitation.tsx`
+
+Componente React Email que recibe:
+- `groupName: string` — nombre del grupo al que se invita
+- `inviterName: string` — nombre del admin que invita
+- `inviteLink: string` — URL de registro (`https://dominio/{locale}/invite/{token}`)
+- `appName: string` — "027apps" (o nombre configurable)
+- `locale: string` — idioma del destinatario (para `t()`)
+
+**Estructura del email:**
+```
+┌─────────────────────────────────┐
+│  [Logo 027apps]                 │
+│                                 │
+│  {inviterName} te ha invitado   │
+│  a unirte al grupo              │
+│  "{groupName}"                  │
+│                                 │
+│  [Aceptar invitación →]         │
+│                                 │
+│  Este enlace caduca en 7 días.  │
+│                                 │
+│  — El equipo de 027apps         │
+└─────────────────────────────────┘
+```
+
+**Estilo:** consistente con la web — paleta slate, tipografía del sistema, sin Tailwind (React Email usa estilos inline o componentes propios de `@react-email/components`).
+
+**Archivo de preview** (opcional para desarrollo): `src/emails/preview/invitation-preview.tsx`
+- Permite previsualizar el email en local con `email dev` (CLI de react-email)
+
+#### Parte B: Actualizar CreateInvitationModal
+
+**Archivo:** `src/app/(admin)/[locale]/admin/invitations/CreateInvitationModal.tsx`
+
+**Cambios:**
+
+1. **Dropdown con opciones de creación:**
+   ```
+   ┌──────────────────────────────┐
+   │ [Crear y enviar email  ▾]   │  ← dropdown
+   │                              │
+   │ Campo: Email                 │
+   │ Campo: Idioma destinatario   │  ← nuevo (TASK-65)
+   │ Campo: Grupos                │
+   │                              │
+   │ [Enviar invitación]          │  ← botón principal, texto dinámico
+   └──────────────────────────────┘
+   ```
+
+   Opciones del dropdown:
+   - `"Crear y enviar email"` (default)
+   - `"Crear invitación"` (solo guarda en BD)
+
+2. **Si se selecciona "Crear y enviar email"**:
+   - El campo email es obligatorio
+   - Tras crear la invitación en BD (use-case existente), se llama a una **nueva Server Action** que:
+     1. Renderiza `invitation.tsx` a HTML con React Email
+     2. Envía el email via Resend API
+     3. Retorna éxito/error
+   - Feedback: toast o mensaje "Invitación creada y enviada a {email}"
+
+3. **Si se selecciona "Crear invitación"**:
+   - Comportamiento actual: solo crea la invitación en BD
+   - El campo email es opcional
+   - Feedback: "Invitación creada"
+
+4. **Nueva Server Action** `sendInvitationEmail`:
+   ```typescript
+   // src/lib/use-cases/invitations/send-invitation-email.ts
+   export async function sendInvitationEmail(
+     token: string,
+     email: string,
+     groupName: string,
+     inviterName: string,
+     locale: string
+   ): Promise<{ error: string | null }>
+   ```
+   - Usa Resend SDK: `resend.emails.send({...})`
+   - From: `027apps <onboarding@resend.dev>` (dominio de pruebas)
+   - To: email del destinatario
+   - Subject: i18n según locale (ej. "Te han invitado a 027apps" / "You've been invited to 027apps")
+   - html: renderizado de `invitation.tsx` con `render()`
+
+#### Parte C: Botón reenviar en listado de invitaciones
+
+**Archivo:** `src/app/(admin)/[locale]/admin/invitations/page.tsx`
+
+Añadir botón **"Reenviar"** en cada fila de invitación pendiente:
+- Visible solo si `status === 'pending'` y la invitación tiene `email`
+- Llama a la misma Server Action `sendInvitationEmail` de la parte B
+- Feedback: toast "Email reenviado a {email}"
+
+**i18n — claves nuevas en `en.json`:**
+```json
+{
+  "invitations": {
+    "send_option_create": "Crear invitación",
+    "send_option_create_and_send": "Crear y enviar email",
+    "email_sent": "Invitación creada y enviada a {email}",
+    "email_resent": "Email reenviado a {email}",
+    "email_required": "El email es obligatorio para enviar la invitación",
+    "resent_button": "Reenviar",
+    "email_subject": "Te han invitado a {appName}",
+    "email_inviter_line": "{name} te ha invitado a unirte al grupo \"{group}\" en {appName}",
+    "email_cta": "Aceptar invitación",
+    "email_expiry": "Este enlace caduca en 7 días.",
+    "email_footer": "El equipo de {appName}"
+  }
+}
+```
+
+---
+
+### TASK-65 — Idiomas en invitaciones
+
+**Objetivo:** Al crear una invitación, el admin selecciona el idioma del destinatario. Todo el flujo (email + registro + perfil) respeta ese idioma.
+
+#### Cambio de schema
+
+**Migración SQL** (`supabase/migrations/20260517000001_invitations_locale.sql`):
+```sql
+alter table public.invitations add column if not exists locale text not null default 'es';
+```
+
+#### Actualizar use-case de creación de invitación
+
+**Archivo:** `src/lib/use-cases/invitations/index.ts`
+
+- `createInvitation` acepta nuevo parámetro `locale: string`
+- Guarda `locale` en la tabla `invitations`
+
+#### Selector de idioma en CreateInvitationModal
+
+Añadir un `<select>` o dropdown con los 6 idiomas soportados:
+```
+Idioma del destinatario: [Español ▾]
+                           English
+                           Español
+                           Italiano
+                           Català
+                           Français
+                           Deutsch
+```
+- Valor por defecto: `'es'` (español)
+- Los nombres de los idiomas se muestran en su propio idioma
+
+#### Actualizar página de aceptación de invitación
+
+**Archivo:** `src/app/(app)/[locale]/invite/[token]/page.tsx`
+
+1. Leer `invitation.locale` de la BD
+2. Llamar a `setRequestLocale(invitation.locale)` **ANTES** de renderizar
+3. El formulario de registro se muestra en el idioma del destinatario
+4. Al aceptar: `acceptInvitation()` crea el profile con `locale: invitation.locale`
+
+#### Email de invitación en el idioma correcto
+
+**Archivo:** `src/emails/invitation.tsx`
+
+- Recibe `locale` como prop
+- Usa next-intl `t()` para el contenido textual del email (asunto, cuerpo, CTA, footer)
+- Cada texto del email se traduce a los 6 idiomas
+
+**i18n — claves nuevas en `en.json`:**
+```json
+{
+  "invitations": {
+    "locale_label": "Idioma del destinatario",
+    "locale_es": "Español",
+    "locale_en": "English",
+    "locale_it": "Italiano",
+    "locale_ca": "Català",
+    "locale_fr": "Français",
+    "locale_de": "Deutsch"
+  }
+}
+```
+
+---
+
+### TASK-66 — i18n: todas las claves nuevas
+
+**Archivos:** `src/i18n/messages/{en,es,it,ca,fr,de}.json`
+
+1. Consolidar todas las claves nuevas de las tareas 62, 63, 64, 65 en `en.json`
+2. Traducir a los 5 idiomas restantes (es, it, ca, fr, de)
+3. Ejecutar script de sincronización:
+   ```bash
+   python3 scripts/sync-i18n.py
+   ```
+4. **Avisar al usuario:** reiniciar el dev server de Next.js (los mensajes de next-intl se cachean al arrancar)
+
+**Lista completa de claves nuevas:**
+
+| Sección | Claves |
+|---|---|
+| `auth` | `recover_title`, `recover_email_label`, `recover_submit`, `recover_success`, `recover_back_to_login`, `forgot_password`, `update_password_title`, `new_password`, `confirm_password`, `update_password_submit`, `password_updated`, `go_to_dashboard`, `invalid_reset_link`, `password_min_length`, `password_mismatch`, `updating` |
+| `invitations` | `send_option_create`, `send_option_create_and_send`, `email_sent`, `email_resent`, `email_required`, `resent_button`, `email_subject`, `email_inviter_line`, `email_cta`, `email_expiry`, `email_footer`, `locale_label`, `locale_es`, `locale_en`, `locale_it`, `locale_ca`, `locale_fr`, `locale_de` |
+
+---
+
+### TASK-67 — Tests
+
+**Archivos en `tests/`:**
+
+#### Tests unitarios
+
+`tests/emails/send-invitation-email.test.ts`:
+- `sendInvitationEmail` llama a `resend.emails.send()` con los parámetros correctos (from, to, subject, html)
+- Si Resend devuelve error, la Server Action retorna `{ error: '...' }`
+- Verificar que `render()` de React Email se llama con las props correctas
+
+`tests/invitations/create-with-email.test.ts`:
+- `createInvitation` con `sendEmail: true` guarda la invitación y llama a `sendInvitationEmail`
+- `createInvitation` con `sendEmail: false` solo guarda la invitación
+- El campo `locale` se guarda correctamente en la BD
+
+`tests/invitations/locale.test.ts`:
+- `acceptInvitation` con invitation.locale='fr' crea profile con locale='fr'
+- `acceptInvitation` con invitation.locale='es' crea profile con locale='es'
+- `getInvitation(token)` retorna el locale correcto
+
+`tests/auth/reset-password.test.ts`:
+- `resetPasswordForEmail` se llama con `redirectTo` correcto (incluye locale)
+- Verificar que el link de reset incluye el locale de la URL actual
+
+#### Tests de integración
+
+`tests/e2e/recover-password.e2e.ts`:
+- Usuario navega a `/{locale}/login`, hace clic en "¿Olvidaste tu contraseña?"
+- Navega a `/{locale}/recover`
+- Introduce email y hace submit
+- Ve mensaje de éxito "Revisa tu bandeja de entrada"
+
+`tests/e2e/update-password.e2e.ts`:
+- Simular hash con access_token en la URL
+- Página muestra formulario de nueva contraseña
+- Introduce contraseña válida → éxito → link al dashboard
+- Introduce contraseñas que no coinciden → error de validación
+
+`tests/e2e/invitation-email.e2e.ts`:
+- Admin abre modal de invitación
+- Selecciona "Crear y enviar email"
+- Introduce email + selecciona idioma "Français"
+- Hace submit
+- Ve feedback "Invitación creada y enviada a X"
+- La invitación aparece en el listado con botón "Reenviar"
+
+`tests/e2e/invitation-locale-register.e2e.ts`:
+- Usuario recibe link de invitación con locale='it'
+- Abre `/{locale}/invite/{token}`
+- La página se muestra en italiano
+- Completa el registro
+- Su perfil queda con locale='it'
+
+---
+
+## Orden de ejecución
+
+```
+TASK-61 (configurar Resend + Supabase SMTP)
+  │  ← SIN DEPENDENCIAS. Se ejecuta primero porque es
+  │    prerequisito externo para todo lo demás.
+  │
+  ├── TASK-62 (página recover password)
+  │     └── TASK-63 (página update password)
+  │           ← Reset password flow completo. Depende de TASK-61
+  │             para que Supabase Auth pueda enviar emails.
+  │
+  ├── TASK-65 (locale en invitaciones)
+  │     ← Cambio de schema + use-case. Base para TASK-64.
+  │
+  └── TASK-64 (invitaciones con email + reenviar)
+        ← Depende de TASK-65 (necesita invitation.locale para el email)
+          y de TASK-61 (Resend API key configurada).
+
+TASK-66 (i18n — consolidar todas las claves)
+  │  ← Depende de TASK-62, 63, 64, 65 (todas añaden claves).
+
+TASK-67 (tests)
+   ← Depende de todas las anteriores.
+```
+
+**Resumen de dependencias:**
+```
+TASK-61 ─┬─ TASK-62 ── TASK-63
+         │
+         ├─ TASK-65 ── TASK-64
+         │
+         └─┬─ TASK-66
+           └─ TASK-67
+```
+
+**Paralelismo posible:** TASK-62/63 y TASK-65/64 pueden ejecutarse en paralelo. TASK-66 y TASK-67 son secuenciales al final.
+
+---
+
+## Notas para el agente implementador
+
+1. **TASK-61 no toca código.** Solo configuración externa (dashboard de Resend, dashboard de Supabase Auth, `.env.local`). Hacerla primero para no bloquear el resto.
+
+2. **React Email no usa Tailwind.** Los estilos en templates de email son inline o con componentes de `@react-email/components` (Container, Section, Text, Link, Img, etc.). No importar Tailwind en `src/emails/`.
+
+3. **El renderizado del email es server-side.** La Server Action `sendInvitationEmail` ejecuta `render(<InvitationEmail {...props} />)` en el servidor, obtiene HTML, y lo pasa a Resend. No hay cliente involucrado.
+
+4. **Las páginas de recover y update-password son rutas públicas.** No requieren autenticación (el usuario no tiene sesión activa durante el reset). Van en `(app)/[locale]/` sin protección de grupo.
+
+5. **`update-password/page.tsx` lee el hash en el cliente.** `window.location.hash` solo existe en el navegador. Usar `useEffect` con check de `typeof window !== 'undefined'`. Manejar el caso donde no hay hash (link caducado o acceso directo).
+
+6. **El locale de la invitación se decide al crearla, no al enviarla.** Si un admin crea una invitación con locale='fr' y la envía más tarde, el email se envía en francés. El locale se guarda en la tabla `invitations` al crear, no al enviar.
+
+7. **Reenviar solo para invitaciones pendientes con email.** Si `status !== 'pending'` o `email` es null/undefined, no mostrar el botón "Reenviar".
+
+8. **La migración de `invitations.locale` usa `default 'es'`** para compatibilidad con invitaciones existentes (que no tenían locale). Todas las invitaciones creadas antes de este sprint quedan con locale='es'.
+
+9. **El `redirectTo` en `resetPasswordForEmail` debe apuntar a 027apps**, no a Supabase. Asegurarse de que la URL incluya el locale: `${window.location.origin}/{locale}/update-password`.
+
+10. **La API key de Resend va en `.env.local` y en Vercel env vars.** No se commitea. Para staging, añadir `RESEND_API_KEY` en Vercel → Settings → Environment Variables → Preview. Para producción, en Production.
+
+11. **Verificar que el tipo generado de Supabase** (`src/lib/supabase/database.types.ts`) se regenera tras la migración de `invitations.locale`:
+    ```bash
+    supabase gen types typescript --local > src/lib/supabase/database.types.ts
+    ```
+
+12. **Stub local de invitaciones → Inbucket.** `sendInvitationEmail` detecta `NODE_ENV === 'development'` y en lugar de llamar a Resend, renderiza el HTML y lo envía a Inbucket vía SMTP local (`localhost:2500`). El admin ve el email en `http://127.0.0.1:54324` igual que los emails de Supabase Auth. En production/preview, llama a Resend real. Fallo explícito si no hay `RESEND_API_KEY`.
+
+13. **Fallo explícito en envío fallido (Opción B).** Si Resend devuelve error (o falta `RESEND_API_KEY`), la Server Action retorna `{ error: '...' }`. El modal muestra toast rojo: "Invitación creada pero email no enviado. Reintentar más tarde." El botón "Reenviar" en el listado permite reintentar.
+
+14. **Dos proyectos Supabase cloud.** Staging (`tsphkmbtnahjgsivdhaj`) y Producción (`zbwvvzeljiymwqcbemyy`). SMTP configurado en cada proyecto por separado. `RESEND_API_KEY` distinta para cada entorno en Vercel env vars (Preview vs Production).
+
+15. **Configuración SMTP en Supabase Auth.** Cada proyecto cloud necesita: Host `smtp.resend.com`, Port `465` (TLS), Username `resend`, Password = API key de Resend de ese entorno. Site URL y Redirect URLs configurados por proyecto.
+
+---
+
+## Dependencias nuevas
+
+```bash
+pnpm add @react-email/components react-email resend
+```
+
+---
+
+## Impacto entre módulos
+
+| Módulo/Sistema | Impacto |
+|---|---|
+| **Auth** | Nuevas páginas: `/recover`, `/update-password`. Nueva funcionalidad en login: link "olvidé mi contraseña". |
+| **Invitaciones** | Nuevo campo `locale`, envío de email, botón reenviar, dropdown de opciones. |
+| **Schema** | Migración: `alter table invitations add column locale`. |
+| **i18n** | ~30 claves nuevas en los 6 idiomas. |
+| **Admin UI** | Modal de invitación ampliado (dropdown + selector idioma). Listado de invitaciones con botón reenviar. |
+| **API pública** | Sin impacto directo. Los emails se envían desde Server Actions, no desde la API. |

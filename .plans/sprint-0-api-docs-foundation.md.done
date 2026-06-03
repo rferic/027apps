@@ -1,0 +1,396 @@
+# Sprint 0: Fundación API REST + Sitio de Documentación
+
+## Contexto del proyecto
+
+- **Stack:** Next.js 16.2.4 (App Router, Turbopack), React 19, TypeScript strict, Tailwind CSS v4
+- **DB:** Supabase (PostgreSQL + RLS). Sin ORM — cliente Supabase directo con tipos generados.
+- **Auth:** Supabase Auth. Roles: `admin` / `member`.
+- **Package manager:** pnpm
+
+---
+
+## Objetivo del sprint
+
+Establecer la infraestructura que todos los sprints posteriores comparten:
+
+1. **Capa de casos de uso** — única implementación por acción. Web, admin, API, mobile pasan por el mismo código.
+2. **API REST v1** — autenticación, middleware, formato de respuesta, endpoints core.
+3. **Sitio de documentación** — Fumadocs sobre Next.js App Router. Cada app instala su sección.
+
+Este sprint es prerequisito de:
+- Todos los sprints siguientes (la capa de use-cases reemplaza lógica duplicada)
+- La app mobile (consume `/api/v1/`)
+- Integraciones de terceros
+
+---
+
+## Decisiones de diseño
+
+| Punto | Decisión |
+|---|---|
+| Use-cases | `src/lib/use-cases/[domain]/[action].ts` — función pura `(ctx, input) => Promise<output>` |
+| API versioning | `/api/v1/` desde el primer día. Sin versión sin prefijo. |
+| Auth niveles | 3 niveles: público (sin auth), API Key (`X-API-Key`), JWT Supabase (`Authorization: Bearer`) |
+| API Keys | Group API Key (admin crea, scope = grupo) + PAT (usuario crea, scope = sus permisos) |
+| Respuesta éxito | Recurso plano o array. Sin envelope `{ data: ... }`. |
+| Respuesta error | `{ "error": "code", "message": "...", "fields"?: {...} }` + HTTP status apropiado |
+| Paginación | Link headers RFC 5988 (`Link: <url?page=2>; rel="next"`) |
+| Docs framework | Fumadocs (fumadocs-ui + fumadocs-core + fumadocs-mdx) |
+| App API endpoints | `apps/[slug]/routes/` — handlers montados en `/api/v1/apps/[slug]/...` |
+
+---
+
+## Arquitectura de la capa de casos de uso
+
+```typescript
+// src/lib/use-cases/types.ts
+export interface UseCaseContext {
+  supabase: SupabaseClient   // cliente con permisos del llamador (user o admin)
+  userId?: string            // undefined si llamada es machine-to-machine con API key
+  groupId: string
+  role?: 'admin' | 'member'
+}
+
+// Ejemplo: src/lib/use-cases/users/block-user.ts
+export async function blockUser(ctx: UseCaseContext, userId: string): Promise<void> {
+  // lógica única — llamado desde Server Action, API handler, o cualquier punto
+}
+```
+
+Consumidores del use-case:
+- **Server Actions** (`'use server'` en Next.js): construyen el `ctx` desde `supabase.auth.getUser()` y llaman al use-case
+- **API handlers** (`/api/v1/...`): construyen el `ctx` desde JWT o API key y llaman al mismo use-case
+- **App mobile** (via API): consume los mismos endpoints que terceros
+
+---
+
+## Convención de App API endpoints
+
+Cada app puede declarar endpoints en `apps/[slug]/routes/`:
+
+```
+apps/[slug]/
+  routes/
+    GET.ts          ← handler para GET /api/v1/apps/[slug]
+    [id]/
+      GET.ts        ← handler para GET /api/v1/apps/[slug]/[id]
+      PUT.ts        ← handler para PUT /api/v1/apps/[slug]/[id]
+```
+
+El manifest declara `"api": true` si la app expone endpoints. El plataforma monta los handlers automáticamente.
+
+---
+
+## Tareas del sprint
+
+---
+
+### TASK-01 — Capa de casos de uso (use-cases layer)
+
+**Archivos:**
+- `src/lib/use-cases/types.ts` — `UseCaseContext`, tipos de error
+- `src/lib/use-cases/users/` — migrar helpers existentes
+- `src/lib/use-cases/settings/update-settings.ts` — migrar `settings.ts` existente
+
+**Acciones:**
+- Definir `UseCaseContext` con `supabase`, `userId?`, `groupId`, `role?`
+- Convención de errores: use-cases lanzan `UseCaseError` con `code` y `message`
+  ```typescript
+  export class UseCaseError extends Error {
+    constructor(public code: string, message: string) { super(message) }
+  }
+  ```
+- Migrar `src/lib/use-cases/settings.ts` → `src/lib/use-cases/settings/update-settings.ts`
+- Documentar patrón en CLAUDE.md: sección "Use-cases pattern"
+
+---
+
+### TASK-02 — Infraestructura API v1
+
+**Archivos:**
+- `src/app/api/v1/` — raíz de la API
+- `src/lib/api/auth.ts` — middleware de autenticación
+- `src/lib/api/response.ts` — helpers de respuesta
+- `src/lib/api/types.ts` — tipos TypeScript de la API
+
+**Middleware de autenticación** (`src/lib/api/auth.ts`):
+```typescript
+type AuthLevel = 'public' | 'apikey' | 'jwt' | 'any'
+
+export async function withAuth(
+  req: NextRequest,
+  level: AuthLevel
+): Promise<{ ctx: UseCaseContext } | NextResponse>
+// Retorna ctx si auth OK, NextResponse con error si falla
+```
+
+Lógica:
+- `public`: no valida nada, `ctx.userId` = undefined
+- `jwt`: valida `Authorization: Bearer <token>` via Supabase
+- `apikey`: valida `X-API-Key` contra tabla `api_keys` (hash)
+- `any`: acepta JWT o API key, construye ctx según lo que venga
+
+**Helpers de respuesta** (`src/lib/api/response.ts`):
+```typescript
+export function apiOk<T>(data: T, status = 200): NextResponse
+export function apiError(code: string, message: string, status: number, fields?: Record<string, string>): NextResponse
+export function apiList<T>(items: T[], total: number, page: number, perPage: number, baseUrl: string): NextResponse
+// apiList añade Link header RFC 5988 para paginación
+```
+
+**Códigos de error estándar:**
+| HTTP | code | Cuándo |
+|---|---|---|
+| 400 | `validation_failed` | Input inválido |
+| 401 | `unauthorized` | Sin auth o token inválido |
+| 403 | `forbidden` | Auth OK pero sin permisos |
+| 404 | `not_found` | Recurso no existe |
+| 409 | `conflict` | Conflicto de estado (ej. ya instalada) |
+| 422 | `unprocessable` | Lógica de negocio rechaza la operación |
+| 429 | `rate_limited` | Demasiadas requests |
+| 500 | `internal_error` | Error inesperado |
+
+---
+
+### TASK-03 — Gestión de API Keys (DB + use-cases)
+
+**Migración SQL** (`supabase/migrations/`):
+
+```sql
+create table api_keys (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references groups(id) on delete cascade,
+  name text not null,
+  key_prefix text not null,           -- primeros 8 chars para identificación visual
+  key_hash text not null unique,      -- bcrypt/sha256 del key completo
+  created_by uuid references auth.users(id),
+  scope text not null default 'group' check (scope in ('group', 'user')),
+  user_id uuid references auth.users(id),  -- solo si scope = 'user' (PAT)
+  last_used_at timestamptz,
+  revoked_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+-- RLS: admin puede gestionar todas las keys del grupo, usuario solo las suyas (PAT)
+alter table api_keys enable row level security;
+```
+
+**Use-cases** (`src/lib/use-cases/api-keys/`):
+- `create-api-key.ts` — genera key aleatoria, guarda hash, retorna key completa solo esta vez
+- `list-api-keys.ts` — lista keys activas (sin el hash)
+- `revoke-api-key.ts` — marca `revoked_at`, no elimina (audit trail)
+
+---
+
+### TASK-04 — UI admin: gestión de API Keys
+
+**Archivo:** `src/app/(admin)/[locale]/admin/settings/api-keys/page.tsx`
+
+- Lista de keys activas: nombre, prefijo (`sk_live_abc123...`), creado por, último uso
+- Botón "Nueva API Key" → modal:
+  - Input: nombre de la key
+  - Al crear: muestra la key completa en un campo copiable + aviso "Solo visible ahora"
+- Botón "Revocar" por key → confirmación destructiva
+- Enlace en el sidebar admin bajo "Settings"
+
+---
+
+### TASK-05 — Endpoints core
+
+**Archivos en `src/app/api/v1/`:**
+
+```
+api/v1/
+  me/
+    route.ts          ← GET /api/v1/me
+  apps/
+    route.ts          ← GET /api/v1/apps
+  locales/
+    route.ts          ← GET /api/v1/locales
+```
+
+**GET /api/v1/me** — nivel: `jwt`
+```typescript
+// Response
+{
+  "id": "uuid",
+  "email": "user@example.com",
+  "display_name": "...",
+  "avatar_url": "...",
+  "locale": "es",
+  "role": "admin" | "member",
+  "group_id": "uuid"
+}
+```
+
+**GET /api/v1/apps** — nivel: `any` (jwt o apikey)
+```typescript
+// Response — array de apps activas
+// Con JWT: filtrado por permisos del usuario
+// Con API key: todas las apps activas del grupo
+[{
+  "slug": "todo",
+  "name": "Todo",
+  "version": "1.0.0",
+  "description": "...",
+  "visibility": "public" | "private"
+}]
+```
+
+**GET /api/v1/locales** — nivel: `public`
+```typescript
+// Response
+[{ "code": "es", "name": "Español", "is_default": true }, ...]
+```
+
+---
+
+### TASK-06 — Fumadocs: setup del sitio `/doc`
+
+**Dependencias:** `fumadocs-ui`, `fumadocs-core`, `fumadocs-mdx`
+
+**Archivos:**
+```
+source.config.ts                  ← config de Fumadocs (fuente MDX)
+src/app/doc/
+  layout.tsx                      ← RootLayout de Fumadocs (sidebar + header + search)
+  page.tsx                        ← /doc — landing del sitio de docs
+  api/
+    [[...slug]]/
+      page.tsx                    ← /doc/api/... — docs de la API REST
+  apps/
+    [[...slug]]/
+      page.tsx                    ← /doc/apps/[slug]/... — docs de cada app instalada
+```
+
+**`source.config.ts`:**
+- Fuente principal: `apps/[slug]/docs/*.mdx` — genera sección por app en el sidebar
+- Fuente API: `docs/api/*.mdx` (docs de la API REST de la plataforma)
+- El sidebar agrupa primero la sección API, luego una sección por app
+
+**Diseño:**
+- Sobreescribir colores de Fumadocs con la paleta del proyecto (no el tema por defecto)
+- Sidebar izquierdo: fijo en desktop, drawer en mobile
+- Search: Orama (integrado en Fumadocs, sin servidor externo)
+- Sin auth — completamente público
+
+---
+
+### TASK-07 — Documentación de la API en `/doc/api/`
+
+**Archivos en `docs/api/`** (fuera de `apps/`, docs propias de la plataforma):
+
+```
+docs/
+  api/
+    index.mdx               ← /doc/api — intro, qué es la API, versioning
+    authentication.mdx      ← /doc/api/authentication — JWT vs API keys, ejemplos
+    errors.mdx              ← /doc/api/errors — tabla de códigos de error
+    endpoints/
+      index.mdx             ← lista de endpoints core
+      me.mdx                ← referencia GET /api/v1/me
+      apps.mdx              ← referencia GET /api/v1/apps
+      locales.mdx           ← referencia GET /api/v1/locales
+```
+
+Cada endpoint documenta: descripción, auth requerida, request headers, response schema, ejemplos curl/fetch.
+
+---
+
+### TASK-08 — Tests
+
+**Tests unitarios** (`tests/unit/`):
+
+- `api-keys.test.ts`:
+  - `createApiKey` genera key, guarda hash, retorna key completa
+  - `revokeApiKey` marca `revoked_at`, la key deja de ser válida
+  - Key revocada rechazada por middleware
+
+- `api-middleware.test.ts`:
+  - JWT válido → ctx con userId y role
+  - JWT expirado → 401 `unauthorized`
+  - API key válida → ctx con groupId, sin userId
+  - API key revocada → 401 `unauthorized`
+  - Endpoint `public` → ctx sin userId, sin error
+
+**Tests e2e** (`tests/e2e/`):
+
+- `api-keys.e2e.ts`:
+  - Admin crea API key → aparece en lista con prefijo
+  - Admin revoca key → desaparece de activas
+  - Request con key revocada → 401
+
+---
+
+## Actualizaciones a Sprint 1
+
+Sprint 0 introduce convenciones que Sprint 1 debe reflejar en el contrato de apps:
+
+### Cambios en `manifest.json`
+
+Añadir campo `api`:
+```typescript
+export interface AppManifest {
+  // ... campos existentes ...
+  api: boolean   // true si la app expone endpoints en apps/[slug]/routes/
+}
+```
+
+### Cambios en estructura de carpetas de app
+
+```
+apps/[slug]/
+  routes/               # Requerido si manifest.api === true
+    GET.ts              # Handler para GET /api/v1/apps/[slug]
+    [id]/
+      GET.ts            # Handler para GET /api/v1/apps/[slug]/[id]
+```
+
+Cada handler recibe `(req: NextRequest, ctx: UseCaseContext)` — igual que los endpoints core. Los handlers llaman a use-cases de la app.
+
+### Cambios en TASK-03 (validador)
+
+Añadir regla: si `manifest.api === true`, verificar que `apps/[slug]/routes/` existe con al menos un handler.
+
+### Cambios en TASK-10 (app todo)
+
+- Añadir `manifest.api: true`
+- Añadir `apps/todo/routes/GET.ts` — lista todos del usuario
+- Añadir `apps/todo/routes/POST.ts` — crear todo
+- Añadir `apps/todo/routes/[id]/PUT.ts` — actualizar todo
+- Añadir `apps/todo/routes/[id]/DELETE.ts` — eliminar todo
+- Añadir docs de API en `apps/todo/docs/api.mdx`
+
+---
+
+## Orden de ejecución recomendado
+
+```
+TASK-01 (use-cases layer — base de todo)
+    ↓
+TASK-02 (infra API v1)          TASK-06 (Fumadocs setup)
+    ↓                                   ↓
+TASK-03 (api_keys DB)           TASK-07 (docs API)
+    ↓
+TASK-04 (UI admin API keys)
+    ↓
+TASK-05 (endpoints core)
+    ↓
+TASK-08 (tests — al final)
+```
+
+TASK-06 y TASK-07 (Fumadocs) son independientes de la API y pueden ejecutarse en paralelo.
+
+---
+
+## Notas para el agente implementador
+
+1. **Use-cases son funciones puras.** No hacen `import` de `next/headers` ni dependen de contexto HTTP. Reciben todo lo que necesitan por parámetro (`ctx`). Esto permite llamarlos desde Server Actions, API handlers o tests sin setup especial.
+
+2. **La key completa nunca se guarda.** Solo el hash (SHA-256 o bcrypt). Al crear una key, retornarla en texto plano una sola vez al cliente y no guardarla en ningún log.
+
+3. **`source.config.ts` de Fumadocs** necesita conocer qué apps tienen docs. Implementar con un loader que escanea `apps/*/docs/*.mdx` en tiempo de build. En desarrollo, usar `dev` mode de Fumadocs para HMR de los MDX.
+
+4. **Endpoints de apps (`routes/`)** no son rutas Next.js directas. La plataforma tiene un catch-all en `src/app/api/v1/apps/[slug]/[...path]/route.ts` que importa dinámicamente el handler correcto de `apps/[slug]/routes/`.
+
+5. **Migrar `settings.ts`** no significa romper los Server Actions existentes. Los Server Actions siguen existiendo — ahora solo son wrappers delgados que construyen el `ctx` y llaman al use-case.
