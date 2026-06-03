@@ -11,10 +11,10 @@ Tous les chemins sont relatifs à l'URL de base `/api/v1`.
 
 | Méthode | Chemin | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/v1` | Public | [Vérification de l'état](/docs/api) — retourne la version et le statut |
-| `GET` | [`/api/v1/me`](/docs/api/endpoints/me) | JWT | Informations sur l'utilisateur authentifié, appartenance au groupe et profil |
-| `GET` | [`/api/v1/apps`](/docs/api/endpoints/apps) | JWT ou API Key | Applications disponibles pour le groupe (ou filtrées par permissions utilisateur) |
-| `GET` | [`/api/v1/locales`](/docs/api/endpoints/locales) | Public | Langues actives configurées pour le groupe |
+| `GET` | `/api/v1` | Public | [Vérification de l'état](/doc/api) — retourne la version et le statut |
+| `GET` | [`/api/v1/me`](/doc/api/endpoints/me) | JWT | Informations sur l'utilisateur authentifié, appartenance au groupe et profil |
+| `GET` | [`/api/v1/apps`](/doc/api/endpoints/apps) | JWT ou API Key | Applications disponibles pour le groupe (ou filtrées par permissions utilisateur) |
+| `GET` | [`/api/v1/locales`](/doc/api/endpoints/locales) | Public | Langues actives configurées pour le groupe |
 
 ## Niveaux d'authentification
 
@@ -23,4 +23,4 @@ Tous les chemins sont relatifs à l'URL de base `/api/v1`.
 - **API Key** — Nécessite `X-API-Key: sk_027_...`. La clé doit être active (non révoquée).
 - **JWT ou API Key** — L'un ou l'autre type d'identifiant est accepté ; la réponse peut différer selon celui utilisé.
 
-Consultez [Authentification](/docs/api/authentication) pour savoir comment obtenir des identifiants.
+Consultez [Authentification](/doc/api/authentication) pour savoir comment obtenir des identifiants.

@@ -1,4 +1,11 @@
 {
   "title": "REST API",
-  "pages": ["index", "authentication", "errors", "i18n", "endpoints"]
+  "pages": [
+    "index",
+    "api-docs",
+    "authentication",
+    "errors",
+    "i18n",
+    "endpoints"
+  ]
 }
