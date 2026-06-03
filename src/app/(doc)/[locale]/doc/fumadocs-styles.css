@@ -1,9 +1,9 @@
-@import 'fumadocs-ui/css/shadcn.css' layer(fumadocs-ui);
+@import 'fumadocs-ui/style.css' layer(fumadocs-ui);
 
 :root {
   --color-fd-primary: #9B1C1C;
+  --color-fd-primary-foreground: #fff;
   --color-fd-ring: #9B1C1C;
-  --fd-sidebar-width: 280px;
 }
 
 aside a[href*='/apps/inspiration'] { position: relative; padding-left: 1.25rem; }

@@ -1,4 +1,4 @@
-import { DocsLayout } from 'fumadocs-ui/layouts/notebook'
+import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import type { ReactNode } from 'react'
 import { source, i18nConfig } from '@/lib/source'
 import { DocRootProvider } from './language-provider'
