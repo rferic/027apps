@@ -70,3 +70,28 @@
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid #f1f5f9;
 }
+
+/* ── App icons in sidebar ── */
+/* Inspiration: amber dot + lightbulb */
+aside a[href*='/apps/inspiration']::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #F59E0B;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+/* To-Do: indigo dot + checkmark */
+aside a[href*='/apps/todo']::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4F46E5;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
