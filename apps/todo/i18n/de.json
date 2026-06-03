@@ -18,5 +18,6 @@
   "visibility_public": "Öffentlich",
   "assigned_to": "Zugewiesen an",
   "assigned_to_me": "Ich",
-  "assign_to_me": "Mir zuweisen"
+  "assign_to_me": "Mir zuweisen",
+  "description": "Einfache Aufgabenliste: Erstellen, erledigen und entfernen Sie Aufgaben."
 }

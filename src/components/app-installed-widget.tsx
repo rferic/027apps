@@ -1,8 +1,33 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { Package, AppWindow } from 'lucide-react'
+import { Package } from 'lucide-react'
+
+function AppIcon({ slug, name, primaryColor }: { slug: string; name: string; primaryColor: string }) {
+  const [failed, setFailed] = useState(false)
+
+  if (failed) {
+    return (
+      <div
+        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-white text-xs font-bold"
+        style={{ backgroundColor: primaryColor }}
+      >
+        {slug.slice(0, 2).toUpperCase()}
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src={`/api/apps/${slug}/logo`}
+      alt={name}
+      className="w-10 h-10 rounded-lg shrink-0"
+      onError={() => setFailed(true)}
+    />
+  )
+}
 
 interface AppWidgetData {
   slug: string
@@ -51,12 +76,7 @@ export function AppInstalledWidget({ apps, locale, groupSlug }: Props) {
               className="group bg-white rounded-xl border border-slate-100 p-4 hover:border-slate-200 hover:shadow-sm transition-all"
             >
               <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: app.primaryColor }}
-                >
-                  <AppWindow className="w-5 h-5 text-white" />
-                </div>
+                <AppIcon slug={app.slug} name={app.name} primaryColor={app.primaryColor} />
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-900 truncate group-hover:text-slate-700">
                     {app.name}

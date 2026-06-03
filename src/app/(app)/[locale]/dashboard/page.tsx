@@ -4,8 +4,10 @@ import { setRequestLocale, getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { readManifest } from '@/lib/apps/manifest'
+import { loadAppMessages } from '@/lib/apps/i18n'
 import { Sparkles } from 'lucide-react'
 import { AppInstalledWidget } from '@/components/app-installed-widget'
+import { hasAppModule, loadAppModule } from '@/lib/apps/registry'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
@@ -35,8 +37,9 @@ async function loadWidgets(): Promise<WidgetEntry[]> {
     try {
       const manifest = await readManifest(app.slug)
       if (!manifest.views.widget) continue
-      const mod = await import(/* webpackIgnore: true */ `${process.cwd()}/apps/${app.slug}/widget`) as { default: React.ComponentType }
-      results.push({ slug: app.slug, Component: mod.default })
+      if (!hasAppModule(app.slug, 'widget')) continue
+      const Component = await loadAppModule(app.slug, 'widget')
+      results.push({ slug: app.slug, Component })
     } catch {
       // App has no valid widget — skip silently
     }
@@ -44,7 +47,7 @@ async function loadWidgets(): Promise<WidgetEntry[]> {
   return results
 }
 
-async function loadAppWidgets(): Promise<AppWidgetData[]> {
+async function loadAppWidgets(locale: string): Promise<AppWidgetData[]> {
   const adminClient = createAdminClient()
   // Debug: check app visibility in Supabase Dashboard → installed_apps table.
   // Apps with visibility='private' won't show in this widget. Make sure at least
@@ -60,10 +63,11 @@ async function loadAppWidgets(): Promise<AppWidgetData[]> {
     if (!SLUG_RE.test(app.slug)) continue
     try {
       const manifest = await readManifest(app.slug)
+      const messages = await loadAppMessages(app.slug, locale)
       results.push({
         slug: app.slug,
         name: manifest.name,
-        description: manifest.description,
+        description: (messages.description as string) ?? manifest.description,
         primaryColor: manifest.primaryColor,
         secondaryColor: manifest.secondaryColor,
       })
@@ -123,7 +127,7 @@ export default async function DashboardPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/${locale}/login`)
 
-  const apps = await loadAppWidgets()
+  const apps = await loadAppWidgets(locale)
 
   return (
     <main className="p-6 max-w-5xl mx-auto">

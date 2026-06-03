@@ -29,9 +29,6 @@ export async function AdminHeader({ displayName, locale }: Props) {
       <div className="flex items-center gap-3">
         <LocaleSwitcher currentLocale={locale} locales={settings.activeLocales} saveToDb />
         <UserDropdown locale={locale} displayName={displayName} profileHref={`/${locale}/admin/profile`} />
-        <Link href={`/${locale}/`} className="text-xs text-gray-400 hover:text-gray-700 transition-colors">
-          {t('goToApp')}
-        </Link>
       </div>
     </header>
   )

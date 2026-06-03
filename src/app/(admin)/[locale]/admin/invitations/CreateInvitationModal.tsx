@@ -206,19 +206,12 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  {t('cancel')}
-                </button>
-                <div className="relative">
+              <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row-reverse gap-2">
+                <div className="relative flex">
                   <button
                     type="submit"
                     disabled={pending}
-                    className="cursor-pointer px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-l-lg transition-colors"
+                    className="cursor-pointer flex-1 px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-l-lg transition-colors whitespace-nowrap"
                   >
                     {pending ? t('submitting') : sendOption === 'create' ? tI('send_option_create') : tI('send_option_create_and_send')}
                   </button>
@@ -232,7 +225,7 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
                     </svg>
                   </button>
                   {showDropdown && (
-                    <div className="absolute right-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
+                    <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
                       <button
                         type="button"
                         onClick={() => { setSendOption('create'); setShowDropdown(false) }}
@@ -252,6 +245,13 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
                     </div>
                   )}
                 </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="cursor-pointer w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors text-center"
+                >
+                  {t('cancel')}
+                </button>
               </div>
             </form>
           </>

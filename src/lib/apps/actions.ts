@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient, createAdminClientUntyped } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/helpers'
-import { scanApps } from '@/lib/apps/scanner'
+import { scanApps, invalidateSlugsCache } from '@/lib/apps/scanner'
 import { installApp, uninstallApp, InstallerError } from '@/lib/apps/installer'
 import { readManifest } from '@/lib/apps/manifest'
 import type { CombinedApp, InstalledApp } from '@/types/apps'
@@ -20,13 +20,13 @@ function isMigrationPendingError(msg: string): boolean {
   return msg.includes('does not exist') && (msg.includes('table_prefix') || msg.includes('42703'))
 }
 
-function classifyError(err: unknown): AppActionError {
+function classifyError(err: unknown, operation: 'install' | 'uninstall' = 'install'): AppActionError {
   const msg = err instanceof Error ? err.message : String(err)
   if (isMigrationPendingError(msg)) return { code: 'migration_pending' }
   if (err instanceof InstallerError) {
     return { code: err.code, params: err.params as Record<string, string> | undefined }
   }
-  return { code: 'install_failed' }
+  return { code: operation === 'uninstall' ? 'uninstall_failed' : 'install_failed' }
 }
 
 type InstalledAppRow = Database['public']['Tables']['installed_apps']['Row']
@@ -58,11 +58,12 @@ export async function getAppsListAction(): Promise<{ apps: CombinedApp[] } | { e
 export async function installAppAction(slug: string): Promise<{ success: true } | { errorCode: string; errorParams?: Record<string, string> }> {
   try {
     await requireAdmin()
+    invalidateSlugsCache()
     await installApp(slug)
     revalidatePath('/', 'layout')
     return { success: true }
   } catch (err) {
-    const { code, params } = classifyError(err)
+    const { code, params } = classifyError(err, 'install')
     return { errorCode: code, ...(params ? { errorParams: params } : {}) }
   }
 }
@@ -70,11 +71,12 @@ export async function installAppAction(slug: string): Promise<{ success: true } 
 export async function uninstallAppAction(slug: string): Promise<{ success: true } | { errorCode: string; errorParams?: Record<string, string> }> {
   try {
     await requireAdmin()
+    invalidateSlugsCache()
     await uninstallApp(slug)
     revalidatePath('/', 'layout')
     return { success: true }
   } catch (err) {
-    const { code, params } = classifyError(err)
+    const { code, params } = classifyError(err, 'uninstall')
     return { errorCode: code, ...(params ? { errorParams: params } : {}) }
   }
 }

@@ -36,8 +36,9 @@
   },
   "nav": {
     "dashboard": "Inici",
-    "backoffice": "Backoffice",
-    "docs": "Documentació"
+    "backoffice": "Panell de control",
+    "docs": "Documentació",
+    "website": "Lloc web"
   },
   "common": {
     "loading": "Carregant...",
@@ -441,7 +442,10 @@
         "dependencies": "Dependències",
         "none": "Cap",
         "api": "API"
-      }
+      },
+      "manageTab": "Gestiona",
+      "settingsTab": "Configuració",
+      "noAdminView": "Aquesta aplicació no té vista d'administració."
     },
     "common": {
       "loading": "Carregant…"
@@ -498,7 +502,8 @@
       "prefix_conflict": "El prefix de taula '{prefix}' ja està en ús per l'app '{slug}'",
       "table_prefix_mismatch": "La taula '{table}' a migrations.sql no fa servir el prefix '{prefix}' declarat al manifest",
       "uninstall_prefix_mismatch": "L'arxiu uninstall.sql opera sobre '{table}', que no pertany a aquesta app (prefix: '{prefix}')",
-      "migration_pending": "Hi ha una migració de base de dades pendents. Executa la migració pendent a l'editor SQL de Supabase abans d'instal·lar aquesta app."
+      "migration_pending": "Hi ha una migració de base de dades pendents. Executa la migració pendent a l'editor SQL de Supabase abans d'instal·lar aquesta app.",
+      "uninstall_failed": "Desinstal·lació fallida"
     },
     "todo": {
       "title": "Tasques",
@@ -528,6 +533,202 @@
       "visibility_updated": "Visibilitat actualitzada",
       "access_granted": "Accés concedit",
       "access_revoked": "Accés revocat"
+    },
+    "inspiration": {
+      "title": "Inspiració",
+      "description": "Idees i suggeriments per millorar 027apps",
+      "new_idea": "Nova idea",
+      "changelog": "Registre de canvis",
+      "active": "Actiu",
+      "filters": {
+        "search_placeholder": "Cercar idees...",
+        "sort_newest": "Més recents",
+        "sort_oldest": "Més antigues",
+        "sort_most_supported": "Més recolzades",
+        "sort_most_commented": "Més comentades",
+        "type_label": "Tipus",
+        "status_label": "Estat",
+        "all_types": "Tots els tipus",
+        "all_statuses": "Tots els estats",
+        "my_ideas": "Les meves idees",
+        "apply": "Aplicar filtres",
+        "title": "Filtres"
+      },
+      "types": {
+        "bug": "Error",
+        "improvement": "Millora",
+        "new_app": "Nova app",
+        "new_app_feature": "Funcionalitat d'app",
+        "new_general_functionality": "Funcionalitat general",
+        "other": "Altre"
+      },
+      "statuses": {
+        "pending": "Pendent",
+        "reviewing": "En revisió",
+        "approved": "Aprovada",
+        "in_progress": "En progrés",
+        "completed": "Completada",
+        "rejected": "Rebutjada",
+        "on_hold": "En pausa",
+        "duplicate": "Duplicada"
+      },
+      "create": {
+        "step1_title": "Què vols proposar?",
+        "step1_bug_desc": "Informar d'un error o problema",
+        "step1_improvement_desc": "Suggerir una millora",
+        "step1_new_app_desc": "Proposar una nova app",
+        "step1_feature_desc": "Sol·licitar una funcionalitat per a una app existent",
+        "step1_general_desc": "Proposar una millora general",
+        "step1_other_desc": "Alguna altra cosa",
+        "step2_title": "Explica'ns més",
+        "bug_app_label": "A quina app?",
+        "bug_steps_label": "Passos per reproduir",
+        "bug_expected_label": "Què esperaves que passés?",
+        "bug_actual_label": "Què va passar realment?",
+        "improvement_app_label": "App relacionada (opcional)",
+        "new_app_name_label": "Nom proposat per a l'app",
+        "new_app_description_label": "Què faria aquesta app?",
+        "feature_app_label": "A quina app s'hauria d'afegir?",
+        "title_label": "Títol",
+        "title_placeholder": "Dona a la teva idea un títol curt i clar",
+        "description_label": "Descripció",
+        "description_placeholder": "Explica la teva idea en detall...",
+        "app_label": "Assignar a app (opcional)",
+        "app_none": "Cap",
+        "submit": "Publicar idea",
+        "success": "La teva idea ha estat publicada!",
+        "cancel": "Cancel·lar",
+        "back": "Tornar",
+        "step3_title": "Revisa la teva idea",
+        "step_label": "Pas {step} de 3",
+        "review": "Revisar",
+        "publishing": "Publicant...",
+        "request_failed": "Sol·licitud fallida",
+        "publish_error": "Alguna cosa ha anat malament",
+        "no_apps": "No hi ha apps disponibles",
+        "app_placeholder": "-- Selecciona una app --",
+        "type_colon": "Tipus:",
+        "title_colon": "Títol:",
+        "description_colon": "Descripció:",
+        "app_colon": "App:",
+        "bug_suggestion_label": "Suggeriment",
+        "bug_suggestion_placeholder": "Com ho milloraries?",
+        "improvement_label": "Suggeriment",
+        "improvement_placeholder": "Com ho milloraries?",
+        "new_app_title_label": "Nom proposat",
+        "new_app_title_placeholder": "Com s'hauria de dir?",
+        "new_app_description_placeholder": "Descriu què faria l'app...",
+        "feature_details_label": "Detalls de la funcionalitat",
+        "feature_details_placeholder": "Descriu la funcionalitat que t'agradaria veure...",
+        "bug_steps_placeholder": "1. Ves a...\n2. Fes clic a...\n3. Mira l'error...",
+        "bug_expected_placeholder": "Esperava que...",
+        "bug_actual_placeholder": "En canvi, va passar..."
+      },
+      "card": {
+        "votes": "{count, plural, one {# vot} other {# vots}}",
+        "comments": "{count, plural, one {# comentari} other {# comentaris}}",
+        "vote_button": "Recolzar aquesta idea",
+        "voted_button": "Ja recolzes aquesta idea",
+        "assigned_to_app": "Assignada a {app}",
+        "by": "per",
+        "view_details": "Veure detalls",
+        "load_more": "Carregar més",
+        "description": "Descripció",
+        "send": "Enviar",
+        "retry": "Reintentar",
+        "filtered": "Cap idea coincideix amb els teus filtres.",
+        "filtered_hint": "Prova d'ajustar-los.",
+        "user": "Usuari",
+        "no_ideas_first": "Encara no hi ha idees. Sigues el primer!",
+        "active_tab": "Actiu",
+        "changelog_tab": "Registre de canvis",
+        "of": "de",
+        "all": "Tots",
+        "error_loading": "Alguna cosa ha anat malament en carregar les idees.",
+        "error_retry": "Reintentar",
+        "counts": "{total} total · {active} active · {completed} completed"
+      },
+      "comments": {
+        "title": "Comentaris",
+        "empty": "Encara no hi ha comentaris. Sigues el primer a comentar!",
+        "placeholder": "Escriu un comentari...",
+        "submit": "Comentar",
+        "deleted": "Comentari eliminat",
+        "error": "Error en carregar els comentaris. Torna-ho a provar.",
+        "retry": "Reintentar"
+      },
+      "empty": {
+        "title": "Encara no hi ha idees",
+        "description": "Sigues el primer a proposar una idea per millorar 027apps!",
+        "filtered": "Cap idea coincideix amb els teus filtres. Prova d'ajustar-los."
+      },
+      "widget": {
+        "active_ideas": "{count} idees actives",
+        "view_all": "Veure totes les idees",
+        "recently_completed": "Completades recentment",
+        "most_supported": "Més recolzades",
+        "no_ideas": "Encara no hi ha idees. Sigues el primer!",
+        "not_available": "No disponible",
+        "couldnt_load": "No s'ha pogut carregar",
+        "heading": "Inspiració"
+      },
+      "admin": {
+        "title": "Inspiració — Admin",
+        "subtitle": "Gestionar el cicle de vida de les idees",
+        "change_status": "Canviar estat",
+        "status_changed": "Estat actualitzat a {status}",
+        "send_closure_email": "Enviar correu de tancament",
+        "closure_email_sent": "Correu de tancament enviat",
+        "closure_email_error": "Error en enviar el correu de tancament",
+        "no_ideas_found": "No s'han trobat idees",
+        "confirm_final_status": "Estàs segur? Es notificarà al creador i als votants.",
+        "confirm": "Confirmar",
+        "cancel": "Cancel·lar",
+        "error": "Error en carregar les sol·licituds",
+        "retry": "Torna a intentar-ho",
+        "confirm_title": "Confirmar canvi d'estat",
+        "columns": {
+          "type": "Tipus",
+          "title": "Títol",
+          "creator": "Creador",
+          "votes": "Vots",
+          "app": "App",
+          "group": "Grup",
+          "status": "Estat"
+        },
+        "filter": {
+          "type": "Tipus:",
+          "status": "Estat:"
+        },
+        "pagination": {
+          "of": "de",
+          "prev": "Anterior",
+          "next": "Següent"
+        },
+        "detail": {
+          "no_description": "Sense descripció",
+          "created_by": "Creat per",
+          "unknown": "Desconegut",
+          "created_at": "Creat",
+          "updated_at": "Actualitzat",
+          "votes_label": "Vots",
+          "comments_label": "Comentaris",
+          "voters": "Votants",
+          "error": "No s'han pogut carregar els detalls"
+        },
+        "search": "Cerca idees..."
+      },
+      "time": {
+        "just_now": "ara mateix",
+        "m_ago": "fa {m}m",
+        "h_ago": "fa {h}h",
+        "d_ago": "fa {d}d",
+        "w_ago": "fa {w} set."
+      },
+      "pagination": {
+        "prev": "Anterior",
+        "next": "Següent"
+      }
     }
   },
   "profile": {

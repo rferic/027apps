@@ -142,6 +142,7 @@ export default async function LocaleLayout({ children, params }: Props) {
             slug: app.slug,
             label: manifest.name,
             href: `/${locale}/${currentGroupSlug}/apps/${app.slug}`,
+            primaryColor: manifest.primaryColor,
           })
         }
       } catch { /* skip apps with invalid manifests */ }

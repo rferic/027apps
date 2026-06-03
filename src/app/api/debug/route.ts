@@ -23,10 +23,17 @@ export async function GET() {
 
   try {
     const supabase2 = createClient(url!, key!, { auth: { autoRefreshToken: false, persistSession: false } })
-    const { error: rpcError, data: rpcData } = await supabase2.rpc('version')
-    results.rpc = { data: rpcData, error: rpcError }
+
+    const grantSql = [
+      'grant select, insert, update, delete on inspiration_requests to service_role;',
+      'grant select, insert, update, delete on inspiration_votes to service_role;',
+      'grant select, insert, update, delete on inspiration_comments to service_role;',
+      'grant select, insert, update, delete on todo_items to service_role;',
+    ].join('\n')
+    const { error: grantError } = await supabase2.rpc('exec_sql', { sql: grantSql })
+    results.grant = grantError ? { error: { message: grantError.message, code: grantError.code } } : { ok: true }
   } catch (err) {
-    results.rpcError = err instanceof Error ? err.message : String(err)
+    results.grantError = err instanceof Error ? err.message : String(err)
   }
 
   return Response.json(results)

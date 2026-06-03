@@ -4,9 +4,20 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import type { AppInstallContext } from '@/types/apps'
 import { readManifest } from '@/lib/apps/manifest'
 import { scanApps } from '@/lib/apps/scanner'
+import { hasAppModule, loadAppModule } from '@/lib/apps/registry'
 
 type InstallModule = { install: (ctx: AppInstallContext) => Promise<void> }
 type UninstallModule = { uninstall: (ctx: AppInstallContext) => Promise<void> }
+
+function extractCreateTableNames(sql: string): string[] {
+  const names: string[] = []
+  const re = /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?["']?(\w+)["']?\s*\(/gi
+  let match: RegExpExecArray | null
+  while ((match = re.exec(sql)) !== null) {
+    names.push(match[1])
+  }
+  return names
+}
 
 export class InstallerError extends Error {
   constructor(
@@ -21,7 +32,9 @@ export class InstallerError extends Error {
 
 async function tryImportInstall(slug: string): Promise<InstallModule | null> {
   try {
-    return await import(/* webpackIgnore: true */ `${process.cwd()}/apps/${slug}/install`) as InstallModule
+    if (!hasAppModule(slug, 'install')) return null
+    const install = await loadAppModule(slug, 'install')
+    return { install: (ctx: AppInstallContext) => install(ctx) }
   } catch {
     return null
   }
@@ -29,7 +42,9 @@ async function tryImportInstall(slug: string): Promise<InstallModule | null> {
 
 async function tryImportUninstall(slug: string): Promise<UninstallModule | null> {
   try {
-    return await import(/* webpackIgnore: true */ `${process.cwd()}/apps/${slug}/uninstall`) as UninstallModule
+    if (!hasAppModule(slug, 'uninstall')) return null
+    const uninstall = await loadAppModule(slug, 'uninstall')
+    return { uninstall: (ctx: AppInstallContext) => uninstall(ctx) }
   } catch {
     return null
   }
@@ -120,6 +135,24 @@ export async function installApp(slug: string): Promise<void> {
         .update({ status: 'error', error: sqlError.message })
         .eq('slug', slug)
       throw new Error(`Migrations failed for "${slug}": ${sqlError.message}`)
+    }
+
+    // Grant permissions on all app tables to service_role (needed for PostgREST)
+    const grantSql = extractCreateTableNames(migrationSql)
+      .map(t => `grant select, insert, update, delete on ${t} to service_role;`)
+      .join('\n')
+    if (grantSql) {
+      const { error: grantError } = await adminClient.rpc('exec_sql', { sql: grantSql })
+      if (grantError) {
+        console.error(`[installer] grant failed for "${slug}": ${grantError.message}`)
+      }
+    }
+
+    // Force PostgREST schema reload so it picks up the new tables
+    try {
+      await adminClient.rpc('exec_sql', { sql: "notify pgrst, 'reload schema';" })
+    } catch (e) {
+      console.error(`[installer] schema reload failed for "${slug}":`, e)
     }
   }
 

@@ -23,14 +23,21 @@ import {
 } from 'lucide-react'
 import { useAdminMobile } from './admin-mobile-context'
 
+interface SidebarApp {
+  slug: string
+  name: string
+  primaryColor: string
+}
+
 interface Props {
   locale: string
   initialCollapsed: boolean
+  apps?: SidebarApp[]
 }
 
 const STORAGE_KEY = 'admin-sidebar-collapsed'
 
-export function AdminSidebar({ locale, initialCollapsed }: Props) {
+export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
   const [collapsed, setCollapsed] = useState(initialCollapsed)
   const [usersOpen, setUsersOpen] = useState(true)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -67,6 +74,10 @@ export function AdminSidebar({ locale, initialCollapsed }: Props) {
   const base = `/${locale}/admin`
 
   function isActive(href: string) {
+    return pathname === href
+  }
+
+  function isActivePrefix(href: string) {
     return pathname === href || pathname.startsWith(href + '/')
   }
 
@@ -102,8 +113,8 @@ export function AdminSidebar({ locale, initialCollapsed }: Props) {
     { href: `${base}/settings/api-keys`, label: t('api_keys'), icon: Key },
   ]
 
-  const isUsersSection = userSubItems.some((item) => isActive(item.href))
-  const isSettingsSection = settingsSubItems.some((item) => isActive(item.href))
+  const isUsersSection = userSubItems.some((item) => isActivePrefix(item.href))
+  const isSettingsSection = settingsSubItems.some((item) => isActivePrefix(item.href))
 
   // Auto-open sections on mount/remount when the active route belongs to them
   useEffect(() => {
@@ -154,6 +165,36 @@ export function AdminSidebar({ locale, initialCollapsed }: Props) {
                 )}
               </div>
 
+              {/* Installed apps in collapsed mode */}
+              {apps && apps.length > 0 && apps.map(app => (
+                <div
+                  key={app.slug}
+                  className="relative"
+                  onMouseEnter={() => handleMenuEnter(`app_${app.slug}`)}
+                  onMouseLeave={handleMenuLeave}
+                >
+                  <Link
+                    href={`${base}/apps/${app.slug}`}
+                    className={`flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer ${
+                      isActive(`${base}/apps/${app.slug}`)
+                        ? 'bg-rose-50 text-rose-700'
+                        : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <img
+                      src={`/api/apps/${app.slug}/logo`}
+                      alt={app.name}
+                      className="w-[18px] h-[18px] rounded"
+                    />
+                  </Link>
+                  {hoveredMenu === `app_${app.slug}` && (
+                    <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                      {app.name}
+                    </div>
+                  )}
+                </div>
+              ))}
+
               {/* Groups */}
               <div
                 className="relative"
@@ -179,7 +220,7 @@ export function AdminSidebar({ locale, initialCollapsed }: Props) {
                 <button
                   type="button"
                   className={`flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer ${
-                    isUsersSection ? 'bg-rose-50 text-rose-700' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/users`) || isActivePrefix(`${base}/users`) ? 'bg-rose-50 text-rose-700' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <Users size={18} />
@@ -218,7 +259,7 @@ export function AdminSidebar({ locale, initialCollapsed }: Props) {
                 <button
                   type="button"
                   className={`flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer ${
-                    isSettingsSection ? 'bg-rose-50 text-rose-700' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/settings`) || isActivePrefix(`${base}/settings`) ? 'bg-rose-50 text-rose-700' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <Settings size={18} />
@@ -262,6 +303,21 @@ export function AdminSidebar({ locale, initialCollapsed }: Props) {
                 {t('apps')}
               </Link>
 
+              {apps && apps.length > 0 && apps.map(app => (
+                <Link
+                  key={app.slug}
+                  href={`${base}/apps/${app.slug}`}
+                  className={linkCls(`${base}/apps/${app.slug}`)}
+                >
+                  <img
+                    src={`/api/apps/${app.slug}/logo`}
+                    alt={app.name}
+                    className="w-4 h-4 rounded flex-shrink-0"
+                  />
+                  {app.name}
+                </Link>
+              ))}
+
               {/* Groups */}
               <Link href={`${base}/groups`} className={linkCls(`${base}/groups`)}>
                 <Building2 size={16} className="flex-shrink-0" />
@@ -274,7 +330,7 @@ export function AdminSidebar({ locale, initialCollapsed }: Props) {
                   type="button"
                   onClick={() => setUsersOpen((open) => !open)}
                   className={`cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isUsersSection ? 'text-rose-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/users`) || isActivePrefix(`${base}/users`) ? 'text-rose-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <Users size={16} className="flex-shrink-0" />
@@ -299,7 +355,7 @@ export function AdminSidebar({ locale, initialCollapsed }: Props) {
                   type="button"
                   onClick={() => setSettingsOpen((open) => !open)}
                   className={`cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isSettingsSection ? 'text-rose-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/settings`) || isActivePrefix(`${base}/settings`) ? 'text-rose-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <Settings size={16} className="flex-shrink-0" />

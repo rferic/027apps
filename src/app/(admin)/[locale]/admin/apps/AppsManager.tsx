@@ -31,6 +31,7 @@ function StatusBadge({ status }: { status: string }) {
 function AppCard({ app }: { app: CombinedApp }) {
   const t = useTranslations('admin.apps')
   const tErrors = useTranslations('apps.errors')
+  const tApp = useTranslations(`apps.${app.slug}`)
   const locale = useLocale()
   const [isPending, startTransition] = useTransition()
   const [isPendingVisibility, startVisibilityTransition] = useTransition()
@@ -66,14 +67,19 @@ function AppCard({ app }: { app: CombinedApp }) {
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 p-5">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
         <div className="flex items-start gap-3 min-w-0">
-          <div
-            className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: app.manifest?.primaryColor ?? '#e2e8f0' }}
-          >
-            <Package size={20} className="text-white" />
-          </div>
+          {app.manifest ? (
+            <img
+              src={`/api/apps/${app.slug}/logo`}
+              alt={app.manifest.name}
+              className="flex-shrink-0 w-10 h-10 rounded-lg"
+            />
+          ) : (
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-bold bg-slate-300">
+              {app.slug.slice(0, 2).toUpperCase()}
+            </div>
+          )}
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-gray-900 text-sm">{app.manifest?.name ?? app.slug}</span>
@@ -90,7 +96,7 @@ function AppCard({ app }: { app: CombinedApp }) {
               )}
               {app.installed && <StatusBadge status={app.installed.status} />}
             </div>
-            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{app.manifest?.description ?? ''}</p>
+            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{tApp('description')}</p>
             {app.manifest?.author?.name && (
               <p className="text-xs text-gray-400 mt-0.5">{app.manifest.author.name}</p>
             )}
@@ -109,10 +115,18 @@ function AppCard({ app }: { app: CombinedApp }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {isInstalled && isActive && (
+        <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-auto">
+          {isInstalled && isActive && app.manifest?.views.admin && (
             <Link
               href={`/${locale}/admin/apps/${app.slug}`}
+              className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-700 cursor-pointer transition-colors"
+            >
+              {t('manageTab')}
+            </Link>
+          )}
+          {isInstalled && isActive && (app.manifest?.config?.length ?? 0) > 0 && (
+            <Link
+              href={`/${locale}/admin/apps/${app.slug}#config`}
               className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
             >
               {t('configure')}

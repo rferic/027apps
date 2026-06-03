@@ -36,6 +36,10 @@ const SLUGS_CACHE_TTL_MS = 60_000 // 1 minute
 let slugsCache: { slugs: string[]; expiresAt: number } | null = null
 let slugsInflight: Promise<string[]> | null = null
 
+export function invalidateSlugsCache(): void {
+  slugsCache = null
+}
+
 export async function scanInstalledAppSlugs(): Promise<string[]> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return []

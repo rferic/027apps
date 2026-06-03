@@ -4,12 +4,28 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Home, User, AppWindow, LayoutGrid } from 'lucide-react'
+import { Home, LayoutGrid } from 'lucide-react'
+
+function AppIcon({ slug, label }: { slug: string; label: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
+    return <div className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: 'var(--app-primary, #6B7280)' }}>{slug.slice(0, 2).toUpperCase()}</div>
+  }
+  return (
+    <img
+      src={`/api/apps/${slug}/logo`}
+      alt={label}
+      className="w-5 h-5 rounded"
+      onError={() => setFailed(true)}
+    />
+  )
+}
 
 export interface NavItem {
   slug: string
   label: string
   href: string
+  primaryColor?: string
 }
 
 interface Props {
@@ -18,14 +34,18 @@ interface Props {
   currentGroupSlug?: string | null
 }
 
-function NavLink({ href, label, icon: Icon, active, onClick }: { href: string; label: string; icon: React.ElementType; active: boolean; onClick?: () => void }) {
+function NavLink({ href, label, icon: Icon, active, onClick, color }: { href: string; label: string; icon: React.ElementType; active: boolean; onClick?: () => void; color?: string }) {
+  const activeStyle = color
+    ? { color, backgroundColor: `${color}14` }
+    : {}
   return (
     <Link
       href={href}
       onClick={onClick}
       className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-        active ? 'text-emerald-600 bg-emerald-50' : 'text-slate-500 hover:text-slate-700'
+        active ? (color ? '' : 'text-emerald-600 bg-emerald-50') : 'text-slate-500 hover:text-slate-700'
       }`}
+      style={active ? activeStyle : undefined}
     >
       <Icon className="w-5 h-5" />
       <span>{label}</span>
@@ -63,12 +83,7 @@ export function AppBottomNav({ navItems, locale, currentGroupSlug }: Props) {
     ? `/${locale}/${effectiveSlug}/dashboard`
     : `/${locale}/dashboard`
 
-  const fixedItems = [
-    { slug: 'home', label: t('nav.home'), href: homeHref, icon: Home },
-    { slug: 'profile', label: t('nav.profile'), href: `/${locale}/profile`, icon: User },
-  ]
-
-  const MAX_DYNAMIC = 3
+  const MAX_DYNAMIC = 4
   const visibleDynamic = navItems.slice(0, MAX_DYNAMIC)
   const overflowItems = navItems.slice(MAX_DYNAMIC)
 
@@ -80,26 +95,41 @@ export function AppBottomNav({ navItems, locale, currentGroupSlug }: Props) {
           className="absolute bottom-full left-0 right-0 bg-white border-t border-slate-100 shadow-lg rounded-t-xl p-4 z-30"
         >
           <div className="flex flex-wrap gap-2">
-            {overflowItems.map(({ slug, label, href }) => (
-              <NavLink
-                key={slug}
-                href={href}
-                label={label}
-                icon={AppWindow}
-                active={pathname.startsWith(href)}
-                onClick={() => setOverflowOpen(false)}
-              />
-            ))}
+            {overflowItems.map(({ slug, label, href, primaryColor }) => {
+              const active = pathname.startsWith(href)
+              const activeStyle = primaryColor ? { color: primaryColor, backgroundColor: `${primaryColor}14` } : undefined
+              return (
+                <Link
+                  key={slug}
+                  href={href}
+                  onClick={() => setOverflowOpen(false)}
+                  className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    active ? (primaryColor ? '' : 'text-emerald-600 bg-emerald-50') : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                  style={active ? activeStyle : undefined}
+                >
+                  <AppIcon slug={slug} label={label} />
+                  <span>{label}</span>
+                </Link>
+              )
+            })}
           </div>
         </div>
       )}
       <div className="flex items-center justify-around max-w-md mx-auto">
-        {fixedItems.map(({ slug, label, href, icon }) => (
-          <NavLink key={slug} href={href} label={label} icon={icon} active={pathname === href} />
-        ))}
-        {visibleDynamic.map(({ slug, label, href }) => (
-          <NavLink key={slug} href={href} label={label} icon={AppWindow} active={pathname.startsWith(href)} />
-        ))}
+        <NavLink href={homeHref} label={t('nav.home')} icon={Home} active={pathname === homeHref} />
+        {visibleDynamic.map(({ slug, label, href, primaryColor }) => {
+          const active = pathname.startsWith(href)
+          const activeStyle = primaryColor ? { color: primaryColor, backgroundColor: `${primaryColor}14` } : undefined
+          return (
+            <Link key={slug} href={href} className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              active ? (primaryColor ? '' : 'text-emerald-600 bg-emerald-50') : 'text-slate-500 hover:text-slate-700'
+            }`} style={active ? activeStyle : undefined}>
+              <AppIcon slug={slug} label={label} />
+              <span>{label}</span>
+            </Link>
+          )
+        })}
         {overflowItems.length > 0 && (
           <button
             onClick={() => setOverflowOpen(prev => !prev)}

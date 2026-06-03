@@ -1,0 +1,25 @@
+{
+  "slug": "inspiration",
+  "tablePrefix": "inspiration_",
+  "name": "Inspiration",
+  "version": "1.0.0",
+  "description": "A family idea board — propose improvements, report bugs, request new features, and vote on what matters most.",
+  "logo": "logo.svg",
+  "primaryColor": "#F59E0B",
+  "secondaryColor": "#FFFBEB",
+  "author": {
+    "name": "Eric RF",
+    "url": "https://github.com/rferic"
+  },
+  "minPlatformVersion": "1.0.0",
+  "views": {
+    "public": true,
+    "admin": true,
+    "widget": true,
+    "native": false
+  },
+  "api": true,
+  "dependencies": [],
+  "notifications": true,
+  "config": []
+}

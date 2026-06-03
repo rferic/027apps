@@ -205,6 +205,32 @@ See [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ---
 
+## 📧 Email Setup
+
+Notifications (new ideas, status changes, comments) use a 3-step fallback:
+
+| Priority | Method | Env vars needed |
+|---|---|---|
+| 1 | **Resend** (requires verified domain) | `RESEND_API_KEY`, `SENDER_EMAIL` |
+| 2 | **SMTP** (Gmail, etc. — no domain needed) | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` |
+| 3 | None — returns error | — |
+
+### Quick start with Gmail (free)
+
+1. Enable **2-Step Verification** at https://myaccount.google.com/security
+2. Generate an **App Password** at https://myaccount.google.com/apppasswords
+3. Set these in Vercel → Project Settings → Environment Variables:
+
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=xxxx xxxx xxxx xxxx   # app password, 16 chars
+SMTP_FROM=your-email@gmail.com
+```
+
+---
+
 ## 📜 License
 
 MIT

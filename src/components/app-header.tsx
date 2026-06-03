@@ -48,10 +48,10 @@ export async function AppHeader({ locale, displayName, isAdmin, userGroups, curr
 
   return (
     <header className="h-14 border-b border-slate-100 bg-white px-4 sm:px-6 flex items-center justify-between sticky top-0 z-10">
-      <div className="flex items-center gap-3">
-        <Link href={homeHref} className="flex items-center gap-2">
+      <div className="flex items-center gap-3 min-w-0">
+        <Link href={homeHref} className="flex items-center gap-2 flex-shrink-0">
           <img src="/logo-icon.svg" alt="027Apps" width={26} height={26} />
-          <span className="font-semibold text-slate-900 text-sm">027Apps</span>
+          <span className="font-semibold text-slate-900 text-sm hidden sm:inline">027Apps</span>
         </Link>
 
         {userGroups && userGroups.length > 0 && (
@@ -63,14 +63,6 @@ export async function AppHeader({ locale, displayName, isAdmin, userGroups, curr
           />
         )}
 
-        {isAdmin && (
-          <Link
-            href={`/${locale}/admin/dashboard`}
-            className="text-xs font-medium text-slate-400 hover:text-slate-700 transition-colors"
-          >
-            {tNav('backoffice')} →
-          </Link>
-        )}
       </div>
 
       <div className="flex items-center gap-3">
@@ -83,7 +75,7 @@ export async function AppHeader({ locale, displayName, isAdmin, userGroups, curr
           />
         )}
         <LocaleSwitcher currentLocale={locale} locales={settings.activeLocales} saveToDb />
-        <UserDropdown locale={locale} displayName={displayName} />
+        <UserDropdown locale={locale} displayName={displayName} isAdmin={isAdmin} />
       </div>
     </header>
   )

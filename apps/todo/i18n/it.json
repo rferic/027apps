@@ -18,5 +18,6 @@
   "visibility_public": "Pubblica",
   "assigned_to": "Assegnato a",
   "assigned_to_me": "Io",
-  "assign_to_me": "Assegnami"
+  "assign_to_me": "Assegnami",
+  "description": "Elenco semplice di attività: crea, completa e rimuovi attività."
 }
