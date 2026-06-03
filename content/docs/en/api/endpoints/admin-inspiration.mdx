@@ -1,0 +1,69 @@
+---
+title: Admin - Inspiration
+description: Inspiration app administration endpoints.
+---
+
+# Admin — Inspiration
+
+## List all inspiration requests
+
+```bash
+GET /api/v1/admin/apps/inspiration
+```
+
+Returns paginated inspiration requests across all groups. Requires `admin` role.
+
+**Auth:** JWT (`admin` role)
+
+**Query parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `status` | string | Filter by status (comma-separated) |
+| `type` | string | Filter by type (comma-separated) |
+| `search` | string | Search title or description |
+| `sort` | enum | `newest`, `oldest`, `most_supported`, `most_commented` |
+| `app_slug` | string | Filter by app |
+| `group_slug` | string | Filter by group |
+| `page` | integer | Page number (default: 1) |
+| `limit` | integer | Items per page (default: 20, max: 500) |
+
+**Response 200:**
+```json
+{
+  "data": [{ "id": "uuid", "title": "...", "vote_count": 5, "comment_count": 2 }],
+  "pagination": { "page": 1, "limit": 20, "total": 42, "total_pages": 3 }
+}
+```
+
+## Get request details
+
+```bash
+GET /api/v1/admin/apps/inspiration/{id}
+```
+
+## Update request
+
+```bash
+PUT /api/v1/admin/apps/inspiration/{id}
+```
+
+Admin can change `status`; creator can update `title` and `description`.
+
+**Body:**
+```json
+{ "status": "approved" }
+```
+
+## Delete request
+
+```bash
+DELETE /api/v1/admin/apps/inspiration/{id}
+```
+
+Permanently deletes an inspiration request. Requires `admin` role.
+
+**Response 200:**
+```json
+{ "deleted": true, "id": "uuid" }
+```

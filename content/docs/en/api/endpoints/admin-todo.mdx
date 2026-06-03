@@ -1,0 +1,31 @@
+---
+title: Admin - Todo
+description: Todo app administration endpoints.
+---
+
+# Admin — Todo
+
+## List all todo items
+
+```bash
+GET /api/v1/admin/apps/todo
+```
+
+Returns all todo items across all groups. Requires `admin` role.
+
+**Auth:** JWT (`admin` role)
+
+**Response 200:**
+```json
+[
+  {
+    "id": 1,
+    "title": "Buy milk",
+    "completed": false,
+    "created_at": "2025-01-15T10:30:00Z",
+    "user_id": "uuid",
+    "group_id": "uuid",
+    "visibility": "public"
+  }
+]
+```
