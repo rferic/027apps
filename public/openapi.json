@@ -6,7 +6,7 @@
         "description": "Returns the API version and status. No authentication required.",
         "summary": "Health check",
         "tags": [
-          "health"
+          "Health"
         ],
         "parameters": [],
         "responses": {
@@ -48,7 +48,7 @@
         "description": "Returns all active installed apps for the authenticated group. Authenticate with JWT or API key.",
         "summary": "List installed apps",
         "tags": [
-          "apps"
+          "Apps"
         ],
         "parameters": [],
         "responses": {
@@ -141,7 +141,7 @@
         "description": "Returns the authenticated user's profile information including display name, avatar, locale, role, and group membership.",
         "summary": "Get current user profile",
         "tags": [
-          "me"
+          "Profile"
         ],
         "parameters": [
           {
@@ -267,7 +267,7 @@
         "description": "Returns the active locales configured for the group, with their display names and default flag.",
         "summary": "List active locales",
         "tags": [
-          "locales"
+          "Locales"
         ],
         "parameters": [],
         "responses": {
@@ -311,10 +311,7 @@
         "description": "Returns all todo items across all groups. Requires admin role.",
         "summary": "List all todo items (admin)",
         "tags": [
-          "admin",
-          "apps",
-          "todo",
-          "Admin"
+          "Admin - Todo"
         ],
         "parameters": [
           {
@@ -458,6 +455,200 @@
           }
         ]
       }
+    },
+    "/api/v1/admin/apps/inspiration": {
+      "get": {
+        "description": "Returns paginated inspiration requests across all groups with filters for status, type, search, sort, and app_slug. Requires admin role.",
+        "summary": "List all inspiration requests (admin)",
+        "tags": [
+          "Admin - Inspiration"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Filter by status (comma-separated): pending, reviewing, approved, in_progress, completed, rejected, on_hold, duplicate"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Filter by type (comma-separated): bug, improvement, new_app, new_app_feature, new_general_functionality, other"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Search by title or description (case-insensitive)"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["newest", "oldest", "most_supported", "most_commented"], "default": "newest" },
+            "description": "Sort order"
+          },
+          {
+            "name": "app_slug",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Filter by associated app slug"
+          },
+          {
+            "name": "group_slug",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Filter by group slug"
+          },
+          {
+            "name": "my",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["1"] },
+            "description": "Filter requests created by the authenticated user"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 1, "minimum": 1 },
+            "description": "Page number"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 20, "minimum": 1, "maximum": 500 },
+            "description": "Items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of inspiration requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "type": "object" } },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": { "type": "integer" },
+                        "limit": { "type": "integer" },
+                        "total": { "type": "integer" },
+                        "total_pages": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden - admin access required" }
+        },
+        "security": [{ "bearerAuth": [] }]
+      }
+    },
+    "/api/v1/admin/apps/inspiration/{id}": {
+      "get": {
+        "description": "Returns a single inspiration request by ID with vote/comment counts and creator info. Requires admin role.",
+        "summary": "Get inspiration request details (admin)",
+        "tags": ["Admin - Inspiration"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Inspiration request UUID"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Inspiration request details" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Not found" }
+        },
+        "security": [{ "bearerAuth": [] }]
+      },
+      "put": {
+        "description": "Updates an inspiration request. Admin can change status; creator can update title/description. Requires authentication.",
+        "summary": "Update inspiration request (admin or creator)",
+        "tags": ["Admin - Inspiration"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Inspiration request UUID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string", "description": "New title" },
+                  "description": { "type": "string", "description": "New description" },
+                  "status": { "type": "string", "description": "New status (admin only)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated request" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Not found" }
+        },
+        "security": [{ "bearerAuth": [] }]
+      },
+      "delete": {
+        "description": "Permanently deletes an inspiration request. Requires admin role.",
+        "summary": "Delete inspiration request (admin)",
+        "tags": ["Admin - Inspiration"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Inspiration request UUID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": { "type": "boolean" },
+                    "id": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Not found" }
+        },
+        "security": [{ "bearerAuth": [] }]
+      }
     }
   },
   "info": {
@@ -465,6 +656,14 @@
     "version": "1.0.0",
     "description": "# 027Apps API\n\nAPI pública de la plataforma 027Apps — espacio compartido para aplicaciones, tareas y herramientas entre grupos.\n\n## Autenticación\n\nLa API soporta dos métodos de autenticación:\n\n- **JWT Bearer Token** (recomendado): obtenido al iniciar sesión. Enviar como `Authorization: Bearer <token>`.\n- **API Key**: para acceso de servidor a servidor. Enviar como `X-API-Key: <key>`.\n\n## Estados de respuesta\n\n| Código | Significado |\n|--------|-------------|\n| 200 | Success |\n| 201 | Created |\n| 400 | Bad Request |\n| 401 | Unauthorized |\n| 403 | Forbidden |\n| 404 | Not Found |\n| 422 | Validation Error |\n| 500 | Internal Server Error |\n\n## Notas\n\n- Todos los endpoints que requieren autenticación devuelven `401` si falta el token.\n- Los endpoints de administración requieren rol `admin`.\n- Los endpoints de apps dinámicas (proxy) no están documentados aquí por ser específicos de cada app instalada."
   },
+  "tags": [
+    { "name": "Health", "description": "Health check and API status endpoints" },
+    { "name": "Profile", "description": "Current user profile information" },
+    { "name": "Apps", "description": "Installed applications and app discovery" },
+    { "name": "Locales", "description": "Locale and language configuration" },
+    { "name": "Admin - Todo", "description": "Todo app administration endpoints" },
+    { "name": "Admin - Inspiration", "description": "Inspiration app administration endpoints (manage idea lifecycle)" }
+  ],
   "servers": [
     {
       "url": "http://localhost:3000",
