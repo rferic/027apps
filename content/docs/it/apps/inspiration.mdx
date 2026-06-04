@@ -1,38 +1,21 @@
 ---
-title: Ispirazione
-description: Bacheca delle idee familiare — proponi, vota e segui le idee.
+title: Inspiration
+description: Family idea board — propose, vote, and track ideas.
 ---
+Inspiration permette ai membri del gruppo di inviare idee, segnalare bug, richiedere funzionalità e votare ciò che conta di più. Ogni richiesta segue un ciclo di vita: `in attesa → in revisione → approvato → in corso → completato`.
 
-import { Card, Cards } from 'fumadocs-ui/components/card'
+## Funzionalità
 
-<div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-  <img src="/api/apps/inspiration/logo" alt="Inspiration" width={48} height={48} style={{ borderRadius: 12 }} />
-  <div>
-    <h1 style={{ margin: 0 }}>Inspiration</h1>
-    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 15 }}>Bacheca delle idee familiare — proponi, vota e segui le idee.</p>
-  </div>
-</div>
+- **6 tipi di richiesta**: Bug, Miglioramento, Nuova App, Funzionalità App, Funzionalità Generale, Altro
+- **Votazione**: I membri possono sostenere le idee
+- **Commenti**: Discussioni in thread per ogni idea
+- **Flusso di stato**: Traccia le idee dalla proposta al completamento
+- **Notifiche email**: Gli admin ricevono notifiche per nuove idee e commenti
+- **Widget**: Widget nella dashboard con le idee più sostenute e completate
+- **Registro modifiche**: Visualizza le idee completate come registro
 
-<div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 20, backgroundColor: '#FFFBEB', color: '#F59E0B', fontSize: 13, fontWeight: 500, marginBottom: 20 }}>
-  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#F59E0B' }} />
-  Primary: #F59E0B
-  <span style={{ width: 1, height: 14, backgroundColor: '#FDE68A', margin: '0 4px' }} />
-  Slug: <code>inspiration</code>
-</div>
+## Endpoint API
 
-Inspiration lets group members submit ideas, report bugs, request features, and vote on what matters most. Every request goes through a status lifecycle: `pending → reviewing → approved → in_progress → completed`.
-
-## Features
-
-- **6 request types**: Bug, Improvement, New App, App Feature, General Functionality, Other
-- **Voting**: Members can support ideas they like
-- **Comments**: Discuss ideas with threaded comments
-- **Status workflow**: Track ideas from submission to completion
-- **Email notifications**: Admins get notified on new ideas and comments
-- **Widget**: Dashboard widget showing most supported and recently completed
-- **Changelog**: View completed ideas as a changelog
-
-## API Endpoints
 
 <Cards>
   <Card
