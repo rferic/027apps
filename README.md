@@ -171,7 +171,16 @@ public/         Static assets (logos, icons, favicon)
 
 ---
 
-## 🧩 Creating Apps
+## 🧩 Apps
+
+The platform ships with the following apps:
+
+| App | Slug | Color | README |
+|-----|------|-------|--------|
+| **Inspiration** | `inspiration` | `#F59E0B` | [README](apps/inspiration/README.md) |
+| **To-Do** | `todo` | `#4F46E5` | [README](apps/todo/README.md) |
+
+### Creating Custom Apps
 
 See the [App Developer Guide](apps/README.md) and the [documentation site](https://027apps-eric-rf.vercel.app/en/doc) for the complete reference.
 

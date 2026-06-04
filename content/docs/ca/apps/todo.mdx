@@ -1,52 +1,35 @@
 ---
 title: To-Do
-description: Simple task list — create, complete, and remove items.
+description: Llista de tasques simple — crea, completa i elimina elements.
 ---
+Tasques és un gestor de tasques senzill per a grups. Cada usuari pot crear, completar i eliminar les seves pròpies tasques. Els administradors poden configurar límits per usuari.
 
-import { Card, Cards } from 'fumadocs-ui/components/card'
+## Funcionalitats
 
-<div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-  <img src="/api/apps/todo/logo" alt="To-Do" width={48} height={48} style={{ borderRadius: 12 }} />
-  <div>
-    <h1 style={{ margin: 0 }}>To-Do</h1>
-    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 15 }}>Simple task list — create, complete, and remove items.</p>
-  </div>
-</div>
+- **Crear tasques**: Afegeix tasques amb un títol
+- **Completar tasques**: Marca tasques com a fetes amb un sol clic
+- **Límits per usuari**: Els administradors poden establir un màxim de tasques per usuari
+- **Visibilitat**: Les tasques poden ser públiques o privades
+- **Widget**: Widget al tauler amb tasques pendents i completades
 
-<div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 20, backgroundColor: '#EEF2FF', color: '#4F46E5', fontSize: 13, fontWeight: 500, marginBottom: 20 }}>
-  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#4F46E5' }} />
-  Primary: #4F46E5
-  <span style={{ width: 1, height: 14, backgroundColor: '#C7D2FE', margin: '0 4px' }} />
-  Slug: <code>todo</code>
-</div>
+## Endpoints de l'API
 
-To-Do is a straightforward task manager for groups. Each user can create, complete, and delete their own tasks. Supports per-user limits configured by admins.
-
-## Features
-
-- **Create tasks**: Add tasks with a title
-- **Complete tasks**: Mark tasks as done with a single click
-- **Per-user limits**: Admins can set max items per user
-- **Visibility**: Tasks can be public or private
-- **Widget**: Dashboard widget showing pending and completed counts
-
-## API Endpoints
 
 <Cards>
   <Card
-    title="Public API"
+    title="API pública"
     href="/doc/api/endpoints"
-    description="Create, list, update, and delete todo items."
+    description="Llistar, crear, actualitzar i eliminar."
   />
   <Card
-    title="Admin API"
+    title="API d'administració"
     href="/doc/api/endpoints/admin-todo"
-    description="View all tasks across groups."
+    description="Gestionar des del panell d'administració."
   />
   <Card
-    title="Interactive Reference"
+    title="Referència interactiva"
     href="/api-docs"
-    description="Test endpoints live in the browser."
+    description="Prova els endpoints en viu al navegador."
   />
 </Cards>
 
