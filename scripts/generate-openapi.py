@@ -74,7 +74,11 @@ comment_props = {
     },
 }
 
+bearer_auth = [{"bearerAuth": []}]
+any_auth = [{"bearerAuth": []}, {"apiKey": []}]
+
 paths = {
+    # ── Health ──────────────────────────────────────────────
     "/api/v1": {
         "get": {
             "summary": "Health check",
@@ -89,6 +93,55 @@ paths = {
             },
         },
     },
+
+    # ── Admin - API Keys ───────────────────────────────────
+    "/api/v1/admin/api-keys": {
+        "get": {
+            "tags": ["Admin - API Keys"],
+            "summary": "List API keys",
+            "description": "Returns a paginated list of API keys (masked values). Requires admin role.",
+            "parameters": [
+                {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1}},
+                {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20, "maximum": 500}},
+            ],
+            "responses": {
+                "200": {"description": "Paginated API key list"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden", {"error": "forbidden", "message": "Admin access required"}),
+            },
+            "security": bearer_auth,
+        },
+        "post": {
+            "tags": ["Admin - API Keys"],
+            "summary": "Create API key",
+            "description": "Creates a new API key. The full key is returned only once in the response. Requires admin role.",
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({"name": {"type": "string", "description": "Label for the API key"}}, ["name"])}}},
+            "responses": {
+                "201": {"description": "API key created (full key returned once)"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+                "422": error_resp("Validation error"),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/admin/api-keys/{id}": {
+        "delete": {
+            "tags": ["Admin - API Keys"],
+            "summary": "Revoke API key",
+            "description": "Revokes an API key. Requires admin role. Returns 204 on success.",
+            "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "API key UUID"}],
+            "responses": {
+                "204": {"description": "No Content — revoked successfully"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+    },
+
+    # ── Admin - Inspiration ─────────────────────────────────
     "/api/v1/admin/apps/inspiration": {
         "get": {
             "summary": "List all inspiration requests (admin)",
@@ -116,7 +169,7 @@ paths = {
                 "401": error_resp("Unauthorized"),
                 "403": error_resp("Forbidden", {"error": "forbidden", "message": "Admin access required"}),
             },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
     },
     "/api/v1/admin/apps/inspiration/{id}": {
@@ -131,7 +184,7 @@ paths = {
                 "403": error_resp("Forbidden"),
                 "404": error_resp("Not found", {"error": "not_found", "message": "Request not found"}),
             },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
         "put": {
             "summary": "Update inspiration request (admin)",
@@ -149,7 +202,7 @@ paths = {
                 "403": error_resp("Forbidden"),
                 "404": error_resp("Not found"),
             },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
         "delete": {
             "summary": "Delete inspiration request (admin)",
@@ -162,9 +215,87 @@ paths = {
                 "403": error_resp("Forbidden"),
                 "404": error_resp("Not found"),
             },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
     },
+
+    # ── Admin - Invitations ─────────────────────────────────
+    "/api/v1/admin/invitations": {
+        "get": {
+            "tags": ["Admin - Invitations"],
+            "summary": "List invitations",
+            "description": "Returns a paginated list of invitations. Requires admin role.",
+            "parameters": [
+                {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1}},
+                {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20, "maximum": 500}},
+            ],
+            "responses": {
+                "200": {"description": "Paginated invitation list"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden", {"error": "forbidden", "message": "Admin access required"}),
+            },
+            "security": bearer_auth,
+        },
+        "post": {
+            "tags": ["Admin - Invitations"],
+            "summary": "Create invitation",
+            "description": "Creates a new invitation link/code. Requires admin role.",
+            "responses": {
+                "201": {"description": "Invitation created"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+                "422": error_resp("Validation error"),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/admin/invitations/{id}": {
+        "delete": {
+            "tags": ["Admin - Invitations"],
+            "summary": "Delete invitation",
+            "description": "Deletes an invitation. Requires admin role. Returns 204 on success.",
+            "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Invitation UUID"}],
+            "responses": {
+                "204": {"description": "No Content — deleted successfully"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+    },
+
+    # ── Admin - Settings ────────────────────────────────────
+    "/api/v1/admin/settings": {
+        "get": {
+            "tags": ["Admin - Settings"],
+            "summary": "Get group settings",
+            "description": "Returns the group settings. Requires admin role.",
+            "responses": {
+                "200": {"description": "Group settings"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden", {"error": "forbidden", "message": "Admin access required"}),
+            },
+            "security": bearer_auth,
+        },
+        "put": {
+            "tags": ["Admin - Settings"],
+            "summary": "Update group settings",
+            "description": "Updates group settings. Requires admin role.",
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
+                "group_name": {"type": "string", "description": "Group display name"},
+                "default_locale": {"type": "string", "description": "Default locale for the group (e.g. en, es)"},
+            })}}},
+            "responses": {
+                "200": {"description": "Settings updated"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+            },
+            "security": bearer_auth,
+        },
+    },
+
+    # ── Admin - Todo ────────────────────────────────────────
     "/api/v1/admin/apps/todo": {
         "get": {
             "summary": "List all todo items (admin)",
@@ -187,9 +318,78 @@ paths = {
                 "401": error_resp("Unauthorized"),
                 "403": error_resp("Forbidden", {"error": "forbidden", "message": "Admin access required"}),
             },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
     },
+
+    # ── Admin - Users ───────────────────────────────────────
+    "/api/v1/admin/users": {
+        "get": {
+            "tags": ["Admin - Users"],
+            "summary": "List users",
+            "description": "Returns a paginated list of users in the group. Requires admin role.",
+            "parameters": [
+                {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1}},
+                {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20, "maximum": 500}},
+                {"name": "search", "in": "query", "schema": {"type": "string"}, "description": "Filter by email or display name"},
+            ],
+            "responses": {
+                "200": {"description": "Paginated user list"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden", {"error": "forbidden", "message": "Admin access required"}),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/admin/users/{id}": {
+        "get": {
+            "tags": ["Admin - Users"],
+            "summary": "Get user detail",
+            "description": "Returns a single user's details. Requires admin role.",
+            "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "User UUID"}],
+            "responses": {
+                "200": {"description": "User detail"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+        "put": {
+            "tags": ["Admin - Users"],
+            "summary": "Update user",
+            "description": "Update a user's role, profile, or block status. Requires admin role.",
+            "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "User UUID"}],
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
+                "role": {"type": "string", "enum": ["admin", "member"], "description": "User role"},
+                "display_name": {"type": "string", "description": "Display name"},
+                "locale": {"type": "string", "description": "Preferred locale (e.g. en, es)"},
+                "blocked": {"type": "boolean", "description": "Whether the user is blocked"},
+            })}}},
+            "responses": {
+                "200": {"description": "User updated"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+        "delete": {
+            "tags": ["Admin - Users"],
+            "summary": "Delete user",
+            "description": "Permanently removes a user from the group. Requires admin role. Returns 204 on success.",
+            "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "User UUID"}],
+            "responses": {
+                "204": {"description": "No Content — deleted successfully"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+    },
+
+    # ── Apps ────────────────────────────────────────────────
     "/api/v1/apps": {
         "get": {
             "summary": "List installed apps",
@@ -210,7 +410,7 @@ paths = {
                 ),
                 "401": error_resp("Unauthorized"),
             },
-            "security": [{"bearerAuth": []}, {"apiKey": []}],
+            "security": any_auth,
         },
     },
     "/api/v1/apps/{slug}/logo": {
@@ -225,6 +425,175 @@ paths = {
             },
         },
     },
+
+    # ── Inspiration (group proxy) ───────────────────────────
+    "/api/v1/{group}/apps/inspiration": {
+        "get": {
+            "summary": "List inspiration ideas",
+            "description": "Returns paginated inspiration requests for the group with vote/comment counts and creator info.",
+            "tags": ["App - Inspiration - Ideas"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
+                {"name": "status", "in": "query", "schema": {"type": "string"}, "description": "Filter by status(es), comma-separated"},
+                {"name": "type", "in": "query", "schema": {"type": "string"}, "description": "Filter by type(s), comma-separated"},
+                {"name": "search", "in": "query", "schema": {"type": "string"}, "description": "Search text in title and description"},
+                {"name": "sort", "in": "query", "schema": {"type": "string", "enum": ["newest", "oldest", "most_supported", "most_commented"], "default": "newest"}, "description": "Sort order"},
+                {"name": "app_slug", "in": "query", "schema": {"type": "string"}, "description": "Filter by related app slug"},
+                {"name": "my", "in": "query", "schema": {"type": "string", "enum": ["1"]}, "description": 'Set to "1" to show only your items'},
+                {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1, "minimum": 1}, "description": "Page number (starts at 1)"},
+                {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20, "minimum": 1, "maximum": 500}, "description": "Items per page"},
+            ],
+            "responses": {
+                "200": resp(
+                    schema_obj({
+                        "data": {"type": "array", "items": schema_obj(inspiration_request_props), "description": "Array of inspiration requests"},
+                        "pagination": schema_obj(pagination_props()),
+                    }),
+                    {"data": [{"id": "uuid", "title": "Add dark mode", "description": "Please add dark mode", "type": "improvement", "status": "pending", "vote_count": 5, "comment_count": 2, "user_has_voted": False, "creator": {"display_name": "Alice", "avatar_url": None}}], "pagination": {"page": 1, "limit": 20, "total": 1, "total_pages": 1}},
+                ),
+                "401": error_resp("Unauthorized"),
+            },
+            "security": bearer_auth,
+        },
+        "post": {
+            "summary": "Create an inspiration idea",
+            "description": "Creates a new inspiration request for the group. Authenticated members.",
+            "tags": ["App - Inspiration - Ideas"],
+            "parameters": [{"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"}],
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
+                "title": {"type": "string", "description": "Idea title (required)"},
+                "description": {"type": "string", "description": "Detailed description of the idea"},
+                "type": {"type": "string", "enum": ["bug", "improvement", "new_app", "new_app_feature", "new_general_functionality", "other"], "description": "Type of request (required)"},
+                "app_slug": {"type": "string", "description": "Slug of the related app (optional)"},
+            }, ["title", "type"]), "example": {"title": "Add dark mode", "description": "Please add a dark mode toggle", "type": "improvement", "app_slug": "todo"}}}},
+            "responses": {
+                "201": resp(schema_obj({
+                    "id": {"type": "string", "format": "uuid", "description": "New inspiration request UUID"},
+                    "user_id": {"type": "string", "format": "uuid", "description": "Creator user UUID"},
+                    "title": {"type": "string", "description": "Submitted title"},
+                    "type": {"type": "string", "description": "Request type"},
+                    "status": {"type": "string", "description": "Initial status (pending)"},
+                    "created_at": {"type": "string", "format": "date-time", "description": "ISO 8601 creation timestamp"},
+                })),
+                "401": error_resp("Unauthorized"),
+                "422": error_resp("Validation error", {"error": "validation_failed", "message": "Title is required"}),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/{group}/apps/inspiration/apps": {
+        "get": {
+            "summary": "List apps available for inspiration",
+            "description": "Returns installed apps that can be assigned to an inspiration request.",
+            "tags": ["App - Inspiration - Ideas"],
+            "parameters": [{"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"}],
+            "responses": {
+                "200": resp(schema_obj({"apps": {"type": "array", "items": schema_obj({"slug": {"type": "string", "description": "App slug"}, "name": {"type": "string", "description": "App display name"}}), "description": "Available apps for assignment"}})),
+                "401": error_resp("Unauthorized"),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/{group}/apps/inspiration/{id}": {
+        "put": {
+            "summary": "Update an inspiration idea",
+            "description": "Updates title/description (creator) or status (admin).",
+            "tags": ["App - Inspiration - Ideas"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"},
+            ],
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
+                "title": {"type": "string", "description": "New title"},
+                "description": {"type": "string", "description": "New description"},
+                "status": {"type": "string", "description": "New status (admin only)"},
+            }), "example": {"status": "approved"}}}},
+            "responses": {
+                "200": resp(schema_obj({"id": {"type": "string", "description": "Inspiration request UUID"}, "status": {"type": "string", "description": "Updated status"}})),
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+        "delete": {
+            "summary": "Delete an inspiration idea",
+            "description": "Deletes a request. Creator or admin. Returns 204 on success.",
+            "tags": ["App - Inspiration - Ideas"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"},
+            ],
+            "responses": {
+                "204": {"description": "No Content — deleted successfully"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/{group}/apps/inspiration/{id}/comments": {
+        "get": {
+            "summary": "List comments for an idea",
+            "description": "Returns paginated comments for an inspiration request, enriched with author info.",
+            "tags": ["App - Inspiration - Comments"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"},
+                {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1, "minimum": 1}, "description": "Page number (starts at 1)"},
+                {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20, "minimum": 1, "maximum": 500}, "description": "Comments per page"},
+            ],
+            "responses": {
+                "200": resp(
+                    schema_obj({
+                        "data": {"type": "array", "items": schema_obj(comment_props), "description": "Array of comments"},
+                        "pagination": schema_obj(pagination_props()),
+                    }),
+                    {"data": [{"id": "uuid", "request_id": "uuid", "user_id": "uuid", "body": "Great idea!", "created_at": "2025-01-15T11:00:00Z", "user": {"display_name": "Bob", "avatar_url": None}}], "pagination": {"page": 1, "limit": 20, "total": 1, "total_pages": 1}},
+                ),
+                "401": error_resp("Unauthorized"),
+            },
+            "security": bearer_auth,
+        },
+        "post": {
+            "summary": "Add a comment to an idea",
+            "description": "Adds a comment to an inspiration request. Authenticated members.",
+            "tags": ["App - Inspiration - Comments"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"},
+            ],
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({"body": {"type": "string", "description": "Comment text (required)"}}, ["body"]), "example": {"body": "Great idea! I fully support this."}}}},
+            "responses": {
+                "201": resp(schema_obj(comment_props)),
+                "401": error_resp("Unauthorized"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/{group}/apps/inspiration/{id}/vote": {
+        "post": {
+            "summary": "Vote/unvote on an idea",
+            "description": "Toggles your vote on an inspiration request. Vote if not voted, unvote if already voted.",
+            "tags": ["App - Inspiration - Votes"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"},
+            ],
+            "responses": {
+                "200": resp(schema_obj({
+                    "voted": {"type": "boolean", "description": "Whether the vote is active (true) or removed (false)"},
+                    "vote_count": {"type": "integer", "description": "Updated total vote count"},
+                }), {"voted": True, "vote_count": 6}),
+                "401": error_resp("Unauthorized"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+    },
+    # ── Locales ─────────────────────────────────────────────
     "/api/v1/locales": {
         "get": {
             "summary": "List active locales",
@@ -243,6 +612,8 @@ paths = {
             },
         },
     },
+
+    # ── Profile ─────────────────────────────────────────────
     "/api/v1/me": {
         "get": {
             "summary": "Get current user profile",
@@ -270,180 +641,57 @@ paths = {
                 "401": error_resp("Unauthorized"),
                 "403": error_resp("Forbidden"),
             },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
     },
-    "/api/v1/{group}/apps/inspiration": {
+
+    # ── Shared ──────────────────────────────────────────────
+    "/api/v1/shared/config": {
         "get": {
-            "summary": "List inspiration ideas",
-            "description": "Returns paginated inspiration requests for the group with vote/comment counts and creator info.",
-            "tags": ["Inspiration"],
-            "parameters": [
-                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug (URL-safe name)"},
-                {"name": "status", "in": "query", "schema": {"type": "string"}, "description": "Filter by status(es), comma-separated"},
-                {"name": "type", "in": "query", "schema": {"type": "string"}, "description": "Filter by type(s), comma-separated"},
-                {"name": "search", "in": "query", "schema": {"type": "string"}, "description": "Search text in title and description"},
-                {"name": "sort", "in": "query", "schema": {"type": "string", "enum": ["newest", "oldest", "most_supported", "most_commented"], "default": "newest"}, "description": "Sort order"},
-                {"name": "app_slug", "in": "query", "schema": {"type": "string"}, "description": "Filter by related app slug"},
-                {"name": "my", "in": "query", "schema": {"type": "string", "enum": ["1"]}, "description": 'Set to "1" to show only your items'},
-                {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1, "minimum": 1}, "description": "Page number (starts at 1)"},
-                {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20, "minimum": 1, "maximum": 500}, "description": "Items per page"},
-            ],
+            "tags": ["Shared"],
+            "summary": "Get group public config",
+            "description": "Returns the group's public configuration (name, default locale, enabled features, etc.).",
             "responses": {
-                "200": resp(
-                    schema_obj({
-                        "data": {"type": "array", "items": schema_obj(inspiration_request_props), "description": "Array of inspiration requests"},
-                        "pagination": schema_obj(pagination_props()),
-                    }),
-                    {"data": [{"id": "uuid", "title": "Add dark mode", "description": "Please add dark mode", "type": "improvement", "status": "pending", "vote_count": 5, "comment_count": 2, "user_has_voted": False, "creator": {"display_name": "Alice", "avatar_url": None}}], "pagination": {"page": 1, "limit": 20, "total": 1, "total_pages": 1}},
-                ),
+                "200": {"description": "Group public config"},
                 "401": error_resp("Unauthorized"),
             },
-            "security": [{"bearerAuth": []}],
-        },
-        "post": {
-            "summary": "Create an inspiration idea",
-            "description": "Creates a new inspiration request for the group. Authenticated members.",
-            "tags": ["Inspiration"],
-            "parameters": [{"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"}],
-            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
-                "title": {"type": "string", "description": "Idea title (required)"},
-                "description": {"type": "string", "description": "Detailed description of the idea"},
-                "type": {"type": "string", "enum": ["bug", "improvement", "new_app", "new_app_feature", "new_general_functionality", "other"], "description": "Type of request (required)"},
-                "app_slug": {"type": "string", "description": "Slug of the related app (optional)"},
-            }, ["title", "type"]), "example": {"title": "Add dark mode", "description": "Please add a dark mode toggle", "type": "improvement", "app_slug": "todo"}}}},
-            "responses": {
-                "201": resp(schema_obj({
-                    "id": {"type": "string", "format": "uuid", "description": "New inspiration request UUID"},
-                    "user_id": {"type": "string", "format": "uuid", "description": "Creator user UUID"},
-                    "title": {"type": "string", "description": "Submitted title"},
-                    "type": {"type": "string", "description": "Request type"},
-                    "status": {"type": "string", "description": "Initial status (pending)"},
-                    "created_at": {"type": "string", "format": "date-time", "description": "ISO 8601 creation timestamp"},
-                })),
-                "401": error_resp("Unauthorized"),
-                "422": error_resp("Validation error", {"error": "validation_failed", "message": "Title is required"}),
-            },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
     },
-    "/api/v1/{group}/apps/inspiration/apps": {
+    "/api/v1/shared/profile": {
         "get": {
-            "summary": "List apps available for inspiration",
-            "description": "Returns installed apps that can be assigned to an inspiration request.",
-            "tags": ["Inspiration"],
-            "parameters": [{"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"}],
+            "tags": ["Shared"],
+            "summary": "Get authenticated user profile",
+            "description": "Returns the authenticated user's profile.",
             "responses": {
-                "200": resp(schema_obj({"apps": {"type": "array", "items": schema_obj({"slug": {"type": "string", "description": "App slug"}, "name": {"type": "string", "description": "App display name"}}), "description": "Available apps for assignment"}})),
+                "200": {"description": "User profile"},
                 "401": error_resp("Unauthorized"),
             },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
-    },
-    "/api/v1/{group}/apps/inspiration/{id}": {
         "put": {
-            "summary": "Update an inspiration idea",
-            "description": "Updates title/description (creator) or status (admin).",
-            "tags": ["Inspiration"],
-            "parameters": [
-                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
-                {"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"},
-            ],
+            "tags": ["Shared"],
+            "summary": "Update own profile",
+            "description": "Updates the authenticated user's own profile.",
             "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
-                "title": {"type": "string", "description": "New title"},
-                "description": {"type": "string", "description": "New description"},
-                "status": {"type": "string", "description": "New status (admin only)"},
-            }), "example": {"status": "approved"}}}},
+                "display_name": {"type": "string", "description": "Display name"},
+                "locale": {"type": "string", "description": "Preferred locale (e.g. en, es)"},
+                "avatar_url": {"type": "string", "description": "Avatar image URL"},
+            })}}},
             "responses": {
-                "200": resp(schema_obj({"id": {"type": "string", "description": "Inspiration request UUID"}, "status": {"type": "string", "description": "Updated status"}})),
+                "200": {"description": "Profile updated"},
                 "401": error_resp("Unauthorized"),
-                "403": error_resp("Forbidden"),
-                "404": error_resp("Not found"),
             },
-            "security": [{"bearerAuth": []}],
-        },
-        "delete": {
-            "summary": "Delete an inspiration idea",
-            "description": "Deletes a request. Creator or admin. Returns 204 on success.",
-            "tags": ["Inspiration"],
-            "parameters": [
-                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
-                {"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"},
-            ],
-            "responses": {
-                "204": {"description": "No Content — deleted successfully"},
-                "401": error_resp("Unauthorized"),
-                "403": error_resp("Forbidden"),
-                "404": error_resp("Not found"),
-            },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
     },
-    "/api/v1/{group}/apps/inspiration/{id}/comments": {
-        "get": {
-            "summary": "List comments for an idea",
-            "description": "Returns paginated comments for an inspiration request, enriched with author info.",
-            "tags": ["Inspiration"],
-            "parameters": [
-                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
-                {"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"},
-                {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1}, "description": "Page number"},
-                {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20, "maximum": 100, "description": "Comments per page"}},
-            ],
-            "responses": {
-                "200": resp(
-                    schema_obj({
-                        "data": {"type": "array", "items": schema_obj(comment_props), "description": "Array of comments"},
-                        "pagination": schema_obj(pagination_props()),
-                    }),
-                    {"data": [{"id": "uuid", "request_id": "uuid", "user_id": "uuid", "body": "Great idea!", "created_at": "2025-01-15T11:00:00Z", "user": {"display_name": "Bob", "avatar_url": None}}], "pagination": {"page": 1, "limit": 20, "total": 1, "total_pages": 1}},
-                ),
-                "401": error_resp("Unauthorized"),
-            },
-            "security": [{"bearerAuth": []}],
-        },
-        "post": {
-            "summary": "Add a comment to an idea",
-            "description": "Adds a comment to an inspiration request. Authenticated members.",
-            "tags": ["Inspiration"],
-            "parameters": [
-                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
-                {"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"},
-            ],
-            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({"body": {"type": "string", "description": "Comment text (required)"}}, ["body"]), "example": {"body": "Great idea! I fully support this."}}}},
-            "responses": {
-                "201": resp(schema_obj(comment_props)),
-                "401": error_resp("Unauthorized"),
-                "404": error_resp("Not found"),
-            },
-            "security": [{"bearerAuth": []}],
-        },
-    },
-    "/api/v1/{group}/apps/inspiration/{id}/vote": {
-        "post": {
-            "summary": "Vote/unvote on an idea",
-            "description": "Toggles your vote on an inspiration request. Vote if not voted, unvote if already voted.",
-            "tags": ["Inspiration"],
-            "parameters": [
-                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
-                {"name": "id", "in": "path", "required": True, "schema": {"type": "string", "format": "uuid"}, "description": "Inspiration request UUID"},
-            ],
-            "responses": {
-                "200": resp(schema_obj({
-                    "voted": {"type": "boolean", "description": "Whether the vote is active (true) or removed (false)"},
-                    "vote_count": {"type": "integer", "description": "Updated total vote count"},
-                }), {"voted": True, "vote_count": 6}),
-                "401": error_resp("Unauthorized"),
-                "404": error_resp("Not found"),
-            },
-            "security": [{"bearerAuth": []}],
-        },
-    },
+
+    # ── Todo (group proxy) ──────────────────────────────────
     "/api/v1/{group}/apps/todo": {
         "get": {
             "summary": "List todo items",
             "description": "Returns todo items for the group.",
-            "tags": ["Todo"],
+            "tags": ["App - Todo - Items"],
             "parameters": [{"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"}],
             "responses": {
                 "200": resp(
@@ -457,12 +705,12 @@ paths = {
                 ),
                 "401": error_resp("Unauthorized"),
             },
-            "security": [{"bearerAuth": []}, {"apiKey": []}],
+            "security": any_auth,
         },
         "post": {
             "summary": "Create a todo item",
             "description": "Creates a new todo item in the group.",
-            "tags": ["Todo"],
+            "tags": ["App - Todo - Items"],
             "parameters": [{"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"}],
             "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({"title": {"type": "string", "description": "Todo title (required)"}}, ["title"]), "example": {"title": "Buy groceries"}}}},
             "responses": {
@@ -474,14 +722,14 @@ paths = {
                 })),
                 "401": error_resp("Unauthorized"),
             },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
     },
     "/api/v1/{group}/apps/todo/{id}": {
         "put": {
             "summary": "Update a todo item",
             "description": "Updates a todo item (title or completed status).",
-            "tags": ["Todo"],
+            "tags": ["App - Todo - Items"],
             "parameters": [
                 {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
                 {"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}, "description": "Todo item ID"},
@@ -495,12 +743,12 @@ paths = {
                 "401": error_resp("Unauthorized"),
                 "404": error_resp("Not found"),
             },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
         "delete": {
             "summary": "Delete a todo item",
             "description": "Deletes a todo item. Owner or admin. Returns 204 on success.",
-            "tags": ["Todo"],
+            "tags": ["App - Todo - Items"],
             "parameters": [
                 {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
                 {"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}, "description": "Todo item ID"},
@@ -510,7 +758,7 @@ paths = {
                 "401": error_resp("Unauthorized"),
                 "404": error_resp("Not found"),
             },
-            "security": [{"bearerAuth": []}],
+            "security": bearer_auth,
         },
     },
 }
@@ -522,29 +770,39 @@ spec = {
         "version": "1.0.0",
         "description": (
             "# 027Apps API\n\n"
-            "API p\u00fablica de la plataforma 027Apps \u2014 espacio compartido para aplicaciones, tareas y herramientas entre grupos.\n\n"
-            "## Autenticaci\u00f3n\n\n"
-            "La API soporta dos m\u00e9todos de autenticaci\u00f3n:\n\n"
-            "- **JWT Bearer Token** (recomendado): obtenido al iniciar sesi\u00f3n. Enviar como `Authorization: Bearer <token>`.\n"
+            "API pública de la plataforma 027Apps — espacio compartido para aplicaciones, tareas y herramientas entre grupos.\n\n"
+            "## Autenticación\n\n"
+            "La API soporta dos métodos de autenticación:\n\n"
+            "- **JWT Bearer Token** (recomendado): obtenido al iniciar sesión. Enviar como `Authorization: Bearer <token>`.\n"
             "- **API Key**: para acceso de servidor a servidor. Enviar como `X-API-Key: <key>`.\n\n"
             "## Estados de respuesta\n\n"
-            "| C\u00f3digo | Significado |\n|--------|-------------|\n"
-            "| 200 | Success |\n| 201 | Created |\n| 400 | Bad Request |\n| 401 | Unauthorized |\n"
+            "| Código | Significado |\n|--------|-------------|\n"
+            "| 200 | Success |\n| 201 | Created |\n| 204 | No Content |\n| 400 | Bad Request |\n| 401 | Unauthorized |\n"
             "| 403 | Forbidden |\n| 404 | Not Found |\n| 422 | Validation Error |\n| 500 | Internal Server Error |\n\n"
-            "## Notas\n\n- Todos los endpoints que requieren autenticaci\u00f3n devuelven `401` si falta el token.\n"
-            "- Los endpoints de administraci\u00f3n requieren rol `admin`.\n"
+            "## Notas\n\n- Todos los endpoints que requieren autenticación devuelven `401` si falta el token.\n"
+            "- Los endpoints de administración requieren rol `admin`.\n"
+            "- Los endpoints marcados como `Admin - *` requieren autenticación JWT con rol admin.\n"
+            "- Los endpoints de la categoría `Shared` están disponibles para cualquier miembro autenticado del grupo.\n"
+            "- Los endpoints de `{group}/apps/*` son proxy dinámico que despacha a los route handlers de cada app instalada.\n"
         ),
     },
-    "tags": [
+    "tags": sorted([
+        {"name": "Admin - API Keys", "description": "API key management (admin only)"},
         {"name": "Admin - Inspiration", "description": "Inspiration app administration (manage ideas, statuses, lifecycle)"},
+        {"name": "Admin - Invitations", "description": "Invitation management (admin only)"},
+        {"name": "Admin - Settings", "description": "Group settings (admin only)"},
         {"name": "Admin - Todo", "description": "Todo app administration endpoints"},
+        {"name": "Admin - Users", "description": "User management (admin only)"},
+        {"name": "App - Inspiration - Ideas", "description": "Idea management within the Inspiration app"},
+        {"name": "App - Inspiration - Comments", "description": "Comments on inspiration ideas"},
+        {"name": "App - Inspiration - Votes", "description": "Voting on inspiration ideas"},
+        {"name": "App - Todo - Items", "description": "Todo item management within the Todo app"},
         {"name": "Apps", "description": "Installed applications and app discovery"},
         {"name": "Health", "description": "Health check and API status"},
-        {"name": "Inspiration", "description": "Public inspiration endpoints for group members"},
         {"name": "Locales", "description": "Locale and language configuration"},
         {"name": "Profile", "description": "Current user profile"},
-        {"name": "Todo", "description": "Public todo endpoints for group members"},
-    ],
+        {"name": "Shared", "description": "Endpoints available to all authenticated group members"},
+    ], key=lambda t: t["name"]),
     "paths": dict(sorted(paths.items())),
     "servers": [
         {"url": "http://localhost:3000", "description": "Local development"},
@@ -554,16 +812,18 @@ spec = {
         "securitySchemes": {
             "bearerAuth": {
                 "type": "http", "scheme": "bearer", "bearerFormat": "JWT",
-                "description": "JWT token obtenido al iniciar sesi\u00f3n en la aplicaci\u00f3n",
+                "description": "JWT token obtenido al iniciar sesión en la aplicación",
             },
             "apiKey": {
                 "type": "apiKey", "in": "header", "name": "X-API-Key",
-                "description": "API Key generada desde el panel de administraci\u00f3n",
+                "description": "API Key generada desde el panel de administración",
             },
         },
     },
 }
 
-with open('/Users/ericrf/Sites/027apps/public/openapi.json', 'w') as f:
+import os
+output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'public', 'openapi.json')
+with open(output_path, 'w') as f:
     json.dump(spec, f, indent=2, ensure_ascii=False)
-print("Done - openapi.json generated with descriptions, schemas, and examples")
+print(f"Done — openapi.json generated with {len(spec['paths'])} paths and {len(spec['tags'])} tags")
