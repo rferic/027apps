@@ -1,0 +1,396 @@
+---
+title: Créer une App
+description: Guide pas à pas pour créer une nouvelle application pour 027Apps.
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card'
+
+# Créer une App
+
+Ce guide vous accompagne dans la création d'une nouvelle application pour 027Apps. Les applications sont des modules enfichables qui étendent la plateforme avec des fonctionnalités personnalisées, des modèles de données et des interfaces utilisateur.
+
+## Qu'est-ce qu'une App?
+
+Une application dans 027Apps est un **module autonome** qui vit dans l'espace de travail d'un groupe. Chaque application dispose de:
+
+- **Base de données**: Tables propres avec migrations automatiques, grants et politiques RLS
+- **API**: Points de terminaison REST acheminés automatiquement vers vos gestionnaires de routes
+- **Vues**: Interface publique, panneau d'administration, widget de tableau de bord et écran mobile natif
+- **Cycle de vie**: Scripts d'installation et de désinstallation pour la configuration et le nettoyage
+- **i18n**: Traduite en 6 langues avec du contenu adapté à la locale
+
+---
+
+## Structure des Répertoires
+
+Une application typique a cette structure:
+
+```
+apps/my-app/
+├── manifest.json       # Métadonnées de l'app (requis)
+├── icon.svg            # Icône de l'app (optionnel)
+├── migrations.sql      # Schéma de base de données (exécuté à l'installation)
+├── uninstall.sql       # SQL de nettoyage (exécuté à la désinstallation)
+├── install.ts          # Logique d'installation (TypeScript)
+├── uninstall.ts         # Logique de désinstallation (TypeScript)
+├── server.ts           # Vue principale (React Server Component)
+├── admin.ts            # Panneau d'administration (optionnel)
+├── widget.ts           # Widget du tableau de bord (optionnel)
+├── native.ts           # Vue mobile/native (optionnel)
+├── docs/
+│   └── index.mdx       # Documentation de l'app
+└── routes/             # Points de terminaison API (si "api": true)
+    ├── route.ts
+    └── [id]/
+        └── route.ts
+```
+
+---
+
+## manifest.json
+
+Le manifest déclare les métadonnées et les capacités de votre application.
+
+```json
+{
+  "slug": "my-app",
+  "name": "My App",
+  "description": "Une brève description de ce que fait cette application.",
+  "version": "1.0.0",
+  "icon": "📝",
+  "color": "#3B82F6",
+  "categories": ["productivity"],
+  "permissions": ["read:group", "write:data"],
+  "api": false,
+  "widget": { "minWidth": 1, "minHeight": 1, "maxWidth": 3, "maxHeight": 3 },
+  "locales": ["en", "es"]
+}
+```
+
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `slug` | string | ✅ | Identifiant unique. Minuscules, traits d'union autorisés. Doit correspondre à `/^[a-z][a-z0-9-]{0,62}$/` |
+| `name` | string | ✅ | Nom affiché dans l'interface |
+| `description` | string | ✅ | Brève description (affichée dans la liste des apps) |
+| `version` | string | ✅ | Version semver (ex., `1.0.0`) |
+| `icon` | string | ✅ | Emoji ou identifiant d'icône |
+| `color` | string | ✅ | Couleur primaire en hexadécimal (ex., `#3B82F6`) |
+| `categories` | string[] | ✅ | Catégories pour le filtrage: `productivity`, `social`, `utilities`, `entertainment`, `education` |
+| `permissions` | string[] | ❌ | Permissions requises (voir [App API Protocol](/doc/api/app-api-protocol)) |
+| `api` | boolean | ❌ | Activer les points de terminaison API (`false` par défaut) |
+| `widget` | object | ❌ | Dimensions du widget pour le tableau de bord |
+| `widget.minWidth` | number | ❌ | Colonnes minimales de la grille (1-12) |
+| `widget.minHeight` | number | ❌ | Lignes minimales de la grille (1-12) |
+| `widget.maxWidth` | number | ❌ | Colonnes maximales de la grille (1-12) |
+| `widget.maxHeight` | number | ❌ | Lignes maximales de la grille (1-12) |
+| `locales` | string[] | ❌ | Langues prises en charge (par défaut toutes les 6) |
+
+---
+
+## migrations.sql + uninstall.sql
+
+Le `migrations.sql` s'exécute automatiquement lorsqu'un groupe installe l'application. Utilisez-le pour créer des tables, des index et des politiques RLS.
+
+### migrations.sql
+
+```sql
+CREATE TABLE IF NOT EXISTS my_app (
+  id          BIGSERIAL PRIMARY KEY,
+  group_id    BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+  created_by  BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title       TEXT NOT NULL,
+  completed   BOOLEAN DEFAULT FALSE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX CONCURRENTLY ON my_app(group_id);
+CREATE INDEX CONCURRENTLY ON my_app(created_by);
+
+-- RLS: les membres peuvent lire les éléments de leur groupe
+ALTER TABLE my_app ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Members can read"
+  ON my_app FOR SELECT
+  USING (auth.jwt() ->> 'group_id' = group_id::text);
+
+CREATE POLICY "Members can insert"
+  ON my_app FOR INSERT
+  WITH CHECK (auth.jwt() ->> 'group_id' = group_id::text);
+
+CREATE POLICY "Members can update own"
+  ON my_app FOR UPDATE
+  USING (created_by = (auth.jwt() ->> 'user_id')::bigint);
+
+CREATE POLICY "Members can delete own"
+  ON my_app FOR DELETE
+  USING (created_by = (auth.jwt() ->> 'user_id')::bigint);
+```
+
+### uninstall.sql
+
+Le `uninstall.sql` s'exécute lorsqu'un groupe supprime l'application. Utilisez-le pour nettoyer toutes les ressources.
+
+```sql
+DROP TABLE IF EXISTS my_app;
+```
+
+> **Note:** Si votre application n'a pas besoin de base de données, vous pouvez omettre les deux fichiers.
+
+---
+
+## install.ts + uninstall.ts
+
+Les fichiers TypeScript s'exécutent avant/après les migrations SQL. Utilisez-les pour initialiser l'état de l'application, semer des données ou enregistrer l'application dans les tables de la plateforme.
+
+### install.ts
+
+```typescript
+import { createAdminClientUntyped } from '@/lib/supabase/server'
+
+export async function install({ groupId }: { groupId: string }) {
+  const admin = createAdminClientUntyped()
+
+  // Créer la configuration par défaut ou les données initiales
+  await admin.from('my_app_config').insert({
+    group_id: groupId,
+    settings: { max_items: 50 }
+  })
+
+  console.log(`App installée pour le groupe ${groupId}`)
+}
+```
+
+### uninstall.ts
+
+```typescript
+import { createAdminClientUntyped } from '@/lib/supabase/server'
+
+export async function uninstall({ groupId }: { groupId: string }) {
+  const admin = createAdminClientUntyped()
+
+  // Nettoyer les données qui n'ont pas été gérées par uninstall.sql
+  await admin.from('my_app_sessions')
+    .delete()
+    .eq('group_id', groupId)
+
+  console.log(`App désinstallée pour le groupe ${groupId}`)
+}
+```
+
+> **Note:** Les deux fichiers reçoivent `{ groupId: string }` comme paramètre.
+
+---
+
+## Vues
+
+Votre application peut exposer jusqu'à quatre vues. La plateforme décide laquelle afficher en fonction du contexte.
+
+### server.ts (Vue Principale)
+
+La vue principale est l'interface principale de votre application. C'est un React Server Component.
+
+```typescript
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+
+export default async function MyAppServer({ params }: { params: { groupId: string } }) {
+  const supabase = createClient()
+  const { data: items } = await supabase
+    .from('my_app')
+    .select('*')
+    .eq('group_id', params.groupId)
+    .order('created_at', { ascending: false })
+
+  return (
+    <div>
+      <h1>My App</h1>
+      <ul>
+        {items?.map(item => (
+          <li key={item.id}>{item.title}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+```
+
+### admin.ts (Panneau d'Administration)
+
+Le panneau d'administration s'affiche lorsqu'un administrateur ouvre l'application. Retournez `null` pour masquer cette vue.
+
+```typescript
+import { createClient } from '@/lib/supabase/server'
+
+export default async function MyAppAdmin({ params }: { params: { groupId: string } }) {
+  const supabase = createClient()
+  const { data: stats } = await supabase.rpc('my_app_stats', {
+    p_group_id: params.groupId
+  })
+
+  return (
+    <div>
+      <h2>Paramètres Admin</h2>
+      <p>Total des éléments: {stats?.total ?? 0}</p>
+    </div>
+  )
+}
+```
+
+### widget.ts (Widget du Tableau de Bord)
+
+Le widget apparaît sur le tableau de bord du groupe. Gardez-le léger et centré sur une seule métrique.
+
+```typescript
+import { createClient } from '@/lib/supabase/server'
+
+export default async function MyAppWidget({ groupId }: { groupId: string }) {
+  const supabase = createClient()
+  const { count } = await supabase
+    .from('my_app')
+    .select('*', { count: 'exact', head: true })
+    .eq('group_id', groupId)
+    .eq('completed', false)
+
+  return (
+    <div>
+      <strong>My App</strong>
+      <p>{count ?? 0} éléments actifs</p>
+    </div>
+  )
+}
+```
+
+### native.ts (Vue Mobile)
+
+La vue native s'affiche dans le contexte de l'application mobile. Optimisez pour les petits écrans et les interactions tactiles.
+
+```typescript
+export default function MyAppNative({ groupId }: { groupId: string }) {
+  // C'est un Client Component pour mobile
+  return (
+    <div className="p-4">
+      <h1>My App (Mobile)</h1>
+      {/* Interface optimisée pour mobile */}
+    </div>
+  )
+}
+```
+
+---
+
+## Routes (Points de terminaison API)
+
+Si votre application a besoin de points de terminaison API personnalisés, définissez `"api": true` dans `manifest.json`. La plateforme achemine automatiquement les requêtes sous `/api/v1/apps/{slug}/` vers vos gestionnaires de routes.
+
+```
+apps/my-app/routes/
+├── route.ts         # GET, POST  → /api/v1/apps/my-app
+└── [id]/
+    └── route.ts     # GET, PUT, DELETE → /api/v1/apps/my-app/{id}
+```
+
+### route.ts
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { apiHandler, requirePermission } from '@/lib/api'
+
+export async function GET(req: NextRequest) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('my_app')
+    .select('*')
+    .eq('group_id', req.geo?.country ?? 'unknown') // utiliser le filtre approprié
+
+  return NextResponse.json({ data })
+}
+```
+
+Pour la documentation API complète, consultez l'[App API Protocol](/doc/api/app-api-protocol).
+
+---
+
+## Documentation de l'App
+
+Créez un fichier `docs/index.mdx` dans le répertoire de votre application. Celui-ci apparaît dans la section documentation sous **Apps**.
+
+```mdx
+---
+title: My App
+description: Une brève description de ce que fait cette application.
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card'
+
+# My App
+
+My App vous aide à gérer...
+
+## Fonctionnalités
+
+- Fonctionnalité 1
+- Fonctionnalité 2
+
+## Points de terminaison API
+
+<Cards>
+  <Card
+    title="API publique"
+    href="/doc/api/endpoints"
+    description="Gérez vos éléments."
+  />
+</Cards>
+
+## Configuration
+
+| Clé | Type | Par défaut |
+|-----|------|------------|
+| `max_items` | number | 50 |
+```
+
+Enregistrez-le dans `meta.json` pour qu'il apparaisse dans la navigation:
+
+```json
+{
+  "title": "Apps",
+  "pages": ["inspiration", "todo", "my-app"]
+}
+```
+
+---
+
+## Checklist
+
+Avant de publier votre application, vérifiez:
+
+- [ ] `manifest.json` est complet et valide
+- [ ] `migrations.sql` crée des tables, des index et des politiques RLS
+- [ ] `install.ts` et `uninstall.ts` gèrent toute l'initialisation et le nettoyage
+- [ ] Au moins une vue (`server.ts`, `admin.ts`, `widget.ts` ou `native.ts`) est implémentée
+- [ ] La documentation de l'application existe dans `docs/index.mdx`
+- [ ] `icon.svg` est inclus (ou utilisez un emoji dans `manifest.json`)
+- [ ] Les tests passent localement
+
+---
+
+## Références
+
+<Cards>
+  <Card
+    title="App API Protocol"
+    href="/doc/api/app-api-protocol"
+    description="Plongée approfondie dans le cycle de vie, les permissions et le routage des applications."
+  />
+  <Card
+    title="REST API Overview"
+    href="/doc/api"
+    description="Authentification, utilisateurs, groupes et points de terminaison de locale."
+  />
+  <Card
+    title="Inspiration App"
+    href="/doc/apps/inspiration"
+    description="Un exemple d'application complet avec toutes les fonctionnalités."
+  />
+</Cards>

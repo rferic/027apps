@@ -6,6 +6,7 @@
     "authentication",
     "errors",
     "i18n",
-    "endpoints"
+    "endpoints",
+    "app-api-protocol"
   ]
 }

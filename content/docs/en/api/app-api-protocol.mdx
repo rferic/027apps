@@ -1,0 +1,376 @@
+---
+title: App API Protocol
+description: How apps can declare and expose their own REST endpoints within the 027Apps ecosystem.
+---
+
+# App API Protocol
+
+Apps in the 027Apps ecosystem can expose their own REST endpoints. The platform handles routing, authentication, and middleware automatically — you just need to declare which endpoints your app exposes and where to find the handler files.
+
+## How to declare REST endpoints
+
+### 1. Enable API in manifest
+
+Set `"api": true` in your app's `manifest.json`:
+
+```json
+{
+  "id": "notes",
+  "name": "Notes",
+  "version": "1.0.0",
+  "api": true
+}
+```
+
+### 2. Create route files
+
+Place your route handlers in `apps/{slug}/routes/`. The file structure determines the URL path:
+
+```
+apps/{slug}/routes/
+├── route.ts           → GET   /api/v1/admin/apps/{slug}
+├── [id]/
+│   └── route.ts       → GET   /api/v1/admin/apps/{slug}/:id
+│                       → PUT   /api/v1/admin/apps/{slug}/:id
+│                       → PATCH /api/v1/admin/apps/{slug}/:id
+│                       → DELETE /api/v1/admin/apps/{slug}/:id
+```
+
+### 3. Export HTTP methods
+
+Each route file exports one or more of: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`.
+
+```typescript
+// apps/notes/routes/route.ts
+export async function GET(req: Request, ctx: UseCaseContext) {
+  // ...
+}
+
+export async function POST(req: Request, ctx: UseCaseContext) {
+  // ...
+}
+```
+
+## Standard authentication levels
+
+| Level | Header | Use case |
+|---|---|---|
+| `public` | None | Non-sensitive, group-wide data |
+| `jwt` | `Authorization: Bearer <token>` | Any authenticated user |
+| `any` | JWT or `X-API-Key` | Flexible — supports both auth methods |
+| `apikey` | `X-API-Key: sk_027_...` | Server-to-server integrations only |
+
+## Response format
+
+### Success
+
+Return resources directly — no outer envelope:
+
+```typescript
+import { apiOk } from '@/lib/api/response'
+
+// Single resource
+return apiOk({ id: '123', name: 'My Note' })
+
+// Created resource (201)
+return apiOk({ id: '456', name: 'New Note' }, 201)
+```
+
+### Paginated lists
+
+```typescript
+import { apiOk } from '@/lib/api/response'
+
+return apiOk({
+  data: items,
+  pagination: {
+    page: 1,
+    limit: 20,
+    total: 150,
+    total_pages: 8
+  }
+})
+```
+
+### Errors
+
+```typescript
+import { apiError } from '@/lib/api/response'
+
+// Basic error
+return apiError('not_found', 'Note not found', 404)
+
+// Validation error with field details
+return apiError('validation_failed', 'Input is invalid', 400, {
+  title: 'Title is required'
+})
+```
+
+### DELETE endpoints
+
+Return `204 No Content` with no body:
+
+```typescript
+import { apiOk } from '@/lib/api/response'
+
+return new Response(null, { status: 204 })
+```
+
+### HTTP status codes
+
+| Code | Meaning |
+|---|---|
+| `200` | OK — successful read or update |
+| `201` | Created — successful resource creation |
+| `204` | No Content — successful deletion |
+| `400` | Bad Request — invalid input |
+| `401` | Unauthorized — missing or invalid credentials |
+| `403` | Forbidden — insufficient permissions |
+| `404` | Not Found — resource does not exist |
+| `500` | Internal Server Error — unexpected failure |
+
+## Complete example: Notes app
+
+### manifest.json
+
+```json
+{
+  "id": "notes",
+  "name": "Notes",
+  "version": "1.0.0",
+  "api": true
+}
+```
+
+### apps/notes/routes/route.ts (list + create)
+
+```typescript
+import { NextRequest } from 'next/server'
+import { authenticate } from '@/lib/api/auth'
+import { apiOk, apiError } from '@/lib/api/response'
+import { createApiAdminClient } from '@/lib/supabase/api'
+import type { UseCaseContext } from '@/lib/use-cases/types'
+
+export async function GET(
+  req: Request,
+  ctx: UseCaseContext
+): Promise<Response> {
+  // Authenticate any logged-in user
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+
+  const { searchParams } = new URL(req.url)
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
+  const limit = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)))
+  const offset = (page - 1) * limit
+
+  const admin = createApiAdminClient()
+
+  // Get total count
+  const { count } = await admin
+    .from('notes')
+    .select('*', { count: 'exact', head: true })
+    .eq('group_id', auth.groupId)
+
+  // Get paginated items
+  const { data: notes } = await admin
+    .from('notes')
+    .select('id, title, content, created_at, updated_at')
+    .eq('group_id', auth.groupId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  return apiOk({
+    data: notes ?? [],
+    pagination: {
+      page,
+      limit,
+      total: count ?? 0,
+      total_pages: Math.ceil((count ?? 0) / limit)
+    }
+  })
+}
+
+export async function POST(
+  req: Request,
+  ctx: UseCaseContext
+): Promise<Response> {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body.title !== 'string') {
+    return apiError('validation_failed', 'Title is required', 400, {
+      title: 'A valid title string is required'
+    })
+  }
+
+  const admin = createApiAdminClient()
+
+  const { data: note, error } = await admin
+    .from('notes')
+    .insert({
+      title: body.title.trim(),
+      content: body.content ?? '',
+      group_id: auth.groupId,
+      created_by: auth.userId
+    })
+    .select('id, title, content, created_at, updated_at')
+    .single()
+
+  if (error) {
+    return apiError('server_error', 'Failed to create note', 500)
+  }
+
+  return apiOk(note, 201)
+}
+```
+
+### apps/notes/routes/[id]/route.ts (get, update, delete)
+
+```typescript
+import { authenticate } from '@/lib/api/auth'
+import { apiOk, apiError } from '@/lib/api/response'
+import { createApiAdminClient } from '@/lib/supabase/api'
+import type { UseCaseContext } from '@/lib/use-cases/types'
+
+export async function GET(
+  req: Request,
+  ctx: UseCaseContext
+): Promise<Response> {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+
+  const id = ctx.params?.id
+  if (!id) return apiError('not_found', 'Note not found', 404)
+
+  const admin = createApiAdminClient()
+  const { data: note } = await admin
+    .from('notes')
+    .select('id, title, content, created_at, updated_at')
+    .eq('id', id)
+    .eq('group_id', auth.groupId)
+    .single()
+
+  if (!note) return apiError('not_found', 'Note not found', 404)
+
+  return apiOk(note)
+}
+
+export async function PUT(
+  req: Request,
+  ctx: UseCaseContext
+): Promise<Response> {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+
+  const id = ctx.params?.id
+  if (!id) return apiError('not_found', 'Note not found', 404)
+
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body.title !== 'string') {
+    return apiError('validation_failed', 'Title is required', 400, {
+      title: 'A valid title string is required'
+    })
+  }
+
+  const admin = createApiAdminClient()
+
+  // Check ownership
+  const { data: existing } = await admin
+    .from('notes')
+    .select('id')
+    .eq('id', id)
+    .eq('group_id', auth.groupId)
+    .single()
+
+  if (!existing) return apiError('not_found', 'Note not found', 404)
+
+  const { data: note, error } = await admin
+    .from('notes')
+    .update({
+      title: body.title.trim(),
+      content: body.content ?? '',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select('id, title, content, created_at, updated_at')
+    .single()
+
+  if (error) {
+    return apiError('server_error', 'Failed to update note', 500)
+  }
+
+  return apiOk(note)
+}
+
+export async function DELETE(
+  req: Request,
+  ctx: UseCaseContext
+): Promise<Response> {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+
+  const id = ctx.params?.id
+  if (!id) return apiError('not_found', 'Note not found', 404)
+
+  const admin = createApiAdminClient()
+
+  const { error } = await admin
+    .from('notes')
+    .delete()
+    .eq('id', id)
+    .eq('group_id', auth.groupId)
+
+  if (error) {
+    return apiError('server_error', 'Failed to delete note', 500)
+  }
+
+  return new Response(null, { status: 204 })
+}
+```
+
+## Middleware conventions
+
+### Authentication helpers
+
+```typescript
+import { authenticate } from '@/lib/api/auth'
+import { apiOk, apiError } from '@/lib/api/response'
+```
+
+- **`authenticate(req, level)`** returns `UseCaseContext | Response`. Check with `instanceof Response` to handle auth failures.
+- For admin-only endpoints, check `ctx.role === 'admin'` after authentication.
+
+### Database access
+
+```typescript
+import { createApiAdminClient } from '@/lib/supabase/api'
+
+const admin = createApiAdminClient()
+// Use for app-specific tables not in generated types
+```
+
+### Pagination
+
+Always implement pagination for list endpoints:
+
+- `page`: number (default `1`, minimum `1`)
+- `limit`: number (default `20`, minimum `1`, maximum `500`)
+
+### Error handling
+
+```typescript
+// Return early on errors
+const auth = await authenticate(req, 'jwt')
+if (auth instanceof Response) return auth
+
+// Always pass a code, message, and HTTP status
+return apiError('not_found', 'Resource not found', 404)
+```
+
+## References
+
+- [REST API Overview](/doc/api) — Base concepts and versioning
+- [Authentication](/doc/api/authentication) — How to obtain and use credentials
+- [Error reference](/doc/api/errors) — Full error codes and messages

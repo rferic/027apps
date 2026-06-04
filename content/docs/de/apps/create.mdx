@@ -1,0 +1,396 @@
+---
+title: Eine App erstellen
+description: Schritt-für-Schritt-Anleitung zum Erstellen einer neuen App für 027Apps.
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card'
+
+# Eine App erstellen
+
+Dieser Leitfaden begleitet Sie durch die Erstellung einer neuen App für 027Apps. Apps sind einsteckbare Module, die die Plattform um benutzerdefinierte Funktionen, Datenmodelle und Benutzeroberflächen erweitern.
+
+## Was ist eine App?
+
+Eine App in 027Apps ist ein **eigenständiges Modul**, das im Arbeitsbereich einer Gruppe lebt. Jede App hat:
+
+- **Datenbank**: Eigene Tabellen mit automatischen Migrationen, Berechtigungen und RLS-Richtlinien
+- **API**: REST-Endpunkte, die automatisch an Ihre Routen-Handler weitergeleitet werden
+- **Ansichten**: Öffentliche Oberfläche, Admin-Panel, Dashboard-Widget und native mobile Ansicht
+- **Lebenszyklus**: Installations- und Deinstallations-Skripte für Einrichtung und Bereinigung
+- **i18n**: Übersetzt in 6 Sprachen mit lokalisierungsbewussten Inhalten
+
+---
+
+## Verzeichnisstruktur
+
+Eine typische App hat diese Struktur:
+
+```
+apps/my-app/
+├── manifest.json       # App-Metadaten (erforderlich)
+├── icon.svg            # App-Symbol (optional)
+├── migrations.sql      # Datenbankschema (wird bei Installation ausgeführt)
+├── uninstall.sql       # Bereinigungs-SQL (wird bei Deinstallation ausgeführt)
+├── install.ts          # Installationslogik (TypeScript)
+├── uninstall.ts         # Deinstallationslogik (TypeScript)
+├── server.ts           # Hauptansicht (React Server Component)
+├── admin.ts            # Admin-Panel (optional)
+├── widget.ts           # Dashboard-Widget (optional)
+├── native.ts           # Mobile/native Ansicht (optional)
+├── docs/
+│   └── index.mdx       # App-Dokumentation
+└── routes/             # API-Endpunkte (falls "api": true)
+    ├── route.ts
+    └── [id]/
+        └── route.ts
+```
+
+---
+
+## manifest.json
+
+Das Manifest deklariert die Metadaten und Fähigkeiten Ihrer App.
+
+```json
+{
+  "slug": "my-app",
+  "name": "My App",
+  "description": "Eine kurze Beschreibung, was diese App tut.",
+  "version": "1.0.0",
+  "icon": "📝",
+  "color": "#3B82F6",
+  "categories": ["productivity"],
+  "permissions": ["read:group", "write:data"],
+  "api": false,
+  "widget": { "minWidth": 1, "minHeight": 1, "maxWidth": 3, "maxHeight": 3 },
+  "locales": ["en", "es"]
+}
+```
+
+| Feld | Typ | Erforderlich | Beschreibung |
+|------|-----|--------------|---------------|
+| `slug` | string | ✅ | Eindeutiger Bezeichner. Kleinbuchstaben, Bindestriche erlaubt. Muss `/^[a-z][a-z0-9-]{0,62}$/` entsprechen |
+| `name` | string | ✅ | Anzeigename in der Oberfläche |
+| `description` | string | ✅ | Kurze Beschreibung (in der App-Liste angezeigt) |
+| `version` | string | ✅ | Semver-Version (z.B. `1.0.0`) |
+| `icon` | string | ✅ | Emoji oder Symbol-Bezeichner |
+| `color` | string | ✅ | Primärfarbe in Hex (z.B. `#3B82F6`) |
+| `categories` | string[] | ✅ | Kategorien zum Filtern: `productivity`, `social`, `utilities`, `entertainment`, `education` |
+| `permissions` | string[] | ❌ | Erforderliche Berechtigungen (siehe [App API Protocol](/doc/api/app-api-protocol)) |
+| `api` | boolean | ❌ | API-Endpunkte aktivieren (`false` standardmäßig) |
+| `widget` | object | ❌ | Widget-Abmessungen für das Dashboard |
+| `widget.minWidth` | number | ❌ | Minimale Spaltenanzahl (1-12) |
+| `widget.minHeight` | number | ❌ | Minimale Zeilenanzahl (1-12) |
+| `widget.maxWidth` | number | ❌ | Maximale Spaltenanzahl (1-12) |
+| `widget.maxHeight` | number | ❌ | Maximale Zeilenanzahl (1-12) |
+| `locales` | string[] | ❌ | Unterstützte Sprachen (standardmäßig alle 6) |
+
+---
+
+## migrations.sql + uninstall.sql
+
+Das `migrations.sql` wird automatisch ausgeführt, wenn eine Gruppe die App installiert. Verwenden Sie es zum Erstellen von Tabellen, Indizes und RLS-Richtlinien.
+
+### migrations.sql
+
+```sql
+CREATE TABLE IF NOT EXISTS my_app (
+  id          BIGSERIAL PRIMARY KEY,
+  group_id    BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+  created_by  BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title       TEXT NOT NULL,
+  completed   BOOLEAN DEFAULT FALSE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX CONCURRENTLY ON my_app(group_id);
+CREATE INDEX CONCURRENTLY ON my_app(created_by);
+
+-- RLS: Mitglieder können die Elemente ihrer Gruppe lesen
+ALTER TABLE my_app ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Members can read"
+  ON my_app FOR SELECT
+  USING (auth.jwt() ->> 'group_id' = group_id::text);
+
+CREATE POLICY "Members can insert"
+  ON my_app FOR INSERT
+  WITH CHECK (auth.jwt() ->> 'group_id' = group_id::text);
+
+CREATE POLICY "Members can update own"
+  ON my_app FOR UPDATE
+  USING (created_by = (auth.jwt() ->> 'user_id')::bigint);
+
+CREATE POLICY "Members can delete own"
+  ON my_app FOR DELETE
+  USING (created_by = (auth.jwt() ->> 'user_id')::bigint);
+```
+
+### uninstall.sql
+
+Das `uninstall.sql` wird ausgeführt, wenn eine Gruppe die App entfernt. Verwenden Sie es zum Bereinigen aller Ressourcen.
+
+```sql
+DROP TABLE IF EXISTS my_app;
+```
+
+> **Hinweis:** Wenn Ihre App keine Datenbank benötigt, können Sie beide Dateien weglassen.
+
+---
+
+## install.ts + uninstall.ts
+
+Die TypeScript-Dateien werden vor/nach den SQL-Migrationen ausgeführt. Verwenden Sie sie zum Initialisieren des App-Status, zum Seeden von Daten oder zum Registrieren der App in Plattform-Tabellen.
+
+### install.ts
+
+```typescript
+import { createAdminClientUntyped } from '@/lib/supabase/server'
+
+export async function install({ groupId }: { groupId: string }) {
+  const admin = createAdminClientUntyped()
+
+  // Standardkonfiguration oder Ausgangsdaten erstellen
+  await admin.from('my_app_config').insert({
+    group_id: groupId,
+    settings: { max_items: 50 }
+  })
+
+  console.log(`App installiert für Gruppe ${groupId}`)
+}
+```
+
+### uninstall.ts
+
+```typescript
+import { createAdminClientUntyped } from '@/lib/supabase/server'
+
+export async function uninstall({ groupId }: { groupId: string }) {
+  const admin = createAdminClientUntyped()
+
+  // Daten bereinigen, die nicht von uninstall.sql behandelt wurden
+  await admin.from('my_app_sessions')
+    .delete()
+    .eq('group_id', groupId)
+
+  console.log(`App deinstalliert für Gruppe ${groupId}`)
+}
+```
+
+> **Hinweis:** Beide Dateien erhalten `{ groupId: string }` als Parameter.
+
+---
+
+## Ansichten
+
+Ihre App kann bis zu vier Ansichten bereitstellen. Die Plattform entscheidet basierend auf dem Kontext, welche gerendert wird.
+
+### server.ts (Hauptansicht)
+
+Die Hauptansicht ist die primäre Oberfläche Ihrer App. Es ist ein React Server Component.
+
+```typescript
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+
+export default async function MyAppServer({ params }: { params: { groupId: string } }) {
+  const supabase = createClient()
+  const { data: items } = await supabase
+    .from('my_app')
+    .select('*')
+    .eq('group_id', params.groupId)
+    .order('created_at', { ascending: false })
+
+  return (
+    <div>
+      <h1>My App</h1>
+      <ul>
+        {items?.map(item => (
+          <li key={item.id}>{item.title}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+```
+
+### admin.ts (Admin-Panel)
+
+Das Admin-Panel wird angezeigt, wenn ein Administrator die App öffnet. Geben Sie `null` zurück, um diese Ansicht auszublenden.
+
+```typescript
+import { createClient } from '@/lib/supabase/server'
+
+export default async function MyAppAdmin({ params }: { params: { groupId: string } }) {
+  const supabase = createClient()
+  const { data: stats } = await supabase.rpc('my_app_stats', {
+    p_group_id: params.groupId
+  })
+
+  return (
+    <div>
+      <h2>Admin-Einstellungen</h2>
+      <p>Gesamtelemente: {stats?.total ?? 0}</p>
+    </div>
+  )
+}
+```
+
+### widget.ts (Dashboard-Widget)
+
+Das Widget erscheint im Gruppen-Dashboard. Halten Sie es leicht und auf eine einzige Metrik fokussiert.
+
+```typescript
+import { createClient } from '@/lib/supabase/server'
+
+export default async function MyAppWidget({ groupId }: { groupId: string }) {
+  const supabase = createClient()
+  const { count } = await supabase
+    .from('my_app')
+    .select('*', { count: 'exact', head: true })
+    .eq('group_id', groupId)
+    .eq('completed', false)
+
+  return (
+    <div>
+      <strong>My App</strong>
+      <p>{count ?? 0} aktive Elemente</p>
+    </div>
+  )
+}
+```
+
+### native.ts (Mobile Ansicht)
+
+Die native Ansicht wird im mobilen App-Kontext angezeigt. Optimieren Sie für kleine Bildschirme und Touch-Interaktionen.
+
+```typescript
+export default function MyAppNative({ groupId }: { groupId: string }) {
+  // Dies ist ein Client Component für Mobilgeräte
+  return (
+    <div className="p-4">
+      <h1>My App (Mobil)</h1>
+      {/* Für Mobilgeräte optimierte Oberfläche */}
+    </div>
+  )
+}
+```
+
+---
+
+## Routes (API-Endpunkte)
+
+Wenn Ihre App benutzerdefinierte API-Endpunkte benötigt, setzen Sie `"api": true` in `manifest.json`. Die Plattform leitet automatisch Anfragen unter `/api/v1/apps/{slug}/` an Ihre Routen-Handler weiter.
+
+```
+apps/my-app/routes/
+├── route.ts         # GET, POST  → /api/v1/apps/my-app
+└── [id]/
+    └── route.ts     # GET, PUT, DELETE → /api/v1/apps/my-app/{id}
+```
+
+### route.ts
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { apiHandler, requirePermission } from '@/lib/api'
+
+export async function GET(req: NextRequest) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('my_app')
+    .select('*')
+    .eq('group_id', req.geo?.country ?? 'unknown') // passenden Filter verwenden
+
+  return NextResponse.json({ data })
+}
+```
+
+Für die vollständige API-Dokumentation, lesen Sie das [App API Protocol](/doc/api/app-api-protocol).
+
+---
+
+## App-Dokumentation
+
+Erstellen Sie eine `docs/index.mdx`-Datei im Verzeichnis Ihrer App. Diese erscheint im Dokumentationsbereich unter **Apps**.
+
+```mdx
+---
+title: My App
+description: Eine kurze Beschreibung, was diese App tut.
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card'
+
+# My App
+
+My App hilft Ihnen beim Verwalten...
+
+## Funktionen
+
+- Funktion 1
+- Funktion 2
+
+## API-Endpunkte
+
+<Cards>
+  <Card
+    title="Öffentliche API"
+    href="/doc/api/endpoints"
+    description="Verwalten Sie Ihre Elemente."
+  />
+</Cards>
+
+## Konfiguration
+
+| Schlüssel | Typ | Standard |
+|-----------|-----|----------|
+| `max_items` | number | 50 |
+```
+
+Registrieren Sie es in `meta.json`, damit es in der Navigation erscheint:
+
+```json
+{
+  "title": "Apps",
+  "pages": ["inspiration", "todo", "my-app"]
+}
+```
+
+---
+
+## Checkliste
+
+Bevor Sie Ihre App veröffentlichen, überprüfen Sie:
+
+- [ ] `manifest.json` ist vollständig und gültig
+- [ ] `migrations.sql` erstellt Tabellen, Indizes und RLS-Richtlinien
+- [ ] `install.ts` und `uninstall.ts` behandeln die gesamte Initialisierung und Bereinigung
+- [ ] Mindestens eine Ansicht (`server.ts`, `admin.ts`, `widget.ts` oder `native.ts`) ist implementiert
+- [ ] Die App-Dokumentation existiert in `docs/index.mdx`
+- [ ] `icon.svg` ist enthalten (oder verwenden Sie ein Emoji in `manifest.json`)
+- [ ] Tests bestehen lokal
+
+---
+
+## Referenzen
+
+<Cards>
+  <Card
+    title="App API Protocol"
+    href="/doc/api/app-api-protocol"
+    description="Tiefe Einführung in App-Lebenszyklus, Berechtigungen und Routing."
+  />
+  <Card
+    title="REST API Overview"
+    href="/doc/api"
+    description="Authentifizierung, Benutzer, Gruppen und Locale-Endpunkte."
+  />
+  <Card
+    title="Inspiration App"
+    href="/doc/apps/inspiration"
+    description="Eine vollständige Beispiel-App mit allen Funktionen."
+  />
+</Cards>
