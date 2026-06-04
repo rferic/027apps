@@ -1,0 +1,376 @@
+---
+title: Protocole API pour Apps
+description: Comment les apps peuvent déclarer et exposer leurs propres endpoints REST au sein de l'écosystème 027Apps.
+---
+
+# Protocole API pour Apps
+
+Les apps de l'écosystème 027Apps peuvent exposer leurs propres endpoints REST. La plateforme gère automatiquement le routage, l'authentification et le middleware — vous devez simplement déclarer quels endpoints votre app expose et où trouver les fichiers handler.
+
+## Comment déclarer des endpoints REST
+
+### 1. Activer API dans le manifest
+
+Définissez `"api": true` dans le fichier `manifest.json` de votre app:
+
+```json
+{
+  "id": "notes",
+  "name": "Notes",
+  "version": "1.0.0",
+  "api": true
+}
+```
+
+### 2. Créer des fichiers de route
+
+Placez vos handlers de route dans `apps/{slug}/routes/`. La structure des fichiers détermine le chemin URL:
+
+```
+apps/{slug}/routes/
+├── route.ts           → GET   /api/v1/admin/apps/{slug}
+├── [id]/
+│   └── route.ts       → GET   /api/v1/admin/apps/{slug}/:id
+│                       → PUT   /api/v1/admin/apps/{slug}/:id
+│                       → PATCH /api/v1/admin/apps/{slug}/:id
+│                       → DELETE /api/v1/admin/apps/{slug}/:id
+```
+
+### 3. Exporter les méthodes HTTP
+
+Chaque fichier de route exporte une ou plusieurs de: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`.
+
+```typescript
+// apps/notes/routes/route.ts
+export async function GET(req: Request, ctx: UseCaseContext) {
+  // ...
+}
+
+export async function POST(req: Request, ctx: UseCaseContext) {
+  // ...
+}
+```
+
+## Niveaux d'authentification standard
+
+| Niveau | Header | Cas d'utilisation |
+|---|---|---|
+| `public` | Aucun | Données non sensibles, partagées par le groupe |
+| `jwt` | `Authorization: Bearer <token>` | Tout utilisateur authentifié |
+| `any` | JWT ou `X-API-Key` | Flexible — supporte les deux méthodes d'auth |
+| `apikey` | `X-API-Key: sk_027_...` | Intégrations serveur à serveur uniquement |
+
+## Format des réponses
+
+### Succès
+
+Retournez les ressources directement — sans enveloppe extérieure:
+
+```typescript
+import { apiOk } from '@/lib/api/response'
+
+// Ressource unique
+return apiOk({ id: '123', name: 'Ma Note' })
+
+// Ressource créée (201)
+return apiOk({ id: '456', name: 'Nouvelle Note' }, 201)
+```
+
+### Listes paginées
+
+```typescript
+import { apiOk } from '@/lib/api/response'
+
+return apiOk({
+  data: éléments,
+  pagination: {
+    page: 1,
+    limit: 20,
+    total: 150,
+    total_pages: 8
+  }
+})
+```
+
+### Erreurs
+
+```typescript
+import { apiError } from '@/lib/api/response'
+
+// Erreur basique
+return apiError('not_found', 'Note non trouvée', 404)
+
+// Erreur de validation avec détails du champ
+return apiError('validation_failed', "L'entrée n'est pas valide", 400, {
+  title: 'Le titre est requis'
+})
+```
+
+### Endpoints DELETE
+
+Retournez `204 No Content` sans body:
+
+```typescript
+import { apiOk } from '@/lib/api/response'
+
+return new Response(null, { status: 204 })
+```
+
+### Codes de statut HTTP
+
+| Code | Signification |
+|---|---|
+| `200` | OK — lecture ou mise à jour réussie |
+| `201` | Created — création de ressource réussie |
+| `204` | No Content — suppression réussie |
+| `400` | Bad Request — entrée non valide |
+| `401` | Unauthorized — identifiants manquants ou invalides |
+| `403` | Forbidden — permissions insuffisantes |
+| `404` | Not Found — la ressource n'existe pas |
+| `500` | Internal Server Error — échec inattendu |
+
+## Exemple complet: App Notes
+
+### manifest.json
+
+```json
+{
+  "id": "notes",
+  "name": "Notes",
+  "version": "1.0.0",
+  "api": true
+}
+```
+
+### apps/notes/routes/route.ts (liste + création)
+
+```typescript
+import { NextRequest } from 'next/server'
+import { authenticate } from '@/lib/api/auth'
+import { apiOk, apiError } from '@/lib/api/response'
+import { createApiAdminClient } from '@/lib/supabase/api'
+import type { UseCaseContext } from '@/lib/use-cases/types'
+
+export async function GET(
+  req: Request,
+  ctx: UseCaseContext
+): Promise<Response> {
+  // Authentifier tout utilisateur connecté
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+
+  const { searchParams } = new URL(req.url)
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
+  const limit = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)))
+  const offset = (page - 1) * limit
+
+  const admin = createApiAdminClient()
+
+  // Obtenir le nombre total
+  const { count } = await admin
+    .from('notes')
+    .select('*', { count: 'exact', head: true })
+    .eq('group_id', auth.groupId)
+
+  // Obtenir les éléments paginés
+  const { data: notes } = await admin
+    .from('notes')
+    .select('id, title, content, created_at, updated_at')
+    .eq('group_id', auth.groupId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  return apiOk({
+    data: notes ?? [],
+    pagination: {
+      page,
+      limit,
+      total: count ?? 0,
+      total_pages: Math.ceil((count ?? 0) / limit)
+    }
+  })
+}
+
+export async function POST(
+  req: Request,
+  ctx: UseCaseContext
+): Promise<Response> {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body.title !== 'string') {
+    return apiError('validation_failed', 'Le titre est requis', 400, {
+      title: 'Une chaîne de titre valide est requise'
+    })
+  }
+
+  const admin = createApiAdminClient()
+
+  const { data: note, error } = await admin
+    .from('notes')
+    .insert({
+      title: body.title.trim(),
+      content: body.content ?? '',
+      group_id: auth.groupId,
+      created_by: auth.userId
+    })
+    .select('id, title, content, created_at, updated_at')
+    .single()
+
+  if (error) {
+    return apiError('server_error', 'Impossible de créer la note', 500)
+  }
+
+  return apiOk(note, 201)
+}
+```
+
+### apps/notes/routes/[id]/route.ts (voir, mettre à jour, supprimer)
+
+```typescript
+import { authenticate } from '@/lib/api/auth'
+import { apiOk, apiError } from '@/lib/api/response'
+import { createApiAdminClient } from '@/lib/supabase/api'
+import type { UseCaseContext } from '@/lib/use-cases/types'
+
+export async function GET(
+  req: Request,
+  ctx: UseCaseContext
+): Promise<Response> {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+
+  const id = ctx.params?.id
+  if (!id) return apiError('not_found', 'Note non trouvée', 404)
+
+  const admin = createApiAdminClient()
+  const { data: note } = await admin
+    .from('notes')
+    .select('id, title, content, created_at, updated_at')
+    .eq('id', id)
+    .eq('group_id', auth.groupId)
+    .single()
+
+  if (!note) return apiError('not_found', 'Note non trouvée', 404)
+
+  return apiOk(note)
+}
+
+export async function PUT(
+  req: Request,
+  ctx: UseCaseContext
+): Promise<Response> {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+
+  const id = ctx.params?.id
+  if (!id) return apiError('not_found', 'Note non trouvée', 404)
+
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body.title !== 'string') {
+    return apiError('validation_failed', 'Le titre est requis', 400, {
+      title: 'Une chaîne de titre valide est requise'
+    })
+  }
+
+  const admin = createApiAdminClient()
+
+  // Vérifier la propriété
+  const { data: existing } = await admin
+    .from('notes')
+    .select('id')
+    .eq('id', id)
+    .eq('group_id', auth.groupId)
+    .single()
+
+  if (!existing) return apiError('not_found', 'Note non trouvée', 404)
+
+  const { data: note, error } = await admin
+    .from('notes')
+    .update({
+      title: body.title.trim(),
+      content: body.content ?? '',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select('id, title, content, created_at, updated_at')
+    .single()
+
+  if (error) {
+    return apiError('server_error', 'Impossible de mettre à jour la note', 500)
+  }
+
+  return apiOk(note)
+}
+
+export async function DELETE(
+  req: Request,
+  ctx: UseCaseContext
+): Promise<Response> {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+
+  const id = ctx.params?.id
+  if (!id) return apiError('not_found', 'Note non trouvée', 404)
+
+  const admin = createApiAdminClient()
+
+  const { error } = await admin
+    .from('notes')
+    .delete()
+    .eq('id', id)
+    .eq('group_id', auth.groupId)
+
+  if (error) {
+    return apiError('server_error', 'Impossible de supprimer la note', 500)
+  }
+
+  return new Response(null, { status: 204 })
+}
+```
+
+## Conventions middleware
+
+### Helpers d'authentification
+
+```typescript
+import { authenticate } from '@/lib/api/auth'
+import { apiOk, apiError } from '@/lib/api/response'
+```
+
+- **`authenticate(req, niveau)`** retourne `UseCaseContext | Response`. Vérifiez avec `instanceof Response` pour gérer les échecs d'auth.
+- Pour les endpoints admin uniquement, vérifiez `ctx.role === 'admin'` après l'authentification.
+
+### Accès à la base de données
+
+```typescript
+import { createApiAdminClient } from '@/lib/supabase/api'
+
+const admin = createApiAdminClient()
+// À utiliser pour les tables spécifiques à l'app non présentes dans les types générés
+```
+
+### Pagination
+
+Implémentez toujours la pagination pour les endpoints de liste:
+
+- `page`: nombre (défaut `1`, minimum `1`)
+- `limit`: nombre (défaut `20`, minimum `1`, maximum `500`)
+
+### Gestion des erreurs
+
+```typescript
+// Retournez immédiatement sur les erreurs
+const auth = await authenticate(req, 'jwt')
+if (auth instanceof Response) return auth
+
+// Passez toujours un code, message et statut HTTP
+return apiError('not_found', 'Ressource non trouvée', 404)
+```
+
+## Références
+
+- [Aperçu REST API](/doc/api) — Concepts de base et versioning
+- [Authentification](/doc/api/authentication) — Comment obtenir et utiliser les identifiants
+- [Référence des erreurs](/doc/api/errors) — Codes et messages d'erreur complets

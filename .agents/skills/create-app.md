@@ -35,15 +35,17 @@ Ask one question at a time, in this exact order. Wait for the user's answer befo
 9. **Database tables**: "Does the app need its own database tables? If yes, list the tables and their main fields."
    - Reminder: all table names must start with the declared `tablePrefix`.
 
-9. **Configuration fields**: "Does the app have admin-configurable settings? If yes, for each field provide: key name, type (string/number/boolean/select/textarea), whether it's required, and a default value."
+10. **API endpoints**: "Does the app need API endpoints? If yes, describe the resources (e.g. CRUD for 'items', or specific actions like 'approve')."
 
-10. **Dependencies**: "Does this app depend on other installed apps? If yes, list their slugs."
+11. **Configuration fields**: "Does the app have admin-configurable settings? If yes, for each field provide: key name, type (string/number/boolean/select/textarea), whether it's required, and a default value."
 
-11. **Colors**: "What are the primary and secondary colors for this app? (hex codes, e.g. `#4F46E5` and `#EEF2FF`)"
+12. **Dependencies**: "Does this app depend on other installed apps? If yes, list their slugs."
 
-12. **Min platform version**: "Minimum platform version required? (default: `1.0.0`)"
+13. **Colors**: "What are the primary and secondary colors for this app? (hex codes, e.g. `#4F46E5` and `#EEF2FF`)"
 
-13. **Documentation sections**: "Will this app have technical documentation? If yes, list sections beyond the required `index.mdx` (e.g. `api`, `config`, `webhooks`)."
+14. **Min platform version**: "Minimum platform version required? (default: `1.0.0`)"
+
+15. **Documentation sections**: "Will this app have technical documentation? If yes, list sections beyond the required `index.mdx` (e.g. `api`, `config`, `webhooks`)."
 
 **Validation rules:**
 - At least one of `views.public`, `views.admin`, `views.widget`, `views.native` must be true. If all are false, stop and explain.
@@ -76,6 +78,9 @@ apps/{slug}/
   [widget.tsx]                ← if views.widget
   [native.tsx]                ← if views.native
   [routes/]                   ← if api endpoints needed
+  └── route.ts               → GET /api/v1/admin/apps/{slug} (list) + POST (create)
+  └── [id]/
+      └── route.ts           → GET /api/v1/admin/apps/{slug}/:id (detail) + PUT (update) + DELETE (delete)
   [docs/index.mdx]            ← always if docs requested
   [docs/{section}.mdx]        ← one per extra section
 
@@ -103,7 +108,7 @@ Only after explicit approval, generate all files in order:
 8. `admin.tsx` — if `views.admin`; functional UI following admin palette
 9. `widget.tsx` — if `views.widget`; compact display, no props, fetches own data
 10. `native.tsx` — if `views.native`; React Native with FlatList/TextInput/View/Text, no extra deps
-11. `routes/` handlers — if API needed; one file per method per path level
+11. `routes/` handlers — if API needed; generates `routes/route.ts` (list + create) and `routes/[id]/route.ts` (detail + update + delete) using the templates below
 12. `docs/index.mdx` — always if docs requested
 13. `docs/{section}.mdx` — one per additional section
 
@@ -118,6 +123,161 @@ Only after explicit approval, generate all files in order:
 - Route handlers use `createAdminClientUntyped()` from `@/lib/supabase/admin` (app tables not in generated Supabase types)
 - Dynamic colors use `style={{ backgroundColor: manifest.primaryColor }}` not Tailwind classes
 - Slug validated with `/^[a-z0-9-]+$/` before any filesystem or DB operation
+
+### Route handler templates
+
+When the app needs API endpoints, use these templates. Replace `{TABLE_NAME}` with the actual database table name and `{slug}` with the app slug.
+
+**`routes/route.ts`** — GET (paginated list) + POST (create):
+
+```typescript
+import type { NextRequest } from 'next/server'
+import { authenticate } from '@/lib/api/auth'
+import { apiOk, apiError } from '@/lib/api/response'
+import { createAdminClientUntyped } from '@/lib/supabase/admin'
+
+const DEFAULT_LIMIT = 20
+const MAX_LIMIT = 500
+
+export async function GET(req: NextRequest) {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+  if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
+
+  const url = new URL(req.url)
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1)
+  const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(url.searchParams.get('limit') || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT))
+
+  const admin = createAdminClientUntyped()
+  const TABLE = '{TABLE_NAME}'
+
+  const { count } = await admin.from(TABLE).select('*', { count: 'exact', head: true })
+  const total = count ?? 0
+
+  if (total === 0) {
+    return apiOk({ data: [], pagination: { page, limit, total: 0, total_pages: 0 } })
+  }
+
+  const offset = (page - 1) * limit
+  const { data, error } = await admin
+    .from(TABLE)
+    .select('*')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  if (error) return apiError('QUERY_ERROR', error.message, 500)
+
+  return apiOk({
+    data: data ?? [],
+    pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
+  })
+}
+
+export async function POST(req: NextRequest) {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+  if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
+
+  const body = await req.json()
+  const admin = createAdminClientUntyped()
+  const TABLE = '{TABLE_NAME}'
+
+  const { data, error } = await admin
+    .from(TABLE)
+    .insert({ ...body, created_by: auth.userId })
+    .select()
+    .single()
+
+  if (error) return apiError('CREATION_FAILED', error.message, 400)
+
+  return apiOk(data, 201)
+}
+```
+
+**`routes/[id]/route.ts`** — GET (detail) + PUT (update) + DELETE (delete):
+
+```typescript
+import type { NextRequest } from 'next/server'
+import { authenticate } from '@/lib/api/auth'
+import { apiOk, apiError } from '@/lib/api/response'
+import { createAdminClientUntyped } from '@/lib/supabase/admin'
+
+const TABLE = '{TABLE_NAME}'
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+  if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
+
+  const { id } = await params
+  const admin = createAdminClientUntyped()
+
+  const { data, error } = await admin.from(TABLE).select('*').eq('id', id).maybeSingle()
+  if (error) return apiError('QUERY_ERROR', error.message, 500)
+  if (!data) return apiError('not_found', 'Resource not found', 404)
+
+  return apiOk(data)
+}
+
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+  if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
+
+  const { id } = await params
+  const body = await req.json()
+  const admin = createAdminClientUntyped()
+
+  const { data, error } = await admin
+    .from(TABLE)
+    .update(body)
+    .eq('id', id)
+    .select()
+    .maybeSingle()
+
+  if (error) return apiError('UPDATE_FAILED', error.message, 400)
+  if (!data) return apiError('not_found', 'Resource not found', 404)
+
+  return apiOk(data)
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await authenticate(req, 'jwt')
+  if (auth instanceof Response) return auth
+  if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
+
+  const { id } = await params
+  const admin = createAdminClientUntyped()
+
+  const { data: existing } = await admin.from(TABLE).select('id').eq('id', id).maybeSingle()
+  if (!existing) return apiError('not_found', 'Resource not found', 404)
+
+  const { error } = await admin.from(TABLE).delete().eq('id', id)
+  if (error) return apiError('DELETE_FAILED', error.message, 500)
+
+  return new Response(null, { status: 204 })
+}
+```
+
+### Test template
+
+When API endpoints are generated, also create a test file at `__tests__/apps/{slug}/api.test.ts`:
+
+```typescript
+import { describe, it, expect } from 'vitest'
+
+describe('{AppName} API', () => {
+  it('GET /api/v1/admin/apps/{slug} requires auth', async () => {
+    const res = await fetch('/api/v1/admin/apps/{slug}')
+    expect(res.status).toBe(401)
+  })
+
+  it('GET /api/v1/admin/apps/{slug} returns paginated list', async () => {
+    // Setup: authenticate as admin
+    // ... test implementation
+  })
+})
+```
 
 ### manifest.json schema reminder
 
@@ -135,6 +295,15 @@ Only after explicit approval, generate all files in order:
   "minPlatformVersion": "1.0.0",
   "views": { "public": bool, "admin": bool, "widget": bool, "native": bool },
   "api": bool,
+  "endpoints": {
+    "admin": {
+      "list": "GET /api/v1/admin/apps/{slug}",
+      "detail": "GET /api/v1/admin/apps/{slug}/:id",
+      "create": "POST /api/v1/admin/apps/{slug}",
+      "update": "PUT /api/v1/admin/apps/{slug}/:id",
+      "delete": "DELETE /api/v1/admin/apps/{slug}/:id"
+    }
+  },
   "dependencies": [],
   "notifications": false,
   "config": [
