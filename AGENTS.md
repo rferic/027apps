@@ -4,11 +4,13 @@
 Los planes de sprint se guardan en `.plans/` con el formato:
 
 ```
-sprint-{N}-{descripcion}.md
+sprint-{NN}-{descripcion}.md
 ```
 
 ## Numeración
-- Los sprints van numerados secuencialmente: Sprint 1, Sprint 2, Sprint 3...
+- Los sprints van numerados secuencialmente con **zero-padding**: `sprint-01`, `sprint-02`, ..., `sprint-09`, `sprint-10`, `sprint-11`...
+- Esto asegura que `ls` los muestre en orden correcto (sprint-10 no debe aparecer antes que sprint-02).
+- El sprint 00 existe como fundación y es la excepción.
 - Las tareas continúan la numeración global entre sprints. Si el Sprint 1 termina en TASK-13, el Sprint 2 empieza en TASK-14.
 
 ## Estado de un sprint
