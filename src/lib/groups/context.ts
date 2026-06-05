@@ -1,3 +1,4 @@
+import { cachedQuery } from '@/lib/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
 
@@ -39,23 +40,27 @@ export async function resolveGroupContext(
   }
 }
 
-export async function getUserGroups(userId: string): Promise<GroupContext[]> {
-  const adminClient = createAdminClient()
+export const getUserGroups = cachedQuery(
+  async (userId: string): Promise<GroupContext[]> => {
+    const adminClient = createAdminClient()
 
-  const { data: memberships } = await adminClient
-    .from('group_members')
-    .select('role, groups!inner(id, name, slug)')
-    .eq('user_id', userId)
+    const { data: memberships } = await adminClient
+      .from('group_members')
+      .select('role, groups!inner(id, name, slug)')
+      .eq('user_id', userId)
 
-  if (!memberships) return []
+    if (!memberships) return []
 
-  return memberships.map((m: { role: string; groups: { id: string; name: string; slug: string } }) => ({
-    id: m.groups.id,
-    name: m.groups.name,
-    slug: m.groups.slug,
-    role: m.role as 'admin' | 'member',
-  }))
-}
+    return memberships.map((m: { role: string; groups: { id: string; name: string; slug: string } }) => ({
+      id: m.groups.id,
+      name: m.groups.name,
+      slug: m.groups.slug,
+      role: m.role as 'admin' | 'member',
+    }))
+  },
+  ['user-groups'],
+  { revalidate: 3600, tags: ['user-groups'] }
+)
 
 const LAST_GROUP_COOKIE = 'last_group'
 

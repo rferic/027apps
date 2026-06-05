@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs'
 import path from 'path'
+import { cachedQuery } from '@/lib/cache'
 import type { AppManifest } from '@/types/apps'
 import { AppValidationError } from '@/types/apps'
 
@@ -57,74 +58,78 @@ function assertManifest(raw: unknown, slug: string): asserts raw is AppManifest 
   }
 }
 
-export async function readManifest(slug: string): Promise<AppManifest> {
-  if (!SLUG_RE.test(slug)) throw new AppValidationError(`Invalid slug: ${slug}`)
+export const readManifest = cachedQuery(
+  async (slug: string): Promise<AppManifest> => {
+    if (!SLUG_RE.test(slug)) throw new AppValidationError(`Invalid slug: ${slug}`)
 
-  const manifestPath = appPath(slug, 'manifest.json')
-  let raw: unknown
-  try {
-    const content = await fs.readFile(manifestPath, 'utf-8')
-    raw = JSON.parse(content)
-  } catch {
-    throw new AppValidationError(`${slug}: could not read manifest.json`)
-  }
-
-  assertManifest(raw, slug)
-  const manifest = raw as AppManifest
-
-  const viewFiles: Array<[boolean, string]> = [
-    [manifest.views.public, 'view.tsx'],
-    [manifest.views.admin, 'admin.tsx'],
-    [manifest.views.widget, 'widget.tsx'],
-    [manifest.views.native, 'native.tsx'],
-  ]
-  for (const [required, file] of viewFiles) {
-    if (required && !(await fileExists(appPath(slug, file)))) {
-      throw new AppValidationError(`${slug}: declared views.${file.replace('.tsx', '')} but "${file}" not found`)
+    const manifestPath = appPath(slug, 'manifest.json')
+    let raw: unknown
+    try {
+      const content = await fs.readFile(manifestPath, 'utf-8')
+      raw = JSON.parse(content)
+    } catch {
+      throw new AppValidationError(`${slug}: could not read manifest.json`)
     }
-  }
 
-  if (manifest.api) {
-    const routesDir = appPath(slug, 'routes')
-    if (!(await fileExists(routesDir))) {
-      throw new AppValidationError(`${slug}: api=true but "routes/" directory not found`)
+    assertManifest(raw, slug)
+    const manifest = raw as AppManifest
+
+    const viewFiles: Array<[boolean, string]> = [
+      [manifest.views.public, 'view.tsx'],
+      [manifest.views.admin, 'admin.tsx'],
+      [manifest.views.widget, 'widget.tsx'],
+      [manifest.views.native, 'native.tsx'],
+    ]
+    for (const [required, file] of viewFiles) {
+      if (required && !(await fileExists(appPath(slug, file)))) {
+        throw new AppValidationError(`${slug}: declared views.${file.replace('.tsx', '')} but "${file}" not found`)
+      }
     }
-  }
 
-  const hasMigrations = await fileExists(appPath(slug, 'migrations.sql'))
-  const hasUninstall = await fileExists(appPath(slug, 'uninstall.sql'))
-  if (hasMigrations && !hasUninstall) throw new AppValidationError(`${slug}: has migrations.sql but missing uninstall.sql`)
-  if (hasUninstall && !hasMigrations) throw new AppValidationError(`${slug}: has uninstall.sql but missing migrations.sql`)
-
-  const docsDir = appPath(slug, 'docs')
-  if (await fileExists(docsDir)) {
-    if (!(await fileExists(appPath(slug, 'docs', 'index.mdx')))) {
-      throw new AppValidationError(`${slug}: has docs/ directory but missing docs/index.mdx`)
+    if (manifest.api) {
+      const routesDir = appPath(slug, 'routes')
+      if (!(await fileExists(routesDir))) {
+        throw new AppValidationError(`${slug}: api=true but "routes/" directory not found`)
+      }
     }
-  }
 
-  // guard against path traversal
-  if (manifest.logo) {
-    const logoResolved = path.join(appsDir(), slug, manifest.logo)
-    const appBase = path.join(appsDir(), slug) + path.sep
-    if (!logoResolved.startsWith(appBase)) {
-      throw new AppValidationError(`${slug}: logo path "${manifest.logo}" escapes app directory`)
+    const hasMigrations = await fileExists(appPath(slug, 'migrations.sql'))
+    const hasUninstall = await fileExists(appPath(slug, 'uninstall.sql'))
+    if (hasMigrations && !hasUninstall) throw new AppValidationError(`${slug}: has migrations.sql but missing uninstall.sql`)
+    if (hasUninstall && !hasMigrations) throw new AppValidationError(`${slug}: has uninstall.sql but missing migrations.sql`)
+
+    const docsDir = appPath(slug, 'docs')
+    if (await fileExists(docsDir)) {
+      if (!(await fileExists(appPath(slug, 'docs', 'index.mdx')))) {
+        throw new AppValidationError(`${slug}: has docs/ directory but missing docs/index.mdx`)
+      }
     }
-    if (!(await fileExists(logoResolved))) {
-      throw new AppValidationError(`${slug}: logo file "${manifest.logo}" not found`)
+
+    // guard against path traversal
+    if (manifest.logo) {
+      const logoResolved = path.join(appsDir(), slug, manifest.logo)
+      const appBase = path.join(appsDir(), slug) + path.sep
+      if (!logoResolved.startsWith(appBase)) {
+        throw new AppValidationError(`${slug}: logo path "${manifest.logo}" escapes app directory`)
+      }
+      if (!(await fileExists(logoResolved))) {
+        throw new AppValidationError(`${slug}: logo file "${manifest.logo}" not found`)
+      }
     }
-  }
 
-  // Auto-add extends to dependencies so dependency resolution is consistent
-  if (manifest.extends && !manifest.dependencies.includes(manifest.extends)) {
-    manifest.dependencies = [...manifest.dependencies, manifest.extends]
-  }
-
-  if (manifest.i18n === true) {
-    if (!(await fileExists(appPath(slug, 'i18n', 'en.json')))) {
-      throw new AppValidationError(`${slug}: i18n=true but "i18n/en.json" not found`)
+    // Auto-add extends to dependencies so dependency resolution is consistent
+    if (manifest.extends && !manifest.dependencies.includes(manifest.extends)) {
+      manifest.dependencies = [...manifest.dependencies, manifest.extends]
     }
-  }
 
-  return manifest
-}
+    if (manifest.i18n === true) {
+      if (!(await fileExists(appPath(slug, 'i18n', 'en.json')))) {
+        throw new AppValidationError(`${slug}: i18n=true but "i18n/en.json" not found`)
+      }
+    }
+
+    return manifest
+  },
+  ['manifest'],
+  { revalidate: 604800, tags: ['manifest'] }
+)
