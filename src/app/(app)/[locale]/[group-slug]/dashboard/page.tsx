@@ -31,6 +31,8 @@ async function loadWidgets(groupId: string): Promise<WidgetEntry[]> {
     .from('installed_apps')
     .select('slug, visibility')
     .eq('status', 'active')
+    .order('display_order')
+    .order('installed_at')
 
   const { data: accessRows } = await adminClient
     .from('group_app_access')
@@ -60,6 +62,8 @@ async function loadAppWidgets(locale: string, groupId: string): Promise<AppWidge
     .from('installed_apps')
     .select('slug, visibility')
     .eq('status', 'active')
+    .order('display_order')
+    .order('installed_at')
 
   // Load group_app_access for private apps
   const { data: accessRows } = await adminClient

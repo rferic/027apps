@@ -49,6 +49,8 @@ export default async function AdminLayout({ children, params }: Props) {
     .from('installed_apps')
     .select('slug')
     .eq('status', 'active')
+    .order('display_order')
+    .order('installed_at')
   const sidebarApps: { slug: string; name: string; primaryColor: string }[] = []
   if (installedApps) {
     for (const app of installedApps) {

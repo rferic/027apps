@@ -88,6 +88,8 @@ export default async function LocaleLayout({ children, params }: Props) {
         .from('installed_apps')
         .select('slug, visibility')
         .eq('status', 'active')
+        .order('display_order')
+        .order('installed_at')
     : { data: [] }
 
   // Load group_app_access to determine which private apps this group can access
