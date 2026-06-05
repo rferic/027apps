@@ -104,7 +104,7 @@ function DashboardSkeleton() {
   )
 }
 
-async function WidgetGrid({ locale, groupId }: { locale: string; groupId: string }) {
+async function WidgetGrid({ groupId }: { locale: string; groupId: string }) {
   const [widgets, t] = await Promise.all([
     loadWidgets(groupId),
     getTranslations('app'),

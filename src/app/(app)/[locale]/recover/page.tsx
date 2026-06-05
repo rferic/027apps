@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import Link from 'next/link'
 import { RecoverForm } from './RecoverForm'
@@ -13,7 +14,7 @@ export default async function RecoverPage({ params }: Props) {
     <div className="flex flex-1 items-center justify-center bg-slate-50 p-6">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
-          <img src="/logo-icon.svg" alt="027Apps" width={56} height={56} className="mb-4" />
+          <Image src="/logo-icon.svg" alt="027Apps" width={56} height={56} className="mb-4" />
           <h1 className="text-2xl font-bold text-slate-900">027Apps</h1>
           <p className="text-sm text-slate-400 mt-1">{t('recover_title')}</p>
         </div>

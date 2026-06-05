@@ -17,9 +17,8 @@ export default async function AppSlugLayout({ params }: Props) {
 
   if (!SLUG_RE.test(slug)) notFound()
 
-  let manifest
   try {
-    manifest = await readManifest(slug)
+    await readManifest(slug)
   } catch (err) {
     if (err instanceof AppValidationError) notFound()
     throw err

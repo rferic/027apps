@@ -120,7 +120,6 @@ describe('installApp', () => {
     mockReadFile.mockResolvedValue('CREATE TABLE test_app_bad (id int);')
     mockAccess.mockResolvedValue(undefined)
     mockRpc
-      .mockReturnValueOnce(makeChain(null))
       .mockReturnValueOnce(makeChain(null, { message: 'syntax error' }))
 
     const insertChain = makeChain(null)

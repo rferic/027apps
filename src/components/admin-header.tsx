@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { getTranslations } from 'next-intl/server'
 import { LocaleSwitcher } from './locale-switcher'
 import { UserDropdown } from './user-dropdown'
@@ -21,7 +22,7 @@ export async function AdminHeader({ displayName, locale }: Props) {
       <div className="flex items-center gap-3">
         <HamburgerButton />
         <Link href={`/${locale}/admin/dashboard`} className="flex items-center gap-2">
-          <img src="/logo-icon.svg" alt="027Apps" width={22} height={22} />
+          <Image src="/logo-icon.svg" alt="027Apps" width={22} height={22} priority />
           <span className="font-bold text-gray-900 text-sm">{t('title')}</span>
         </Link>
       </div>

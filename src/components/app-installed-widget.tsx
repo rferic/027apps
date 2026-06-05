@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -20,7 +21,7 @@ function AppIcon({ slug, name, primaryColor }: { slug: string; name: string; pri
   }
 
   return (
-    <img
+    <Image unoptimized
       src={`/api/apps/${slug}/logo`}
       alt={name}
       className="w-10 h-10 rounded-lg shrink-0"

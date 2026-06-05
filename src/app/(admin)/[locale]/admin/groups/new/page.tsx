@@ -32,7 +32,7 @@ export default function NewGroupWizardPage() {
   const [userFilter, setUserFilter] = useState('')
 
   // Step 3: Review & apps
-  const [selectedApps, setSelectedApps] = useState<string[]>([])
+  const [selectedApps] = useState<string[]>([])
 
   useEffect(() => {
     let cancelled = false

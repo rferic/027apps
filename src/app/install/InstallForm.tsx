@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -96,7 +97,7 @@ export function InstallForm() {
         </div>
 
         <div className="flex flex-col items-center mb-8">
-          <img src="/logo-icon.svg" alt="027Apps" width={56} height={56} className="mb-4" />
+          <Image src="/logo-icon.svg" alt="027Apps" width={56} height={56} className="mb-4" />
           <h1 className="text-2xl font-bold text-slate-900">{t.title}</h1>
           <p className="text-sm text-slate-400 mt-1 text-center">{t.subtitle}</p>
         </div>
