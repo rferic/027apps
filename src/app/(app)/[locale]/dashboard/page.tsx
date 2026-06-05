@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { setRequestLocale, getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -100,22 +101,20 @@ export default async function DashboardPage({ params }: Props) {
     redirect(`/${locale}/${groups[0].slug}/dashboard`)
   }
 
-  // Multi-group: show group cards
-  return (
-    <main className="p-6 max-w-3xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-slate-900">{t('yourGroups')}</h1>
-        <p className="text-sm text-slate-400 mt-1">{t('selectGroup')}</p>
-      </div>
-      <Suspense fallback={<DashboardSkeleton />}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {groups.map(group => (
-            <GroupCard key={group.id} group={group} locale={locale} />
-          ))}
-        </div>
-      </Suspense>
-    </main>
-  )
+  // Multi-group: try last visited group, then first group, then show selection
+  const cookieStore = await cookies()
+  const lastGroupSlug = cookieStore.get('last_group')?.value ?? null
+
+  const lastGroup = lastGroupSlug
+    ? groups.find(g => g.slug === lastGroupSlug)
+    : null
+
+  if (lastGroup) {
+    redirect(`/${locale}/${lastGroup.slug}/dashboard`)
+  }
+
+  // No valid last group cookie — redirect to first group
+  redirect(`/${locale}/${groups[0].slug}/dashboard`)
 }
 
 export { DashboardSkeleton }
