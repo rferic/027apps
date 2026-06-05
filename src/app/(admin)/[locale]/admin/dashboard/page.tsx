@@ -3,6 +3,7 @@ import { setRequestLocale, getTranslations } from 'next-intl/server'
 import { getAdminStats, getAdminUserList } from '@/lib/use-cases/admin/users'
 import { getAdminInvitationList, getInvitationStatus } from '@/lib/use-cases/invitations'
 import { getInspirationAdminStats } from '@/lib/use-cases/inspiration/admin'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 interface Props {
   params: Promise<{ locale: string }>
@@ -26,11 +27,21 @@ export default async function AdminDashboard({ params }: Props) {
   const t = await getTranslations('admin.dashboard')
   const base = `/${locale}/admin`
 
+  // Check if inspiration app is installed before loading its stats
+  const adminClient = createAdminClient()
+  const { data: inspirationInstalled } = await adminClient
+    .from('installed_apps')
+    .select('slug')
+    .eq('slug', 'inspiration')
+    .eq('status', 'active')
+    .single()
+  const isInspirationInstalled = !!inspirationInstalled
+
   const [stats, users, invitations, inspirationStats] = await Promise.all([
     getAdminStats(),
     getAdminUserList(),
     getAdminInvitationList(),
-    getInspirationAdminStats(),
+    isInspirationInstalled ? getInspirationAdminStats() : Promise.resolve(null),
   ])
   const recentInvitations = invitations.slice(0, 5)
 
@@ -93,39 +104,41 @@ export default async function AdminDashboard({ params }: Props) {
       </div>
 
       {/* ── Inspiration ─────────────────────────────────────────────────── */}
-      <div className="mt-8">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-5 h-5 rounded bg-amber-500 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5C7.6 12.3 8.3 13.3 8.5 14.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
-          </div>
-          <h2 className="text-sm font-semibold text-slate-700">Inspiration</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatCard label="Total ideas" value={inspirationStats.totalRequests} />
-          <StatCard label="Pending" value={inspirationStats.pending} />
-          <StatCard label="Reviewing" value={inspirationStats.reviewing} />
-          <StatCard label="Completed" value={inspirationStats.completed} />
-        </div>
-        {inspirationStats.hotIdeas.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-100 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-700">Most supported ideas</h3>
-              <Link href={`/${locale}/admin/apps/inspiration`} className="text-xs text-slate-400 hover:text-slate-900 transition-colors">View all</Link>
+      {inspirationStats && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-5 h-5 rounded bg-amber-500 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5C7.6 12.3 8.3 13.3 8.5 14.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
             </div>
-            <ul className="space-y-2">
-              {inspirationStats.hotIdeas.map((idea) => (
-                <li key={idea.id} className="flex items-center justify-between text-sm">
-                  <span className="text-slate-700 truncate flex-1 mr-2">{idea.title}</span>
-                  <div className="flex items-center gap-3 flex-shrink-0 text-xs text-slate-400">
-                    <span>{idea.vote_count} votes</span>
-                    <span>{idea.comment_count} comments</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <h2 className="text-sm font-semibold text-slate-700">Inspiration</h2>
           </div>
-        )}
-      </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <StatCard label="Total ideas" value={inspirationStats.totalRequests} />
+            <StatCard label="Pending" value={inspirationStats.pending} />
+            <StatCard label="Reviewing" value={inspirationStats.reviewing} />
+            <StatCard label="Completed" value={inspirationStats.completed} />
+          </div>
+          {inspirationStats.hotIdeas.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-100 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-700">Most supported ideas</h3>
+                <Link href={`/${locale}/admin/apps/inspiration`} className="text-xs text-slate-400 hover:text-slate-900 transition-colors">View all</Link>
+              </div>
+              <ul className="space-y-2">
+                {inspirationStats.hotIdeas.map((idea) => (
+                  <li key={idea.id} className="flex items-center justify-between text-sm">
+                    <span className="text-slate-700 truncate flex-1 mr-2">{idea.title}</span>
+                    <div className="flex items-center gap-3 flex-shrink-0 text-xs text-slate-400">
+                      <span>{idea.vote_count} votes</span>
+                      <span>{idea.comment_count} comments</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </main>
   )
 }
