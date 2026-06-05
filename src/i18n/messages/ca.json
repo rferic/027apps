@@ -80,7 +80,9 @@
       "apps": "Aplicacions",
       "groups": "Grups",
       "api_docs": "API Docs",
-      "apps_order": "Aplicacions"
+      "apps_order": "Aplicacions",
+      "docs": "Documentació",
+      "docs_home": "Docs"
     },
     "dashboard": {
       "title": "Inici",

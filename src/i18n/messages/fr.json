@@ -80,7 +80,9 @@
       "apps": "Applications",
       "groups": "Groupes",
       "api_docs": "API Docs",
-      "apps_order": "Applications"
+      "apps_order": "Applications",
+      "docs": "Documentation",
+      "docs_home": "Docs"
     },
     "dashboard": {
       "title": "Tableau de bord",
