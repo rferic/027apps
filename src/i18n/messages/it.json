@@ -464,6 +464,17 @@
     },
     "common": {
       "loading": "Caricamento…"
+    },
+    "todo": {
+      "title": "Task Management",
+      "subtitle": "Configure categories for the task module.",
+      "new_category": "Add Category",
+      "name": "Name",
+      "cancel": "Cancel",
+      "create": "Create",
+      "saving": "Saving...",
+      "delete": "Delete",
+      "no_categories": "No categories yet."
     }
   },
   "invite": {
@@ -533,7 +544,23 @@
       "open": "Apri",
       "admin_title": "Gestione attività",
       "admin_subtitle": "{total} attività: {pending} in sospeso, {done} completate",
-      "admin_empty": "Nessuna attività nel sistema"
+      "admin_empty": "Nessuna attività nel sistema",
+      "new_todo": "New task",
+      "create_title": "Create task",
+      "create": "Create",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "title_placeholder": "What needs to be done?",
+      "desc_placeholder": "Add a description...",
+      "visibility_public": "Public",
+      "visibility_private": "Private",
+      "tab_my": "My Tasks",
+      "tab_group": "Group Tasks",
+      "take": "Take",
+      "empty_my": "No tasks assigned to you.",
+      "empty_group": "No unassigned tasks in the group.",
+      "error_loading": "Could not load tasks.",
+      "not_found": "Task not found."
     },
     "permissions": {
       "title": "Accesso",

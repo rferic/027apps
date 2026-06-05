@@ -462,6 +462,17 @@
         "api": "API"
       }
     },
+    "todo": {
+      "title": "Task Management",
+      "subtitle": "Configure categories for the task module.",
+      "new_category": "Add Category",
+      "name": "Name",
+      "cancel": "Cancel",
+      "create": "Create",
+      "saving": "Saving...",
+      "delete": "Delete",
+      "no_categories": "No categories yet."
+    },
     "common": {
       "loading": "Loading…"
     }
@@ -522,18 +533,22 @@
     },
     "todo": {
       "title": "Tasks",
-      "pending_label": "{count} pending",
-      "done_label": "{count} done",
-      "add_placeholder": "New task...",
-      "add_button": "Add",
-      "limit_reached": "Limit reached ({max} tasks)",
-      "empty": "No tasks yet",
-      "all_done": "All done!",
-      "more_tasks": "{count} more task(s)",
-      "open": "Open",
-      "admin_title": "Task management",
-      "admin_subtitle": "{total} tasks: {pending} pending, {done} done",
-      "admin_empty": "No tasks in the system"
+      "new_todo": "New task",
+      "create_title": "Create task",
+      "create": "Create",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "title_placeholder": "What needs to be done?",
+      "desc_placeholder": "Add a description...",
+      "visibility_public": "Public",
+      "visibility_private": "Private",
+      "tab_my": "My Tasks",
+      "tab_group": "Group Tasks",
+      "take": "Take",
+      "empty_my": "No tasks assigned to you.",
+      "empty_group": "No unassigned tasks in the group.",
+      "error_loading": "Could not load tasks.",
+      "not_found": "Task not found."
     },
     "permissions": {
       "title": "Access",
