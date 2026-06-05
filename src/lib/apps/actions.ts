@@ -61,9 +61,9 @@ export async function installAppAction(slug: string): Promise<{ success: true } 
     invalidateSlugsCache()
     await installApp(slug)
     revalidatePath('/', 'layout')
-    revalidateTag('apps-list', 'default')
-    revalidateTag('admin-stats', 'default')
-    revalidateTag('manifest', 'default')
+    revalidateTag('apps-list')
+    revalidateTag('admin-stats')
+    revalidateTag('manifest')
     return { success: true }
   } catch (err) {
     const { code, params } = classifyError(err, 'install')
@@ -77,9 +77,9 @@ export async function uninstallAppAction(slug: string): Promise<{ success: true 
     invalidateSlugsCache()
     await uninstallApp(slug)
     revalidatePath('/', 'layout')
-    revalidateTag('apps-list', 'default')
-    revalidateTag('admin-stats', 'default')
-    revalidateTag('manifest', 'default')
+    revalidateTag('apps-list')
+    revalidateTag('admin-stats')
+    revalidateTag('manifest')
     return { success: true }
   } catch (err) {
     const { code, params } = classifyError(err, 'uninstall')
