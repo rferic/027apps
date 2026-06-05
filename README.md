@@ -192,12 +192,46 @@ Each app lives in `apps/[slug]/` and declares its capabilities in a `manifest.js
 
 ---
 
+## ⚡ Caching
+
+Heavy read operations are cached using Next.js `unstable_cache` via the `cachedQuery` wrapper:
+
+| Function | TTL | Tags |
+|---|---|---|
+| `getAdminStats` | 1h | `admin-stats` |
+| `getAdminUserList` | 5min | `admin-users` |
+| `readManifest(slug)` | 7d | `manifest` |
+| `getUserGroups(userId)` | 1h | `user-groups` |
+
+Caches are invalidated on install/uninstall via `revalidateTag()`.
+
+See [Architecture docs → Caching](/en/doc/architecture/caching) for details.
+
+---
+
 ## 📄 Documentation
 
 Full documentation is available at [027apps-eric-rf.vercel.app/en/doc](https://027apps-eric-rf.vercel.app/en/doc), including:
 - API reference (authentication, endpoints, errors)
 - App development guide
 - Environment configuration
+
+---
+
+## ⚡ Caching
+
+Heavy read operations are cached using Next.js `unstable_cache` via the `cachedQuery` wrapper:
+
+| Function | TTL | Tags |
+|---|---|---|
+| `getAdminStats` | 1h | `admin-stats` |
+| `getAdminUserList` | 5min | `admin-users` |
+| `readManifest(slug)` | 7d | `manifest` |
+| `getUserGroups(userId)` | 1h | `user-groups` |
+
+Caches are invalidated on install/uninstall via `revalidateTag()`.
+
+See [Architecture docs → Caching](/en/doc/architecture/caching) for details.
 
 ---
 

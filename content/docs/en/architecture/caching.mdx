@@ -1,0 +1,93 @@
+---
+title: Caching Strategy
+description: How query caching works in 027Apps
+---
+
+## Overview
+
+027Apps uses Next.js `unstable_cache` to cache expensive read operations.
+The caching layer is built on three principles:
+
+1. **Cache reads, never writes** — only read operations are cached
+2. **TTL-based expiration** — each cache has a time-to-live
+3. **Tag-based invalidation** — caches are invalidated by tag when data changes
+
+## The `cachedQuery` Utility
+
+All cached functions use the `cachedQuery` wrapper from `@/lib/cache`:
+
+```typescript
+import { cachedQuery } from '@/lib/cache'
+
+export const getAdminStats = cachedQuery(
+  async (): Promise<AdminStats> => {
+    // ... your query logic ...
+  },
+  ['admin-stats'],                    // cache key
+  { revalidate: 3600, tags: ['admin-stats'] }  // TTL + tags
+)
+```
+
+The wrapper:
+- Uses `unstable_cache` from `next/cache` internally
+- Auto-detects test environments (`VITEST` env) and skips caching
+- Lazy-imports `next/cache` to avoid module resolution issues
+
+## Currently Cached Functions
+
+| Function | TTL | Cache Tags | Used In |
+|---|---|---|---|
+| `getAdminStats` | 1 hour | `admin-stats` | Admin dashboard |
+| `getAdminUserList` | 5 minutes | `admin-users` | Admin users list |
+| `readManifest(slug)` | 7 days | `manifest` | All layouts (app metadata) |
+| `getUserGroups(userId)` | 1 hour | `user-groups` | Public layout |
+
+## Cache Invalidation
+
+Caches are invalidated from Server Actions using `revalidateTag`:
+
+```typescript
+revalidateTag('admin-stats', 'default')
+revalidateTag('manifest', 'default')
+```
+
+> **Next.js 16 note:** `revalidateTag` requires a second argument (`'default'`).
+> In Next.js 15 this was optional.
+
+### Invalidation points
+
+| Action | Tags Invalidated |
+|---|---|
+| `installAppAction(slug)` | `apps-list`, `admin-stats`, `manifest` |
+| `uninstallAppAction(slug)` | `apps-list`, `admin-stats`, `manifest` |
+
+## Why not `"use cache"`?
+
+Next.js 16 introduces the `"use cache"` directive, but it requires
+PPR (Partial Prerendering) to be enabled, which is incompatible with
+Fumadocs (our documentation framework) in its current version.
+
+Until PPR compatibility is resolved, we use `unstable_cache` via the
+`cachedQuery` wrapper, which provides the same functionality with
+explicit control.
+
+## Test Strategy
+
+In vitest, `cachedQuery` detects `process.env.VITEST` and returns the
+raw function without caching. This means:
+
+- No mocking of `next/cache` needed
+- Tests always see fresh data
+- No stale test results from cached state
+
+A mock for `next/cache` is provided at `tests/mocks/next-cache.js` for
+modules that import it directly (outside of `cachedQuery`).
+
+## PPR (Partial Prerendering)
+
+PPR allows pages to be partially static (shell) and partially dynamic
+(content). It would benefit pages like the admin dashboard where the
+layout is static but the stats are dynamic.
+
+**Status:** Pending — blocked by Fumadocs compatibility.
+**Alternative:** Manual `Suspense` boundaries already provide good UX.
