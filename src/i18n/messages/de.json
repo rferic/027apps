@@ -79,7 +79,10 @@
       "menu": "Menü",
       "apps": "Apps",
       "groups": "Gruppen",
-      "api_docs": "API Docs"
+      "api_docs": "API Docs",
+      "apps_order": "Anwendungen",
+      "docs": "Dokumentation",
+      "docs_home": "Docs"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -359,6 +362,14 @@
           "fr": "Französisch",
           "de": "Deutsch"
         }
+      },
+      "apps": {
+        "title": "Anwendungen",
+        "subtitle": "Ziehen und ablegen, um Apps neu zu ordnen. Dies betrifft die Seitenleiste, das Dashboard und die Fußzeile.",
+        "saving": "Reihenfolge wird gespeichert...",
+        "saved": "Reihenfolge gespeichert",
+        "error": "Fehler beim Speichern der Reihenfolge",
+        "empty": "Keine Apps installiert."
       }
     },
     "editUser": {

@@ -36,7 +36,7 @@ export async function getAppsListAction(): Promise<{ apps: CombinedApp[] } | { e
     const adminClient = createAdminClient()
     const [scanned, { data: installed }] = await Promise.all([
       scanApps(),
-      adminClient.from('installed_apps').select('*'),
+      adminClient.from('installed_apps').select('*').order('display_order').order('installed_at'),
     ])
     const installedMap = new Map((installed ?? []).map((a: InstalledAppRow) => [a.slug, {
       ...a,

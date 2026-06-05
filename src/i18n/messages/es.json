@@ -79,7 +79,10 @@
       "menu": "Menú",
       "apps": "Aplicaciones",
       "groups": "Grupos",
-      "api_docs": "API Docs"
+      "api_docs": "API Docs",
+      "apps_order": "Aplicaciones",
+      "docs": "Documentación",
+      "docs_home": "Docs"
     },
     "dashboard": {
       "title": "Inicio",
@@ -359,6 +362,14 @@
           "fr": "Francés",
           "de": "Alemán"
         }
+      },
+      "apps": {
+        "title": "Aplicaciones",
+        "subtitle": "Arrastra y suelta para reordenar las aplicaciones. Esto afecta al menú lateral, el dashboard y el pie de página.",
+        "saving": "Guardando orden...",
+        "saved": "Orden guardado",
+        "error": "Error al guardar el orden",
+        "empty": "No hay aplicaciones instaladas."
       }
     },
     "editUser": {

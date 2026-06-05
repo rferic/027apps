@@ -20,6 +20,9 @@ import {
   X,
   Package,
   Building2,
+  ListOrdered,
+  BookOpen,
+  Book,
 } from 'lucide-react'
 import { useAdminMobile } from './admin-mobile-context'
 
@@ -41,6 +44,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
   const [collapsed, setCollapsed] = useState(initialCollapsed)
   const [usersOpen, setUsersOpen] = useState(true)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [docsOpen, setDocsOpen] = useState(false)
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null)
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pathname = usePathname()
@@ -111,6 +115,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
   const settingsSubItems = [
     { href: `${base}/settings/general`, label: t('general'), icon: SlidersHorizontal },
     { href: `${base}/settings/api-keys`, label: t('api_keys'), icon: Key },
+    { href: `${base}/settings/apps`, label: t('apps_order'), icon: ListOrdered },
   ]
 
   const isUsersSection = userSubItems.some((item) => isActivePrefix(item.href))
@@ -376,26 +381,84 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
             </>
           )}
 
-          {/* API Docs */}
-          <div
-            className="relative"
-            onMouseEnter={() => collapsed && handleMenuEnter('api_docs')}
-            onMouseLeave={handleMenuLeave}
-          >
-            <Link
-              href="/api-docs"
-              className={collapsed ? collapsedLinkCls('/api-docs') : linkCls('/api-docs')}
-              title={t('api_docs')}
+          {/* Documentation */}
+          {isCollapsed ? (
+            <div
+              className="relative"
+              onMouseEnter={() => handleMenuEnter('docs')}
+              onMouseLeave={handleMenuLeave}
             >
-              <FileText size={collapsed ? 18 : 16} className="flex-shrink-0" />
-              {!collapsed && <span>{t('api_docs')}</span>}
-            </Link>
-            {collapsed && hoveredMenu === 'api_docs' && (
-              <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
-                {t('api_docs')}
-              </div>
-            )}
-          </div>
+              <button
+                type="button"
+                className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer text-gray-400 hover:text-gray-900 hover:bg-gray-100"
+              >
+                <BookOpen size={18} />
+              </button>
+              {hoveredMenu === 'docs' && (
+                <div
+                  className="absolute left-full top-0 ml-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px] z-50"
+                  onMouseEnter={() => handleMenuEnter('docs')}
+                  onMouseLeave={handleMenuLeave}
+                >
+                  <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    {t('docs')}
+                  </p>
+                  <a
+                    href="/api-docs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                  >
+                    <FileText size={14} />
+                    {t('api_docs')}
+                  </a>
+                  <a
+                    href={`/${locale}/doc`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                  >
+                    <Book size={14} />
+                    {t('docs_home')}
+                  </a>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <button
+                type="button"
+                onClick={() => setDocsOpen((open) => !open)}
+                className="cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+              >
+                <BookOpen size={16} className="flex-shrink-0" />
+                <span className="flex-1 text-left">{t('docs')}</span>
+                {docsOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+              {docsOpen && (
+                <div className="mt-0.5 space-y-0.5">
+                  <a
+                    href="/api-docs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={subLinkCls('/api-docs')}
+                  >
+                    <FileText size={14} className="flex-shrink-0" />
+                    {t('api_docs')}
+                  </a>
+                  <a
+                    href={`/${locale}/doc`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={subLinkCls('/docs')}
+                  >
+                    <Book size={14} className="flex-shrink-0" />
+                    {t('docs_home')}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
         </nav>
 
         {!forceExpanded && (

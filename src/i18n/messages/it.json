@@ -79,7 +79,10 @@
       "menu": "Menu",
       "apps": "Applicazioni",
       "groups": "Gruppi",
-      "api_docs": "API Docs"
+      "api_docs": "API Docs",
+      "apps_order": "Applicazioni",
+      "docs": "Documentazione",
+      "docs_home": "Docs"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -359,6 +362,14 @@
           "fr": "Francese",
           "de": "Tedesco"
         }
+      },
+      "apps": {
+        "title": "Applicazioni",
+        "subtitle": "Trascina e rilascia per riordinare le app. Questo influisce sulla barra laterale, la dashboard e il piè di pagina.",
+        "saving": "Salvando l'ordine...",
+        "saved": "Ordine salvato",
+        "error": "Errore nel salvare l'ordine",
+        "empty": "Nessuna app installata."
       }
     },
     "editUser": {

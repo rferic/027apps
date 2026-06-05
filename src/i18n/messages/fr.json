@@ -79,7 +79,10 @@
       "menu": "Menu",
       "apps": "Applications",
       "groups": "Groupes",
-      "api_docs": "API Docs"
+      "api_docs": "API Docs",
+      "apps_order": "Applications",
+      "docs": "Documentation",
+      "docs_home": "Docs"
     },
     "dashboard": {
       "title": "Tableau de bord",
@@ -359,6 +362,14 @@
           "fr": "Français",
           "de": "Allemand"
         }
+      },
+      "apps": {
+        "title": "Applications",
+        "subtitle": "Glissez-déposez pour réorganiser les applications. Cela affecte la barre latérale, le tableau de bord et le pied de page.",
+        "saving": "Enregistrement de l'ordre...",
+        "saved": "Ordre enregistré",
+        "error": "Erreur lors de l'enregistrement",
+        "empty": "Aucune application installée."
       }
     },
     "editUser": {

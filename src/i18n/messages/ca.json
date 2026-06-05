@@ -79,7 +79,10 @@
       "menu": "Menú",
       "apps": "Aplicacions",
       "groups": "Grups",
-      "api_docs": "API Docs"
+      "api_docs": "API Docs",
+      "apps_order": "Aplicacions",
+      "docs": "Documentació",
+      "docs_home": "Docs"
     },
     "dashboard": {
       "title": "Inici",
@@ -359,6 +362,14 @@
           "fr": "Francès",
           "de": "Alemany"
         }
+      },
+      "apps": {
+        "title": "Aplicacions",
+        "subtitle": "Arrossega i deixa anar per reordenar les aplicacions. Això afecta al menú lateral, el dashboard i el peu de pàgina.",
+        "saving": "Desant l'ordre...",
+        "saved": "Ordre desat",
+        "error": "Error en desar l'ordre",
+        "empty": "No hi ha aplicacions instal·lades."
       }
     },
     "editUser": {
