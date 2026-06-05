@@ -8,6 +8,9 @@ const VALID_STATUSES = ['pending', 'reviewing', 'approved', 'in_progress', 'comp
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 500
 
+// Active statuses (used for pending count — excludes completed, rejected, duplicate)
+const ACTIVE_STATUSES = 'pending,reviewing,approved,in_progress,on_hold'
+
 export default async function handler(req: Request, ctx: HandlerContext) {
   const url = new URL(req.url)
   const statusParam = url.searchParams.get('status')
@@ -16,10 +19,35 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const sort = url.searchParams.get('sort') || 'newest'
   const appSlug = url.searchParams.get('app_slug')
   const myParam = url.searchParams.get('my')
+  const widget = url.searchParams.get('widget')
+  const includeCounts = url.searchParams.get('include_counts') === 'true'
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1)
   const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(url.searchParams.get('limit') || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT))
 
   const adminClient = createAdminClientUntyped()
+
+  // Widget mode: return active count + top supported + recently completed in 1 request
+  if (widget === 'true') {
+    const [activeRes, supportedRes, completedRes] = await Promise.all([
+      applyBaseFilters(adminClient.from('inspiration_requests').select('id', { count: 'exact' }), typeParam, search, appSlug, myParam, ctx)
+        .in('status', ACTIVE_STATUSES.split(',')),
+      adminClient.from('inspiration_requests')
+        .select('id, title, type, vote_count, comment_count, status, created_at')
+        .order('vote_count', { ascending: false })
+        .limit(3),
+      adminClient.from('inspiration_requests')
+        .select('id, title, type, vote_count, comment_count, status, created_at')
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(2),
+    ])
+
+    return apiOk({
+      active_count: activeRes.count ?? 0,
+      top_supported: supportedRes.data ?? [],
+      recently_completed: completedRes.data ?? [],
+    })
+  }
 
   // Build the base query with filters (no .select yet)
   function applyFilters(q: any): any {
@@ -46,11 +74,28 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   if (countError) {
     return apiError('QUERY_ERROR', `Count failed: ${countError.message}`, 500)
   }
+
+  // Fetch extra counts in parallel if requested (for tab badges)
+  let pendingCount = 0
+  let completedCount = 0
+  if (includeCounts && total > 0) {
+    const [pendingRes, completedRes] = await Promise.all([
+      applyBaseFilters(adminClient.from('inspiration_requests').select('id', { count: 'exact' }), typeParam, search, appSlug, myParam, ctx)
+        .in('status', ACTIVE_STATUSES.split(',')),
+      applyBaseFilters(adminClient.from('inspiration_requests').select('id', { count: 'exact' }), typeParam, search, appSlug, myParam, ctx)
+        .eq('status', 'completed'),
+    ])
+    pendingCount = pendingRes.count ?? 0
+    completedCount = completedRes.count ?? 0
+  }
+
   if (total === 0) {
-    return apiOk({
+    const response: any = {
       data: [],
       pagination: { page, limit, total: 0, total_pages: 0 },
-    })
+    }
+    if (includeCounts) response.counts = { total: 0, pending: 0, completed: 0 }
+    return apiOk(response)
   }
 
   const totalPages = Math.ceil(total / limit)
@@ -67,10 +112,12 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   if (dataError) return apiError('QUERY_ERROR', dataError.message, 500)
 
   if (!rows || rows.length === 0) {
-    return apiOk({
+    const response: any = {
       data: [],
       pagination: { page, limit, total, total_pages: totalPages },
-    })
+    }
+    if (includeCounts) response.counts = { total, pending: pendingCount, completed: completedCount }
+    return apiOk(response)
   }
 
   // 3. Enrich with vote/comment counts + creator info
@@ -108,8 +155,23 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     }
   })
 
-  return apiOk({
+  const response: any = {
     data: enriched,
     pagination: { page, limit, total, total_pages: totalPages },
-  })
+  }
+  if (includeCounts) response.counts = { total, pending: pendingCount, completed: completedCount }
+
+  return apiOk(response)
+}
+
+// Helper: apply base filters (no status/type — handled separately for count queries)
+function applyBaseFilters(q: any, typeParam: string | null, search: string | null, appSlug: string | null, myParam: string | null, ctx: HandlerContext): any {
+  if (typeParam) {
+    const types = typeParam.split(',').map(t => t.trim()).filter(t => VALID_TYPES.includes(t as typeof VALID_TYPES[number]))
+    if (types.length > 0) q = q.in('type', types)
+  }
+  if (appSlug) q = q.eq('app_slug', appSlug)
+  if (search) q = q.or(`title.ilike.%${search}%,description.ilike.%${search}%`)
+  if (myParam === '1' && ctx.userId) q = q.eq('user_id', ctx.userId)
+  return q
 }

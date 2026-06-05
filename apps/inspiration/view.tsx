@@ -510,6 +510,7 @@ export default function InspirationView() {
 
         if (myRaw === '1') params.set('my', '1')
         if (searchRaw) params.set('search', searchRaw)
+        params.set('include_counts', 'true')
 
         const apiParams = params.toString()
 
@@ -519,42 +520,15 @@ export default function InspirationView() {
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
-        const { data, pagination: pag } = await res.json()
+        const { data, pagination: pag, counts: apiCounts } = await res.json()
 
         if (cancelled) return
         setRequests(data ?? [])
         setPagination(pag ?? { page: 1, limit: 20, total: 0, total_pages: 0 })
 
-        // Fetch counts (total + pending + completed)
-        const countRes = await fetchWithAuth(
-          `/api/v1/${groupSlug}/apps/inspiration?limit=1&page=1`,
-          { signal: abort.signal },
-        )
-        if (countRes.ok) {
-          const countData = await countRes.json()
-          const total = countData.pagination?.total ?? 0
-
-          const pendingRes = await fetchWithAuth(
-            `/api/v1/${groupSlug}/apps/inspiration?status=${ACTIVE_STATUSES}&limit=1&page=1`,
-            { signal: abort.signal },
-          )
-          let pending = 0
-          if (pendingRes.ok) {
-            const pData = await pendingRes.json()
-            pending = pData.pagination?.total ?? 0
-          }
-
-          const completedRes = await fetchWithAuth(
-            `/api/v1/${groupSlug}/apps/inspiration?status=completed&limit=1&page=1`,
-            { signal: abort.signal },
-          )
-          let completed = 0
-          if (completedRes.ok) {
-            const cData = await completedRes.json()
-            completed = cData.pagination?.total ?? 0
-          }
-
-          if (!cancelled) setCounts({ total, pending, completed })
+        // Counts come from the main response (include_counts=true)
+        if (apiCounts) {
+          setCounts({ total: apiCounts.total ?? 0, pending: apiCounts.pending ?? 0, completed: apiCounts.completed ?? 0 })
         }
       } catch {
         if (!cancelled) setError(true)

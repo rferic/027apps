@@ -11,6 +11,7 @@ export interface InspirationAdminStats {
 export async function getInspirationAdminStats(): Promise<InspirationAdminStats> {
   const db = createAdminClientUntyped()
 
+  // 4 count queries in parallel (fast: count exact with head=true)
   const [{ count: total }, { count: pending }, { count: completed }, { count: reviewing }] = await Promise.all([
     db.from('inspiration_requests').select('*', { count: 'exact', head: true }),
     db.from('inspiration_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -18,35 +19,41 @@ export async function getInspirationAdminStats(): Promise<InspirationAdminStats>
     db.from('inspiration_requests').select('*', { count: 'exact', head: true }).eq('status', 'reviewing'),
   ])
 
-  const { data: allRequests } = await db.from('inspiration_requests').select('id, title, type')
-
+  // Hot ideas: single SQL query with subselects instead of 3 separate queries
   let hotIdeas: InspirationAdminStats['hotIdeas'] = []
-  if (allRequests && allRequests.length > 0) {
-    const [{ data: votes }, { data: comments }] = await Promise.all([
-      db.from('inspiration_votes').select('request_id'),
-      db.from('inspiration_comments').select('request_id'),
-    ])
+  const totalRequests = total ?? 0
 
-    const voteCounts = new Map<string, number>()
-    votes?.forEach(v => voteCounts.set(v.request_id, (voteCounts.get(v.request_id) || 0) + 1))
+  if (totalRequests > 0) {
+    const sql = `
+      SELECT
+        r.id, r.title, r.type,
+        COALESCE(v.cnt, 0)::int AS vote_count,
+        COALESCE(c.cnt, 0)::int AS comment_count
+      FROM inspiration_requests r
+      LEFT JOIN (
+        SELECT request_id, COUNT(*) AS cnt FROM inspiration_votes GROUP BY request_id
+      ) v ON v.request_id = r.id
+      LEFT JOIN (
+        SELECT request_id, COUNT(*) AS cnt FROM inspiration_comments GROUP BY request_id
+      ) c ON c.request_id = r.id
+      ORDER BY vote_count DESC, comment_count DESC
+      LIMIT 5
+    `
 
-    const commentCounts = new Map<string, number>()
-    comments?.forEach(c => commentCounts.set(c.request_id, (commentCounts.get(c.request_id) || 0) + 1))
-
-    hotIdeas = allRequests
-      .map(r => ({
-        id: r.id,
-        title: r.title,
-        type: r.type,
-        vote_count: voteCounts.get(r.id) || 0,
-        comment_count: commentCounts.get(r.id) || 0,
+    const { data: hotRows } = await db.rpc('exec_sql', { sql })
+    if (hotRows) {
+      hotIdeas = (hotRows as Array<Record<string, unknown>>).map((r: Record<string, unknown>) => ({
+        id: r.id as string,
+        title: r.title as string,
+        type: r.type as string,
+        vote_count: (r.vote_count as number) ?? 0,
+        comment_count: (r.comment_count as number) ?? 0,
       }))
-      .sort((a, b) => b.vote_count - a.vote_count)
-      .slice(0, 5)
+    }
   }
 
   return {
-    totalRequests: total ?? 0,
+    totalRequests,
     pending: pending ?? 0,
     completed: completed ?? 0,
     reviewing: reviewing ?? 0,

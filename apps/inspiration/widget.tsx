@@ -33,30 +33,16 @@ export default function InspirationWidget() {
 
     const abort = new AbortController()
 
-    Promise.allSettled([
-      fetch(
-        `/api/v1/${groupSlug}/apps/inspiration?status=pending,reviewing,approved,in_progress,on_hold&limit=1&page=1`,
-        { credentials: 'include', signal: abort.signal },
-      ).then((r) => (r.ok ? r.json() : null)),
-      fetch(
-        `/api/v1/${groupSlug}/apps/inspiration?sort=most_supported&limit=3&page=1`,
-        { credentials: 'include', signal: abort.signal },
-      ).then((r) => (r.ok ? r.json() : null)),
-      fetch(
-        `/api/v1/${groupSlug}/apps/inspiration?status=completed&sort=newest&limit=2&page=1`,
-        { credentials: 'include', signal: abort.signal },
-      ).then((r) => (r.ok ? r.json() : null)),
-    ])
-      .then((results) => {
+    fetch(
+      `/api/v1/${groupSlug}/apps/inspiration?widget=true`,
+      { credentials: 'include', signal: abort.signal },
+    )
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((data) => {
         if (abort.signal.aborted) return
-
-        const activeRes = results[0].status === 'fulfilled' ? results[0].value : null
-        const supportedRes = results[1].status === 'fulfilled' ? results[1].value : null
-        const completedRes = results[2].status === 'fulfilled' ? results[2].value : null
-
-        setActiveCount(activeRes?.pagination?.total ?? 0)
-        setTopSupported(Array.isArray(supportedRes?.data) ? supportedRes.data : [])
-        setRecentlyCompleted(Array.isArray(completedRes?.data) ? completedRes.data : [])
+        setActiveCount(data.active_count ?? 0)
+        setTopSupported(Array.isArray(data.top_supported) ? data.top_supported : [])
+        setRecentlyCompleted(Array.isArray(data.recently_completed) ? data.recently_completed : [])
         setLoading(false)
       })
       .catch(() => {
