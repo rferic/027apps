@@ -413,7 +413,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                     {t('api_docs')}
                   </a>
                   <a
-                    href="/docs"
+                    href={`/${locale}/doc`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
@@ -447,7 +447,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                     {t('api_docs')}
                   </a>
                   <a
-                    href="/docs"
+                    href={`/${locale}/doc`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={subLinkCls('/docs')}
