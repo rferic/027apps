@@ -96,25 +96,15 @@ describe('InspirationWidget', () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ data: [], pagination: { page: 1, limit: 1, total: 3, total_pages: 3 } }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
         json: () => Promise.resolve({
-          data: [
+          active_count: 3,
+          top_supported: [
             { id: 'r1', title: 'Dark mode', status: 'pending', vote_count: 12, comment_count: 3, created_at: '2025-01-01T00:00:00Z' },
             { id: 'r2', title: 'Export CSV', status: 'pending', vote_count: 8, comment_count: 1, created_at: '2025-01-02T00:00:00Z' },
           ],
-          pagination: { page: 1, limit: 3, total: 5, total_pages: 2 },
-        })
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          data: [
+          recently_completed: [
             { id: 'r3', title: 'Keyboard shortcuts', status: 'completed', vote_count: 25, comment_count: 5, created_at: '2024-12-15T00:00:00Z' },
           ],
-          pagination: { page: 1, limit: 2, total: 1, total_pages: 1 },
         })
       } as Response)
 
@@ -126,7 +116,9 @@ describe('InspirationWidget', () => {
       expect(container.textContent).toContain('apps.inspiration.widget.heading')
     }, { timeout: 2000 })
 
-    expect(container.textContent).toContain('apps.inspiration.widget.active_ideas')
+    await vi.waitFor(() => {
+      expect(container.textContent).toContain('apps.inspiration.widget.active_ideas')
+    }, { timeout: 2000 })
     expect(container.textContent).toContain('apps.inspiration.widget.most_supported')
     expect(container.textContent).toContain('Dark mode')
     expect(container.textContent).toContain('Export CSV')
@@ -137,12 +129,9 @@ describe('InspirationWidget', () => {
   it('shows "No ideas yet" when fetch returns empty data', async () => {
     const emptyRes = {
       ok: true,
-      json: () => Promise.resolve({ data: [], pagination: { page: 1, limit: 20, total: 0, total_pages: 0 } }),
+      json: () => Promise.resolve({ active_count: 0, top_supported: [], recently_completed: [] }),
     } as Response
-    mockFetch
-      .mockResolvedValueOnce(emptyRes)
-      .mockResolvedValueOnce(emptyRes)
-      .mockResolvedValueOnce(emptyRes)
+    mockFetch.mockResolvedValueOnce(emptyRes)
 
     const { default: Widget } = await import('../../apps/inspiration/widget')
     const { container } = render(wrapWithAppContext(<Widget />, { groupSlug: 'test' }))
@@ -155,12 +144,9 @@ describe('InspirationWidget', () => {
   it('renders "View all ideas" link', async () => {
     const emptyRes = {
       ok: true,
-      json: () => Promise.resolve({ data: [], pagination: { page: 1, limit: 20, total: 0, total_pages: 0 } }),
+      json: () => Promise.resolve({ active_count: 0, top_supported: [], recently_completed: [] }),
     } as Response
-    mockFetch
-      .mockResolvedValueOnce(emptyRes)
-      .mockResolvedValueOnce(emptyRes)
-      .mockResolvedValueOnce(emptyRes)
+    mockFetch.mockResolvedValueOnce(emptyRes)
 
     const { default: Widget } = await import('../../apps/inspiration/widget')
     render(wrapWithAppContext(<Widget />, { groupSlug: 'test' }))
