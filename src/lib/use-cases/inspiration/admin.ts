@@ -19,37 +19,43 @@ export async function getInspirationAdminStats(): Promise<InspirationAdminStats>
     db.from('inspiration_requests').select('*', { count: 'exact', head: true }).eq('status', 'reviewing'),
   ])
 
-  // Hot ideas: single SQL query with subselects instead of 3 separate queries
+  // Hot ideas: typed queries instead of exec_sql
   let hotIdeas: InspirationAdminStats['hotIdeas'] = []
   const totalRequests = total ?? 0
 
   if (totalRequests > 0) {
-    const sql = `
-      SELECT
-        r.id, r.title, r.type,
-        COALESCE(v.cnt, 0)::int AS vote_count,
-        COALESCE(c.cnt, 0)::int AS comment_count
-      FROM inspiration_requests r
-      LEFT JOIN (
-        SELECT request_id, COUNT(*) AS cnt FROM inspiration_votes GROUP BY request_id
-      ) v ON v.request_id = r.id
-      LEFT JOIN (
-        SELECT request_id, COUNT(*) AS cnt FROM inspiration_comments GROUP BY request_id
-      ) c ON c.request_id = r.id
-      ORDER BY vote_count DESC, comment_count DESC
-      LIMIT 5
-    `
+    const [requestsRes, votesRes, commentsRes] = await Promise.all([
+      db.from('inspiration_requests').select('id, title, type'),
+      db.from('inspiration_votes').select('request_id'),
+      db.from('inspiration_comments').select('request_id'),
+    ])
 
-    const { data: hotRows } = await db.rpc('exec_sql', { sql })
-    if (hotRows) {
-      hotIdeas = (hotRows as Array<Record<string, unknown>>).map((r: Record<string, unknown>) => ({
+    const requests = requestsRes.data ?? []
+    const votes = votesRes.data ?? []
+    const comments = commentsRes.data ?? []
+
+    const voteCounts = new Map<string, number>()
+    for (const v of votes) {
+      const rid = (v as Record<string, unknown>).request_id as string
+      voteCounts.set(rid, (voteCounts.get(rid) || 0) + 1)
+    }
+
+    const commentCounts = new Map<string, number>()
+    for (const c of comments) {
+      const rid = (c as Record<string, unknown>).request_id as string
+      commentCounts.set(rid, (commentCounts.get(rid) || 0) + 1)
+    }
+
+    hotIdeas = requests
+      .map((r: Record<string, unknown>) => ({
         id: r.id as string,
         title: r.title as string,
         type: r.type as string,
-        vote_count: (r.vote_count as number) ?? 0,
-        comment_count: (r.comment_count as number) ?? 0,
+        vote_count: voteCounts.get(r.id as string) || 0,
+        comment_count: commentCounts.get(r.id as string) || 0,
       }))
-    }
+      .sort((a, b) => b.vote_count - a.vote_count || b.comment_count - a.comment_count)
+      .slice(0, 5)
   }
 
   return {
