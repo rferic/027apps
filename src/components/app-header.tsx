@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
 import { LocaleSwitcher } from './locale-switcher'
 import { UserDropdown } from './user-dropdown'
 import { GroupSwitcher } from './group-switcher'
@@ -35,10 +34,7 @@ interface Props {
 }
 
 export async function AppHeader({ locale, displayName, isAdmin, userGroups, currentGroupSlug, groupMembers, groupApps }: Props) {
-  const [tNav, settings] = await Promise.all([
-    getTranslations('nav'),
-    getGroupSettings(),
-  ])
+  const settings = await getGroupSettings()
 
   const homeHref = currentGroupSlug
     ? `/${locale}/${currentGroupSlug}/dashboard`

@@ -14,7 +14,7 @@ interface Props {
   onEdit: () => void
 }
 
-export function AdminUserActions({ user, locale, currentUserId, onEdit }: Props) {
+export function AdminUserActions({ user, currentUserId, onEdit }: Props) {
   const t = useTranslations('admin.table')
   const [, startTransition] = useTransition()
   const [confirmBlock, setConfirmBlock] = useState(false)
