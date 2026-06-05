@@ -78,7 +78,7 @@
       "api_keys": "API Keys",
       "menu": "Menu",
       "apps": "Apps",
-      "apps_order": "App Order",
+      "apps_order": "Applications",
       "groups": "Groups",
       "api_docs": "API Docs"
     },
@@ -362,11 +362,11 @@
         }
       },
       "apps": {
-        "title": "App Order",
+        "title": "Applications",
         "subtitle": "Drag and drop to reorder apps. This affects the sidebar, dashboard, and footer.",
-        "save": "Save order",
-        "saving": "Saving...",
+        "saving": "Saving order...",
         "saved": "Order saved",
+        "error": "Failed to save order",
         "empty": "No active apps installed."
       }
     },

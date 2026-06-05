@@ -80,7 +80,7 @@
       "apps": "Applications",
       "groups": "Groupes",
       "api_docs": "API Docs",
-      "apps_order": "App Order"
+      "apps_order": "Applications"
     },
     "dashboard": {
       "title": "Tableau de bord",
@@ -362,12 +362,12 @@
         }
       },
       "apps": {
-        "title": "App Order",
-        "subtitle": "Drag and drop to reorder apps. This affects the sidebar, dashboard, and footer.",
-        "save": "Save order",
-        "saved": "Order saved",
-        "saving": "Saving...",
-        "empty": "No active apps installed."
+        "title": "Applications",
+        "subtitle": "Glissez-déposez pour réorganiser les applications. Cela affecte la barre latérale, le tableau de bord et le pied de page.",
+        "saving": "Enregistrement de l'ordre...",
+        "saved": "Ordre enregistré",
+        "error": "Erreur lors de l'enregistrement",
+        "empty": "Aucune application installée."
       }
     },
     "editUser": {

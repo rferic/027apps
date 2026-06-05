@@ -80,7 +80,7 @@
       "apps": "Aplicacions",
       "groups": "Grups",
       "api_docs": "API Docs",
-      "apps_order": "App Order"
+      "apps_order": "Aplicacions"
     },
     "dashboard": {
       "title": "Inici",
@@ -362,12 +362,12 @@
         }
       },
       "apps": {
-        "title": "App Order",
-        "subtitle": "Drag and drop to reorder apps. This affects the sidebar, dashboard, and footer.",
-        "save": "Save order",
-        "saved": "Order saved",
-        "saving": "Saving...",
-        "empty": "No active apps installed."
+        "title": "Aplicacions",
+        "subtitle": "Arrossega i deixa anar per reordenar les aplicacions. Això afecta al menú lateral, el dashboard i el peu de pàgina.",
+        "saving": "Desant l'ordre...",
+        "saved": "Ordre desat",
+        "error": "Error en desar l'ordre",
+        "empty": "No hi ha aplicacions instal·lades."
       }
     },
     "editUser": {
