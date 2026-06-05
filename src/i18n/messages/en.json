@@ -78,6 +78,7 @@
       "api_keys": "API Keys",
       "menu": "Menu",
       "apps": "Apps",
+      "apps_order": "App Order",
       "groups": "Groups",
       "api_docs": "API Docs"
     },
@@ -359,6 +360,14 @@
           "fr": "French",
           "de": "German"
         }
+      },
+      "apps": {
+        "title": "App Order",
+        "subtitle": "Drag and drop to reorder apps. This affects the sidebar, dashboard, and footer.",
+        "save": "Save order",
+        "saving": "Saving...",
+        "saved": "Order saved",
+        "empty": "No active apps installed."
       }
     },
     "editUser": {

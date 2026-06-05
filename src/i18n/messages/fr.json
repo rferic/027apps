@@ -79,7 +79,8 @@
       "menu": "Menu",
       "apps": "Applications",
       "groups": "Groupes",
-      "api_docs": "API Docs"
+      "api_docs": "API Docs",
+      "apps_order": "App Order"
     },
     "dashboard": {
       "title": "Tableau de bord",
@@ -359,6 +360,14 @@
           "fr": "Français",
           "de": "Allemand"
         }
+      },
+      "apps": {
+        "title": "App Order",
+        "subtitle": "Drag and drop to reorder apps. This affects the sidebar, dashboard, and footer.",
+        "save": "Save order",
+        "saved": "Order saved",
+        "saving": "Saving...",
+        "empty": "No active apps installed."
       }
     },
     "editUser": {
