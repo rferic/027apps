@@ -19,10 +19,13 @@
  *
  * ## Invalidación
  *
- * Las cachés se invalidan desde Server Actions vía `revalidateTag()`:
+ * Las cachés se invalidan desde Server Actions vía `revalidateTag(tag, profile)`:
  *
  * - `installAppAction` → invalida `apps-list`, `admin-stats`, `manifest`
  * - `uninstallAppAction` → invalida `apps-list`, `admin-stats`, `manifest`
+ *
+ * ⚠️ Next.js 16.2.4 cambió la API: `revalidateTag(tag, profile)` requiere
+ *    el segundo argumento `profile` (ej. `'default'`). No omitirlo.
  *
  * ## Por qué cachedQuery y no use cache directive
  *
