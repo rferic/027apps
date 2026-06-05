@@ -32,7 +32,9 @@
     "noApps": "Noch keine Apps verfügbar.",
     "noAppsDesc": "Deine Apps erscheinen hier, sobald der Administrator sie eingerichtet hat.",
     "noGroups": "No groups available",
-    "noGroupsDesc": "Contact an administrator to be added to a group."
+    "noGroupsDesc": "Contact an administrator to be added to a group.",
+    "yourGroups": "Your Groups",
+    "selectGroup": "Select a group to continue"
   },
   "nav": {
     "dashboard": "Startseite",
@@ -62,7 +64,9 @@
       "success": "Gruppe erfolgreich erstellt"
     },
     "switcher_label": "Your groups",
-    "fallback": "Group"
+    "fallback": "Group",
+    "member_singular": "member",
+    "member_plural": "members"
   },
   "admin": {
     "title": "Kontrollzentrum",

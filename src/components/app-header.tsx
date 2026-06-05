@@ -11,6 +11,7 @@ interface GroupInfo {
   name: string
   slug: string
   role: string
+  memberCount?: number
 }
 
 interface MemberInfo {

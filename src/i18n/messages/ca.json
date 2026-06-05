@@ -32,7 +32,9 @@
     "noApps": "Encara no hi ha apps disponibles.",
     "noAppsDesc": "Les teves apps apareixeran aquí quan l'administrador les configuri.",
     "noGroups": "No groups available",
-    "noGroupsDesc": "Contact an administrator to be added to a group."
+    "noGroupsDesc": "Contact an administrator to be added to a group.",
+    "yourGroups": "Your Groups",
+    "selectGroup": "Select a group to continue"
   },
   "nav": {
     "dashboard": "Inici",
@@ -62,7 +64,9 @@
       "success": "Grup creat correctament"
     },
     "switcher_label": "Your groups",
-    "fallback": "Group"
+    "fallback": "Group",
+    "member_singular": "member",
+    "member_plural": "members"
   },
   "admin": {
     "title": "Panell de control",

@@ -32,7 +32,9 @@
     "noApps": "Nessuna app disponibile ancora.",
     "noAppsDesc": "Le tue app appariranno qui quando l'amministratore le configurerà.",
     "noGroups": "No groups available",
-    "noGroupsDesc": "Contact an administrator to be added to a group."
+    "noGroupsDesc": "Contact an administrator to be added to a group.",
+    "yourGroups": "Your Groups",
+    "selectGroup": "Select a group to continue"
   },
   "nav": {
     "dashboard": "Home",
@@ -62,7 +64,9 @@
       "success": "Gruppo creato con successo"
     },
     "switcher_label": "Your groups",
-    "fallback": "Group"
+    "fallback": "Group",
+    "member_singular": "member",
+    "member_plural": "members"
   },
   "admin": {
     "title": "Pannello di controllo",
