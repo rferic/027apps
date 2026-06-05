@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
@@ -186,7 +187,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                         : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
-                    <img
+                    <Image unoptimized
                       src={`/api/apps/${app.slug}/logo`}
                       alt={app.name}
                       className="w-[18px] h-[18px] rounded"
@@ -314,7 +315,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                   href={`${base}/apps/${app.slug}`}
                   className={linkCls(`${base}/apps/${app.slug}`)}
                 >
-                  <img
+                  <Image unoptimized
                     src={`/api/apps/${app.slug}/logo`}
                     alt={app.name}
                     className="w-4 h-4 rounded flex-shrink-0"

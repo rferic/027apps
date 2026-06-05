@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
@@ -12,7 +13,7 @@ function AppIcon({ slug, label }: { slug: string; label: string }) {
     return <div className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: 'var(--app-primary, #6B7280)' }}>{slug.slice(0, 2).toUpperCase()}</div>
   }
   return (
-    <img
+    <Image unoptimized
       src={`/api/apps/${slug}/logo`}
       alt={label}
       className="w-5 h-5 rounded"

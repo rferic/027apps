@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
@@ -47,7 +48,7 @@ export default async function LoginPage({ params, searchParams }: Props) {
         </div>
 
         <div className="flex flex-col items-center mb-8">
-          <img src="/logo-icon.svg" alt="027Apps" width={56} height={56} className="mb-4" />
+          <Image src="/logo-icon.svg" alt="027Apps" width={56} height={56} className="mb-4" />
           <h1 className="text-2xl font-bold text-slate-900">027Apps</h1>
           <p className="text-sm text-slate-400 mt-1">{t('subtitle')}</p>
         </div>

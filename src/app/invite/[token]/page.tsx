@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { getTranslations } from 'next-intl/server'
 import { setRequestLocale } from 'next-intl/server'
 import { getInvitationByToken, getInvitationStatus } from '@/lib/use-cases/invitations'
@@ -42,7 +43,7 @@ export default async function InvitePage({ params }: Props) {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <img src="/logo-icon.svg" alt="Logo" width={36} height={36} className="mx-auto mb-4" />
+          <Image src="/logo-icon.svg" alt="Logo" width={36} height={36} className="mx-auto mb-4" />
           <h1 className="text-xl font-semibold text-slate-900">{t('title')}</h1>
           <p className="text-sm text-slate-400 mt-1">{invitation.title}</p>
         </div>

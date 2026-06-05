@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 
 import { useState, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
@@ -62,11 +63,11 @@ function SortableApp({ app }: { app: AppItem }) {
       >
         <GripVertical size={18} />
       </button>
-      <img
+      <Image unoptimized
         src={`/api/apps/${app.slug}/logo`}
         alt={app.name}
         className="w-7 h-7 rounded flex-shrink-0"
-        onError={(e) => {
+        onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
           const target = e.currentTarget
           target.style.display = 'none'
           const fallback = target.nextElementSibling

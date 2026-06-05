@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
@@ -70,7 +71,7 @@ function AppCard({ app }: { app: CombinedApp }) {
       <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
         <div className="flex items-start gap-3 min-w-0">
           {app.manifest ? (
-            <img
+            <Image unoptimized
               src={`/api/apps/${app.slug}/logo`}
               alt={app.manifest.name}
               className="flex-shrink-0 w-10 h-10 rounded-lg"
