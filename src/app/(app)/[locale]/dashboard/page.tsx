@@ -30,6 +30,8 @@ async function loadWidgets(): Promise<WidgetEntry[]> {
     .from('installed_apps')
     .select('slug')
     .eq('status', 'active')
+    .order('display_order')
+    .order('installed_at')
 
   const results: WidgetEntry[] = []
   for (const app of installedApps ?? []) {
@@ -57,6 +59,8 @@ async function loadAppWidgets(locale: string): Promise<AppWidgetData[]> {
     .select('slug')
     .eq('status', 'active')
     .eq('visibility', 'public')
+    .order('display_order')
+    .order('installed_at')
 
   const results: AppWidgetData[] = []
   for (const app of installedApps ?? []) {

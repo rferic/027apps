@@ -19,7 +19,7 @@ test('admin settings apps: page loads and shows app list', async ({ page }) => {
   await expect(page).toHaveURL(/\/en\/admin\/settings\/apps/)
 
   // Page title should be visible
-  await expect(page.getByRole('heading', { name: /app order/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /applications/i })).toBeVisible()
 
   // Subtitle should be visible
   await expect(page.getByText(/drag and drop/i)).toBeVisible()
@@ -36,5 +36,5 @@ test('admin settings apps: sidebar shows App Order in settings', async ({ page }
   await settingsButton.click()
 
   // App Order should appear in the submenu
-  await expect(page.getByRole('link', { name: /app order/i })).toBeVisible()
+  await expect(page.getByRole('link', { name: /applications/i })).toBeVisible()
 })
