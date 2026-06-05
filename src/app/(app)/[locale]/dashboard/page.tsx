@@ -1,75 +1,11 @@
-import { Suspense } from 'react'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { setRequestLocale, getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getUserGroups } from '@/lib/groups/context'
-import { Sparkles, Users, Package, ArrowRight } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 
 type Props = { params: Promise<{ locale: string }> }
-
-async function GroupCard({ group, locale }: { group: { id: string; name: string; slug: string; role: string }; locale: string }) {
-  const adminClient = createAdminClient()
-  
-  const [membersRes, appsRes] = await Promise.all([
-    adminClient.from('group_members').select('user_id', { count: 'exact', head: true }).eq('group_id', group.id),
-    adminClient.from('group_app_access').select('app_slug', { count: 'exact', head: true }).eq('group_id', group.id),
-  ])
-  
-  const memberCount = membersRes.count ?? 0
-  const appCount = appsRes.count ?? 0
-
-  const initials = group.name
-    .split(' ')
-    .map(w => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-
-  return (
-    <Link
-      href={`/${locale}/${group.slug}/dashboard`}
-      className="bg-white rounded-xl border border-slate-100 p-5 hover:border-slate-200 hover:shadow-sm transition-all group"
-    >
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-          <span className="text-sm font-bold text-emerald-600">{initials}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-slate-800 truncate">{group.name}</h3>
-          {group.role === 'admin' && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-600 mt-0.5">
-              Admin
-            </span>
-          )}
-        </div>
-        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors flex-shrink-0" />
-      </div>
-      <div className="flex items-center gap-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1">
-          <Users className="w-3.5 h-3.5" />
-          {memberCount} {memberCount === 1 ? 'member' : 'members'}
-        </span>
-        <span className="flex items-center gap-1">
-          <Package className="w-3.5 h-3.5" />
-          {appCount} {appCount === 1 ? 'app' : 'apps'}
-        </span>
-      </div>
-    </Link>
-  )
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {Array.from({ length: 2 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-xl border border-slate-100 p-5 h-28 animate-pulse" />
-      ))}
-    </div>
-  )
-}
 
 export default async function DashboardPage({ params }: Props) {
   const { locale } = await params
@@ -97,11 +33,10 @@ export default async function DashboardPage({ params }: Props) {
   }
 
   if (groups.length === 1) {
-    // Single group: redirect directly to its dashboard
     redirect(`/${locale}/${groups[0].slug}/dashboard`)
   }
 
-  // Multi-group: try last visited group, then first group, then show selection
+  // Multi-group: use last_group cookie, fallback to first group
   const cookieStore = await cookies()
   const lastGroupSlug = cookieStore.get('last_group')?.value ?? null
 
@@ -113,8 +48,6 @@ export default async function DashboardPage({ params }: Props) {
     redirect(`/${locale}/${lastGroup.slug}/dashboard`)
   }
 
-  // No valid last group cookie — redirect to first group
+  // No valid cookie — redirect to first group
   redirect(`/${locale}/${groups[0].slug}/dashboard`)
 }
-
-export { DashboardSkeleton }
