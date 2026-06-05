@@ -102,31 +102,28 @@ export function AppsOrderManager({ initialApps }: Props) {
       const { active, over } = event
       if (!over || active.id === over.id) return
 
-      setApps((items) => {
-        const oldIndex = items.findIndex((item) => item.slug === active.id)
-        const newIndex = items.findIndex((item) => item.slug === over.id)
-        return arrayMove(items, oldIndex, newIndex)
-      })
+      const oldIndex = apps.findIndex((item) => item.slug === active.id)
+      const newIndex = apps.findIndex((item) => item.slug === over.id)
+      const reordered = arrayMove(apps, oldIndex, newIndex)
+
+      // Update local state immediately for smooth UX
+      setApps(reordered)
+      setSaving(true)
+
+      const orderedSlugs = reordered.map((a) => a.slug)
+      const result = await updateAppOrderAction(orderedSlugs)
+      setSaving(false)
+
+      if ('error' in result && result.error) {
+        // Rollback local state on error
+        setApps(apps)
+        toast.error(result.error)
+      } else {
+        toast.success(t('saved'))
+      }
     },
-    []
+    [apps, t]
   )
-
-  const handleSave = async () => {
-    setSaving(true)
-    const orderedSlugs = apps.map((a) => a.slug)
-    const result = await updateAppOrderAction(orderedSlugs)
-    setSaving(false)
-
-    if ('error' in result && result.error) {
-      toast.error(result.error)
-    } else {
-      toast.success(t('saved'))
-    }
-  }
-
-  const hasChanges =
-    apps.map((a) => a.slug).join(',') !==
-    initialApps.map((a) => a.slug).join(',')
 
   if (apps.length === 0) {
     return (
@@ -137,7 +134,13 @@ export function AppsOrderManager({ initialApps }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div>
+      {saving && (
+        <div className="flex items-center justify-end gap-2 mb-3">
+          <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+          <span className="text-xs text-slate-400">{t('saving')}</span>
+        </div>
+      )}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -154,15 +157,6 @@ export function AppsOrderManager({ initialApps }: Props) {
           </div>
         </SortableContext>
       </DndContext>
-
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={!hasChanges || saving}
-        className="w-full flex items-center justify-center px-4 py-2.5 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-      >
-        {saving ? t('saving') : t('save')}
-      </button>
     </div>
   )
 }
