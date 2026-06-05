@@ -20,6 +20,7 @@ import {
   X,
   Package,
   Building2,
+  ListOrdered,
 } from 'lucide-react'
 import { useAdminMobile } from './admin-mobile-context'
 
@@ -111,6 +112,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
   const settingsSubItems = [
     { href: `${base}/settings/general`, label: t('general'), icon: SlidersHorizontal },
     { href: `${base}/settings/api-keys`, label: t('api_keys'), icon: Key },
+    { href: `${base}/settings/apps`, label: t('apps_order'), icon: ListOrdered },
   ]
 
   const isUsersSection = userSubItems.some((item) => isActivePrefix(item.href))
