@@ -101,9 +101,15 @@ export async function installApp(slug: string): Promise<void> {
     }
   }
 
-  const { error: insertError } = await adminClient.rpc('exec_sql', {
-    sql: `insert into installed_apps (slug, version, status, config, table_prefix) values ('${slug}', '${manifest.version}', 'installing', '{}', '${manifest.tablePrefix}')`
-  })
+  const { error: insertError } = await adminClient
+    .from('installed_apps')
+    .insert({
+      slug,
+      version: manifest.version,
+      status: 'installing',
+      config: {},
+      table_prefix: manifest.tablePrefix,
+    })
   if (insertError) throw new Error(`Failed to insert installed_app: ${insertError.message}`)
 
   const migrationsPath = path.join(process.cwd(), 'apps', slug, 'migrations.sql')
