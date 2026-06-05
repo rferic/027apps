@@ -32,7 +32,9 @@
     "noApps": "No apps available yet.",
     "noAppsDesc": "Your apps will appear here once the admin configures them.",
     "noGroups": "No groups available",
-    "noGroupsDesc": "Contact an administrator to be added to a group."
+    "noGroupsDesc": "Contact an administrator to be added to a group.",
+    "yourGroups": "Your Groups",
+    "selectGroup": "Select a group to continue"
   },
   "nav": {
     "dashboard": "Home",
@@ -50,6 +52,8 @@
     "no_groups": "You don't belong to any group",
     "switcher_label": "Your groups",
     "fallback": "Group",
+    "member_singular": "member",
+    "member_plural": "members",
     "wizard": {
       "step_data": "Group data",
       "step_members": "Invite members",

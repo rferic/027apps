@@ -59,6 +59,24 @@ export default async function LocaleLayout({ children, params }: Props) {
     isBlocked = !!bannedUntil && new Date(bannedUntil) > new Date()
   }
 
+  // Enrich userGroups with member counts for the group switcher
+  let userGroupsWithCounts = userGroups
+  if (userGroups.length > 1) {
+    const groupIds = userGroups.map(g => g.id)
+    const { data: memberCounts } = await adminClient
+      .from('group_members')
+      .select('group_id')
+      .in('group_id', groupIds)
+    const countMap = new Map<string, number>()
+    memberCounts?.forEach((m: { group_id: string }) => {
+      countMap.set(m.group_id, (countMap.get(m.group_id) || 0) + 1)
+    })
+    userGroupsWithCounts = userGroups.map(g => ({
+      ...g,
+      memberCount: countMap.get(g.id) || 0,
+    }))
+  }
+
   // Extraer el group-slug: 1) URL (vía middleware x-invoke-path), 2) cookie last_group, 3) primer grupo
   const segments = pathname.split('/').filter(Boolean)
   // pathname: "/en/mi-familia/dashboard" → segments: ["en", "mi-familia", "dashboard"]
@@ -160,7 +178,7 @@ export default async function LocaleLayout({ children, params }: Props) {
             locale={locale}
             displayName={displayName}
             isAdmin={isAdmin}
-            userGroups={userGroups}
+            userGroups={userGroupsWithCounts}
             currentGroupSlug={currentGroupSlug}
             groupMembers={groupMembers}
             groupApps={groupApps}
