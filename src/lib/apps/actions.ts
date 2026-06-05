@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { createAdminClient, createAdminClientUntyped } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/helpers'
 import { scanApps, invalidateSlugsCache } from '@/lib/apps/scanner'
@@ -61,6 +61,9 @@ export async function installAppAction(slug: string): Promise<{ success: true } 
     invalidateSlugsCache()
     await installApp(slug)
     revalidatePath('/', 'layout')
+    revalidateTag('apps-list', 'default')
+    revalidateTag('admin-stats', 'default')
+    revalidateTag('manifest', 'default')
     return { success: true }
   } catch (err) {
     const { code, params } = classifyError(err, 'install')
@@ -74,6 +77,9 @@ export async function uninstallAppAction(slug: string): Promise<{ success: true 
     invalidateSlugsCache()
     await uninstallApp(slug)
     revalidatePath('/', 'layout')
+    revalidateTag('apps-list', 'default')
+    revalidateTag('admin-stats', 'default')
+    revalidateTag('manifest', 'default')
     return { success: true }
   } catch (err) {
     const { code, params } = classifyError(err, 'uninstall')
