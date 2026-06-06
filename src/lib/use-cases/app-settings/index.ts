@@ -57,9 +57,9 @@ export async function deleteAppSetting(key: string): Promise<void> {
   delete githubConfig[settingKey]
   config[GITHUB_CONFIG_KEY] = githubConfig
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await supabase
     .from('installed_apps')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .update({ config: config as any })
     .eq('slug', 'inspiration')
 
