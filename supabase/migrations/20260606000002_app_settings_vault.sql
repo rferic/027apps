@@ -18,3 +18,6 @@ create policy "Admins can manage app_settings"
             where user_id = auth.uid() and role = 'admin'
         )
     );
+
+-- Force PostgREST schema reload to pick up the new table
+notify pgrst, 'reload schema';

@@ -276,15 +276,6 @@ export function GitHubSettingsManager({ initial }: Props) {
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300"
               />
             </div>
-            <button
-              type="button"
-              onClick={handleManualSave}
-              disabled={isSaving || !appId || !privateKey || !installationId}
-              className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer"
-            >
-              {isSaving ? <Loader2 size={14} className="animate-spin inline mr-1" /> : null}
-              {t('manual.connect')}
-            </button>
           </div>
 
           {/* Webhook secret */}
@@ -309,6 +300,17 @@ export function GitHubSettingsManager({ initial }: Props) {
                 </button>
               </div>
               <p className="text-xs text-gray-400 mt-1">{t('manual.webhook_hint')}</p>
+            </div>
+            <div className="flex justify-center sm:justify-start pt-2">
+              <button
+                type="button"
+                onClick={handleManualSave}
+                disabled={isSaving || !appId || !privateKey || !installationId}
+                className="w-full sm:w-auto px-6 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                {isSaving ? <Loader2 size={14} className="animate-spin inline mr-1" /> : null}
+                {t('manual.connect')}
+              </button>
             </div>
           </div>
         </div>
