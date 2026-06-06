@@ -88,6 +88,7 @@ export async function GET(req: NextRequest) {
 
     const { error: updateError } = await supabase
       .from('installed_apps')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .update({ config: config as any })
       .eq('slug', 'inspiration')
 
