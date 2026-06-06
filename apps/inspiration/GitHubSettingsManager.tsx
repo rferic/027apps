@@ -280,7 +280,7 @@ export function GitHubSettingsManager({ initial }: Props) {
               type="button"
               onClick={handleManualSave}
               disabled={isSaving || !appId || !privateKey || !installationId}
-              className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer"
+              className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {isSaving ? <Loader2 size={14} className="animate-spin inline mr-1" /> : null}
               {t('manual.connect')}

@@ -310,8 +310,8 @@ function RequestCard({
             <p className="text-sm text-slate-700 whitespace-pre-line">{item.description}</p>
           </div>
 
-          {/* GitHub issue integration */}
-          {item.github_issue_url ? (
+          {/* GitHub issue link */}
+          {item.github_issue_url && (
             <div className="flex items-center gap-2">
               <a
                 href={item.github_issue_url}
@@ -323,37 +323,7 @@ function RequestCard({
                 <ExternalLink size={12} />
                 #{item.github_issue_number} — {t('card.view_issue')}
               </a>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  const confirmed = confirm(t('card.unlink_confirm'))
-                  if (!confirmed) return
-                  fetch(githubUnlinkUrl(item.id), { method: 'POST', ...authHeaders() })
-                    .catch(console.error)
-                }}
-                className="text-xs text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
-              >
-                {t('card.unlink')}
-              </button>
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                fetch(githubLinkUrl(item.id), { method: 'POST', ...authHeaders() })
-                  .then(async (res) => {
-                    if (res.ok) window.location.reload()
-                    else alert('Failed to create GitHub issue')
-                  })
-                  .catch(() => alert('Failed to create GitHub issue'))
-              }}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-50 px-2.5 py-1 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-            >
-              <ExternalLink size={12} />
-              {t('card.generate_issue')}
-            </button>
           )}
 
           {/* Comments section */}

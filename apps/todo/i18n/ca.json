@@ -19,5 +19,8 @@
   "assigned_to": "Assignat a",
   "assigned_to_me": "Jo",
   "assign_to_me": "Assigna'm",
-  "description": "Llista de tasques simple: crea, completa i elimina tasques pendents."
+  "description": "Llista de tasques simple: crea, completa i elimina tasques pendents.",
+  "widget": {
+    "not_available": "Not available"
+  }
 }

@@ -19,5 +19,8 @@
   "assigned_to": "Asignado a",
   "assigned_to_me": "Yo",
   "assign_to_me": "Asignarme",
-  "description": "Lista de tareas simple: crea, completa y elimina tareas pendientes."
+  "description": "Lista de tareas simple: crea, completa y elimina tareas pendientes.",
+  "widget": {
+    "not_available": "Not available"
+  }
 }

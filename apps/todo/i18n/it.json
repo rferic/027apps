@@ -19,5 +19,8 @@
   "assigned_to": "Assegnato a",
   "assigned_to_me": "Io",
   "assign_to_me": "Assegnami",
-  "description": "Elenco semplice di attività: crea, completa e rimuovi attività."
+  "description": "Elenco semplice di attività: crea, completa e rimuovi attività.",
+  "widget": {
+    "not_available": "Not available"
+  }
 }

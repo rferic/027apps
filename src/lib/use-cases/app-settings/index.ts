@@ -15,10 +15,11 @@ export async function getAppSetting(key: string): Promise<unknown | null> {
 
 export async function setAppSetting(key: string, value: unknown): Promise<void> {
   const supabase = createAdminClient()
-  await db(supabase).upsert(
+  const { error } = await db(supabase).upsert(
     { key, value: JSON.parse(JSON.stringify(value)), updated_at: new Date().toISOString() },
     { onConflict: 'key' }
   )
+  if (error) throw new Error(`Failed to save app setting "${key}": ${error.message}`)
 }
 
 export async function deleteAppSetting(key: string): Promise<void> {
