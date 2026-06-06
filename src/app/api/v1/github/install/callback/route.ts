@@ -11,13 +11,25 @@ const DEFAULT_LABEL_MAP: Record<string, { name: string; color: string }> = {
   other: { name: 'other', color: 'e4e669' },
 }
 
+const VALID_LOCALES = ['en', 'es', 'it', 'ca', 'fr', 'de']
+
+function getLocale(req: NextRequest): string {
+  const cookie = req.cookies.get('preferred-locale')?.value
+  if (cookie && VALID_LOCALES.includes(cookie)) return cookie
+  const header = req.headers.get('accept-language')?.slice(0, 2)
+  if (header && VALID_LOCALES.includes(header)) return header
+  return 'en'
+}
+
 export async function GET(req: NextRequest) {
+  const locale = getLocale(req)
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
   const installationId = searchParams.get('installation_id')
+  const base = `/${locale}/admin/apps/inspiration`
 
   if (!code || !installationId) {
-    return NextResponse.redirect(new URL('/en/admin/apps/inspiration?error=missing_params', req.url))
+    return NextResponse.redirect(new URL(`${base}?error=missing_params`, req.url))
   }
 
   try {
@@ -29,7 +41,7 @@ export async function GET(req: NextRequest) {
     if (!response.ok) {
       const body = await response.text()
       return NextResponse.redirect(
-        new URL('/en/admin/settings/github?error=github_error&detail=' + encodeURIComponent(body), req.url)
+        new URL(`${base}?error=github_error&detail=` + encodeURIComponent(body), req.url)
       )
     }
 
@@ -46,11 +58,11 @@ export async function GET(req: NextRequest) {
       setAppSetting('github_private_key', encryptSecret(data.pem)),
     ])
 
-    return NextResponse.redirect(new URL('/en/admin/apps/inspiration?success=1', req.url))
+    return NextResponse.redirect(new URL(`${base}?success=1`, req.url))
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.redirect(
-      new URL('/en/admin/apps/inspiration?error=exception&detail=' + encodeURIComponent(msg), req.url)
+      new URL(`${base}?error=exception&detail=` + encodeURIComponent(msg), req.url)
     )
   }
 }
