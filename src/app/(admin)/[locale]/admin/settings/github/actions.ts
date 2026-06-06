@@ -78,10 +78,6 @@ export async function generateManifestUrl(clientOrigin?: string): Promise<string
       issues: 'write',
       metadata: 'read',
     },
-    hook_attributes: {
-      url: `${origin}/api/v1/github/webhook`,
-      active: true,
-    },
   }
 
   const encoded = Buffer.from(JSON.stringify(manifest)).toString('base64url')
