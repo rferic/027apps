@@ -419,7 +419,8 @@
           "cancel": "Cancel",
           "save": "Save",
           "placeholder": "owner/repo",
-          "fetch": "Fetch repos"
+          "fetch": "Fetch repos",
+          "select_repo": "Select a repository..."
         },
         "disconnect_confirm": {
           "title": "Disconnect GitHub App?",

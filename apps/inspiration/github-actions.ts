@@ -170,6 +170,36 @@ export async function updateLabelMap(
   revalidatePath('/admin/settings/github')
 }
 
+// ─── Fetch repositories ─────────────────────────────────
+
+export async function fetchRepos(): Promise<string[]> {
+  await requireAdmin()
+
+  try {
+    const { getInstallationToken } = await import('@/lib/use-cases/inspiration/github')
+    const token = await getInstallationToken()
+
+    const response = await fetch('https://api.github.com/installation/repositories', {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (!response.ok) {
+      const body = await response.text()
+      throw new Error(`GitHub API error: ${response.status} — ${body}`)
+    }
+
+    const data = await response.json()
+    const repos: string[] = (data.repositories ?? []).map((r: { full_name: string }) => r.full_name)
+    repos.sort()
+    return repos
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : 'Failed to fetch repositories')
+  }
+}
+
 // ─── Disconnect ──────────────────────────────────────────
 
 export async function disconnectGitHub(): Promise<void> {
