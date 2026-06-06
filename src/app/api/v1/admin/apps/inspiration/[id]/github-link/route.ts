@@ -30,7 +30,7 @@ export async function POST(
   }
 
   try {
-    await createGitHubIssueForIdea(idea as any)
+    await createGitHubIssueForIdea(idea as Record<string, unknown>)
     return apiOk({ message: 'GitHub issue created' })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
