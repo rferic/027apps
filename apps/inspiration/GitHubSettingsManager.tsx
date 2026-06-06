@@ -46,8 +46,16 @@ export function GitHubSettingsManager({ initial }: Props) {
     getGitHubSettings().then(s => {
       setSettings(s)
       setLoadingSettings(false)
-    }).catch(() => setLoadingSettings(false))
+    }).catch(() => { setSettings(initial); setLoadingSettings(false) })
   }, [])
+
+  if (loadingSettings) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 size={24} className="animate-spin text-slate-300" />
+      </div>
+    )
+  }
 
   function handleDisconnect() {
     disconnectGitHub().then(() => {

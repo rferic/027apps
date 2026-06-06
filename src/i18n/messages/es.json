@@ -378,33 +378,33 @@
       },
       "github": {
         "title": "GitHub",
-        "subtitle": "Connect a GitHub App to sync ideas with issues.",
+        "subtitle": "Conecta una GitHub App para sincronizar ideas con issues.",
         "connection": {
-          "title": "GitHub App connection",
-          "not_connected": "Not connected",
-          "connected": "Connected as {app}",
-          "connect": "Connect to GitHub",
-          "disconnect": "Disconnect",
+          "title": "Conexión con GitHub App",
+          "not_connected": "No conectado",
+          "connected": "Conectado como {app}",
+          "connect": "Conectar con GitHub",
+          "disconnect": "Desconectar",
           "app_id": "App ID",
-          "installation_id": "Installation ID",
-          "repo": "Repository",
-          "set_repo": "Set repository",
+          "installation_id": "ID de instalación",
+          "repo": "Repositorio",
+          "set_repo": "Configurar repositorio",
           "webhook": "Webhook",
-          "configured": "Configured",
-          "pending": "Pending",
-          "test": "Test connection",
-          "test_ok": "Connection successful!",
-          "test_fail": "Connection failed"
+          "configured": "Configurado",
+          "pending": "Pendiente",
+          "test": "Probar conexión",
+          "test_ok": "¡Conexión exitosa!",
+          "test_fail": "Error de conexión"
         },
         "toggle": {
-          "title": "Sync ideas to GitHub Issues",
-          "description": "When enabled, new ideas automatically create GitHub issues.",
-          "on_note": "New ideas will create issues automatically.",
-          "off_note": "No issues will be created for new ideas."
+          "title": "Sincronizar ideas con GitHub Issues",
+          "description": "Al activarlo, las ideas nuevas crearán issues automáticamente.",
+          "on_note": "Las ideas nuevas crearán issues automáticamente.",
+          "off_note": "No se crearán issues para ideas nuevas."
         },
         "labels": {
-          "title": "Label mapping",
-          "description": "Map each idea type to a GitHub label.",
+          "title": "Mapeo de etiquetas",
+          "description": "Asigna cada tipo de idea a una etiqueta de GitHub.",
           "edit": "Edit",
           "editor": {
             "title": "Edit label mapping",
@@ -415,51 +415,52 @@
           }
         },
         "repo_editor": {
-          "title": "Set repository",
-          "cancel": "Cancel",
-          "save": "Save",
-          "placeholder": "owner/repo",
-          "fetch": "Fetch repos",
-          "select_repo": "Select a repository..."
+          "title": "Configurar repositorio",
+          "cancel": "Cancelar",
+          "save": "Guardar",
+          "placeholder": "propietario/repositorio",
+          "fetch": "Obtener repos",
+          "select_repo": "Selecciona un repositorio..."
         },
         "disconnect_confirm": {
-          "title": "Disconnect GitHub App?",
-          "description": "This will remove all GitHub credentials and stop issue sync. GitHub issues will NOT be deleted.",
-          "cancel": "Cancel",
-          "confirm": "Disconnect"
+          "title": "¿Desconectar GitHub App?",
+          "description": "Esto eliminará todas las credenciales de GitHub y detendrá la sincronización. Las issues de GitHub NO se eliminarán.",
+          "cancel": "Cancelar",
+          "confirm": "Desconectar"
         },
-        "connected_success": "GitHub App connected successfully!",
+        "connected_success": "¡GitHub App conectada correctamente!",
         "errors": {
           "missing_params": "Missing code or installation_id from GitHub",
-          "github_error": "GitHub API error",
-          "exception": "An unexpected error occurred"
+          "github_error": "Error de la API de GitHub",
+          "exception": "Ocurrió un error inesperado",
+          "missing_code": "Falta el código de autorización de GitHub"
         },
         "manual": {
-          "title": "Connect GitHub App",
-          "subtitle": "Enter your GitHub App credentials manually.",
-          "instructions_title": "How to create a GitHub App:",
-          "step1": "Go to GitHub → Settings → Developer Settings → GitHub Apps → New App",
-          "step2": "Set Homepage URL to your app URL and Webhook URL to {origin}/api/v1/github/webhook",
-          "step3": "Subscribe to events: Issues, Issue comment. Permissions: Issues (write), Metadata (read).",
-          "step4": "Create the app, generate a private key (.pem), and install it on your repository.",
-          "step5": "Copy the App ID, Installation ID, and paste the private key below.",
+          "title": "Conexión manual",
+          "subtitle": "Introduce las credenciales de tu GitHub App manualmente.",
+          "instructions_title": "Cómo crear una GitHub App:",
+          "step1": "Ve a GitHub → Settings → Developer Settings → GitHub Apps → New App",
+          "step2": "Configura Homepage URL y Webhook URL apuntando a tu app.",
+          "step3": "Suscríbete a eventos: Issues, Issue comment. Permisos: Issues (escritura), Metadata (lectura).",
+          "step4": "Crea la app, genera una clave privada (.pem) e instálala en tu repositorio.",
+          "step5": "Copia el App ID, Installation ID y pega la clave privada abajo.",
           "app_id": "App ID",
-          "private_key": "Private Key (PEM)",
-          "installation_id": "Installation ID",
-          "connect": "Connect",
-          "webhook_secret": "Webhook secret (optional)",
-          "save_secret": "Save",
-          "webhook_hint": "Set the same secret in your GitHub App webhook settings.",
-          "app_id_placeholder": "e.g. 123456",
-          "private_key_placeholder": "Paste your PEM private key here...",
-          "installation_id_placeholder": "e.g. 987654",
-          "webhook_placeholder": "Optional: webhook secret"
+          "private_key": "Clave privada (PEM)",
+          "installation_id": "ID de instalación",
+          "connect": "Conectar",
+          "webhook_secret": "Secreto del webhook (opcional)",
+          "save_secret": "Guardar",
+          "webhook_hint": "Configura el mismo secreto en los ajustes del webhook de tu GitHub App.",
+          "app_id_placeholder": "p.ej. 123456",
+          "private_key_placeholder": "Pega tu clave privada PEM aquí...",
+          "installation_id_placeholder": "p.ej. 987654",
+          "webhook_placeholder": "Opcional: secreto del webhook"
         },
         "quick": {
-          "title": "Quick setup (recommended)",
-          "subtitle": "Connect via GitHub Manifest — create the app automatically.",
-          "connect": "Connect to GitHub",
-          "hint": "Opens GitHub in a new tab. Click \"Create GitHub App\" to complete setup."
+          "title": "Configuración rápida (recomendada)",
+          "subtitle": "Conecta vía GitHub Manifest — crea la app automáticamente.",
+          "connect": "Conectar con GitHub",
+          "hint": "Abre GitHub en una nueva pestaña. Haz clic en \"Create GitHub App\" para completar."
         }
       }
     },
