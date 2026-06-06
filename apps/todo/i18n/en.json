@@ -21,6 +21,12 @@
   "assign_to_me": "Assign to me",
   "description": "Simple task list — create, complete, and remove to-do items.",
   "widget": {
-    "not_available": "Not available"
+    "not_available": "Not available",
+    "couldnt_load": "Could not load",
+    "heading": "Tasks",
+    "no_tasks": "No pending tasks",
+    "my_tasks": "My tasks",
+    "group_tasks": "Group tasks",
+    "view_all": "View all"
   }
 }

@@ -21,6 +21,12 @@
   "assign_to_me": "Asignarme",
   "description": "Lista de tareas simple: crea, completa y elimina tareas pendientes.",
   "widget": {
-    "not_available": "Not available"
+    "not_available": "No disponible",
+    "couldnt_load": "No se pudo cargar",
+    "heading": "Tareas",
+    "no_tasks": "Sin tareas pendientes",
+    "my_tasks": "Mis tareas",
+    "group_tasks": "Tareas del grupo",
+    "view_all": "Ver todas"
   }
 }
