@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, use } from 'react'
+import { useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -11,14 +11,12 @@ import {
   Loader2,
   Pencil,
   X,
-  ExternalLink,
 } from 'lucide-react'
 import type { GitHubSettings } from './github-actions'
 import {
   saveGitHubCredentials,
   saveWebhookSecret,
   testGitHubConnection,
-  getManifestJson,
   toggleGitHubSync,
   updateGitHubRepo,
   updateLabelMap,
@@ -170,12 +168,20 @@ export function GitHubSettingsManager({ initial }: Props) {
             </div>
             <button
               type="button"
-              onClick={async () => {
-                const manifest = await getManifestJson(window.location.origin)
+              onClick={() => {
+                const origin = window.location.origin
+                const redirect = origin + '/api/v1/github/install/callback'
+                const manifest = JSON.stringify({
+                  name: '027apps Inspiration',
+                  url: origin,
+                  redirect_url: redirect,
+                  callback_urls: [redirect],
+                  default_events: ['issues', 'issue_comment'],
+                  default_permissions: { issues: 'write', metadata: 'read' },
+                })
                 const form = document.createElement('form')
                 form.method = 'post'
                 form.action = 'https://github.com/settings/apps/new'
-                form.target = '_blank'
                 const input = document.createElement('input')
                 input.type = 'hidden'
                 input.name = 'manifest'
@@ -183,7 +189,6 @@ export function GitHubSettingsManager({ initial }: Props) {
                 form.appendChild(input)
                 document.body.appendChild(form)
                 form.submit()
-                document.body.removeChild(form)
               }}
               className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
             >
