@@ -420,7 +420,8 @@
           "save": "Guardar",
           "placeholder": "propietario/repositorio",
           "fetch": "Obtener repos",
-          "select_repo": "Selecciona un repositorio..."
+          "select_repo": "Selecciona un repositorio...",
+          "hint": "Formato: propietario/repositorio (p.ej. rferic/027apps-test)"
         },
         "disconnect_confirm": {
           "title": "¿Desconectar GitHub App?",

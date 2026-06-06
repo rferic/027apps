@@ -420,7 +420,8 @@
           "save": "Save",
           "placeholder": "owner/repo",
           "fetch": "Fetch repos",
-          "select_repo": "Select a repository..."
+          "select_repo": "Select a repository...",
+          "hint": "Format: owner/repo (e.g. rferic/027apps-test)"
         },
         "disconnect_confirm": {
           "title": "Disconnect GitHub App?",

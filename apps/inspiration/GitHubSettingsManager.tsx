@@ -18,7 +18,6 @@ import {
   saveWebhookSecret,
   testGitHubConnection,
   toggleGitHubSync,
-  fetchRepos,
   updateGitHubRepo,
   updateLabelMap,
   disconnectGitHub,
@@ -58,9 +57,6 @@ export function GitHubSettingsManager({ initial }: Props) {
   const [showLabelEditor, setShowLabelEditor] = useState(false)
   const [showRepoEditor, setShowRepoEditor] = useState(false)
   const [repoInput, setRepoInput] = useState(settings.repo ?? '')
-  const [repos, setRepos] = useState<string[]>([])
-  const [loadingRepos, setLoadingRepos] = useState(false)
-  const [repoError, setRepoError] = useState<string | null>(null)
   const [labelMap, setLabelMap] = useState(settings.labelMap ?? {})
   const [error, setError] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
@@ -501,57 +497,17 @@ export function GitHubSettingsManager({ initial }: Props) {
               <button type="button" onClick={() => setShowRepoEditor(false)} className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer"><X size={16} /></button>
             </div>
 
-            {repos.length > 0 ? (
-              <select
-                value={repoInput}
-                onChange={(e) => setRepoInput(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 mb-3 bg-white"
-              >
-                <option value="">{t('repo_editor.select_repo')}</option>
-                {repos.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                value={repoInput}
-                onChange={(e) => setRepoInput(e.target.value)}
-                placeholder={t('repo_editor.placeholder')}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 mb-3"
-              />
-            )}
-
-            {repoError && (
-              <p className="text-xs text-red-500 mb-2">{repoError}</p>
-            )}
-
-            <div className="flex justify-between gap-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  setLoadingRepos(true)
-                  setRepoError(null)
-                  try {
-                    const list = await fetchRepos()
-                    setRepos(list)
-                    if (list.length > 0) setRepoInput(list[0])
-                  } catch (err) {
-                    setRepoError(err instanceof Error ? err.message : 'Failed to fetch repos')
-                  } finally {
-                    setLoadingRepos(false)
-                  }
-                }}
-                disabled={loadingRepos}
-                className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors cursor-pointer"
-              >
-                {loadingRepos ? <Loader2 size={14} className="animate-spin" /> : null}
-                {t('repo_editor.fetch')}
-              </button>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setShowRepoEditor(false)} className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">{t('repo_editor.cancel')}</button>
-                <button type="button" onClick={handleUpdateRepo} disabled={!repoInput.trim()} className="px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer">{t('repo_editor.save')}</button>
-              </div>
+            <input
+              type="text"
+              value={repoInput}
+              onChange={(e) => setRepoInput(e.target.value)}
+              placeholder={t('repo_editor.placeholder')}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 mb-3"
+            />
+            <p className="text-xs text-gray-400 mb-3">{t('repo_editor.hint')}</p>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setShowRepoEditor(false)} className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">{t('repo_editor.cancel')}</button>
+              <button type="button" onClick={handleUpdateRepo} disabled={!repoInput.trim()} className="px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer">{t('repo_editor.save')}</button>
             </div>
           </div>
         </div>
