@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { setAppSetting } from '@/lib/use-cases/app-settings'
+import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { encryptSecret } from '@/lib/secrets'
 
 const DEFAULT_LABEL_MAP: Record<string, { name: string; color: string }> = {
@@ -54,30 +54,48 @@ export async function GET(req: NextRequest) {
     console.log('[GH-Callback] Exchanging code for credentials...')
     console.log('[GH-Callback] App ID:', data.id, 'Slug:', data.slug)
 
-    const saves: Promise<void>[] = [
-      setAppSetting('github_app_id', String(data.id)).catch(e => { console.error('[GH-Callback] Failed to save app_id:', e); throw e }),
-      setAppSetting('github_slug', data.slug).catch(e => { console.error('[GH-Callback] Failed to save slug:', e); throw e }),
-      setAppSetting('github_repo', null).catch(e => { console.error('[GH-Callback] Failed to save repo:', e); throw e }),
-      setAppSetting('github_webhook_secret', data.webhook_secret).catch(e => { console.error('[GH-Callback] Failed to save webhook_secret:', e); throw e }),
-      setAppSetting('github_sync_enabled', false).catch(e => { console.error('[GH-Callback] Failed to save sync_enabled:', e); throw e }),
-      setAppSetting('github_label_map', DEFAULT_LABEL_MAP).catch(e => { console.error('[GH-Callback] Failed to save label_map:', e); throw e }),
-    ]
+    // Save ALL settings in a SINGLE update to avoid race conditions
+    const githubConfig: Record<string, unknown> = {
+      app_id: String(data.id),
+      slug: data.slug,
+      repo: null,
+      webhook_secret: data.webhook_secret,
+      sync_enabled: false,
+      label_map: DEFAULT_LABEL_MAP,
+    }
 
     try {
-      saves.push(setAppSetting('github_private_key', encryptSecret(data.pem)))
+      githubConfig.private_key = encryptSecret(data.pem)
     } catch (e) {
-      console.error('[GH-Callback] Failed to encrypt/save private_key:', e)
+      console.error('[GH-Callback] Failed to encrypt private_key:', e)
       throw e
     }
 
     if (installationId) {
-      saves.push(
-        setAppSetting('github_installation_id', parseInt(installationId, 10))
-          .catch(e => { console.error('[GH-Callback] Failed to save installation_id:', e); throw e })
-      )
+      githubConfig.installation_id = parseInt(installationId, 10)
     }
 
-    await Promise.all(saves)
+    // Merge into installed_apps.config.github
+    const supabase = createAdminClientUntyped()
+    const { data: app } = await supabase
+      .from('installed_apps')
+      .select('config')
+      .eq('slug', 'inspiration')
+      .single()
+
+    const config = (app?.config as Record<string, unknown>) ?? {}
+    config.github = githubConfig
+
+    const { error: updateError } = await supabase
+      .from('installed_apps')
+      .update({ config: config as any })
+      .eq('slug', 'inspiration')
+
+    if (updateError) {
+      console.error('[GH-Callback] Failed to update config:', updateError)
+      throw new Error(updateError.message)
+    }
+
     console.log('[GH-Callback] All settings saved successfully')
 
     return NextResponse.redirect(new URL(`${base}?tab=settings&success=1`, req.url))
