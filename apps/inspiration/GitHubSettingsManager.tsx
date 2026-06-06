@@ -13,7 +13,7 @@ import {
   X,
   ExternalLink,
 } from 'lucide-react'
-import type { GitHubSettings } from './actions'
+import type { GitHubSettings } from './github-actions'
 import {
   saveGitHubCredentials,
   saveWebhookSecret,
@@ -23,7 +23,7 @@ import {
   updateGitHubRepo,
   updateLabelMap,
   disconnectGitHub,
-} from './actions'
+} from './github-actions'
 
 interface Props {
   initial: GitHubSettings

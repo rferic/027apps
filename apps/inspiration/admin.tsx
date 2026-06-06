@@ -6,9 +6,10 @@ import { createPortal } from 'react-dom'
 import {
   Search, ChevronDown, ArrowUp, X, Loader2,
   Bug, Sparkles, AppWindow, Puzzle, Lightbulb, MoreHorizontal,
-  ChevronLeft, ChevronRight, MessageCircle, User,
+  ChevronLeft, ChevronRight, MessageCircle, User, Settings,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { GitHubSettingsManager } from './GitHubSettingsManager'
 
 const supabase = createClient()
 
@@ -145,6 +146,7 @@ export default function InspirationAdmin() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [rowMenuPos, setRowMenuPos] = useState<{ x: number; y: number; requestId: string } | null>(null)
+  const [activeTab, setActiveTab] = useState<'requests' | 'github'>('requests')
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -369,6 +371,45 @@ export default function InspirationAdmin() {
         <p className="text-sm text-gray-500 mt-0.5">{t('admin.subtitle')}</p>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4 border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => setActiveTab('requests')}
+          className={`px-4 py-2 text-sm font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
+            activeTab === 'requests' ? 'border-rose-500 text-rose-700' : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          {t('admin.title')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('github')}
+          className={`px-4 py-2 text-sm font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
+            activeTab === 'github' ? 'border-rose-500 text-rose-700' : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Settings size={14} className="inline mr-1" />
+          GitHub
+        </button>
+      </div>
+
+      {activeTab === 'github' && (
+        <div className="mb-6">
+          <GitHubSettingsManager initial={{
+            connected: false,
+            appId: null,
+            installationId: null,
+            repo: null,
+            syncEnabled: false,
+            labelMap: null,
+            webhookConfigured: false,
+          }} />
+        </div>
+      )}
+
+      {activeTab === 'requests' && (
+      <>
       {/* Filters */}
       <div className="space-y-3 mb-4">
         {/* Search + Sort */}
@@ -859,6 +900,7 @@ export default function InspirationAdmin() {
           </div>
         </div>
       )}
+      </>)}
     </div>
   )
 }
