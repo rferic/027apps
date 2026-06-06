@@ -146,7 +146,7 @@ export default function InspirationAdmin() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [rowMenuPos, setRowMenuPos] = useState<{ x: number; y: number; requestId: string } | null>(null)
-  const [activeTab, setActiveTab] = useState<'requests' | 'github'>('requests')
+  const [showSettings, setShowSettings] = useState(false)
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -366,35 +366,22 @@ export default function InspirationAdmin() {
   return (
     <div className="p-6 max-w-7xl">
       {/* Header */}
-      <div className="mb-5">
-        <h1 className="text-xl font-bold text-gray-900">{t('admin.title')}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{t('admin.subtitle')}</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 mb-4 border-b border-slate-200">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">{t(showSettings ? 'admin.settings_tab' : 'admin.title')}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{t(showSettings ? 'admin.settings_subtitle' : 'admin.subtitle')}</p>
+        </div>
         <button
           type="button"
-          onClick={() => setActiveTab('requests')}
-          className={`px-4 py-2 text-sm font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
-            activeTab === 'requests' ? 'border-rose-500 text-rose-700' : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
+          onClick={() => setShowSettings(s => !s)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
         >
-          {t('admin.title')}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('github')}
-          className={`px-4 py-2 text-sm font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
-            activeTab === 'github' ? 'border-rose-500 text-rose-700' : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Settings size={14} className="inline mr-1" />
-          GitHub
+          <Settings size={14} />
+          {showSettings ? t('admin.back') : t('admin.settings')}
         </button>
       </div>
 
-      {activeTab === 'github' && (
+      {showSettings && (
         <div className="mb-6">
           <GitHubSettingsManager initial={{
             connected: false,
@@ -408,7 +395,7 @@ export default function InspirationAdmin() {
         </div>
       )}
 
-      {activeTab === 'requests' && (
+      {!showSettings && (
       <>
       {/* Filters */}
       <div className="space-y-3 mb-4">

@@ -187,7 +187,11 @@
     "search": "Cerca idees...",
     "delete": "Delete",
     "delete_title": "Delete idea?",
-    "delete_confirm": "Are you sure? This action cannot be undone. The associated GitHub issue will also be closed."
+    "delete_confirm": "Are you sure? This action cannot be undone. The associated GitHub issue will also be closed.",
+    "settings_tab": "Settings",
+    "settings": "Settings",
+    "settings_subtitle": "GitHub App integration configuration.",
+    "back": "Back"
   },
   "time": {
     "just_now": "ara mateix",

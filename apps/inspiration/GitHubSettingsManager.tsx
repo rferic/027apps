@@ -176,6 +176,10 @@ export function GitHubSettingsManager({ initial }: Props) {
                   url: origin,
                   redirect_url: redirect,
                   callback_urls: [redirect],
+                  hook_attributes: {
+                    url: origin + '/api/v1/github/webhook',
+                    active: true,
+                  },
                   default_events: ['issues', 'issue_comment'],
                   default_permissions: { issues: 'write', metadata: 'read' },
                 })
