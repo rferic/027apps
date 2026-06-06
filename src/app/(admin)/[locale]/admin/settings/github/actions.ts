@@ -3,20 +3,18 @@
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth/helpers'
 import { getAppSetting, setAppSetting, deleteAppSetting } from '@/lib/use-cases/app-settings'
-import { encryptSecret } from '@/lib/secrets'
+import { encryptSecret, decryptSecret } from '@/lib/secrets'
 
 // ─── Types ───────────────────────────────────────────────
 
 export interface GitHubSettings {
   connected: boolean
   appId: string | null
-  slug: string | null
   installationId: number | null
   repo: string | null
   syncEnabled: boolean
   labelMap: Record<string, { name: string; color: string }> | null
   webhookConfigured: boolean
-  webhookSecret: string | null
 }
 
 // ─── Default label map ───────────────────────────────────
@@ -35,9 +33,8 @@ const DEFAULT_LABEL_MAP: Record<string, { name: string; color: string }> = {
 export async function getGitHubSettings(): Promise<GitHubSettings> {
   await requireAdmin()
 
-  const [appId, slug, installationId, repo, webhookSecret, syncEnabled, labelMap] = await Promise.all([
+  const [appId, installationId, repo, webhookSecret, syncEnabled, labelMap] = await Promise.all([
     getAppSetting('github_app_id'),
-    getAppSetting('github_slug'),
     getAppSetting('github_installation_id'),
     getAppSetting('github_repo'),
     getAppSetting('github_webhook_secret'),
@@ -50,74 +47,97 @@ export async function getGitHubSettings(): Promise<GitHubSettings> {
   return {
     connected: !!(appId && pk),
     appId: (appId as string) ?? null,
-    slug: (slug as string) ?? null,
     installationId: (installationId as number) ?? null,
     repo: (repo as string) ?? null,
     syncEnabled: !!syncEnabled,
     labelMap: (labelMap as Record<string, { name: string; color: string }>) ?? DEFAULT_LABEL_MAP,
     webhookConfigured: !!webhookSecret,
-    webhookSecret: (webhookSecret as string) ?? null,
   }
 }
 
-// ─── Generate manifest URL ──────────────────────────────
+// ─── Save credentials (manual setup) ────────────────────
 
-export async function generateManifestUrl(clientOrigin?: string): Promise<string> {
+export async function saveGitHubCredentials(formData: FormData): Promise<{ error?: string } | undefined> {
   await requireAdmin()
 
-  const origin = clientOrigin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const callbackUrl = `${origin}/api/v1/github/install/callback`
+  const appId = formData.get('appId') as string
+  const privateKey = formData.get('privateKey') as string
+  const installationId = formData.get('installationId') as string
 
+  if (!appId || !privateKey || !installationId) {
+    return { error: 'App ID, Private Key, and Installation ID are required' }
+  }
+
+  // Validate App ID is numeric
+  if (!/^\d+$/.test(appId.trim())) {
+    return { error: 'App ID must be a number' }
+  }
+
+  // Validate Installation ID is numeric
+  if (!/^\d+$/.test(installationId.trim())) {
+    return { error: 'Installation ID must be a number' }
+  }
+
+  // Validate private key starts with PEM header
+  if (!privateKey.trim().startsWith('-----BEGIN RSA PRIVATE KEY-----') &&
+      !privateKey.trim().startsWith('-----BEGIN PRIVATE KEY-----')) {
+    return { error: 'Private Key must be a valid PEM-encoded key' }
+  }
+
+  try {
+    await Promise.all([
+      setAppSetting('github_app_id', appId.trim()),
+      setAppSetting('github_installation_id', parseInt(installationId.trim(), 10)),
+      setAppSetting('github_private_key', encryptSecret(privateKey.trim())),
+    ])
+
+    revalidatePath('/admin/settings/github')
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to save credentials' }
+  }
+}
+
+// ─── Save webhook secret ─────────────────────────────────
+
+export async function saveWebhookSecret(formData: FormData): Promise<{ error?: string } | undefined> {
+  await requireAdmin()
+
+  const secret = formData.get('webhookSecret') as string
+  if (!secret) return { error: 'Webhook secret is required' }
+
+  await setAppSetting('github_webhook_secret', secret)
+  revalidatePath('/admin/settings/github')
+}
+
+// ─── Get manifest JSON (for POST form) ───────────────────
+
+export async function getManifestJson(clientOrigin: string): Promise<string> {
+  await requireAdmin()
   const manifest = {
     name: '027apps Inspiration',
-    url: origin,
-    redirect_url: callbackUrl,
-    callback_urls: [callbackUrl],
+    url: clientOrigin,
+    redirect_url: `${clientOrigin}/api/v1/github/install/callback`,
+    callback_urls: [`${clientOrigin}/api/v1/github/install/callback`],
     default_events: ['issues', 'issue_comment'],
-    permissions: {
+    default_permissions: {
       issues: 'write',
       metadata: 'read',
     },
   }
-
-  const encoded = Buffer.from(JSON.stringify(manifest)).toString('base64url')
-  return `https://github.com/settings/apps/new?manifest=${encoded}`
+  return JSON.stringify(manifest)
 }
 
-// ─── Handle callback ─────────────────────────────────────
+// ─── Test connection ─────────────────────────────────────
 
-export async function handleGitHubCallback(code: string, installationId: number): Promise<{ ok: true } | { error: string }> {
+export async function testGitHubConnection(): Promise<{ ok: boolean; error?: string }> {
   await requireAdmin()
 
   try {
-    const response = await fetch(`https://api.github.com/app-manifests/${code}/conversions`, {
-      method: 'POST',
-      headers: { Accept: 'application/vnd.github+json' },
-    })
-
-    if (!response.ok) {
-      const body = await response.text()
-      return { error: `GitHub API error: ${response.status} — ${body}` }
-    }
-
-    const data = await response.json()
-
-    // Store credentials
-    await Promise.all([
-      setAppSetting('github_app_id', data.id),
-      setAppSetting('github_slug', data.slug),
-      setAppSetting('github_installation_id', installationId),
-      setAppSetting('github_repo', null),
-      setAppSetting('github_webhook_secret', data.webhook_secret),
-      setAppSetting('github_sync_enabled', false),
-      setAppSetting('github_label_map', DEFAULT_LABEL_MAP),
-      setAppSetting('github_private_key', encryptSecret(data.pem)),
-    ])
-
-    revalidatePath('/admin/settings/github')
+    const { getInstallationToken } = await import('@/lib/use-cases/inspiration/github')
+    await getInstallationToken()
     return { ok: true }
   } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Unknown error' }
+    return { ok: false, error: err instanceof Error ? err.message : 'Connection failed' }
   }
 }
 
@@ -154,7 +174,6 @@ export async function disconnectGitHub(): Promise<void> {
 
   await Promise.all([
     deleteAppSetting('github_app_id'),
-    deleteAppSetting('github_slug'),
     deleteAppSetting('github_installation_id'),
     deleteAppSetting('github_repo'),
     deleteAppSetting('github_webhook_secret'),

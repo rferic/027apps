@@ -391,7 +391,10 @@
           "set_repo": "Set repository",
           "webhook": "Webhook",
           "configured": "Configured",
-          "pending": "Pending"
+          "pending": "Pending",
+          "test": "Test connection",
+          "test_ok": "Connection successful!",
+          "test_fail": "Connection failed"
         },
         "toggle": {
           "title": "Sync ideas to GitHub Issues",
@@ -425,6 +428,29 @@
           "missing_params": "Missing code or installation_id from GitHub",
           "github_error": "GitHub API error",
           "exception": "An unexpected error occurred"
+        },
+        "manual": {
+          "title": "Connect GitHub App",
+          "subtitle": "Enter your GitHub App credentials manually.",
+          "instructions_title": "How to create a GitHub App:",
+          "step1": "Go to GitHub → Settings → Developer Settings → GitHub Apps → New App",
+          "step2": "Set Homepage URL to your app URL and Webhook URL to {origin}/api/v1/github/webhook",
+          "step3": "Subscribe to events: Issues, Issue comment. Permissions: Issues (write), Metadata (read).",
+          "step4": "Create the app, generate a private key (.pem), and install it on your repository.",
+          "step5": "Copy the App ID, Installation ID, and paste the private key below.",
+          "app_id": "App ID",
+          "private_key": "Private Key (PEM)",
+          "installation_id": "Installation ID",
+          "connect": "Connect",
+          "webhook_secret": "Webhook secret (optional)",
+          "save_secret": "Save",
+          "webhook_hint": "Set the same secret in your GitHub App webhook settings."
+        },
+        "quick": {
+          "title": "Quick setup (recommended)",
+          "subtitle": "Connect via GitHub Manifest — create the app automatically.",
+          "connect": "Connect to GitHub",
+          "hint": "Opens GitHub in a new tab. Click \"Create GitHub App\" to complete setup."
         }
       }
     },
