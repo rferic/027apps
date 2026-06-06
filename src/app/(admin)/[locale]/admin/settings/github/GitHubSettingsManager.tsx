@@ -168,25 +168,28 @@ export function GitHubSettingsManager({ initial }: Props) {
                 <p className="text-xs text-gray-500 mt-0.5">{t('quick.subtitle')}</p>
               </div>
             </div>
-            <form
-              action="https://github.com/settings/apps/new"
-              method="post"
-              target="_blank"
-              onSubmit={async (e) => {
-                const form = e.currentTarget
-                const manifest = form.elements.namedItem('manifest') as HTMLInputElement
-                manifest.value = await getManifestJson(window.location.origin)
+            <button
+              type="button"
+              onClick={async () => {
+                const manifest = await getManifestJson(window.location.origin)
+                const form = document.createElement('form')
+                form.method = 'post'
+                form.action = 'https://github.com/settings/apps/new'
+                form.target = '_blank'
+                const input = document.createElement('input')
+                input.type = 'hidden'
+                input.name = 'manifest'
+                input.value = manifest
+                form.appendChild(input)
+                document.body.appendChild(form)
+                form.submit()
+                document.body.removeChild(form)
               }}
+              className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
             >
-              <input type="hidden" name="manifest" value="" />
-              <button
-                type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
-              >
-                {t('quick.connect')}
-              </button>
-              <p className="text-xs text-gray-400 mt-2">{t('quick.hint')}</p>
-            </form>
+              {t('quick.connect')}
+            </button>
+            <p className="text-xs text-gray-400 mt-2">{t('quick.hint')}</p>
           </div>
 
           {/** Manual setup form */}
