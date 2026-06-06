@@ -329,16 +329,11 @@ export default function InspirationAdmin() {
 
   // GitHub issue link/unlink
   const handleGitHubLink = async (requestId: string) => {
-    const request = requests.find(r => r.id === requestId)
-    if (!request?.group_slug) {
-      alert(t('admin.github.no_group_slug'))
-      return
-    }
     setLinkingId(requestId)
     setRowMenuPos(null)
     try {
       const res = await fetchWithAuth(
-        `/api/v1/${request.group_slug}/apps/inspiration/${requestId}/github-link`,
+        `/api/v1/admin/apps/inspiration/${requestId}/github-link`,
         { method: 'POST' },
       )
       if (!res.ok) {
@@ -358,16 +353,11 @@ export default function InspirationAdmin() {
   }
 
   const handleGitHubUnlink = async (requestId: string) => {
-    const request = requests.find(r => r.id === requestId)
-    if (!request?.group_slug) {
-      alert(t('admin.github.no_group_slug'))
-      return
-    }
     if (!confirm(t('admin.github.unlink_confirm'))) return
     setLinkingId(requestId)
     try {
       const res = await fetchWithAuth(
-        `/api/v1/${request.group_slug}/apps/inspiration/${requestId}/github-unlink`,
+        `/api/v1/admin/apps/inspiration/${requestId}/github-unlink`,
         { method: 'POST' },
       )
       if (!res.ok) {
@@ -704,19 +694,17 @@ export default function InspirationAdmin() {
                       {statusLabel(status)}
                     </button>
                   ))}
-                  {(request as any).github_issue_number ? null : request.group_slug && (
-                    <>
-                      <div className="border-t border-slate-100 mt-1 pt-1">
-                        <button
-                          onClick={() => handleGitHubLink(request.id)}
-                          disabled={linkingId === request.id}
-                          className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors disabled:opacity-50 flex items-center gap-2"
-                        >
-                          {linkingId === request.id ? <Loader2 size={14} className="animate-spin" /> : null}
-                          {t('admin.github.generate_issue')}
-                        </button>
-                      </div>
-                    </>
+                  {(request as any).github_issue_number ? null : (
+                    <div className="border-t border-slate-100 mt-1 pt-1">
+                      <button
+                        onClick={() => handleGitHubLink(request.id)}
+                        disabled={linkingId === request.id}
+                        className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {linkingId === request.id ? <Loader2 size={14} className="animate-spin" /> : null}
+                        {t('admin.github.generate_issue')}
+                      </button>
+                    </div>
                   )}
                   <div className="border-t border-slate-100 mt-1 pt-1">
                     <button
@@ -846,7 +834,7 @@ export default function InspirationAdmin() {
                         {linkingId === detail.id ? <Loader2 size={12} className="animate-spin" /> : t('admin.github.unlink')}
                       </button>
                     </div>
-                  ) : detail.group_slug ? (
+                  ) : (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-slate-500">{t('admin.github.not_linked')}</span>
                       <button
@@ -858,8 +846,6 @@ export default function InspirationAdmin() {
                         {t('admin.github.generate_issue')}
                       </button>
                     </div>
-                  ) : (
-                    <p className="text-sm text-slate-400">{t('admin.github.no_group_slug')}</p>
                   )}
                 </div>
 

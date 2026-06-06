@@ -30,13 +30,16 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   if (widget === 'true') {
     const [activeRes, supportedRes, completedRes] = await Promise.all([
       applyBaseFilters(adminClient.from('inspiration_requests').select('id', { count: 'exact' }), typeParam, search, appSlug, myParam, ctx)
-        .in('status', ACTIVE_STATUSES.split(',')),
+        .in('status', ACTIVE_STATUSES.split(','))
+        .eq('group_id', ctx.groupId),
       adminClient.from('inspiration_requests')
         .select('id, title, type, vote_count, comment_count, status, created_at')
+        .eq('group_id', ctx.groupId)
         .order('vote_count', { ascending: false })
         .limit(3),
       adminClient.from('inspiration_requests')
         .select('id, title, type, vote_count, comment_count, status, created_at')
+        .eq('group_id', ctx.groupId)
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
         .limit(2),

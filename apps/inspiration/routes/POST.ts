@@ -40,6 +40,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .from('inspiration_requests')
     .insert({
       user_id: auth.userId,
+      group_id: ctx.groupId,
       title: title.trim(),
       description: desc,
       type,
