@@ -54,6 +54,7 @@ export function GitHubSettingsManager({ initial }: Props) {
         ...settings,
         connected: false,
         appId: null,
+        slug: null,
         installationId: null,
         repo: null,
         syncEnabled: false,
@@ -252,7 +253,7 @@ export function GitHubSettingsManager({ initial }: Props) {
                 type="text"
                 value={appId}
                 onChange={(e) => setAppId(e.target.value)}
-                placeholder="e.g. 123456"
+                placeholder={t('manual.app_id_placeholder')}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300"
               />
             </div>
@@ -261,7 +262,7 @@ export function GitHubSettingsManager({ initial }: Props) {
               <textarea
                 value={privateKey}
                 onChange={(e) => setPrivateKey(e.target.value)}
-                placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;..."
+                placeholder={t('manual.private_key_placeholder')}
                 rows={5}
                 className="w-full px-3 py-2 text-xs font-mono border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300"
               />
@@ -272,7 +273,7 @@ export function GitHubSettingsManager({ initial }: Props) {
                 type="text"
                 value={installationId}
                 onChange={(e) => setInstallationId(e.target.value)}
-                placeholder="e.g. 987654"
+                placeholder={t('manual.installation_id_placeholder')}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300"
               />
             </div>
@@ -287,7 +288,7 @@ export function GitHubSettingsManager({ initial }: Props) {
                   type="text"
                   value={webhookSecret}
                   onChange={(e) => setWebhookSecret(e.target.value)}
-                  placeholder="Optional: webhook secret"
+                  placeholder={t('manual.webhook_placeholder')}
                   className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300"
                 />
                 <button
@@ -329,12 +330,12 @@ export function GitHubSettingsManager({ initial }: Props) {
                   <p className="text-xs text-gray-500 mt-0.5">{t('connection.connected')}</p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   type="button"
                   onClick={handleTestConnection}
                   disabled={isTesting}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors cursor-pointer"
+                  className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors cursor-pointer"
                 >
                   {isTesting ? <Loader2 size={12} className="animate-spin" /> : null}
                   {t('connection.test')}
@@ -342,7 +343,7 @@ export function GitHubSettingsManager({ initial }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowDisconnectConfirm(true)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
+                  className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
                 >
                   <Link2Off size={12} />
                   {t('connection.disconnect')}
@@ -477,9 +478,9 @@ export function GitHubSettingsManager({ initial }: Props) {
                   <div key={type} className="text-sm">
                     <p className="text-xs font-medium text-gray-500 mb-1">{type}</p>
                     <div className="flex gap-2">
-                      <input type="text" value={label.name} onChange={(e) => handleLabelChange(type, 'name', e.target.value)} placeholder="Label name" className="flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300" />
+                      <input type="text" value={label.name} onChange={(e) => handleLabelChange(type, 'name', e.target.value)} placeholder={t('labels.editor.name_placeholder')} className="flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300" />
                       <div className="relative">
-                        <input type="text" value={label.color} onChange={(e) => handleLabelChange(type, 'color', e.target.value.replace('#', ''))} placeholder="color" maxLength={6} className="w-16 px-2 py-1.5 text-xs font-mono border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300" />
+                        <input type="text" value={label.color} onChange={(e) => handleLabelChange(type, 'color', e.target.value.replace('#', ''))} placeholder={t('labels.editor.color_placeholder')} maxLength={6} className="w-16 px-2 py-1.5 text-xs font-mono border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300" />
                         <span className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border border-gray-200" style={{ backgroundColor: '#' + label.color }} />
                       </div>
                     </div>
@@ -504,7 +505,7 @@ export function GitHubSettingsManager({ initial }: Props) {
               <h3 className="text-sm font-semibold text-gray-900">{t('repo_editor.title')}</h3>
               <button type="button" onClick={() => setShowRepoEditor(false)} className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer"><X size={16} /></button>
             </div>
-            <input type="text" value={repoInput} onChange={(e) => setRepoInput(e.target.value)} placeholder="owner/repo" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 mb-3" />
+            <input type="text" value={repoInput} onChange={(e) => setRepoInput(e.target.value)} placeholder={t('repo_editor.placeholder')} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 mb-3" />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowRepoEditor(false)} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">{t('repo_editor.cancel')}</button>
               <button type="button" onClick={handleUpdateRepo} className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer">{t('repo_editor.save')}</button>

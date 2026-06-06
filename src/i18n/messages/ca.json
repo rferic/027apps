@@ -409,13 +409,17 @@
           "editor": {
             "title": "Edit label mapping",
             "cancel": "Cancel",
-            "save": "Save"
+            "save": "Save",
+            "name_placeholder": "Label name",
+            "color_placeholder": "color"
           }
         },
         "repo_editor": {
           "title": "Set repository",
           "cancel": "Cancel",
-          "save": "Save"
+          "save": "Save",
+          "placeholder": "owner/repo",
+          "fetch": "Fetch repos"
         },
         "disconnect_confirm": {
           "title": "Disconnect GitHub App?",
@@ -444,7 +448,11 @@
           "connect": "Connect",
           "webhook_secret": "Webhook secret (optional)",
           "save_secret": "Save",
-          "webhook_hint": "Set the same secret in your GitHub App webhook settings."
+          "webhook_hint": "Set the same secret in your GitHub App webhook settings.",
+          "app_id_placeholder": "e.g. 123456",
+          "private_key_placeholder": "Paste your PEM private key here...",
+          "installation_id_placeholder": "e.g. 987654",
+          "webhook_placeholder": "Optional: webhook secret"
         },
         "quick": {
           "title": "Quick setup (recommended)",

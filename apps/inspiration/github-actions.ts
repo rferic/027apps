@@ -10,6 +10,7 @@ import { encryptSecret, decryptSecret } from '@/lib/secrets'
 export interface GitHubSettings {
   connected: boolean
   appId: string | null
+  slug: string | null
   installationId: number | null
   repo: string | null
   syncEnabled: boolean
@@ -33,8 +34,9 @@ const DEFAULT_LABEL_MAP: Record<string, { name: string; color: string }> = {
 export async function getGitHubSettings(): Promise<GitHubSettings> {
   await requireAdmin()
 
-  const [appId, installationId, repo, webhookSecret, syncEnabled, labelMap] = await Promise.all([
+  const [appId, slug, installationId, repo, webhookSecret, syncEnabled, labelMap] = await Promise.all([
     getAppSetting('github_app_id'),
+    getAppSetting('github_slug'),
     getAppSetting('github_installation_id'),
     getAppSetting('github_repo'),
     getAppSetting('github_webhook_secret'),
@@ -47,6 +49,7 @@ export async function getGitHubSettings(): Promise<GitHubSettings> {
   return {
     connected: !!(appId && pk),
     appId: (appId as string) ?? null,
+    slug: (slug as string) ?? null,
     installationId: (installationId as number) ?? null,
     repo: (repo as string) ?? null,
     syncEnabled: !!syncEnabled,

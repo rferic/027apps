@@ -107,7 +107,7 @@ export default async function AdminAppViewPage({ params, searchParams }: Props) 
 
             {slug === 'inspiration' && (
               <div className="bg-white rounded-xl border border-slate-100 p-5 mt-4">
-                <GitHubSettingsManager initial={{ connected: false, appId: null, installationId: null, repo: null, syncEnabled: false, labelMap: null, webhookConfigured: false }} />
+                <GitHubSettingsManager initial={{ connected: false, appId: null, slug: null, installationId: null, repo: null, syncEnabled: false, labelMap: null, webhookConfigured: false }} />
               </div>
             )}
 
