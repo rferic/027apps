@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import {
   GitBranch,
   Link2Off,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { GitHubSettings } from './github-actions'
 import {
+  getGitHubSettings,
   saveGitHubCredentials,
   saveWebhookSecret,
   testGitHubConnection,
@@ -31,16 +32,21 @@ const TYPE_KEYS = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_gene
 
 export function GitHubSettingsManager({ initial }: Props) {
   const t = useTranslations('admin.settings.github')
-  const router = useRouter()
   const searchParams = useSearchParams()
 
   const [settings, setSettings] = useState(initial)
+  const [loadingSettings, setLoadingSettings] = useState(true)
   const [isToggling, startToggle] = useTransition()
   const [isTesting, startTest] = useTransition()
   const [isSaving, startSave] = useTransition()
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
 
-  useEffect(() => { setSettings(initial) }, [initial])
+  useEffect(() => {
+    getGitHubSettings().then(s => {
+      setSettings(s)
+      setLoadingSettings(false)
+    }).catch(() => setLoadingSettings(false))
+  }, [])
 
   function handleDisconnect() {
     disconnectGitHub().then(() => {
