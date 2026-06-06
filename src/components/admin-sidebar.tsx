@@ -24,6 +24,7 @@ import {
   ListOrdered,
   BookOpen,
   Book,
+  GitBranch,
 } from 'lucide-react'
 import { useAdminMobile } from './admin-mobile-context'
 
@@ -116,6 +117,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
   const settingsSubItems = [
     { href: `${base}/settings/general`, label: t('general'), icon: SlidersHorizontal },
     { href: `${base}/settings/api-keys`, label: t('api_keys'), icon: Key },
+    { href: `${base}/settings/github`, label: t('github'), icon: GitBranch },
     { href: `${base}/settings/apps`, label: t('apps_order'), icon: ListOrdered },
   ]
 
@@ -190,6 +192,8 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                     <Image unoptimized
                       src={`/api/apps/${app.slug}/logo`}
                       alt={app.name}
+                      width={18}
+                      height={18}
                       className="w-[18px] h-[18px] rounded"
                     />
                   </Link>
@@ -318,6 +322,8 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                   <Image unoptimized
                     src={`/api/apps/${app.slug}/logo`}
                     alt={app.name}
+                    width={16}
+                    height={16}
                     className="w-4 h-4 rounded flex-shrink-0"
                   />
                   {app.name}

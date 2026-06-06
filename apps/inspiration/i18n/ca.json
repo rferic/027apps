@@ -110,7 +110,11 @@
     "all": "Tots",
     "error_loading": "Alguna cosa ha anat malament en carregar les idees.",
     "error_retry": "Reintentar",
-    "counts": "{total} total · {active} active · {completed} completed"
+    "counts": "{total} total · {active} active · {completed} completed",
+    "view_issue": "View on GitHub",
+    "generate_issue": "Generate GitHub issue",
+    "unlink": "Unlink",
+    "unlink_confirm": "Unlink GitHub issue? This will not close the issue on GitHub."
   },
   "comments": {
     "title": "Comentaris",
@@ -180,7 +184,10 @@
       "voters": "Votants",
       "error": "No s'han pogut carregar els detalls"
     },
-    "search": "Cerca idees..."
+    "search": "Cerca idees...",
+    "delete": "Delete",
+    "delete_title": "Delete idea?",
+    "delete_confirm": "Are you sure? This action cannot be undone. The associated GitHub issue will also be closed."
   },
   "time": {
     "just_now": "ara mateix",

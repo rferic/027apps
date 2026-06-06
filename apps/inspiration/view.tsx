@@ -28,6 +28,28 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
   return fetch(url, { ...options, headers, credentials: 'include' })
 }
 
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`
+  }
+  return headers
+}
+
+function getGroupSlug(): string {
+  const m = window.location.pathname.match(/\/apps\/inspiration\/([^/]+)/)
+  return m?.[1] ?? ''
+}
+
+function githubLinkUrl(ideaId: string): string {
+  return `/api/v1/${getGroupSlug()}/apps/inspiration/${ideaId}/github-link`
+}
+
+function githubUnlinkUrl(ideaId: string): string {
+  return `/api/v1/${getGroupSlug()}/apps/inspiration/${ideaId}/github-unlink`
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Creator {
@@ -48,6 +70,8 @@ interface RequestItem {
   comment_count: number
   user_has_voted: boolean
   creator: Creator | null
+  github_issue_number: number | null
+  github_issue_url: string | null
 }
 
 interface PaginationInfo {
@@ -285,6 +309,52 @@ function RequestCard({
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('card.description')}</p>
             <p className="text-sm text-slate-700 whitespace-pre-line">{item.description}</p>
           </div>
+
+          {/* GitHub issue integration */}
+          {item.github_issue_url ? (
+            <div className="flex items-center gap-2">
+              <a
+                href={item.github_issue_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <ExternalLink size={12} />
+                #{item.github_issue_number} — {t('card.view_issue')}
+              </a>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const confirmed = confirm(t('card.unlink_confirm'))
+                  if (!confirmed) return
+                  fetch(githubUnlinkUrl(item.id), { method: 'POST', ...authHeaders() })
+                    .catch(console.error)
+                }}
+                className="text-xs text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+              >
+                {t('card.unlink')}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                fetch(githubLinkUrl(item.id), { method: 'POST', ...authHeaders() })
+                  .then(async (res) => {
+                    if (res.ok) window.location.reload()
+                    else alert('Failed to create GitHub issue')
+                  })
+                  .catch(() => alert('Failed to create GitHub issue'))
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-50 px-2.5 py-1 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+            >
+              <ExternalLink size={12} />
+              {t('card.generate_issue')}
+            </button>
+          )}
 
           {/* Comments section */}
           <div>

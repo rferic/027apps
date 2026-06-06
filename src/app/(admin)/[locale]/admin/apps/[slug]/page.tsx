@@ -66,6 +66,8 @@ export default async function AdminAppViewPage({ params }: Props) {
         <Image unoptimized
           src={`/api/apps/${slug}/logo`}
           alt={manifest.name}
+          width={40}
+          height={40}
           className="w-10 h-10 rounded-lg flex-shrink-0"
         />
         <div className="min-w-0">

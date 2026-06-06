@@ -86,7 +86,8 @@
       "api_docs": "API Docs",
       "apps_order": "Applications",
       "docs": "Documentation",
-      "docs_home": "Docs"
+      "docs_home": "Docs",
+      "github": "GitHub"
     },
     "dashboard": {
       "title": "Tableau de bord",
@@ -374,6 +375,57 @@
         "saved": "Ordre enregistré",
         "error": "Erreur lors de l'enregistrement",
         "empty": "Aucune application installée."
+      },
+      "github": {
+        "title": "GitHub",
+        "subtitle": "Connect a GitHub App to sync ideas with issues.",
+        "connection": {
+          "title": "GitHub App connection",
+          "not_connected": "Not connected",
+          "connected": "Connected as {app}",
+          "connect": "Connect to GitHub",
+          "disconnect": "Disconnect",
+          "app_id": "App ID",
+          "installation_id": "Installation ID",
+          "repo": "Repository",
+          "set_repo": "Set repository",
+          "webhook": "Webhook",
+          "configured": "Configured",
+          "pending": "Pending"
+        },
+        "toggle": {
+          "title": "Sync ideas to GitHub Issues",
+          "description": "When enabled, new ideas automatically create GitHub issues.",
+          "on_note": "New ideas will create issues automatically.",
+          "off_note": "No issues will be created for new ideas."
+        },
+        "labels": {
+          "title": "Label mapping",
+          "description": "Map each idea type to a GitHub label.",
+          "edit": "Edit",
+          "editor": {
+            "title": "Edit label mapping",
+            "cancel": "Cancel",
+            "save": "Save"
+          }
+        },
+        "repo_editor": {
+          "title": "Set repository",
+          "cancel": "Cancel",
+          "save": "Save"
+        },
+        "disconnect_confirm": {
+          "title": "Disconnect GitHub App?",
+          "description": "This will remove all GitHub credentials and stop issue sync. GitHub issues will NOT be deleted.",
+          "cancel": "Cancel",
+          "confirm": "Disconnect"
+        },
+        "connected_success": "GitHub App connected successfully!",
+        "errors": {
+          "missing_params": "Missing code or installation_id from GitHub",
+          "github_error": "GitHub API error",
+          "exception": "An unexpected error occurred"
+        }
       }
     },
     "editUser": {

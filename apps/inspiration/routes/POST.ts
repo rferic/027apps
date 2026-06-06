@@ -2,6 +2,7 @@ import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyNewIdea } from '@/lib/use-cases/inspiration/send-notifications'
+import { isGitHubSyncEnabled, createGitHubIssueForIdea } from './github-helpers'
 import type { HandlerContext } from '@/lib/apps/router-types'
 
 const VALID_TYPES = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_general_functionality', 'other']
@@ -49,6 +50,16 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .single()
 
   if (error) return apiError('INSERT_ERROR', error.message, 500)
+
+  // Create GitHub issue if sync is enabled (best-effort)
+  try {
+    const syncEnabled = await isGitHubSyncEnabled()
+    if (syncEnabled) {
+      await createGitHubIssueForIdea(data as Record<string, unknown> as any)
+    }
+  } catch (err) {
+    console.error('[Inspiration] Failed to create GitHub issue:', err)
+  }
 
   // Notify admins asynchronously (best-effort)
   const { data: profile } = await adminClient

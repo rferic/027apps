@@ -66,6 +66,8 @@ function SortableApp({ app }: { app: AppItem }) {
       <Image unoptimized
         src={`/api/apps/${app.slug}/logo`}
         alt={app.name}
+        width={28}
+        height={28}
         className="w-7 h-7 rounded flex-shrink-0"
         onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
           const target = e.currentTarget

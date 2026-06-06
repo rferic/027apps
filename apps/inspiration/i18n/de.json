@@ -110,7 +110,11 @@
     "all": "Alle",
     "error_loading": "Beim Laden der Ideen ist etwas schief gelaufen.",
     "error_retry": "Wiederholen",
-    "counts": "{total} total · {active} active · {completed} completed"
+    "counts": "{total} total · {active} active · {completed} completed",
+    "view_issue": "View on GitHub",
+    "generate_issue": "Generate GitHub issue",
+    "unlink": "Unlink",
+    "unlink_confirm": "Unlink GitHub issue? This will not close the issue on GitHub."
   },
   "comments": {
     "title": "Kommentare",
@@ -180,7 +184,10 @@
       "voters": "Abstimmer",
       "error": "Details konnten nicht geladen werden"
     },
-    "search": "Ideen suchen..."
+    "search": "Ideen suchen...",
+    "delete": "Delete",
+    "delete_title": "Delete idea?",
+    "delete_confirm": "Are you sure? This action cannot be undone. The associated GitHub issue will also be closed."
   },
   "time": {
     "just_now": "gerade eben",

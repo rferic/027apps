@@ -142,6 +142,8 @@ export default function InspirationAdmin() {
   const [detail, setDetail] = useState<RequestDetail | null>(null)
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set())
   const [confirmChange, setConfirmChange] = useState<{ requestId: string; newStatus: string } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [rowMenuPos, setRowMenuPos] = useState<{ x: number; y: number; requestId: string } | null>(null)
 
   // Close sort dropdown on outside click
@@ -292,6 +294,32 @@ export default function InspirationAdmin() {
         next.delete(requestId)
         return next
       })
+    }
+  }
+
+  // Delete
+  const handleDelete = async (requestId: string) => {
+    setIsDeleting(true)
+    setDeleteTarget(null)
+
+    try {
+      const res = await fetchWithAuth(`/api/v1/admin/apps/inspiration/${requestId}`, {
+        method: 'DELETE',
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert(err.message || 'Failed to delete')
+        return
+      }
+
+      // Remove from list
+      setRequests(prev => prev.filter(r => r.id !== requestId))
+      if (selectedRequestId === requestId) closeDetail()
+    } catch {
+      alert('Network error')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -598,22 +626,37 @@ export default function InspirationAdmin() {
             style={{ left: rowMenuPos.x, top: rowMenuPos.y }}
             onClick={e => e.stopPropagation()}
           >
-            {(() => {
+              {(() => {
               const request = requests.find(r => r.id === rowMenuPos.requestId)
               if (!request) return null
-              return VALID_TRANSITIONS[request.status].map(status => (
-                <button
-                  key={status}
-                  onClick={() => {
-                    handleStatusChange(request.id, status)
-                    setRowMenuPos(null)
-                  }}
-                  className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-2"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor(status) }} />
-                  {statusLabel(status)}
-                </button>
-              ))
+              return (
+                <>
+                  {VALID_TRANSITIONS[request.status].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => {
+                        handleStatusChange(request.id, status)
+                        setRowMenuPos(null)
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-2"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor(status) }} />
+                      {statusLabel(status)}
+                    </button>
+                  ))}
+                  <div className="border-t border-slate-100 mt-1 pt-1">
+                    <button
+                      onClick={() => {
+                        setRowMenuPos(null)
+                        setDeleteTarget(request.id)
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+                    >
+                      {t('admin.delete')}
+                    </button>
+                  </div>
+                </>
+              )
             })()}
           </div>
         </div>,
@@ -782,6 +825,35 @@ export default function InspirationAdmin() {
                 className="px-3 py-1.5 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-700 cursor-pointer transition-colors"
               >
                 {t('admin.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====== DELETE CONFIRM DIALOG ====== */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDeleteTarget(null)} />
+          <div className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="text-base font-semibold text-slate-900">{t('admin.delete_title')}</h3>
+            <p className="text-sm text-slate-500">
+              {t('admin.delete_confirm')}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                {t('admin.cancel')}
+              </button>
+              <button
+                onClick={() => handleDelete(deleteTarget)}
+                disabled={isDeleting}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1"
+              >
+                {isDeleting ? <Loader2 size={14} className="animate-spin" /> : null}
+                {t('admin.delete')}
               </button>
             </div>
           </div>

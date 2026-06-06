@@ -121,7 +121,11 @@
     "counts": "{total} total · {active} active · {completed} completed",
     "all": "All",
     "error_loading": "Something went wrong loading ideas.",
-    "error_retry": "Retry"
+    "error_retry": "Retry",
+    "view_issue": "View on GitHub",
+    "generate_issue": "Generate GitHub issue",
+    "unlink": "Unlink",
+    "unlink_confirm": "Unlink GitHub issue? This will not close the issue on GitHub."
   },
   "comments": {
     "title": "Comments",
@@ -191,6 +195,9 @@
       "comments_label": "Comments",
       "voters": "Voters",
       "error": "Could not load details"
-    }
+    },
+    "delete": "Delete",
+    "delete_title": "Delete idea?",
+    "delete_confirm": "Are you sure? This action cannot be undone. The associated GitHub issue will also be closed."
   }
 }

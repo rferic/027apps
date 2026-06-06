@@ -110,7 +110,11 @@
     "all": "Tous",
     "error_loading": "Quelque chose s'est mal passé en chargeant les idées.",
     "error_retry": "Réessayer",
-    "counts": "{total} total · {active} active · {completed} completed"
+    "counts": "{total} total · {active} active · {completed} completed",
+    "view_issue": "View on GitHub",
+    "generate_issue": "Generate GitHub issue",
+    "unlink": "Unlink",
+    "unlink_confirm": "Unlink GitHub issue? This will not close the issue on GitHub."
   },
   "comments": {
     "title": "Commentaires",
@@ -180,7 +184,10 @@
       "voters": "Votants",
       "error": "Impossible de charger les détails"
     },
-    "search": "Rechercher des idées..."
+    "search": "Rechercher des idées...",
+    "delete": "Delete",
+    "delete_title": "Delete idea?",
+    "delete_confirm": "Are you sure? This action cannot be undone. The associated GitHub issue will also be closed."
   },
   "time": {
     "just_now": "à l'instant",

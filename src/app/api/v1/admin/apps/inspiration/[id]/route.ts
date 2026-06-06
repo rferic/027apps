@@ -3,6 +3,7 @@ import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyStatusChange } from '@/lib/use-cases/inspiration/send-notifications'
+import { closeIssue } from '@/lib/use-cases/inspiration/github'
 
 const VALID_TYPES = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_general_functionality', 'other']
 const VALID_STATUSES = ['pending', 'reviewing', 'approved', 'in_progress', 'completed', 'rejected', 'on_hold', 'duplicate']
@@ -186,11 +187,18 @@ export async function DELETE(
 
   const { data: existing, error: fetchError } = await adminClient
     .from('inspiration_requests')
-    .select('id')
+    .select('id, github_issue_number')
     .eq('id', id)
     .maybeSingle()
 
   if (fetchError || !existing) return apiError('NOT_FOUND', 'Request not found', 404)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((existing as any).github_issue_number) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    void closeIssue((existing as any).github_issue_number as number)
+      .catch(err => console.error('[Admin] Failed to close GitHub issue on idea delete:', err))
+  }
 
   const { error: deleteError } = await adminClient
     .from('inspiration_requests')
