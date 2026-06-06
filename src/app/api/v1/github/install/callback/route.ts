@@ -51,21 +51,34 @@ export async function GET(req: NextRequest) {
 
     const data = await response.json()
 
-    const saves = [
-      setAppSetting('github_app_id', String(data.id)),
-      setAppSetting('github_slug', data.slug),
-      setAppSetting('github_repo', null),
-      setAppSetting('github_webhook_secret', data.webhook_secret),
-      setAppSetting('github_sync_enabled', false),
-      setAppSetting('github_label_map', DEFAULT_LABEL_MAP),
-      setAppSetting('github_private_key', encryptSecret(data.pem)),
+    console.log('[GH-Callback] Exchanging code for credentials...')
+    console.log('[GH-Callback] App ID:', data.id, 'Slug:', data.slug)
+
+    const saves: Promise<void>[] = [
+      setAppSetting('github_app_id', String(data.id)).catch(e => { console.error('[GH-Callback] Failed to save app_id:', e); throw e }),
+      setAppSetting('github_slug', data.slug).catch(e => { console.error('[GH-Callback] Failed to save slug:', e); throw e }),
+      setAppSetting('github_repo', null).catch(e => { console.error('[GH-Callback] Failed to save repo:', e); throw e }),
+      setAppSetting('github_webhook_secret', data.webhook_secret).catch(e => { console.error('[GH-Callback] Failed to save webhook_secret:', e); throw e }),
+      setAppSetting('github_sync_enabled', false).catch(e => { console.error('[GH-Callback] Failed to save sync_enabled:', e); throw e }),
+      setAppSetting('github_label_map', DEFAULT_LABEL_MAP).catch(e => { console.error('[GH-Callback] Failed to save label_map:', e); throw e }),
     ]
 
+    try {
+      saves.push(setAppSetting('github_private_key', encryptSecret(data.pem)))
+    } catch (e) {
+      console.error('[GH-Callback] Failed to encrypt/save private_key:', e)
+      throw e
+    }
+
     if (installationId) {
-      saves.push(setAppSetting('github_installation_id', parseInt(installationId, 10)))
+      saves.push(
+        setAppSetting('github_installation_id', parseInt(installationId, 10))
+          .catch(e => { console.error('[GH-Callback] Failed to save installation_id:', e); throw e })
+      )
     }
 
     await Promise.all(saves)
+    console.log('[GH-Callback] All settings saved successfully')
 
     return NextResponse.redirect(new URL(`${base}?tab=settings&success=1`, req.url))
   } catch (err) {
