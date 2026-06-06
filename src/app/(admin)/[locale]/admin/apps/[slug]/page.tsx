@@ -12,14 +12,47 @@ import { getAppPermissionsAction } from '@/lib/apps/actions'
 import { loadAppModule } from '@/lib/apps/registry'
 import { loadAppMessages } from '@/lib/apps/i18n'
 import { GitHubSettingsManager } from '../../../../../../../apps/inspiration/GitHubSettingsManager'
+import { getAppSetting } from '@/lib/use-cases/app-settings'
+import { decryptSecret } from '@/lib/secrets'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
 interface Props {
   params: Promise<{ locale: string; slug: string }>
+  searchParams?: Promise<{ tab?: string; success?: string }>
 }
 
-export default async function AdminAppViewPage({ params }: Props) {
+async function getInitialGitHubSettings() {
+  const [appId, installationId, repo, webhookSecret, syncEnabled, labelMap, pk] = await Promise.all([
+    getAppSetting('github_app_id'),
+    getAppSetting('github_installation_id'),
+    getAppSetting('github_repo'),
+    getAppSetting('github_webhook_secret'),
+    getAppSetting('github_sync_enabled'),
+    getAppSetting('github_label_map'),
+    getAppSetting('github_private_key'),
+  ])
+
+  let privateKeyValid = false
+  if (pk && typeof pk === 'string') {
+    try {
+      decryptSecret(pk)
+      privateKeyValid = true
+    } catch {}
+  }
+
+  return {
+    connected: !!(appId && privateKeyValid),
+    appId: (appId as string) ?? null,
+    installationId: (installationId as number) ?? null,
+    repo: (repo as string) ?? null,
+    syncEnabled: !!syncEnabled,
+    labelMap: (labelMap as Record<string, { name: string; color: string }>) ?? null,
+    webhookConfigured: !!webhookSecret,
+  }
+}
+
+export default async function AdminAppViewPage({ params, searchParams }: Props) {
   const { locale, slug } = await params
   setRequestLocale(locale)
 
@@ -60,6 +93,8 @@ export default async function AdminAppViewPage({ params }: Props) {
   const appMessages = await loadAppMessages(slug, locale)
   const appDescription = (appMessages.description as string) ?? manifest.description
 
+  const sp = searchParams ? await searchParams : undefined
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header with logo */}
@@ -78,6 +113,7 @@ export default async function AdminAppViewPage({ params }: Props) {
       </div>
 
       <AdminAppTabs
+        defaultValue={sp?.tab === 'settings' ? 'settings' : 'manage'}
         manageLabel={t('manageTab')}
         settingsLabel={t('settingsTab')}
         manageContent={
@@ -102,15 +138,7 @@ export default async function AdminAppViewPage({ params }: Props) {
 
             {slug === 'inspiration' && (
               <div className="bg-white rounded-xl border border-slate-100 p-5 mt-4">
-                <GitHubSettingsManager initial={{
-                  connected: false,
-                  appId: null,
-                  installationId: null,
-                  repo: null,
-                  syncEnabled: false,
-                  labelMap: null,
-                  webhookConfigured: false,
-                }} />
+                <GitHubSettingsManager initial={await getInitialGitHubSettings()} />
               </div>
             )}
 

@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
       setAppSetting('github_private_key', encryptSecret(data.pem)),
     ])
 
-    return NextResponse.redirect(new URL(`${base}?success=1`, req.url))
+    return NextResponse.redirect(new URL(`${base}?tab=settings&success=1`, req.url))
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.redirect(

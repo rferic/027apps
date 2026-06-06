@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import {
   GitBranch,
   Link2Off,
@@ -61,6 +61,20 @@ export function GitHubSettingsManager({ initial }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
   const [success, setSuccess] = useState(false)
+
+  const successParam = searchParams?.get('success')
+  const errorParam = searchParams?.get('error')
+  const detailParam = searchParams?.get('detail')
+
+  if (successParam && !success) {
+    setSuccess(true)
+    setTimeout(() => setSuccess(false), 8000)
+  }
+
+  if (errorParam && !error) {
+    setError(detailParam ? errorParam + ': ' + detailParam : errorParam)
+    setTimeout(() => setError(null), 8000)
+  }
 
   // Manual setup form
   const [appId, setAppId] = useState('')
