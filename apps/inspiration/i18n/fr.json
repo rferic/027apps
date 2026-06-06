@@ -191,7 +191,18 @@
     "settings_tab": "Settings",
     "settings": "Settings",
     "settings_subtitle": "GitHub App integration configuration.",
-    "back": "Back"
+    "back": "Back",
+    "github": {
+      "generate_issue": "Generate GitHub Issue",
+      "view_issue": "View issue",
+      "unlink": "Unlink",
+      "not_linked": "No GitHub issue linked",
+      "no_group_slug": "Cannot link: missing group slug",
+      "link_error": "Failed to create GitHub issue",
+      "unlink_error": "Failed to unlink GitHub issue",
+      "unlink_confirm": "Remove the link to this GitHub issue?",
+      "network_error": "Network error"
+    }
   },
   "time": {
     "just_now": "à l'instant",

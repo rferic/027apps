@@ -71,6 +71,8 @@ interface Pagination {
 interface RequestDetail extends RequestItem {
   comments: CommentItem[]
   voters: VoterItem[]
+  github_issue_number: number | null
+  github_issue_url: string | null
 }
 
 interface CommentItem {
@@ -145,6 +147,7 @@ export default function InspirationAdmin() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [rowMenuPos, setRowMenuPos] = useState<{ x: number; y: number; requestId: string } | null>(null)
+  const [linkingId, setLinkingId] = useState<string | null>(null)
 
 
   // Close sort dropdown on outside click
@@ -321,6 +324,63 @@ export default function InspirationAdmin() {
       alert('Network error')
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  // GitHub issue link/unlink
+  const handleGitHubLink = async (requestId: string) => {
+    const request = requests.find(r => r.id === requestId)
+    if (!request?.group_slug) {
+      alert(t('admin.github.no_group_slug'))
+      return
+    }
+    setLinkingId(requestId)
+    setRowMenuPos(null)
+    try {
+      const res = await fetchWithAuth(
+        `/api/v1/${request.group_slug}/apps/inspiration/${requestId}/github-link`,
+        { method: 'POST' },
+      )
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert((err as any).message || t('admin.github.link_error'))
+        return
+      }
+      // Refresh detail if open
+      if (selectedRequestId === requestId) fetchDetail(requestId)
+      // Refresh list
+      fetchRequests()
+    } catch {
+      alert(t('admin.github.network_error'))
+    } finally {
+      setLinkingId(null)
+    }
+  }
+
+  const handleGitHubUnlink = async (requestId: string) => {
+    const request = requests.find(r => r.id === requestId)
+    if (!request?.group_slug) {
+      alert(t('admin.github.no_group_slug'))
+      return
+    }
+    if (!confirm(t('admin.github.unlink_confirm'))) return
+    setLinkingId(requestId)
+    try {
+      const res = await fetchWithAuth(
+        `/api/v1/${request.group_slug}/apps/inspiration/${requestId}/github-unlink`,
+        { method: 'POST' },
+      )
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert((err as any).message || t('admin.github.unlink_error'))
+        return
+      }
+      if (selectedRequestId === requestId) fetchDetail(requestId)
+      fetchRequests()
+    } catch {
+      alert(t('admin.github.network_error'))
+    } finally {
+      setLinkingId(null)
     }
   }
 
@@ -644,6 +704,20 @@ export default function InspirationAdmin() {
                       {statusLabel(status)}
                     </button>
                   ))}
+                  {(request as any).github_issue_number ? null : request.group_slug && (
+                    <>
+                      <div className="border-t border-slate-100 mt-1 pt-1">
+                        <button
+                          onClick={() => handleGitHubLink(request.id)}
+                          disabled={linkingId === request.id}
+                          className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {linkingId === request.id ? <Loader2 size={14} className="animate-spin" /> : null}
+                          {t('admin.github.generate_issue')}
+                        </button>
+                      </div>
+                    </>
+                  )}
                   <div className="border-t border-slate-100 mt-1 pt-1">
                     <button
                       onClick={() => {
@@ -750,6 +824,43 @@ export default function InspirationAdmin() {
                     <p className="text-xs text-slate-400 mb-0.5">{t('admin.detail.comments_label')}</p>
                     <p className="text-sm text-slate-700">{detail.comment_count}</p>
                   </div>
+                </div>
+
+                {/* GitHub */}
+                <div className="mb-4 p-3 bg-slate-50 rounded-lg">
+                  {detail.github_issue_url ? (
+                    <div className="flex items-center justify-between">
+                      <a
+                        href={detail.github_issue_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        {t('admin.github.view_issue')} #{detail.github_issue_number}
+                      </a>
+                      <button
+                        onClick={() => handleGitHubUnlink(detail.id)}
+                        disabled={linkingId === detail.id}
+                        className="text-xs text-red-600 hover:text-red-700 disabled:opacity-50 cursor-pointer"
+                      >
+                        {linkingId === detail.id ? <Loader2 size={12} className="animate-spin" /> : t('admin.github.unlink')}
+                      </button>
+                    </div>
+                  ) : detail.group_slug ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-500">{t('admin.github.not_linked')}</span>
+                      <button
+                        onClick={() => handleGitHubLink(detail.id)}
+                        disabled={linkingId === detail.id}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                      >
+                        {linkingId === detail.id ? <Loader2 size={12} className="animate-spin" /> : null}
+                        {t('admin.github.generate_issue')}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-400">{t('admin.github.no_group_slug')}</p>
+                  )}
                 </div>
 
                 {/* Comments */}
