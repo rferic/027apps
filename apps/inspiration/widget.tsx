@@ -16,7 +16,12 @@ interface InspirationItem {
 }
 
 export default function InspirationWidget() {
-  const { groupSlug } = useAppContext()
+  const ctx = useAppContext()
+  const groupSlug = ctx.groupSlug ?? (
+    typeof window !== 'undefined'
+      ? window.location.pathname.split('/')[2] ?? null
+      : null
+  )
   const locale = useLocale()
   const t = useTranslations('apps.inspiration')
   const [activeCount, setActiveCount] = useState<number>(0)
