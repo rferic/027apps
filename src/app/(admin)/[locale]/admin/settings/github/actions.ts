@@ -62,11 +62,11 @@ export async function getGitHubSettings(): Promise<GitHubSettings> {
 
 // ─── Generate manifest URL ──────────────────────────────
 
-export async function generateManifestUrl(): Promise<string> {
+export async function generateManifestUrl(clientOrigin?: string): Promise<string> {
   await requireAdmin()
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-  const callbackUrl = `${origin}/admin/settings/github/callback`
+  const origin = clientOrigin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const callbackUrl = `${origin}/api/v1/github/install/callback`
 
   const manifest = {
     name: '027apps Inspiration',

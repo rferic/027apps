@@ -67,7 +67,7 @@ export function GitHubSettingsManager({ initial }: Props) {
 
   function handleConnect() {
     startConnect(async () => {
-      const url = await generateManifestUrl()
+      const url = await generateManifestUrl(window.location.origin)
       window.location.href = url
     })
   }
