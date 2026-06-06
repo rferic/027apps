@@ -23,10 +23,14 @@ function getLocale(req: NextRequest): string {
 
 export async function GET(req: NextRequest) {
   const locale = getLocale(req)
-  const { searchParams } = new URL(req.url)
-  const code = searchParams.get('code')
-  const installationId = searchParams.get('installation_id')
+  const url = new URL(req.url)
+  const code = url.searchParams.get('code')
+  const installationId = url.searchParams.get('installation_id')
   const base = `/${locale}/admin/apps/inspiration`
+
+  console.log('[GH-Callback] URL:', req.url)
+  console.log('[GH-Callback] Code:', code ? 'present' : 'MISSING')
+  console.log('[GH-Callback] Installation ID:', installationId ?? 'MISSING')
 
   if (!code) {
     return NextResponse.redirect(new URL(`${base}?tab=settings&error=missing_code`, req.url))

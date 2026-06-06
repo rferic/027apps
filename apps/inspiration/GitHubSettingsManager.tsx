@@ -189,7 +189,6 @@ export function GitHubSettingsManager({ initial }: Props) {
                   name: '027apps Inspiration',
                   url: origin,
                   redirect_url: redirect,
-                  callback_urls: [redirect],
                   hook_attributes: {
                     url: origin + '/api/v1/github/webhook',
                     active: true,
