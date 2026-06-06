@@ -71,15 +71,16 @@ export async function generateManifestUrl(clientOrigin?: string): Promise<string
   const manifest = {
     name: '027apps Inspiration',
     url: origin,
-    hook_attributes: { url: `${origin}/api/v1/github/webhook`, active: true },
-    setup_url: `${origin}/admin/settings/github`,
     redirect_url: callbackUrl,
     callback_urls: [callbackUrl],
-    public: false,
     default_events: ['issues', 'issue_comment'],
     permissions: {
       issues: 'write',
       metadata: 'read',
+    },
+    hook_attributes: {
+      url: `${origin}/api/v1/github/webhook`,
+      active: true,
     },
   }
 
