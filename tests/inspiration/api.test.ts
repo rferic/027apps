@@ -189,7 +189,11 @@ describe('POST /api/v1/:groupSlug/apps/inspiration', () => {
     vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
 
     const created = { ...sampleRequest, id: 'new-id' }
+    // insert → first .from()
     mockFrom.mockReturnValueOnce(makeChain(created))
+    // isGitHubSyncEnabled → app_settings query → returns sync disabled
+    mockFrom.mockReturnValueOnce(makeChain({ value: false }))
+    // notifyNewIdea → profiles query
     mockFrom.mockReturnValueOnce(makeChain([{ display_name: 'Test User' }]))
 
     const { default: handler } = await import('../../apps/inspiration/routes/POST')
@@ -290,6 +294,8 @@ describe('PUT /api/v1/:groupSlug/apps/inspiration/:id', () => {
 
     mockFrom.mockReturnValueOnce(makeChain({ ...sampleRequest, user_id: 'u1', status: 'pending' }))
     mockFrom.mockReturnValueOnce(makeChain({ ...sampleRequest, status: 'in_progress' }))
+    // syncStatusToGitHubIssue → reads idea to check github_issue_number
+    mockFrom.mockReturnValueOnce(makeChain({ github_issue_number: null, github_issue_url: null, type: 'bug' }))
 
     const { default: handler } = await import('../../apps/inspiration/routes/[id]/PUT')
     const req = makeRequest('/api/v1/test/apps/inspiration/r1', 'PUT', { status: 'in_progress' })
