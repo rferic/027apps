@@ -1,40 +1,36 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 
-type Supabase = ReturnType<typeof createAdminClient>
-
-function db(supabase: Supabase) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return supabase.from('app_settings' as any) as any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rpc(func: string, params: Record<string, unknown>): Promise<any> {
+  const supabase = createAdminClient()
+  return (supabase.rpc as any)(func, params)
 }
 
 export async function getAppSetting(key: string): Promise<unknown | null> {
-  const supabase = createAdminClient()
-  const { data } = await db(supabase).select('value').eq('key', key).maybeSingle()
-  return data?.value ?? null
+  const { data, error } = await rpc('get_app_setting', { p_key: key })
+  if (error) throw new Error(`Failed to read app setting "${key}": ${error.message}`)
+  return data ?? null
 }
 
 export async function setAppSetting(key: string, value: unknown): Promise<void> {
-  const supabase = createAdminClient()
-  const { error } = await db(supabase).upsert(
-    { key, value: JSON.parse(JSON.stringify(value)), updated_at: new Date().toISOString() },
-    { onConflict: 'key' }
-  )
+  const { error } = await rpc('set_app_setting', {
+    p_key: key,
+    p_value: JSON.parse(JSON.stringify(value)),
+  })
   if (error) throw new Error(`Failed to save app setting "${key}": ${error.message}`)
 }
 
 export async function deleteAppSetting(key: string): Promise<void> {
-  const supabase = createAdminClient()
-  await db(supabase).delete().eq('key', key)
+  const { error } = await rpc('delete_app_setting', { p_key: key })
+  if (error) throw new Error(`Failed to delete app setting "${key}": ${error.message}`)
 }
 
 export async function getAllAppSettings(): Promise<Record<string, unknown>> {
-  const supabase = createAdminClient()
-  const { data } = await db(supabase).select('key, value')
+  const { data } = await rpc('get_all_app_settings', {})
+  const rows = (data ?? []) as Array<{ key: string; value: unknown }>
   const result: Record<string, unknown> = {}
-  if (data) {
-    for (const row of data as Array<{ key: string; value: unknown }>) {
-      result[row.key] = row.value
-    }
+  for (const row of rows) {
+    result[row.key] = row.value
   }
   return result
 }
