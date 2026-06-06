@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rpc(func: string, params: Record<string, unknown>): Promise<any> {
   const supabase = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (supabase.rpc as any)(func, params)
 }
 
