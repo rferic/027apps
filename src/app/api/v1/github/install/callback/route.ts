@@ -28,8 +28,8 @@ export async function GET(req: NextRequest) {
   const installationId = searchParams.get('installation_id')
   const base = `/${locale}/admin/apps/inspiration`
 
-  if (!code || !installationId) {
-    return NextResponse.redirect(new URL(`${base}?error=missing_params`, req.url))
+  if (!code) {
+    return NextResponse.redirect(new URL(`${base}?tab=settings&error=missing_code`, req.url))
   }
 
   try {
@@ -41,28 +41,33 @@ export async function GET(req: NextRequest) {
     if (!response.ok) {
       const body = await response.text()
       return NextResponse.redirect(
-        new URL(`${base}?error=github_error&detail=` + encodeURIComponent(body), req.url)
+        new URL(`${base}?tab=settings&error=github_error&detail=` + encodeURIComponent(body), req.url)
       )
     }
 
     const data = await response.json()
 
-    await Promise.all([
+    const saves = [
       setAppSetting('github_app_id', String(data.id)),
       setAppSetting('github_slug', data.slug),
-      setAppSetting('github_installation_id', parseInt(installationId, 10)),
       setAppSetting('github_repo', null),
       setAppSetting('github_webhook_secret', data.webhook_secret),
       setAppSetting('github_sync_enabled', false),
       setAppSetting('github_label_map', DEFAULT_LABEL_MAP),
       setAppSetting('github_private_key', encryptSecret(data.pem)),
-    ])
+    ]
+
+    if (installationId) {
+      saves.push(setAppSetting('github_installation_id', parseInt(installationId, 10)))
+    }
+
+    await Promise.all(saves)
 
     return NextResponse.redirect(new URL(`${base}?tab=settings&success=1`, req.url))
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.redirect(
-      new URL(`${base}?error=exception&detail=` + encodeURIComponent(msg), req.url)
+      new URL(`${base}?tab=settings&error=exception&detail=` + encodeURIComponent(msg), req.url)
     )
   }
 }
