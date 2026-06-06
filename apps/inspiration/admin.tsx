@@ -6,10 +6,9 @@ import { createPortal } from 'react-dom'
 import {
   Search, ChevronDown, ArrowUp, X, Loader2,
   Bug, Sparkles, AppWindow, Puzzle, Lightbulb, MoreHorizontal,
-  ChevronLeft, ChevronRight, MessageCircle, User, Settings,
+  ChevronLeft, ChevronRight, MessageCircle, User,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { GitHubSettingsManager } from './GitHubSettingsManager'
 
 const supabase = createClient()
 
@@ -146,7 +145,7 @@ export default function InspirationAdmin() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [rowMenuPos, setRowMenuPos] = useState<{ x: number; y: number; requestId: string } | null>(null)
-  const [showSettings, setShowSettings] = useState(false)
+
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -366,37 +365,10 @@ export default function InspirationAdmin() {
   return (
     <div className="p-6 max-w-7xl">
       {/* Header */}
-      <div className="mb-5 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">{t(showSettings ? 'admin.settings_tab' : 'admin.title')}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{t(showSettings ? 'admin.settings_subtitle' : 'admin.subtitle')}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowSettings(s => !s)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-        >
-          <Settings size={14} />
-          {showSettings ? t('admin.back') : t('admin.settings')}
-        </button>
+      <div className="mb-5">
+        <h1 className="text-xl font-bold text-gray-900">{t('admin.title')}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{t('admin.subtitle')}</p>
       </div>
-
-      {showSettings && (
-        <div className="mb-6">
-          <GitHubSettingsManager initial={{
-            connected: false,
-            appId: null,
-            installationId: null,
-            repo: null,
-            syncEnabled: false,
-            labelMap: null,
-            webhookConfigured: false,
-          }} />
-        </div>
-      )}
-
-      {!showSettings && (
-      <>
       {/* Filters */}
       <div className="space-y-3 mb-4">
         {/* Search + Sort */}
@@ -887,7 +859,6 @@ export default function InspirationAdmin() {
           </div>
         </div>
       )}
-      </>)}
     </div>
   )
 }

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const installationId = searchParams.get('installation_id')
 
   if (!code || !installationId) {
-    return NextResponse.redirect(new URL('/en/admin/settings/github?error=missing_params', req.url))
+    return NextResponse.redirect(new URL('/en/admin/apps/inspiration?error=missing_params', req.url))
   }
 
   try {
@@ -46,11 +46,11 @@ export async function GET(req: NextRequest) {
       setAppSetting('github_private_key', encryptSecret(data.pem)),
     ])
 
-    return NextResponse.redirect(new URL('/en/admin/settings/github?success=1', req.url))
+    return NextResponse.redirect(new URL('/en/admin/apps/inspiration?success=1', req.url))
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.redirect(
-      new URL('/en/admin/settings/github?error=exception&detail=' + encodeURIComponent(msg), req.url)
+      new URL('/en/admin/apps/inspiration?error=exception&detail=' + encodeURIComponent(msg), req.url)
     )
   }
 }

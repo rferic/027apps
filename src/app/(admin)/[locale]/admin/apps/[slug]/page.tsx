@@ -11,6 +11,7 @@ import { AdminAppTabs } from './AdminAppTabs'
 import { getAppPermissionsAction } from '@/lib/apps/actions'
 import { loadAppModule } from '@/lib/apps/registry'
 import { loadAppMessages } from '@/lib/apps/i18n'
+import { GitHubSettingsManager } from '../../../../../../../apps/inspiration/GitHubSettingsManager'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
@@ -98,6 +99,20 @@ export default async function AdminAppViewPage({ params }: Props) {
                 groups={permissionsGroups}
               />
             </div>
+
+            {slug === 'inspiration' && (
+              <div className="bg-white rounded-xl border border-slate-100 p-5 mt-4">
+                <GitHubSettingsManager initial={{
+                  connected: false,
+                  appId: null,
+                  installationId: null,
+                  repo: null,
+                  syncEnabled: false,
+                  labelMap: null,
+                  webhookConfigured: false,
+                }} />
+              </div>
+            )}
 
             {manifest.config.length > 0 && (
               <div className="bg-white rounded-xl border border-slate-100 p-5">
