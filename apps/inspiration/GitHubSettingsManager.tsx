@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
@@ -39,6 +39,8 @@ export function GitHubSettingsManager({ initial }: Props) {
   const [isTesting, startTest] = useTransition()
   const [isSaving, startSave] = useTransition()
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
+
+  useEffect(() => { setSettings(initial) }, [initial])
 
   function handleDisconnect() {
     disconnectGitHub().then(() => {

@@ -1,4 +1,5 @@
 import Image from 'next/image'
+export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import { setRequestLocale, getTranslations } from 'next-intl/server'
 import { createAdminClient } from '@/lib/supabase/admin'
