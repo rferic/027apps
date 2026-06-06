@@ -100,6 +100,8 @@ export async function GET(
   return apiOk({
     ...request,
     group,
+    group_name: group?.name ?? null,
+    group_slug: group?.slug ?? null,
     creator,
     vote_count: voteCount,
     comment_count: commentsEnriched.length,
