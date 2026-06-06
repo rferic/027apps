@@ -30,7 +30,8 @@ export async function POST(
   }
 
   try {
-    await createGitHubIssueForIdea(idea as Record<string, unknown>)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await createGitHubIssueForIdea(idea as any)
     return apiOk({ message: 'GitHub issue created' })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
