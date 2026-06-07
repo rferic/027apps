@@ -104,7 +104,15 @@
       "statsGroups": "Grups",
       "statsApps": "Apps",
       "statsAppsSublabel": "disponibles",
-      "statsPending": "Invitacions pendents"
+      "statsPending": "Invitacions pendents",
+      "inspiration_title": "Inspiration",
+      "total_ideas": "Total ideas",
+      "pending": "Pending",
+      "reviewing": "Reviewing",
+      "completed": "Completed",
+      "most_supported": "Most supported ideas",
+      "votes": "{count} votes",
+      "comments": "{count} comments"
     },
     "users": {
       "title": "Membres",
@@ -396,7 +404,9 @@
           "test_ok": "Connection successful!",
           "test_fail": "Connection failed",
           "set_installation_id": "Set installation ID",
-          "installation_id_placeholder": "e.g. 12345678"
+          "installation_id_placeholder": "e.g. 12345678",
+          "save": "Save",
+          "cancel": "Cancel"
         },
         "toggle": {
           "title": "Sync ideas to GitHub Issues",
@@ -423,7 +433,8 @@
           "placeholder": "owner/repo",
           "fetch": "Fetch repos",
           "select_repo": "Select a repository...",
-          "hint": "Format: owner/repo (e.g. rferic/027apps-test)"
+          "hint": "Format: owner/repo (e.g. rferic/027apps-test)",
+          "fetch_error": "Failed to fetch repositories"
         },
         "disconnect_confirm": {
           "title": "Disconnect GitHub App?",

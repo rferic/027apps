@@ -104,7 +104,15 @@
       "statsGroups": "Grupos",
       "statsApps": "Apps",
       "statsAppsSublabel": "disponibles",
-      "statsPending": "Invitaciones pendientes"
+      "statsPending": "Invitaciones pendientes",
+      "inspiration_title": "Inspiración",
+      "total_ideas": "Total ideas",
+      "pending": "Pendientes",
+      "reviewing": "Revisando",
+      "completed": "Completadas",
+      "most_supported": "Ideas más apoyadas",
+      "votes": "{count} votos",
+      "comments": "{count} comentarios"
     },
     "users": {
       "title": "Miembros",
@@ -396,7 +404,9 @@
           "test_ok": "¡Conexión exitosa!",
           "test_fail": "Error de conexión",
           "set_installation_id": "Indicar ID de instalación",
-          "installation_id_placeholder": "ej. 12345678"
+          "installation_id_placeholder": "ej. 12345678",
+          "save": "Save",
+          "cancel": "Cancel"
         },
         "toggle": {
           "title": "Sincronizar ideas con GitHub Issues",
@@ -407,12 +417,12 @@
         "labels": {
           "title": "Mapeo de etiquetas",
           "description": "Asigna cada tipo de idea a una etiqueta de GitHub.",
-          "edit": "Edit",
+          "edit": "Editar",
           "editor": {
-            "title": "Edit label mapping",
-            "cancel": "Cancel",
-            "save": "Save",
-            "name_placeholder": "Label name",
+            "title": "Editar mapeo de etiquetas",
+            "cancel": "Cancelar",
+            "save": "Guardar",
+            "name_placeholder": "Nombre de etiqueta",
             "color_placeholder": "color"
           }
         },
@@ -423,7 +433,8 @@
           "placeholder": "propietario/repositorio",
           "fetch": "Obtener repos",
           "select_repo": "Selecciona un repositorio...",
-          "hint": "Formato: propietario/repositorio (p.ej. rferic/027apps-test)"
+          "hint": "Formato: propietario/repositorio (p.ej. rferic/027apps-test)",
+          "fetch_error": "Failed to fetch repositories"
         },
         "disconnect_confirm": {
           "title": "¿Desconectar GitHub App?",

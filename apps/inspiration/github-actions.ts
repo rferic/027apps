@@ -185,7 +185,6 @@ async function fetchAndSaveInstallationId(): Promise<boolean> {
   if (!appId || !encryptedPem) return false
 
   const { decryptSecret } = await import('@/lib/secrets')
-  const crypto = await import('crypto')
   const privateKey = decryptSecret(encryptedPem as string)
 
   const now = Math.floor(Date.now() / 1000)
@@ -194,7 +193,8 @@ async function fetchAndSaveInstallationId(): Promise<boolean> {
     JSON.stringify({ iat: now - 60, exp: now + 600, iss: appId as string })
   ).toString('base64url')
   const input = header + '.' + payload
-  const signature = crypto.default.sign('sha256', Buffer.from(input), privateKey).toString('base64url')
+  const { sign } = await import('node:crypto')
+  const signature = sign('sha256', Buffer.from(input), privateKey).toString('base64url')
   const jwt = input + '.' + signature
 
   const res = await fetch('https://api.github.com/app/installations', {

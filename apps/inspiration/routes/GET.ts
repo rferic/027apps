@@ -28,18 +28,19 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   // Widget mode: return active count + top supported + recently completed in 1 request
   if (widget === 'true') {
+    const groupFilter = `group_id.eq.${ctx.groupId},group_id.is.null`
     const [activeRes, supportedRes, completedRes] = await Promise.all([
       applyBaseFilters(adminClient.from('inspiration_requests').select('id', { count: 'exact' }), typeParam, search, appSlug, myParam, ctx)
         .in('status', ACTIVE_STATUSES.split(','))
-        .eq('group_id', ctx.groupId),
+        .or(groupFilter),
       adminClient.from('inspiration_requests')
         .select('id, title, type, vote_count, comment_count, status, created_at')
-        .eq('group_id', ctx.groupId)
+        .or(groupFilter)
         .order('vote_count', { ascending: false })
         .limit(3),
       adminClient.from('inspiration_requests')
         .select('id, title, type, vote_count, comment_count, status, created_at')
-        .eq('group_id', ctx.groupId)
+        .or(groupFilter)
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
         .limit(2),

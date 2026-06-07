@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import {
   GitBranch,
   Link2Off,
@@ -20,6 +20,7 @@ import {
   toggleGitHubSync,
   updateGitHubRepo,
   updateGitHubInstallationId,
+  fetchRepos,
   updateLabelMap,
   disconnectGitHub,
 } from './github-actions'
@@ -33,6 +34,7 @@ const TYPE_KEYS = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_gene
 export function GitHubSettingsManager({ initial }: Props) {
   const t = useTranslations('admin.settings.github')
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   const [settings, setSettings] = useState(initial)
   const [isToggling, startToggle] = useTransition()
@@ -58,6 +60,9 @@ export function GitHubSettingsManager({ initial }: Props) {
   const [showLabelEditor, setShowLabelEditor] = useState(false)
   const [showRepoEditor, setShowRepoEditor] = useState(false)
   const [repoInput, setRepoInput] = useState(settings.repo ?? '')
+  const [repos, setRepos] = useState<string[]>([])
+  const [loadingRepos, setLoadingRepos] = useState(false)
+  const [repoError, setRepoError] = useState<string | null>(null)
   const [editingInstallationId, setEditingInstallationId] = useState(false)
   const [installationIdInput, setInstallationIdInput] = useState(String(settings.installationId ?? ''))
   const [labelMap, setLabelMap] = useState(settings.labelMap ?? {})
@@ -72,11 +77,13 @@ export function GitHubSettingsManager({ initial }: Props) {
   if (successParam && !success) {
     setSuccess(true)
     setTimeout(() => setSuccess(false), 8000)
+    router.replace(window.location.pathname, { scroll: false })
   }
 
   if (errorParam && !error) {
     setError(detailParam ? errorParam + ': ' + detailParam : errorParam)
     setTimeout(() => setError(null), 8000)
+    router.replace(window.location.pathname, { scroll: false })
   }
 
   // Manual setup form
@@ -499,11 +506,10 @@ export function GitHubSettingsManager({ initial }: Props) {
                 return (
                   <div key={type} className="text-sm">
                     <p className="text-xs font-medium text-gray-500 mb-1">{type}</p>
-                    <div className="flex gap-2">
-                      <input type="text" value={label.name} onChange={(e) => handleLabelChange(type, 'name', e.target.value)} placeholder={t('labels.editor.name_placeholder')} className="flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300" />
-                      <div className="relative">
-                        <input type="text" value={label.color} onChange={(e) => handleLabelChange(type, 'color', e.target.value.replace('#', ''))} placeholder={t('labels.editor.color_placeholder')} maxLength={6} className="w-16 px-2 py-1.5 text-xs font-mono border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300" />
-                        <span className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border border-gray-200" style={{ backgroundColor: '#' + label.color }} />
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input type="text" value={label.name} onChange={(e) => handleLabelChange(type, 'name', e.target.value)} placeholder={t('labels.editor.name_placeholder')} className="w-full sm:flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300" />
+                      <div className="relative w-full sm:w-auto">
+                        <input type="color" value={'#' + label.color} onChange={(e) => handleLabelChange(type, 'color', e.target.value.replace('#', ''))} className="w-full sm:w-16 h-8 px-1 py-1 border border-gray-200 rounded-lg cursor-pointer" />
                       </div>
                     </div>
                   </div>
@@ -528,17 +534,58 @@ export function GitHubSettingsManager({ initial }: Props) {
               <button type="button" onClick={() => setShowRepoEditor(false)} className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer"><X size={16} /></button>
             </div>
 
-            <input
-              type="text"
-              value={repoInput}
-              onChange={(e) => setRepoInput(e.target.value)}
-              placeholder={t('repo_editor.placeholder')}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 mb-3"
-            />
+            {repos.length > 0 ? (
+              <select
+                value={repoInput}
+                onChange={(e) => setRepoInput(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 mb-3 bg-white"
+              >
+                <option value="">{t('repo_editor.select_repo')}</option>
+                {repos.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={repoInput}
+                onChange={(e) => setRepoInput(e.target.value)}
+                placeholder={t('repo_editor.placeholder')}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 mb-3"
+              />
+            )}
+
+            {repoError && (
+              <p className="text-xs text-red-500 mb-2">{repoError}</p>
+            )}
+
             <p className="text-xs text-gray-400 mb-3">{t('repo_editor.hint')}</p>
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowRepoEditor(false)} className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">{t('repo_editor.cancel')}</button>
-              <button type="button" onClick={handleUpdateRepo} disabled={!repoInput.trim()} className="px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer">{t('repo_editor.save')}</button>
+            <div className="flex flex-col sm:flex-row justify-between gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  setLoadingRepos(true)
+                  setRepoError(null)
+                  try {
+                    const list = await fetchRepos()
+                    setRepos(list)
+                    if (list.length > 0) setRepoInput(list[0])
+                  } catch (err) {
+                    setRepoError(err instanceof Error ? err.message : t('repo_editor.fetch_error'))
+                  } finally {
+                    setLoadingRepos(false)
+                  }
+                }}
+                disabled={loadingRepos}
+                className="w-full sm:w-auto px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                {loadingRepos ? <Loader2 size={14} className="animate-spin inline mr-1" /> : null}
+                {t('repo_editor.fetch')}
+              </button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button type="button" onClick={() => setShowRepoEditor(false)} className="flex-1 sm:flex-none px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">{t('repo_editor.cancel')}</button>
+                <button type="button" onClick={handleUpdateRepo} disabled={!repoInput.trim()} className="flex-1 sm:flex-none px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer">{t('repo_editor.save')}</button>
+              </div>
             </div>
           </div>
         </div>
