@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth/helpers'
 import { getAppSetting, setAppSetting, deleteAppSetting } from '@/lib/use-cases/app-settings'
 import { encryptSecret, decryptSecret } from '@/lib/secrets'
-import { getInstallationToken } from '@/lib/use-cases/inspiration/github'
+import { getInstallationToken, createComment, closeIssue, updateLabels } from '@/lib/use-cases/inspiration/github'
+import { createAdminClientUntyped } from '@/lib/supabase/admin'
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -455,7 +456,7 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
     results.push({ step: 'GitHub: reopen issue', ok: false, detail: err instanceof Error ? err.message : String(err) })
   }
 
-  // 9. Cleanup: close permanently
+  // 9. Cleanup: close test issue permanently
   try {
     await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}`, {
       method: 'PATCH',
@@ -469,6 +470,152 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
     results.push({ step: 'Cleanup: close test issue', ok: true, detail: `#${issueNumber} closed` })
   } catch {
     results.push({ step: 'Cleanup: close test issue', ok: false, detail: '#${issueNumber} cleanup failed' })
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // WEB FLOW TESTS (end-to-end: web action → GitHub result)
+  // ══════════════════════════════════════════════════════════
+
+  const { createGitHubIssueForIdea, syncStatusToGitHubIssue } = await import('./routes/github-helpers')
+  const adminClient = createAdminClientUntyped()
+  const testId = crypto.randomUUID()
+
+  // 10. Create idea in DB → GitHub issue auto-created
+  try {
+    const { error: insertError } = await adminClient
+      .from('inspiration_requests')
+      .insert({
+        id: testId,
+        user_id: '00000000-0000-0000-0000-000000000000',
+        title: `[TEST] Web flow ${Date.now()}`,
+        description: 'Test idea for end-to-end web flow verification.',
+        type: 'bug',
+        status: 'pending',
+      })
+    if (insertError) {
+      results.push({ step: 'Web: create idea in DB', ok: false, detail: insertError.message })
+    } else {
+      results.push({ step: 'Web: create idea in DB', ok: true })
+    }
+  } catch (err) {
+    results.push({ step: 'Web: create idea in DB', ok: false, detail: err instanceof Error ? err.message : String(err) })
+  }
+
+  // 11. Web: generate GitHub issue from idea → verify on GitHub
+  let webIssueNumber: number | null = null
+  try {
+    await createGitHubIssueForIdea({
+      id: testId,
+      title: `[TEST] Web flow ${Date.now()}`,
+      description: 'Test idea for end-to-end web flow verification.',
+      type: 'bug',
+    })
+    // Verify the issue was linked in the DB
+    const { data: updated } = await adminClient
+      .from('inspiration_requests')
+      .select('github_issue_number, github_issue_url')
+      .eq('id', testId)
+      .single()
+    if (updated?.github_issue_number && updated?.github_issue_url) {
+      webIssueNumber = updated.github_issue_number as number
+      // Verify the issue exists on GitHub
+      const verifyRes = await fetch(`https://api.github.com/repos/${repo}/issues/${webIssueNumber}`, {
+        headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` },
+      })
+      if (verifyRes.ok) {
+        const issueData = await verifyRes.json()
+        const hasStatusLabel = (issueData.labels ?? []).some((l: { name: string }) => l.name === 'status: pending')
+        results.push({
+          step: 'Web: create → GitHub issue',
+          ok: true,
+          detail: `#${webIssueNumber} created${hasStatusLabel ? ' with status:pending label' : ''}`,
+        })
+      } else {
+        results.push({ step: 'Web: create → GitHub issue', ok: false, detail: 'Issue not found on GitHub' })
+      }
+    } else {
+      results.push({ step: 'Web: create → GitHub issue', ok: false, detail: 'github_issue_number not saved' })
+    }
+  } catch (err) {
+    results.push({ step: 'Web: create → GitHub issue', ok: false, detail: err instanceof Error ? err.message : String(err) })
+  }
+
+  // 12. Web: change status → verify labels on GitHub
+  if (webIssueNumber) {
+    try {
+      await adminClient.from('inspiration_requests').update({ status: 'reviewing' }).eq('id', testId)
+      await syncStatusToGitHubIssue(testId, 'pending', 'reviewing')
+      // Wait a moment for GitHub to process
+      await new Promise(resolve => setTimeout(resolve, 500))
+      const labelRes = await fetch(`https://api.github.com/repos/${repo}/issues/${webIssueNumber}`, {
+        headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` },
+      })
+      if (labelRes.ok) {
+        const issueData = await labelRes.json()
+        const labels = (issueData.labels ?? []).map((l: { name: string }) => l.name)
+        const hasStatusReviewing = labels.includes('status: reviewing')
+        const hasNoPending = !labels.includes('status: pending')
+        results.push({
+          step: 'Web: change status → labels',
+          ok: hasStatusReviewing && hasNoPending,
+          detail: hasStatusReviewing && hasNoPending
+            ? 'status:pending → status:reviewing'
+            : `Labels: ${labels.join(', ')}`,
+        })
+      } else {
+        results.push({ step: 'Web: change status → labels', ok: false, detail: 'Failed to fetch issue' })
+      }
+    } catch (err) {
+      results.push({ step: 'Web: change status → labels', ok: false, detail: err instanceof Error ? err.message : String(err) })
+    }
+  }
+
+  // 13. Web: add comment → verify on GitHub
+  if (webIssueNumber) {
+    try {
+      await createComment(webIssueNumber, '**Test User:**\n\nTest comment from web flow test.')
+      const commentsRes = await fetch(`https://api.github.com/repos/${repo}/issues/${webIssueNumber}/comments`, {
+        headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` },
+      })
+      if (commentsRes.ok) {
+        const comments = await commentsRes.json()
+        const hasComment = (comments ?? []).some((c: { body: string }) => c.body.includes('Test comment from web flow test'))
+        results.push({
+          step: 'Web: add comment → GitHub',
+          ok: hasComment,
+          detail: hasComment ? 'Comment found on GitHub' : 'Comment not found',
+        })
+      } else {
+        results.push({ step: 'Web: add comment → GitHub', ok: false, detail: 'Failed to fetch comments' })
+      }
+    } catch (err) {
+      results.push({ step: 'Web: add comment → GitHub', ok: false, detail: err instanceof Error ? err.message : String(err) })
+    }
+  }
+
+  // 14. Web: delete idea → verify GitHub issue closed
+  if (webIssueNumber) {
+    try {
+      await updateLabels(webIssueNumber, ['status: deleted', 'test'])
+      await closeIssue(webIssueNumber)
+      await adminClient.from('inspiration_requests').delete().eq('id', testId)
+      const closedRes = await fetch(`https://api.github.com/repos/${repo}/issues/${webIssueNumber}`, {
+        headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` },
+      })
+      if (closedRes.ok) {
+        const issueData = await closedRes.json()
+        const isClosed = issueData.state === 'closed'
+        results.push({
+          step: 'Web: delete idea → GitHub issue closed',
+          ok: isClosed,
+          detail: isClosed ? `#${webIssueNumber} closed (state_reason: ${issueData.state_reason ?? 'none'})` : 'Still open',
+        })
+      } else {
+        results.push({ step: 'Web: delete idea → GitHub issue closed', ok: false, detail: 'Failed to fetch issue' })
+      }
+    } catch (err) {
+      results.push({ step: 'Web: delete idea → GitHub issue closed', ok: false, detail: err instanceof Error ? err.message : String(err) })
+    }
   }
 
   return results
