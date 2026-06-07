@@ -1,5 +1,4 @@
 import crypto from 'node:crypto'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getAppSetting } from '@/lib/use-cases/app-settings'
 import { decryptSecret } from '@/lib/secrets'
 
@@ -41,7 +40,7 @@ function logDryRun(action: string, detail?: Record<string, unknown>) {
 }
 
 function isDryRun(): boolean {
-  const env = process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'development'
+  const env = process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? 'development'
   return env === 'development'
 }
 
