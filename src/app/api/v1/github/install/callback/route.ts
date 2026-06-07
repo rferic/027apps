@@ -1,6 +1,7 @@
+import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
-import { encryptSecret } from '@/lib/secrets'
+import { encryptSecret, decryptSecret } from '@/lib/secrets'
 
 const DEFAULT_LABEL_MAP: Record<string, { name: string; color: string }> = {
   bug: { name: 'bug', color: 'd73a4a' },
@@ -12,6 +13,17 @@ const DEFAULT_LABEL_MAP: Record<string, { name: string; color: string }> = {
 }
 
 const VALID_LOCALES = ['en', 'es', 'it', 'ca', 'fr', 'de']
+
+function createAppJWT(appId: string, privateKey: string): string {
+  const now = Math.floor(Date.now() / 1000)
+  const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url')
+  const payload = Buffer.from(
+    JSON.stringify({ iat: now - 60, exp: now + 600, iss: appId })
+  ).toString('base64url')
+  const input = header + '.' + payload
+  const signature = crypto.sign('sha256', Buffer.from(input), privateKey).toString('base64url')
+  return input + '.' + signature
+}
 
 function getLocale(req: NextRequest): string {
   const cookie = req.cookies.get('preferred-locale')?.value
@@ -77,6 +89,34 @@ export async function GET(req: NextRequest) {
 
     // Merge into installed_apps.config.github
     const supabase = createAdminClientUntyped()
+
+    if (!installationId) {
+      // Fetch the first installation using the app JWT
+      try {
+        const jwt = createAppJWT(String(data.id), data.pem)
+        const instRes = await fetch('https://api.github.com/app/installations', {
+          headers: {
+            Accept: 'application/vnd.github+json',
+            Authorization: `Bearer ${jwt}`,
+          },
+        })
+        if (instRes.ok) {
+          const installations = await instRes.json()
+          if (Array.isArray(installations) && installations.length > 0) {
+            githubConfig.installation_id = installations[0].id
+            console.log('[GH-Callback] Fetched installation ID:', installations[0].id)
+          } else {
+            console.log('[GH-Callback] No installations found')
+          }
+        } else {
+          const body = await instRes.text()
+          console.warn('[GH-Callback] Failed to fetch installations:', instRes.status, body)
+        }
+      } catch (e) {
+        console.warn('[GH-Callback] Error fetching installations:', e)
+      }
+    }
+
     const { data: app } = await supabase
       .from('installed_apps')
       .select('config')
