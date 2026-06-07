@@ -1,5 +1,6 @@
 'use server'
 
+import crypto from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth/helpers'
 import { getAppSetting, setAppSetting, deleteAppSetting } from '@/lib/use-cases/app-settings'
@@ -185,8 +186,13 @@ async function fetchAndSaveInstallationId(): Promise<boolean> {
   const encryptedPem = await getAppSetting('github_private_key')
   if (!appId || !encryptedPem) return false
 
-  const { decryptSecret } = await import('@/lib/secrets')
-  const privateKey = decryptSecret(encryptedPem as string)
+  let privateKey: string
+  try {
+    privateKey = decryptSecret(encryptedPem as string)
+  } catch (e) {
+    console.warn('[GH] Failed to decrypt private key:', e)
+    return false
+  }
 
   const now = Math.floor(Date.now() / 1000)
   const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url')
@@ -194,9 +200,7 @@ async function fetchAndSaveInstallationId(): Promise<boolean> {
     JSON.stringify({ iat: now - 60, exp: now + 600, iss: appId as string })
   ).toString('base64url')
   const input = header + '.' + payload
-  const { sign } = await import('node:crypto')
-  const signature = sign('sha256', Buffer.from(input), privateKey).toString('base64url')
-  const jwt = input + '.' + signature
+  const jwt = input + '.' + crypto.sign('sha256', Buffer.from(input), privateKey).toString('base64url')
 
   const res = await fetch('https://api.github.com/app/installations', {
     headers: {
@@ -205,11 +209,20 @@ async function fetchAndSaveInstallationId(): Promise<boolean> {
     },
   })
 
-  if (!res.ok) return false
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.warn('[GH] Failed to fetch installations:', res.status, body)
+    return false
+  }
+
   const installations = await res.json()
-  if (!Array.isArray(installations) || installations.length === 0) return false
+  if (!Array.isArray(installations) || installations.length === 0) {
+    console.warn('[GH] No installations found for this app')
+    return false
+  }
 
   await setAppSetting('github_installation_id', installations[0].id)
+  console.log('[GH] Auto-detected installation ID:', installations[0].id)
   return true
 }
 
