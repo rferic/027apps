@@ -140,7 +140,24 @@ export async function testGitHubConnection(): Promise<{ ok: boolean; error?: str
     await getInstallationToken()
     return { ok: true }
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Connection failed' }
+    const message = err instanceof Error ? err.message : 'Connection failed'
+
+    // If the error is about missing installation_id, try to fetch it
+    if (message.includes('GitHub installation not configured')) {
+      try {
+        const got = await fetchAndSaveInstallationId()
+        if (got) {
+          // Retry now that installation_id is saved
+          const { getInstallationToken } = await import('@/lib/use-cases/inspiration/github')
+          await getInstallationToken()
+          return { ok: true }
+        }
+      } catch {
+        // Fall through to return the original error
+      }
+    }
+
+    return { ok: false, error: message }
   }
 }
 
@@ -158,6 +175,41 @@ export async function updateGitHubRepo(repo: string): Promise<void> {
   await requireAdmin()
   await setAppSetting('github_repo', repo)
   revalidatePath('/admin/settings/github')
+}
+
+// ─── Fetch installation ID from GitHub API ───────────────
+
+async function fetchAndSaveInstallationId(): Promise<boolean> {
+  const appId = await getAppSetting('github_app_id')
+  const encryptedPem = await getAppSetting('github_private_key')
+  if (!appId || !encryptedPem) return false
+
+  const { decryptSecret } = await import('@/lib/secrets')
+  const crypto = await import('crypto')
+  const privateKey = decryptSecret(encryptedPem as string)
+
+  const now = Math.floor(Date.now() / 1000)
+  const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url')
+  const payload = Buffer.from(
+    JSON.stringify({ iat: now - 60, exp: now + 600, iss: appId as string })
+  ).toString('base64url')
+  const input = header + '.' + payload
+  const signature = crypto.default.sign('sha256', Buffer.from(input), privateKey).toString('base64url')
+  const jwt = input + '.' + signature
+
+  const res = await fetch('https://api.github.com/app/installations', {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${jwt}`,
+    },
+  })
+
+  if (!res.ok) return false
+  const installations = await res.json()
+  if (!Array.isArray(installations) || installations.length === 0) return false
+
+  await setAppSetting('github_installation_id', installations[0].id)
+  return true
 }
 
 // ─── Update installation ID ──────────────────────────────
