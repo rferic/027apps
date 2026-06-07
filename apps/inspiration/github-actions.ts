@@ -342,7 +342,7 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
   }
 
   // 4. Create test issue
-  const testTitle = `[TEST] Integration check ${Date.now()}`
+  const testTitle = `[TEST] GitHub API: create issue with labels (${Date.now()})`
   let issueNumber: number
   try {
     const createRes = await fetch(`https://api.github.com/repos/${repo}/issues`, {
@@ -354,7 +354,7 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
       },
       body: JSON.stringify({
         title: testTitle,
-        body: 'Test issue for integration verification. Will be closed automatically.',
+        body: 'This issue was created by the integration test suite to verify that the GitHub App can create issues with labels (status:pending, test). It will be used to test label updates, comments, close and reopen operations.',
         labels: ['status: pending', 'test'],
       }),
     })
@@ -402,7 +402,7 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ body: 'Test comment from integration check.' }),
+      body: JSON.stringify({ body: 'Comment added by integration test to verify GitHub API can create comments on issues.' }),
     })
     if (commentRes.ok) {
       results.push({ step: 'GitHub: add comment', ok: true })
@@ -489,8 +489,8 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
       .insert({
         id: testId,
         user_id: testUserId,
-        title: `[TEST] Web flow ${Date.now()}`,
-        description: 'Test idea for end-to-end web flow verification.',
+        title: `[TEST 10] Web: crear idea en BD → debe generar issue en GitHub (${Date.now()})`,
+        description: 'Test 10: Verifica que al crear una idea en la BD, createGitHubIssueForIdea() crea un issue en GitHub y lo vincula correctamente (github_issue_number + github_issue_url).',
         type: 'bug',
         status: 'pending',
       })
@@ -508,8 +508,8 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
   try {
     await createGitHubIssueForIdea({
       id: testId,
-      title: `[TEST] Web flow ${Date.now()}`,
-      description: 'Test idea for end-to-end web flow verification.',
+      title: `[TEST 11] Web: generate issue from idea → GitHub (#${Date.now()})`,
+      description: 'Test 11: Verifica que createGitHubIssueForIdea() crea un issue en GitHub, lo etiqueta con status:pending, y guarda github_issue_number/github_issue_url en la BD.',
       type: 'bug',
     })
     // Verify the issue was linked in the DB
@@ -575,7 +575,7 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
   // 13. Web: add comment → verify on GitHub
   if (webIssueNumber) {
     try {
-      await createComment(webIssueNumber, '**Test User:**\n\nTest comment from web flow test.')
+      await createComment(webIssueNumber, '**Test User:**\n\n[TEST 13] Web: add comment → GitHub — Verifica que un comentario creado en la web se replica al issue de GitHub correctamente.')
       const commentsRes = await fetch(`https://api.github.com/repos/${repo}/issues/${webIssueNumber}/comments`, {
         headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` },
       })
@@ -606,7 +606,7 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ body: 'Test comment from GitHub for webhook simulation.' }),
+        body: JSON.stringify({ body: '[TEST 14] GitHub→Web: comment sync — Verifica que un comentario creado en GitHub se replica a inspiration_comments via webhook, con github_comment_id para dedup.' }),
       })
       if (ghCommentRes.ok) {
         const ghComment = await ghCommentRes.json()
@@ -618,7 +618,7 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
           .insert({
             request_id: testId,
             user_id: null,
-            body: `Test comment from GitHub for webhook simulation.\n\n— github-user (via GitHub)`,
+            body: `[TEST 14] GitHub→Web: comment sync — Verifica que un comentario creado en GitHub se replica a inspiration_comments via webhook, con github_comment_id para dedup.\n\n— github-user (via GitHub)`,
             github_comment_id: ghCommentId,
           })
         if (insertCommentError) {
