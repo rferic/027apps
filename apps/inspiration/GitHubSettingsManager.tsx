@@ -42,6 +42,9 @@ export function GitHubSettingsManager({ initial }: Props) {
   const [isTesting, startTest] = useTransition()
   const [isSaving, startSave] = useTransition()
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
+  const [success, setSuccess] = useState(false)
 
   function handleDisconnect() {
     disconnectGitHub()
@@ -72,9 +75,6 @@ export function GitHubSettingsManager({ initial }: Props) {
   const [editingInstallationId, setEditingInstallationId] = useState(false)
   const [installationIdInput, setInstallationIdInput] = useState(String(settings.installationId ?? ''))
   const [labelMap, setLabelMap] = useState(settings.labelMap ?? {})
-  const [error, setError] = useState<string | null>(null)
-  const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
-  const [success, setSuccess] = useState(false)
 
   const successParam = searchParams?.get('success')
   const errorParam = searchParams?.get('error')
