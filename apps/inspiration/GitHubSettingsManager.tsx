@@ -24,9 +24,7 @@ import {
   fetchRepos,
   updateLabelMap,
   disconnectGitHub,
-  runIntegrationTests,
 } from './github-actions'
-import type { TestResult } from './github-actions'
 
 interface Props {
   initial: GitHubSettings
@@ -47,8 +45,6 @@ export function GitHubSettingsManager({ initial }: Props) {
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
-  const [integrationResults, setIntegrationResults] = useState<TestResult[] | null>(null)
-  const [isTestingIntegration, startIntegrationTest] = useTransition()
   const [success, setSuccess] = useState(false)
 
   function handleDisconnect() {
@@ -142,14 +138,6 @@ export function GitHubSettingsManager({ initial }: Props) {
         const fresh = await getGitHubSettings()
         setSettings(fresh)
       }
-    })
-  }
-
-  function handleIntegrationTest() {
-    startIntegrationTest(async () => {
-      setIntegrationResults(null)
-      const results = await runIntegrationTests()
-      setIntegrationResults(results)
     })
   }
 
@@ -430,15 +418,6 @@ export function GitHubSettingsManager({ initial }: Props) {
                 </button>
                 <button
                   type="button"
-                  onClick={handleIntegrationTest}
-                  disabled={isTestingIntegration}
-                  className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors cursor-pointer"
-                >
-                  {isTestingIntegration ? <Loader2 size={12} className="animate-spin" /> : null}
-                  Run tests
-                </button>
-                <button
-                  type="button"
                   onClick={() => setShowDisconnectConfirm(true)}
                   className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
                 >
@@ -454,53 +433,6 @@ export function GitHubSettingsManager({ initial }: Props) {
               }`}>
                 {testResult.ok ? <Check size={12} /> : <AlertCircle size={12} />}
                 {testResult.ok ? t('connection.test_ok') : (testResult.error ?? t('connection.test_fail'))}
-              </div>
-            )}
-
-            {integrationResults && (
-              <div className="mt-3 space-y-1">
-                {integrationResults.map((r, i) => (
-                  <div key={i} className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs ${
-                    r.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                  }`}>
-                    <span>{r.step}</span>
-                    <span>{r.ok ? '✅' : '❌'}{r.detail ? ` — ${r.detail}` : ''}</span>
-                  </div>
-                ))}
-                <div className={`mt-2 px-3 py-2 rounded-lg text-xs font-medium ${
-                  integrationResults.every(r => r.ok) ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                }`}>
-                  {integrationResults.every(r => r.ok) ? '✅ All tests passed' : '❌ Some tests failed'}
-                  {' — '}
-                  {integrationResults.filter(r => r.ok).length}/{integrationResults.length} passed
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const text = integrationResults.map(r =>
-                        `${r.ok ? '✅' : '❌'} ${r.step}${r.detail ? ` — ${r.detail}` : ''}`
-                      ).join('\n')
-                      const summary = `${integrationResults.every(r => r.ok) ? '✅ All tests passed' : '❌ Some tests failed'} — ${integrationResults.filter(r => r.ok).length}/${integrationResults.length} passed`
-                      navigator.clipboard.writeText(text + '\n\n' + summary)
-                    }}
-                    className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                  >
-                    Copy results
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const refs = integrationResults.flatMap(r => r.refs ?? [])
-                      const unique = refs.filter((r, i, a) => a.findIndex(x => x.label === r.label && x.value === r.value) === i)
-                      const text = unique.map(r => `${r.label}: ${r.value}`).join('\n')
-                      navigator.clipboard.writeText(text)
-                    }}
-                    className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                  >
-                    Copy test IDs
-                  </button>
-                </div>
               </div>
             )}
 
