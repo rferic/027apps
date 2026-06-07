@@ -1,5 +1,6 @@
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { createIssue, closeIssue, reopenIssue } from '@/lib/use-cases/inspiration/github'
+import { reloadSchemaCache, withSchemaCacheRetry } from '@/lib/supabase/reload-schema-cache'
 
 const DEFAULT_LABEL_MAP: Record<string, string> = {
   bug: 'bug',
@@ -60,17 +61,37 @@ export async function createGitHubIssueForIdea(idea: {
 
   const issue = await createIssue({ title: idea.title, body, labels })
 
-  const adminClient = createAdminClientUntyped()
-  const { error: updateError } = await adminClient
-    .from('inspiration_requests')
-    .update({
-      github_issue_number: issue.number,
-      github_issue_url: issue.url,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', idea.id)
+  // Reload schema cache before updating (PostgREST debouncing = ~100ms)
+  await reloadSchemaCache()
 
-  if (updateError) throw new Error(`Failed to link GitHub issue: ${updateError.message}`)
+  // Try PostgREST update with retry, fallback to raw SQL
+  try {
+    await withSchemaCacheRetry(async () => {
+      const adminClient = createAdminClientUntyped()
+      const { error } = await adminClient
+        .from('inspiration_requests')
+        .update({
+          github_issue_number: issue.number,
+          github_issue_url: issue.url,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', idea.id)
+      if (error) throw new Error(error.message)
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message.includes('schema cache') || message.includes('PGRST')) {
+      // Fallback to raw SQL bypassing PostgREST entirely
+      const adminClient = createAdminClientUntyped()
+      const safeUrl = issue.url.replace(/'/g, "''")
+      const { error: sqlError } = await adminClient.rpc('exec_sql', {
+        sql: `update inspiration_requests set github_issue_number = ${issue.number}, github_issue_url = '${safeUrl}', updated_at = now() where id = '${idea.id}'`,
+      })
+      if (sqlError) throw new Error(`SQL fallback failed: ${sqlError.message}`)
+    } else {
+      throw err
+    }
+  }
 }
 
 export async function syncStatusToGitHubIssue(
