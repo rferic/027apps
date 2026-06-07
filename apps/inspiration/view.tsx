@@ -380,7 +380,7 @@ function RequestCard({
             )}
 
             {/* New comment input */}
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-2 mt-3" onClick={e => e.stopPropagation()}>
               <input
                 type="text"
                 value={newCommentText}

@@ -1,5 +1,6 @@
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { createIssue, closeIssue, reopenIssue } from '@/lib/use-cases/inspiration/github'
+import { getAppSetting } from '@/lib/use-cases/app-settings'
 
 const DEFAULT_LABEL_MAP: Record<string, string> = {
   bug: 'bug',
@@ -16,30 +17,20 @@ function getOwnerAndRepo(repo: string): { owner: string; repo: string } {
 }
 
 export async function isGitHubSyncEnabled(): Promise<boolean> {
-  const adminClient = createAdminClientUntyped()
-  const { data } = await adminClient
-    .from('app_settings')
-    .select('value')
-    .eq('key', 'github_sync_enabled')
-    .maybeSingle()
-  return data?.value === true
+  const enabled = await getAppSetting('github_sync_enabled')
+  return !!enabled
 }
 
 export async function getGitHubLabelMap(): Promise<Record<string, string>> {
-  const adminClient = createAdminClientUntyped()
-  const { data } = await adminClient
-    .from('app_settings')
-    .select('value')
-    .eq('key', 'github_label_map')
-    .maybeSingle()
-  if (data?.value && typeof data.value === 'object') {
+  const raw = await getAppSetting('github_label_map')
+  if (raw && typeof raw === 'object') {
     const map: Record<string, string> = {}
-    for (const [type, label] of Object.entries(data.value as Record<string, { name: string }>)) {
+    for (const [type, label] of Object.entries(raw as Record<string, { name: string }>)) {
       map[type] = label.name
     }
     return map
   }
-  return { ...DEFAULT_LABEL_MAP }
+  return {}
 }
 
 export async function createGitHubIssueForIdea(idea: {
