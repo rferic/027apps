@@ -61,7 +61,7 @@ export async function createGitHubIssueForIdea(idea: {
   const issue = await createIssue({ title: idea.title, body, labels })
 
   const adminClient = createAdminClientUntyped()
-  await adminClient
+  const { error: updateError } = await adminClient
     .from('inspiration_requests')
     .update({
       github_issue_number: issue.number,
@@ -69,6 +69,8 @@ export async function createGitHubIssueForIdea(idea: {
       updated_at: new Date().toISOString(),
     })
     .eq('id', idea.id)
+
+  if (updateError) throw new Error(`Failed to link GitHub issue: ${updateError.message}`)
 }
 
 export async function syncStatusToGitHubIssue(

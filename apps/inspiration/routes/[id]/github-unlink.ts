@@ -30,7 +30,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     return apiError('CONFLICT', 'This idea does not have a linked GitHub issue', 409)
   }
 
-  await adminClient
+  const { error: updateError } = await adminClient
     .from('inspiration_requests')
     .update({
       github_issue_number: null,
@@ -39,5 +39,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     })
     .eq('id', id)
 
+  if (updateError) return apiError('UPDATE_ERROR', updateError.message, 500)
   return apiOk({ message: 'GitHub issue unlinked' })
 }
