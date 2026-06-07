@@ -16,7 +16,8 @@ interface Props {
 
 export function AdminUserActions({ user, currentUserId, onEdit }: Props) {
   const t = useTranslations('admin.table')
-  const [, startTransition] = useTransition()
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
   const [confirmBlock, setConfirmBlock] = useState(false)
   const [confirmMakeMember, setConfirmMakeMember] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -25,17 +26,29 @@ export function AdminUserActions({ user, currentUserId, onEdit }: Props) {
 
   function handleBlock() {
     setConfirmBlock(false)
-    startTransition(() => { blockUserAction(user.id) })
+    setError(null)
+    startTransition(async () => {
+      const result = await blockUserAction(user.id)
+      if (result?.error) setError(result.error)
+    })
   }
 
   function handleMakeMember() {
     setConfirmMakeMember(false)
-    startTransition(() => { changeRoleAction(user.id, 'member') })
+    setError(null)
+    startTransition(async () => {
+      const result = await changeRoleAction(user.id, 'member')
+      if (result?.error) setError(result.error)
+    })
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     setConfirmDelete(false)
-    startTransition(() => { deleteUserAction(user.id) })
+    setError(null)
+    startTransition(async () => {
+      const result = await deleteUserAction(user.id)
+      if (result?.error) setError(result.error)
+    })
   }
 
   return (
@@ -141,8 +154,15 @@ export function AdminUserActions({ user, currentUserId, onEdit }: Props) {
         confirmLabel={t('delete')}
         cancelLabel={t('cancel')}
         onConfirm={handleDelete}
+        loading={pending}
         variant="destructive"
       />
+
+      {error && (
+        <div className="fixed bottom-4 right-4 z-50 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm shadow-lg">
+          {error}
+        </div>
+      )}
     </>
   )
 }
