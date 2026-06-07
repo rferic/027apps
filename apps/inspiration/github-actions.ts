@@ -628,8 +628,9 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
           return null
         }
 
-        // Ensure column exists then insert via raw SQL
+        // Ensure columns exist + allow null user_id, then insert via raw SQL
         await sqlExec("alter table if exists inspiration_comments add column if not exists github_comment_id text")
+        await sqlExec("alter table if exists inspiration_comments alter column user_id drop not null")
         await sqlExec("create unique index if not exists inspiration_comments_github_comment_id_idx on inspiration_comments(github_comment_id) where github_comment_id is not null")
         const insertErr = await sqlExec(`insert into inspiration_comments (request_id, user_id, body, github_comment_id) values ('${testId}', null, '${safeBody}', ${ghCommentIdNum})`)
 
