@@ -51,6 +51,17 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   if (error) return apiError('INSERT_ERROR', error.message, 500)
 
+  // Reload PostgREST schema cache
+  await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+    },
+    body: JSON.stringify({ sql: "notify pgrst, 'reload schema'" }),
+  }).catch(() => {})
+
   // Create GitHub issue if sync is enabled (best-effort)
   try {
     const syncEnabled = await isGitHubSyncEnabled()
