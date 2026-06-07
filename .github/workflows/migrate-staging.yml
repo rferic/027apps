@@ -1,8 +1,6 @@
 name: Migrate (Staging)
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  push:
     branches:
       - 'sprint/**'
       - 'feature/**'
@@ -14,14 +12,11 @@ env:
 
 jobs:
   migrate:
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
 
       - name: Check for migration changes
@@ -40,8 +35,9 @@ jobs:
         with:
           version: latest
 
-      - run: supabase link --project-ref $SUPABASE_PROJECT_ID
+      - name: Link to Supabase project
         if: steps.migrations.outputs.changed != '0'
+        run: supabase link --project-ref $SUPABASE_PROJECT_ID
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 

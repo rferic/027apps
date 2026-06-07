@@ -71,6 +71,8 @@ interface Pagination {
 interface RequestDetail extends RequestItem {
   comments: CommentItem[]
   voters: VoterItem[]
+  github_issue_number: number | null
+  github_issue_url: string | null
 }
 
 interface CommentItem {
@@ -142,7 +144,11 @@ export default function InspirationAdmin() {
   const [detail, setDetail] = useState<RequestDetail | null>(null)
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set())
   const [confirmChange, setConfirmChange] = useState<{ requestId: string; newStatus: string } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [rowMenuPos, setRowMenuPos] = useState<{ x: number; y: number; requestId: string } | null>(null)
+  const [linkingId, setLinkingId] = useState<string | null>(null)
+
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -295,6 +301,79 @@ export default function InspirationAdmin() {
     }
   }
 
+  // Delete
+  const handleDelete = async (requestId: string) => {
+    setIsDeleting(true)
+    setDeleteTarget(null)
+
+    try {
+      const res = await fetchWithAuth(`/api/v1/admin/apps/inspiration/${requestId}`, {
+        method: 'DELETE',
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert(err.message || 'Failed to delete')
+        return
+      }
+
+      // Remove from list
+      setRequests(prev => prev.filter(r => r.id !== requestId))
+      if (selectedRequestId === requestId) closeDetail()
+    } catch {
+      alert('Network error')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // GitHub issue link/unlink
+  const handleGitHubLink = async (requestId: string) => {
+    setLinkingId(requestId)
+    setRowMenuPos(null)
+    try {
+      const res = await fetchWithAuth(
+        `/api/v1/admin/apps/inspiration/${requestId}/github-link`,
+        { method: 'POST' },
+      )
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert((err as any).message || t('admin.github.link_error'))
+        return
+      }
+      // Refresh detail if open
+      if (selectedRequestId === requestId) fetchDetail(requestId)
+      // Refresh list
+      fetchRequests()
+    } catch {
+      alert(t('admin.github.network_error'))
+    } finally {
+      setLinkingId(null)
+    }
+  }
+
+  const handleGitHubUnlink = async (requestId: string) => {
+    if (!confirm(t('admin.github.unlink_confirm'))) return
+    setLinkingId(requestId)
+    try {
+      const res = await fetchWithAuth(
+        `/api/v1/admin/apps/inspiration/${requestId}/github-unlink`,
+        { method: 'POST' },
+      )
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert((err as any).message || t('admin.github.unlink_error'))
+        return
+      }
+      if (selectedRequestId === requestId) fetchDetail(requestId)
+      fetchRequests()
+    } catch {
+      alert(t('admin.github.network_error'))
+    } finally {
+      setLinkingId(null)
+    }
+  }
+
   // Helpers
   const getTypeMeta = (type: string) => REQUEST_TYPES.find(t => t.value === type)
 
@@ -340,7 +419,6 @@ export default function InspirationAdmin() {
         <h1 className="text-xl font-bold text-gray-900">{t('admin.title')}</h1>
         <p className="text-sm text-gray-500 mt-0.5">{t('admin.subtitle')}</p>
       </div>
-
       {/* Filters */}
       <div className="space-y-3 mb-4">
         {/* Search + Sort */}
@@ -598,22 +676,49 @@ export default function InspirationAdmin() {
             style={{ left: rowMenuPos.x, top: rowMenuPos.y }}
             onClick={e => e.stopPropagation()}
           >
-            {(() => {
+              {(() => {
               const request = requests.find(r => r.id === rowMenuPos.requestId)
               if (!request) return null
-              return VALID_TRANSITIONS[request.status].map(status => (
-                <button
-                  key={status}
-                  onClick={() => {
-                    handleStatusChange(request.id, status)
-                    setRowMenuPos(null)
-                  }}
-                  className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-2"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor(status) }} />
-                  {statusLabel(status)}
-                </button>
-              ))
+              return (
+                <>
+                  {VALID_TRANSITIONS[request.status].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => {
+                        handleStatusChange(request.id, status)
+                        setRowMenuPos(null)
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-2"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor(status) }} />
+                      {statusLabel(status)}
+                    </button>
+                  ))}
+                  {(request as any).github_issue_number ? null : (
+                    <div className="border-t border-slate-100 mt-1 pt-1">
+                      <button
+                        onClick={() => handleGitHubLink(request.id)}
+                        disabled={linkingId === request.id}
+                        className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {linkingId === request.id ? <Loader2 size={14} className="animate-spin" /> : null}
+                        {t('admin.github.generate_issue')}
+                      </button>
+                    </div>
+                  )}
+                  <div className="border-t border-slate-100 mt-1 pt-1">
+                    <button
+                      onClick={() => {
+                        setRowMenuPos(null)
+                        setDeleteTarget(request.id)
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
+                    >
+                      {t('admin.delete')}
+                    </button>
+                  </div>
+                </>
+              )
             })()}
           </div>
         </div>,
@@ -709,6 +814,41 @@ export default function InspirationAdmin() {
                   </div>
                 </div>
 
+                {/* GitHub */}
+                <div className="mb-4 p-3 bg-slate-50 rounded-lg">
+                  {detail.github_issue_url ? (
+                    <div className="flex items-center justify-between">
+                      <a
+                        href={detail.github_issue_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        {t('admin.github.view_issue')} #{detail.github_issue_number}
+                      </a>
+                      <button
+                        onClick={() => handleGitHubUnlink(detail.id)}
+                        disabled={linkingId === detail.id}
+                        className="text-xs text-red-600 hover:text-red-700 disabled:opacity-50 cursor-pointer"
+                      >
+                        {linkingId === detail.id ? <Loader2 size={12} className="animate-spin" /> : t('admin.github.unlink')}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-500">{t('admin.github.not_linked')}</span>
+                      <button
+                        onClick={() => handleGitHubLink(detail.id)}
+                        disabled={linkingId === detail.id}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                      >
+                        {linkingId === detail.id ? <Loader2 size={12} className="animate-spin" /> : null}
+                        {t('admin.github.generate_issue')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Comments */}
                 {detail.comments && detail.comments.length > 0 && (
                   <div className="mb-4">
@@ -782,6 +922,35 @@ export default function InspirationAdmin() {
                 className="px-3 py-1.5 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-700 cursor-pointer transition-colors"
               >
                 {t('admin.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====== DELETE CONFIRM DIALOG ====== */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDeleteTarget(null)} />
+          <div className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="text-base font-semibold text-slate-900">{t('admin.delete_title')}</h3>
+            <p className="text-sm text-slate-500">
+              {t('admin.delete_confirm')}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                {t('admin.cancel')}
+              </button>
+              <button
+                onClick={() => handleDelete(deleteTarget)}
+                disabled={isDeleting}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1"
+              >
+                {isDeleting ? <Loader2 size={14} className="animate-spin" /> : null}
+                {t('admin.delete')}
               </button>
             </div>
           </div>

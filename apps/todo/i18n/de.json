@@ -19,5 +19,14 @@
   "assigned_to": "Zugewiesen an",
   "assigned_to_me": "Ich",
   "assign_to_me": "Mir zuweisen",
-  "description": "Einfache Aufgabenliste: Erstellen, erledigen und entfernen Sie Aufgaben."
+  "description": "Einfache Aufgabenliste: Erstellen, erledigen und entfernen Sie Aufgaben.",
+  "widget": {
+    "not_available": "No disponible",
+    "couldnt_load": "No se pudo cargar",
+    "heading": "Tareas",
+    "no_tasks": "Sin tareas pendientes",
+    "my_tasks": "Mis tareas",
+    "group_tasks": "Tareas del grupo",
+    "view_all": "Ver todas"
+  }
 }

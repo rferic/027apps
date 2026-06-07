@@ -80,6 +80,16 @@ create table if not exists inspiration_requests (
   updated_at        timestamptz not null default now()
 );
 
+-- GitHub issue integration columns (added in Sprint 20)
+do $$ begin
+  alter table inspiration_requests add column github_issue_number int;
+exception when duplicate_column then null;
+end $$;
+do $$ begin
+  alter table inspiration_requests add column github_issue_url text;
+exception when duplicate_column then null;
+end $$;
+
 -- Indices para busqueda y filtros
 create index idx_inspiration_requests_status on inspiration_requests(status);
 create index idx_inspiration_requests_type on inspiration_requests(type);
@@ -106,7 +116,23 @@ create table if not exists inspiration_comments (
   updated_at    timestamptz not null default now()
 );
 
-create index idx_inspiration_comments_request on inspiration_comments(request_id);
+-- GitHub issue comment sync (added in Sprint 20)
+do $$ begin
+  alter table inspiration_comments add column github_comment_id bigint;
+exception when duplicate_column then null;
+end $$;
+do $$ begin
+  create unique index if not exists idx_inspiration_comments_github_comment_id
+    on inspiration_comments(github_comment_id)
+    where github_comment_id is not null;
+exception when duplicate_table then null;
+end $$;
+do $$ begin
+  alter table inspiration_comments alter column user_id drop not null;
+exception when undefined_column then null;
+end $$;
+
+create index if not exists idx_inspiration_comments_request on inspiration_comments(request_id);
 
 -- Grant permissions to service_role (needed for admin client queries via PostgREST)
 grant select, insert, update, delete on inspiration_requests to service_role;

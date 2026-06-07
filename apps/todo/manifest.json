@@ -3,7 +3,7 @@
   "tablePrefix": "todo_",
   "name": "To-Do",
   "version": "1.0.0",
-  "description": "Simple task list — create, complete, and remove to-do items.",
+  "description": "Task manager with categories, priorities, due dates, and email notifications.",
   "logo": "logo.svg",
   "primaryColor": "#4F46E5",
   "secondaryColor": "#EEF2FF",
@@ -20,7 +20,7 @@
   },
   "api": true,
   "dependencies": [],
-  "notifications": false,
+  "notifications": true,
   "i18n": true,
   "config": [
     {

@@ -1,76 +1,129 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle2, Circle, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { Plus, X, Loader2, GripVertical } from 'lucide-react'
+import { toast } from 'sonner'
 
-interface TodoItem {
-  id: string
-  user_id: string
-  title: string
-  completed: boolean
-  created_at: string
-  visibility?: string
-  assigned_to?: string | null
-  group_id?: string
+interface Category {
+  id: string; name: string; emoji: string; color: string; display_order: number
 }
 
-export default function TodoAdmin() {
-  const t = useTranslations('apps.todo')
-  const [todos, setTodos] = useState<TodoItem[]>([])
-  const [loading, setLoading] = useState(true)
+// ─── CreateCategoryModal ───────────────────────────────────────────────────
+
+function CreateCategoryModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const t = useTranslations('admin.todo')
+  const [name, setName] = useState('')
+  const [emoji, setEmoji] = useState('📌')
+  const [color, setColor] = useState('#6B7280')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    fetch('/api/v1/admin/apps/todo', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : [])
-      .then((data: TodoItem[]) => { setTodos(data); setLoading(false) })
-  }, [])
+    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [onClose])
 
-  const pending = todos.filter(item => !item.completed).length
-  const done = todos.filter(item => item.completed).length
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setSaving(true)
+    const res = await fetch('/api/v1/admin/apps/todo/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.trim(), emoji, color }),
+    })
+    setSaving(false)
+    if (res.ok) { onCreated(); onClose() } else { toast.error('Failed to create') }
+  }
+
+  const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white'
 
   return (
-    <div className="p-6 max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">{t('admin_title')}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {t('admin_subtitle', { total: todos.length, pending, done })}
-        </p>
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
+      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-md mx-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900">{t('new_category')}</h2>
+          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">{t('name')}</label>
+              <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputCls} autoFocus required />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">Emoji</label>
+              <input type="text" value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={4} className="w-16 px-2 py-2 text-sm border border-slate-200 rounded-lg text-center" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">Color</label>
+              <input type="color" value={color} onChange={e => setColor(e.target.value)} className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer" />
+            </div>
+          </div>
+          <div className="pt-2 flex gap-2 justify-end">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600">{t('cancel')}</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? t('saving') : t('create')}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Admin ────────────────────────────────────────────────────────────
+
+export default function TodoAdmin() {
+  const t = useTranslations('admin.todo')
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showCreate, setShowCreate] = useState(false)
+  const [refresh, setRefresh] = useState(0)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch('/api/v1/admin/apps/todo/categories')
+      .then(r => r.json())
+      .then(data => setCategories(data ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [refresh])
+
+  async function handleDelete(id: string) {
+    const res = await fetch(`/api/v1/admin/apps/todo/categories/${id}`, { method: 'DELETE' })
+    if (res.ok) setRefresh(r => r + 1); else toast.error('Failed to delete')
+  }
+
+  return (
+    <div className="p-6 max-w-3xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">{t('title')}</h1>
+          <p className="text-sm text-slate-400 mt-1">{t('subtitle')}</p>
+        </div>
+        <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+          <Plus size={14} /> {t('new_category')}
+        </button>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 size={20} className="animate-spin text-gray-300" />
-        </div>
-      ) : todos.length === 0 ? (
-        <p className="text-sm text-gray-400 py-8 text-center">{t('admin_empty')}</p>
+        <div className="flex justify-center py-12"><Loader2 size={20} className="animate-spin text-slate-200" /></div>
+      ) : categories.length === 0 ? (
+        <div className="text-center py-12 text-sm text-slate-400">{t('no_categories')}</div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-100 divide-y divide-slate-50">
-          {todos.map(todo => (
-            <div key={todo.id} className="flex items-center gap-3 px-4 py-3">
-              {todo.completed
-                ? <CheckCircle2 size={16} className="flex-shrink-0" style={{ color: 'var(--app-primary)' }} />
-                : <Circle size={16} className="text-slate-200 flex-shrink-0" />}
-              <span className={`flex-1 text-sm ${todo.completed ? 'line-through text-slate-400' : 'text-slate-800'}`}>
-                {todo.title}
-              </span>
-              {todo.visibility && (
-                <span className="text-[10px] capitalize text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded flex-shrink-0">
-                  {todo.visibility === 'private' ? t('visibility_private') : t('visibility_public')}
-                </span>
-              )}
-              {todo.assigned_to && (
-                <span className="text-[10px] text-slate-400 flex-shrink-0" title={t('assigned_to')}>
-                  {todo.assigned_to === todo.user_id ? t('assigned_to_me') : todo.assigned_to.slice(0, 8) + '…'}
-                </span>
-              )}
-              <span className="text-xs text-slate-400 flex-shrink-0 font-mono">
-                {todo.user_id.slice(0, 8)}…
-              </span>
+        <div className="space-y-2">
+          {categories.map(cat => (
+            <div key={cat.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-100">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ backgroundColor: cat.color + '20' }}>{cat.emoji}</div>
+              <span className="text-sm font-medium text-slate-700 flex-1">{cat.name}</span>
+              <button onClick={() => handleDelete(cat.id)} className="text-xs text-red-400 hover:text-red-600 font-medium">{t('delete')}</button>
             </div>
           ))}
         </div>
       )}
+
+      {showCreate && <CreateCategoryModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
     </div>
   )
 }

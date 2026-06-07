@@ -3,6 +3,8 @@ import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyStatusChange } from '@/lib/use-cases/inspiration/send-notifications'
+import { closeIssue, updateLabels } from '@/lib/use-cases/inspiration/github'
+import { syncStatusToGitHubIssue } from '../../../../../../../../apps/inspiration/routes/github-helpers'
 
 const VALID_TYPES = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_general_functionality', 'other']
 const VALID_STATUSES = ['pending', 'reviewing', 'approved', 'in_progress', 'completed', 'rejected', 'on_hold', 'duplicate']
@@ -99,6 +101,8 @@ export async function GET(
   return apiOk({
     ...request,
     group,
+    group_name: group?.name ?? null,
+    group_slug: group?.slug ?? null,
     creator,
     vote_count: voteCount,
     comment_count: commentsEnriched.length,
@@ -166,6 +170,8 @@ export async function PUT(
   if (statusChanged) {
     void notifyStatusChange(id, oldStatusValue, status as string, undefined, 'en')
       .catch(err => console.error('[Inspiration] Failed to send status change notification:', err))
+    void syncStatusToGitHubIssue(id, oldStatusValue, status as string)
+      .catch(err => console.error('[Inspiration] Failed to sync status to GitHub:', err))
   }
 
   return apiOk(data)
@@ -186,11 +192,21 @@ export async function DELETE(
 
   const { data: existing, error: fetchError } = await adminClient
     .from('inspiration_requests')
-    .select('id')
+    .select('id, github_issue_number')
     .eq('id', id)
     .maybeSingle()
 
   if (fetchError || !existing) return apiError('NOT_FOUND', 'Request not found', 404)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((existing as any).github_issue_number) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const num = (existing as any).github_issue_number as number
+    void updateLabels(num, ['status: deleted'])
+      .catch(err => console.error('[Admin] Failed to label GitHub issue on delete:', err))
+    void closeIssue(num)
+      .catch(err => console.error('[Admin] Failed to close GitHub issue on idea delete:', err))
+  }
 
   const { error: deleteError } = await adminClient
     .from('inspiration_requests')

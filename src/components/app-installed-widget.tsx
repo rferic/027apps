@@ -24,6 +24,8 @@ function AppIcon({ slug, name, primaryColor }: { slug: string; name: string; pri
     <Image unoptimized
       src={`/api/apps/${slug}/logo`}
       alt={name}
+      width={40}
+      height={40}
       className="w-10 h-10 rounded-lg shrink-0"
       onError={() => setFailed(true)}
     />

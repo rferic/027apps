@@ -1,49 +1,36 @@
-import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import type { HandlerContext } from '@/lib/apps/router-types'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
-  const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
+  const id = new URL(req.url).pathname.split('/').pop()
+  if (!id) return apiError('BAD_REQUEST', 'Missing item ID', 400)
 
-  // Extract ID from URL: /api/v1/{groupSlug}/apps/todo/{id}
-  const parsedUrl = new URL(req.url)
-  const segments = parsedUrl.pathname.split('/')
-  const id = segments[segments.length - 1]
-  if (!id) return apiError('BAD_REQUEST', 'Missing todo ID', 400)
+  let body: Record<string, unknown>
+  try { body = await req.json() } catch { return apiError('BAD_REQUEST', 'Invalid JSON body', 400) }
+  if (typeof body !== 'object' || body === null) return apiError('BAD_REQUEST', 'Body must be an object', 400)
 
-  let body: unknown
-  try {
-    body = await req.json()
-  } catch {
-    return apiError('BAD_REQUEST', 'Invalid JSON body', 400)
+  const db = createAdminClientUntyped()
+
+  const { data: existing } = await db.from('todo_items').select('id').eq('id', id).single()
+  if (!existing) return apiError('NOT_FOUND', 'Item not found', 404)
+
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+
+  if (typeof body.title === 'string') update.title = body.title.trim()
+  if (body.description !== undefined) update.description = typeof body.description === 'string' ? body.description : null
+  if (body.visibility === 'public' || body.visibility === 'private') update.visibility = body.visibility
+  if (['pending', 'in_progress', 'done', 'cancelled'].includes(body.status as string)) {
+    update.status = body.status
+    if (body.status === 'done') update.completed_at = new Date().toISOString()
   }
-  if (typeof body !== 'object' || body === null) {
-    return apiError('BAD_REQUEST', 'Body must be an object', 400)
-  }
-  const { title, completed } = body as Record<string, unknown>
+  if (['low', 'medium', 'high', 'urgent'].includes(body.priority as string)) update.priority = body.priority
+  if (body.category_id !== undefined) update.category_id = typeof body.category_id === 'string' ? body.category_id : null
+  if (body.assigned_to !== undefined) update.assigned_to = typeof body.assigned_to === 'string' ? body.assigned_to : null
+  if (body.due_date !== undefined) update.due_date = typeof body.due_date === 'string' ? body.due_date : null
 
-  const updates: Record<string, unknown> = {}
-  if (typeof title === 'string' && title.trim()) updates.title = title.trim()
-  if (typeof completed === 'boolean') updates.completed = completed
+  const { data: item, error } = await db.from('todo_items').update(update).eq('id', id).select().single()
+  if (error) return apiError('UPDATE_FAILED', error.message, 500)
 
-  if (Object.keys(updates).length === 0) {
-    return apiError('VALIDATION_ERROR', 'No valid fields to update', 422)
-  }
-
-  const adminClient = createAdminClientUntyped()
-  const { data, error } = await adminClient
-    .from('todo_items')
-    .update(updates)
-    .eq('id', id)
-    .eq('group_id', ctx.groupId)
-    .eq('user_id', auth.userId)
-    .select('id, title, completed, created_at')
-    .single()
-
-  if (error) return apiError('UPDATE_ERROR', error.message, 500)
-  if (!data) return apiError('NOT_FOUND', 'Todo not found', 404)
-  return apiOk(data)
+  return apiOk(item)
 }

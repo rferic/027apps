@@ -86,7 +86,8 @@
       "api_docs": "API Docs",
       "apps_order": "Anwendungen",
       "docs": "Dokumentation",
-      "docs_home": "Docs"
+      "docs_home": "Docs",
+      "github": "GitHub"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -103,7 +104,15 @@
       "statsGroups": "Gruppen",
       "statsApps": "Apps",
       "statsAppsSublabel": "verfügbar",
-      "statsPending": "Ausstehende Einladungen"
+      "statsPending": "Ausstehende Einladungen",
+      "inspiration_title": "Inspiration",
+      "total_ideas": "Total ideas",
+      "pending": "Pending",
+      "reviewing": "Reviewing",
+      "completed": "Completed",
+      "most_supported": "Most supported ideas",
+      "votes": "{count} votes",
+      "comments": "{count} comments"
     },
     "users": {
       "title": "Mitglieder",
@@ -374,6 +383,106 @@
         "saved": "Reihenfolge gespeichert",
         "error": "Fehler beim Speichern der Reihenfolge",
         "empty": "Keine Apps installiert."
+      },
+      "github": {
+        "title": "GitHub",
+        "subtitle": "Connect a GitHub App to sync ideas with issues.",
+        "connection": {
+          "title": "GitHub App connection",
+          "not_connected": "Not connected",
+          "connected": "Connected as {app}",
+          "connect": "Connect to GitHub",
+          "disconnect": "Disconnect",
+          "app_id": "App ID",
+          "installation_id": "Installation ID",
+          "repo": "Repository",
+          "set_repo": "Set repository",
+          "webhook": "Webhook",
+          "configured": "Configured",
+          "pending": "Pending",
+          "test": "Test connection",
+          "test_ok": "Connection successful!",
+          "test_fail": "Connection failed",
+          "set_installation_id": "Set installation ID",
+          "installation_id_placeholder": "e.g. 12345678",
+          "save": "Save",
+          "cancel": "Cancel"
+        },
+        "toggle": {
+          "title": "Sync ideas to GitHub Issues",
+          "description": "When enabled, new ideas automatically create GitHub issues.",
+          "on_note": "New ideas will create issues automatically.",
+          "off_note": "No issues will be created for new ideas."
+        },
+        "labels": {
+          "title": "Label mapping",
+          "description": "Map each idea type to a GitHub label.",
+          "edit": "Edit",
+          "editor": {
+            "title": "Edit label mapping",
+            "cancel": "Cancel",
+            "save": "Save",
+            "name_placeholder": "Label name",
+            "color_placeholder": "color"
+          }
+        },
+        "repo_editor": {
+          "title": "Set repository",
+          "cancel": "Cancel",
+          "save": "Save",
+          "placeholder": "owner/repo",
+          "fetch": "Fetch repos",
+          "select_repo": "Select a repository...",
+          "hint": "Format: owner/repo (e.g. rferic/027apps-test)",
+          "fetch_error": "Failed to fetch repositories"
+        },
+        "disconnect_confirm": {
+          "title": "Disconnect GitHub App?",
+          "description": "This will remove all GitHub credentials and stop issue sync. GitHub issues will NOT be deleted.",
+          "cancel": "Cancel",
+          "confirm": "Disconnect"
+        },
+        "connected_success": "GitHub App connected successfully!",
+        "errors": {
+          "missing_params": "Missing code or installation_id from GitHub",
+          "github_error": "GitHub API error",
+          "exception": "An unexpected error occurred"
+        },
+        "manual": {
+          "title": "Connect GitHub App",
+          "subtitle": "Enter your GitHub App credentials manually.",
+          "instructions_title": "How to create a GitHub App:",
+          "step1": "Go to GitHub → Settings → Developer Settings → GitHub Apps → New App",
+          "step2": "Set Homepage URL to your app URL and Webhook URL to {origin}/api/v1/github/webhook",
+          "step3": "Subscribe to events: Issues, Issue comment. Permissions: Issues (write), Metadata (read).",
+          "step4": "Create the app, generate a private key (.pem), and install it on your repository.",
+          "step5": "Copy the App ID, Installation ID, and paste the private key below.",
+          "app_id": "App ID",
+          "private_key": "Private Key (PEM)",
+          "installation_id": "Installation ID",
+          "connect": "Connect",
+          "webhook_secret": "Webhook secret (optional)",
+          "save_secret": "Save",
+          "webhook_hint": "Set the same secret in your GitHub App webhook settings.",
+          "app_id_placeholder": "e.g. 123456",
+          "private_key_placeholder": "Paste your PEM private key here...",
+          "installation_id_placeholder": "e.g. 987654",
+          "webhook_placeholder": "Optional: webhook secret"
+        },
+        "quick": {
+          "title": "Quick setup (recommended)",
+          "subtitle": "Connect via GitHub Manifest — create the app automatically.",
+          "connect": "Connect to GitHub",
+          "hint": "Opens GitHub in a new tab. Click \"Create GitHub App\" to complete setup."
+        },
+        "install_prompt": {
+          "title": "App registered — needs installation",
+          "description": "Your GitHub App (ID: {appId}) is registered but not yet installed. It needs to be installed on your GitHub account to create issues.",
+          "step1": "Go to GitHub → Settings → Developer settings → GitHub Apps → your app → Install App",
+          "step2": "Select your account and choose the repository",
+          "step3": "After installing, the Installation ID will be detected automatically (or enter it in Settings below)",
+          "check": "Check installation"
+        }
       }
     },
     "editUser": {
@@ -464,6 +573,17 @@
     },
     "common": {
       "loading": "Wird geladen…"
+    },
+    "todo": {
+      "title": "Task Management",
+      "subtitle": "Configure categories for the task module.",
+      "new_category": "Add Category",
+      "name": "Name",
+      "cancel": "Cancel",
+      "create": "Create",
+      "saving": "Saving...",
+      "delete": "Delete",
+      "no_categories": "No categories yet."
     }
   },
   "invite": {
@@ -533,7 +653,23 @@
       "open": "Öffnen",
       "admin_title": "Aufgabenverwaltung",
       "admin_subtitle": "{total} Aufgaben: {pending} ausstehend, {done} erledigt",
-      "admin_empty": "Keine Aufgaben im System"
+      "admin_empty": "Keine Aufgaben im System",
+      "new_todo": "New task",
+      "create_title": "Create task",
+      "create": "Create",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "title_placeholder": "What needs to be done?",
+      "desc_placeholder": "Add a description...",
+      "visibility_public": "Public",
+      "visibility_private": "Private",
+      "tab_my": "My Tasks",
+      "tab_group": "Group Tasks",
+      "take": "Take",
+      "empty_my": "No tasks assigned to you.",
+      "empty_group": "No unassigned tasks in the group.",
+      "error_loading": "Could not load tasks.",
+      "not_found": "Task not found."
     },
     "permissions": {
       "title": "Zugang",

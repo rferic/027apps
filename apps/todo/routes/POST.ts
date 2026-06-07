@@ -1,35 +1,38 @@
-import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import type { HandlerContext } from '@/lib/apps/router-types'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
-  const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
+  let body: Record<string, unknown>
+  try { body = await req.json() } catch { return apiError('BAD_REQUEST', 'Invalid JSON body', 400) }
+  if (typeof body !== 'object' || body === null) return apiError('BAD_REQUEST', 'Body must be an object', 400)
 
-  let body: unknown
-  try {
-    body = await req.json()
-  } catch {
-    return apiError('BAD_REQUEST', 'Invalid JSON body', 400)
-  }
+  const title = typeof body.title === 'string' ? body.title.trim() : ''
+  if (!title) return apiError('VALIDATION_ERROR', 'Title is required', 400)
 
-  if (typeof body !== 'object' || body === null) {
-    return apiError('BAD_REQUEST', 'Body must be an object', 400)
-  }
-  const { title } = body as Record<string, unknown>
-  if (typeof title !== 'string' || !title.trim()) {
-    return apiError('VALIDATION_ERROR', 'title is required', 422)
-  }
+  const description = typeof body.description === 'string' ? body.description : ''
+  const visibility = body.visibility === 'private' ? 'private' : 'public'
+  const priority = ['low', 'medium', 'high', 'urgent'].includes(body.priority as string) ? body.priority : 'medium'
+  const categoryId = typeof body.category_id === 'string' ? body.category_id : null
+  const dueDate = typeof body.due_date === 'string' ? body.due_date : null
+  const assignedTo = visibility === 'public' && typeof body.assigned_to === 'string' ? body.assigned_to : null
 
-  const adminClient = createAdminClientUntyped()
-  const { data, error } = await adminClient
-    .from('todo_items')
-    .insert({ user_id: auth.userId, title: title.trim(), group_id: ctx.groupId, visibility: 'private' })
-    .select('id, title, completed, created_at')
-    .single()
+  const db = createAdminClientUntyped()
 
-  if (error) return apiError('INSERT_ERROR', error.message, 500)
-  return apiOk(data, 201)
+  const { data: item, error } = await db.from('todo_items').insert({
+    group_id: ctx.groupId,
+    title,
+    description: description || null,
+    visibility,
+    status: 'pending',
+    priority,
+    category_id: categoryId,
+    assigned_to: assignedTo,
+    created_by: ctx.userId,
+    due_date: dueDate,
+  }).select().single()
+
+  if (error) return apiError('CREATE_FAILED', error.message, 500)
+
+  return apiOk(item)
 }

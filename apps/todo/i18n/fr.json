@@ -19,5 +19,14 @@
   "assigned_to": "Assigné à",
   "assigned_to_me": "Moi",
   "assign_to_me": "M'assigner",
-  "description": "Liste de tâches simple : créez, complétez et supprimez des tâches."
+  "description": "Liste de tâches simple : créez, complétez et supprimez des tâches.",
+  "widget": {
+    "not_available": "No disponible",
+    "couldnt_load": "No se pudo cargar",
+    "heading": "Tareas",
+    "no_tasks": "Sin tareas pendientes",
+    "my_tasks": "Mis tareas",
+    "group_tasks": "Tareas del grupo",
+    "view_all": "Ver todas"
+  }
 }

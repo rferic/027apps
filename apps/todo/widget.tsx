@@ -2,64 +2,148 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Circle, Loader2 } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { CheckSquare, Clock, AlertTriangle, ArrowRight, Loader2, UserPlus } from 'lucide-react'
 import { useAppContext } from '@/lib/apps/context'
 
 interface TodoItem {
   id: string
   title: string
-  completed: boolean
+  priority: string
+  due_date: string | null
+  status: string
+  category_id: string | null
+}
+
+const PRIORITY_COLORS: Record<string, string> = {
+  urgent: '#EF4444',
+  high: '#F97316',
+  medium: '#F59E0B',
+  low: '#6B7280',
+}
+
+const PRIORITY_ICONS: Record<string, typeof AlertTriangle> = {
+  urgent: AlertTriangle,
+  high: AlertTriangle,
+  medium: Clock,
+  low: Clock,
+}
+
+function PriorityBadge({ priority }: { priority: string }) {
+  const color = PRIORITY_COLORS[priority] ?? '#6B7280'
+  return (
+    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: color + '20', color }}>
+      {priority}
+    </span>
+  )
 }
 
 export default function TodoWidget() {
+  const ctx = useAppContext()
+  const groupSlug = ctx.groupSlug ?? (
+    typeof window !== 'undefined'
+      ? window.location.pathname.split('/')[2] ?? null
+      : null
+  )
+  const locale = useLocale()
   const t = useTranslations('apps.todo')
-  const { groupSlug } = useAppContext()
-  const [todos, setTodos] = useState<TodoItem[]>([])
+  const [myTasks, setMyTasks] = useState<TodoItem[]>([])
+  const [groupTasks, setGroupTasks] = useState<TodoItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
-    if (!groupSlug) return
-    fetch(`/api/v1/${groupSlug}/apps/todo`, { credentials: 'include' })
-      .then(r => r.ok ? r.json() : [])
-      .then((data: TodoItem[]) => { setTodos(data); setLoading(false) })
+    if (!groupSlug) { setLoading(false); return }
+
+    const abort = new AbortController()
+
+    Promise.all([
+      fetch(`/api/v1/${groupSlug}/apps/todo/widget/my`, { credentials: 'include', signal: abort.signal }).then(r => r.ok ? r.json() : []),
+      fetch(`/api/v1/${groupSlug}/apps/todo/widget/group`, { credentials: 'include', signal: abort.signal }).then(r => r.ok ? r.json() : []),
+    ])
+      .then(([my, group]) => {
+        if (abort.signal.aborted) return
+        setMyTasks(Array.isArray(my) ? my : [])
+        setGroupTasks(Array.isArray(group) ? group : [])
+        setLoading(false)
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) { setError(true); setLoading(false) }
+      })
+
+    return () => abort.abort()
   }, [groupSlug])
 
-  const pending = todos.filter(item => !item.completed)
+  if (!groupSlug) {
+    return <div className="p-4 text-center text-xs text-slate-400">{t('widget.not_available')}</div>
+  }
+
+  if (loading) {
+    return <div className="flex justify-center py-6"><Loader2 size={16} className="animate-spin text-slate-200" /></div>
+  }
+
+  if (error) {
+    return <div className="p-4 text-center text-xs text-slate-400">{t('widget.couldnt_load')}</div>
+  }
+
+  const hasData = myTasks.length > 0 || groupTasks.length > 0
+  if (!hasData) {
+    return (
+      <div className="p-4">
+        <div className="flex items-center gap-1.5 mb-3">
+          <CheckSquare className="w-4 h-4" style={{ color: 'var(--app-primary)' }} />
+          <h3 className="text-sm font-semibold text-slate-700">{t('widget.heading')}</h3>
+        </div>
+        <p className="text-xs text-slate-400 py-2 text-center">{t('widget.no_tasks')}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-semibold text-slate-800">{t('title')}</span>
-        <span className="text-xs text-slate-400">{t('pending_label', { count: pending.length })}</span>
+      <div className="flex items-center gap-1.5 mb-3">
+        <CheckSquare className="w-4 h-4" style={{ color: 'var(--app-primary)' }} />
+        <h3 className="text-sm font-semibold text-slate-700">{t('widget.heading')}</h3>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-4">
-          <Loader2 size={16} className="animate-spin text-slate-200" />
+      {/* My tasks */}
+      {myTasks.length > 0 && (
+        <div className="mb-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <UserPlus className="w-3.5 h-3.5" style={{ color: 'var(--app-primary)' }} />
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t('widget.my_tasks')}</span>
+          </div>
+          <div className="space-y-1.5">
+            {myTasks.map(item => (
+              <div key={item.id} className="flex items-center justify-between text-sm">
+                <span className="text-slate-600 truncate flex-1 mr-2 max-w-[65%]">{item.title}</span>
+                <PriorityBadge priority={item.priority} />
+              </div>
+            ))}
+          </div>
         </div>
-      ) : pending.length === 0 ? (
-        <p className="text-xs text-slate-400 py-2 text-center">{t('all_done')}</p>
-      ) : (
-        <ul className="space-y-1.5">
-          {pending.slice(0, 3).map(todo => (
-            <li key={todo.id} className="flex items-center gap-2">
-              <Circle size={13} className="text-slate-300 flex-shrink-0" />
-              <span className="text-xs text-slate-700 truncate">{todo.title}</span>
-            </li>
-          ))}
-          {pending.length > 3 && (
-            <li className="text-xs text-slate-400 pl-5">{t('more_tasks', { count: pending.length - 3 })}</li>
-          )}
-        </ul>
       )}
 
-      <Link
-        href="/apps/todo"
-        className="mt-3 block text-center text-xs font-medium transition-colors"
-        style={{ color: 'var(--app-primary)' }}
-      >
-        {t('open')}
+      {/* Group tasks */}
+      {groupTasks.length > 0 && (
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <CheckSquare className="w-3.5 h-3.5" style={{ color: 'var(--app-primary)' }} />
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t('widget.group_tasks')}</span>
+          </div>
+          <div className="space-y-1.5">
+            {groupTasks.map(item => (
+              <div key={item.id} className="flex items-center justify-between text-sm">
+                <span className="text-slate-600 truncate flex-1 mr-2 max-w-[65%]">{item.title}</span>
+                <PriorityBadge priority={item.priority} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Link href={`/${locale}/${groupSlug}/apps/todo`} className="flex items-center justify-center gap-1 text-xs font-medium mt-3 pt-3 border-t border-slate-100" style={{ color: 'var(--app-primary)' }}>
+        {t('widget.view_all')} <ArrowRight className="w-3 h-3" />
       </Link>
     </div>
   )

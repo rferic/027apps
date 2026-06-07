@@ -110,7 +110,11 @@
     "all": "Tous",
     "error_loading": "Quelque chose s'est mal passé en chargeant les idées.",
     "error_retry": "Réessayer",
-    "counts": "{total} total · {active} active · {completed} completed"
+    "counts": "{total} total · {active} active · {completed} completed",
+    "view_issue": "View on GitHub",
+    "generate_issue": "Generate GitHub issue",
+    "unlink": "Unlink",
+    "unlink_confirm": "Unlink GitHub issue? This will not close the issue on GitHub."
   },
   "comments": {
     "title": "Commentaires",
@@ -180,7 +184,25 @@
       "voters": "Votants",
       "error": "Impossible de charger les détails"
     },
-    "search": "Rechercher des idées..."
+    "search": "Rechercher des idées...",
+    "delete": "Delete",
+    "delete_title": "Delete idea?",
+    "delete_confirm": "Are you sure? This action cannot be undone. The associated GitHub issue will also be closed.",
+    "settings_tab": "Settings",
+    "settings": "Settings",
+    "settings_subtitle": "GitHub App integration configuration.",
+    "back": "Back",
+    "github": {
+      "generate_issue": "Generate GitHub Issue",
+      "view_issue": "View issue",
+      "unlink": "Unlink",
+      "not_linked": "No GitHub issue linked",
+      "no_group_slug": "Cannot link: missing group slug",
+      "link_error": "Failed to create GitHub issue",
+      "unlink_error": "Failed to unlink GitHub issue",
+      "unlink_confirm": "Remove the link to this GitHub issue?",
+      "network_error": "Network error"
+    }
   },
   "time": {
     "just_now": "à l'instant",
