@@ -3,7 +3,7 @@ import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyStatusChange } from '@/lib/use-cases/inspiration/send-notifications'
-import { closeIssue } from '@/lib/use-cases/inspiration/github'
+import { closeIssue, updateLabels } from '@/lib/use-cases/inspiration/github'
 
 const VALID_TYPES = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_general_functionality', 'other']
 const VALID_STATUSES = ['pending', 'reviewing', 'approved', 'in_progress', 'completed', 'rejected', 'on_hold', 'duplicate']
@@ -198,7 +198,10 @@ export async function DELETE(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if ((existing as any).github_issue_number) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    void closeIssue((existing as any).github_issue_number as number)
+    const num = (existing as any).github_issue_number as number
+    void updateLabels(num, ['status: deleted'])
+      .catch(err => console.error('[Admin] Failed to label GitHub issue on delete:', err))
+    void closeIssue(num)
       .catch(err => console.error('[Admin] Failed to close GitHub issue on idea delete:', err))
   }
 
