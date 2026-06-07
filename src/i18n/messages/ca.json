@@ -394,7 +394,9 @@
           "pending": "Pending",
           "test": "Test connection",
           "test_ok": "Connection successful!",
-          "test_fail": "Connection failed"
+          "test_fail": "Connection failed",
+          "set_installation_id": "Set installation ID",
+          "installation_id_placeholder": "e.g. 12345678"
         },
         "toggle": {
           "title": "Sync ideas to GitHub Issues",

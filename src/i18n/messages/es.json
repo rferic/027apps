@@ -394,7 +394,9 @@
           "pending": "Pendiente",
           "test": "Probar conexión",
           "test_ok": "¡Conexión exitosa!",
-          "test_fail": "Error de conexión"
+          "test_fail": "Error de conexión",
+          "set_installation_id": "Indicar ID de instalación",
+          "installation_id_placeholder": "ej. 12345678"
         },
         "toggle": {
           "title": "Sincronizar ideas con GitHub Issues",

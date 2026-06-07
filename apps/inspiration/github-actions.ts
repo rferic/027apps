@@ -160,6 +160,14 @@ export async function updateGitHubRepo(repo: string): Promise<void> {
   revalidatePath('/admin/settings/github')
 }
 
+// ─── Update installation ID ──────────────────────────────
+
+export async function updateGitHubInstallationId(id: number): Promise<void> {
+  await requireAdmin()
+  await setAppSetting('github_installation_id', id)
+  revalidatePath('/admin/settings/github')
+}
+
 // ─── Update label map ────────────────────────────────────
 
 export async function updateLabelMap(

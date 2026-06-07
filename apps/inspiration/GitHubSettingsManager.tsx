@@ -19,6 +19,7 @@ import {
   testGitHubConnection,
   toggleGitHubSync,
   updateGitHubRepo,
+  updateGitHubInstallationId,
   updateLabelMap,
   disconnectGitHub,
 } from './github-actions'
@@ -57,6 +58,8 @@ export function GitHubSettingsManager({ initial }: Props) {
   const [showLabelEditor, setShowLabelEditor] = useState(false)
   const [showRepoEditor, setShowRepoEditor] = useState(false)
   const [repoInput, setRepoInput] = useState(settings.repo ?? '')
+  const [editingInstallationId, setEditingInstallationId] = useState(false)
+  const [installationIdInput, setInstallationIdInput] = useState(String(settings.installationId ?? ''))
   const [labelMap, setLabelMap] = useState(settings.labelMap ?? {})
   const [error, setError] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
@@ -131,6 +134,15 @@ export function GitHubSettingsManager({ initial }: Props) {
     updateGitHubRepo(repoInput.trim()).then(() => {
       setSettings((prev) => ({ ...prev, repo: repoInput.trim() }))
       setShowRepoEditor(false)
+    })
+  }
+
+  function handleSaveInstallationId() {
+    const id = parseInt(installationIdInput.trim(), 10)
+    if (isNaN(id)) return
+    updateGitHubInstallationId(id).then(() => {
+      setSettings((prev) => ({ ...prev, installationId: id }))
+      setEditingInstallationId(false)
     })
   }
 
@@ -357,12 +369,31 @@ export function GitHubSettingsManager({ initial }: Props) {
                   <span>{t('connection.app_id')}</span>
                   <span className="font-mono text-xs">{settings.appId}</span>
                 </div>
-                {settings.installationId && (
-                  <div className="flex justify-between">
-                    <span>{t('connection.installation_id')}</span>
-                    <span className="font-mono text-xs">{settings.installationId}</span>
+                <div className="flex justify-between items-center">
+                  <span>{t('connection.installation_id')}</span>
+                  <div className="flex items-center gap-1">
+                    {editingInstallationId ? (
+                      <>
+                        <input
+                          type="text"
+                          value={installationIdInput}
+                          onChange={(e) => setInstallationIdInput(e.target.value)}
+                          placeholder={t('connection.installation_id_placeholder')}
+                          className="w-32 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-rose-200 focus:border-rose-300"
+                        />
+                        <button onClick={handleSaveInstallationId} disabled={!installationIdInput.trim()} className="text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer disabled:opacity-50">{t('connection.save')}</button>
+                        <button onClick={() => setEditingInstallationId(false)} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">{t('connection.cancel')}</button>
+                      </>
+                    ) : settings.installationId ? (
+                      <>
+                        <span className="font-mono text-xs">{settings.installationId}</span>
+                        <button type="button" onClick={() => { setEditingInstallationId(true); setInstallationIdInput(String(settings.installationId)) }} className="p-0.5 text-gray-400 hover:text-gray-600 cursor-pointer"><Pencil size={12} /></button>
+                      </>
+                    ) : (
+                      <button type="button" onClick={() => setEditingInstallationId(true)} className="text-xs text-rose-600 hover:text-rose-700 font-medium cursor-pointer">{t('connection.set_installation_id')}</button>
+                    )}
                   </div>
-                )}
+                </div>
                 <div className="flex justify-between items-center">
                   <span>{t('connection.repo')}</span>
                   {settings.repo ? (
