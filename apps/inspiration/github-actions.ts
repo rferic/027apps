@@ -272,6 +272,7 @@ export interface TestResult {
   step: string
   ok: boolean
   detail?: string
+  refs?: { label: string; value: string }[]
 }
 
 export async function runIntegrationTests(): Promise<TestResult[]> {
@@ -361,7 +362,7 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
     if (createRes.ok) {
       const issueData = await createRes.json()
       issueNumber = issueData.number
-      results.push({ step: 'GitHub: create issue', ok: true, detail: `#${issueNumber}` })
+      results.push({ step: 'GitHub: create issue', ok: true, detail: `#${issueNumber}`, refs: [{ label: 'GH issue', value: `#${issueNumber}` }] })
     } else {
       const body = await createRes.text().catch(() => '')
       results.push({ step: 'GitHub: create issue', ok: false, detail: `${createRes.status} — ${body}` })
@@ -497,7 +498,7 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
     if (insertError) {
       results.push({ step: 'Web: create idea in DB', ok: false, detail: insertError.message })
     } else {
-      results.push({ step: 'Web: create idea in DB', ok: true })
+      results.push({ step: 'Web: create idea in DB', ok: true, refs: [{ label: 'Idea UUID', value: testId }] })
     }
   } catch (err) {
     results.push({ step: 'Web: create idea in DB', ok: false, detail: err instanceof Error ? err.message : String(err) })
@@ -531,6 +532,10 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
           step: 'Web: create → GitHub issue',
           ok: true,
           detail: `#${webIssueNumber} created${hasStatusLabel ? ' with status:pending label' : ''}`,
+          refs: [
+            { label: 'GH issue', value: `#${webIssueNumber}` },
+            { label: 'Idea UUID', value: testId },
+          ],
         })
       } else {
         results.push({ step: 'Web: create → GitHub issue', ok: false, detail: 'Issue not found on GitHub' })

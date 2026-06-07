@@ -474,19 +474,33 @@ export function GitHubSettingsManager({ initial }: Props) {
                   {' — '}
                   {integrationResults.filter(r => r.ok).length}/{integrationResults.length} passed
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const text = integrationResults.map(r =>
-                      `${r.ok ? '✅' : '❌'} ${r.step}${r.detail ? ` — ${r.detail}` : ''}`
-                    ).join('\n')
-                    const summary = `${integrationResults.every(r => r.ok) ? '✅ All tests passed' : '❌ Some tests failed'} — ${integrationResults.filter(r => r.ok).length}/${integrationResults.length} passed`
-                    navigator.clipboard.writeText(text + '\n\n' + summary)
-                  }}
-                  className="mt-2 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                >
-                  Copy results
-                </button>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = integrationResults.map(r =>
+                        `${r.ok ? '✅' : '❌'} ${r.step}${r.detail ? ` — ${r.detail}` : ''}`
+                      ).join('\n')
+                      const summary = `${integrationResults.every(r => r.ok) ? '✅ All tests passed' : '❌ Some tests failed'} — ${integrationResults.filter(r => r.ok).length}/${integrationResults.length} passed`
+                      navigator.clipboard.writeText(text + '\n\n' + summary)
+                    }}
+                    className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
+                    Copy results
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const refs = integrationResults.flatMap(r => r.refs ?? [])
+                      const unique = refs.filter((r, i, a) => a.findIndex(x => x.label === r.label && x.value === r.value) === i)
+                      const text = unique.map(r => `${r.label}: ${r.value}`).join('\n')
+                      navigator.clipboard.writeText(text)
+                    }}
+                    className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
+                    Copy test IDs
+                  </button>
+                </div>
               </div>
             )}
 
