@@ -66,22 +66,31 @@ export async function createGitHubIssueForIdea(idea: {
   if (!supabaseUrl || !serviceKey) throw new Error('Supabase credentials not configured')
 
   const safeUrl = issue.url.replace(/'/g, "''")
-  const sql = `update inspiration_requests set github_issue_number = ${issue.number}, github_issue_url = '${safeUrl}', updated_at = now() where id = '${idea.id}'`
 
-  const res = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-    },
-    body: JSON.stringify({ sql }),
-  })
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new Error(`Failed to link GitHub issue: ${res.status} — ${body}`)
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
   }
+
+  async function execSql(sql: string): Promise<void> {
+    const res = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ sql }),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new Error(`Failed to link GitHub issue: ${res.status} — ${body}`)
+    }
+  }
+
+  // Ensure columns exist (in case migration hasn't been applied)
+  await execSql(`alter table if exists inspiration_requests add column if not exists github_issue_number integer`)
+  await execSql(`alter table if exists inspiration_requests add column if not exists github_issue_url text`)
+
+  // Update the idea with the GitHub issue info
+  await execSql(`update inspiration_requests set github_issue_number = ${issue.number}, github_issue_url = '${safeUrl}', updated_at = now() where id = '${idea.id}'`)
 }
 
 export async function syncStatusToGitHubIssue(
