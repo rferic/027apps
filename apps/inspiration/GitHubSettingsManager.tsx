@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { GitHubSettings } from './github-actions'
 import {
+  getGitHubSettings,
   saveGitHubCredentials,
   saveWebhookSecret,
   testGitHubConnection,
@@ -133,6 +134,10 @@ export function GitHubSettingsManager({ initial }: Props) {
     startTest(async () => {
       const result = await testGitHubConnection()
       setTestResult(result)
+      if (result.ok) {
+        const fresh = await getGitHubSettings()
+        setSettings(fresh)
+      }
     })
   }
 
@@ -216,6 +221,11 @@ export function GitHubSettingsManager({ initial }: Props) {
               {isTesting ? <Loader2 size={14} className="animate-spin inline mr-1" /> : null}
               {t('install_prompt.check')}
             </button>
+            {testResult && (
+              <p className={`text-xs ${testResult.ok ? 'text-green-700' : 'text-red-700'}`}>
+                {testResult.ok ? t('connection.test_ok') : testResult.error}
+              </p>
+            )}
           </div>
 
           {/** Manual installation ID entry */}
