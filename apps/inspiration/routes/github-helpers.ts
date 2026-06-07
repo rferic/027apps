@@ -1,5 +1,5 @@
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
-import { createIssue, closeIssue, reopenIssue } from '@/lib/use-cases/inspiration/github'
+import { createIssue, closeIssue, reopenIssue, updateLabels } from '@/lib/use-cases/inspiration/github'
 import { getAppSetting } from '@/lib/use-cases/app-settings'
 
 const DEFAULT_LABEL_MAP: Record<string, string> = {
@@ -84,6 +84,17 @@ export async function createGitHubIssueForIdea(idea: {
   await execSql(`update inspiration_requests set github_issue_number = ${issue.number}, github_issue_url = '${safeUrl}', updated_at = now() where id = '${idea.id}'`)
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'status: pending',
+  reviewing: 'status: reviewing',
+  approved: 'status: approved',
+  in_progress: 'status: in progress',
+  on_hold: 'status: on hold',
+  completed: 'status: completed',
+  rejected: 'status: rejected',
+  duplicate: 'status: duplicate',
+}
+
 export async function syncStatusToGitHubIssue(
   ideaId: string,
   oldStatus: string,
@@ -98,6 +109,15 @@ export async function syncStatusToGitHubIssue(
 
   if (!idea?.github_issue_number) return
 
+  // Update labels to reflect the new status
+  const labelMap = await getGitHubLabelMap()
+  const typeLabel = labelMap[idea.type] ?? 'other'
+  const statusLabel = STATUS_LABELS[newStatus]
+  const labels = statusLabel ? [typeLabel, statusLabel] : [typeLabel]
+
+  await updateLabels(idea.github_issue_number, labels)
+
+  // Close or reopen the issue based on status change
   if (newStatus === 'completed' || newStatus === 'rejected' || newStatus === 'duplicate') {
     const reason = newStatus === 'completed' ? 'completed' : 'not_planned'
     await closeIssue(idea.github_issue_number, reason)
