@@ -101,7 +101,6 @@ export function UserDropdown({ locale, displayName, profileHref, isAdmin, active
                     if (loc === locale) return
                     startLocaleTransition(async () => {
                       await updateLocale(loc)
-                      document.cookie = `preferred-locale=${loc};path=/;max-age=${365 * 24 * 60 * 60};samesite=lax`
                       const pathAfterLocale = pathname.split('/').slice(2).join('/')
                       router.push(`/${loc}/${pathAfterLocale}`)
                     })

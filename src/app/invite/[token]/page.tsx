@@ -19,7 +19,8 @@ async function getPageData(token: string): Promise<PageData> {
     const t = await getTranslations({ locale: invitation.locale, namespace: 'invite' })
 
     return { ok: true, token, invitation, status, t }
-  } catch {
+  } catch (err) {
+    console.error('[InvitePage] Error loading invitation:', err)
     return { ok: false, error: 'system' }
   }
 }
