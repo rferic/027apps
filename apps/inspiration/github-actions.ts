@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth/helpers'
 import { getAppSetting, setAppSetting, deleteAppSetting } from '@/lib/use-cases/app-settings'
 import { encryptSecret, decryptSecret } from '@/lib/secrets'
+import { getInstallationToken } from '@/lib/use-cases/inspiration/github'
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -137,7 +138,6 @@ export async function testGitHubConnection(): Promise<{ ok: boolean; error?: str
   await requireAdmin()
 
   try {
-    const { getInstallationToken } = await import('@/lib/use-cases/inspiration/github')
     await getInstallationToken()
     return { ok: true }
   } catch (err) {
@@ -148,8 +148,6 @@ export async function testGitHubConnection(): Promise<{ ok: boolean; error?: str
       try {
         const got = await fetchAndSaveInstallationId()
         if (got) {
-          // Retry now that installation_id is saved
-          const { getInstallationToken } = await import('@/lib/use-cases/inspiration/github')
           await getInstallationToken()
           return { ok: true }
         }
@@ -249,29 +247,23 @@ export async function updateLabelMap(
 export async function fetchRepos(): Promise<string[]> {
   await requireAdmin()
 
-  try {
-    const { getInstallationToken } = await import('@/lib/use-cases/inspiration/github')
-    const token = await getInstallationToken()
+  const token = await getInstallationToken()
+    .catch(() => null)
+  if (!token) return []
 
-    const response = await fetch('https://api.github.com/installation/repositories', {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: `Bearer ${token}`,
-      },
-    })
+  const response = await fetch('https://api.github.com/installation/repositories', {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${token}`,
+    },
+  })
 
-    if (!response.ok) {
-      const body = await response.text()
-      throw new Error(`GitHub API error: ${response.status} — ${body}`)
-    }
+  if (!response.ok) return []
 
-    const data = await response.json()
-    const repos: string[] = (data.repositories ?? []).map((r: { full_name: string }) => r.full_name)
-    repos.sort()
-    return repos
-  } catch (err) {
-    throw new Error(err instanceof Error ? err.message : 'Failed to fetch repositories')
-  }
+  const data = await response.json()
+  const repos: string[] = (data.repositories ?? []).map((r: { full_name: string }) => r.full_name)
+  repos.sort()
+  return repos
 }
 
 // ─── Disconnect ──────────────────────────────────────────
