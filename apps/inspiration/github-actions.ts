@@ -49,7 +49,7 @@ export async function getGitHubSettings(): Promise<GitHubSettings> {
   const pk = await getAppSetting('github_private_key')
 
   return {
-    connected: !!(appId && pk),
+    connected: !!(appId && pk && installationId),
     appId: (appId as string) ?? null,
     slug: (slug as string) ?? null,
     installationId: (installationId as number) ?? null,
@@ -146,14 +146,12 @@ export async function testGitHubConnection(): Promise<{ ok: boolean; error?: str
     // If the error is about missing installation_id, try to fetch it
     if (message.includes('GitHub installation not configured')) {
       try {
-        const got = await fetchAndSaveInstallationId()
-        if (got) {
-          await getInstallationToken()
-          return { ok: true }
-        }
-        console.warn('[GH] Auto-fetch installation_id failed — user may need to enter it manually')
+        await fetchAndSaveInstallationId()
+        await getInstallationToken()
+        return { ok: true }
       } catch (e) {
-        console.warn('[GH] Auto-fetch installation_id threw:', e)
+        const detail = e instanceof Error ? e.message : 'Unknown error'
+        return { ok: false, error: `Installation ID no detectado: ${detail}. Puedes ingresarlo manualmente en Settings.` }
       }
     }
 
@@ -182,14 +180,14 @@ export async function updateGitHubRepo(repo: string): Promise<void> {
 async function fetchAndSaveInstallationId(): Promise<boolean> {
   const appId = await getAppSetting('github_app_id')
   const encryptedPem = await getAppSetting('github_private_key')
-  if (!appId || !encryptedPem) return false
+  if (!appId) throw new Error('GitHub App ID not configured')
+  if (!encryptedPem) throw new Error('GitHub private key not configured')
 
   let privateKey: string
   try {
     privateKey = decryptSecret(encryptedPem as string)
   } catch (e) {
-    console.warn('[GH] Failed to decrypt private key:', e)
-    return false
+    throw new Error('Failed to decrypt GitHub private key (VAULT_SECRET mismatch?)')
   }
 
   const now = Math.floor(Date.now() / 1000)
@@ -209,18 +207,15 @@ async function fetchAndSaveInstallationId(): Promise<boolean> {
 
   if (!res.ok) {
     const body = await res.text().catch(() => '')
-    console.warn('[GH] Failed to fetch installations:', res.status, body)
-    return false
+    throw new Error(`GitHub API error fetching installations: ${res.status} — ${body}`)
   }
 
   const installations = await res.json()
   if (!Array.isArray(installations) || installations.length === 0) {
-    console.warn('[GH] No installations found for this app')
-    return false
+    throw new Error('GitHub App has no installations. Install it on your account from GitHub App settings.')
   }
 
   await setAppSetting('github_installation_id', installations[0].id)
-  console.log('[GH] Auto-detected installation ID:', installations[0].id)
   return true
 }
 
@@ -248,9 +243,6 @@ export async function fetchRepos(): Promise<string[]> {
   await requireAdmin()
 
   const token = await getInstallationToken()
-    .catch(() => null)
-  if (!token) return []
-
   const response = await fetch('https://api.github.com/installation/repositories', {
     headers: {
       Accept: 'application/vnd.github+json',
@@ -258,7 +250,10 @@ export async function fetchRepos(): Promise<string[]> {
     },
   })
 
-  if (!response.ok) return []
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    throw new Error(`GitHub API error: ${response.status} — ${body}`)
+  }
 
   const data = await response.json()
   const repos: string[] = (data.repositories ?? []).map((r: { full_name: string }) => r.full_name)

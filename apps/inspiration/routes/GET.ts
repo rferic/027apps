@@ -32,15 +32,19 @@ export default async function handler(req: Request, ctx: HandlerContext) {
       applyBaseFilters(adminClient.from('inspiration_requests').select('id', { count: 'exact' }), typeParam, search, appSlug, myParam, ctx)
         .in('status', ACTIVE_STATUSES.split(',')),
       adminClient.from('inspiration_requests')
-        .select('id, title, type, vote_count, comment_count, status, created_at')
-        .order('vote_count', { ascending: false })
+        .select('id, title, type, status, created_at')
+        .order('created_at', { ascending: false })
         .limit(3),
       adminClient.from('inspiration_requests')
-        .select('id, title, type, vote_count, comment_count, status, created_at')
+        .select('id, title, type, status, created_at')
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
         .limit(2),
     ])
+
+    if (activeRes.error) console.error('[Widget] active error:', activeRes.error)
+    if (supportedRes.error) console.error('[Widget] supported error:', supportedRes.error)
+    if (completedRes.error) console.error('[Widget] completed error:', completedRes.error)
 
     return apiOk({
       active_count: activeRes.count ?? 0,
