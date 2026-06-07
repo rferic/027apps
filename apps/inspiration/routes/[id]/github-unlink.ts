@@ -8,7 +8,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
+  if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
 
   const url = new URL(req.url)
   const segments = url.pathname.split('/')

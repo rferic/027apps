@@ -44,19 +44,24 @@ export function GitHubSettingsManager({ initial }: Props) {
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
 
   function handleDisconnect() {
-    disconnectGitHub().then(() => {
-      setSettings({
-        ...settings,
-        connected: false,
-        appId: null,
-        slug: null,
-        installationId: null,
-        repo: null,
-        syncEnabled: false,
-        webhookConfigured: false,
+    disconnectGitHub()
+      .then(() => {
+        setSettings({
+          ...settings,
+          connected: false,
+          appId: null,
+          slug: null,
+          installationId: null,
+          repo: null,
+          syncEnabled: false,
+          webhookConfigured: false,
+        })
+        setShowDisconnectConfirm(false)
       })
-      setShowDisconnectConfirm(false)
-    })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to disconnect')
+        setShowDisconnectConfirm(false)
+      })
   }
   const [showLabelEditor, setShowLabelEditor] = useState(false)
   const [showRepoEditor, setShowRepoEditor] = useState(false)
@@ -116,7 +121,8 @@ export function GitHubSettingsManager({ initial }: Props) {
     const form = new FormData()
     form.set('webhookSecret', webhookSecret)
     startSave(async () => {
-      await saveWebhookSecret(form)
+      const result = await saveWebhookSecret(form)
+      if (result?.error) { setError(result.error); return }
       setSettings((prev) => ({ ...prev, webhookConfigured: true }))
       setSuccess(true)
       setTimeout(() => setSuccess(false), 5000)
@@ -338,7 +344,7 @@ export function GitHubSettingsManager({ initial }: Props) {
                 </div>
                 <div>
                   <h2 className="text-sm font-semibold text-gray-900">{t('connection.title')}</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">{t('connection.connected')}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{t('connection.connected', { app: settings.slug ?? 'GitHub' })}</p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
