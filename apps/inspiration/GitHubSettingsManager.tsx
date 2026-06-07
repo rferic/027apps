@@ -474,6 +474,19 @@ export function GitHubSettingsManager({ initial }: Props) {
                   {' — '}
                   {integrationResults.filter(r => r.ok).length}/{integrationResults.length} passed
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = integrationResults.map(r =>
+                      `${r.ok ? '✅' : '❌'} ${r.step}${r.detail ? ` — ${r.detail}` : ''}`
+                    ).join('\n')
+                    const summary = `${integrationResults.every(r => r.ok) ? '✅ All tests passed' : '❌ Some tests failed'} — ${integrationResults.filter(r => r.ok).length}/${integrationResults.length} passed`
+                    navigator.clipboard.writeText(text + '\n\n' + summary)
+                  }}
+                  className="mt-2 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  Copy results
+                </button>
               </div>
             )}
 
