@@ -2,7 +2,30 @@ import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyNewComment } from '@/lib/use-cases/inspiration/send-notifications'
+import { createComment } from '@/lib/use-cases/inspiration/github'
+import { getAppSetting } from '@/lib/use-cases/app-settings'
 import type { HandlerContext } from '@/lib/apps/router-types'
+
+async function syncCommentToGitHubIssue(requestId: string, body: string, userId: string) {
+  const adminClient = createAdminClientUntyped()
+  const { data: idea } = await adminClient
+    .from('inspiration_requests')
+    .select('github_issue_number')
+    .eq('id', requestId)
+    .single()
+
+  if (!idea?.github_issue_number) return
+
+  const { data: profile } = await adminClient
+    .from('profiles')
+    .select('display_name')
+    .eq('id', userId)
+    .maybeSingle()
+
+  const displayName = (profile as { display_name?: string } | null)?.display_name ?? 'Someone'
+  const commentBody = `**${displayName}:**\n\n${body}`
+  await createComment(idea.github_issue_number, commentBody)
+}
 
 export default async function handler(req: Request, ctx: HandlerContext) {
   const auth = await authenticate(req, 'jwt')
@@ -57,6 +80,10 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   // Fire-and-forget: send notification (don't block the response)
   void notifyNewComment(requestId, auth.userId, rawBody.trim().slice(0, 150), 'en')
     .catch(err => console.error('[Inspiration] Failed to send comment notification:', err))
+
+  // Sync comment to GitHub issue if the idea has one
+  void syncCommentToGitHubIssue(requestId, rawBody.trim(), auth.userId)
+    .catch(err => console.error('[Inspiration] Failed to sync comment to GitHub:', err))
 
   return apiOk(comment, 201)
 }
