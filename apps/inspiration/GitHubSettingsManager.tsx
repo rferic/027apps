@@ -33,6 +33,7 @@ const TYPE_KEYS = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_gene
 
 export function GitHubSettingsManager({ initial }: Props) {
   const t = useTranslations('admin.settings.github')
+  const inspoT = useTranslations('apps.inspiration')
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -479,10 +480,12 @@ export function GitHubSettingsManager({ initial }: Props) {
               {TYPE_KEYS.map((type) => {
                 const label = settings.labelMap?.[type]
                 return (
-                  <div key={type} className="flex items-center gap-2 text-sm">
-                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: '#' + (label?.color ?? 'ccc') }} />
-                    <span className="text-xs font-mono text-gray-500 w-28">{type}</span>
-                    <span className="text-gray-700">{label?.name ?? '—'}</span>
+                  <div key={type} className="flex gap-2 text-sm">
+                    <span className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5" style={{ backgroundColor: '#' + (label?.color ?? 'ccc') }} />
+                    <div className="flex flex-col sm:flex-row sm:gap-2 min-w-0">
+                      <span className="text-xs font-medium text-gray-500">{inspoT('types.' + type)}</span>
+                      <span className="text-gray-700 truncate">{label?.name ?? '—'}</span>
+                    </div>
                   </div>
                 )
               })}
@@ -505,7 +508,7 @@ export function GitHubSettingsManager({ initial }: Props) {
                 const label = labelMap[type] ?? { name: '', color: '000000' }
                 return (
                   <div key={type} className="text-sm">
-                    <p className="text-xs font-medium text-gray-500 mb-1">{type}</p>
+                    <p className="text-xs font-medium text-gray-500 mb-1">{inspoT('types.' + type)}</p>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <input type="text" value={label.name} onChange={(e) => handleLabelChange(type, 'name', e.target.value)} placeholder={t('labels.editor.name_placeholder')} className="w-full sm:flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300" />
                       <div className="relative w-full sm:w-auto">

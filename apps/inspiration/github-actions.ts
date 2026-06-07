@@ -152,8 +152,9 @@ export async function testGitHubConnection(): Promise<{ ok: boolean; error?: str
           await getInstallationToken()
           return { ok: true }
         }
-      } catch {
-        // Fall through to return the original error
+        console.warn('[GH] Auto-fetch installation_id failed — user may need to enter it manually')
+      } catch (e) {
+        console.warn('[GH] Auto-fetch installation_id threw:', e)
       }
     }
 
