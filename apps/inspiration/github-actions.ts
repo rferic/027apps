@@ -265,6 +265,215 @@ export async function fetchRepos(): Promise<string[]> {
   return repos
 }
 
+// ─── Integration self-test ──────────────────────────────
+
+export interface TestResult {
+  step: string
+  ok: boolean
+  detail?: string
+}
+
+export async function runIntegrationTests(): Promise<TestResult[]> {
+  await requireAdmin()
+  const results: TestResult[] = []
+
+  // 1. Check credentials
+  const appId = await getAppSetting('github_app_id')
+  const pk = await getAppSetting('github_private_key')
+  const installationId = await getAppSetting('github_installation_id')
+  const repo = await getAppSetting('github_repo')
+
+  results.push({
+    step: 'Credentials: app_id',
+    ok: !!appId,
+    detail: appId ? `App ID: ${appId}` : 'Missing',
+  })
+  results.push({
+    step: 'Credentials: private_key',
+    ok: !!pk,
+    detail: pk ? 'Stored (encrypted)' : 'Missing',
+  })
+  results.push({
+    step: 'Credentials: installation_id',
+    ok: !!installationId,
+    detail: installationId ? `Installation ID: ${installationId}` : 'Missing',
+  })
+  results.push({
+    step: 'Credentials: repo',
+    ok: !!repo,
+    detail: repo ? `Repo: ${repo}` : 'Missing',
+  })
+
+  if (!appId || !pk || !installationId || !repo) return results
+
+  // 2. Get installation token
+  let token: string
+  try {
+    token = await getInstallationToken()
+    results.push({ step: 'GitHub: get token', ok: true })
+  } catch (err) {
+    results.push({ step: 'GitHub: get token', ok: false, detail: err instanceof Error ? err.message : String(err) })
+    return results
+  }
+
+  // 3. List repos (verify access)
+  try {
+    const reposRes = await fetch('https://api.github.com/installation/repositories', {
+      headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}` },
+    })
+    if (reposRes.ok) {
+      const reposData = await reposRes.json()
+      const repoNames = (reposData.repositories ?? []).map((r: { full_name: string }) => r.full_name)
+      const repoAccessible = repoNames.includes(repo)
+      results.push({
+        step: 'GitHub: repo accessible',
+        ok: repoAccessible,
+        detail: repoAccessible ? `Yes (${repo})` : `No. Available: ${repoNames.join(', ') || 'none'}`,
+      })
+    } else {
+      const body = await reposRes.text().catch(() => '')
+      results.push({ step: 'GitHub: repo accessible', ok: false, detail: `${reposRes.status} — ${body}` })
+      return results
+    }
+  } catch (err) {
+    results.push({ step: 'GitHub: repo accessible', ok: false, detail: err instanceof Error ? err.message : String(err) })
+    return results
+  }
+
+  // 4. Create test issue
+  const testTitle = `[TEST] Integration check ${Date.now()}`
+  let issueNumber: number
+  try {
+    const createRes = await fetch(`https://api.github.com/repos/${repo}/issues`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: testTitle,
+        body: 'Test issue for integration verification. Will be closed automatically.',
+        labels: ['status: pending', 'test'],
+      }),
+    })
+    if (createRes.ok) {
+      const issueData = await createRes.json()
+      issueNumber = issueData.number
+      results.push({ step: 'GitHub: create issue', ok: true, detail: `#${issueNumber}` })
+    } else {
+      const body = await createRes.text().catch(() => '')
+      results.push({ step: 'GitHub: create issue', ok: false, detail: `${createRes.status} — ${body}` })
+      return results
+    }
+  } catch (err) {
+    results.push({ step: 'GitHub: create issue', ok: false, detail: err instanceof Error ? err.message : String(err) })
+    return results
+  }
+
+  // 5. Update labels
+  try {
+    const labelRes = await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}`, {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ labels: ['status: reviewing', 'bug'] }),
+    })
+    if (labelRes.ok) {
+      results.push({ step: 'GitHub: update labels', ok: true })
+    } else {
+      const body = await labelRes.text().catch(() => '')
+      results.push({ step: 'GitHub: update labels', ok: false, detail: `${labelRes.status} — ${body}` })
+    }
+  } catch (err) {
+    results.push({ step: 'GitHub: update labels', ok: false, detail: err instanceof Error ? err.message : String(err) })
+  }
+
+  // 6. Add comment
+  try {
+    const commentRes = await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}/comments`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ body: 'Test comment from integration check.' }),
+    })
+    if (commentRes.ok) {
+      results.push({ step: 'GitHub: add comment', ok: true })
+    } else {
+      const body = await commentRes.text().catch(() => '')
+      results.push({ step: 'GitHub: add comment', ok: false, detail: `${commentRes.status} — ${body}` })
+    }
+  } catch (err) {
+    results.push({ step: 'GitHub: add comment', ok: false, detail: err instanceof Error ? err.message : String(err) })
+  }
+
+  // 7. Close issue
+  try {
+    const closeRes = await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}`, {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ state: 'closed', state_reason: 'not_planned' }),
+    })
+    if (closeRes.ok) {
+      results.push({ step: 'GitHub: close issue', ok: true })
+    } else {
+      const body = await closeRes.text().catch(() => '')
+      results.push({ step: 'GitHub: close issue', ok: false, detail: `${closeRes.status} — ${body}` })
+    }
+  } catch (err) {
+    results.push({ step: 'GitHub: close issue', ok: false, detail: err instanceof Error ? err.message : String(err) })
+  }
+
+  // 8. Reopen issue
+  try {
+    const reopenRes = await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}`, {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ state: 'open' }),
+    })
+    if (reopenRes.ok) {
+      results.push({ step: 'GitHub: reopen issue', ok: true })
+    } else {
+      const body = await reopenRes.text().catch(() => '')
+      results.push({ step: 'GitHub: reopen issue', ok: false, detail: `${reopenRes.status} — ${body}` })
+    }
+  } catch (err) {
+    results.push({ step: 'GitHub: reopen issue', ok: false, detail: err instanceof Error ? err.message : String(err) })
+  }
+
+  // 9. Cleanup: close permanently
+  try {
+    await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}`, {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ state: 'closed', state_reason: 'not_planned', labels: ['test', 'status: deleted'] }),
+    })
+    results.push({ step: 'Cleanup: close test issue', ok: true, detail: `#${issueNumber} closed` })
+  } catch {
+    results.push({ step: 'Cleanup: close test issue', ok: false, detail: '#${issueNumber} cleanup failed' })
+  }
+
+  return results
+}
+
 // ─── Disconnect ──────────────────────────────────────────
 
 export async function disconnectGitHub(): Promise<void> {
