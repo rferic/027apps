@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { cookies } from 'next/headers'
 import { requireAdmin } from '@/lib/auth/helpers'
 import { changeUserRole, blockUser, unblockUser, updateUserProfile, deleteAdminUser } from '@/lib/use-cases/admin/users'
@@ -18,6 +18,8 @@ async function revalidateAdminUserPaths(userId?: string) {
   revalidatePath(`/${locale}/admin/admins`)
   revalidatePath(`/${locale}/admin/dashboard`)
   if (userId) revalidatePath(`/${locale}/admin/users/${userId}`)
+  revalidateTag('admin-users', 'default')
+  revalidateTag('admin-stats', 'default')
 }
 
 export async function changeRoleAction(userId: string, newRole: 'admin' | 'member'): Promise<{ error: string | null }> {
