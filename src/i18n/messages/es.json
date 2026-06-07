@@ -481,7 +481,8 @@
           "description": "Tu GitHub App (ID: {appId}) está registrada pero no instalada. Necesitas instalarla en tu cuenta de GitHub para poder crear issues.",
           "step1": "Ve a GitHub → Settings → Developer settings → GitHub Apps → tu app → Install App",
           "step2": "Selecciona tu cuenta y el repositorio",
-          "step3": "Al instalarla, el Installation ID se detectará automáticamente (o ingrésalo manualmente abajo)"
+          "step3": "Al instalarla, el Installation ID se detectará automáticamente (o ingrésalo manualmente abajo)",
+          "check": "Comprobar instalación"
         }
       }
     },

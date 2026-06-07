@@ -193,7 +193,56 @@ export function GitHubSettingsManager({ initial }: Props) {
       )}
 
       {/* Connection status */}
-      {!settings.connected ? (
+      {!settings.connected && settings.appRegistered ? (
+        <div className="space-y-6">
+          {/** Install prompt — app registered but not installed */}
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} className="text-blue-600 flex-shrink-0" />
+              <p className="text-sm font-medium text-blue-900">{t('install_prompt.title')}</p>
+            </div>
+            <p className="text-xs text-blue-700 leading-relaxed">{t('install_prompt.description', { appId: settings.appId ?? '' })}</p>
+            <ol className="text-xs text-blue-700 space-y-1 list-decimal pl-4">
+              <li>{t('install_prompt.step1')}</li>
+              <li>{t('install_prompt.step2')}</li>
+              <li>{t('install_prompt.step3')}</li>
+            </ol>
+            <button
+              type="button"
+              onClick={handleTestConnection}
+              disabled={isTesting}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              {isTesting ? <Loader2 size={14} className="animate-spin inline mr-1" /> : null}
+              {t('install_prompt.check')}
+            </button>
+          </div>
+
+          {/** Manual installation ID entry */}
+          <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">{t('connection.installation_id')}</span>
+              <div className="flex items-center gap-1">
+                {editingInstallationId ? (
+                  <>
+                    <input
+                      type="text"
+                      value={installationIdInput}
+                      onChange={(e) => setInstallationIdInput(e.target.value)}
+                      placeholder={t('connection.installation_id_placeholder')}
+                      className="w-32 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-rose-200 focus:border-rose-300"
+                    />
+                    <button onClick={handleSaveInstallationId} disabled={!installationIdInput.trim()} className="text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer disabled:opacity-50">{t('connection.save')}</button>
+                    <button onClick={() => setEditingInstallationId(false)} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">{t('connection.cancel')}</button>
+                  </>
+                ) : (
+                  <button type="button" onClick={() => setEditingInstallationId(true)} className="text-xs text-rose-600 hover:text-rose-700 font-medium cursor-pointer">{t('connection.set_installation_id')}</button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : !settings.connected ? (
         <div className="space-y-6">
           {/** Quick setup (manifest POST) */}
           <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm space-y-4">
@@ -239,21 +288,6 @@ export function GitHubSettingsManager({ initial }: Props) {
             </button>
             <p className="text-xs text-gray-400 mt-2">{t('quick.hint')}</p>
           </div>
-
-          {settings.appRegistered && !settings.connected && (
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <AlertCircle size={16} className="text-blue-600 flex-shrink-0" />
-                <p className="text-sm font-medium text-blue-900">{t('install_prompt.title')}</p>
-              </div>
-              <p className="text-xs text-blue-700 leading-relaxed">{t('install_prompt.description', { appId: settings.appId ?? '' })}</p>
-              <ol className="text-xs text-blue-700 space-y-1 list-decimal pl-4">
-                <li>{t('install_prompt.step1')}</li>
-                <li>{t('install_prompt.step2')}</li>
-                <li>{t('install_prompt.step3')}</li>
-              </ol>
-            </div>
-          )}
 
           {/** Manual setup form */}
           <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm space-y-5">
