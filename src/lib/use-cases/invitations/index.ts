@@ -98,30 +98,35 @@ export async function deleteInvitation(id: string): Promise<{ error: string | nu
 }
 
 export async function getInvitationByToken(token: string): Promise<Invitation | null> {
-  const supabase = createAdminClient()
-  const { data } = await supabase
-    .from('invitations')
-    .select('*')
-    .eq('token', token)
-    .single()
+  let data: Record<string, unknown> | null
+  try {
+    const supabase = createAdminClient()
+    const result = await supabase
+      .from('invitations')
+      .select('*')
+      .eq('token', token)
+      .single()
 
-  if (!data) return null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const row = data as any
+    data = result.data as Record<string, unknown> | null
+    if (!data) return null
+  } catch {
+    return null
+  }
+  const row = data as Record<string, unknown>
   return {
-    id: row.id,
-    token: row.token,
-    title: row.title,
+    id: row.id as string,
+    token: row.token as string,
+    title: row.title as string,
     role: row.role as 'admin' | 'member',
-    email: row.email ?? null,
-    invitedBy: row.invited_by,
-    acceptedBy: row.accepted_by ?? null,
-    acceptedAt: row.accepted_at ?? null,
-    revokedAt: row.revoked_at ?? null,
-    expiresAt: row.expires_at ?? null,
-    createdAt: row.created_at,
-    groupIds: row.group_ids ?? [],
-    locale: row.locale ?? 'es',
+    email: (row.email as string) ?? null,
+    invitedBy: row.invited_by as string,
+    acceptedBy: (row.accepted_by as string) ?? null,
+    acceptedAt: (row.accepted_at as string) ?? null,
+    revokedAt: (row.revoked_at as string) ?? null,
+    expiresAt: (row.expires_at as string) ?? null,
+    createdAt: row.created_at as string,
+    groupIds: (row.group_ids as string[]) ?? [],
+    locale: (row.locale as string) ?? 'es',
   }
 }
 

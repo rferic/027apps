@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter, usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { signOut } from '@/lib/auth/actions'
+import { signOut, updateLocale } from '@/lib/auth/actions'
 
 interface Props {
   locale: string
@@ -11,16 +12,21 @@ interface Props {
   /** Href for the "Edit profile" link. Defaults to /{locale}/profile */
   profileHref?: string
   isAdmin?: boolean
+  /** Subset of locales to show for in-dropdown language switching */
+  activeLocales?: string[]
 }
 
 function initials(name: string): string {
   return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) || '?'
 }
 
-export function UserDropdown({ locale, displayName, profileHref, isAdmin }: Props) {
+export function UserDropdown({ locale, displayName, profileHref, isAdmin, activeLocales }: Props) {
+  const router = useRouter()
+  const pathname = usePathname()
   const t = useTranslations('user')
   const tNav = useTranslations('nav')
   const [open, setOpen] = useState(false)
+  const [localePending, startLocaleTransition] = useTransition()
   const [pending, startTransition] = useTransition()
   const ref = useRef<HTMLDivElement>(null)
 
@@ -82,6 +88,35 @@ export function UserDropdown({ locale, displayName, profileHref, isAdmin }: Prop
               {tNav('backoffice')}
             </Link>
           )}
+          <hr className="my-1 border-slate-100" />
+          <div className="px-4 py-2">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Language</p>
+            <div className="flex flex-wrap gap-1">
+              {(activeLocales ?? ['en', 'es', 'fr', 'de', 'it', 'ca']).map((loc) => (
+                <button
+                  key={loc}
+                  type="button"
+                  disabled={localePending}
+                  onClick={() => {
+                    if (loc === locale) return
+                    startLocaleTransition(async () => {
+                      await updateLocale(loc)
+                      document.cookie = `preferred-locale=${loc};path=/;max-age=${365 * 24 * 60 * 60};samesite=lax`
+                      const pathAfterLocale = pathname.split('/').slice(2).join('/')
+                      router.push(`/${loc}/${pathAfterLocale}`)
+                    })
+                  }}
+                  className={`text-[11px] font-semibold px-2 py-1 rounded-md transition-all disabled:opacity-50 cursor-pointer ${
+                    loc === locale
+                      ? 'bg-slate-800 text-white'
+                      : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {loc.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
           <hr className="my-1 border-slate-100" />
           <button
             disabled={pending}

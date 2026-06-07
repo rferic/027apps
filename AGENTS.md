@@ -241,6 +241,38 @@ supabase db push --include-all
    ```
 <!-- END:local-dev -->
 
+<!-- BEGIN:github-issue-labels -->
+# Gestión de etiquetas en GitHub Issues durante un sprint
+
+Las issues se crean automáticamente desde el módulo Inspiration y llevan dos familias de labels:
+
+| Label | Propósito | Quién lo gestiona |
+|---|---|---|
+| `type: bug` / `type: feature` / `type: new_app` / etc. | Tipo de idea | Inspiration (automático) |
+| `status: pending` / `reviewing` / `approved` / `completed` / `rejected` / `duplicate` / `deleted` | Ciclo de vida de la idea | Inspiration (automático) |
+
+Para el **avance del desarrollo** durante un sprint, se añaden estos labels adicionales:
+
+| Label | Cuándo se aplica |
+|---|---|
+| `sprint: N` (ej. `sprint: 21`) | Al iniciar el sprint, indicando a qué sprint pertenece la issue |
+| `sprint: in-progress` | Cuando el agente empieza a trabajar en ella |
+| `sprint: reviewing` | Cuando el fix/feature está en preview/staging, listo para probar |
+| `sprint: blocked` | Si algo impide avanzar |
+
+**Reglas:**
+- Los labels `type:*` y `status:*` gestionados por Inspiration **no se tocan** manualmente. Solo Inspiration los actualiza cuando cambia el estado de la idea original.
+- Los labels `sprint:*` los gestiona el agente que ejecuta el sprint.
+- Al terminar la TASK, la issue se cierra desde GitHub (el agente comenta el resultado y cierra la issue).
+
+**Flujo típico:**
+1. Sprint comienza → añadir `sprint: N` a todas sus issues
+2. Se empieza una TASK → añadir `sprint: in-progress`, comentar en la issue
+3. Se sube a preview → añadir `sprint: reviewing`, comentar URL de preview
+4. Merge + deploy → cerrar issue con resumen
+5. Si algo bloquea → añadir `sprint: blocked`, explicar en la issue
+<!-- END:github-issue-labels -->
+
 <!-- BEGIN:i18n-rules -->
 # 🚨 REGLAS DE ORO PARA i18n (OBLIGATORIO, NO OPCIONAL)
 

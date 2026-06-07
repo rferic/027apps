@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { getTranslations } from 'next-intl/server'
-import { LocaleSwitcher } from './locale-switcher'
 import { UserDropdown } from './user-dropdown'
 import { HamburgerButton } from './admin-hamburger-button'
 import { getGroupSettings } from '@/lib/use-cases/settings'
@@ -28,8 +27,7 @@ export async function AdminHeader({ displayName, locale }: Props) {
       </div>
 
       <div className="flex items-center gap-3">
-        <LocaleSwitcher currentLocale={locale} locales={settings.activeLocales} saveToDb />
-        <UserDropdown locale={locale} displayName={displayName} profileHref={`/${locale}/admin/profile`} />
+        <UserDropdown locale={locale} displayName={displayName} profileHref={`/${locale}/admin/profile`} activeLocales={settings.activeLocales} />
       </div>
     </header>
   )

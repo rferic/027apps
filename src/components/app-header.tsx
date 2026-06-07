@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { LocaleSwitcher } from './locale-switcher'
 import { UserDropdown } from './user-dropdown'
 import { GroupSwitcher } from './group-switcher'
 import { GroupInfoButton } from './group-info-button'
@@ -72,8 +71,7 @@ export async function AppHeader({ locale, displayName, isAdmin, userGroups, curr
             apps={groupApps}
           />
         )}
-        <LocaleSwitcher currentLocale={locale} locales={settings.activeLocales} saveToDb />
-        <UserDropdown locale={locale} displayName={displayName} isAdmin={isAdmin} />
+        <UserDropdown locale={locale} displayName={displayName} isAdmin={isAdmin} activeLocales={settings.activeLocales} />
       </div>
     </header>
   )
