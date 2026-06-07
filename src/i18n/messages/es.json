@@ -475,6 +475,13 @@
           "subtitle": "Conecta vía GitHub Manifest — crea la app automáticamente.",
           "connect": "Conectar con GitHub",
           "hint": "Abre GitHub en una nueva pestaña. Haz clic en \"Create GitHub App\" para completar."
+        },
+        "install_prompt": {
+          "title": "App registrada — falta instalarla",
+          "description": "Tu GitHub App (ID: {appId}) está registrada pero no instalada. Necesitas instalarla en tu cuenta de GitHub para poder crear issues.",
+          "step1": "Ve a GitHub → Settings → Developer settings → GitHub Apps → tu app → Install App",
+          "step2": "Selecciona tu cuenta y el repositorio",
+          "step3": "Al instalarla, el Installation ID se detectará automáticamente (o ingrésalo manualmente abajo)"
         }
       }
     },

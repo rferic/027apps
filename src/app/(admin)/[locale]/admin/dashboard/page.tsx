@@ -4,6 +4,7 @@ import { getAdminStats, getAdminUserList } from '@/lib/use-cases/admin/users'
 import { getAdminInvitationList, getInvitationStatus } from '@/lib/use-cases/invitations'
 import { getInspirationAdminStats } from '@/lib/use-cases/inspiration/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
+import HotIdeasList from './HotIdeasList'
 
 interface Props {
   params: Promise<{ locale: string }>
@@ -124,29 +125,7 @@ export default async function AdminDashboard({ params }: Props) {
                 <h3 className="text-sm font-semibold text-slate-700">{t('most_supported')}</h3>
                 <Link href={`/${locale}/admin/apps/inspiration`} className="text-xs text-slate-400 hover:text-slate-900 transition-colors">{t('viewAll')}</Link>
               </div>
-              <ul className="space-y-2">
-                {inspirationStats.hotIdeas.map((idea) => {
-                  const typeColors: Record<string, string> = {
-                    bug: '#EF4444',
-                    improvement: '#F59E0B',
-                    new_app: '#8B5CF6',
-                    new_app_feature: '#3B82F6',
-                    new_general_functionality: '#10B981',
-                    other: '#6B7280',
-                  }
-                  const color = typeColors[idea.type] ?? '#6B7280'
-                  return (
-                    <li key={idea.id} className="flex items-center gap-2 text-sm">
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                      <span className="text-slate-700 truncate flex-1 min-w-0">{idea.title}</span>
-                      <div className="flex items-center gap-3 flex-shrink-0 text-xs text-slate-400">
-                        <span>{t('votes', { count: idea.vote_count })}</span>
-                        <span>{t('comments', { count: idea.comment_count })}</span>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
+              <HotIdeasList ideas={inspirationStats.hotIdeas} />
             </div>
           )}
         </div>

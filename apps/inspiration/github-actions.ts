@@ -11,13 +11,14 @@ import { getInstallationToken } from '@/lib/use-cases/inspiration/github'
 
 export interface GitHubSettings {
   connected: boolean
+  appRegistered: boolean
   appId: string | null
   slug: string | null
   installationId: number | null
   repo: string | null
   syncEnabled: boolean
-  labelMap: Record<string, { name: string; color: string }> | null
   webhookConfigured: boolean
+  labelMap: Record<string, { name: string; color: string }> | null
 }
 
 // ─── Default label map ───────────────────────────────────
@@ -50,6 +51,7 @@ export async function getGitHubSettings(): Promise<GitHubSettings> {
 
   return {
     connected: !!(appId && pk && installationId),
+    appRegistered: !!(appId && pk),
     appId: (appId as string) ?? null,
     slug: (slug as string) ?? null,
     installationId: (installationId as number) ?? null,

@@ -240,6 +240,21 @@ export function GitHubSettingsManager({ initial }: Props) {
             <p className="text-xs text-gray-400 mt-2">{t('quick.hint')}</p>
           </div>
 
+          {settings.appRegistered && !settings.connected && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={16} className="text-blue-600 flex-shrink-0" />
+                <p className="text-sm font-medium text-blue-900">{t('install_prompt.title')}</p>
+              </div>
+              <p className="text-xs text-blue-700 leading-relaxed">{t('install_prompt.description', { appId: settings.appId ?? '' })}</p>
+              <ol className="text-xs text-blue-700 space-y-1 list-decimal pl-4">
+                <li>{t('install_prompt.step1')}</li>
+                <li>{t('install_prompt.step2')}</li>
+                <li>{t('install_prompt.step3')}</li>
+              </ol>
+            </div>
+          )}
+
           {/** Manual setup form */}
           <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm space-y-5">
           <div className="flex items-center gap-3">
