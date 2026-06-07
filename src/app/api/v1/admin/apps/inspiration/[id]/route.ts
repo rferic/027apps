@@ -4,6 +4,7 @@ import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyStatusChange } from '@/lib/use-cases/inspiration/send-notifications'
 import { closeIssue, updateLabels } from '@/lib/use-cases/inspiration/github'
+import { syncStatusToGitHubIssue } from '../../../../../../../../apps/inspiration/routes/github-helpers'
 
 const VALID_TYPES = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_general_functionality', 'other']
 const VALID_STATUSES = ['pending', 'reviewing', 'approved', 'in_progress', 'completed', 'rejected', 'on_hold', 'duplicate']
@@ -169,6 +170,8 @@ export async function PUT(
   if (statusChanged) {
     void notifyStatusChange(id, oldStatusValue, status as string, undefined, 'en')
       .catch(err => console.error('[Inspiration] Failed to send status change notification:', err))
+    void syncStatusToGitHubIssue(id, oldStatusValue, status as string)
+      .catch(err => console.error('[Inspiration] Failed to sync status to GitHub:', err))
   }
 
   return apiOk(data)
