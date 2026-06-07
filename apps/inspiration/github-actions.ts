@@ -2,7 +2,7 @@
 
 import crypto from 'node:crypto'
 import { revalidatePath } from 'next/cache'
-import { requireAdmin } from '@/lib/auth/helpers'
+import { requireAdmin, getUserWithRole } from '@/lib/auth/helpers'
 import { getAppSetting, setAppSetting, deleteAppSetting } from '@/lib/use-cases/app-settings'
 import { encryptSecret, decryptSecret } from '@/lib/secrets'
 import { getInstallationToken, createComment, closeIssue, updateLabels } from '@/lib/use-cases/inspiration/github'
@@ -479,6 +479,8 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
   const { createGitHubIssueForIdea, syncStatusToGitHubIssue } = await import('./routes/github-helpers')
   const adminClient = createAdminClientUntyped()
   const testId = crypto.randomUUID()
+  const currentUser = await getUserWithRole()
+  const testUserId = currentUser?.userId ?? '00000000-0000-0000-0000-000000000000'
 
   // 10. Create idea in DB → GitHub issue auto-created
   try {
@@ -486,7 +488,7 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
       .from('inspiration_requests')
       .insert({
         id: testId,
-        user_id: '00000000-0000-0000-0000-000000000000',
+        user_id: testUserId,
         title: `[TEST] Web flow ${Date.now()}`,
         description: 'Test idea for end-to-end web flow verification.',
         type: 'bug',
