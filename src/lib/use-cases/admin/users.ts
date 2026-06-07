@@ -155,6 +155,11 @@ export async function unblockUser(userId: string): Promise<{ error: string | nul
 
 export async function deleteAdminUser(userId: string): Promise<{ error: string | null }> {
   const supabase = createAdminClient()
+
+  // Clean up invitations referencing this user (prevents FK violations)
+  await supabase.from('invitations').delete().eq('invited_by', userId)
+  await supabase.from('invitations').update({ accepted_by: null }).eq('accepted_by', userId)
+
   const { error } = await supabase.auth.admin.deleteUser(userId)
   return { error: error?.message ?? null }
 }
