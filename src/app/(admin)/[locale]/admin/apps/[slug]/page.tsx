@@ -41,7 +41,7 @@ async function getInitialGitHubSettings() {
   }
 
   return {
-    connected: !!(appId && privateKeyValid),
+    connected: !!(appId && privateKeyValid && installationId),
     appId: (appId as string) ?? null,
     slug: (slug as string) ?? null,
     installationId: (installationId as number) ?? null,

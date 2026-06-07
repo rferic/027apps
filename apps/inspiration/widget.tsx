@@ -6,12 +6,20 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Lightbulb, Flame, CheckCircle2, ArrowUp, ArrowRight, Loader2 } from 'lucide-react'
 import { useAppContext } from '@/lib/apps/context'
 
+const TYPE_COLORS: Record<string, string> = {
+  bug: '#EF4444',
+  improvement: '#F59E0B',
+  new_app: '#8B5CF6',
+  new_app_feature: '#3B82F6',
+  new_general_functionality: '#10B981',
+  other: '#6B7280',
+}
+
 interface InspirationItem {
   id: string
   title: string
+  type: string
   status: string
-  vote_count: number
-  comment_count: number
   created_at: string
 }
 
@@ -128,14 +136,9 @@ export default function InspirationWidget() {
               </div>
               <div className="space-y-1.5">
                 {topSupported.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600 truncate flex-1 mr-2 max-w-[65%]">
-                      {item.title}
-                    </span>
-                    <span className="text-xs font-medium text-slate-400 flex items-center gap-0.5 flex-shrink-0">
-                      <ArrowUp className="w-3 h-3" style={{ color: 'var(--app-primary)' }} />
-                      {item.vote_count}
-                    </span>
+                  <div key={item.id} className="flex items-center gap-2 text-sm">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[item.type] ?? '#6B7280' }} />
+                    <span className="text-slate-600 truncate flex-1 min-w-0">{item.title}</span>
                   </div>
                 ))}
               </div>
@@ -156,13 +159,10 @@ export default function InspirationWidget() {
               </div>
               <div className="space-y-1.5">
                 {recentlyCompleted.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600 truncate flex-1 mr-2 max-w-[65%]">
-                      {item.title}
-                    </span>
-                    <span className="text-xs font-medium text-slate-400 flex-shrink-0">
-                      {formatDate(item.created_at)}
-                    </span>
+                  <div key={item.id} className="flex items-center gap-2 text-sm">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: TYPE_COLORS[item.type] ?? '#6B7280' }} />
+                    <span className="text-slate-600 truncate flex-1 min-w-0">{item.title}</span>
+                    <span className="text-xs text-slate-400 flex-shrink-0">{formatDate(item.created_at)}</span>
                   </div>
                 ))}
               </div>

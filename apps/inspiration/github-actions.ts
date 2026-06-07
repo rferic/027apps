@@ -243,6 +243,8 @@ export async function fetchRepos(): Promise<string[]> {
   await requireAdmin()
 
   const token = await getInstallationToken()
+  if (!token) return []
+
   const response = await fetch('https://api.github.com/installation/repositories', {
     headers: {
       Accept: 'application/vnd.github+json',
