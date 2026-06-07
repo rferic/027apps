@@ -725,18 +725,6 @@ export async function runIntegrationTests(): Promise<TestResult[]> {
     }
   }
 
-  // 17. Cleanup: delete test idea + close test issue
-  if (webIssueNumber) {
-    try {
-      await updateLabels(webIssueNumber, ['status: deleted', 'test'])
-      await closeIssue(webIssueNumber)
-      await adminClient.from('inspiration_requests').delete().eq('id', testId)
-      results.push({ step: 'Cleanup: delete test data', ok: true, detail: `Idea removed, #${webIssueNumber} closed` })
-    } catch (err) {
-      results.push({ step: 'Cleanup: delete test data', ok: false, detail: err instanceof Error ? err.message : String(err) })
-    }
-  }
-
   return results
 }
 
