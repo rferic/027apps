@@ -17,12 +17,13 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
 
 async function fetchCategories(groupSlug: string): Promise<Array<{ id: string; name: string; emoji: string; color: string }>> {
   try {
-    const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/categories`)
+    const res = await fetch(`/api/v1/${groupSlug}/apps/todo/categories`, { credentials: 'include' })
     if (res.ok) {
       const result = await res.json()
       return Array.isArray(result) ? result : (result?.data ?? [])
     }
-  } catch {}
+    console.warn('[todo] fetchCategories not ok:', res.status, await res.text().catch(() => ''))
+  } catch (e) { console.error('[todo] fetchCategories error:', e) }
   return []
 }
 
