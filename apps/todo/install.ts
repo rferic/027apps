@@ -1,29 +1,30 @@
 import type { AppInstallContext } from '@/types/apps'
 
-const DEFAULT_CATEGORIES = [
-  { name: 'Tarea', emoji: '📌', color: '#6B7280', display_order: 0 },
-  { name: 'Recordatorio', emoji: '⏰', color: '#F59E0B', display_order: 1 },
-  { name: 'Compras', emoji: '🛒', color: '#10B981', display_order: 2 },
-  { name: 'Limpieza', emoji: '🧹', color: '#6366F1', display_order: 3 },
-  { name: 'Pendientes', emoji: '📋', color: '#8B5CF6', display_order: 4 },
-  { name: 'Llamar', emoji: '📞', color: '#3B82F6', display_order: 5 },
-  { name: 'Objetivo', emoji: '🎯', color: '#EF4444', display_order: 6 },
-  { name: 'Cumpleaños', emoji: '🎂', color: '#EC4899', display_order: 7 },
+const DEFAULT_CATEGORIES: [string, string, string, number][] = [
+  ['Tarea', '📌', '#6B7280', 0],
+  ['Recordatorio', '⏰', '#F59E0B', 1],
+  ['Compras', '🛒', '#10B981', 2],
+  ['Limpieza', '🧹', '#6366F1', 3],
+  ['Pendientes', '📋', '#8B5CF6', 4],
+  ['Llamar', '📞', '#3B82F6', 5],
+  ['Objetivo', '🎯', '#EF4444', 6],
+  ['Cumpleaños', '🎂', '#EC4899', 7],
 ]
 
 export async function install(ctx: AppInstallContext): Promise<void> {
-  // Use separate exec_sql calls (multi-statement not guaranteed in PL/pgSQL)
-  const { error: deleteError } = await ctx.supabase.rpc('exec_sql', {
-    sql: 'delete from todo_categories',
-  })
-  if (deleteError) throw new Error(`Failed to clear categories: ${deleteError.message}`)
-
-  const values = DEFAULT_CATEGORIES.map(c =>
-    `('${c.name}', '${c.emoji}', '${c.color}', ${c.display_order})`
+  const values = DEFAULT_CATEGORIES.map(
+    ([name, emoji, color, order]) =>
+      `(${quote(name)}::text, ${quote(emoji)}::text, ${quote(color)}::text, ${order})`
   ).join(',\n')
 
-  const { error: insertError } = await ctx.supabase.rpc('exec_sql', {
-    sql: `insert into todo_categories (name, emoji, color, display_order) values ${values};`,
+  // Use raw SQL to bypass PostgREST schema cache (table was just created by migration)
+  const { error } = await ctx.supabase.rpc('exec_sql' as any, {
+    sql: `insert into todo_categories (name, emoji, color, display_order) values ${values} on conflict do nothing;`,
   })
-  if (insertError) throw new Error(`Failed to insert categories: ${insertError.message}`)
+
+  if (error) throw new Error(`Failed to insert categories: ${(error as { message: string }).message}`)
+}
+
+function quote(s: string): string {
+  return `'${s.replace(/'/g, "''")}'`
 }
