@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Home } from 'lucide-react'
 
@@ -15,10 +16,6 @@ interface Props {
   locale: string
   currentGroupSlug: string | null
   groupApps: AppInfo[]
-}
-
-function initials(name: string): string {
-  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 }
 
 export function AppSubNav({ locale, currentGroupSlug, groupApps }: Props) {
@@ -49,12 +46,12 @@ export function AppSubNav({ locale, currentGroupSlug, groupApps }: Props) {
             }`}
             style={active ? { backgroundColor: app.primaryColor + '15', color: app.primaryColor } : {}}
           >
-            <span
-              className="w-3.5 h-3.5 rounded flex items-center justify-center text-[7px] font-bold flex-shrink-0"
-              style={{ backgroundColor: app.primaryColor + '20', color: app.primaryColor }}
+            <div
+              className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: app.primaryColor + '20' }}
             >
-              {initials(app.name)}
-            </span>
+              <Image src={`/api/apps/${app.slug}/logo`} alt="" width={12} height={12} className="opacity-70" unoptimized />
+            </div>
             {app.name}
           </Link>
         )

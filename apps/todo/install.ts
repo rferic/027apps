@@ -14,15 +14,24 @@ const DEFAULT_CATEGORIES: [string, string, string, number][] = [
 export async function install(ctx: AppInstallContext): Promise<void> {
   const values = DEFAULT_CATEGORIES.map(
     ([name, emoji, color, order]) =>
-      `(${quote(name)}::text, ${quote(emoji)}::text, ${quote(color)}::text, ${order})`
+      `(${quote(name)}, ${quote(emoji)}, ${quote(color)}, ${order})`
   ).join(',\n')
 
-  // Use raw SQL to bypass PostgREST schema cache (table was just created by migration)
-  const { error } = await ctx.supabase.rpc('exec_sql' as any, {
-    sql: `insert into todo_categories (name, emoji, color, display_order) values ${values} on conflict do nothing;`,
+  // Try direct insert first
+  const { error: directError } = await ctx.supabase.from('todo_categories').insert(
+    DEFAULT_CATEGORIES.map(([name, emoji, color, order]) => ({
+      name, emoji, color, display_order: order,
+    }))
+  )
+
+  if (!directError) return
+
+  // If direct insert failed (PostgREST schema cache), try exec_sql
+  const { error: sqlError } = await ctx.supabase.rpc('exec_sql' as any, {
+    sql: `insert into todo_categories (name, emoji, color, display_order) values ${values};`,
   })
 
-  if (error) throw new Error(`Failed to insert categories: ${(error as { message: string }).message}`)
+  if (sqlError) throw new Error(`Failed to insert categories: ${(sqlError as { message: string }).message}`)
 }
 
 function quote(s: string): string {
