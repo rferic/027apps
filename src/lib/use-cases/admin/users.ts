@@ -1,4 +1,3 @@
-import { cachedQuery } from '@/lib/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { scanApps } from '@/lib/apps/scanner'
 
@@ -23,76 +22,68 @@ export type AdminStats = {
   totalGroups: number
 }
 
-export const getAdminUserList = cachedQuery(
-  async (): Promise<AdminUser[]> => {
-    const supabase = createAdminClient()
+export async function getAdminUserList(): Promise<AdminUser[]> {
+  const supabase = createAdminClient()
 
-    const [authResult, membersResult, profilesResult] = await Promise.all([
-      supabase.auth.admin.listUsers({ perPage: 100 }),
-      supabase.from('group_members').select('user_id, role, joined_at'),
-      supabase.from('profiles').select('id, display_name, locale'),
-    ])
+  const [authResult, membersResult, profilesResult] = await Promise.all([
+    supabase.auth.admin.listUsers({ perPage: 100 }),
+    supabase.from('group_members').select('user_id, role, joined_at'),
+    supabase.from('profiles').select('id, display_name, locale'),
+  ])
 
-    const users = authResult.data?.users ?? []
-    const members = membersResult.data ?? []
-    const profiles = profilesResult.data ?? []
+  const users = authResult.data?.users ?? []
+  const members = membersResult.data ?? []
+  const profiles = profilesResult.data ?? []
 
-    return users.map((user) => {
-      const profile = profiles.find((p) => p.id === user.id)
-      const member = members.find((m) => m.user_id === user.id)
-      return {
-        id: user.id,
-        email: user.email ?? '',
-        displayName: profile?.display_name ?? user.email?.split('@')[0] ?? 'Unknown',
-        role: (member?.role as 'admin' | 'member') ?? 'member',
-        locale: profile?.locale ?? null,
-        joinedAt: member?.joined_at ?? user.created_at,
-        lastLoginAt: user.last_sign_in_at ?? null,
-        isBlocked: !!user.banned_until && new Date(user.banned_until) > new Date(),
-      }
-    })
-  },
-  ['admin-users'],
-  { revalidate: 300, tags: ['admin-users'] }
-)
-
-export const getAdminStats = cachedQuery(
-  async (): Promise<AdminStats> => {
-    const supabase = createAdminClient()
-
-    const [membersResult, pendingInvResult, installedResult, groupsResult] = await Promise.all([
-      supabase.from('group_members').select('user_id, role'),
-      supabase
-        .from('invitations')
-        .select('id', { count: 'exact', head: true })
-        .is('accepted_at', null)
-        .is('revoked_at', null)
-        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`),
-      supabase.from('installed_apps').select('id', { count: 'exact', head: true }),
-      supabase.from('groups').select('id', { count: 'exact', head: true }),
-    ])
-
-    const members = membersResult.data ?? []
-    const scanned = await scanApps()
-
-    // Contar usuarios únicos (un usuario en N grupos cuenta como 1)
-    const uniqueUsers = new Set(members.map(m => m.user_id))
-    const uniqueAdmins = new Set(members.filter(m => m.role === 'admin').map(m => m.user_id))
-    const uniqueMembers = new Set(members.filter(m => m.role !== 'admin').map(m => m.user_id))
-
+  return users.map((user) => {
+    const profile = profiles.find((p) => p.id === user.id)
+    const member = members.find((m) => m.user_id === user.id)
     return {
-      totalUsers: uniqueUsers.size,
-      admins: uniqueAdmins.size,
-      members: uniqueMembers.size,
-      pendingInvitations: pendingInvResult.count ?? 0,
-      installedApps: installedResult.count ?? 0,
-      totalApps: scanned.length,
-      totalGroups: groupsResult.count ?? 0,
+      id: user.id,
+      email: user.email ?? '',
+      displayName: profile?.display_name ?? user.email?.split('@')[0] ?? 'Unknown',
+      role: (member?.role as 'admin' | 'member') ?? 'member',
+      locale: profile?.locale ?? null,
+      joinedAt: member?.joined_at ?? user.created_at,
+      lastLoginAt: user.last_sign_in_at ?? null,
+      isBlocked: !!user.banned_until && new Date(user.banned_until) > new Date(),
     }
-  },
-  ['admin-stats'],
-  { revalidate: 3600, tags: ['admin-stats'] }
-)
+  })
+}
+
+export async function getAdminStats(): Promise<AdminStats> {
+  const supabase = createAdminClient()
+
+  const [membersResult, pendingInvResult, installedResult, groupsResult] = await Promise.all([
+    supabase.from('group_members').select('user_id, role'),
+    supabase
+      .from('invitations')
+      .select('id', { count: 'exact', head: true })
+      .is('accepted_at', null)
+      .is('revoked_at', null)
+      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`),
+    supabase.from('installed_apps').select('id', { count: 'exact', head: true }),
+    supabase.from('groups').select('id', { count: 'exact', head: true }),
+  ])
+
+  const members = membersResult.data ?? []
+  const scanned = await scanApps()
+
+  // Contar usuarios únicos (un usuario en N grupos cuenta como 1)
+  const uniqueUsers = new Set(members.map(m => m.user_id))
+  const uniqueAdmins = new Set(members.filter(m => m.role === 'admin').map(m => m.user_id))
+  const uniqueMembers = new Set(members.filter(m => m.role !== 'admin').map(m => m.user_id))
+
+  return {
+    totalUsers: uniqueUsers.size,
+    admins: uniqueAdmins.size,
+    members: uniqueMembers.size,
+    pendingInvitations: pendingInvResult.count ?? 0,
+    installedApps: installedResult.count ?? 0,
+    totalApps: scanned.length,
+    totalGroups: groupsResult.count ?? 0,
+  }
+}
 
 export async function changeUserRole(
   userId: string,
@@ -155,6 +146,11 @@ export async function unblockUser(userId: string): Promise<{ error: string | nul
 
 export async function deleteAdminUser(userId: string): Promise<{ error: string | null }> {
   const supabase = createAdminClient()
+
+  // Clean up invitations referencing this user (prevents FK violations)
+  await supabase.from('invitations').delete().eq('invited_by', userId)
+  await supabase.from('invitations').update({ accepted_by: null }).eq('accepted_by', userId)
+
   const { error } = await supabase.auth.admin.deleteUser(userId)
   return { error: error?.message ?? null }
 }

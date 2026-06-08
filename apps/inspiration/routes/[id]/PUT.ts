@@ -2,6 +2,7 @@ import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyStatusChange } from '@/lib/use-cases/inspiration/send-notifications'
+import { syncStatusToGitHubIssue } from '../github-helpers'
 import type { HandlerContext } from '@/lib/apps/router-types'
 
 const VALID_TYPES = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_general_functionality', 'other']
@@ -87,6 +88,12 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .single()
 
   if (error) return apiError('UPDATE_ERROR', error.message, 500)
+
+  // Sync status change to GitHub issue (best-effort)
+  if (statusChanged) {
+    void syncStatusToGitHubIssue(id, oldStatusValue, status as string)
+      .catch(err => console.error('[Inspiration] Failed to sync status to GitHub issue:', err))
+  }
 
   // Fire notification after successful DB update (don't block response)
   if (statusChanged) {

@@ -19,7 +19,8 @@ export async function sendInvitationEmail(
 
   const inviterName = profile?.display_name ?? 'Someone'
 
-  const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/invite/${token}`
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === 'production' ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'http://localhost:3000')
+  const inviteUrl = `${siteUrl}/invite/${token}`
 
   const html = await render(
     <InvitationEmail

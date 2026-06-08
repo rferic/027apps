@@ -74,6 +74,8 @@ function AppCard({ app }: { app: CombinedApp }) {
             <Image unoptimized
               src={`/api/apps/${app.slug}/logo`}
               alt={app.manifest.name}
+              width={40}
+              height={40}
               className="flex-shrink-0 w-10 h-10 rounded-lg"
             />
           ) : (

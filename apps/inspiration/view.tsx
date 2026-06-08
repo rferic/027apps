@@ -28,6 +28,28 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
   return fetch(url, { ...options, headers, credentials: 'include' })
 }
 
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`
+  }
+  return headers
+}
+
+function getGroupSlug(): string {
+  const m = window.location.pathname.match(/\/apps\/inspiration\/([^/]+)/)
+  return m?.[1] ?? ''
+}
+
+function githubLinkUrl(ideaId: string): string {
+  return `/api/v1/${getGroupSlug()}/apps/inspiration/${ideaId}/github-link`
+}
+
+function githubUnlinkUrl(ideaId: string): string {
+  return `/api/v1/${getGroupSlug()}/apps/inspiration/${ideaId}/github-unlink`
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Creator {
@@ -48,6 +70,8 @@ interface RequestItem {
   comment_count: number
   user_has_voted: boolean
   creator: Creator | null
+  github_issue_number: number | null
+  github_issue_url: string | null
 }
 
 interface PaginationInfo {
@@ -286,6 +310,22 @@ function RequestCard({
             <p className="text-sm text-slate-700 whitespace-pre-line">{item.description}</p>
           </div>
 
+          {/* GitHub issue link */}
+          {item.github_issue_url && (
+            <div className="flex items-center gap-2">
+              <a
+                href={item.github_issue_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <ExternalLink size={12} />
+                #{item.github_issue_number} — {t('card.view_issue')}
+              </a>
+            </div>
+          )}
+
           {/* Comments section */}
           <div>
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">{t('comments.title')}</p>
@@ -340,7 +380,7 @@ function RequestCard({
             )}
 
             {/* New comment input */}
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-2 mt-3" onClick={e => e.stopPropagation()}>
               <input
                 type="text"
                 value={newCommentText}

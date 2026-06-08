@@ -39,7 +39,12 @@ function PriorityBadge({ priority }: { priority: string }) {
 }
 
 export default function TodoWidget() {
-  const { groupSlug } = useAppContext()
+  const ctx = useAppContext()
+  const groupSlug = ctx.groupSlug ?? (
+    typeof window !== 'undefined'
+      ? window.location.pathname.split('/')[2] ?? null
+      : null
+  )
   const locale = useLocale()
   const t = useTranslations('apps.todo')
   const [myTasks, setMyTasks] = useState<TodoItem[]>([])
