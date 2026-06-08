@@ -229,6 +229,18 @@ export async function reopenIssue(issueNumber: number): Promise<void> {
   }
 }
 
+async function createLabel(name: string, color: string = 'ededed'): Promise<void> {
+  const repo = await getRepo()
+  const response = await ghFetch(`/repos/${repo}/labels`, {
+    method: 'POST',
+    body: JSON.stringify({ name, color }),
+  })
+  if (!response.ok && response.status !== 422) {
+    const body = await response.text()
+    throw new Error(`GitHub createLabel error: ${response.status} — ${body}`)
+  }
+}
+
 export async function updateLabels(
   issueNumber: number,
   labels: string[]
@@ -246,6 +258,21 @@ export async function updateLabels(
 
   if (!response.ok) {
     const body = await response.text()
+    // If labels don't exist on the repo, create them and retry
+    if (response.status === 422) {
+      for (const label of labels) {
+        await createLabel(label)
+      }
+      const retry = await ghFetch(`/repos/${repo}/issues/${issueNumber}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ labels }),
+      })
+      if (!retry.ok) {
+        const retryBody = await retry.text()
+        throw new Error(`GitHub updateLabels error (after retry): ${retry.status} — ${retryBody}`)
+      }
+      return
+    }
     throw new Error(`GitHub updateLabels error: ${response.status} — ${body}`)
   }
 }
