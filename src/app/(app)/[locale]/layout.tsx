@@ -149,7 +149,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   }
 
   const navItems: NavItem[] = []
-  const groupApps: { slug: string; name: string }[] = []
+  const groupApps: { slug: string; name: string; logo: string; primaryColor: string }[] = []
 
   if (currentGroupSlug && activeApps) {
     for (const app of activeApps) {
@@ -157,7 +157,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       if (app.visibility === 'private' && !privateAppSlugs.has(app.slug)) continue
       try {
         const manifest = await readManifest(app.slug)
-        groupApps.push({ slug: app.slug, name: manifest.name })
+        groupApps.push({ slug: app.slug, name: manifest.name, logo: manifest.logo, primaryColor: manifest.primaryColor })
         if (manifest.views.public) {
           navItems.push({
             slug: app.slug,

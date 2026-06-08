@@ -98,6 +98,7 @@ function CreateTodoModal({
   const [categoryId, setCategoryId] = useState('')
   const [repeatInterval, setRepeatInterval] = useState('')
   const [saving, setSaving] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
@@ -109,21 +110,28 @@ function CreateTodoModal({
     e.preventDefault()
     if (!title.trim()) return
     setSaving(true)
-    const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: title.trim(),
-        description: description.trim(),
-        priority,
-        visibility,
-        due_date: dueDate || null,
-        category_id: categoryId || null,
-        repeat_interval: repeatInterval || null,
-      }),
-    })
+    setCreateError(null)
+    try {
+      const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          priority,
+          visibility,
+          due_date: dueDate || null,
+          category_id: categoryId || null,
+          repeat_interval: repeatInterval || null,
+        }),
+      })
+      if (res.ok) { onCreated(); onClose(); return }
+      const errBody = await res.text().catch(() => '')
+      setCreateError(errBody || 'Failed to create task')
+    } catch {
+      setCreateError('Network error')
+    }
     setSaving(false)
-    if (res.ok) { onCreated(); onClose() }
   }
 
   const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white'
@@ -177,6 +185,9 @@ function CreateTodoModal({
             <option value="monthly">{t('repeat_monthly')}</option>
             <option value="yearly">{t('repeat_yearly')}</option>
           </select>
+          {createError && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{createError}</p>
+          )}
           <div className="pt-2 flex gap-2 justify-end">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? t('saving') : t('create')}</button>
@@ -206,6 +217,7 @@ function EditTodoModal({
   const [categoryId, setCategoryId] = useState(item.category_id ?? '')
   const [repeatInterval, setRepeatInterval] = useState(item.repeat_interval ?? '')
   const [saving, setSaving] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
@@ -217,20 +229,27 @@ function EditTodoModal({
     e.preventDefault()
     if (!title.trim()) return
     setSaving(true)
-    const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: title.trim(),
-        description: description.trim(),
-        priority,
-        due_date: dueDate || null,
-        category_id: categoryId || null,
-        repeat_interval: repeatInterval || null,
-      }),
-    })
+    setEditError(null)
+    try {
+      const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          priority,
+          due_date: dueDate || null,
+          category_id: categoryId || null,
+          repeat_interval: repeatInterval || null,
+        }),
+      })
+      if (res.ok) { onSaved(); onClose(); return }
+      const errBody = await res.text().catch(() => '')
+      setEditError(errBody || 'Failed to save task')
+    } catch {
+      setEditError('Network error')
+    }
     setSaving(false)
-    if (res.ok) { onSaved(); onClose() }
   }
 
   const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white'
@@ -278,6 +297,9 @@ function EditTodoModal({
             <option value="yearly">{t('repeat_yearly')}</option>
           </select>
           </div>
+          {editError && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{editError}</p>
+          )}
           <div className="pt-2 flex gap-2 justify-end">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? t('saving') : t('save')}</button>
