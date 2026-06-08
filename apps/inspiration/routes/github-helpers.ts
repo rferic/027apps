@@ -128,7 +128,6 @@ export async function syncStatusToGitHubIssue(
     .eq('id', ideaId)
     .single()
   if (currentIdea?.status !== newStatus) return
-
   // Get current labels from GitHub, replace only status labels
   const labelMap = await getGitHubLabelMap()
   const typeLabel = labelMap[idea.type] ?? DEFAULT_LABEL_MAP[idea.type] ?? 'other'
