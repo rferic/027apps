@@ -109,6 +109,15 @@ export async function syncStatusToGitHubIssue(
 
   if (!idea?.github_issue_number) return
 
+  // Guard: re-verify the status is still current (avoids race conditions
+  // when two status changes happen in quick succession)
+  const { data: currentIdea } = await adminClient
+    .from('inspiration_requests')
+    .select('status')
+    .eq('id', ideaId)
+    .single()
+  if (currentIdea?.status !== newStatus) return
+
   // Get current labels from GitHub, replace only status labels
   const labelMap = await getGitHubLabelMap()
   const typeLabel = labelMap[idea.type] ?? DEFAULT_LABEL_MAP[idea.type] ?? 'other'
