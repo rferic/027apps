@@ -594,7 +594,8 @@
       "todo_priority": "Prioridad",
       "todo_status": "Estado",
       "todo_assigned": "Asignado a"
-    },
+    }
+  },
   "invite": {
     "title": "Te han invitado",
     "invalid": "Enlace de invitación no válido.",
