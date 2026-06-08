@@ -22,12 +22,29 @@ interface RouteEntry {
 
 const DYNAMIC_SEGMENT_RE = /^\[.+\]$/
 
+import todoCatGetHandler from '../../../apps/todo/routes/categories/GET'
+import todoCatPostHandler from '../../../apps/todo/routes/categories/POST'
+import todoCatPutHandler from '../../../apps/todo/routes/categories/[id]/PUT'
+import todoCatDeleteHandler from '../../../apps/todo/routes/categories/[id]/DELETE'
+import todoWidgetMyHandler from '../../../apps/todo/routes/widget/my/GET'
+import todoWidgetGroupHandler from '../../../apps/todo/routes/widget/group/GET'
+import todoNotifPrefsGetHandler from '../../../apps/todo/routes/notification-prefs/GET'
+import todoNotifPrefsPutHandler from '../../../apps/todo/routes/notification-prefs/PUT'
+
 const ROUTE_REGISTRY: Record<string, RouteEntry[]> = {
   todo: [
     { method: 'GET', segments: [], handler: todoGetHandler },
     { method: 'POST', segments: [], handler: todoPostHandler },
     { method: 'PUT', segments: ['[id]'], handler: todoPutHandler },
     { method: 'DELETE', segments: ['[id]'], handler: todoDeleteHandler },
+    { method: 'GET', segments: ['categories'], handler: todoCatGetHandler },
+    { method: 'POST', segments: ['categories'], handler: todoCatPostHandler },
+    { method: 'PUT', segments: ['categories', '[id]'], handler: todoCatPutHandler },
+    { method: 'DELETE', segments: ['categories', '[id]'], handler: todoCatDeleteHandler },
+    { method: 'GET', segments: ['widget', 'my'], handler: todoWidgetMyHandler },
+    { method: 'GET', segments: ['widget', 'group'], handler: todoWidgetGroupHandler },
+    { method: 'GET', segments: ['notification-prefs'], handler: todoNotifPrefsGetHandler },
+    { method: 'PUT', segments: ['notification-prefs'], handler: todoNotifPrefsPutHandler },
   ],
   inspiration: [
     { method: 'GET', segments: [], handler: inspGetHandler },
