@@ -12,15 +12,18 @@ const DEFAULT_CATEGORIES = [
 ]
 
 export async function install(ctx: AppInstallContext): Promise<void> {
-  // Delete existing defaults and re-insert (uses raw SQL to bypass PostgREST schema cache)
+  // Use separate exec_sql calls (multi-statement not guaranteed in PL/pgSQL)
+  const { error: deleteError } = await ctx.supabase.rpc('exec_sql', {
+    sql: 'delete from todo_categories',
+  })
+  if (deleteError) throw new Error(`Failed to clear categories: ${deleteError.message}`)
+
   const values = DEFAULT_CATEGORIES.map(c =>
     `('${c.name}', '${c.emoji}', '${c.color}', ${c.display_order})`
   ).join(',\n')
 
-  await ctx.supabase.rpc('exec_sql', {
-    sql: `
-      delete from todo_categories;
-      insert into todo_categories (name, emoji, color, display_order) values ${values};
-    `,
+  const { error: insertError } = await ctx.supabase.rpc('exec_sql', {
+    sql: `insert into todo_categories (name, emoji, color, display_order) values ${values};`,
   })
+  if (insertError) throw new Error(`Failed to insert categories: ${insertError.message}`)
 }

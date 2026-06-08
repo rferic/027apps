@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { useAppContext } from '@/lib/apps/context'
 import { Plus, X, Loader2, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 
