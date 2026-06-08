@@ -149,6 +149,33 @@ async function getRepo(): Promise<string> {
 
 // ─── Issues ──────────────────────────────────────────────
 
+export async function getIssue(issueNumber: number): Promise<GitHubIssue> {
+  if (isDryRun()) {
+    logDryRun('getIssue', { issueNumber })
+    return { number: issueNumber, url: '', state: 'open', title: '', labels: [] }
+  }
+
+  const repo = await getRepo()
+  const response = await ghFetch(`/repos/${repo}/issues/${issueNumber}`)
+
+  if (!response.ok) {
+    const body = await response.text()
+    throw new Error(`GitHub getIssue error: ${response.status} — ${body}`)
+  }
+
+  const data = await response.json()
+  return {
+    number: data.number,
+    url: data.html_url,
+    state: data.state,
+    title: data.title,
+    labels: (data.labels ?? []).map((l: { name: string; color: string }) => ({
+      name: l.name,
+      color: l.color,
+    })),
+  }
+}
+
 export async function createIssue(params: {
   title: string
   body: string
