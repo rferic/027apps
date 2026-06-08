@@ -1,7 +1,8 @@
 import todoGetHandler from '../../../apps/todo/routes/GET'
 import todoPostHandler from '../../../apps/todo/routes/POST'
-import todoPutHandler from '../../../apps/todo/routes/[id]/PUT'
-import todoDeleteHandler from '../../../apps/todo/routes/[id]/DELETE'
+import todoItemGetHandler from '../../../apps/todo/routes/[id]/GET'
+import todoItemPutHandler from '../../../apps/todo/routes/[id]/PUT'
+import todoItemDeleteHandler from '../../../apps/todo/routes/[id]/DELETE'
 
 import inspGetHandler from '../../../apps/inspiration/routes/GET'
 import inspPostHandler from '../../../apps/inspiration/routes/POST'
@@ -33,10 +34,11 @@ import todoNotifPrefsPutHandler from '../../../apps/todo/routes/notification-pre
 
 const ROUTE_REGISTRY: Record<string, RouteEntry[]> = {
   todo: [
-    { method: 'GET', segments: [], handler: todoGetHandler },
-    { method: 'POST', segments: [], handler: todoPostHandler },
-    { method: 'PUT', segments: ['[id]'], handler: todoPutHandler },
-    { method: 'DELETE', segments: ['[id]'], handler: todoDeleteHandler },
+    { method: 'GET', segments: ['items'], handler: todoGetHandler },
+    { method: 'POST', segments: ['items'], handler: todoPostHandler },
+    { method: 'GET', segments: ['items', '[id]'], handler: todoItemGetHandler },
+    { method: 'PUT', segments: ['items', '[id]'], handler: todoItemPutHandler },
+    { method: 'DELETE', segments: ['items', '[id]'], handler: todoItemDeleteHandler },
     { method: 'GET', segments: ['categories'], handler: todoCatGetHandler },
     { method: 'POST', segments: ['categories'], handler: todoCatPostHandler },
     { method: 'PUT', segments: ['categories', '[id]'], handler: todoCatPutHandler },

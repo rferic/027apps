@@ -83,10 +83,11 @@ function today(): string {
 }
 
 function CreateTodoModal({
-  groupSlug, categories, onClose, onCreated,
+  groupSlug, categories, defaultCategoryId, onClose, onCreated,
 }: {
   groupSlug: string
   categories: Array<{ id: string; name: string; emoji: string; color: string }>
+  defaultCategoryId?: string
   onClose: () => void
   onCreated: () => void
 }) {
@@ -96,7 +97,7 @@ function CreateTodoModal({
   const [priority, setPriority] = useState('medium')
   const [visibility, setVisibility] = useState<'public' | 'private'>('public')
   const [dueDate, setDueDate] = useState(today())
-  const [categoryId, setCategoryId] = useState('')
+  const [categoryId, setCategoryId] = useState(defaultCategoryId ?? '')
   const [repeatInterval, setRepeatInterval] = useState('')
   const [saving, setSaving] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -360,7 +361,7 @@ interface TodoItem {
 }
 
 interface Category {
-  id: string; name: string; emoji: string; color: string;
+  id: string; name: string; emoji: string; color: string; is_default?: boolean;
 }
 
 export default function TodoView() {
@@ -514,7 +515,7 @@ export default function TodoView() {
         </div>
       )}
 
-      {showCreate && <CreateTodoModal groupSlug={groupSlug!} categories={categories} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
+      {showCreate && <CreateTodoModal groupSlug={groupSlug!} categories={categories} defaultCategoryId={categories.find(c => (c as any).is_default)?.id ?? ''} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
       {editItem && <EditTodoModal item={editItem} groupSlug={groupSlug!} categories={categories} onClose={() => setEditItem(null)} onSaved={() => { setEditItem(null); setRefresh(r => r + 1) }} />}
       {deleteItem && <DeleteConfirm item={deleteItem} groupSlug={groupSlug!} onClose={() => setDeleteItem(null)} onDeleted={() => { setDeleteItem(null); setRefresh(r => r + 1) }} />}
     </div>

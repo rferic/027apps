@@ -6,7 +6,7 @@ import { Plus, X, Loader2, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Category {
-  id: string; name: string; emoji: string; color: string; display_order: number
+  id: string; name: string; emoji: string; color: string; display_order: number; is_default?: boolean
 }
 
 function CategoryForm({ edit, onClose, onSaved }: {
@@ -100,6 +100,16 @@ export function CategoriesSettings() {
 
   useEffect(() => { fetchCategories() }, [fetchCategories, refresh])
 
+  async function setDefault(id: string) {
+    const res = await fetch(`/api/v1/admin/apps/todo/categories/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_default: true }),
+    })
+    if (res.ok) setRefresh(r => r + 1)
+    else toast.error('Failed to set default')
+  }
+
   async function handleDelete(id: string, name: string, count: number) {
     const res = await fetch(`/api/v1/admin/apps/todo/categories/${id}`, { method: 'DELETE' })
     if (res.status === 409) {
@@ -134,9 +144,14 @@ export function CategoriesSettings() {
       ) : (
         <div className="space-y-1.5">
           {categories.map(cat => (
-            <div key={cat.id} className="flex items-center gap-2.5 px-3 py-2 bg-slate-50 rounded-lg">
+            <div key={cat.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg ${cat.is_default ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'bg-slate-50'}`}>
               <span className="text-base">{cat.emoji}</span>
               <span className="text-sm text-slate-700 flex-1">{cat.name}</span>
+              {cat.is_default ? (
+                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded">Default</span>
+              ) : (
+                <button onClick={() => setDefault(cat.id)} className="text-[10px] text-slate-400 hover:text-indigo-600 font-medium">Set default</button>
+              )}
               <button onClick={() => { setEditCat(cat); setShowForm(true) }} className="p-0.5 text-slate-400 hover:text-slate-600"><Pencil size={13} /></button>
               <button onClick={() => handleDelete(cat.id, cat.name, 0)} className="text-xs text-red-400 hover:text-red-600 font-medium">{t('delete')}</button>
             </div>

@@ -20,6 +20,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (typeof body.display_order === 'number') update.display_order = body.display_order
 
   const adminClient = createAdminClientUntyped()
+
+  // If setting this category as default, unset all others first
+  if (body.is_default === true) {
+    await adminClient.rpc('exec_sql' as any, { sql: 'update todo_categories set is_default = false' })
+    update.is_default = true
+  } else if (body.is_default === false) {
+    // Cannot unset the only default — find another to make default
+    const { count } = await adminClient
+      .from('todo_categories')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_default', true)
+    if (count && count <= 1) {
+      return apiError('VALIDATION_ERROR', 'At least one category must be the default', 422)
+    }
+    update.is_default = false
+  }
+
   const { data, error } = await adminClient
     .from('todo_categories')
     .update(update)
