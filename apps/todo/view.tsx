@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { CheckSquare, Plus, X, Loader2, UserPlus, Clock, AlertTriangle } from 'lucide-react'
+import { CheckSquare, Plus, X, Loader2, UserPlus, Clock, AlertTriangle, Pencil, Trash2 } from 'lucide-react'
 
 const supabase = createClient()
 
@@ -15,6 +15,17 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
   return fetch(url, { ...options, headers, credentials: 'include' })
 }
 
+async function fetchCategories(groupSlug: string): Promise<Array<{ id: string; name: string; emoji: string; color: string }>> {
+  try {
+    const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/categories`)
+    if (res.ok) {
+      const { data } = await res.json()
+      return data ?? []
+    }
+  } catch {}
+  return []
+}
+
 const PRIORITY_CONFIG: Record<string, { color: string; icon: typeof AlertTriangle; label: string }> = {
   urgent: { color: '#EF4444', icon: AlertTriangle, label: 'Urgent' },
   high: { color: '#F97316', icon: AlertTriangle, label: 'High' },
@@ -22,17 +33,65 @@ const PRIORITY_CONFIG: Record<string, { color: string; icon: typeof AlertTriangl
   low: { color: '#6B7280', icon: Clock, label: 'Low' },
 }
 
-const STATUS_OPTIONS = ['pending', 'in_progress', 'done', 'cancelled'] as const
+// ─── TodoFilters ───────────────────────────────────────────────────────────
+
+function TodoFilters({
+  categories, filters, onChange,
+}: {
+  categories: Array<{ id: string; name: string; emoji: string; color: string }>
+  filters: { category: string; priority: string; status: string }
+  onChange: (f: typeof filters) => void
+}) {
+  const t = useTranslations('apps.todo')
+
+  function set(key: string, value: string) {
+    onChange({ ...filters, [key]: value })
+  }
+
+  const selectCls = 'px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400'
+
+  return (
+    <div className="flex flex-wrap gap-2 mb-4">
+      <select value={filters.category} onChange={e => set('category', e.target.value)} className={selectCls}>
+        <option value="">{t('all')} {t('filter_category')}</option>
+        {categories.map(c => (
+          <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+        ))}
+      </select>
+      <select value={filters.priority} onChange={e => set('priority', e.target.value)} className={selectCls}>
+        <option value="">{t('all')} {t('filter_priority')}</option>
+        {Object.keys(PRIORITY_CONFIG).map(k => (
+          <option key={k} value={k}>{k}</option>
+        ))}
+      </select>
+      <select value={filters.status} onChange={e => set('status', e.target.value)} className={selectCls}>
+        <option value="">{t('all')} {t('filter_status')}</option>
+        <option value="pending">Pending</option>
+        <option value="in_progress">In progress</option>
+        <option value="done">Done</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+  )
+}
 
 // ─── CreateTodoModal ───────────────────────────────────────────────────────
 
-function CreateTodoModal({ groupSlug, onClose, onCreated }: { groupSlug: string; onClose: () => void; onCreated: () => void }) {
+function CreateTodoModal({
+  groupSlug, categories, onClose, onCreated,
+}: {
+  groupSlug: string
+  categories: Array<{ id: string; name: string; emoji: string; color: string }>
+  onClose: () => void
+  onCreated: () => void
+}) {
   const t = useTranslations('apps.todo')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('medium')
   const [visibility, setVisibility] = useState<'public' | 'private'>('public')
   const [dueDate, setDueDate] = useState('')
+  const [categoryId, setCategoryId] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -48,7 +107,14 @@ function CreateTodoModal({ groupSlug, onClose, onCreated }: { groupSlug: string;
     const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: title.trim(), description: description.trim(), priority, visibility, due_date: dueDate || null }),
+      body: JSON.stringify({
+        title: title.trim(),
+        description: description.trim(),
+        priority,
+        visibility,
+        due_date: dueDate || null,
+        category_id: categoryId || null,
+      }),
     })
     setSaving(false)
     if (res.ok) { onCreated(); onClose() }
@@ -76,12 +142,130 @@ function CreateTodoModal({ groupSlug, onClose, onCreated }: { groupSlug: string;
               <option value="private">{t('visibility_private')}</option>
             </select>
           </div>
+          <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
+            <option value="">{t('no_category')}</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+          </select>
           <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
           <div className="pt-2 flex gap-2 justify-end">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? t('saving') : t('create')}</button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── EditTodoModal ─────────────────────────────────────────────────────────
+
+function EditTodoModal({
+  item, groupSlug, categories, onClose, onSaved,
+}: {
+  item: { id: string; title: string; description: string | null; priority: string; due_date: string | null; category_id: string | null }
+  groupSlug: string
+  categories: Array<{ id: string; name: string; emoji: string; color: string }>
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const t = useTranslations('apps.todo')
+  const [title, setTitle] = useState(item.title)
+  const [description, setDescription] = useState(item.description ?? '')
+  const [priority, setPriority] = useState(item.priority)
+  const [dueDate, setDueDate] = useState(item.due_date ? item.due_date.slice(0, 10) : '')
+  const [categoryId, setCategoryId] = useState(item.category_id ?? '')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [onClose])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!title.trim()) return
+    setSaving(true)
+    const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: title.trim(),
+        description: description.trim(),
+        priority,
+        due_date: dueDate || null,
+        category_id: categoryId || null,
+      }),
+    })
+    setSaving(false)
+    if (res.ok) { onSaved(); onClose() }
+  }
+
+  const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
+      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-lg mx-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900">{t('edit_title')}</h2>
+          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={t('title_placeholder')} className={inputCls} autoFocus required />
+          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t('desc_placeholder')} className={inputCls} rows={3} />
+          <select value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
+            {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+          <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
+            <option value="">{t('no_category')}</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+          </select>
+          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
+          <div className="pt-2 flex gap-2 justify-end">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? t('saving') : t('save')}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── DeleteConfirm ──────────────────────────────────────────────────────────
+
+function DeleteConfirm({ item, groupSlug, onClose, onDeleted }: {
+  item: TodoItem; groupSlug: string; onClose: () => void; onDeleted: () => void
+}) {
+  const t = useTranslations('apps.todo')
+  const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [onClose])
+
+  async function handleDelete() {
+    setDeleting(true)
+    const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}`, { method: 'DELETE' })
+    setDeleting(false)
+    if (res.ok) { onDeleted(); onClose() }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
+        <h3 className="text-sm font-semibold text-slate-900 mb-2">{t('delete')}</h3>
+        <p className="text-sm text-slate-500 mb-4">{t('delete_confirm')}</p>
+        <p className="text-sm text-slate-700 mb-4 font-medium">&ldquo;{item.title}&rdquo;</p>
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
+          <button onClick={handleDelete} disabled={deleting} className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50">
+            {deleting ? t('saving') : t('delete')}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -96,14 +280,22 @@ interface TodoItem {
   created_at: string;
 }
 
+interface Category {
+  id: string; name: string; emoji: string; color: string;
+}
+
 export default function TodoView() {
   const { groupSlug } = useAppContext()
   const t = useTranslations('apps.todo')
   const [tab, setTab] = useState<'my' | 'group'>('my')
   const [items, setItems] = useState<TodoItem[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
+  const [editItem, setEditItem] = useState<TodoItem | null>(null)
+  const [deleteItem, setDeleteItem] = useState<TodoItem | null>(null)
+  const [filters, setFilters] = useState({ category: '', priority: '', status: '' })
   const [refresh, setRefresh] = useState(0)
 
   const fetchItems = useCallback(async () => {
@@ -114,6 +306,9 @@ export default function TodoView() {
       const visibility = tab === 'group' ? 'public' : ''
       const params = new URLSearchParams({ assigned, sort: 'priority', limit: '50' })
       if (visibility) params.set('visibility', visibility)
+      if (filters.category) params.set('category_id', filters.category)
+      if (filters.priority) params.set('priority', filters.priority)
+      if (filters.status) params.set('status', filters.status)
 
       const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items?${params}`)
       if (!res.ok) throw new Error('Failed')
@@ -122,9 +317,15 @@ export default function TodoView() {
       setError(false)
     } catch { setError(true) }
     finally { setLoading(false) }
-  }, [groupSlug, tab])
+  }, [groupSlug, tab, filters])
 
   useEffect(() => { fetchItems() }, [fetchItems, refresh])
+
+  useEffect(() => {
+    if (groupSlug) fetchCategories(groupSlug).then(setCategories)
+  }, [groupSlug])
+
+  const catMap = new Map(categories.map(c => [c.id, c]))
 
   async function handleTake(item: TodoItem) {
     await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}`, {
@@ -148,9 +349,10 @@ export default function TodoView() {
     if (!d) return ''
     const date = new Date(d)
     const now = new Date()
-    if (date < now && date.toDateString() !== now.toDateString()) return '⚠ ' + date.toLocaleDateString()
+    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+    if (date < now && date.toDateString() !== now.toDateString()) return '⚠ ' + date.toLocaleDateString(undefined, opts)
     if (date.toDateString() === now.toDateString()) return 'Today'
-    return date.toLocaleDateString()
+    return date.toLocaleDateString(undefined, opts)
   }
 
   return (
@@ -173,6 +375,9 @@ export default function TodoView() {
         </button>
       </div>
 
+      {/* Filters */}
+      <TodoFilters categories={categories} filters={filters} onChange={setFilters} />
+
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 size={20} className="animate-spin text-slate-200" /></div>
@@ -185,8 +390,9 @@ export default function TodoView() {
           {items.map(item => {
             const pc = PRIORITY_CONFIG[item.priority] ?? PRIORITY_CONFIG.low
             const isOverdue = item.due_date && new Date(item.due_date) < new Date()
+            const cat = item.category_id ? catMap.get(item.category_id) : null
             return (
-              <div key={item.id} className="bg-white rounded-lg border border-slate-100 p-3">
+              <div key={item.id} className="bg-white rounded-lg border border-slate-100 p-3 hover:border-slate-200 transition-colors">
                 <div className="flex items-start gap-3">
                   <button onClick={() => handleStatus(item, item.status === 'done' ? 'pending' : 'done')} className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${item.status === 'done' ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-slate-300'}`}>
                     {item.status === 'done' && <CheckSquare size={10} />}
@@ -197,13 +403,28 @@ export default function TodoView() {
                       <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: pc.color + '20', color: pc.color }}>{item.priority}</span>
                     </div>
                     {item.description && <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{item.description}</p>}
-                    {item.due_date && (
-                      <p className={`text-xs mt-1 ${isOverdue ? 'text-red-500' : 'text-slate-400'}`}>{formatDate(item.due_date)}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {cat && (
+                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: cat.color + '20', color: cat.color }}>
+                          {cat.emoji} {cat.name}
+                        </span>
+                      )}
+                      {item.due_date && (
+                        <span className={`text-xs ${isOverdue ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatDate(item.due_date)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setEditItem(item)} className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100" title={t('edit')}>
+                      <Pencil size={14} />
+                    </button>
+                    <button onClick={() => setDeleteItem(item)} className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50" title={t('delete')}>
+                      <Trash2 size={14} />
+                    </button>
+                    {tab === 'group' && !item.assigned_to && (
+                      <button onClick={() => handleTake(item)} className="text-xs text-indigo-500 hover:text-indigo-700 font-medium ml-1">{t('take')}</button>
                     )}
                   </div>
-                  {tab === 'group' && !item.assigned_to && (
-                    <button onClick={() => handleTake(item)} className="text-xs text-indigo-500 hover:text-indigo-700 font-medium flex-shrink-0">{t('take')}</button>
-                  )}
                 </div>
               </div>
             )
@@ -211,7 +432,9 @@ export default function TodoView() {
         </div>
       )}
 
-      {showCreate && <CreateTodoModal groupSlug={groupSlug!} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
+      {showCreate && <CreateTodoModal groupSlug={groupSlug!} categories={categories} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
+      {editItem && <EditTodoModal item={editItem} groupSlug={groupSlug!} categories={categories} onClose={() => setEditItem(null)} onSaved={() => { setEditItem(null); setRefresh(r => r + 1) }} />}
+      {deleteItem && <DeleteConfirm item={deleteItem} groupSlug={groupSlug!} onClose={() => setDeleteItem(null)} onDeleted={() => { setDeleteItem(null); setRefresh(r => r + 1) }} />}
     </div>
   )
 }
