@@ -23,6 +23,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   // If setting this category as default, unset all others first
   if (body.is_default === true) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await adminClient.rpc('exec_sql' as any, { sql: 'update todo_categories set is_default = false' })
     update.is_default = true
   } else if (body.is_default === false) {
