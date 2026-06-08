@@ -111,7 +111,7 @@ export async function syncStatusToGitHubIssue(
 
   // Update labels to reflect the new status
   const labelMap = await getGitHubLabelMap()
-  const typeLabel = labelMap[idea.type] ?? 'other'
+  const typeLabel = labelMap[idea.type] ?? DEFAULT_LABEL_MAP[idea.type] ?? 'other'
   const statusLabel = STATUS_LABELS[newStatus]
   const labels = statusLabel ? [typeLabel, statusLabel] : [typeLabel]
 
