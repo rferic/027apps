@@ -13,6 +13,7 @@ import { getAppPermissionsAction } from '@/lib/apps/actions'
 import { loadAppModule } from '@/lib/apps/registry'
 import { loadAppMessages } from '@/lib/apps/i18n'
 import { GitHubSettingsManager } from '../../../../../../../apps/inspiration/GitHubSettingsManager'
+import { CategoriesSettings } from '../../../../../../../apps/todo/CategoriesSettings'
 import { getAppSetting } from '@/lib/use-cases/app-settings'
 import { decryptSecret } from '@/lib/secrets'
 
@@ -140,6 +141,12 @@ export default async function AdminAppViewPage({ params, searchParams }: Props) 
             {slug === 'inspiration' && (
               <div className="bg-white rounded-xl border border-slate-100 p-5 mt-4">
                 <GitHubSettingsManager initial={await getInitialGitHubSettings()} />
+              </div>
+            )}
+
+            {slug === 'todo' && (
+              <div className="bg-white rounded-xl border border-slate-100 p-5">
+                <CategoriesSettings />
               </div>
             )}
 
