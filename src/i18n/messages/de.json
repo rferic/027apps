@@ -702,7 +702,11 @@
         "my_tasks": "My tasks",
         "group_tasks": "Group tasks",
         "view_all": "View all"
-      }
+      },
+      "priority_urgent": "Urgent",
+      "priority_high": "High",
+      "priority_medium": "Medium",
+      "priority_low": "Low"
     },
     "permissions": {
       "title": "Zugang",

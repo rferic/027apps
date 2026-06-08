@@ -682,6 +682,10 @@
       "error_loading": "Could not load tasks.",
       "not_found": "Task not found.",
       "assign_to_me": "Assign to me",
+      "priority_urgent": "Urgent",
+      "priority_high": "High",
+      "priority_medium": "Medium",
+      "priority_low": "Low",
       "widget": {
         "not_available": "Not available",
         "couldnt_load": "Could not load",

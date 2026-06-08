@@ -56,5 +56,9 @@
   "empty_my": "No tienes tareas asignadas.",
   "empty_group": "No hay tareas sin asignar en el grupo.",
   "error_loading": "No se pudieron cargar las tareas.",
-  "not_found": "Tarea no encontrada."
+  "not_found": "Tarea no encontrada.",
+  "priority_urgent": "Urgente",
+  "priority_high": "Alta",
+  "priority_medium": "Media",
+  "priority_low": "Baja"
 }

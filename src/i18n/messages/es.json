@@ -703,7 +703,11 @@
         "my_tasks": "Mis tareas",
         "group_tasks": "Tareas del grupo",
         "view_all": "Ver todas"
-      }
+      },
+      "priority_urgent": "Urgente",
+      "priority_high": "Alta",
+      "priority_medium": "Media",
+      "priority_low": "Baja"
     },
     "permissions": {
       "title": "Acceso",

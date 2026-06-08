@@ -56,5 +56,9 @@
   "empty_my": "No tasks assigned to you.",
   "empty_group": "No unassigned tasks in the group.",
   "error_loading": "Could not load tasks.",
-  "not_found": "Task not found."
+  "not_found": "Task not found.",
+  "priority_urgent": "Urgent",
+  "priority_high": "High",
+  "priority_medium": "Medium",
+  "priority_low": "Low"
 }

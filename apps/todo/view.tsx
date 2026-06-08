@@ -26,11 +26,11 @@ async function fetchCategories(groupSlug: string): Promise<Array<{ id: string; n
   return []
 }
 
-const PRIORITY_CONFIG: Record<string, { color: string; icon: typeof AlertTriangle; label: string }> = {
-  urgent: { color: '#EF4444', icon: AlertTriangle, label: 'Urgent' },
-  high: { color: '#F97316', icon: AlertTriangle, label: 'High' },
-  medium: { color: '#F59E0B', icon: Clock, label: 'Medium' },
-  low: { color: '#6B7280', icon: Clock, label: 'Low' },
+const PRIORITY_CONFIG: Record<string, { color: string; icon: typeof AlertTriangle }> = {
+  urgent: { color: '#EF4444', icon: AlertTriangle },
+  high: { color: '#F97316', icon: AlertTriangle },
+  medium: { color: '#F59E0B', icon: Clock },
+  low: { color: '#6B7280', icon: Clock },
 }
 
 // ─── TodoFilters ───────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ function TodoFilters({
       <select value={filters.priority} onChange={e => set('priority', e.target.value)} className={selectCls}>
         <option value="">{t('all')} {t('filter_priority')}</option>
         {Object.keys(PRIORITY_CONFIG).map(k => (
-          <option key={k} value={k}>{k}</option>
+          <option key={k} value={k}>{t('priority_' + k)}</option>
         ))}
       </select>
       <select value={filters.status} onChange={e => set('status', e.target.value)} className={selectCls}>
@@ -135,7 +135,7 @@ function CreateTodoModal({
           <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t('desc_placeholder')} className={inputCls} rows={3} />
           <div className="flex gap-3">
             <select value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
-              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{t('priority_' + k)}</option>)}
             </select>
             <select value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
               <option value="public">{t('visibility_public')}</option>
@@ -215,7 +215,7 @@ function EditTodoModal({
           <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={t('title_placeholder')} className={inputCls} autoFocus required />
           <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t('desc_placeholder')} className={inputCls} rows={3} />
           <select value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
-            {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{t('priority_' + k)}</option>)}
           </select>
           <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
             <option value="">{t('no_category')}</option>
@@ -400,7 +400,7 @@ export default function TodoView() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className={`text-sm ${item.status === 'done' ? 'line-through text-slate-400' : 'text-slate-800'}`}>{item.title}</span>
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: pc.color + '20', color: pc.color }}>{item.priority}</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: pc.color + '20', color: pc.color }}>{t('priority_' + item.priority)}</span>
                     </div>
                     {item.description && <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{item.description}</p>}
                     <div className="flex items-center gap-2 mt-1">

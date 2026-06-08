@@ -56,5 +56,9 @@
   "priority": "Priority",
   "due_date": "Due date",
   "assign_to": "Assign to",
-  "no_category": "No category"
+  "no_category": "No category",
+  "priority_urgent": "Urgent",
+  "priority_high": "High",
+  "priority_medium": "Medium",
+  "priority_low": "Low"
 }

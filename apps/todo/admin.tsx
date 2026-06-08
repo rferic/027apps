@@ -100,16 +100,22 @@ export default function TodoAdmin() {
   const [editCat, setEditCat] = useState<Category | null>(null)
   const [refresh, setRefresh] = useState(0)
 
+  const [groupSlug, setGroupSlug] = useState<string | null>(null)
+
   // ── Categories ──
 
   useEffect(() => {
+    if (!groupSlug) return
     setLoading(true)
-    fetch('/api/v1/admin/apps/todo/categories')
+    fetch(`/api/v1/${groupSlug}/apps/todo/categories`)
       .then(r => r.json())
-      .then(data => setCategories(data ?? []))
+      .then(data => {
+        const list = Array.isArray(data) ? data : data?.data ?? []
+        setCategories(list)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [refresh])
+  }, [groupSlug, refresh])
 
   async function handleDeleteCat(id: string) {
     const res = await fetch(`/api/v1/admin/apps/todo/categories/${id}`, { method: 'DELETE' })
@@ -118,8 +124,6 @@ export default function TodoAdmin() {
   }
 
   // ── Todos ──
-
-  const [groupSlug, setGroupSlug] = useState<string | null>(null)
   const [todos, setTodos] = useState<TodoItem[]>([])
   const [loadingTodos, setLoadingTodos] = useState(false)
   const [todosPage, setTodosPage] = useState(1)
