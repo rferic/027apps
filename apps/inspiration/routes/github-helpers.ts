@@ -1,5 +1,5 @@
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
-import { createIssue, closeIssue, reopenIssue, updateLabels } from '@/lib/use-cases/inspiration/github'
+import { createIssue, getIssue, closeIssue, reopenIssue, updateLabels } from '@/lib/use-cases/inspiration/github'
 import { getAppSetting } from '@/lib/use-cases/app-settings'
 
 const DEFAULT_LABEL_MAP: Record<string, string> = {
@@ -109,11 +109,14 @@ export async function syncStatusToGitHubIssue(
 
   if (!idea?.github_issue_number) return
 
-  // Update labels to reflect the new status
+  // Get current labels from GitHub, replace only status labels
   const labelMap = await getGitHubLabelMap()
   const typeLabel = labelMap[idea.type] ?? DEFAULT_LABEL_MAP[idea.type] ?? 'other'
+  const currentLabels = await getIssue(idea.github_issue_number).then(i => i.labels.map(l => l.name))
+  const oldStatusLabels = Object.values(STATUS_LABELS)
+  const keptLabels = currentLabels.filter(l => l !== typeLabel && !oldStatusLabels.includes(l))
   const statusLabel = STATUS_LABELS[newStatus]
-  const labels = statusLabel ? [typeLabel, statusLabel] : [typeLabel]
+  const labels = statusLabel ? [...keptLabels, typeLabel, statusLabel] : [...keptLabels, typeLabel]
 
   await updateLabels(idea.github_issue_number, labels)
 
