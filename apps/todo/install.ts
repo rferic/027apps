@@ -12,18 +12,15 @@ const DEFAULT_CATEGORIES = [
 ]
 
 export async function install(ctx: AppInstallContext): Promise<void> {
-  const { data: existing } = await ctx.supabase
-    .from('todo_categories')
-    .select('id')
-    .limit(1)
-
-  if (existing && existing.length > 0) return
-
+  // Delete existing defaults and re-insert (uses raw SQL to bypass PostgREST schema cache)
   const values = DEFAULT_CATEGORIES.map(c =>
     `('${c.name}', '${c.emoji}', '${c.color}', ${c.display_order})`
   ).join(',\n')
 
-  const sql = `INSERT INTO todo_categories (name, emoji, color, display_order) VALUES\n${values};`
-
-  await ctx.supabase.rpc('exec_sql', { sql })
+  await ctx.supabase.rpc('exec_sql', {
+    sql: `
+      delete from todo_categories;
+      insert into todo_categories (name, emoji, color, display_order) values ${values};
+    `,
+  })
 }
