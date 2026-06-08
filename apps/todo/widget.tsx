@@ -51,6 +51,7 @@ export default function TodoWidget() {
   const [groupTasks, setGroupTasks] = useState<TodoItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [refresh, setRefresh] = useState(0)
 
   useEffect(() => {
     if (!groupSlug) { setLoading(false); return }
@@ -72,7 +73,17 @@ export default function TodoWidget() {
       })
 
     return () => abort.abort()
-  }, [groupSlug])
+  }, [groupSlug, refresh])
+
+  async function handleTake(id: string) {
+    await fetch(`/api/v1/${groupSlug}/apps/todo/items/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigned_to: 'self' }),
+      credentials: 'include',
+    })
+    setRefresh(r => r + 1)
+  }
 
   if (!groupSlug) {
     return <div className="p-4 text-center text-xs text-slate-400">{t('widget.not_available')}</div>
@@ -134,8 +145,11 @@ export default function TodoWidget() {
           <div className="space-y-1.5">
             {groupTasks.map(item => (
               <div key={item.id} className="flex items-center justify-between text-sm">
-                <span className="text-slate-600 truncate flex-1 mr-2 max-w-[65%]">{item.title}</span>
-                <PriorityBadge priority={item.priority} />
+                <span className="text-slate-600 truncate flex-1 mr-2 max-w-[55%]">{item.title}</span>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <PriorityBadge priority={item.priority} />
+                  <button onClick={() => handleTake(item.id)} className="text-[10px] font-medium text-indigo-500 hover:text-indigo-700">{t('assign_to_me')}</button>
+                </div>
               </div>
             ))}
           </div>

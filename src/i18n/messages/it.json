@@ -583,7 +583,16 @@
       "create": "Create",
       "saving": "Saving...",
       "delete": "Delete",
-      "no_categories": "No categories yet."
+      "no_categories": "No categories yet.",
+      "edit_category": "Edit Category",
+      "emoji": "Emoji",
+      "color_label": "Color",
+      "save": "Save",
+      "manage_todos": "All Tasks",
+      "todos_subtitle": "View and manage all tasks in the group.",
+      "todo_priority": "Priority",
+      "todo_status": "Status",
+      "todo_assigned": "Assigned"
     }
   },
   "invite": {
@@ -683,7 +692,17 @@
       "priority": "Priority",
       "due_date": "Due date",
       "assign_to": "Assign to",
-      "no_category": "No category"
+      "no_category": "No category",
+      "assign_to_me": "Assign to me",
+      "widget": {
+        "not_available": "Not available",
+        "couldnt_load": "Could not load",
+        "heading": "Tasks",
+        "no_tasks": "No pending tasks",
+        "my_tasks": "My tasks",
+        "group_tasks": "Group tasks",
+        "view_all": "View all"
+      }
     },
     "permissions": {
       "title": "Accesso",
