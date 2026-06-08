@@ -589,7 +589,11 @@
       "todos_subtitle": "View and manage all tasks in the group.",
       "todo_priority": "Priority",
       "todo_status": "Status",
-      "todo_assigned": "Assigned"
+      "todo_assigned": "Assigned",
+      "delete_category_title": "Delete category?",
+      "delete_category_has_tasks": "There {count, plural, one {is 1 task} other {are {count} tasks}} with the category {name}. What would you like to do?",
+      "delete_category_delete_all": "Delete tasks & category",
+      "delete_category_keep_tasks": "Only delete category"
     },
     "common": {
       "loading": "Loading…"
@@ -682,6 +686,10 @@
       "error_loading": "Could not load tasks.",
       "not_found": "Task not found.",
       "assign_to_me": "Assign to me",
+      "repeat_none": "No repeat",
+      "repeat_weekly": "Weekly",
+      "repeat_monthly": "Monthly",
+      "repeat_yearly": "Yearly",
       "priority_urgent": "Urgent",
       "priority_high": "High",
       "priority_medium": "Medium",

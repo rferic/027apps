@@ -593,7 +593,11 @@
       "todos_subtitle": "Ver y gestionar todas las tareas del grupo.",
       "todo_priority": "Prioridad",
       "todo_status": "Estado",
-      "todo_assigned": "Asignado a"
+      "todo_assigned": "Asignado a",
+      "delete_category_title": "Delete category?",
+      "delete_category_has_tasks": "There {count, plural, one {is 1 task} other {are {count} tasks}} with the category {name}. What would you like to do?",
+      "delete_category_delete_all": "Delete tasks & category",
+      "delete_category_keep_tasks": "Only delete category"
     }
   },
   "invite": {
@@ -707,7 +711,11 @@
       "priority_urgent": "Urgente",
       "priority_high": "Alta",
       "priority_medium": "Media",
-      "priority_low": "Baja"
+      "priority_low": "Baja",
+      "repeat_none": "Sin repetición",
+      "repeat_weekly": "Semanal",
+      "repeat_monthly": "Mensual",
+      "repeat_yearly": "Anual"
     },
     "permissions": {
       "title": "Acceso",

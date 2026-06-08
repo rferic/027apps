@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { CheckSquare, Plus, X, Loader2, UserPlus, Clock, AlertTriangle, Pencil, Trash2 } from 'lucide-react'
+import { CheckSquare, Plus, X, Loader2, UserPlus, Clock, AlertTriangle, Pencil, Trash2, Repeat } from 'lucide-react'
 
 const supabase = createClient()
 
@@ -92,6 +92,7 @@ function CreateTodoModal({
   const [visibility, setVisibility] = useState<'public' | 'private'>('public')
   const [dueDate, setDueDate] = useState('')
   const [categoryId, setCategoryId] = useState('')
+  const [repeatInterval, setRepeatInterval] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -114,6 +115,7 @@ function CreateTodoModal({
         visibility,
         due_date: dueDate || null,
         category_id: categoryId || null,
+        repeat_interval: repeatInterval || null,
       }),
     })
     setSaving(false)
@@ -147,6 +149,12 @@ function CreateTodoModal({
             {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
           </select>
           <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
+          <select value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
+            <option value="">{t('repeat_none')}</option>
+            <option value="weekly">{t('repeat_weekly')}</option>
+            <option value="monthly">{t('repeat_monthly')}</option>
+            <option value="yearly">{t('repeat_yearly')}</option>
+          </select>
           <div className="pt-2 flex gap-2 justify-end">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? t('saving') : t('create')}</button>
@@ -162,7 +170,7 @@ function CreateTodoModal({
 function EditTodoModal({
   item, groupSlug, categories, onClose, onSaved,
 }: {
-  item: { id: string; title: string; description: string | null; priority: string; due_date: string | null; category_id: string | null }
+  item: { id: string; title: string; description: string | null; priority: string; due_date: string | null; category_id: string | null; repeat_interval: string | null }
   groupSlug: string
   categories: Array<{ id: string; name: string; emoji: string; color: string }>
   onClose: () => void
@@ -174,6 +182,7 @@ function EditTodoModal({
   const [priority, setPriority] = useState(item.priority)
   const [dueDate, setDueDate] = useState(item.due_date ? item.due_date.slice(0, 10) : '')
   const [categoryId, setCategoryId] = useState(item.category_id ?? '')
+  const [repeatInterval, setRepeatInterval] = useState(item.repeat_interval ?? '')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -195,6 +204,7 @@ function EditTodoModal({
         priority,
         due_date: dueDate || null,
         category_id: categoryId || null,
+        repeat_interval: repeatInterval || null,
       }),
     })
     setSaving(false)
@@ -222,6 +232,12 @@ function EditTodoModal({
             {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
           </select>
           <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
+          <select value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
+            <option value="">{t('repeat_none')}</option>
+            <option value="weekly">{t('repeat_weekly')}</option>
+            <option value="monthly">{t('repeat_monthly')}</option>
+            <option value="yearly">{t('repeat_yearly')}</option>
+          </select>
           <div className="pt-2 flex gap-2 justify-end">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? t('saving') : t('save')}</button>
@@ -277,7 +293,7 @@ interface TodoItem {
   id: string; title: string; description: string | null; priority: string;
   status: string; visibility: string; due_date: string | null;
   assigned_to: string | null; created_by: string; category_id: string | null;
-  created_at: string;
+  created_at: string; repeat_interval: string | null; repeat_end_date: string | null;
 }
 
 interface Category {
@@ -411,6 +427,9 @@ export default function TodoView() {
                       )}
                       {item.due_date && (
                         <span className={`text-xs ${isOverdue ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatDate(item.due_date)}</span>
+                      )}
+                      {item.repeat_interval && (
+                        <Repeat size={12} className="text-slate-300" />
                       )}
                     </div>
                   </div>

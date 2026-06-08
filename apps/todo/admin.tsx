@@ -98,6 +98,8 @@ export default function TodoAdmin() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editCat, setEditCat] = useState<Category | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<Category | null>(null)
+  const [deleteItemCount, setDeleteItemCount] = useState(0)
   const [refresh, setRefresh] = useState(0)
 
   const [groupSlug, setGroupSlug] = useState<string | null>(null)
@@ -119,8 +121,32 @@ export default function TodoAdmin() {
 
   async function handleDeleteCat(id: string) {
     const res = await fetch(`/api/v1/admin/apps/todo/categories/${id}`, { method: 'DELETE' })
-    if (res.ok) setRefresh(r => r + 1)
-    else toast.error('Failed to delete')
+    if (res.ok) { setRefresh(r => r + 1); return }
+
+    if (res.status === 409) {
+      try {
+        const body = await res.json()
+        const count = parseInt(body.fields?.count ?? '0', 10)
+        const cat = categories.find(c => c.id === id)
+        if (cat && count > 0) {
+          setDeleteItemCount(count)
+          setShowDeleteConfirm(cat)
+          return
+        }
+      } catch { /* fall through to error toast */ }
+    }
+
+    toast.error('Failed to delete')
+  }
+
+  async function confirmForceDelete(id: string) {
+    const res = await fetch(`/api/v1/admin/apps/todo/categories/${id}?force=true`, { method: 'DELETE' })
+    if (res.ok) {
+      setShowDeleteConfirm(null)
+      setRefresh(r => r + 1)
+    } else {
+      toast.error('Failed to delete')
+    }
   }
 
   // ── Todos ──
@@ -205,6 +231,38 @@ export default function TodoAdmin() {
           )}
 
           {showForm && <CategoryForm edit={editCat} onClose={() => { setShowForm(false); setEditCat(null) }} onSaved={() => { setShowForm(false); setEditCat(null); setRefresh(r => r + 1) }} />}
+
+          {showDeleteConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="fixed inset-0 bg-black/40" onClick={() => setShowDeleteConfirm(null)} />
+              <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">{t('delete_category_title')}</h3>
+                <p className="text-sm text-slate-600 mb-6">
+                  {t('delete_category_has_tasks', { count: deleteItemCount, name: showDeleteConfirm.name })}
+                </p>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => confirmForceDelete(showDeleteConfirm.id)}
+                    className="w-full px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    {t('delete_category_delete_all')}
+                  </button>
+                  <button
+                    onClick={() => confirmForceDelete(showDeleteConfirm.id)}
+                    className="w-full px-4 py-2 text-sm font-medium border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50"
+                  >
+                    {t('delete_category_keep_tasks')}
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(null)}
+                    className="w-full px-4 py-2 text-sm text-slate-500 rounded-lg hover:bg-slate-50"
+                  >
+                    {t('cancel')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 

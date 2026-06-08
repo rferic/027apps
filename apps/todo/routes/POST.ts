@@ -16,6 +16,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const categoryId = typeof body.category_id === 'string' ? body.category_id : null
   const dueDate = typeof body.due_date === 'string' ? body.due_date : null
   const assignedTo = visibility === 'public' && typeof body.assigned_to === 'string' ? body.assigned_to : null
+  const repeatInterval = ['weekly', 'monthly', 'yearly'].includes(body.repeat_interval as string) ? body.repeat_interval as string : null
+  const repeatEndDate = typeof body.repeat_end_date === 'string' ? body.repeat_end_date : null
 
   const db = createAdminClientUntyped()
 
@@ -30,6 +32,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     assigned_to: assignedTo,
     created_by: ctx.userId,
     due_date: dueDate,
+    repeat_interval: repeatInterval,
+    repeat_end_date: repeatEndDate,
   }).select().single()
 
   if (error) return apiError('CREATE_FAILED', error.message, 500)

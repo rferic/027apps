@@ -36,9 +36,39 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     }
   }
   if (body.due_date !== undefined) update.due_date = typeof body.due_date === 'string' ? body.due_date : null
+  if (['weekly', 'monthly', 'yearly'].includes(body.repeat_interval as string)) update.repeat_interval = body.repeat_interval
+  if (body.repeat_interval === null) update.repeat_interval = null
+  if (body.repeat_end_date !== undefined) update.repeat_end_date = typeof body.repeat_end_date === 'string' ? body.repeat_end_date : null
 
   const { data: item, error } = await db.from('todo_items').update(update).eq('id', id).select().single()
   if (error) return apiError('UPDATE_FAILED', error.message, 500)
+
+  // Create recurrence copy if marked as done AND has repeat_interval
+  if (update.status === 'done' && existing.repeat_interval) {
+    const dueDate = new Date(existing.due_date ?? new Date())
+    let nextDue: Date | null = null
+    switch (existing.repeat_interval) {
+      case 'weekly': nextDue = new Date(dueDate.getTime() + 7 * 24 * 60 * 60 * 1000); break
+      case 'monthly': nextDue = new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, dueDate.getDate()); break
+      case 'yearly': nextDue = new Date(dueDate.getFullYear() + 1, dueDate.getMonth(), dueDate.getDate()); break
+    }
+    if (nextDue && (!existing.repeat_end_date || nextDue <= new Date(existing.repeat_end_date))) {
+      await db.from('todo_items').insert({
+        group_id: existing.group_id,
+        title: existing.title,
+        description: existing.description,
+        visibility: existing.visibility,
+        status: 'pending',
+        priority: existing.priority,
+        category_id: existing.category_id,
+        assigned_to: existing.assigned_to,
+        created_by: existing.created_by,
+        due_date: nextDue.toISOString(),
+        repeat_interval: existing.repeat_interval,
+        repeat_end_date: existing.repeat_end_date,
+      })
+    }
+  }
 
   // Fire notifications (best-effort, don't block response)
   const urlSegments = new URL(req.url).pathname.split('/')

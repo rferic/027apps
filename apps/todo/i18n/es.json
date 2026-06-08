@@ -60,5 +60,9 @@
   "priority_urgent": "Urgente",
   "priority_high": "Alta",
   "priority_medium": "Media",
-  "priority_low": "Baja"
+  "priority_low": "Baja",
+  "repeat_none": "Sin repetición",
+  "repeat_weekly": "Semanal",
+  "repeat_monthly": "Mensual",
+  "repeat_yearly": "Anual"
 }
