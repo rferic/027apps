@@ -19,8 +19,8 @@ async function fetchCategories(groupSlug: string): Promise<Array<{ id: string; n
   try {
     const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/categories`)
     if (res.ok) {
-      const { data } = await res.json()
-      return data ?? []
+      const result = await res.json()
+      return Array.isArray(result) ? result : (result?.data ?? [])
     }
   } catch {}
   return []
@@ -77,6 +77,10 @@ function TodoFilters({
 
 // ─── CreateTodoModal ───────────────────────────────────────────────────────
 
+function today(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 function CreateTodoModal({
   groupSlug, categories, onClose, onCreated,
 }: {
@@ -90,7 +94,7 @@ function CreateTodoModal({
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('medium')
   const [visibility, setVisibility] = useState<'public' | 'private'>('public')
-  const [dueDate, setDueDate] = useState('')
+  const [dueDate, setDueDate] = useState(today())
   const [categoryId, setCategoryId] = useState('')
   const [repeatInterval, setRepeatInterval] = useState('')
   const [saving, setSaving] = useState(false)
@@ -133,22 +137,40 @@ function CreateTodoModal({
           <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={t('title_placeholder')} className={inputCls} autoFocus required />
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t('desc_placeholder')} className={inputCls} rows={3} />
+          <div>
+            <label htmlFor="create-title" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('title_placeholder')}</label>
+            <input id="create-title" type="text" value={title} onChange={e => setTitle(e.target.value)} className={inputCls} autoFocus required />
+          </div>
+          <div>
+            <label htmlFor="create-desc" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('desc_placeholder')}</label>
+            <textarea id="create-desc" value={description} onChange={e => setDescription(e.target.value)} className={inputCls} rows={3} />
+          </div>
           <div className="flex gap-3">
-            <select value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
-              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{t('priority_' + k)}</option>)}
-            </select>
-            <select value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
-              <option value="public">{t('visibility_public')}</option>
-              <option value="private">{t('visibility_private')}</option>
+            <div className="flex-1">
+              <label htmlFor="create-priority" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('priority')}</label>
+              <select id="create-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
+                {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{t('priority_' + k)}</option>)}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label htmlFor="create-visibility" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('visibility_public')}</label>
+              <select id="create-visibility" value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
+                <option value="public">{t('visibility_public')}</option>
+                <option value="private">{t('visibility_private')}</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label htmlFor="create-category" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('category')}</label>
+            <select id="create-category" value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
+              <option value="">{t('no_category')}</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
             </select>
           </div>
-          <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
-            <option value="">{t('no_category')}</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
-          </select>
-          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
+          <div>
+            <label htmlFor="create-date" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('due_date')}</label>
+            <input id="create-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} className={inputCls} />
+          </div>
           <select value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
             <option value="">{t('repeat_none')}</option>
             <option value="weekly">{t('repeat_weekly')}</option>
@@ -222,22 +244,40 @@ function EditTodoModal({
           <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={t('title_placeholder')} className={inputCls} autoFocus required />
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t('desc_placeholder')} className={inputCls} rows={3} />
-          <select value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
-            {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{t('priority_' + k)}</option>)}
-          </select>
-          <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
-            <option value="">{t('no_category')}</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
-          </select>
-          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
-          <select value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
+          <div>
+            <label htmlFor="edit-title" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('title_placeholder')}</label>
+            <input id="edit-title" type="text" value={title} onChange={e => setTitle(e.target.value)} className={inputCls} autoFocus required />
+          </div>
+          <div>
+            <label htmlFor="edit-desc" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('desc_placeholder')}</label>
+            <textarea id="edit-desc" value={description} onChange={e => setDescription(e.target.value)} className={inputCls} rows={3} />
+          </div>
+          <div>
+            <label htmlFor="edit-priority" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('priority')}</label>
+            <select id="edit-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
+              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{t('priority_' + k)}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="edit-category" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('category')}</label>
+            <select id="edit-category" value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
+              <option value="">{t('no_category')}</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="edit-date" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('due_date')}</label>
+            <input id="edit-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} className={inputCls} />
+          </div>
+          <div>
+            <label htmlFor="edit-repeat" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('repeat_none')}</label>
+            <select id="edit-repeat" value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
             <option value="">{t('repeat_none')}</option>
             <option value="weekly">{t('repeat_weekly')}</option>
             <option value="monthly">{t('repeat_monthly')}</option>
             <option value="yearly">{t('repeat_yearly')}</option>
           </select>
+          </div>
           <div className="pt-2 flex gap-2 justify-end">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? t('saving') : t('save')}</button>
