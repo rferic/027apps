@@ -25,11 +25,7 @@ interface InspirationItem {
 
 export default function InspirationWidget() {
   const ctx = useAppContext()
-  const groupSlug = ctx.groupSlug ?? (
-    typeof window !== 'undefined'
-      ? window.location.pathname.split('/')[2] ?? null
-      : null
-  )
+  const [mounted, setMounted] = useState(false)
   const locale = useLocale()
   const t = useTranslations('apps.inspiration')
   const [activeCount, setActiveCount] = useState<number>(0)
@@ -38,7 +34,14 @@ export default function InspirationWidget() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
+  useEffect(() => { setMounted(true) }, [])
+
+  const groupSlug = mounted
+    ? (ctx.groupSlug ?? window.location.pathname.split('/')[2] ?? null)
+    : null
+
   useEffect(() => {
+    if (!mounted) return
     if (!groupSlug) {
       setLoading(false)
       return
@@ -66,7 +69,7 @@ export default function InspirationWidget() {
       })
 
     return () => abort.abort()
-  }, [groupSlug])
+  }, [mounted, groupSlug])
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)

@@ -6,6 +6,7 @@ import { routing } from '@/i18n/routing'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient, createAdminClientUntyped } from '@/lib/supabase/admin'
 import { AppHeader } from '@/components/app-header'
+import { AppSubNav } from '@/components/app-sub-nav'
 import { AppFooter } from '@/components/app-footer'
 import { BlockedOverlay } from '@/components/blocked-overlay'
 import { Toaster } from '@/components/ui/sonner'
@@ -184,6 +185,7 @@ export default async function LocaleLayout({ children, params }: Props) {
             groupApps={groupApps}
           />
         )}
+        {user && <AppSubNav locale={locale} currentGroupSlug={currentGroupSlug} groupApps={groupApps} />}
         {user && isBlocked && <BlockedOverlay locale={locale} showSignOut />}
         {user ? (
           <AppShell navItems={navItems} locale={locale} currentGroupSlug={currentGroupSlug}>
