@@ -84,15 +84,26 @@ export async function createGitHubIssueForIdea(idea: {
   await execSql(`update inspiration_requests set github_issue_number = ${issue.number}, github_issue_url = '${safeUrl}', updated_at = now() where id = '${idea.id}'`)
 }
 
+const STATUS_LABEL_COLORS: Record<string, string> = {
+  pending: 'AAB6C9',
+  reviewing: 'F4C542',
+  approved: '2DA44E',
+  in_progress: '5600FF',
+  on_hold: 'E99695',
+  completed: '2DA44E',
+  rejected: 'CF222E',
+  duplicate: '8250DF',
+}
+
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'status: pending',
-  reviewing: 'status: reviewing',
-  approved: 'status: approved',
-  in_progress: 'status: in progress',
-  on_hold: 'status: on hold',
-  completed: 'status: completed',
-  rejected: 'status: rejected',
-  duplicate: 'status: duplicate',
+  pending: 'sprint: pending',
+  reviewing: 'sprint: reviewing',
+  approved: 'sprint: approved',
+  in_progress: 'sprint: in-progress',
+  on_hold: 'sprint: on hold',
+  completed: 'sprint: completed',
+  rejected: 'sprint: rejected',
+  duplicate: 'sprint: duplicate',
 }
 
 export async function syncStatusToGitHubIssue(
@@ -127,7 +138,11 @@ export async function syncStatusToGitHubIssue(
   const statusLabel = STATUS_LABELS[newStatus]
   const labels = statusLabel ? [...keptLabels, typeLabel, statusLabel] : [...keptLabels, typeLabel]
 
-  await updateLabels(idea.github_issue_number, labels)
+  const labelColors: Record<string, string> = {}
+  for (const [key, label] of Object.entries(STATUS_LABELS)) {
+    labelColors[label] = STATUS_LABEL_COLORS[key] ?? 'ededed'
+  }
+  await updateLabels(idea.github_issue_number, labels, labelColors)
 
   // Close or reopen the issue based on status change
   if (newStatus === 'completed' || newStatus === 'rejected' || newStatus === 'duplicate') {

@@ -270,7 +270,8 @@ async function createLabel(name: string, color: string = 'ededed'): Promise<void
 
 export async function updateLabels(
   issueNumber: number,
-  labels: string[]
+  labels: string[],
+  labelColors?: Record<string, string>
 ): Promise<void> {
   if (isDryRun()) {
     logDryRun('updateLabels', { issueNumber, labels })
@@ -288,7 +289,7 @@ export async function updateLabels(
     // If labels don't exist on the repo, create them and retry
     if (response.status === 422) {
       for (const label of labels) {
-        await createLabel(label)
+        await createLabel(label, labelColors?.[label] ?? 'ededed')
       }
       const retry = await ghFetch(`/repos/${repo}/issues/${issueNumber}`, {
         method: 'PATCH',
