@@ -19,7 +19,7 @@
   "assigned_to": "Assignat a",
   "assigned_to_me": "Jo",
   "assign_to_me": "Assign to me",
-  "description": "Llista de tasques simple: crea, completa i elimina tasques pendents.",
+  "description": "Task management with categories, priorities, assignments, and notifications.",
   "widget": {
     "not_available": "Not available",
     "couldnt_load": "Could not load",

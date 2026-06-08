@@ -656,6 +656,7 @@
     },
     "todo": {
       "title": "Tareas",
+      "description": "Gestión de tareas con categorías, prioridades, asignaciones y notificaciones.",
       "pending_label": "{count} pendiente(s)",
       "done_label": "{count} completada(s)",
       "add_placeholder": "Nueva tarea...",

@@ -19,7 +19,7 @@
   "assigned_to": "Asignado a",
   "assigned_to_me": "Yo",
   "assign_to_me": "Asignarme",
-  "description": "Lista de tareas simple: crea, completa y elimina tareas pendientes.",
+  "description": "Gestión de tareas con categorías, prioridades, asignaciones y notificaciones.",
   "widget": {
     "not_available": "No disponible",
     "couldnt_load": "No se pudo cargar",

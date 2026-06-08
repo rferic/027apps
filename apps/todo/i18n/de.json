@@ -19,7 +19,7 @@
   "assigned_to": "Zugewiesen an",
   "assigned_to_me": "Ich",
   "assign_to_me": "Assign to me",
-  "description": "Einfache Aufgabenliste: Erstellen, erledigen und entfernen Sie Aufgaben.",
+  "description": "Task management with categories, priorities, assignments, and notifications.",
   "widget": {
     "not_available": "Not available",
     "couldnt_load": "Could not load",

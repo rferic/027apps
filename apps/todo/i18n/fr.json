@@ -19,7 +19,7 @@
   "assigned_to": "Assigné à",
   "assigned_to_me": "Moi",
   "assign_to_me": "Assign to me",
-  "description": "Liste de tâches simple : créez, complétez et supprimez des tâches.",
+  "description": "Task management with categories, priorities, assignments, and notifications.",
   "widget": {
     "not_available": "Not available",
     "couldnt_load": "Could not load",

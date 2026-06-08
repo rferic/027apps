@@ -714,7 +714,8 @@
       "repeat_none": "No repeat",
       "repeat_weekly": "Weekly",
       "repeat_monthly": "Monthly",
-      "repeat_yearly": "Yearly"
+      "repeat_yearly": "Yearly",
+      "description": "Task management with categories, priorities, assignments, and notifications."
     },
     "permissions": {
       "title": "Accès",

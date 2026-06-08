@@ -655,6 +655,7 @@
     },
     "todo": {
       "title": "Tasks",
+      "description": "Task management with categories, priorities, assignments, and notifications.",
       "new_todo": "New task",
       "create_title": "Create task",
       "edit_title": "Edit task",

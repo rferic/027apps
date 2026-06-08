@@ -19,7 +19,7 @@
   "assigned_to": "Assigned to",
   "assigned_to_me": "Me",
   "assign_to_me": "Assign to me",
-  "description": "Simple task list — create, complete, and remove to-do items.",
+  "description": "Task management with categories, priorities, assignments, and notifications.",
   "widget": {
     "not_available": "Not available",
     "couldnt_load": "Could not load",
