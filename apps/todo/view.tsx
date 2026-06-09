@@ -430,6 +430,7 @@ export default function TodoView() {
   const [filters, setFilters] = useState({ category: '', priority: '', status: '' })
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('day')
   const [navDate, setNavDate] = useState(new Date())
+  const [showFilters, setShowFilters] = useState(false)
   const [refresh, setRefresh] = useState(0)
 
   // Compute date range for current view
@@ -573,25 +574,76 @@ export default function TodoView() {
       </div>
 
       {/* Date navigation */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1">
-          <button onClick={() => navigate(-1)} className="p-1 text-slate-400 hover:text-slate-600 text-xs">&lt;</button>
-          <button onClick={goToday} className="text-xs font-medium text-slate-600 hover:text-slate-900 px-1">{t('today')}</button>
-          <button onClick={() => navigate(1)} className="p-1 text-slate-400 hover:text-slate-600 text-xs">&gt;</button>
-          <span className="text-sm font-medium text-slate-700 ml-2">{formatRangeHeader()}</span>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+        <div className="flex items-center gap-1 min-w-0">
+          <button onClick={() => navigate(-1)} className="p-1 text-slate-400 hover:text-slate-600 text-xs flex-shrink-0">&lt;</button>
+          <button onClick={goToday} className="text-xs font-medium text-slate-600 hover:text-slate-900 px-1 flex-shrink-0">{t('today')}</button>
+          <button onClick={() => navigate(1)} className="p-1 text-slate-400 hover:text-slate-600 text-xs flex-shrink-0">&gt;</button>
+          <span className="text-sm font-medium text-slate-700 ml-1 truncate">{formatRangeHeader()}</span>
         </div>
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5 flex-shrink-0 self-start sm:self-auto">
           {(['day','week','month','year'] as const).map(m => (
             <button key={m} onClick={() => setViewMode(m)}
-              className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${viewMode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              className={`px-2 py-1 text-[10px] sm:text-[11px] font-medium rounded-md transition-colors ${viewMode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
               {t('view_' + m)}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Filters */}
-      <TodoFilters categories={categories} filters={filters} onChange={setFilters} />
+      {/* Filters — on mobile show as badges + modal, on desktop show inline */}
+      <div className="mb-4">
+        <div className="hidden sm:flex sm:flex-wrap sm:gap-2">
+          <select value={filters.category} onChange={e => setFilters(f => ({...f, category: e.target.value}))}
+            className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+            <option value="">{t('all')} {t('filter_category')}</option>
+            {categories.map(c => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
+          </select>
+          <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
+            className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+            <option value="">{t('all')} {t('filter_priority')}</option>
+            {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k}>{t('priority_' + k)}</option>))}
+          </select>
+          <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
+            className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+            <option value="">{t('all')} {t('filter_status')}</option>
+            <option value="pending">{t('status_pending')}</option>
+            <option value="in_progress">{t('status_in_progress')}</option>
+            <option value="done">{t('status_done')}</option>
+            <option value="cancelled">{t('status_cancelled')}</option>
+          </select>
+        </div>
+        <div className="sm:hidden relative">
+          <button onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50">
+            {t('filter_category')}
+            {(filters.category || filters.priority || filters.status) && (
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+            )}
+          </button>
+          {showFilters && (
+            <div className="absolute left-0 right-0 mt-2 mx-4 bg-white border border-slate-200 rounded-xl shadow-xl p-4 z-30 space-y-2">
+              <select value={filters.category} onChange={e => setFilters(f => ({...f, category: e.target.value}))}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+                <option value="">{t('all')} {t('filter_category')}</option>
+                {categories.map(c => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
+              </select>
+              <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+                <option value="">{t('all')} {t('filter_priority')}</option>
+                {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k}>{t('priority_' + k)}</option>))}
+              </select>
+              <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+                <option value="">{t('all')} {t('filter_status')}</option>
+                <option value="pending">{t('status_pending')}</option>
+                <option value="in_progress">{t('status_in_progress')}</option>
+                <option value="done">{t('status_done')}</option>
+                <option value="cancelled">{t('status_cancelled')}</option>
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* List */}
       {loading ? (
