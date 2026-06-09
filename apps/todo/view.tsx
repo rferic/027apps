@@ -172,11 +172,11 @@ function CreateTodoModal({
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="create-title" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('title_placeholder')}</label>
+            <label htmlFor="create-title" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('title_placeholder')} <span className="text-red-400">*</span></label>
             <input id="create-title" type="text" value={title} onChange={e => setTitle(e.target.value)} className={inputCls} autoFocus required />
           </div>
           <div>
-            <label htmlFor="create-desc" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('desc_placeholder')}</label>
+            <label htmlFor="create-desc" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('desc_placeholder')} <span className="text-slate-400 font-normal normal-case tracking-normal ml-0.5">(opcional)</span></label>
             <textarea id="create-desc" value={description} onChange={e => setDescription(e.target.value)} className={inputCls} rows={3} />
           </div>
           <div>
@@ -224,7 +224,7 @@ function CreateTodoModal({
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
               {t('due_date')}
               <label className="flex items-center gap-1 text-[11px] font-normal normal-case tracking-normal text-slate-400 cursor-pointer">
-                <input type="checkbox" checked={!dueDate} onChange={e => setDueDate(e.target.checked ? '' : (initialDueDate ?? today()))} className="w-3 h-3 rounded" />
+                <input type="checkbox" checked={!dueDate} onChange={e => setDueDate(e.target.checked ? '' : (initialDueDate ?? today()))} className="w-4 h-4 sm:w-3 sm:h-3 rounded" />
                 {t('no_date')}
               </label>
             </label>
@@ -390,7 +390,7 @@ function DeleteConfirm({ item, groupSlug, onClose, onDeleted }: {
       <div className="fixed inset-0 bg-black/40" onClick={onClose} />
       <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
         <h3 className="text-sm font-semibold text-slate-900 mb-2">{t('delete')}</h3>
-        <p className="text-sm text-slate-500 mb-4">{t('delete_confirm')}</p>
+        <p className="text-sm text-slate-500 mb-1">Are you sure you want to delete this task?</p>
         <p className="text-sm text-slate-700 mb-4 font-medium">&ldquo;{item.title}&rdquo;</p>
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
