@@ -33,7 +33,7 @@ export default function TodoAdmin() {
   }, [refresh])
 
   async function handleDeleteTodo(id: string) {
-    const res = await fetch(`/api/v1/admin/apps/todo`, { method: 'DELETE' })
+    const res = await fetch(`/api/v1/admin/apps/todo?id=${id}`, { method: 'DELETE' })
     if (res.ok) setRefresh(r => r + 1)
     else toast.error('Failed to delete')
   }
