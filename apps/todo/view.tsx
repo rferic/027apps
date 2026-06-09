@@ -108,7 +108,7 @@ function CreateTodoModal({
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('medium')
   const [visibility, setVisibility] = useState<'public' | 'private'>('private')
-  const [dueDate, setDueDate] = useState(initialDueDate ?? today())
+  const [dueDate, setDueDate] = useState('')
   const [categoryId, setCategoryId] = useState(defaultCategoryId ?? '')
   const [repeatInterval, setRepeatInterval] = useState('')
   const [assignTo, setAssignTo] = useState('self')
@@ -180,6 +180,13 @@ function CreateTodoModal({
             <textarea id="create-desc" value={description} onChange={e => setDescription(e.target.value)} className={inputCls} rows={3} />
           </div>
           <div>
+            <label htmlFor="create-category" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('category')}</label>
+            <select id="create-category" value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
+              <option value="">{t('no_category')}</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+            </select>
+          </div>
+          <div>
             <label htmlFor="create-priority" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('priority')}</label>
             <select id="create-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
               {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{t('priority_' + k)}</option>)}
@@ -213,13 +220,6 @@ function CreateTodoModal({
               </select>
             </div>
           )}
-          <div>
-            <label htmlFor="create-category" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('category')}</label>
-            <select id="create-category" value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
-              <option value="">{t('no_category')}</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
-            </select>
-          </div>
           <div>
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
               {t('due_date')}
@@ -460,23 +460,25 @@ export default function TodoView() {
 
   function formatRangeHeader() {
     const d = new Date(navDate)
+    const locale = typeof navigator !== 'undefined' ? navigator.language : 'en'
     if (viewMode === 'day') {
       const today = new Date()
       const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
       const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-      const dateStr = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
-      if (d.toDateString() === today.toDateString()) return `${t('today')} · ${dateStr}`
-      if (d.toDateString() === tomorrow.toDateString()) return `${t('tomorrow')} · ${dateStr}`
-      if (d.toDateString() === yesterday.toDateString()) return `${t('yesterday')} · ${dateStr}`
-      return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      const dateStr = d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
+      let prefix = ''
+      if (d.toDateString() === today.toDateString()) prefix = t('today')
+      else if (d.toDateString() === tomorrow.toDateString()) prefix = t('tomorrow')
+      else if (d.toDateString() === yesterday.toDateString()) prefix = t('yesterday')
+      return prefix ? `${prefix}, ${dateStr}` : dateStr
     }
     if (viewMode === 'week') {
       const dow = d.getDay() === 0 ? 7 : d.getDay()
       const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow + 1)
       const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6)
-      return `${mon.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - ${sun.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      return `${mon.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} - ${sun.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`
     }
-    if (viewMode === 'month') return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+    if (viewMode === 'month') return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
     return d.getFullYear().toString()
   }
 
@@ -576,13 +578,12 @@ export default function TodoView() {
 
       {/* Date navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-        <div className="flex items-center gap-1 min-w-0">
-          <button onClick={() => navigate(-1)} className="p-1 text-slate-400 hover:text-slate-600 text-xs flex-shrink-0">&lt;</button>
-          <button onClick={goToday} className="text-xs font-medium text-slate-600 hover:text-slate-900 px-1 flex-shrink-0">{t('today')}</button>
-          <button onClick={() => navigate(1)} className="p-1 text-slate-400 hover:text-slate-600 text-xs flex-shrink-0">&gt;</button>
-          <span className="text-sm font-medium text-slate-700 ml-1 truncate">{formatRangeHeader()}</span>
+        <div className="flex items-center justify-center sm:justify-start gap-1 min-w-0">
+          <button onClick={() => navigate(-1)} className="p-1 text-slate-400 hover:text-slate-600 text-sm flex-shrink-0">&lt;</button>
+          <button onClick={goToday} className="text-sm font-medium text-slate-700 hover:text-slate-900 px-2 truncate">{formatRangeHeader()}</button>
+          <button onClick={() => navigate(1)} className="p-1 text-slate-400 hover:text-slate-600 text-sm flex-shrink-0">&gt;</button>
         </div>
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5 flex-shrink-0 self-start sm:self-auto">
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5 flex-shrink-0 mx-auto sm:mx-0">
           {(['day','week','month','year'] as const).map(m => (
             <button key={m} onClick={() => setViewMode(m)}
               className={`px-2 py-1 text-[10px] sm:text-[11px] font-medium rounded-md transition-colors ${viewMode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
