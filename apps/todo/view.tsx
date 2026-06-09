@@ -189,14 +189,7 @@ function CreateTodoModal({
               <label htmlFor="create-visibility" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('visibility_label')}</label>
               <select id="create-visibility" value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
                 <option value="private">{t('visibility_private')}</option>
-                <option value="public">{t('visibility_label')}</option>
-              </select>
-            </div>
-            <div className="flex-1">
-              <label htmlFor="create-visibility" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('visibility_label')}</label>
-              <select id="create-visibility" value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
-                <option value="private">{t('visibility_private')}</option>
-                <option value="public">{t('visibility_label')}</option>
+                <option value="public">{t('visibility_public')}</option>
               </select>
             </div>
           </div>
@@ -420,6 +413,7 @@ export default function TodoView() {
   const [editItem, setEditItem] = useState<TodoItem | null>(null)
   const [deleteItem, setDeleteItem] = useState<TodoItem | null>(null)
   const [filters, setFilters] = useState({ category: '', priority: '', status: '' })
+  const [dateRange, setDateRange] = useState('')
   const [refresh, setRefresh] = useState(0)
 
   const fetchItems = useCallback(async () => {
@@ -433,6 +427,7 @@ export default function TodoView() {
       if (filters.category) params.set('category_id', filters.category)
       if (filters.priority) params.set('priority', filters.priority)
       if (filters.status) params.set('status', filters.status)
+      if (dateRange) params.set('date_range', dateRange)
 
       const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items?${params}`)
       if (!res.ok) throw new Error('Failed')
@@ -441,7 +436,7 @@ export default function TodoView() {
       setError(false)
     } catch { setError(true) }
     finally { setLoading(false) }
-  }, [groupSlug, tab, filters])
+  }, [groupSlug, tab, filters, dateRange])
 
   useEffect(() => { fetchItems() }, [fetchItems, refresh])
 
@@ -475,7 +470,7 @@ export default function TodoView() {
     const now = new Date()
     const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
     if (date < now && date.toDateString() !== now.toDateString()) return '⚠ ' + date.toLocaleDateString(undefined, opts)
-    if (date.toDateString() === now.toDateString()) return 'Today'
+    if (date.toDateString() === now.toDateString()) return t('today')
     return date.toLocaleDateString(undefined, opts)
   }
 
@@ -497,6 +492,24 @@ export default function TodoView() {
         <button onClick={() => setTab('group')} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <CheckSquare size={14} className="inline mr-1" />{t('tab_group')}
         </button>
+      </div>
+
+      {/* Date range */}
+      <div className="flex gap-1 mb-4">
+        {[
+          { key: '', label: t('all') },
+          { key: 'today', label: t('today') },
+          { key: 'week', label: t('this_week') },
+          { key: 'month', label: t('this_month') },
+        ].map(opt => (
+          <button
+            key={opt.key}
+            onClick={() => setDateRange(opt.key)}
+            className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${dateRange === opt.key ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       {/* Filters */}

@@ -15,6 +15,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const visibilityParam = url.searchParams.get('visibility')
   const assignedParam = url.searchParams.get('assigned') // 'me', 'unassigned', or empty for all
   const search = url.searchParams.get('search')
+  const dateRange = url.searchParams.get('date_range')
   const sort = url.searchParams.get('sort') || 'newest'
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1)
   const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(url.searchParams.get('limit') || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT))
@@ -46,6 +47,20 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   // Assignment filter
   if (assignedParam === 'me' && ctx.userId) query = query.eq('assigned_to', ctx.userId)
   else if (assignedParam === 'unassigned') query = query.is('assigned_to', null)
+
+  // Date range filter
+  if (dateRange === 'today') {
+    const today = new Date().toISOString().slice(0, 10)
+    query = query.eq('due_date', today)
+  } else if (dateRange === 'week') {
+    const now = new Date()
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString().slice(0, 10)
+    query = query.gte('due_date', now.toISOString().slice(0, 10)).lte('due_date', end)
+  } else if (dateRange === 'month') {
+    const now = new Date()
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()).toISOString().slice(0, 10)
+    query = query.gte('due_date', now.toISOString().slice(0, 10)).lte('due_date', end)
+  }
 
   // Search
   if (search) query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`)

@@ -687,6 +687,8 @@
       "empty_group": "No unassigned tasks in the group.",
       "error_loading": "Could not load tasks.",
       "not_found": "Task not found.",
+      "today": "Today",
+      "this_week": "This week",
       "assign_to_me": "Assign to me",
       "repeat_none": "No repeat",
       "repeat_weekly": "Weekly",
@@ -708,7 +710,8 @@
         "my_tasks": "My tasks",
         "group_tasks": "Group tasks",
         "view_all": "View all"
-      }
+      },
+      "this_month": "This month"
     },
     "permissions": {
       "title": "Access",

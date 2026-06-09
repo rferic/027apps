@@ -721,7 +721,9 @@
       "status_in_progress": "In progress",
       "status_done": "Done",
       "status_cancelled": "Cancelled",
-      "visibility_label": "This task is"
+      "visibility_label": "This task is",
+      "today": "Today",
+      "this_week": "This week"
     },
     "permissions": {
       "title": "Zugang",
