@@ -189,7 +189,7 @@ function CreateTodoModal({
           <div>
             <label htmlFor="create-priority" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('priority')}</label>
             <select id="create-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
-              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{t('priority_' + k)}</option>)}
+              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k} style={{ color: v.color }}>{t('priority_' + k)}</option>)}
             </select>
           </div>
           {visibility === 'public' ? (
@@ -328,7 +328,7 @@ function EditTodoModal({
           <div>
             <label htmlFor="edit-priority" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('priority')}</label>
             <select id="edit-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
-              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{t('priority_' + k)}</option>)}
+              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k} style={{ color: v.color }}>{t('priority_' + k)}</option>)}
             </select>
           </div>
           <div>
