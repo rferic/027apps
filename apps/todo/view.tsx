@@ -111,6 +111,7 @@ function CreateTodoModal({
   const [categoryId, setCategoryId] = useState(defaultCategoryId ?? '')
   const [repeatInterval, setRepeatInterval] = useState('')
   const [assignTo, setAssignTo] = useState('self')
+  const [members, setMembers] = useState<Array<{ user_id: string; display_name: string }>>([])
   const [saving, setSaving] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
@@ -119,6 +120,15 @@ function CreateTodoModal({
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [onClose])
+
+  useEffect(() => {
+    if (visibility === 'public' && members.length === 0) {
+      fetch(`/api/v1/${groupSlug}/apps/todo/members`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => setMembers(Array.isArray(data) ? data : (data?.data ?? [])))
+        .catch(() => {})
+    }
+  }, [visibility, groupSlug, members.length])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -195,7 +205,9 @@ function CreateTodoModal({
               <label htmlFor="create-assign" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('assign_to')}</label>
               <select id="create-assign" value={assignTo} onChange={e => setAssignTo(e.target.value)} className={inputCls}>
                 <option value="self">{t('assign_to_me')}</option>
-                <option value="">Unassigned</option>
+                {members.map(m => (
+                  <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
+                ))}
               </select>
             </div>
           )}

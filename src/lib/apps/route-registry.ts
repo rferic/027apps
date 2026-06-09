@@ -31,6 +31,7 @@ import todoWidgetMyHandler from '../../../apps/todo/routes/widget/my/GET'
 import todoWidgetGroupHandler from '../../../apps/todo/routes/widget/group/GET'
 import todoNotifPrefsGetHandler from '../../../apps/todo/routes/notification-prefs/GET'
 import todoNotifPrefsPutHandler from '../../../apps/todo/routes/notification-prefs/PUT'
+import todoMembersHandler from '../../../apps/todo/routes/members/GET'
 
 const ROUTE_REGISTRY: Record<string, RouteEntry[]> = {
   todo: [
@@ -47,6 +48,7 @@ const ROUTE_REGISTRY: Record<string, RouteEntry[]> = {
     { method: 'GET', segments: ['widget', 'group'], handler: todoWidgetGroupHandler },
     { method: 'GET', segments: ['notification-prefs'], handler: todoNotifPrefsGetHandler },
     { method: 'PUT', segments: ['notification-prefs'], handler: todoNotifPrefsPutHandler },
+    { method: 'GET', segments: ['members'], handler: todoMembersHandler },
   ],
   inspiration: [
     { method: 'GET', segments: [], handler: inspGetHandler },
