@@ -3,14 +3,14 @@ import type { AppInstallContext } from '@/types/apps'
 interface CatDef { name: string; emoji: string; color: string; display_order: number; is_default: boolean }
 
 const DEFAULT_CATEGORIES: CatDef[] = [
-  { name: 'Tarea', emoji: '📌', color: '#6B7280', display_order: 0, is_default: true },
-  { name: 'Recordatorio', emoji: '⏰', color: '#F59E0B', display_order: 1, is_default: false },
-  { name: 'Compras', emoji: '🛒', color: '#10B981', display_order: 2, is_default: false },
-  { name: 'Limpieza', emoji: '🧹', color: '#6366F1', display_order: 3, is_default: false },
-  { name: 'Pendientes', emoji: '📋', color: '#8B5CF6', display_order: 4, is_default: false },
-  { name: 'Llamar', emoji: '📞', color: '#3B82F6', display_order: 5, is_default: false },
-  { name: 'Objetivo', emoji: '🎯', color: '#EF4444', display_order: 6, is_default: false },
-  { name: 'Cumpleaños', emoji: '🎂', color: '#EC4899', display_order: 7, is_default: false },
+  { name: 'Task', emoji: '📌', color: '#6B7280', display_order: 0, is_default: true },
+  { name: 'Reminder', emoji: '⏰', color: '#F59E0B', display_order: 1, is_default: false },
+  { name: 'Shopping', emoji: '🛒', color: '#10B981', display_order: 2, is_default: false },
+  { name: 'Cleaning', emoji: '🧹', color: '#6366F1', display_order: 3, is_default: false },
+  { name: 'Pending', emoji: '📋', color: '#8B5CF6', display_order: 4, is_default: false },
+  { name: 'Call', emoji: '📞', color: '#3B82F6', display_order: 5, is_default: false },
+  { name: 'Goal', emoji: '🎯', color: '#EF4444', display_order: 6, is_default: false },
+  { name: 'Birthday', emoji: '🎂', color: '#EC4899', display_order: 7, is_default: false },
 ]
 
 export async function install(ctx: AppInstallContext): Promise<void> {
