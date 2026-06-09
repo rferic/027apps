@@ -728,7 +728,10 @@
       "repeat_monthly": "Mensual",
       "repeat_yearly": "Anual",
       "visibility_label": "Esta tarea es",
-      "today": "Hoy"
+      "today": "Hoy",
+      "tomorrow": "Mañana",
+      "yesterday": "Ayer",
+      "no_date": "Sin fecha"
     },
     "permissions": {
       "title": "Acceso",

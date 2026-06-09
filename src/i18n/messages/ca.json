@@ -728,7 +728,10 @@
       "view_week": "Week",
       "view_month": "Month",
       "view_year": "Year",
-      "this_month": "This month"
+      "this_month": "This month",
+      "tomorrow": "Tomorrow",
+      "yesterday": "Yesterday",
+      "no_date": "No date"
     },
     "permissions": {
       "title": "Accés",

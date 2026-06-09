@@ -666,8 +666,8 @@
       "saving": "Saving...",
       "title_placeholder": "What needs to be done?",
       "desc_placeholder": "Add a description...",
-      "visibility_public": "Public",
-      "visibility_private": "Private",
+      "visibility_public": "For the group",
+      "visibility_private": "For me",
       "tab_my": "My Tasks",
       "tab_group": "Group Tasks",
       "take": "Take",
@@ -714,7 +714,11 @@
         "group_tasks": "Group tasks",
         "view_all": "View all"
       },
-      "this_month": "This month"
+      "this_month": "This month",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "yesterday": "Yesterday",
+      "no_date": "No date"
     },
     "permissions": {
       "title": "Access",

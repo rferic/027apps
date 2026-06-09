@@ -179,29 +179,37 @@ function CreateTodoModal({
             <label htmlFor="create-desc" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('desc_placeholder')}</label>
             <textarea id="create-desc" value={description} onChange={e => setDescription(e.target.value)} className={inputCls} rows={3} />
           </div>
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label htmlFor="create-priority" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('priority')}</label>
-              <select id="create-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
-                {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{t('priority_' + k)}</option>)}
-              </select>
+          <div>
+            <label htmlFor="create-priority" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('priority')}</label>
+            <select id="create-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
+              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{t('priority_' + k)}</option>)}
+            </select>
+          </div>
+          {visibility === 'public' ? (
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label htmlFor="create-visibility" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('visibility_label')}</label>
+                <select id="create-visibility" value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
+                  <option value="private">{t('visibility_private')}</option>
+                  <option value="public">{t('visibility_public')}</option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <label htmlFor="create-assign" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('assign_to')}</label>
+                <select id="create-assign" value={assignTo} onChange={e => setAssignTo(e.target.value)} className={inputCls}>
+                  <option value="self">{t('assign_to_me')}</option>
+                  {members.map(m => (
+                    <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="flex-1">
+          ) : (
+            <div>
               <label htmlFor="create-visibility" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('visibility_label')}</label>
               <select id="create-visibility" value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
                 <option value="private">{t('visibility_private')}</option>
                 <option value="public">{t('visibility_public')}</option>
-              </select>
-            </div>
-          </div>
-          {visibility === 'public' && (
-            <div>
-              <label htmlFor="create-assign" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('assign_to')}</label>
-              <select id="create-assign" value={assignTo} onChange={e => setAssignTo(e.target.value)} className={inputCls}>
-                <option value="self">{t('assign_to_me')}</option>
-                {members.map(m => (
-                  <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
-                ))}
               </select>
             </div>
           )}
@@ -213,8 +221,14 @@ function CreateTodoModal({
             </select>
           </div>
           <div>
-            <label htmlFor="create-date" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('due_date')}</label>
-            <input id="create-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} className={inputCls} />
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+              {t('due_date')}
+              <label className="flex items-center gap-1 text-[11px] font-normal normal-case tracking-normal text-slate-400 cursor-pointer">
+                <input type="checkbox" checked={!dueDate} onChange={e => setDueDate(e.target.checked ? '' : (initialDueDate ?? today()))} className="w-3 h-3 rounded" />
+                {t('no_date')}
+              </label>
+            </label>
+            <input id="create-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} disabled={!dueDate} className={inputCls} />
           </div>
           <div>
             <label htmlFor="create-repeat" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('repeat_none')}</label>
@@ -444,8 +458,16 @@ export default function TodoView() {
 
   function formatRangeHeader() {
     const d = new Date(navDate)
-    const opts: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
-    if (viewMode === 'day') return d.toLocaleDateString('es-ES', opts)
+    if (viewMode === 'day') {
+      const today = new Date()
+      const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
+      const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+      const dateStr = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+      if (d.toDateString() === today.toDateString()) return `${t('today')} · ${dateStr}`
+      if (d.toDateString() === tomorrow.toDateString()) return `${t('tomorrow')} · ${dateStr}`
+      if (d.toDateString() === yesterday.toDateString()) return `${t('yesterday')} · ${dateStr}`
+      return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    }
     if (viewMode === 'week') {
       const dow = d.getDay() === 0 ? 7 : d.getDay()
       const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow + 1)
@@ -602,8 +624,10 @@ export default function TodoView() {
                           {cat.emoji} {cat.name}
                         </span>
                       )}
-                      {item.due_date && (
+                      {item.due_date ? (
                         <span className={`text-xs ${isOverdue ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatDate(item.due_date)}</span>
+                      ) : (
+                        <span className="text-xs text-slate-300 italic">{t('no_date')}</span>
                       )}
                       {item.repeat_interval && (
                         <Repeat size={12} className="text-slate-300" />
