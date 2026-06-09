@@ -23,8 +23,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   // If setting this category as default, unset all others first
   if (body.is_default === true) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await adminClient.rpc('exec_sql' as any, { sql: 'update todo_categories set is_default = false' })
+    const { error: resetError } = await adminClient
+      .from('todo_categories')
+      .update({ is_default: false })
+      .neq('id', id)
+    if (resetError) return apiError('UPDATE_FAILED', resetError.message, 500)
     update.is_default = true
   } else if (body.is_default === false) {
     // Cannot unset the only default — find another to make default

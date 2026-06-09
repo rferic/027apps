@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { Plus, X, Loader2, Pencil } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, Star } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Category {
@@ -18,13 +18,16 @@ function CategoryForm({ edit, onClose, onSaved }: {
   const [name, setName] = useState(edit?.name ?? '')
   const [emoji, setEmoji] = useState(edit?.emoji ?? '📌')
   const [color, setColor] = useState(edit?.color ?? '#6B7280')
+  const [showEmoji, setShowEmoji] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  const COMMON_EMOJIS = ['📌','🏠','🛒','🧹','🍳','🧺','📞','📋','🎯','🎂','💡','📝','⭐','❤️','🔧','🎓','💰','🚗','✈️','🏥','📚','🎵','🎮','🐾']
+
   useEffect(() => {
-    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') { setShowEmoji(false); if (!showEmoji) onClose() } }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [onClose])
+  }, [onClose, showEmoji])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -59,9 +62,29 @@ function CategoryForm({ edit, onClose, onSaved }: {
               <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">{t('name')}</label>
               <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputCls} autoFocus required />
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">{t('emoji')}</label>
-              <input type="text" value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={4} className="w-16 px-2 py-2 text-sm border border-slate-200 rounded-lg text-center" />
+              <button
+                type="button"
+                onClick={() => setShowEmoji(!showEmoji)}
+                className="w-12 h-[42px] text-lg border border-slate-200 rounded-lg hover:border-slate-300 transition-colors flex items-center justify-center bg-white cursor-pointer"
+              >
+                {emoji}
+              </button>
+              {showEmoji && (
+                <div className="absolute top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 z-20 w-44 grid grid-cols-6 gap-1">
+                  {COMMON_EMOJIS.map(e => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => { setEmoji(e); setShowEmoji(false) }}
+                      className={`w-7 h-7 flex items-center justify-center text-sm rounded-md hover:bg-slate-100 transition-colors cursor-pointer ${emoji === e ? 'bg-indigo-50 ring-1 ring-indigo-200' : ''}`}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">{t('color_label')}</label>
@@ -147,11 +170,15 @@ export function CategoriesSettings() {
             <div key={cat.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg ${cat.is_default ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'bg-slate-50'}`}>
               <span className="text-base">{cat.emoji}</span>
               <span className="text-sm text-slate-700 flex-1">{cat.name}</span>
-              {cat.is_default ? (
-                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded">Default</span>
-              ) : (
-                <button onClick={() => setDefault(cat.id)} className="text-[10px] text-slate-400 hover:text-indigo-600 font-medium">Set default</button>
-              )}
+              <button
+                onClick={() => setDefault(cat.id)}
+                title={cat.is_default ? t('is_default') : t('set_as_default')}
+                className={`p-0.5 rounded transition-colors ${
+                  cat.is_default ? 'text-yellow-500 hover:text-yellow-600' : 'text-slate-300 hover:text-yellow-400'
+                }`}
+              >
+                <Star size={13} fill={cat.is_default ? 'currentColor' : 'none'} />
+              </button>
               <button onClick={() => { setEditCat(cat); setShowForm(true) }} className="p-0.5 text-slate-400 hover:text-slate-600"><Pencil size={13} /></button>
               <button onClick={() => handleDelete(cat.id, cat.name, 0)} className="text-xs text-red-400 hover:text-red-600 font-medium">{t('delete')}</button>
             </div>
