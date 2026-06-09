@@ -79,5 +79,7 @@
   "view_year": "Year",
   "tomorrow": "Tomorrow",
   "yesterday": "Yesterday",
-  "no_date": "No date"
+  "no_date": "No date",
+  "filter_label": "Filter",
+  "apply": "Apply"
 }

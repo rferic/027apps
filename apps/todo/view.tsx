@@ -586,7 +586,7 @@ export default function TodoView() {
         <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5 flex-shrink-0 mx-auto sm:mx-0">
           {(['day','week','month','year'] as const).map(m => (
             <button key={m} onClick={() => setViewMode(m)}
-              className={`px-2 py-1 text-[10px] sm:text-[11px] font-medium rounded-md transition-colors ${viewMode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              className={`px-2 py-1 text-[11px] font-medium rounded-md transition-colors ${viewMode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
               {t('view_' + m)}
             </button>
           ))}
@@ -597,17 +597,17 @@ export default function TodoView() {
       <div className="mb-4">
         <div className="hidden sm:flex sm:flex-wrap sm:gap-2">
           <select value={filters.category} onChange={e => setFilters(f => ({...f, category: e.target.value}))}
-            className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
             <option value="">{t('all')} {t('filter_category')}</option>
             {categories.map(c => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
           </select>
           <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
-            className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
             <option value="">{t('all')} {t('filter_priority')}</option>
             {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k}>{t('priority_' + k)}</option>))}
           </select>
           <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
-            className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
             <option value="">{t('all')} {t('filter_status')}</option>
             <option value="pending">{t('status_pending')}</option>
             <option value="in_progress">{t('status_in_progress')}</option>
@@ -615,36 +615,64 @@ export default function TodoView() {
             <option value="cancelled">{t('status_cancelled')}</option>
           </select>
         </div>
-        <div className="sm:hidden relative">
-          <button onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50">
-            {t('filter_category')}
-            {(filters.category || filters.priority || filters.status) && (
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-            )}
-          </button>
-          {showFilters && (
-            <div className="absolute left-0 right-0 mt-2 mx-4 bg-white border border-slate-200 rounded-xl shadow-xl p-4 z-30 space-y-2">
-              <select value={filters.category} onChange={e => setFilters(f => ({...f, category: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
-                <option value="">{t('all')} {t('filter_category')}</option>
-                {categories.map(c => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
-              </select>
-              <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
-                <option value="">{t('all')} {t('filter_priority')}</option>
-                {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k}>{t('priority_' + k)}</option>))}
-              </select>
-              <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
-                <option value="">{t('all')} {t('filter_status')}</option>
-                <option value="pending">{t('status_pending')}</option>
-                <option value="in_progress">{t('status_in_progress')}</option>
-                <option value="done">{t('status_done')}</option>
-                <option value="cancelled">{t('status_cancelled')}</option>
-              </select>
-            </div>
+        {/* Mobile: active filter badges + Filter button */}
+        <div className="sm:hidden flex items-center gap-2 flex-wrap">
+          {filters.category && catMap.get(filters.category) && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: (catMap.get(filters.category)!.color || '#6B7280') + '18', color: catMap.get(filters.category)!.color || '#6B7280' }}>
+              {catMap.get(filters.category)!.emoji} {catMap.get(filters.category)!.name}
+              <button type="button" onClick={() => setFilters(f => ({...f, category: ''}))} className="cursor-pointer opacity-60 hover:opacity-100"><X size={12} /></button>
+            </span>
           )}
+          {filters.priority && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: (PRIORITY_CONFIG[filters.priority]?.color || '#6B7280') + '18', color: PRIORITY_CONFIG[filters.priority]?.color || '#6B7280' }}>
+              {t('priority_' + filters.priority)}
+              <button type="button" onClick={() => setFilters(f => ({...f, priority: ''}))} className="cursor-pointer opacity-60 hover:opacity-100"><X size={12} /></button>
+            </span>
+          )}
+          {filters.status && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+              {t('status_' + filters.status)}
+              <button type="button" onClick={() => setFilters(f => ({...f, status: ''}))} className="cursor-pointer opacity-60 hover:opacity-100"><X size={12} /></button>
+            </span>
+          )}
+          <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50">
+            {t('filter_label')}
+          </button>
         </div>
+        {/* Mobile filter modal */}
+        {showFilters && (
+          <div className="fixed inset-0 z-50 bg-black/40 sm:hidden" onClick={() => setShowFilters(false)}>
+            <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto shadow-xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-base font-semibold text-slate-900">{t('filter_label')}</h3>
+                <button type="button" onClick={() => setShowFilters(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={20} /></button>
+              </div>
+              <div className="space-y-4">
+                <select value={filters.category} onChange={e => setFilters(f => ({...f, category: e.target.value}))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+                  <option value="">{t('all')} {t('filter_category')}</option>
+                  {categories.map(c => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
+                </select>
+                <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+                  <option value="">{t('all')} {t('filter_priority')}</option>
+                  {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k}>{t('priority_' + k)}</option>))}
+                </select>
+                <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+                  <option value="">{t('all')} {t('filter_status')}</option>
+                  <option value="pending">{t('status_pending')}</option>
+                  <option value="in_progress">{t('status_in_progress')}</option>
+                  <option value="done">{t('status_done')}</option>
+                  <option value="cancelled">{t('status_cancelled')}</option>
+                </select>
+              </div>
+              <button type="button" onClick={() => setShowFilters(false)} className="w-full py-3 mt-5 text-sm font-semibold text-white bg-indigo-600 rounded-xl cursor-pointer hover:bg-indigo-700 shadow-sm transition-colors">
+                {t('apply')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* List */}

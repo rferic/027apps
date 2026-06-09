@@ -3,6 +3,7 @@ import { setRequestLocale, getTranslations } from 'next-intl/server'
 import { getAdminStats, getAdminUserList } from '@/lib/use-cases/admin/users'
 import { getAdminInvitationList, getInvitationStatus } from '@/lib/use-cases/invitations'
 import { getInspirationAdminStats } from '@/lib/use-cases/inspiration/admin'
+import { getTodoAdminStats } from '@/lib/use-cases/todo/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import HotIdeasList from './HotIdeasList'
 
@@ -38,11 +39,20 @@ export default async function AdminDashboard({ params }: Props) {
     .single()
   const isInspirationInstalled = !!inspirationInstalled
 
-  const [stats, users, invitations, inspirationStats] = await Promise.all([
+  const { data: todoInstalled } = await adminClient
+    .from('installed_apps')
+    .select('slug')
+    .eq('slug', 'todo')
+    .eq('status', 'active')
+    .single()
+  const isTodoInstalled = !!todoInstalled
+
+  const [stats, users, invitations, inspirationStats, todoStats] = await Promise.all([
     getAdminStats(),
     getAdminUserList(),
     getAdminInvitationList(),
     isInspirationInstalled ? getInspirationAdminStats() : Promise.resolve(null),
+    isTodoInstalled ? getTodoAdminStats() : Promise.resolve(null),
   ])
   const recentInvitations = invitations.slice(0, 5)
 
@@ -128,6 +138,23 @@ export default async function AdminDashboard({ params }: Props) {
               <HotIdeasList ideas={inspirationStats.hotIdeas} />
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── TODO ────────────────────────────────────────────────────────── */}
+      {todoStats && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-5 h-5 rounded bg-indigo-500 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <h2 className="text-sm font-semibold text-slate-700">{t('todo_title')}</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatCard label={t('total_tasks')} value={todoStats.total} />
+            <StatCard label={t('tasks_pending')} value={todoStats.pending} />
+            <StatCard label={t('tasks_done')} value={todoStats.done} />
+          </div>
         </div>
       )}
     </main>

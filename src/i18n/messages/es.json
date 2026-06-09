@@ -112,7 +112,11 @@
       "completed": "Completadas",
       "most_supported": "Ideas más apoyadas",
       "votes": "{count} votos",
-      "comments": "{count} comentarios"
+      "comments": "{count} comentarios",
+      "todo_title": "Tasks",
+      "total_tasks": "Total",
+      "tasks_pending": "Active",
+      "tasks_done": "Done"
     },
     "users": {
       "title": "Miembros",
@@ -731,7 +735,9 @@
       "today": "Hoy",
       "tomorrow": "Mañana",
       "yesterday": "Ayer",
-      "no_date": "Sin fecha"
+      "no_date": "Sin fecha",
+      "filter_label": "Filter",
+      "apply": "Apply"
     },
     "permissions": {
       "title": "Acceso",
