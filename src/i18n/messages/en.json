@@ -537,8 +537,8 @@
       },
       "permissions": {
         "title": "Access",
-        "visibility_public": "Public",
-        "visibility_private": "Private",
+      "visibility_public": "For the group",
+      "visibility_private": "For me",
         "visibility_description_public": "All group members can access",
         "visibility_description_private": "Only members with explicit access",
         "grant_access": "Grant access",

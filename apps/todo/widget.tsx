@@ -40,11 +40,7 @@ function PriorityBadge({ priority }: { priority: string }) {
 
 export default function TodoWidget() {
   const ctx = useAppContext()
-  const groupSlug = ctx.groupSlug ?? (
-    typeof window !== 'undefined'
-      ? window.location.pathname.split('/')[2] ?? null
-      : null
-  )
+  const [mounted, setMounted] = useState(false)
   const locale = useLocale()
   const t = useTranslations('apps.todo')
   const [myTasks, setMyTasks] = useState<TodoItem[]>([])
@@ -53,7 +49,14 @@ export default function TodoWidget() {
   const [error, setError] = useState(false)
   const [refresh, setRefresh] = useState(0)
 
+  useEffect(() => { setMounted(true) }, [])
+
+  const groupSlug = mounted
+    ? (ctx.groupSlug ?? window.location.pathname.split('/')[2] ?? null)
+    : null
+
   useEffect(() => {
+    if (!mounted) return
     if (!groupSlug) { setLoading(false); return }
 
     const abort = new AbortController()

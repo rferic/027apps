@@ -14,7 +14,6 @@ interface TodoItem {
 
 export default function TodoAdmin() {
   const t = useTranslations('admin.todo')
-  const [groupSlug, setGroupSlug] = useState<string | null>(null)
   const [todos, setTodos] = useState<TodoItem[]>([])
   const [loading, setLoading] = useState(false)
   const [todosTotal, setTodosTotal] = useState(0)
@@ -22,25 +21,19 @@ export default function TodoAdmin() {
 
   useEffect(() => {
     setLoading(true)
-    const fetchGroup = groupSlug
-      ? Promise.resolve(groupSlug)
-      : fetch('/api/v1/me').then(r => r.json()).then(d => d.groups?.[0]?.slug ?? null)
-
-    fetchGroup.then(slug => {
-      if (slug) setGroupSlug(slug)
-      if (!slug) { setLoading(false); return }
-      return fetch(`/api/v1/${slug}/apps/todo/items?page=1&limit=50`)
-        .then(r => r.json())
-        .then(res => {
-          setTodos(res.data ?? [])
-          setTodosTotal(res.pagination?.total ?? 0)
-        })
-    }).catch(() => toast.error('Failed to load'))
+    fetch('/api/v1/admin/apps/todo')
+      .then(r => r.json())
+      .then(data => {
+        const items = Array.isArray(data) ? data : data?.data ?? []
+        setTodos(items)
+        setTodosTotal(items.length)
+      })
+      .catch(() => toast.error('Failed to load'))
       .finally(() => setLoading(false))
   }, [refresh])
 
   async function handleDeleteTodo(id: string) {
-    const res = await fetch(`/api/v1/${groupSlug}/apps/todo/items/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/v1/admin/apps/todo`, { method: 'DELETE' })
     if (res.ok) setRefresh(r => r + 1)
     else toast.error('Failed to delete')
   }

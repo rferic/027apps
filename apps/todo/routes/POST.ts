@@ -15,7 +15,9 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const priority = ['low', 'medium', 'high', 'urgent'].includes(body.priority as string) ? body.priority : 'medium'
   const categoryId = typeof body.category_id === 'string' ? body.category_id : null
   const dueDate = typeof body.due_date === 'string' ? body.due_date : null
-  const assignedTo = visibility === 'public' && typeof body.assigned_to === 'string' ? body.assigned_to : null
+  const assignedTo = visibility === 'public' && typeof body.assigned_to === 'string' ? body.assigned_to
+    : visibility === 'private' ? ctx.userId
+    : null
   const repeatInterval = ['weekly', 'monthly', 'yearly'].includes(body.repeat_interval as string) ? body.repeat_interval as string : null
   const repeatEndDate = typeof body.repeat_end_date === 'string' ? body.repeat_end_date : null
 

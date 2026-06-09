@@ -95,10 +95,11 @@ function CreateTodoModal({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('medium')
-  const [visibility, setVisibility] = useState<'public' | 'private'>('public')
+  const [visibility, setVisibility] = useState<'public' | 'private'>('private')
   const [dueDate, setDueDate] = useState(today())
   const [categoryId, setCategoryId] = useState(defaultCategoryId ?? '')
   const [repeatInterval, setRepeatInterval] = useState('')
+  const [assignTo, setAssignTo] = useState('')
   const [saving, setSaving] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
@@ -125,6 +126,7 @@ function CreateTodoModal({
           due_date: dueDate || null,
           category_id: categoryId || null,
           repeat_interval: repeatInterval || null,
+          assigned_to: assignTo || undefined,
         }),
       })
       if (res.ok) { onCreated(); onClose(); return }
@@ -165,11 +167,24 @@ function CreateTodoModal({
             <div className="flex-1">
               <label htmlFor="create-visibility" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('visibility_public')}</label>
               <select id="create-visibility" value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
-                <option value="public">{t('visibility_public')}</option>
                 <option value="private">{t('visibility_private')}</option>
+                <option value="public">{t('visibility_public')}</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <label htmlFor="create-visibility" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('visibility_public')}</label>
+              <select id="create-visibility" value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
+                <option value="private">{t('visibility_private')}</option>
+                <option value="public">{t('visibility_public')}</option>
               </select>
             </div>
           </div>
+          {visibility === 'public' && (
+            <div>
+              <label htmlFor="create-assign" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('assign_to')}</label>
+              <input id="create-assign" type="text" value={assignTo} onChange={e => setAssignTo(e.target.value)} placeholder="User ID (optional)" className={inputCls} />
+            </div>
+          )}
           <div>
             <label htmlFor="create-category" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('category')}</label>
             <select id="create-category" value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
@@ -181,12 +196,15 @@ function CreateTodoModal({
             <label htmlFor="create-date" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('due_date')}</label>
             <input id="create-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} className={inputCls} />
           </div>
-          <select value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
-            <option value="">{t('repeat_none')}</option>
-            <option value="weekly">{t('repeat_weekly')}</option>
-            <option value="monthly">{t('repeat_monthly')}</option>
-            <option value="yearly">{t('repeat_yearly')}</option>
-          </select>
+          <div>
+            <label htmlFor="create-repeat" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('repeat_none')}</label>
+            <select id="create-repeat" value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
+              <option value="">{t('repeat_none')}</option>
+              <option value="weekly">{t('repeat_weekly')}</option>
+              <option value="monthly">{t('repeat_monthly')}</option>
+              <option value="yearly">{t('repeat_yearly')}</option>
+            </select>
+          </div>
           {createError && (
             <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{createError}</p>
           )}
