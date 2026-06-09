@@ -427,6 +427,7 @@ export default function TodoView() {
   const [showCreate, setShowCreate] = useState(false)
   const [editItem, setEditItem] = useState<TodoItem | null>(null)
   const [deleteItem, setDeleteItem] = useState<TodoItem | null>(null)
+  const [detailItem, setDetailItem] = useState<TodoItem | null>(null)
   const [filters, setFilters] = useState({ category: '', priority: '', status: '' })
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('day')
   const [navDate, setNavDate] = useState(new Date())
@@ -658,49 +659,64 @@ export default function TodoView() {
             const pc = PRIORITY_CONFIG[item.priority] ?? PRIORITY_CONFIG.low
             const isOverdue = item.due_date && new Date(item.due_date) < new Date()
             const cat = item.category_id ? catMap.get(item.category_id) : null
+            const isDone = item.status === 'done'
             return (
-              <div key={item.id} className="bg-white rounded-lg border border-slate-100 p-3 hover:border-slate-200 transition-colors">
-                <div className="flex items-start gap-3">
-                  <button onClick={() => handleStatus(item, item.status === 'done' ? 'pending' : 'done')} className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${item.status === 'done' ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-slate-300'}`}>
-                    {item.status === 'done' && <CheckSquare size={10} />}
+              <div key={item.id} className="bg-white rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
+                <div className="flex items-center gap-3 px-3 py-2.5">
+                  <button
+                    onClick={() => handleStatus(item, isDone ? 'pending' : 'done')}
+                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      isDone ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-slate-300 hover:border-indigo-400'
+                    }`}
+                  >
+                    {isDone && <CheckSquare size={12} />}
                   </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm ${item.status === 'done' ? 'line-through text-slate-400' : 'text-slate-800'}`}>{item.title}</span>
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: pc.color + '20', color: pc.color }}>{t('priority_' + item.priority)}</span>
+                      <span className={`text-sm ${isDone ? 'line-through text-slate-400' : 'text-slate-800'}`}>{item.title}</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: pc.color + '20', color: pc.color }}>{t('priority_' + item.priority)}</span>
                     </div>
-                    {item.description && <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{item.description}</p>}
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-0.5">
                       {cat && (
-                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: cat.color + '20', color: cat.color }}>
-                          {cat.emoji} {cat.name}
-                        </span>
+                        <span className="text-[10px] px-1 py-0.5 rounded" style={{ backgroundColor: cat.color + '20', color: cat.color }}>{cat.emoji} {cat.name}</span>
                       )}
                       {item.due_date ? (
-                        <span className={`text-xs ${isOverdue ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatDate(item.due_date)}</span>
+                        <span className={`text-[10px] ${isOverdue ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatDate(item.due_date)}</span>
                       ) : (
-                        <span className="text-xs text-slate-300 italic">{t('no_date')}</span>
+                        <span className="text-[10px] text-slate-300 italic">{t('no_date')}</span>
                       )}
-                      {item.repeat_interval && (
-                        <Repeat size={12} className="text-slate-300" />
-                      )}
+                      {item.repeat_interval && <Repeat size={11} className="text-slate-300" />}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => setEditItem(item)} className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100" title={t('edit')}>
-                      <Pencil size={14} />
-                    </button>
-                    <button onClick={() => setDeleteItem(item)} className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50" title={t('delete')}>
-                      <Trash2 size={14} />
-                    </button>
-                    {tab === 'group' && !item.assigned_to && (
-                      <button onClick={() => handleTake(item)} className="text-xs text-indigo-500 hover:text-indigo-700 font-medium ml-1">{t('take')}</button>
-                    )}
-                  </div>
+                  <button onClick={() => setDetailItem(item)} className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0">
+                    <Pencil size={14} />
+                  </button>
                 </div>
               </div>
             )
           })}
+        </div>
+      )}
+
+      {detailItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setDetailItem(null)} />
+          <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-base font-semibold text-slate-900 mb-3">{detailItem.title}</h3>
+            {detailItem.description && <p className="text-sm text-slate-600 mb-3">{detailItem.description}</p>}
+            <div className="space-y-1.5 text-xs text-slate-500 mb-4">
+              <p><span className="font-medium text-slate-600">{t('priority')}:</span> {t('priority_' + detailItem.priority)}</p>
+              <p><span className="font-medium text-slate-600">{t('filter_status')}:</span> {t('status_' + detailItem.status)}</p>
+              {detailItem.due_date && <p><span className="font-medium text-slate-600">{t('due_date')}:</span> {formatDate(detailItem.due_date)}</p>}
+              {!detailItem.due_date && <p className="italic">{t('no_date')}</p>}
+              {detailItem.repeat_interval && <p>↻ {t('repeat_' + detailItem.repeat_interval)}</p>}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { setDetailItem(null); setEditItem(detailItem) }} className="flex-1 px-3 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">{t('edit')}</button>
+              <button onClick={() => { setDetailItem(null); setDeleteItem(detailItem) }} className="flex-1 px-3 py-2 text-sm font-medium border border-red-200 text-red-600 rounded-lg hover:bg-red-50">{t('delete')}</button>
+              <button onClick={() => setDetailItem(null)} className="px-3 py-2 text-sm text-slate-500">{t('cancel')}</button>
+            </div>
+          </div>
         </div>
       )}
 
