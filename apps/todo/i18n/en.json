@@ -72,5 +72,9 @@
   "visibility_label": "This task is",
   "today": "Today",
   "this_week": "This week",
-  "this_month": "This month"
+  "this_month": "This month",
+  "view_day": "Day",
+  "view_week": "Week",
+  "view_month": "Month",
+  "view_year": "Year"
 }

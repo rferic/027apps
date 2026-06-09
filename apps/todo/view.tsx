@@ -94,11 +94,12 @@ function today(): string {
 }
 
 function CreateTodoModal({
-  groupSlug, categories, defaultCategoryId, onClose, onCreated,
+  groupSlug, categories, defaultCategoryId, initialDueDate, onClose, onCreated,
 }: {
   groupSlug: string
   categories: Array<{ id: string; name: string; emoji: string; color: string }>
   defaultCategoryId?: string
+  initialDueDate?: string
   onClose: () => void
   onCreated: () => void
 }) {
@@ -107,7 +108,7 @@ function CreateTodoModal({
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('medium')
   const [visibility, setVisibility] = useState<'public' | 'private'>('private')
-  const [dueDate, setDueDate] = useState(today())
+  const [dueDate, setDueDate] = useState(initialDueDate ?? today())
   const [categoryId, setCategoryId] = useState(defaultCategoryId ?? '')
   const [repeatInterval, setRepeatInterval] = useState('')
   const [assignTo, setAssignTo] = useState('self')
@@ -413,8 +414,61 @@ export default function TodoView() {
   const [editItem, setEditItem] = useState<TodoItem | null>(null)
   const [deleteItem, setDeleteItem] = useState<TodoItem | null>(null)
   const [filters, setFilters] = useState({ category: '', priority: '', status: '' })
-  const [dateRange, setDateRange] = useState('')
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('day')
+  const [navDate, setNavDate] = useState(new Date())
   const [refresh, setRefresh] = useState(0)
+
+  // Compute date range for current view
+  function getDateRange() {
+    const d = new Date(navDate)
+    if (viewMode === 'day') {
+      const s = d.toISOString().slice(0, 10)
+      return { start: s, end: s }
+    }
+    if (viewMode === 'week') {
+      const dow = d.getDay() === 0 ? 7 : d.getDay() // Monday=1, Sunday=7
+      const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow + 1)
+      const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6)
+      return { start: mon.toISOString().slice(0, 10), end: sun.toISOString().slice(0, 10) }
+    }
+    if (viewMode === 'month') {
+      const first = new Date(d.getFullYear(), d.getMonth(), 1)
+      const last = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+      return { start: first.toISOString().slice(0, 10), end: last.toISOString().slice(0, 10) }
+    }
+    // year
+    const first = new Date(d.getFullYear(), 0, 1)
+    const last = new Date(d.getFullYear(), 11, 31)
+    return { start: first.toISOString().slice(0, 10), end: last.toISOString().slice(0, 10) }
+  }
+
+  function formatRangeHeader() {
+    const d = new Date(navDate)
+    const opts: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+    if (viewMode === 'day') return d.toLocaleDateString('es-ES', opts)
+    if (viewMode === 'week') {
+      const dow = d.getDay() === 0 ? 7 : d.getDay()
+      const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow + 1)
+      const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6)
+      return `${mon.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - ${sun.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    }
+    if (viewMode === 'month') return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+    return d.getFullYear().toString()
+  }
+
+  function navigate(dir: -1 | 1) {
+    const d = new Date(navDate)
+    if (viewMode === 'day') d.setDate(d.getDate() + dir)
+    else if (viewMode === 'week') d.setDate(d.getDate() + dir * 7)
+    else if (viewMode === 'month') d.setMonth(d.getMonth() + dir)
+    else d.setFullYear(d.getFullYear() + dir)
+    setNavDate(d)
+  }
+
+  function goToday() { setNavDate(new Date()) }
+
+  // Default due_date for "New task" based on current view
+  function defaultDueDate() { return getDateRange().start }
 
   const fetchItems = useCallback(async () => {
     if (!groupSlug) return
@@ -427,7 +481,9 @@ export default function TodoView() {
       if (filters.category) params.set('category_id', filters.category)
       if (filters.priority) params.set('priority', filters.priority)
       if (filters.status) params.set('status', filters.status)
-      if (dateRange) params.set('date_range', dateRange)
+      const range = getDateRange()
+      params.set('date_start', range.start)
+      params.set('date_end', range.end)
 
       const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items?${params}`)
       if (!res.ok) throw new Error('Failed')
@@ -436,7 +492,7 @@ export default function TodoView() {
       setError(false)
     } catch { setError(true) }
     finally { setLoading(false) }
-  }, [groupSlug, tab, filters, dateRange])
+  }, [groupSlug, tab, filters, viewMode, navDate])
 
   useEffect(() => { fetchItems() }, [fetchItems, refresh])
 
@@ -494,22 +550,22 @@ export default function TodoView() {
         </button>
       </div>
 
-      {/* Date range */}
-      <div className="flex gap-1 mb-4">
-        {[
-          { key: '', label: t('all') },
-          { key: 'today', label: t('today') },
-          { key: 'week', label: t('this_week') },
-          { key: 'month', label: t('this_month') },
-        ].map(opt => (
-          <button
-            key={opt.key}
-            onClick={() => setDateRange(opt.key)}
-            className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${dateRange === opt.key ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}
-          >
-            {opt.label}
-          </button>
-        ))}
+      {/* Date navigation */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1">
+          <button onClick={() => navigate(-1)} className="p-1 text-slate-400 hover:text-slate-600 text-xs">&lt;</button>
+          <button onClick={goToday} className="text-xs font-medium text-slate-600 hover:text-slate-900 px-1">{t('today')}</button>
+          <button onClick={() => navigate(1)} className="p-1 text-slate-400 hover:text-slate-600 text-xs">&gt;</button>
+          <span className="text-sm font-medium text-slate-700 ml-2">{formatRangeHeader()}</span>
+        </div>
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
+          {(['day','week','month','year'] as const).map(m => (
+            <button key={m} onClick={() => setViewMode(m)}
+              className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${viewMode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              {t('view_' + m)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Filters */}
@@ -572,7 +628,7 @@ export default function TodoView() {
         </div>
       )}
 
-      {showCreate && <CreateTodoModal groupSlug={groupSlug!} categories={categories} defaultCategoryId={categories.find(c => (c as any).is_default)?.id ?? ''} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
+      {showCreate && <CreateTodoModal groupSlug={groupSlug!} categories={categories} defaultCategoryId={categories.find(c => (c as any).is_default)?.id ?? ''} initialDueDate={defaultDueDate()} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
       {editItem && <EditTodoModal item={editItem} groupSlug={groupSlug!} categories={categories} onClose={() => setEditItem(null)} onSaved={() => { setEditItem(null); setRefresh(r => r + 1) }} />}
       {deleteItem && <DeleteConfirm item={deleteItem} groupSlug={groupSlug!} onClose={() => setDeleteItem(null)} onDeleted={() => { setDeleteItem(null); setRefresh(r => r + 1) }} />}
     </div>

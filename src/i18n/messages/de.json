@@ -723,7 +723,12 @@
       "status_cancelled": "Cancelled",
       "visibility_label": "This task is",
       "today": "Today",
-      "this_week": "This week"
+      "this_week": "This week",
+      "view_day": "Day",
+      "view_week": "Week",
+      "view_month": "Month",
+      "view_year": "Year",
+      "this_month": "This month"
     },
     "permissions": {
       "title": "Zugang",
