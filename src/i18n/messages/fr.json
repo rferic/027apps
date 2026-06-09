@@ -544,7 +544,8 @@
         "no_members": "Aucun membre dans le groupe",
         "visibility_updated": "Visibilité mise à jour",
         "access_granted": "Accès accordé",
-        "access_revoked": "Accès révoqué"
+        "access_revoked": "Accès révoqué",
+        "visibility_label": "This task is"
       },
       "detail": {
         "title": "Détails de l'app",
@@ -715,7 +716,12 @@
       "repeat_weekly": "Weekly",
       "repeat_monthly": "Monthly",
       "repeat_yearly": "Yearly",
-      "description": "Task management with categories, priorities, assignments, and notifications."
+      "description": "Task management with categories, priorities, assignments, and notifications.",
+      "status_pending": "Pending",
+      "status_in_progress": "In progress",
+      "status_done": "Done",
+      "status_cancelled": "Cancelled",
+      "visibility_label": "This task is"
     },
     "permissions": {
       "title": "Accès",

@@ -14,6 +14,7 @@ interface TodoItem {
 
 export default function TodoAdmin() {
   const t = useTranslations('admin.todo')
+  const tApp = useTranslations('apps.todo')
   const [todos, setTodos] = useState<TodoItem[]>([])
   const [loading, setLoading] = useState(false)
   const [todosTotal, setTodosTotal] = useState(0)
@@ -53,8 +54,8 @@ export default function TodoAdmin() {
               <div className="flex-1 min-w-0">
                 <span className="text-sm text-slate-800">{item.title}</span>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] text-slate-400">{item.priority}</span>
-                  <span className="text-[10px] text-slate-400">{item.status}</span>
+                  <span className="text-[10px] text-slate-400">{tApp('priority_' + item.priority)}</span>
+                  <span className="text-[10px] text-slate-400">{tApp('status_' + item.status)}</span>
                   {item.assigned_to && <span className="text-[10px] text-slate-400">→ assigned</span>}
                 </div>
               </div>

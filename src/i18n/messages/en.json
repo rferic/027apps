@@ -537,8 +537,8 @@
       },
       "permissions": {
         "title": "Access",
-      "visibility_public": "For the group",
-      "visibility_private": "For me",
+        "visibility_public": "Public",
+        "visibility_private": "Private",
         "visibility_description_public": "All group members can access",
         "visibility_description_private": "Only members with explicit access",
         "grant_access": "Grant access",
@@ -656,6 +656,7 @@
     "todo": {
       "title": "Tasks",
       "description": "Task management with categories, priorities, assignments, and notifications.",
+      "visibility_label": "This task is",
       "new_todo": "New task",
       "create_title": "Create task",
       "edit_title": "Edit task",
@@ -695,6 +696,10 @@
       "priority_high": "High",
       "priority_medium": "Medium",
       "priority_low": "Low",
+      "status_pending": "Pending",
+      "status_in_progress": "In progress",
+      "status_done": "Done",
+      "status_cancelled": "Cancelled",
       "widget": {
         "not_available": "Not available",
         "couldnt_load": "Could not load",

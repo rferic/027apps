@@ -713,10 +713,15 @@
       "priority_high": "Alta",
       "priority_medium": "Media",
       "priority_low": "Baja",
+      "status_pending": "Pendiente",
+      "status_in_progress": "En progreso",
+      "status_done": "Hecho",
+      "status_cancelled": "Cancelado",
       "repeat_none": "Sin repetición",
       "repeat_weekly": "Semanal",
       "repeat_monthly": "Mensual",
-      "repeat_yearly": "Anual"
+      "repeat_yearly": "Anual",
+      "visibility_label": "Esta tarea es"
     },
     "permissions": {
       "title": "Acceso",
