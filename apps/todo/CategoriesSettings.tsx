@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { Plus, X, Loader2, Pencil, Star } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, Star, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Category {
@@ -167,20 +167,20 @@ export function CategoriesSettings() {
       ) : (
         <div className="space-y-1.5">
           {categories.map(cat => (
-            <div key={cat.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg ${cat.is_default ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'bg-slate-50'}`}>
+            <div key={cat.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg ${cat.is_default ? 'bg-indigo-50 border-l-2 border-indigo-400' : 'bg-slate-50'}`}>
               <span className="text-base">{cat.emoji}</span>
               <span className="text-sm text-slate-700 flex-1">{cat.name}</span>
               <button
                 onClick={() => setDefault(cat.id)}
-                title={cat.is_default ? t('is_default') : t('set_as_default')}
-                className={`p-0.5 rounded transition-colors ${
-                  cat.is_default ? 'text-yellow-500 hover:text-yellow-600' : 'text-slate-300 hover:text-yellow-400'
+                title={cat.is_default ? 'Default' : 'Set as default'}
+                className={`p-1 rounded-md transition-colors ${
+                  cat.is_default ? 'text-yellow-500 bg-yellow-50' : 'text-slate-300 hover:text-amber-500 hover:bg-amber-50'
                 }`}
               >
                 <Star size={13} fill={cat.is_default ? 'currentColor' : 'none'} />
               </button>
-              <button onClick={() => { setEditCat(cat); setShowForm(true) }} className="p-0.5 text-slate-400 hover:text-slate-600"><Pencil size={13} /></button>
-              <button onClick={() => handleDelete(cat.id, cat.name, 0)} className="text-xs text-red-400 hover:text-red-600 font-medium">{t('delete')}</button>
+              <button onClick={() => { setEditCat(cat); setShowForm(true) }} className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"><Pencil size={13} /></button>
+              <button onClick={() => handleDelete(cat.id, cat.name, 0)} className="p-1 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 size={13} /></button>
             </div>
           ))}
         </div>
