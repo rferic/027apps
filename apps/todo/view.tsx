@@ -734,16 +734,17 @@ export default function TodoView() {
             const isDone = item.status === 'done'
             return (
               <div key={item.id} className="bg-white rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
-                <div className="flex items-center gap-3 px-3 py-2.5">
+                <div className="flex items-stretch">
                   <button
                     onClick={() => handleStatus(item, isDone ? 'pending' : 'done')}
-                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      isDone ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-slate-300 hover:border-indigo-400'
-                    }`}
+                    className={`flex-shrink-0 w-10 flex items-center justify-center rounded-l-lg transition-colors ${isDone ? 'bg-emerald-500 text-white' : 'text-slate-300 hover:text-emerald-500 hover:bg-emerald-50'}`}
                   >
-                    {isDone && <CheckSquare size={12} />}
+                    {isDone ? <CheckSquare size={16} /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
                   </button>
-                  <div className="flex-1 min-w-0">
+                  <div
+                    className="flex-1 min-w-0 px-3 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors"
+                    onClick={() => setDetailItem(item)}
+                  >
                     <div className="flex items-center gap-2">
                       <span className={`text-sm ${isDone ? 'line-through text-slate-400' : 'text-slate-800'}`}>{item.title}</span>
                       <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: pc.color + '20', color: pc.color }}>{t('priority_' + item.priority)}</span>
@@ -763,8 +764,11 @@ export default function TodoView() {
                       )}
                     </div>
                   </div>
-                  <button onClick={() => setDetailItem(item)} className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0">
-                    <Pencil size={14} />
+                  <button
+                    onClick={() => setDeleteItem(item)}
+                    className="flex-shrink-0 w-10 flex items-center justify-center rounded-r-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 size={15} />
                   </button>
                 </div>
               </div>
