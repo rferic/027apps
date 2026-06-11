@@ -644,9 +644,7 @@ export default function TodoView() {
             className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
             <option value="">{t('all')} {t('filter_status')}</option>
             <option value="pending">{t('status_pending')}</option>
-            <option value="in_progress">{t('status_in_progress')}</option>
             <option value="done">{t('status_done')}</option>
-            <option value="cancelled">{t('status_cancelled')}</option>
           </select>
           {tab === 'group' && (
           <select value={filters.assigned} onChange={e => setFilters(f => ({...f, assigned: e.target.value}))}
@@ -709,9 +707,7 @@ export default function TodoView() {
                   className="w-full px-4 py-3 text-base border border-slate-200 rounded-lg bg-white">
                   <option value="">{t('all')} {t('filter_status')}</option>
                   <option value="pending">{t('status_pending')}</option>
-                  <option value="in_progress">{t('status_in_progress')}</option>
                   <option value="done">{t('status_done')}</option>
-                  <option value="cancelled">{t('status_cancelled')}</option>
                 </select>
               </div>
               <button type="button" onClick={() => setShowFilters(false)} className="w-full py-3 mt-5 text-sm font-semibold text-white bg-indigo-600 rounded-xl cursor-pointer hover:bg-indigo-700 shadow-sm transition-colors">
