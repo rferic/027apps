@@ -691,11 +691,20 @@ export default function TodoView() {
               <button type="button" onClick={() => setFilters(f => ({...f, status: ''}))} className="cursor-pointer opacity-60 hover:opacity-100"><X size={12} /></button>
             </span>
           )}
-          <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50">
+          <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg>
             {t('filter_label')}
           </button>
+          <select value={sort} onChange={e => setSort(e.target.value)}
+            className="text-xs font-medium rounded-full px-3 py-1.5 border border-slate-200 bg-white text-slate-600 cursor-pointer">
+            <option value="priority">{t('sort_priority')}</option>
+            <option value="upcoming">{t('sort_upcoming')}</option>
+            <option value="alpha">{t('sort_alpha')}</option>
+            <option value="newest">{t('sort_newest')}</option>
+            <option value="oldest">{t('sort_oldest')}</option>
+          </select>
         </div>
-        {/* Mobile filter modal */}
+        {/* Mobile filter modal — Inspiration-style */}
         {showFilters && (
           <div className="fixed inset-0 z-50 bg-black/40 sm:hidden" onClick={() => setShowFilters(false)}>
             <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto shadow-xl" onClick={e => e.stopPropagation()}>
@@ -703,44 +712,58 @@ export default function TodoView() {
                 <h3 className="text-base font-semibold text-slate-900">{t('filter_label')}</h3>
                 <button type="button" onClick={() => setShowFilters(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={20} /></button>
               </div>
-              <div className="space-y-4">
-                <select value={filters.category} onChange={e => setFilters(f => ({...f, category: e.target.value}))}
-                  className="w-full px-4 py-3 text-base border border-slate-200 rounded-lg bg-white">
-                  <option value="">{t('all')} {t('filter_category')}</option>
-                  {categories.map(c => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
-                </select>
-                <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
-                  className="w-full px-4 py-3 text-base border border-slate-200 rounded-lg bg-white">
-                  <option value="">{t('all')} {t('filter_priority')}</option>
-                  {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k}>{t('priority_' + k)}</option>))}
-                </select>
-                <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
-                  className="w-full px-4 py-3 text-base border border-slate-200 rounded-lg bg-white">
-                  <option value="">{t('all')} {t('filter_status')}</option>
-                  <option value="pending">{t('status_pending')}</option>
-                  <option value="done">{t('status_done')}</option>
-                </select>
-                {tab === 'group' && (
-                <select value={filters.assigned} onChange={e => setFilters(f => ({...f, assigned: e.target.value}))}
-                  className="w-full px-4 py-3 text-base border border-slate-200 rounded-lg bg-white">
-                  <option value="">{t('all')} {t('filter_assigned')}</option>
-                  <option value="unassigned">{t('unassigned')}</option>
-                  {Array.from(memberMap.entries()).map(([id, name]) => (
-                    <option key={id} value={id}>{name}</option>
+              <div className="mb-5">
+                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_category')}</label>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setFilters(f => ({...f, category: ''}))}
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.category ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>All</button>
+                  {categories.map(c => (
+                    <button key={c.id} type="button" onClick={() => setFilters(f => ({...f, category: f.category === c.id ? '' : c.id}))}
+                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.category === c.id ? 'text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                      style={filters.category === c.id ? { backgroundColor: c.color } : {}}>{c.emoji} {c.name}</button>
                   ))}
-                </select>
-                )}
-                <select value={sort} onChange={e => setSort(e.target.value)}
-                  className="w-full px-4 py-3 text-base border border-slate-200 rounded-lg bg-white">
-                  <option value="priority">{t('sort_priority')}</option>
-                  <option value="due_date">{t('sort_date')}</option>
-                  <option value="newest">{t('sort_newest')}</option>
-                  <option value="oldest">{t('sort_oldest')}</option>
-                </select>
+                </div>
               </div>
-              <button type="button" onClick={() => setShowFilters(false)} className="w-full py-3 mt-6 text-sm font-semibold text-white bg-indigo-600 rounded-xl cursor-pointer hover:bg-indigo-700 shadow-sm transition-colors">
-                {t('apply')}
-              </button>
+              <div className="mb-5">
+                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_priority')}</label>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setFilters(f => ({...f, priority: ''}))}
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.priority ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>All</button>
+                  {Object.keys(PRIORITY_CONFIG).map(k => (
+                    <button key={k} type="button" onClick={() => setFilters(f => ({...f, priority: f.priority === k ? '' : k}))}
+                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.priority === k ? 'text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                      style={filters.priority === k ? { backgroundColor: PRIORITY_CONFIG[k].color } : {}}>{t('priority_' + k)}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-5">
+                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_status')}</label>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setFilters(f => ({...f, status: ''}))}
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.status ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>All</button>
+                  {['pending', 'done'].map(s => (
+                    <button key={s} type="button" onClick={() => setFilters(f => ({...f, status: f.status === s ? '' : s}))}
+                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.status === s ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('status_' + s)}</button>
+                  ))}
+                </div>
+              </div>
+              {tab === 'group' && (
+              <div className="mb-5">
+                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_assigned')}</label>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setFilters(f => ({...f, assigned: ''}))}
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.assigned ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>All</button>
+                  <button type="button" onClick={() => setFilters(f => ({...f, assigned: f.assigned === 'unassigned' ? '' : 'unassigned'}))}
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.assigned === 'unassigned' ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('unassigned')}</button>
+                  {Array.from(memberMap.entries()).map(([id, name]) => (
+                    <button key={id} type="button" onClick={() => setFilters(f => ({...f, assigned: f.assigned === id ? '' : id}))}
+                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.assigned === id ? 'bg-indigo-600 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{name}</button>
+                  ))}
+                </div>
+              </div>
+              )}
+              <button type="button" onClick={() => setShowFilters(false)}
+                className="w-full py-3 text-sm font-semibold text-white bg-indigo-600 rounded-xl cursor-pointer hover:bg-indigo-700 shadow-sm transition-colors">{t('apply')}</button>
             </div>
           </div>
         )}
