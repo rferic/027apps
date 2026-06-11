@@ -212,7 +212,7 @@ function CreateTodoModal({
               <div className="flex-1">
                 <label htmlFor="create-assign" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('assign_to')}</label>
                 <select id="create-assign" value={assignTo} onChange={e => setAssignTo(e.target.value)} className={inputCls}>
-                  <option value="">Unassigned</option>
+                  <option value="">{t('unassigned')}</option>
                   <option value="self">{t('assign_to_me')}</option>
                   {members.map(m => (
                     <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
@@ -538,6 +538,19 @@ export default function TodoView() {
 
   const catMap = new Map(categories.map(c => [c.id, c]))
 
+  const [memberMap, setMemberMap] = useState<Map<string, string>>(new Map())
+  useEffect(() => {
+    if (groupSlug) {
+      fetch(`/api/v1/${groupSlug}/apps/todo/members`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+          const list = Array.isArray(data) ? data : (data?.data ?? [])
+          setMemberMap(new Map(list.map((m: { user_id: string; display_name: string }) => [m.user_id, m.display_name])))
+        })
+        .catch(() => {})
+    }
+  }, [groupSlug])
+
   async function handleTake(item: TodoItem) {
     await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}`, {
       method: 'PUT',
@@ -728,6 +741,9 @@ export default function TodoView() {
                         <span className="text-[10px] text-slate-300 italic">{t('no_date')}</span>
                       )}
                       {item.repeat_interval && <Repeat size={11} className="text-slate-300" />}
+                      {item.assigned_to && (
+                        <span className="text-[10px] text-slate-400">👤 {memberMap.get(item.assigned_to) ?? '...'}</span>
+                      )}
                     </div>
                   </div>
                   <button onClick={() => setDetailItem(item)} className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0">

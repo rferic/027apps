@@ -737,7 +737,8 @@
       "yesterday": "Yesterday",
       "no_date": "No date",
       "filter_label": "Filter",
-      "apply": "Apply"
+      "apply": "Apply",
+      "unassigned": "Unassigned"
     },
     "permissions": {
       "title": "Accés",

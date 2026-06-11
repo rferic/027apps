@@ -739,7 +739,8 @@
       "yesterday": "Ayer",
       "no_date": "Sin fecha",
       "filter_label": "Filtrar",
-      "apply": "Aplicar"
+      "apply": "Aplicar",
+      "unassigned": "Sin asignar"
     },
     "permissions": {
       "title": "Acceso",

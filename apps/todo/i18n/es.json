@@ -80,6 +80,7 @@
   "tomorrow": "Mañana",
   "yesterday": "Ayer",
   "no_date": "Sin fecha",
-  "filter_label": "Filter",
-  "apply": "Apply"
+  "filter_label": "Filtrar",
+  "apply": "Aplicar",
+  "unassigned": "Sin asignar"
 }
