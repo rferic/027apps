@@ -732,8 +732,8 @@ export default function TodoView() {
             const isOverdue = item.due_date && new Date(item.due_date) < new Date()
             const cat = item.category_id ? catMap.get(item.category_id) : null
             const isDone = item.status === 'done'
-            return (
-              <div key={item.id} className="bg-white rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
+return (
+              <div key={item.id} className={`bg-white rounded-lg border transition-colors ${isDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-100 hover:border-slate-200'}`}>
                 <div className="flex items-stretch">
                   <button
                     onClick={() => handleStatus(item, isDone ? 'pending' : 'done')}
@@ -742,7 +742,7 @@ export default function TodoView() {
                     {isDone ? <CheckSquare size={16} /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
                   </button>
                   <div
-                    className="flex-1 min-w-0 px-3 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors"
+                    className={`flex-1 min-w-0 px-3 py-2.5 cursor-pointer transition-colors ${isDone ? 'bg-emerald-50/20' : 'hover:bg-slate-50'}`}
                     onClick={() => setDetailItem(item)}
                   >
                     <div className="flex items-center gap-2">
@@ -766,7 +766,7 @@ export default function TodoView() {
                   </div>
                   <button
                     onClick={() => setDeleteItem(item)}
-                    className="flex-shrink-0 w-10 flex items-center justify-center rounded-r-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    className={`flex-shrink-0 w-10 flex items-center justify-center rounded-r-lg transition-colors ${isDone ? 'text-emerald-400 hover:text-red-500 hover:bg-red-50' : 'text-slate-300 hover:text-red-500 hover:bg-red-50'}`}
                   >
                     <Trash2 size={15} />
                   </button>
