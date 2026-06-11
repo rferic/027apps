@@ -449,6 +449,7 @@ export default function TodoView() {
   const [deleteItem, setDeleteItem] = useState<TodoItem | null>(null)
   const [detailItem, setDetailItem] = useState<TodoItem | null>(null)
   const [filters, setFilters] = useState<{category:string;priority:string;status:string;assigned:string}>({ category: '', priority: '', status: '', assigned: '' })
+  const [sort, setSort] = useState('priority')
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('day')
   const [navDate, setNavDate] = useState(new Date())
   const [showFilters, setShowFilters] = useState(false)
@@ -522,7 +523,7 @@ export default function TodoView() {
     try {
       const assigned = tab === 'my' ? 'me' : (filters.assigned || '')
       const visibility = tab === 'group' ? 'public' : ''
-      const params = new URLSearchParams({ sort: 'priority', limit: '50' })
+      const params = new URLSearchParams({ sort, limit: '50' })
       if (assigned) params.set('assigned', assigned)
       if (visibility) params.set('visibility', visibility)
       if (filters.category) params.set('category_id', filters.category)
@@ -539,7 +540,7 @@ export default function TodoView() {
       setError(false)
     } catch { setError(true) }
     finally { setLoading(false) }
-  }, [groupSlug, tab, filters, viewMode, navDate])
+  }, [groupSlug, tab, filters, viewMode, navDate, sort])
 
   useEffect(() => { fetchItems() }, [fetchItems, refresh])
 
@@ -656,6 +657,13 @@ export default function TodoView() {
             ))}
           </select>
           )}
+          <select value={sort} onChange={e => setSort(e.target.value)}
+            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+            <option value="priority">{t('sort_priority')}</option>
+            <option value="due_date">{t('sort_date')}</option>
+            <option value="newest">{t('sort_newest')}</option>
+            <option value="oldest">{t('sort_oldest')}</option>
+          </select>
           {(filters.category || filters.priority || filters.status || filters.assigned) && (
             <button onClick={clearFilters} className="text-[11px] text-slate-400 hover:text-red-500 font-medium">✕ Clear</button>
           )}
@@ -709,8 +717,25 @@ export default function TodoView() {
                   <option value="pending">{t('status_pending')}</option>
                   <option value="done">{t('status_done')}</option>
                 </select>
+                {tab === 'group' && (
+                <select value={filters.assigned} onChange={e => setFilters(f => ({...f, assigned: e.target.value}))}
+                  className="w-full px-4 py-3 text-base border border-slate-200 rounded-lg bg-white">
+                  <option value="">{t('all')} {t('filter_assigned')}</option>
+                  <option value="unassigned">{t('unassigned')}</option>
+                  {Array.from(memberMap.entries()).map(([id, name]) => (
+                    <option key={id} value={id}>{name}</option>
+                  ))}
+                </select>
+                )}
+                <select value={sort} onChange={e => setSort(e.target.value)}
+                  className="w-full px-4 py-3 text-base border border-slate-200 rounded-lg bg-white">
+                  <option value="priority">{t('sort_priority')}</option>
+                  <option value="due_date">{t('sort_date')}</option>
+                  <option value="newest">{t('sort_newest')}</option>
+                  <option value="oldest">{t('sort_oldest')}</option>
+                </select>
               </div>
-              <button type="button" onClick={() => setShowFilters(false)} className="w-full py-3 mt-5 text-sm font-semibold text-white bg-indigo-600 rounded-xl cursor-pointer hover:bg-indigo-700 shadow-sm transition-colors">
+              <button type="button" onClick={() => setShowFilters(false)} className="w-full py-3 mt-6 text-sm font-semibold text-white bg-indigo-600 rounded-xl cursor-pointer hover:bg-indigo-700 shadow-sm transition-colors">
                 {t('apply')}
               </button>
             </div>

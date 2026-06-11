@@ -83,5 +83,9 @@
   "filter_label": "Filter",
   "apply": "Apply",
   "unassigned": "Unassigned",
-  "filter_assigned": "Assigned to"
+  "filter_assigned": "Assigned to",
+  "sort_priority": "By priority",
+  "sort_date": "By date",
+  "sort_newest": "Newest",
+  "sort_oldest": "Oldest"
 }

@@ -741,7 +741,11 @@
       "filter_label": "Filtrar",
       "apply": "Aplicar",
       "unassigned": "Sin asignar",
-      "filter_assigned": "Asignado a"
+      "filter_assigned": "Asignado a",
+      "sort_priority": "Por prioridad",
+      "sort_date": "Por fecha",
+      "sort_newest": "Más recientes",
+      "sort_oldest": "Más antiguas"
     },
     "permissions": {
       "title": "Acceso",
