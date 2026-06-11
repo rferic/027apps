@@ -180,22 +180,22 @@ function CreateTodoModal({
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="create-title" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('title_placeholder')} <span className="text-red-400">*</span></label>
+            <label htmlFor="create-title" className="block text-sm font-medium text-slate-700 mb-1.5">{t('title_placeholder')} <span className="text-red-400">*</span></label>
             <input id="create-title" type="text" value={title} onChange={e => setTitle(e.target.value)} className={inputCls} autoFocus required />
           </div>
           <div>
-            <label htmlFor="create-desc" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('desc_placeholder')} <span className="text-slate-400 font-normal normal-case tracking-normal ml-0.5">(opcional)</span></label>
+            <label htmlFor="create-desc" className="block text-sm font-medium text-slate-700 mb-1.5">{t('desc_placeholder')} <span className="text-slate-400 font-normal normal-case tracking-normal ml-0.5">(opcional)</span></label>
             <textarea id="create-desc" value={description} onChange={e => setDescription(e.target.value)} className={inputCls} rows={3} />
           </div>
           <div>
-            <label htmlFor="create-category" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('category')}</label>
+            <label htmlFor="create-category" className="block text-sm font-medium text-slate-700 mb-1.5">{t('category')}</label>
             <select id="create-category" value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
               <option value="">{t('no_category')}</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
             </select>
           </div>
           <div>
-            <label htmlFor="create-priority" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('priority')}</label>
+            <label htmlFor="create-priority" className="block text-sm font-medium text-slate-700 mb-1.5">{t('priority')}</label>
             <select id="create-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
               {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k} style={{ color: v.color }}>{t('priority_' + k)}</option>)}
             </select>
@@ -203,14 +203,14 @@ function CreateTodoModal({
           {visibility === 'public' ? (
             <div className="flex gap-3">
               <div className="flex-1">
-                <label htmlFor="create-visibility" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('visibility_label')}</label>
+                <label htmlFor="create-visibility" className="block text-sm font-medium text-slate-700 mb-1.5">{t('visibility_label')}</label>
                 <select id="create-visibility" value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
                   <option value="private">{t('visibility_private')}</option>
                   <option value="public">{t('visibility_public')}</option>
                 </select>
               </div>
               <div className="flex-1">
-                <label htmlFor="create-assign" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('assign_to')}</label>
+                <label htmlFor="create-assign" className="block text-sm font-medium text-slate-700 mb-1.5">{t('assign_to')}</label>
                 <select id="create-assign" value={assignTo} onChange={e => setAssignTo(e.target.value)} className={inputCls}>
                   <option value="">{t('unassigned')}</option>
                   <option value="self">{t('assign_to_me')}</option>
@@ -222,7 +222,7 @@ function CreateTodoModal({
             </div>
           ) : (
             <div>
-              <label htmlFor="create-visibility" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('visibility_label')}</label>
+              <label htmlFor="create-visibility" className="block text-sm font-medium text-slate-700 mb-1.5">{t('visibility_label')}</label>
               <select id="create-visibility" value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
                 <option value="private">{t('visibility_private')}</option>
                 <option value="public">{t('visibility_public')}</option>
@@ -240,7 +240,7 @@ function CreateTodoModal({
             <input id="create-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} disabled={!dueDate} className={inputCls} />
           </div>
           <div>
-            <label htmlFor="create-repeat" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('repeat_none')}</label>
+            <label htmlFor="create-repeat" className="block text-sm font-medium text-slate-700 mb-1.5">{t('repeat_none')}</label>
             <select id="create-repeat" value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
               <option value="">{t('repeat_none')}</option>
               <option value="weekly">{t('repeat_weekly')}</option>
@@ -327,32 +327,32 @@ function EditTodoModal({
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="edit-title" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('title_placeholder')}</label>
+            <label htmlFor="edit-title" className="block text-sm font-medium text-slate-700 mb-1.5">{t('title_placeholder')}</label>
             <input id="edit-title" type="text" value={title} onChange={e => setTitle(e.target.value)} className={inputCls} autoFocus required />
           </div>
           <div>
-            <label htmlFor="edit-desc" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('desc_placeholder')}</label>
+            <label htmlFor="edit-desc" className="block text-sm font-medium text-slate-700 mb-1.5">{t('desc_placeholder')}</label>
             <textarea id="edit-desc" value={description} onChange={e => setDescription(e.target.value)} className={inputCls} rows={3} />
           </div>
           <div>
-            <label htmlFor="edit-priority" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('priority')}</label>
+            <label htmlFor="edit-priority" className="block text-sm font-medium text-slate-700 mb-1.5">{t('priority')}</label>
             <select id="edit-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
               {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k} style={{ color: v.color }}>{t('priority_' + k)}</option>)}
             </select>
           </div>
           <div>
-            <label htmlFor="edit-category" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('category')}</label>
+            <label htmlFor="edit-category" className="block text-sm font-medium text-slate-700 mb-1.5">{t('category')}</label>
             <select id="edit-category" value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
               <option value="">{t('no_category')}</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
             </select>
           </div>
           <div>
-            <label htmlFor="edit-date" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('due_date')}</label>
+            <label htmlFor="edit-date" className="block text-sm font-medium text-slate-700 mb-1.5">{t('due_date')}</label>
             <input id="edit-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} className={inputCls} />
           </div>
           <div>
-            <label htmlFor="edit-repeat" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('repeat_none')}</label>
+            <label htmlFor="edit-repeat" className="block text-sm font-medium text-slate-700 mb-1.5">{t('repeat_none')}</label>
             <select id="edit-repeat" value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
             <option value="">{t('repeat_none')}</option>
             <option value="weekly">{t('repeat_weekly')}</option>
@@ -641,7 +641,7 @@ export default function TodoView() {
           <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
             className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
             <option value="">{t('all')} {t('filter_priority')}</option>
-            {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k}>{t('priority_' + k)}</option>))}
+            {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k} style={{ color: PRIORITY_CONFIG[k].color }}>{t('priority_' + k)}</option>))}
           </select>
           <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
             className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
