@@ -84,8 +84,10 @@
   "apply": "Apply",
   "unassigned": "Unassigned",
   "filter_assigned": "Assigned to",
-  "sort_priority": "By priority",
+  "sort_priority": "Priority",
   "sort_date": "By date",
   "sort_newest": "Newest",
-  "sort_oldest": "Oldest"
+  "sort_oldest": "Oldest",
+  "sort_upcoming": "Closest first",
+  "sort_alpha": "Alphabetical"
 }
