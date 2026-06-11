@@ -741,7 +741,7 @@ export default function TodoView() {
                       isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-emerald-400'
                     }`}
                   >
-                    {isDone && <Check size={14} strokeWidth={3} />}
+                    {isDone && <Check size={14} strokeWidth={3} color="white" />}
                   </button>
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setDetailItem(item)}>
                     <div className="flex items-center gap-2">
