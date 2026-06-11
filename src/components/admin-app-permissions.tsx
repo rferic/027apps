@@ -20,6 +20,7 @@ interface Props {
 
 export function AdminAppPermissions({ slug, visibility: initialVisibility, groups: initialGroups }: Props) {
   const t = useTranslations('apps')
+  const tc = useTranslations('common')
   const [visibilityPending, startVisibilityTransition] = useTransition()
   const [optimisticVisibility, updateOptimisticVisibility] = useOptimistic(initialVisibility)
   const [optimisticGroups, updateOptimistic] = useOptimistic(
@@ -90,7 +91,7 @@ export function AdminAppPermissions({ slug, visibility: initialVisibility, group
       ) : (
         <div className="space-y-2">
           {optimisticGroups.length === 0 ? (
-            <p className="text-sm text-slate-500">No groups available.</p>
+            <p className="text-sm text-slate-500">{tc('noGroups')}</p>
           ) : (
             optimisticGroups.map(group => (
               <div key={group.groupId} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50">

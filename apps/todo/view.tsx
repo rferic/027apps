@@ -8,10 +8,17 @@ import { CheckSquare, Plus, X, Loader2, UserPlus, Clock, AlertTriangle, Pencil, 
 
 const supabase = createClient()
 
+let cachedToken: string | null = null
+
 async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  if (cachedToken) {
+    const headers: Record<string, string> = { ...(options.headers as Record<string, string> ?? {}), Authorization: `Bearer ${cachedToken}` }
+    return fetch(url, { ...options, headers, credentials: 'include' })
+  }
   const { data: { session } } = await supabase.auth.getSession()
+  if (session?.access_token) cachedToken = session.access_token
   const headers: Record<string, string> = { ...(options.headers as Record<string, string> ?? {}) }
-  if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+  if (cachedToken) headers['Authorization'] = `Bearer ${cachedToken}`
   return fetch(url, { ...options, headers, credentials: 'include' })
 }
 

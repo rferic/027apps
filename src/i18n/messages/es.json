@@ -44,7 +44,9 @@
   },
   "common": {
     "loading": "Cargando...",
-    "error": "Ha ocurrido un error"
+    "error": "Ha ocurrido un error",
+    "noGroups": "No hay grupos disponibles",
+    "noGroupsDesc": "Contacta con un administrador para que te añada a un grupo."
   },
   "groups": {
     "switch_label": "Cambiar grupo",
