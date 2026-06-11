@@ -429,7 +429,17 @@ export default function TodoView() {
   const { groupSlug } = useAppContext()
   const t = useTranslations('apps.todo')
   const locale = useLocale()
-  const [tab, setTab] = useState<'my' | 'group'>('my')
+  const [tab, setTab] = useState<'my' | 'group'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('todo-tab') as 'my' | 'group') || 'my'
+    }
+    return 'my'
+  })
+
+  function changeTab(t: 'my' | 'group') {
+    setTab(t)
+    try { localStorage.setItem('todo-tab', t) } catch {}
+  }
   const [items, setItems] = useState<TodoItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -592,10 +602,10 @@ export default function TodoView() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 bg-slate-100 rounded-lg p-0.5">
-        <button onClick={() => setTab('my')} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'my' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+        <button onClick={() => changeTab('my')} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'my' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <UserPlus size={14} className="inline mr-1" />{t('tab_my')}
         </button>
-        <button onClick={() => setTab('group')} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+        <button onClick={() => changeTab('group')} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <CheckSquare size={14} className="inline mr-1" />{t('tab_group')}
         </button>
       </div>
@@ -638,6 +648,7 @@ export default function TodoView() {
             <option value="done">{t('status_done')}</option>
             <option value="cancelled">{t('status_cancelled')}</option>
           </select>
+          {tab === 'group' && (
           <select value={filters.assigned} onChange={e => setFilters(f => ({...f, assigned: e.target.value}))}
             className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
             <option value="">{t('all')} {t('filter_assigned')}</option>
@@ -646,6 +657,7 @@ export default function TodoView() {
               <option key={id} value={id}>{name}</option>
             ))}
           </select>
+          )}
           {(filters.category || filters.priority || filters.status || filters.assigned) && (
             <button onClick={clearFilters} className="text-[11px] text-slate-400 hover:text-red-500 font-medium">✕ Clear</button>
           )}
