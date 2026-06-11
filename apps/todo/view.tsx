@@ -738,8 +738,9 @@ export default function TodoView() {
                   <button
                     onClick={() => handleStatus(item, isDone ? 'pending' : 'done')}
                     className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                      isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-emerald-400'
+                      isDone ? 'border-emerald-500 text-white' : 'border-slate-300 hover:border-emerald-400'
                     }`}
+                    style={isDone ? { backgroundColor: '#10B981' } : {}}
                   >
                     {isDone && <Check size={14} strokeWidth={3} color="white" />}
                   </button>
