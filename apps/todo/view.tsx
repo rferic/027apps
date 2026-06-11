@@ -442,6 +442,7 @@ export default function TodoView() {
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('day')
   const [navDate, setNavDate] = useState(new Date())
   const [showFilters, setShowFilters] = useState(false)
+  const clearFilters = () => setFilters({ category: '', priority: '', status: '' })
   const [refresh, setRefresh] = useState(0)
 
   // Compute date range for current view
@@ -623,6 +624,9 @@ export default function TodoView() {
             <option value="done">{t('status_done')}</option>
             <option value="cancelled">{t('status_cancelled')}</option>
           </select>
+          {(filters.category || filters.priority || filters.status) && (
+            <button onClick={clearFilters} className="text-[11px] text-slate-400 hover:text-red-500 font-medium">✕ Clear</button>
+          )}
         </div>
         {/* Mobile: active filter badges + Filter button */}
         <div className="sm:hidden flex items-center gap-2 flex-wrap">
@@ -658,17 +662,17 @@ export default function TodoView() {
               </div>
               <div className="space-y-4">
                 <select value={filters.category} onChange={e => setFilters(f => ({...f, category: e.target.value}))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+                  className="w-full px-4 py-3 text-base border border-slate-200 rounded-lg bg-white">
                   <option value="">{t('all')} {t('filter_category')}</option>
                   {categories.map(c => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
                 </select>
                 <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+                  className="w-full px-4 py-3 text-base border border-slate-200 rounded-lg bg-white">
                   <option value="">{t('all')} {t('filter_priority')}</option>
                   {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k}>{t('priority_' + k)}</option>))}
                 </select>
                 <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white">
+                  className="w-full px-4 py-3 text-base border border-slate-200 rounded-lg bg-white">
                   <option value="">{t('all')} {t('filter_status')}</option>
                   <option value="pending">{t('status_pending')}</option>
                   <option value="in_progress">{t('status_in_progress')}</option>
