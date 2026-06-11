@@ -740,7 +740,8 @@
       "no_date": "Sin fecha",
       "filter_label": "Filtrar",
       "apply": "Aplicar",
-      "unassigned": "Sin asignar"
+      "unassigned": "Sin asignar",
+      "filter_assigned": "Asignado a"
     },
     "permissions": {
       "title": "Acceso",

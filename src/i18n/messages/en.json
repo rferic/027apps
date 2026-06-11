@@ -725,7 +725,8 @@
       "no_date": "No date",
       "filter_label": "Filter",
       "apply": "Apply",
-      "unassigned": "Unassigned"
+      "unassigned": "Unassigned",
+      "filter_assigned": "Assigned to"
     },
     "permissions": {
       "title": "Access",

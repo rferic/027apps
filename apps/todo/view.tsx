@@ -438,11 +438,11 @@ export default function TodoView() {
   const [editItem, setEditItem] = useState<TodoItem | null>(null)
   const [deleteItem, setDeleteItem] = useState<TodoItem | null>(null)
   const [detailItem, setDetailItem] = useState<TodoItem | null>(null)
-  const [filters, setFilters] = useState({ category: '', priority: '', status: '' })
+  const [filters, setFilters] = useState<{category:string;priority:string;status:string;assigned:string}>({ category: '', priority: '', status: '', assigned: '' })
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('day')
   const [navDate, setNavDate] = useState(new Date())
   const [showFilters, setShowFilters] = useState(false)
-  const clearFilters = () => setFilters({ category: '', priority: '', status: '' })
+  const clearFilters = () => setFilters({ category: '', priority: '', status: '', assigned: '' })
   const [refresh, setRefresh] = useState(0)
 
   // Compute date range for current view
@@ -510,9 +510,10 @@ export default function TodoView() {
     if (!groupSlug) return
     setLoading(true)
     try {
-      const assigned = tab === 'my' ? 'me' : 'unassigned'
+      const assigned = tab === 'my' ? 'me' : (filters.assigned || '')
       const visibility = tab === 'group' ? 'public' : ''
-      const params = new URLSearchParams({ assigned, sort: 'priority', limit: '50' })
+      const params = new URLSearchParams({ sort: 'priority', limit: '50' })
+      if (assigned) params.set('assigned', assigned)
       if (visibility) params.set('visibility', visibility)
       if (filters.category) params.set('category_id', filters.category)
       if (filters.priority) params.set('priority', filters.priority)
@@ -637,7 +638,15 @@ export default function TodoView() {
             <option value="done">{t('status_done')}</option>
             <option value="cancelled">{t('status_cancelled')}</option>
           </select>
-          {(filters.category || filters.priority || filters.status) && (
+          <select value={filters.assigned} onChange={e => setFilters(f => ({...f, assigned: e.target.value}))}
+            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+            <option value="">{t('all')} {t('filter_assigned')}</option>
+            <option value="unassigned">{t('unassigned')}</option>
+            {Array.from(memberMap.entries()).map(([id, name]) => (
+              <option key={id} value={id}>{name}</option>
+            ))}
+          </select>
+          {(filters.category || filters.priority || filters.status || filters.assigned) && (
             <button onClick={clearFilters} className="text-[11px] text-slate-400 hover:text-red-500 font-medium">✕ Clear</button>
           )}
         </div>
