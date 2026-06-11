@@ -733,15 +733,19 @@ export default function TodoView() {
             const cat = item.category_id ? catMap.get(item.category_id) : null
             const isDone = item.status === 'done'
             return (
-              <div key={item.id} className="bg-white rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
+              <div key={item.id} className={`bg-white rounded-lg border transition-colors ${isDone ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-100 hover:border-slate-200'}`}>
                 <div className="flex items-center gap-3 px-3 py-2.5">
                   <button
                     onClick={() => handleStatus(item, isDone ? 'pending' : 'done')}
-                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-emerald-500'
+                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                      isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-emerald-400'
                     }`}
                   >
-                    {isDone && <CheckSquare size={12} strokeWidth={3} />}
+                    {isDone && (
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 6l3 3 5-6" />
+                      </svg>
+                    )}
                   </button>
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setDetailItem(item)}>
                     <div className="flex items-center gap-2">
