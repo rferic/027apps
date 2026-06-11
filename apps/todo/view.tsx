@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
 import { CheckSquare, Plus, X, Loader2, UserPlus, Clock, AlertTriangle, Pencil, Trash2, Repeat } from 'lucide-react'
@@ -101,12 +101,13 @@ function today(): string {
 }
 
 function CreateTodoModal({
-  groupSlug, categories, defaultCategoryId, initialDueDate, onClose, onCreated,
+  groupSlug, categories, defaultCategoryId, initialDueDate, defaultVisibility, onClose, onCreated,
 }: {
   groupSlug: string
   categories: Array<{ id: string; name: string; emoji: string; color: string }>
   defaultCategoryId?: string
   initialDueDate?: string
+  defaultVisibility?: 'public' | 'private'
   onClose: () => void
   onCreated: () => void
 }) {
@@ -114,11 +115,11 @@ function CreateTodoModal({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('medium')
-  const [visibility, setVisibility] = useState<'public' | 'private'>('private')
+  const [visibility, setVisibility] = useState<'public' | 'private'>(defaultVisibility ?? 'private')
   const [dueDate, setDueDate] = useState('')
   const [categoryId, setCategoryId] = useState(defaultCategoryId ?? '')
   const [repeatInterval, setRepeatInterval] = useState('')
-  const [assignTo, setAssignTo] = useState('self')
+  const [assignTo, setAssignTo] = useState('')
   const [members, setMembers] = useState<Array<{ user_id: string; display_name: string }>>([])
   const [saving, setSaving] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -211,6 +212,7 @@ function CreateTodoModal({
               <div className="flex-1">
                 <label htmlFor="create-assign" className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">{t('assign_to')}</label>
                 <select id="create-assign" value={assignTo} onChange={e => setAssignTo(e.target.value)} className={inputCls}>
+                  <option value="">Unassigned</option>
                   <option value="self">{t('assign_to_me')}</option>
                   {members.map(m => (
                     <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
@@ -426,6 +428,7 @@ interface Category {
 export default function TodoView() {
   const { groupSlug } = useAppContext()
   const t = useTranslations('apps.todo')
+  const locale = useLocale()
   const [tab, setTab] = useState<'my' | 'group'>('my')
   const [items, setItems] = useState<TodoItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -467,7 +470,6 @@ export default function TodoView() {
 
   function formatRangeHeader() {
     const d = new Date(navDate)
-    const locale = typeof navigator !== 'undefined' ? navigator.language : 'en'
     if (viewMode === 'day') {
       const today = new Date()
       const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
@@ -756,7 +758,7 @@ export default function TodoView() {
         </div>
       )}
 
-      {showCreate && <CreateTodoModal groupSlug={groupSlug!} categories={categories} defaultCategoryId={categories.find(c => (c as any).is_default)?.id ?? ''} initialDueDate={defaultDueDate()} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
+      {showCreate && <CreateTodoModal groupSlug={groupSlug!} categories={categories} defaultCategoryId={categories.find(c => (c as any).is_default)?.id ?? ''} initialDueDate={defaultDueDate()} defaultVisibility={tab === 'group' ? 'public' : 'private'} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
       {editItem && <EditTodoModal item={editItem} groupSlug={groupSlug!} categories={categories} onClose={() => setEditItem(null)} onSaved={() => { setEditItem(null); setRefresh(r => r + 1) }} />}
       {deleteItem && <DeleteConfirm item={deleteItem} groupSlug={groupSlug!} onClose={() => setDeleteItem(null)} onDeleted={() => { setDeleteItem(null); setRefresh(r => r + 1) }} />}
     </div>

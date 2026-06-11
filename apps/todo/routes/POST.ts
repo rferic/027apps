@@ -18,8 +18,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   let assignedTo: string | null = null
   if (visibility === 'private') {
     assignedTo = ctx.userId ?? null
-  } else if (visibility === 'public' && typeof body.assigned_to === 'string') {
-    assignedTo = body.assigned_to === 'self' ? (ctx.userId ?? null) : (body.assigned_to || null)
+  } else if (visibility === 'public' && typeof body.assigned_to === 'string' && body.assigned_to !== '') {
+    assignedTo = body.assigned_to === 'self' ? (ctx.userId ?? null) : body.assigned_to
   }
   const repeatInterval = ['weekly', 'monthly', 'yearly'].includes(body.repeat_interval as string) ? body.repeat_interval as string : null
   const repeatEndDate = typeof body.repeat_end_date === 'string' ? body.repeat_end_date : null
