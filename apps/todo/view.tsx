@@ -429,12 +429,14 @@ export default function TodoView() {
   const { groupSlug } = useAppContext()
   const t = useTranslations('apps.todo')
   const locale = useLocale()
-  const [tab, setTab] = useState<'my' | 'group'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('todo-tab') as 'my' | 'group') || 'my'
-    }
-    return 'my'
-  })
+  const [tab, setTab] = useState<'my' | 'group'>('my')
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('todo-tab')
+      if (saved === 'group') setTab('group')
+    } catch {}
+  }, [])
 
   function changeTab(t: 'my' | 'group') {
     setTab(t)
