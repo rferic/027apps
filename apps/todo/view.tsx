@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { CheckSquare, Plus, X, Loader2, UserPlus, Clock, AlertTriangle, Pencil, Trash2, Repeat } from 'lucide-react'
+import { CheckSquare, Check, Plus, X, Loader2, UserPlus, Clock, AlertTriangle, Pencil, Trash2, Repeat } from 'lucide-react'
 
 const supabase = createClient()
 
@@ -741,11 +741,7 @@ export default function TodoView() {
                       isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-emerald-400'
                     }`}
                   >
-                    {isDone && (
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
+                    {isDone && <Check size={14} strokeWidth={3} />}
                   </button>
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setDetailItem(item)}>
                     <div className="flex items-center gap-2">
