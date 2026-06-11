@@ -680,7 +680,7 @@ export default function TodoView() {
               <button type="button" onClick={() => setFilters(f => ({...f, status: ''}))} className="cursor-pointer opacity-60 hover:opacity-100"><X size={12} /></button>
             </span>
           )}
-          <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50">
+          <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50">
             {t('filter_label')}
           </button>
         </div>
@@ -742,8 +742,8 @@ export default function TodoView() {
                     }`}
                   >
                     {isDone && (
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 6l3 3 5-6" />
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
                       </svg>
                     )}
                   </button>
