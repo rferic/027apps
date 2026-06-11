@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,18 +27,13 @@ function getInitialLocale(): InstallLocale {
 }
 
 export function InstallForm() {
-  const [locale, setLocale] = useState<InstallLocale>('en')
-  const [mounted, setMounted] = useState(false)
+  const [locale, setLocale] = useState<InstallLocale>(
+    () => typeof window !== 'undefined' ? getInitialLocale() : 'en',
+  )
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
   const t = installT[locale]
-
-  useEffect(() => {
-    setMounted(true)
-    const cookieLocale = getInitialLocale()
-    if (cookieLocale !== 'en') setLocale(cookieLocale)
-  }, [])
 
   function handleLocaleChange(newLocale: InstallLocale) {
     setLocale(newLocale)
