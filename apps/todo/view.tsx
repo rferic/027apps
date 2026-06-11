@@ -632,37 +632,48 @@ export default function TodoView() {
 
       {/* Filters — on mobile show as badges + modal, on desktop show inline */}
       <div className="mb-4">
-        <div className="hidden sm:flex sm:flex-wrap sm:gap-2">
+        {/* Desktop filters */}
+        <div className="hidden sm:flex sm:flex-wrap sm:gap-1.5">
           <select value={filters.category} onChange={e => setFilters(f => ({...f, category: e.target.value}))}
-            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
-            <option value="">{t('all')} {t('filter_category')}</option>
+            className={`px-3 py-1.5 text-xs font-medium rounded-full border bg-white cursor-pointer transition-colors ${filters.category ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+            <option value="">{t('filter_category')}</option>
             {categories.map(c => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
           </select>
           <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
-            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
-            <option value="">{t('all')} {t('filter_priority')}</option>
+            className={`px-3 py-1.5 text-xs font-medium rounded-full border bg-white cursor-pointer transition-colors ${filters.priority ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+            <option value="">{t('filter_priority')}</option>
             {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k}>{t('priority_' + k)}</option>))}
           </select>
           <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
-            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
-            <option value="">{t('all')} {t('filter_status')}</option>
+            className={`px-3 py-1.5 text-xs font-medium rounded-full border bg-white cursor-pointer transition-colors ${filters.status ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+            <option value="">{t('filter_status')}</option>
             <option value="pending">{t('status_pending')}</option>
             <option value="done">{t('status_done')}</option>
           </select>
           {tab === 'group' && (
           <select value={filters.assigned} onChange={e => setFilters(f => ({...f, assigned: e.target.value}))}
-            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
-            <option value="">{t('all')} {t('filter_assigned')}</option>
+            className={`px-3 py-1.5 text-xs font-medium rounded-full border bg-white cursor-pointer transition-colors ${filters.assigned ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+            <option value="">{t('filter_assigned')}</option>
             <option value="unassigned">{t('unassigned')}</option>
-            {Array.from(memberMap.entries()).map(([id, name]) => (
-              <option key={id} value={id}>{name}</option>
-            ))}
+            {Array.from(memberMap.entries()).map(([id, name]) => (<option key={id} value={id}>{name}</option>))}
           </select>
+          )}
+          <select value={sort} onChange={e => setSort(e.target.value)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-full border bg-white cursor-pointer transition-colors ${sort !== 'priority' ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+            <option value="priority">{t('sort_priority')}</option>
+            <option value="upcoming">{t('sort_upcoming')}</option>
+            <option value="alpha">{t('sort_alpha')}</option>
+            <option value="newest">{t('sort_newest')}</option>
+            <option value="oldest">{t('sort_oldest')}</option>
+          </select>
+          {(filters.category || filters.priority || filters.status || filters.assigned) && (
+            <button onClick={clearFilters} className="px-3 py-1.5 text-xs font-medium rounded-full text-red-500 hover:bg-red-50 transition-colors">✕</button>
           )}
           <select value={sort} onChange={e => setSort(e.target.value)}
             className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
             <option value="priority">{t('sort_priority')}</option>
-            <option value="due_date">{t('sort_date')}</option>
+            <option value="upcoming">{t('sort_upcoming')}</option>
+            <option value="alpha">{t('sort_alpha')}</option>
             <option value="newest">{t('sort_newest')}</option>
             <option value="oldest">{t('sort_oldest')}</option>
           </select>

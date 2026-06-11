@@ -74,6 +74,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   // Sort
   if (sort === 'oldest') query = query.order('created_at', { ascending: true })
   else if (sort === 'due_date') query = query.order('due_date', { ascending: true })
+  else if (sort === 'upcoming') query = query.order('due_date', { ascending: true, nullsFirst: true }).order('priority', { ascending: false })
+  else if (sort === 'alpha') query = query.order('title', { ascending: true })
   else if (sort === 'priority') query = query.order('priority', { ascending: false })
   else query = query.order('created_at', { ascending: false })
 

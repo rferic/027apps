@@ -742,10 +742,12 @@
       "apply": "Aplicar",
       "unassigned": "Sin asignar",
       "filter_assigned": "Asignado a",
-      "sort_priority": "Por prioridad",
+      "sort_priority": "Prioridad",
       "sort_date": "Por fecha",
-      "sort_newest": "Más recientes",
-      "sort_oldest": "Más antiguas"
+      "sort_newest": "Recientes",
+      "sort_oldest": "Antiguas",
+      "sort_upcoming": "Próximo",
+      "sort_alpha": "Alfabético"
     },
     "permissions": {
       "title": "Acceso",
