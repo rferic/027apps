@@ -26,6 +26,8 @@ export default function TodoAdmin() {
   const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([])
   const [editItem, setEditItem] = useState<TodoItem | null>(null)
   const [detailItem, setDetailItem] = useState<TodoItem | null>(null)
+  const [deleteItem, setDeleteItem] = useState<TodoItem | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [refresh, setRefresh] = useState(0)
 
   const catMap = new Map(categories.map(c => [c.id, c]))
@@ -217,8 +219,33 @@ export default function TodoAdmin() {
               <button onClick={() => { setDetailItem(null); setEditItem(detailItem) }} className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title={tApp('edit')}>
                 <Pencil size={16} />
               </button>
-              <button onClick={() => { setDetailItem(null); handleDeleteTodo(detailItem.id) }} className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title={tApp('delete')}>
+              <button onClick={() => { setDetailItem(null); setDeleteItem(detailItem) }} className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title={tApp('delete')}>
                 <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm */}
+      {deleteItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setDeleteItem(null)} />
+          <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-sm font-semibold text-slate-900 mb-2">{tApp('delete')}</h3>
+            <p className="text-sm text-slate-500 mb-1">{tApp('delete_confirm')}</p>
+            <p className="text-sm text-slate-700 mb-4 font-medium">&ldquo;{deleteItem.title}&rdquo;</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeleteItem(null)} className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900">{tApp('cancel')}</button>
+              <button onClick={async () => {
+                setDeleting(true)
+                const res = await fetch(`/api/v1/admin/apps/todo?id=${deleteItem.id}`, { method: 'DELETE' })
+                setDeleting(false)
+                setDeleteItem(null)
+                if (res.ok) setRefresh(r => r + 1)
+                else toast.error('Failed to delete')
+              }} disabled={deleting} className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50">
+                {deleting ? '...' : tApp('delete')}
               </button>
             </div>
           </div>
