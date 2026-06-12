@@ -29,7 +29,7 @@ export default function TodoAdmin() {
   const [todos, setTodos] = useState<TodoItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({ category: '', priority: '', status: '', group: '' })
+  const [filters, setFilters] = useState({ category: '', priority: '', status: '', visibility: '', assigned: '' })
   const [sort, setSort] = useState('updated')
   const [refresh, setRefresh] = useState(0)
 
@@ -58,12 +58,13 @@ export default function TodoAdmin() {
     else toast.error('Failed to delete')
   }
 
-  // Filter + sort locally (admin API returns all data)
+  // Filter + sort locally
   const filtered = todos
     .filter(t => !filters.category || t.category_id === filters.category)
     .filter(t => !filters.priority || t.priority === filters.priority)
     .filter(t => !filters.status || t.status === filters.status)
-    .filter(t => !filters.group || t.group_id === filters.group)
+    .filter(t => !filters.visibility || t.visibility === filters.visibility)
+    .filter(t => !filters.assigned || t.assigned_to === filters.assigned)
     .sort((a, b) => {
       if (sort === 'priority') {
         const p: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
@@ -93,6 +94,20 @@ export default function TodoAdmin() {
           <option value="">{tApp('filter_status')}</option>
           <option value="pending">{tApp('status_pending')}</option>
           <option value="done">{tApp('status_done')}</option>
+        </select>
+        <select value={filters.visibility} onChange={e => setFilters(f => ({...f, visibility: e.target.value}))}
+          className="text-xs font-medium rounded-full px-3 py-1.5 border border-slate-200 bg-white text-slate-500 cursor-pointer">
+          <option value="">{tApp('visibility_label')}</option>
+          <option value="public">{tApp('visibility_public')}</option>
+          <option value="private">{tApp('visibility_private')}</option>
+        </select>
+        <select value={filters.assigned} onChange={e => setFilters(f => ({...f, assigned: e.target.value}))}
+          className="text-xs font-medium rounded-full px-3 py-1.5 border border-slate-200 bg-white text-slate-500 cursor-pointer">
+          <option value="">{tApp('filter_assigned')}</option>
+          <option value="null">{tApp('unassigned')}</option>
+          {[...new Set(todos.filter(t => t.assigned_to).map(t => t.assigned_to!))].map(id => (
+            <option key={id} value={id}>{id.slice(0, 8)}</option>
+          ))}
         </select>
         <select value={sort} onChange={e => setSort(e.target.value)}
           className="text-xs font-medium rounded-full px-3 py-1.5 border border-slate-200 bg-white text-slate-500 cursor-pointer ml-auto">
