@@ -444,7 +444,7 @@ export default function TodoView() {
   }
   const [items, setItems] = useState<TodoItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!categories.length)
   const [error, setError] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [editItem, setEditItem] = useState<TodoItem | null>(null)
