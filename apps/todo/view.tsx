@@ -631,7 +631,7 @@ export default function TodoView() {
           <button onClick={() => changeTab('group')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('tab_group')}</button>
         </div>
         <select value={sort} onChange={e => setSort(e.target.value)}
-          className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+          className="hidden sm:block px-3 py-2 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
           <option value="updated">{t('sort_updated')}</option>
           <option value="priority">{t('sort_priority')}</option>
           <option value="upcoming">{t('sort_upcoming')}</option>
@@ -697,10 +697,21 @@ export default function TodoView() {
         </div>
         {/* Mobile: active filter badges + Filter button */}
         <div className="sm:hidden space-y-2">
-          <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg>
-            {t('filter_label')}
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg>
+              {t('filter_label')}
+            </button>
+            <select value={sort} onChange={e => setSort(e.target.value)}
+              className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+              <option value="updated">{t('sort_updated')}</option>
+              <option value="priority">{t('sort_priority')}</option>
+              <option value="upcoming">{t('sort_upcoming')}</option>
+              <option value="alpha">{t('sort_alpha')}</option>
+              <option value="newest">{t('sort_newest')}</option>
+              <option value="oldest">{t('sort_oldest')}</option>
+            </select>
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             {filters.category && catMap.get(filters.category) && (
             <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: (catMap.get(filters.category)!.color || '#6B7280') + '18', color: catMap.get(filters.category)!.color || '#6B7280' }}>
