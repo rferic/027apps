@@ -79,8 +79,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   else if (sort === 'priority') query = query.order('priority', { ascending: false })
   else query = query.order('created_at', { ascending: false })
 
-  // Secondary sort: done tasks first, then by newest
-  query = query.order('status').order('created_at', { ascending: false })
+  // Secondary sort: pending before done, then newest first
+  query = query.order('status', { ascending: false }).order('created_at', { ascending: false })
 
   const offset = (page - 1) * limit
   query = query.range(offset, offset + limit - 1)
