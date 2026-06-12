@@ -732,7 +732,8 @@
       "sort_newest": "Newest",
       "sort_oldest": "Oldest",
       "sort_upcoming": "Closest first",
-      "sort_alpha": "Alphabetical"
+      "sort_alpha": "Alphabetical",
+      "sort_updated": "Last updated"
     },
     "permissions": {
       "title": "Access",

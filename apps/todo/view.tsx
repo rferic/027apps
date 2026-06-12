@@ -451,7 +451,7 @@ export default function TodoView() {
   const [deleteItem, setDeleteItem] = useState<TodoItem | null>(null)
   const [detailItem, setDetailItem] = useState<TodoItem | null>(null)
   const [filters, setFilters] = useState<{category:string;priority:string;status:string;assigned:string}>({ category: '', priority: '', status: '', assigned: '' })
-  const [sort, setSort] = useState('priority')
+  const [sort, setSort] = useState('updated')
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('day')
   const [navDate, setNavDate] = useState(new Date())
   const [showFilters, setShowFilters] = useState(false)
@@ -616,6 +616,7 @@ export default function TodoView() {
           <div className="w-full sm:w-auto">
           <select value={sort} onChange={e => setSort(e.target.value)}
             className="w-full sm:w-auto px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-colors">
+            <option value="updated">{t('sort_updated')}</option>
             <option value="priority">{t('sort_priority')}</option>
             <option value="upcoming">{t('sort_upcoming')}</option>
             <option value="alpha">{t('sort_alpha')}</option>
@@ -700,6 +701,7 @@ export default function TodoView() {
           </button>
           <select value={sort} onChange={e => setSort(e.target.value)}
             className="text-xs font-medium rounded-full px-3 py-1.5 border border-slate-200 bg-white text-slate-600 cursor-pointer">
+            <option value="updated">{t('sort_updated')}</option>
             <option value="priority">{t('sort_priority')}</option>
             <option value="upcoming">{t('sort_upcoming')}</option>
             <option value="alpha">{t('sort_alpha')}</option>
