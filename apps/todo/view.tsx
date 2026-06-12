@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Plus, X, Loader2, Check, Circle, Clock, AlertTriangle, Pencil, UserPlus, Trash2 } from 'lucide-react'
 import { TodoItemCard } from './TodoItemCard'
 import type { TodoItem, Category } from './TodoItemCard'
+import EditTodoModal, { type EditMember } from './EditTodoModal'
 
 const supabase = createClient()
 
@@ -265,137 +266,6 @@ function CreateTodoModal({
 
 // ─── EditTodoModal ─────────────────────────────────────────────────────────
 
-function EditTodoModal({
-  item, groupSlug, categories, onClose, onSaved,
-}: {
-  item: { id: string; title: string; description: string | null; priority: string; due_date: string | null; category_id: string | null; repeat_interval: string | null; visibility: string; assigned_to: string | null }
-  groupSlug: string
-  categories: Array<{ id: string; name: string; emoji: string; color: string }>
-  onClose: () => void
-  onSaved: () => void
-}) {
-  const t = useTranslations('apps.todo')
-  const [title, setTitle] = useState(item.title)
-  const [description, setDescription] = useState(item.description ?? '')
-  const [priority, setPriority] = useState(item.priority)
-  const [dueDate, setDueDate] = useState(item.due_date ? item.due_date.slice(0, 10) : '')
-  const [categoryId, setCategoryId] = useState(item.category_id ?? '')
-  const [repeatInterval, setRepeatInterval] = useState(item.repeat_interval ?? '')
-  const [assignTo, setAssignTo] = useState(item.assigned_to || '')
-  const [saving, setSaving] = useState(false)
-  const [editError, setEditError] = useState<string | null>(null)
-  const [editMembers, setEditMembers] = useState<Array<{ user_id: string; display_name: string }>>([])
-
-  useEffect(() => {
-    if (item.visibility === 'public') {
-      fetch(`/api/v1/${groupSlug}/apps/todo/members`, { credentials: 'include' })
-        .then(r => r.json())
-        .then(data => setEditMembers(Array.isArray(data) ? data : (data?.data ?? [])))
-        .catch(() => {})
-    }
-  }, [groupSlug, item.visibility])
-
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [onClose])
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!title.trim()) return
-    setSaving(true)
-    setEditError(null)
-    try {
-      const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim(),
-          priority,
-          due_date: dueDate || null,
-          category_id: categoryId || null,
-          repeat_interval: repeatInterval || null,
-          assigned_to: assignTo || null,
-        }),
-      })
-      if (res.ok) { onSaved(); onClose(); return }
-      const errBody = await res.text().catch(() => '')
-      setEditError(errBody || 'Failed to save task')
-    } catch {
-      setEditError('Network error')
-    }
-    setSaving(false)
-  }
-
-  const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white'
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-lg mx-4 max-h-[70vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">{t('edit_title')}</h2>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><X size={16} /></button>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="edit-title" className="block text-sm font-medium text-slate-700 mb-1.5">{t('title_placeholder')}</label>
-            <input id="edit-title" type="text" value={title} onChange={e => setTitle(e.target.value)} className={inputCls} autoFocus required />
-          </div>
-          <div>
-            <label htmlFor="edit-desc" className="block text-sm font-medium text-slate-700 mb-1.5">{t('desc_placeholder')}</label>
-            <textarea id="edit-desc" value={description} onChange={e => setDescription(e.target.value)} className={inputCls} rows={3} />
-          </div>
-          <div>
-            <label htmlFor="edit-priority" className="block text-sm font-medium text-slate-700 mb-1.5">{t('priority')}</label>
-            <select id="edit-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
-              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k} style={{ color: v.color }}>{t('priority_' + k)}</option>)}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="edit-category" className="block text-sm font-medium text-slate-700 mb-1.5">{t('category')}</label>
-            <select id="edit-category" value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
-              <option value="">{t('no_category')}</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
-            </select>
-          </div>
-          {item.visibility === 'public' && (
-          <div>
-            <label htmlFor="edit-assign" className="block text-sm font-medium text-slate-700 mb-1.5">{t('assign_to')}</label>
-            <select id="edit-assign" value={assignTo} onChange={e => setAssignTo(e.target.value)} className={inputCls}>
-              <option value="">{t('unassigned')}</option>
-              {editMembers.map(m => (<option key={m.user_id} value={m.user_id}>{m.display_name}</option>))}
-            </select>
-          </div>
-          )}
-          <div>
-            <label htmlFor="edit-date" className="block text-sm font-medium text-slate-700 mb-1.5">{t('due_date')}</label>
-            <input id="edit-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} className={inputCls} />
-          </div>
-          <div>
-            <label htmlFor="edit-repeat" className="block text-sm font-medium text-slate-700 mb-1.5">{t('repeat_none')}</label>
-            <select id="edit-repeat" value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
-            <option value="">{t('repeat_none')}</option>
-            <option value="weekly">{t('repeat_weekly')}</option>
-            <option value="monthly">{t('repeat_monthly')}</option>
-            <option value="yearly">{t('repeat_yearly')}</option>
-          </select>
-          </div>
-          {editError && (
-            <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{editError}</p>
-          )}
-          <div className="pt-2 flex gap-2 justify-end">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? t('saving') : t('save')}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
 // ─── DeleteConfirm ──────────────────────────────────────────────────────────
 
 function DeleteConfirm({ item, groupSlug, onClose, onDeleted }: {
@@ -460,6 +330,7 @@ export default function TodoView() {
   const [error, setError] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [editItem, setEditItem] = useState<TodoItem | null>(null)
+  const [editMembers, setEditMembers] = useState<EditMember[]>([])
   const [deleteItem, setDeleteItem] = useState<TodoItem | null>(null)
   const [detailItem, setDetailItem] = useState<TodoItem | null>(null)
   const [filters, setFilters] = useState<{category:string;priority:string;status:string;assigned:string}>({ category: '', priority: '', status: '', assigned: '' })
@@ -476,6 +347,17 @@ export default function TodoView() {
       if (session?.user?.id) setUserId(session.user.id)
     })
   }, [])
+
+  useEffect(() => {
+    if (editItem?.visibility === 'public' && groupSlug) {
+      fetch(`/api/v1/${groupSlug}/apps/todo/members`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => setEditMembers(Array.isArray(data) ? data : (data?.data ?? [])))
+        .catch(() => setEditMembers([]))
+    } else {
+      setEditMembers([])
+    }
+  }, [editItem, groupSlug])
 
   // Compute date range for current view
   function getDateRange() {
@@ -897,7 +779,27 @@ export default function TodoView() {
       )}
 
       {showCreate && <CreateTodoModal groupSlug={groupSlug!} categories={categories} defaultCategoryId={categories.find(c => (c as any).is_default)?.id ?? ''} initialDueDate={defaultDueDate()} defaultVisibility={tab === 'group' ? 'public' : 'private'} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
-      {editItem && <EditTodoModal item={editItem} groupSlug={groupSlug!} categories={categories} onClose={() => setEditItem(null)} onSaved={() => { setEditItem(null); setRefresh(r => r + 1) }} />}
+      {editItem && (
+        <EditTodoModal
+          item={editItem}
+          categories={categories}
+          members={editMembers}
+          showRepeat
+          onSave={async (data) => {
+            const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${editItem.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data),
+            })
+            if (!res.ok) {
+              const err = await res.text().catch(() => 'Failed to save')
+              throw new Error(err)
+            }
+            setRefresh(r => r + 1)
+          }}
+          onClose={() => setEditItem(null)}
+        />
+      )}
       {deleteItem && <DeleteConfirm item={deleteItem} groupSlug={groupSlug!} onClose={() => setDeleteItem(null)} onDeleted={() => { setDeleteItem(null); setRefresh(r => r + 1) }} />}
     </div>
   )

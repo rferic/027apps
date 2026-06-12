@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { Loader2, X } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { TodoItemCard, type TodoItem, type Category } from './TodoItemCard'
+import EditTodoModal from './EditTodoModal'
 
 const PRIORITY_CONFIG: Record<string, { color: string }> = {
   urgent: { color: '#EF4444' },
@@ -24,39 +25,7 @@ export default function TodoAdmin() {
   const [memberMap, setMemberMap] = useState<Map<string, string>>(new Map())
   const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([])
   const [editItem, setEditItem] = useState<TodoItem | null>(null)
-  const [editTitle, setEditTitle] = useState('')
-  const [editDesc, setEditDesc] = useState('')
-  const [editPriority, setEditPriority] = useState('medium')
-  const [editStatus, setEditStatus] = useState('pending')
-  const [editCategoryId, setEditCategoryId] = useState('')
-  const [editDueDate, setEditDueDate] = useState('')
-  const [editAssigned, setEditAssigned] = useState('')
-  const [saving, setSaving] = useState(false)
   const [refresh, setRefresh] = useState(0)
-
-  function openEdit(item: TodoItem) {
-    setEditItem(item)
-    setEditTitle(item.title)
-    setEditDesc(item.description || '')
-    setEditPriority(item.priority)
-    setEditStatus(item.status)
-    setEditCategoryId(item.category_id || '')
-    setEditDueDate(item.due_date ? item.due_date.slice(0, 10) : '')
-    setEditAssigned(item.assigned_to || '')
-  }
-
-  async function saveEdit() {
-    if (!editItem) return
-    setSaving(true)
-    const res = await fetch(`/api/v1/admin/apps/todo`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: editItem.id, title: editTitle.trim(), description: editDesc.trim(), priority: editPriority, status: editStatus, category_id: editCategoryId || null, due_date: editDueDate || null, assigned_to: editAssigned || null }),
-    })
-    setSaving(false)
-    if (res.ok) { setEditItem(null); setRefresh(r => r + 1) }
-    else toast.error('Failed to update')
-  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -188,9 +157,9 @@ export default function TodoAdmin() {
                 })
                 setRefresh(r => r + 1)
               }}
-              onEdit={openEdit}
+              onEdit={(item) => setEditItem(item)}
               onDelete={(todo) => handleDeleteTodo(todo.id)}
-              onDetail={openEdit}
+              onDetail={(item) => setEditItem(item)}
               compact
             />
           ))}
@@ -199,35 +168,26 @@ export default function TodoAdmin() {
 
       {/* Edit Modal */}
       {editItem && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]">
-          <div className="fixed inset-0 bg-black/40" onClick={() => setEditItem(null)} />
-          <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-900">{tApp('edit_title')}</h3>
-              <button onClick={() => setEditItem(null)} className="p-1 text-slate-400 hover:text-slate-600"><X size={16} /></button>
-            </div>
-            <div className="space-y-3">
-              <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="Title" />
-              <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500" rows={3} placeholder="Description" />
-              <select value={editPriority} onChange={e => setEditPriority(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg">
-                {Object.keys(PRIORITY_CONFIG).map(k => <option key={k} value={k}>{tApp('priority_' + k)}</option>)}
-              </select>
-              <select value={editStatus} onChange={e => setEditStatus(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg">
-                <option value="pending">{tApp('status_pending')}</option>
-                <option value="done">{tApp('status_done')}</option>
-              </select>
-              <select value={editCategoryId} onChange={e => setEditCategoryId(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg">
-                <option value="">{tApp('no_category')}</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
-              </select>
-              <input type="date" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg" />
-              <input value={editAssigned} onChange={e => setEditAssigned(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg" placeholder="User ID (or empty to unassign)" />
-              <button onClick={saveEdit} disabled={saving} className="w-full py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">
-                {saving ? t('saving') : t('save')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <EditTodoModal
+          item={editItem}
+          categories={categories}
+          showStatus
+          assigneeMode="input"
+          onSave={async (data) => {
+            const res = await fetch(`/api/v1/admin/apps/todo`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: editItem.id, ...data }),
+            })
+            if (!res.ok) {
+              const err = await res.text().catch(() => 'Failed to update')
+              throw new Error(err)
+            }
+            setEditItem(null)
+            setRefresh(r => r + 1)
+          }}
+          onClose={() => setEditItem(null)}
+        />
       )}
     </div>
   )
