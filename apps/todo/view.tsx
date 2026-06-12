@@ -603,27 +603,26 @@ export default function TodoView() {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-slate-100 rounded-lg p-1 w-fit">
-        <button onClick={() => changeTab('my')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'my' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('tab_my')}</button>
-        <button onClick={() => changeTab('group')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('tab_group')}</button>
+      {/* Tabs + Sort */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+          <button onClick={() => changeTab('my')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'my' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('tab_my')}</button>
+          <button onClick={() => changeTab('group')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('tab_group')}</button>
+        </div>
+        <select value={sort} onChange={e => setSort(e.target.value)}
+          className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+          <option value="updated">{t('sort_updated')}</option>
+          <option value="priority">{t('sort_priority')}</option>
+          <option value="upcoming">{t('sort_upcoming')}</option>
+          <option value="alpha">{t('sort_alpha')}</option>
+          <option value="newest">{t('sort_newest')}</option>
+          <option value="oldest">{t('sort_oldest')}</option>
+        </select>
       </div>
 
       {/* Filters — on mobile show as badges + modal, on desktop show inline */}
       <div className="mb-4">
         <div className="hidden sm:block space-y-3">
-          {/* Sort — dropdown select (like Inspiration) */}
-          <div className="w-full sm:w-auto">
-          <select value={sort} onChange={e => setSort(e.target.value)}
-            className="w-full sm:w-auto px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-colors">
-            <option value="updated">{t('sort_updated')}</option>
-            <option value="priority">{t('sort_priority')}</option>
-            <option value="upcoming">{t('sort_upcoming')}</option>
-            <option value="alpha">{t('sort_alpha')}</option>
-            <option value="newest">{t('sort_newest')}</option>
-            <option value="oldest">{t('sort_oldest')}</option>
-          </select>
-          </div>
           {/* Category pills */}
           {categories.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -700,15 +699,6 @@ export default function TodoView() {
               <button type="button" onClick={() => setFilters(f => ({...f, status: ''}))} className="cursor-pointer opacity-60 hover:opacity-100"><X size={12} /></button>
             </span>
             )}
-            <select value={sort} onChange={e => setSort(e.target.value)}
-              className="text-xs font-medium rounded-full px-3 py-1.5 border border-slate-200 bg-white text-slate-600 cursor-pointer flex-shrink-0">
-              <option value="updated">{t('sort_updated')}</option>
-              <option value="priority">{t('sort_priority')}</option>
-              <option value="upcoming">{t('sort_upcoming')}</option>
-              <option value="alpha">{t('sort_alpha')}</option>
-              <option value="newest">{t('sort_newest')}</option>
-              <option value="oldest">{t('sort_oldest')}</option>
-            </select>
           </div>
         </div>
         {/* Mobile filter modal — Inspiration-style */}
