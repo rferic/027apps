@@ -266,7 +266,7 @@ function CreateTodoModal({
 function EditTodoModal({
   item, groupSlug, categories, onClose, onSaved,
 }: {
-  item: { id: string; title: string; description: string | null; priority: string; due_date: string | null; category_id: string | null; repeat_interval: string | null }
+  item: { id: string; title: string; description: string | null; priority: string; due_date: string | null; category_id: string | null; repeat_interval: string | null; visibility: string; assigned_to: string | null }
   groupSlug: string
   categories: Array<{ id: string; name: string; emoji: string; color: string }>
   onClose: () => void
@@ -279,8 +279,19 @@ function EditTodoModal({
   const [dueDate, setDueDate] = useState(item.due_date ? item.due_date.slice(0, 10) : '')
   const [categoryId, setCategoryId] = useState(item.category_id ?? '')
   const [repeatInterval, setRepeatInterval] = useState(item.repeat_interval ?? '')
+  const [assignTo, setAssignTo] = useState(item.assigned_to || '')
   const [saving, setSaving] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+  const [editMembers, setEditMembers] = useState<Array<{ user_id: string; display_name: string }>>([])
+
+  useEffect(() => {
+    if (item.visibility === 'public') {
+      fetch(`/api/v1/${groupSlug}/apps/todo/members`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => setEditMembers(Array.isArray(data) ? data : (data?.data ?? [])))
+        .catch(() => {})
+    }
+  }, [groupSlug, item.visibility])
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
@@ -304,6 +315,7 @@ function EditTodoModal({
           due_date: dueDate || null,
           category_id: categoryId || null,
           repeat_interval: repeatInterval || null,
+          assigned_to: assignTo || null,
         }),
       })
       if (res.ok) { onSaved(); onClose(); return }
@@ -347,6 +359,15 @@ function EditTodoModal({
               {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
             </select>
           </div>
+          {item.visibility === 'public' && (
+          <div>
+            <label htmlFor="edit-assign" className="block text-sm font-medium text-slate-700 mb-1.5">{t('assign_to')}</label>
+            <select id="edit-assign" value={assignTo} onChange={e => setAssignTo(e.target.value)} className={inputCls}>
+              <option value="">{t('unassigned')}</option>
+              {editMembers.map(m => (<option key={m.user_id} value={m.user_id}>{m.display_name}</option>))}
+            </select>
+          </div>
+          )}
           <div>
             <label htmlFor="edit-date" className="block text-sm font-medium text-slate-700 mb-1.5">{t('due_date')}</label>
             <input id="edit-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} className={inputCls} />
