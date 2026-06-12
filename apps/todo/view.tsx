@@ -632,57 +632,70 @@ export default function TodoView() {
 
       {/* Filters — on mobile show as badges + modal, on desktop show inline */}
       <div className="mb-4">
-        <div className="hidden sm:flex sm:flex-wrap sm:gap-2">
-          <select value={filters.category} onChange={e => setFilters(f => ({...f, category: e.target.value}))}
-            className="text-xs font-medium rounded-full px-3 py-1.5 border cursor-pointer transition-colors"
-            style={filters.category && catMap.get(filters.category) ? { backgroundColor: catMap.get(filters.category)!.color + '20', color: catMap.get(filters.category)!.color, borderColor: catMap.get(filters.category)!.color + '40' } : { borderColor: '#cbd5e1', color: '#6b7280' }}>
-            <option value="">{t('filter_category')}</option>
-            {categories.map(c => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
-          </select>
-          <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
-            className="text-xs font-medium rounded-full px-3 py-1.5 border cursor-pointer transition-colors"
-            style={filters.priority ? { backgroundColor: (PRIORITY_CONFIG[filters.priority]?.color || '#6B7280') + '1A', color: PRIORITY_CONFIG[filters.priority]?.color || '#6B7280', borderColor: (PRIORITY_CONFIG[filters.priority]?.color || '#6B7280') + '40' } : { borderColor: '#cbd5e1', color: '#6b7280' }}>
-            <option value="">{t('filter_priority')}</option>
-            {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k} style={{ color: PRIORITY_CONFIG[k].color }}>{t('priority_' + k)}</option>))}
-          </select>
-          <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
-            className="text-xs font-medium rounded-full px-3 py-1.5 border cursor-pointer transition-colors"
-            style={filters.status ? { backgroundColor: '#f1f5f9', color: '#0f172a', borderColor: '#cbd5e1' } : { borderColor: '#cbd5e1', color: '#6b7280' }}>
-            <option value="">{t('filter_status')}</option>
-            <option value="pending">{t('status_pending')}</option>
-            <option value="done">{t('status_done')}</option>
-          </select>
-          <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
-            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
-            <option value="">{t('all')} {t('filter_priority')}</option>
-            {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k} style={{ color: PRIORITY_CONFIG[k].color }}>{t('priority_' + k)}</option>))}
-          </select>
-          <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
-            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
-            <option value="">{t('all')} {t('filter_status')}</option>
-            <option value="pending">{t('status_pending')}</option>
-            <option value="done">{t('status_done')}</option>
-          </select>
-          {tab === 'group' && (
-          <select value={filters.assigned} onChange={e => setFilters(f => ({...f, assigned: e.target.value}))}
-            className="text-xs font-medium rounded-full px-3 py-1.5 border cursor-pointer transition-colors"
-            style={filters.assigned ? { backgroundColor: '#eef2ff', color: '#4338ca', borderColor: '#c7d2fe' } : { borderColor: '#cbd5e1', color: '#6b7280' }}>
-            <option value="">{t('filter_assigned')}</option>
-            <option value="unassigned">{t('unassigned')}</option>
-            {Array.from(memberMap.entries()).map(([id, name]) => (<option key={id} value={id}>{name}</option>))}
-          </select>
-          )}
+        <div className="hidden sm:block space-y-3">
+          {/* Sort — dropdown select (like Inspiration) */}
+          <div className="w-full sm:w-auto">
           <select value={sort} onChange={e => setSort(e.target.value)}
-            className="text-xs font-medium rounded-full px-3 py-1.5 border cursor-pointer transition-colors"
-            style={sort !== 'priority' ? { backgroundColor: '#eef2ff', color: '#4338ca', borderColor: '#c7d2fe' } : { borderColor: '#cbd5e1', color: '#6b7280' }}>
+            className="w-full sm:w-auto px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-colors">
             <option value="priority">{t('sort_priority')}</option>
             <option value="upcoming">{t('sort_upcoming')}</option>
             <option value="alpha">{t('sort_alpha')}</option>
             <option value="newest">{t('sort_newest')}</option>
             <option value="oldest">{t('sort_oldest')}</option>
           </select>
+          </div>
+          {/* Category pills */}
+          {categories.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button type="button" onClick={() => setFilters(f => ({...f, category: ''}))}
+              className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${!filters.category ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
+              style={!filters.category ? { backgroundColor: '#6B7280' } : {}}>All</button>
+            {categories.map(c => (
+              <button key={c.id} type="button" onClick={() => setFilters(f => ({...f, category: f.category === c.id ? '' : c.id}))}
+                className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${filters.category === c.id ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
+                style={filters.category === c.id ? { backgroundColor: c.color } : {}}>{c.emoji} {c.name}</button>
+            ))}
+          </div>
+          )}
+          {/* Priority pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button type="button" onClick={() => setFilters(f => ({...f, priority: ''}))}
+              className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${!filters.priority ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
+              style={!filters.priority ? { backgroundColor: '#6B7280' } : {}}>All</button>
+            {Object.keys(PRIORITY_CONFIG).map(k => (
+              <button key={k} type="button" onClick={() => setFilters(f => ({...f, priority: f.priority === k ? '' : k}))}
+                className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${filters.priority === k ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
+                style={filters.priority === k ? { backgroundColor: PRIORITY_CONFIG[k].color } : {}}>{t('priority_' + k)}</button>
+            ))}
+          </div>
+          {/* Status pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button type="button" onClick={() => setFilters(f => ({...f, status: ''}))}
+              className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${!filters.status ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
+              style={!filters.status ? { backgroundColor: '#6B7280' } : {}}>All</button>
+            {['pending', 'done'].map(s => (
+              <button key={s} type="button" onClick={() => setFilters(f => ({...f, status: f.status === s ? '' : s}))}
+                className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${filters.status === s ? 'bg-slate-800 text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}>{t('status_' + s)}</button>
+            ))}
+          </div>
+          {/* Assigned pills (only group tab) */}
+          {tab === 'group' && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button type="button" onClick={() => setFilters(f => ({...f, assigned: ''}))}
+              className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${!filters.assigned ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
+              style={!filters.assigned ? { backgroundColor: '#6B7280' } : {}}>All</button>
+            <button type="button" onClick={() => setFilters(f => ({...f, assigned: f.assigned === 'unassigned' ? '' : 'unassigned'}))}
+              className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${filters.assigned === 'unassigned' ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
+              style={filters.assigned === 'unassigned' ? { backgroundColor: '#6366F1' } : {}}>{t('unassigned')}</button>
+            {Array.from(memberMap.entries()).map(([id, name]) => (
+              <button key={id} type="button" onClick={() => setFilters(f => ({...f, assigned: f.assigned === id ? '' : id}))}
+                className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${filters.assigned === id ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
+                style={filters.assigned === id ? { backgroundColor: '#6366F1' } : {}}>{name}</button>
+            ))}
+          </div>
+          )}
           {(filters.category || filters.priority || filters.status || filters.assigned) && (
-            <button onClick={clearFilters} className="text-[11px] text-slate-400 hover:text-red-500 font-medium">✕ Clear</button>
+            <button onClick={clearFilters} className="text-xs text-slate-400 hover:text-red-500 font-medium">✕ Clear</button>
           )}
         </div>
         {/* Mobile: active filter badges + Filter button */}
