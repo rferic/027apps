@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { Loader2 } from 'lucide-react'
+import { Loader2, X, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { TodoItemCard, type TodoItem, type Category } from './TodoItemCard'
 import EditTodoModal from './EditTodoModal'
@@ -25,7 +25,10 @@ export default function TodoAdmin() {
   const [memberMap, setMemberMap] = useState<Map<string, string>>(new Map())
   const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([])
   const [editItem, setEditItem] = useState<TodoItem | null>(null)
+  const [detailItem, setDetailItem] = useState<TodoItem | null>(null)
   const [refresh, setRefresh] = useState(0)
+
+  const catMap = new Map(categories.map(c => [c.id, c]))
 
   const fetchData = async () => {
     setLoading(true)
@@ -159,8 +162,7 @@ export default function TodoAdmin() {
               }}
               onEdit={(item) => setEditItem(item)}
               onDelete={(todo) => handleDeleteTodo(todo.id)}
-              onDetail={(item) => setEditItem(item)}
-              compact
+              onDetail={(item) => setDetailItem(item)}
             />
           ))}
         </div>
@@ -188,6 +190,39 @@ export default function TodoAdmin() {
           }}
           onClose={() => setEditItem(null)}
         />
+      )}
+
+      {/* Detail Modal */}
+      {detailItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setDetailItem(null)} />
+          <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
+            <div className="flex items-start justify-between mb-3">
+              <h3 className="text-base font-semibold text-slate-900 pr-4">{detailItem.title}</h3>
+              <button onClick={() => setDetailItem(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 -mt-1 -mr-1"><X size={16} /></button>
+            </div>
+            {detailItem.description && <p className="text-sm text-slate-600 mb-3">{detailItem.description}</p>}
+            <div className="space-y-1.5 text-xs text-slate-500 mb-4">
+              {(() => {
+                const dc = detailItem.category_id ? catMap.get(detailItem.category_id) : null
+                return dc ? <p><span className="font-medium">{dc.emoji}</span> <span style={{ color: dc.color }}>{dc.name}</span></p> : null
+              })()}
+              <p><span className="font-medium text-slate-600">{t('priority')}:</span> <span className="font-semibold px-1.5 py-0.5 rounded text-[11px]" style={{ backgroundColor: PRIORITY_CONFIG[detailItem.priority]?.color + '20' || '#6B728020', color: PRIORITY_CONFIG[detailItem.priority]?.color || '#6B7280' }}>{tApp('priority_' + detailItem.priority)}</span></p>
+              <p><span className="font-medium text-slate-600">{tApp('filter_status')}:</span> {tApp('status_' + detailItem.status)}</p>
+              {detailItem.due_date && <p><span className="font-medium text-slate-600">{tApp('due_date')}:</span> {detailItem.due_date.slice(0, 10)}</p>}
+              {!detailItem.due_date && <p className="italic">{tApp('no_date')}</p>}
+              {detailItem.assigned_to && <p><span className="font-medium text-slate-600">{tApp('assign_to')}:</span> {memberMap.get(detailItem.assigned_to) ?? detailItem.assigned_to.slice(0, 8)}</p>}
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <button onClick={() => { setDetailItem(null); setEditItem(detailItem) }} className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title={tApp('edit')}>
+                <Pencil size={16} />
+              </button>
+              <button onClick={() => { setDetailItem(null); handleDeleteTodo(detailItem.id) }} className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title={tApp('delete')}>
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
