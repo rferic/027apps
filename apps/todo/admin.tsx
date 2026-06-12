@@ -29,21 +29,39 @@ export default function TodoAdmin() {
   const [todos, setTodos] = useState<TodoItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({ category: '', priority: '', status: '', visibility: '', assigned: '' })
+  const [filters, setFilters] = useState({ category: '', priority: '', status: '', visibility: '', assigned: '', group: '' })
   const [sort, setSort] = useState('updated')
+  const [memberMap, setMemberMap] = useState<Map<string, string>>(new Map())
+  const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([])
   const [refresh, setRefresh] = useState(0)
 
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [todoRes, catRes] = await Promise.all([
+      const [todoRes, catRes, groupsRes] = await Promise.all([
         fetch('/api/v1/admin/apps/todo'),
         fetch('/api/v1/admin/apps/todo/categories'),
+        fetch('/api/v1/admin/groups').then(r => r.json()).catch(() => []),
       ])
       const todoData = await todoRes.json()
       const catData = await catRes.json()
-      setTodos(Array.isArray(todoData) ? todoData : todoData?.data ?? [])
+      const items: TodoItem[] = Array.isArray(todoData) ? todoData : todoData?.data ?? []
+      setTodos(items)
       setCategories(Array.isArray(catData) ? catData : catData?.data ?? [])
+      setGroups(Array.isArray(groupsRes) ? groupsRes : groupsRes?.data ?? [])
+
+      // Fetch profiles for assigned users
+      const userIds = [...new Set(items.filter(t => t.assigned_to).map(t => t.assigned_to!))]
+      if (userIds.length > 0) {
+        const profileRes = await fetch('/api/v1/admin/users').catch(() => null)
+        if (profileRes?.ok) {
+          const profiles = await profileRes.json()
+          const list = Array.isArray(profiles) ? profiles : profiles?.data ?? []
+          const map = new Map<string, string>()
+          list.forEach((p: { id: string; displayName: string }) => { if (userIds.includes(p.id)) map.set(p.id, p.displayName) })
+          setMemberMap(map)
+        }
+      }
     } catch { toast.error('Failed to load') }
     finally { setLoading(false) }
   }
@@ -65,6 +83,7 @@ export default function TodoAdmin() {
     .filter(t => !filters.status || t.status === filters.status)
     .filter(t => !filters.visibility || t.visibility === filters.visibility)
     .filter(t => !filters.assigned || t.assigned_to === filters.assigned)
+    .filter(t => !filters.group || t.group_id === filters.group)
     .sort((a, b) => {
       if (sort === 'priority') {
         const p: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
@@ -106,9 +125,18 @@ export default function TodoAdmin() {
           <option value="">{tApp('filter_assigned')}</option>
           <option value="null">{tApp('unassigned')}</option>
           {[...new Set(todos.filter(t => t.assigned_to).map(t => t.assigned_to!))].map(id => (
-            <option key={id} value={id}>{id.slice(0, 8)}</option>
+            <option key={id} value={id}>{memberMap.get(id) || id.slice(0, 8)}</option>
           ))}
         </select>
+        {groups.length > 0 && (
+        <select value={filters.group} onChange={e => setFilters(f => ({...f, group: e.target.value}))}
+          className="text-xs font-medium rounded-full px-3 py-1.5 border border-slate-200 bg-white text-slate-500 cursor-pointer">
+          <option value="">Group</option>
+          {groups.map(g => (
+            <option key={g.id} value={g.id}>{g.name}</option>
+          ))}
+        </select>
+        )}
         <select value={sort} onChange={e => setSort(e.target.value)}
           className="text-xs font-medium rounded-full px-3 py-1.5 border border-slate-200 bg-white text-slate-500 cursor-pointer ml-auto">
           <option value="updated">{tApp('sort_updated')}</option>
