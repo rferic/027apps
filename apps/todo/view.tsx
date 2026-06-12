@@ -604,30 +604,9 @@ export default function TodoView() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-slate-100 rounded-lg p-0.5">
-        <button onClick={() => changeTab('my')} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'my' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-          <UserPlus size={14} className="inline mr-1" />{t('tab_my')}
-        </button>
-        <button onClick={() => changeTab('group')} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-          <CheckSquare size={14} className="inline mr-1" />{t('tab_group')}
-        </button>
-      </div>
-
-      {/* Date navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-        <div className="flex items-center justify-center sm:justify-start gap-1 min-w-0">
-          <button onClick={() => navigate(-1)} className="p-1 text-slate-400 hover:text-slate-600 text-sm flex-shrink-0">&lt;</button>
-          <button onClick={goToday} className="text-sm font-medium text-slate-700 hover:text-slate-900 px-2 truncate">{formatRangeHeader()}</button>
-          <button onClick={() => navigate(1)} className="p-1 text-slate-400 hover:text-slate-600 text-sm flex-shrink-0">&gt;</button>
-        </div>
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5 flex-shrink-0 mx-auto sm:mx-0">
-          {(['day','week','month','year'] as const).map(m => (
-            <button key={m} onClick={() => setViewMode(m)}
-              className={`px-2 py-1 text-[11px] font-medium rounded-md transition-colors ${viewMode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-              {t('view_' + m)}
-            </button>
-          ))}
-        </div>
+      <div className="flex gap-1 mb-6 bg-slate-100 rounded-lg p-1 w-fit">
+        <button onClick={() => changeTab('my')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'my' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('tab_my')}</button>
+        <button onClick={() => changeTab('group')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('tab_group')}</button>
       </div>
 
       {/* Filters — on mobile show as badges + modal, on desktop show inline */}
@@ -649,7 +628,7 @@ export default function TodoView() {
           <div className="flex items-center gap-1.5 flex-wrap">
             <button type="button" onClick={() => setFilters(f => ({...f, category: ''}))}
               className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${!filters.category ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
-              style={!filters.category ? { backgroundColor: '#6B7280' } : {}}>All</button>
+              style={!filters.category ? { backgroundColor: '#6B7280' } : {}}>{t('all')}</button>
             {categories.map(c => (
               <button key={c.id} type="button" onClick={() => setFilters(f => ({...f, category: f.category === c.id ? '' : c.id}))}
                 className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${filters.category === c.id ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
@@ -661,7 +640,7 @@ export default function TodoView() {
           <div className="flex items-center gap-1.5 flex-wrap">
             <button type="button" onClick={() => setFilters(f => ({...f, priority: ''}))}
               className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${!filters.priority ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
-              style={!filters.priority ? { backgroundColor: '#6B7280' } : {}}>All</button>
+              style={!filters.priority ? { backgroundColor: '#6B7280' } : {}}>{t('all')}</button>
             {Object.keys(PRIORITY_CONFIG).map(k => (
               <button key={k} type="button" onClick={() => setFilters(f => ({...f, priority: f.priority === k ? '' : k}))}
                 className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${filters.priority === k ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
@@ -672,7 +651,7 @@ export default function TodoView() {
           <div className="flex items-center gap-1.5 flex-wrap">
             <button type="button" onClick={() => setFilters(f => ({...f, status: ''}))}
               className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${!filters.status ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
-              style={!filters.status ? { backgroundColor: '#6B7280' } : {}}>All</button>
+              style={!filters.status ? { backgroundColor: '#6B7280' } : {}}>{t('all')}</button>
             {['pending', 'done'].map(s => (
               <button key={s} type="button" onClick={() => setFilters(f => ({...f, status: f.status === s ? '' : s}))}
                 className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${filters.status === s ? 'bg-slate-800 text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}>{t('status_' + s)}</button>
@@ -683,7 +662,7 @@ export default function TodoView() {
           <div className="flex items-center gap-1.5 flex-wrap">
             <button type="button" onClick={() => setFilters(f => ({...f, assigned: ''}))}
               className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${!filters.assigned ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
-              style={!filters.assigned ? { backgroundColor: '#6B7280' } : {}}>All</button>
+              style={!filters.assigned ? { backgroundColor: '#6B7280' } : {}}>{t('all')}</button>
             <button type="button" onClick={() => setFilters(f => ({...f, assigned: f.assigned === 'unassigned' ? '' : 'unassigned'}))}
               className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${filters.assigned === 'unassigned' ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
               style={filters.assigned === 'unassigned' ? { backgroundColor: '#6366F1' } : {}}>{t('unassigned')}</button>
@@ -693,9 +672,6 @@ export default function TodoView() {
                 style={filters.assigned === id ? { backgroundColor: '#6366F1' } : {}}>{name}</button>
             ))}
           </div>
-          )}
-          {(filters.category || filters.priority || filters.status || filters.assigned) && (
-            <button onClick={clearFilters} className="text-xs text-slate-400 hover:text-red-500 font-medium">✕ Clear</button>
           )}
         </div>
         {/* Mobile: active filter badges + Filter button */}
@@ -743,7 +719,7 @@ export default function TodoView() {
                 <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_category')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setFilters(f => ({...f, category: ''}))}
-                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.category ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>All</button>
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.category ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('all')}</button>
                   {categories.map(c => (
                     <button key={c.id} type="button" onClick={() => setFilters(f => ({...f, category: f.category === c.id ? '' : c.id}))}
                       className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.category === c.id ? 'text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
@@ -755,7 +731,7 @@ export default function TodoView() {
                 <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_priority')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setFilters(f => ({...f, priority: ''}))}
-                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.priority ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>All</button>
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.priority ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('all')}</button>
                   {Object.keys(PRIORITY_CONFIG).map(k => (
                     <button key={k} type="button" onClick={() => setFilters(f => ({...f, priority: f.priority === k ? '' : k}))}
                       className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.priority === k ? 'text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
@@ -767,7 +743,7 @@ export default function TodoView() {
                 <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_status')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setFilters(f => ({...f, status: ''}))}
-                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.status ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>All</button>
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.status ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('all')}</button>
                   {['pending', 'done'].map(s => (
                     <button key={s} type="button" onClick={() => setFilters(f => ({...f, status: f.status === s ? '' : s}))}
                       className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.status === s ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('status_' + s)}</button>
@@ -779,7 +755,7 @@ export default function TodoView() {
                 <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_assigned')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setFilters(f => ({...f, assigned: ''}))}
-                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.assigned ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>All</button>
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.assigned ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('all')}</button>
                   <button type="button" onClick={() => setFilters(f => ({...f, assigned: f.assigned === 'unassigned' ? '' : 'unassigned'}))}
                     className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.assigned === 'unassigned' ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('unassigned')}</button>
                   {Array.from(memberMap.entries()).map(([id, name]) => (
@@ -794,6 +770,23 @@ export default function TodoView() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Date navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+        <div className="flex items-center justify-center sm:justify-start gap-1 min-w-0">
+          <button onClick={() => navigate(-1)} className="p-1 text-slate-400 hover:text-slate-600 text-sm flex-shrink-0">&lt;</button>
+          <button onClick={goToday} className="text-sm font-medium text-slate-700 hover:text-slate-900 px-2 truncate">{formatRangeHeader()}</button>
+          <button onClick={() => navigate(1)} className="p-1 text-slate-400 hover:text-slate-600 text-sm flex-shrink-0">&gt;</button>
+        </div>
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5 flex-shrink-0 mx-auto sm:mx-0">
+          {(['day','week','month','year'] as const).map(m => (
+            <button key={m} onClick={() => setViewMode(m)}
+              className={`px-2 py-1 text-[11px] font-medium rounded-md transition-colors ${viewMode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              {t('view_' + m)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* List */}
