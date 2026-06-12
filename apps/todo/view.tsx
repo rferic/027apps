@@ -168,7 +168,7 @@ function CreateTodoModal({
     setSaving(false)
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white'
+  const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white'
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
@@ -315,7 +315,7 @@ function EditTodoModal({
     setSaving(false)
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white'
+  const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white'
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
@@ -594,7 +594,7 @@ export default function TodoView() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
+    <div className="max-w-3xl mx-auto p-4 sm:p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-semibold text-slate-900">{t('title')}</h1>
@@ -784,11 +784,11 @@ export default function TodoView() {
             const cat = item.category_id ? catMap.get(item.category_id) : null
             const isDone = item.status === 'done'
             return (
-              <div key={item.id} className={`bg-white rounded-lg border transition-colors ${isDone ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-100 hover:border-slate-200'}`}>
-                <div className="flex items-center gap-3 px-3 py-2.5">
+              <div key={item.id} className={`bg-white rounded-xl border transition-all duration-200 mb-3 ${isDone ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-100 hover:border-slate-200 hover:shadow-sm'}`}>
+                <div className="flex items-center gap-3 p-4">
                   <button
                     onClick={() => handleStatus(item, isDone ? 'pending' : 'done')}
-                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                    className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
                       isDone ? 'border-emerald-500 text-white' : 'border-slate-300 hover:border-emerald-400'
                     }`}
                     style={isDone ? { backgroundColor: '#10B981' } : {}}
