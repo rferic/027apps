@@ -2,19 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { Trash2, Loader2, Check, Pencil, X } from 'lucide-react'
+import { Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
-
-interface TodoItem {
-  id: string; title: string; description: string | null; priority: string;
-  status: string; visibility: string; due_date: string | null;
-  assigned_to: string | null; created_by: string; category_id: string | null;
-  created_at: string; repeat_interval: string | null; group_id: string; updated_at: string;
-}
-
-interface Category {
-  id: string; name: string; emoji: string; color: string;
-}
+import { TodoItemCard, type TodoItem, type Category } from './TodoItemCard'
 
 const PRIORITY_CONFIG: Record<string, { color: string }> = {
   urgent: { color: '#EF4444' },
@@ -101,8 +91,6 @@ export default function TodoAdmin() {
 
   useEffect(() => { fetchData() }, [refresh])
 
-  const catMap = new Map(categories.map(c => [c.id, c]))
-
   async function handleDeleteTodo(id: string) {
     const res = await fetch(`/api/v1/admin/apps/todo?id=${id}`, { method: 'DELETE' })
     if (res.ok) setRefresh(r => r + 1)
@@ -186,37 +174,26 @@ export default function TodoAdmin() {
         <div className="text-center py-12 text-sm text-slate-400">{t('no_categories')}</div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(item => {
-            const pc = PRIORITY_CONFIG[item.priority] ?? PRIORITY_CONFIG.low
-            const cat = item.category_id ? catMap.get(item.category_id) : null
-            const isDone = item.status === 'done'
-            return (
-              <div key={item.id} className={`bg-white rounded-xl border px-3 py-2.5 flex items-center gap-3 transition-colors ${isDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-100 hover:border-slate-200'}`}>
-                <div className="flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center"
-                  style={isDone ? { backgroundColor: '#10B981', borderColor: '#10B981' } : { borderColor: '#cbd5e1' }}>
-                  {isDone && <Check size={14} strokeWidth={3} color="white" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm ${isDone ? 'line-through text-slate-400' : 'text-slate-800'}`}>{item.title}</span>
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: pc.color + '20', color: pc.color }}>{tApp('priority_' + item.priority)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {cat && <span className="text-[10px] px-1 py-0.5 rounded" style={{ backgroundColor: cat.color + '20', color: cat.color }}>{cat.emoji} {cat.name}</span>}
-                    {item.due_date && <span className="text-[10px] text-slate-400">📅 {item.due_date.slice(0, 10)}</span>}
-                    {!item.due_date && <span className="text-[10px] text-slate-300 italic">{tApp('no_date')}</span>}
-                    <span className="text-[10px] text-slate-400">{tApp('status_' + item.status)}</span>
-                  </div>
-                </div>
-                <button onClick={() => openEdit(item)} className="p-1 rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors">
-                  <Pencil size={14} />
-                </button>
-                <button onClick={() => handleDeleteTodo(item.id)} className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            )
-          })}
+          {filtered.map(item => (
+            <TodoItemCard
+              key={item.id}
+              item={item}
+              categories={categories}
+              memberMap={memberMap}
+              onStatusChange={async (todo) => {
+                await fetch(`/api/v1/admin/apps/todo`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: todo.id, status: todo.status === 'done' ? 'pending' : 'done' }),
+                })
+                setRefresh(r => r + 1)
+              }}
+              onEdit={openEdit}
+              onDelete={(todo) => handleDeleteTodo(todo.id)}
+              onDetail={openEdit}
+              compact
+            />
+          ))}
         </div>
       )}
 

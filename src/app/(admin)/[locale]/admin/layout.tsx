@@ -63,6 +63,7 @@ export default async function AdminLayout({ children, params }: Props) {
         // skip apps with invalid manifests
       }
     }
+    sidebarApps.sort((a, b) => a.name.localeCompare(b.name))
   }
 
   return (

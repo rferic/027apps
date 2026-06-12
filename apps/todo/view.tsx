@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { CheckSquare, Check, Plus, X, Loader2, UserPlus, Clock, AlertTriangle, Pencil, Trash2, Repeat } from 'lucide-react'
+import { Plus, X, Loader2, Check, Circle, Clock, AlertTriangle } from 'lucide-react'
+import { TodoItemCard } from './TodoItemCard'
+import type { TodoItem, Category } from './TodoItemCard'
 
 const supabase = createClient()
 
@@ -435,17 +437,6 @@ function DeleteConfirm({ item, groupSlug, onClose, onDeleted }: {
 
 // ─── Main View ─────────────────────────────────────────────────────────────
 
-interface TodoItem {
-  id: string; title: string; description: string | null; priority: string;
-  status: string; visibility: string; due_date: string | null;
-  assigned_to: string | null; created_by: string; category_id: string | null;
-  created_at: string; repeat_interval: string | null; repeat_end_date: string | null;
-}
-
-interface Category {
-  id: string; name: string; emoji: string; color: string; is_default?: boolean;
-}
-
 export default function TodoView() {
   const { groupSlug } = useAppContext()
   const t = useTranslations('apps.todo')
@@ -478,6 +469,13 @@ export default function TodoView() {
   const [showFilters, setShowFilters] = useState(false)
   const clearFilters = () => setFilters({ category: '', priority: '', status: '', assigned: '' })
   const [refresh, setRefresh] = useState(0)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.id) setUserId(session.user.id)
+    })
+  }, [])
 
   // Compute date range for current view
   function getDateRange() {
@@ -604,6 +602,15 @@ export default function TodoView() {
     setRefresh(r => r + 1)
   }
 
+  async function handleAssignToMe(item: TodoItem) {
+    await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigned_to: userId }),
+    })
+    setRefresh(r => r + 1)
+  }
+
   function formatDate(d: string | null) {
     if (!d) return ''
     const date = new Date(d)
@@ -726,7 +733,8 @@ export default function TodoView() {
             </span>
             )}
             {filters.status && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: filters.status === 'done' ? '#10B98118' : '#6B728018', color: filters.status === 'done' ? '#10B981' : '#6B7280' }}>
+              {filters.status === 'done' ? <Check size={11} strokeWidth={3} /> : <Circle size={11} />}
               {t('status_' + filters.status)}
               <button type="button" onClick={() => setFilters(f => ({...f, status: ''}))} className="cursor-pointer opacity-60 hover:opacity-100"><X size={12} /></button>
             </span>
@@ -830,59 +838,21 @@ export default function TodoView() {
         <div className="text-center py-12 text-sm text-slate-400">{tab === 'my' ? t('empty_my') : t('empty_group')}</div>
       ) : (
         <div className="space-y-2">
-          {items.map(item => {
-            const pc = PRIORITY_CONFIG[item.priority] ?? PRIORITY_CONFIG.low
-            const isOverdue = item.due_date && new Date(item.due_date) < new Date()
-            const cat = item.category_id ? catMap.get(item.category_id) : null
-            const isDone = item.status === 'done'
-            return (
-              <div key={item.id} className={`bg-white rounded-xl border transition-all duration-200 mb-3 ${isDone ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-100 hover:border-slate-200 hover:shadow-sm'}`}>
-                <div className="flex items-center gap-3 p-4">
-                  <button
-                    onClick={() => handleStatus(item, isDone ? 'pending' : 'done')}
-                    className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                      isDone ? 'border-emerald-500 text-white' : 'border-slate-300 hover:border-emerald-400'
-                    }`}
-                    style={isDone ? { backgroundColor: '#10B981' } : {}}
-                  >
-                    {isDone && <Check size={14} strokeWidth={3} color="white" />}
-                  </button>
-                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setDetailItem(item)}>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm ${isDone ? 'line-through text-slate-400' : 'text-slate-800'}`}>{item.title}</span>
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: pc.color + '20', color: pc.color }}>{t('priority_' + item.priority)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {cat && (
-                        <span className="text-[10px] px-1 py-0.5 rounded" style={{ backgroundColor: cat.color + '20', color: cat.color }}>{cat.emoji} {cat.name}</span>
-                      )}
-                      {item.due_date ? (
-                        <span className={`text-[10px] ${isOverdue ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatDate(item.due_date)}</span>
-                      ) : (
-                        <span className="text-[10px] text-slate-300 italic">{t('no_date')}</span>
-                      )}
-                      {item.repeat_interval && <Repeat size={11} className="text-slate-300" />}
-                      {item.assigned_to && (
-                        <span className="text-[10px] text-slate-400">👤 {memberMap.get(item.assigned_to) ?? '...'}</span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setDetailItem(item)}
-                    className="flex-shrink-0 p-1 rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => setDeleteItem(item)}
-                    className="flex-shrink-0 p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            )
-          })}
+          {items.map(item => (
+            <TodoItemCard
+              key={item.id}
+              item={item}
+              categories={categories}
+              memberMap={memberMap}
+              userId={userId}
+              showAssign={tab === 'group'}
+              onStatusChange={handleStatus}
+              onEdit={(item) => setEditItem(item)}
+              onDelete={(item) => setDeleteItem(item)}
+              onDetail={(item) => setDetailItem(item)}
+              onAssign={handleAssignToMe}
+            />
+          ))}
         </div>
       )}
 
@@ -890,19 +860,26 @@ export default function TodoView() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/40" onClick={() => setDetailItem(null)} />
           <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
-            <h3 className="text-base font-semibold text-slate-900 mb-3">{detailItem.title}</h3>
+            <div className="flex items-start justify-between mb-3">
+              <h3 className="text-base font-semibold text-slate-900 pr-4">{detailItem.title}</h3>
+              <button onClick={() => setDetailItem(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 -mt-1 -mr-1"><X size={16} /></button>
+            </div>
             {detailItem.description && <p className="text-sm text-slate-600 mb-3">{detailItem.description}</p>}
             <div className="space-y-1.5 text-xs text-slate-500 mb-4">
-              <p><span className="font-medium text-slate-600">{t('priority')}:</span> {t('priority_' + detailItem.priority)}</p>
+              {(() => {
+                const dc = detailItem.category_id ? catMap.get(detailItem.category_id) : null
+                return dc ? <p><span className="font-medium">{dc.emoji}</span> <span style={{ color: dc.color }}>{dc.name}</span></p> : null
+              })()}
+              <p><span className="font-medium text-slate-600">{t('priority')}:</span> <span className="font-semibold px-1.5 py-0.5 rounded text-[11px]" style={{ backgroundColor: PRIORITY_CONFIG[detailItem.priority]?.color + '20' || '#6B728020', color: PRIORITY_CONFIG[detailItem.priority]?.color || '#6B7280' }}>{t('priority_' + detailItem.priority)}</span></p>
               <p><span className="font-medium text-slate-600">{t('filter_status')}:</span> {t('status_' + detailItem.status)}</p>
               {detailItem.due_date && <p><span className="font-medium text-slate-600">{t('due_date')}:</span> {formatDate(detailItem.due_date)}</p>}
               {!detailItem.due_date && <p className="italic">{t('no_date')}</p>}
               {detailItem.repeat_interval && <p>↻ {t('repeat_' + detailItem.repeat_interval)}</p>}
+              {detailItem.assigned_to && <p><span className="font-medium text-slate-600">{t('assign_to')}:</span> 👤 {memberMap.get(detailItem.assigned_to) ?? '...'}</p>}
             </div>
             <div className="flex gap-2">
               <button onClick={() => { setDetailItem(null); setEditItem(detailItem) }} className="flex-1 px-3 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">{t('edit')}</button>
               <button onClick={() => { setDetailItem(null); setDeleteItem(detailItem) }} className="flex-1 px-3 py-2 text-sm font-medium border border-red-200 text-red-600 rounded-lg hover:bg-red-50">{t('delete')}</button>
-              <button onClick={() => setDetailItem(null)} className="px-3 py-2 text-sm text-slate-500">{t('cancel')}</button>
             </div>
           </div>
         </div>
