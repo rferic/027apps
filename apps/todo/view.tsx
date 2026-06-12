@@ -701,7 +701,7 @@ export default function TodoView() {
             )}
             {tab === 'group' && filters.assigned && (
             <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-              {filters.assigned === 'unassigned' ? t('unassigned') : memberMap.get(filters.assigned) ?? filters.assigned}
+              👤 {filters.assigned === 'unassigned' ? t('unassigned') : memberMap.get(filters.assigned) ?? filters.assigned}
               <button type="button" onClick={() => setFilters(f => ({...f, assigned: ''}))} className="cursor-pointer opacity-60 hover:opacity-100"><X size={12} /></button>
             </span>
             )}
