@@ -1,0 +1,221 @@
+# Sprint 19: TODO Module Refactor
+
+- **Rama:** `sprint/19-todo-refactor`
+- **Sprint anterior:** Sprint 18 — Tech Debt & Cleanup (TASK-141 a TASK-147)
+- **Interrumpido por:** Sprint 20 — Inspiration GitHub (TASK-157 a TASK-164)
+- **Retomado después de:** Sprint 21 — Bug Fixes (TASK-165 a TASK-168)
+- **Primera TASK de este sprint:** TASK-148
+- **Última TASK de este sprint:** TASK-175
+- **GitHub Issue:** [#44 — TODOs list](https://github.com/rferic/027apps/issues/44)
+- **Prioridad:** MEDIA-ALTA
+
+---
+
+## Decisiones de diseño (confirmadas con el usuario)
+
+| Decisión | Valor |
+|---|---|
+| Categorías | **Globales**, gestionadas por admin, sin `group_id` |
+| DB migration | **1 sola migración** con `DROP TABLE IF EXISTS` + nuevo schema |
+| Formularios | **Modal** (backdrop + panel, cierra con X/escape/click) |
+| Prioridades | `low`, `medium`, `high`, `urgent` |
+| Notificaciones | Resend/SMTP con react-email (sistema existente) |
+| Widgets | Fijos: "Mis tareas" + "Tareas del grupo" |
+
+---
+
+## Objetivos
+
+Refactor completo del módulo TODO desde cero. Pasa de ser un ejemplo mínimo a una app de gestión de tareas real con asignación, categorización, notificaciones y widgets.
+
+---
+
+## Requisitos funcionales
+
+### 1. Visibilidad y propiedad
+- **Públicas (grupo):** visibles para todos los miembros del grupo
+- **Privadas (usuario):** solo visibles para el usuario que las creó
+- Si un usuario abandona el grupo, sus TODOs públicas se desasignan. Las privadas se van con él.
+
+### 2. Asignación
+- Los TODOs públicos pueden asignarse a cualquier miembro del grupo
+- Estado "sin asignar" para TODOs públicos sin dueño
+- Solo el creador o un admin puede reasignar
+
+### 3. Fecha límite
+- Campo `due_date` opcional
+- Visualización: overdue (rojo), today (ámbar), future (gris)
+
+### 4. Categorización
+- Categorías **globales** (sin `group_id`), gestionadas por admin
+- Cada TODO pertenece a una categoría o "sin categoría"
+- Emoji + color + nombre
+
+### 5. Prioridad
+- `low`, `medium`, `high`, `urgent` con indicador visual (color + icono)
+
+### 6. Vistas
+- "Mis TODOs": privados del usuario + públicos asignados a él
+- "TODOs de grupo": públicos sin asignar
+
+### 7. Widgets en dashboard público
+- Widget 1: "Mis tareas" (top 3-5 asignadas al usuario)
+- Widget 2: "Tareas del grupo" (top 3-5 sin asignar)
+
+### 8. Notificaciones por email
+- Configurables por usuario: al ser asignado, al cambiar estado, al actualizarse
+- Usar sistema existente (Resend/SMTP + react-email)
+- Preparar estructura para push notifications futuro
+
+---
+
+## Tareas
+
+---
+
+### TASK-148 — DB: nuevo schema ✅ **COMPLETO**
+
+Schema completo con `todo_categories`, `todo_items`, `todo_notification_prefs`, índices y RLS.
+
+---
+
+### TASK-149 — API REST endpoints ✅ **COMPLETO** (95%)
+
+11 endpoints operativos. Falta endpoint de notification preferences (GET/PUT).
+
+---
+
+### TASK-169 — Completar vista pública: EditTodoModal + TodoFilters + categorías + asignación
+
+**Tipo:** Frontend
+
+**Archivo:** `apps/todo/view.tsx`
+
+**Estado actual:** `TodoView` con tabs, `TodoItem` card, `CreateTodoModal` existen.
+
+**Lo que falta:**
+- `EditTodoModal` — Modal para editar TODO (abrir desde card)
+- Botón de eliminar TODO en cada card (con confirmación)
+- `TodoFilters` — Filtros por categoría, prioridad, estado
+- Selector de categoría en `CreateTodoModal`
+- Selector de `assigned_to` al crear tareas públicas
+- Añadir display de categoría (emoji + color) en cards
+
+---
+
+### TASK-170 — Completar admin panel: editar categorías + gestión de TODOs
+
+**Tipo:** Frontend admin
+
+**Archivo:** `apps/todo/admin.tsx`
+
+**Estado actual:** CRUD de categorías parcial (falta editar). Gestión de TODOs no iniciada.
+
+**Lo que falta:**
+- Editar categorías existentes (nombre, emoji, color, orden)
+- Sección "Gestión de TODOs": listar todos los TODOs, editar, eliminar
+
+---
+
+### TASK-171 — Widgets dashboard: botón "Tomar" + i18n
+
+**Tipo:** Frontend
+
+**Archivo:** `apps/todo/widget.tsx`
+
+**Estado actual:** Widgets funcionales pero sin botón "Tomar".
+
+**Lo que falta:**
+- Botón "Tomar" en widget de grupo → PUT auto-asignación
+- Claves `widget.*` en i18n global
+
+---
+
+### TASK-172 — Notificaciones por email
+
+**Tipo:** Backend
+
+**Objetivo:** Enviar email cuando:
+1. Un TODO es asignado a un usuario
+2. El estado de un TODO asignado cambia
+3. Un TODO asignado es actualizado
+
+**Arquitectura:**
+- Verificar `todo_notification_prefs` del destinatario
+- Usar helper de email existente (Resend/SMTP)
+- Templates react-email en `src/emails/todo-assigned.tsx`, `src/emails/todo-status-change.tsx`
+- API de notification preferences (GET/PUT)
+
+---
+
+### TASK-173 — i18n: sincronizar 6 idiomas
+
+**Tipo:** i18n
+
+**Namespaces:**
+- `apps.todo.*` — vista pública + widget + filtros + edición
+- `admin.todo.*` — panel admin (categorías, gestión)
+- `emails.todo.*` — asuntos y cuerpo de emails
+
+**Sincronizar a 6 idiomas** (en, es, it, ca, fr, de).
+
+---
+
+### TASK-174 — Documentación
+
+**Tipo:** Docs
+
+**Objetivo:** Actualizar la documentación del módulo TODO a la nueva arquitectura:
+1. **Scalar/OpenAPI:** Actualizar `public/openapi.json` con el nuevo schema
+2. **Fumadocs:** Actualizar `content/docs/*/apps/todo.mdx` (6 idiomas)
+3. **Módulo docs:** Actualizar `apps/todo/docs/`
+4. **README global:** Sección del módulo TODO en `README.md`
+
+---
+
+### TASK-175 — Tests
+
+**Tipo:** Tests
+
+1. Tests de API: CRUD de TODOs, categorías, filtros, asignación
+2. Tests de widgets: carga correcta de datos
+3. Tests de notificaciones: email enviado cuando corresponde
+4. Tests E2E: flujo completo crear → asignar → completar
+
+---
+
+## Orden de ejecución
+
+```
+TASK-148 (DB schema)           ✅ COMPLETO
+TASK-149 (API endpoints)       ✅ COMPLETO
+    │
+TASK-169 (vista pública: EditTodoModal + filtros + categorías)
+    │
+TASK-170 (admin: editar categorías + gestión TODOs)
+    │
+TASK-171 (widgets: botón Tomar + i18n)
+    │
+TASK-172 (notificaciones email)
+    │
+TASK-173 (i18n: sincronizar 6 idiomas)
+    │
+TASK-174 (documentación)
+    │
+TASK-175 (tests)
+```
+
+---
+
+## Convención de rama y commits
+
+- **Rama:** `sprint/19-todo-refactor`
+- **Commits:**
+  - `Sprint 19: fix(todo): add EditTodoModal, filters, category picker to public view`
+  - `Sprint 19: feat(todo): complete admin panel with category edit and TODO management`
+  - `Sprint 19: feat(todo): add take button to group widget`
+  - `Sprint 19: feat(todo): email notifications for assignments and status changes`
+  - `Sprint 19: docs(todo): OpenAPI spec, Fumadocs, module docs, README`
+  - `Sprint 19: test(todo): API, widgets, and E2E tests`
+
+- **Squash commit:** `Sprint 19: TODO Module Refactor`
