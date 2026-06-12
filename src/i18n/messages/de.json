@@ -692,7 +692,7 @@
       "edit_title": "Edit task",
       "save": "Save",
       "delete": "Delete",
-      "delete_confirm": "Are you sure?",
+      "delete_confirm": "Bist du sicher?",
       "edit": "Edit",
       "all": "All",
       "filter_category": "Category",
@@ -746,7 +746,8 @@
       "sort_alpha": "Alphabetisch",
       "sort_newest": "Neueste",
       "sort_oldest": "Älteste",
-      "sort_updated": "Aktualisiert"
+      "sort_updated": "Aktualisiert",
+      "sort_date": "By date"
     },
     "permissions": {
       "title": "Zugang",

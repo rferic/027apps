@@ -55,7 +55,7 @@ export function TodoItemCard({ item, categories, memberMap, userId, showAssign, 
 
   return (
     <div className={`bg-white rounded-xl border transition-all duration-200 mb-3 ${isDone ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-100 hover:border-slate-200 hover:shadow-sm'}`}>
-      <div className={`flex items-center gap-3 ${compact ? 'p-2.5' : 'p-4'}`}>
+      <div className="flex items-center gap-3 p-4">
         <button
           onClick={() => onStatusChange(item, isDone ? 'pending' : 'done')}
           className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${

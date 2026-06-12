@@ -46,7 +46,7 @@
   "edit_title": "Edit task",
   "save": "Save",
   "delete": "Delete",
-  "delete_confirm": "Are you sure?",
+  "delete_confirm": "Sei sicuro?",
   "edit": "Edit",
   "all": "All",
   "filter_category": "Category",
@@ -89,5 +89,6 @@
   "sort_alpha": "Alfabetico",
   "sort_newest": "Recenti",
   "sort_oldest": "Vecchi",
-  "sort_updated": "Aggiornato"
+  "sort_updated": "Aggiornato",
+  "sort_date": "By date"
 }

@@ -292,7 +292,7 @@ function DeleteConfirm({ item, groupSlug, onClose, onDeleted }: {
       <div className="fixed inset-0 bg-black/40" onClick={onClose} />
       <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
         <h3 className="text-sm font-semibold text-slate-900 mb-2">{t('delete')}</h3>
-        <p className="text-sm text-slate-500 mb-1">Are you sure you want to delete this task?</p>
+        <p className="text-sm text-slate-500 mb-1">{t('delete_confirm')}</p>
         <p className="text-sm text-slate-700 mb-4 font-medium">&ldquo;{item.title}&rdquo;</p>
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
