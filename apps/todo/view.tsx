@@ -634,9 +634,23 @@ export default function TodoView() {
       <div className="mb-4">
         <div className="hidden sm:flex sm:flex-wrap sm:gap-2">
           <select value={filters.category} onChange={e => setFilters(f => ({...f, category: e.target.value}))}
-            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
-            <option value="">{t('all')} {t('filter_category')}</option>
+            className="text-xs font-medium rounded-full px-3 py-1.5 border cursor-pointer transition-colors"
+            style={filters.category && catMap.get(filters.category) ? { backgroundColor: catMap.get(filters.category)!.color + '20', color: catMap.get(filters.category)!.color, borderColor: catMap.get(filters.category)!.color + '40' } : { borderColor: '#cbd5e1', color: '#6b7280' }}>
+            <option value="">{t('filter_category')}</option>
             {categories.map(c => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
+          </select>
+          <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
+            className="text-xs font-medium rounded-full px-3 py-1.5 border cursor-pointer transition-colors"
+            style={filters.priority ? { backgroundColor: (PRIORITY_CONFIG[filters.priority]?.color || '#6B7280') + '1A', color: PRIORITY_CONFIG[filters.priority]?.color || '#6B7280', borderColor: (PRIORITY_CONFIG[filters.priority]?.color || '#6B7280') + '40' } : { borderColor: '#cbd5e1', color: '#6b7280' }}>
+            <option value="">{t('filter_priority')}</option>
+            {Object.keys(PRIORITY_CONFIG).map(k => (<option key={k} value={k} style={{ color: PRIORITY_CONFIG[k].color }}>{t('priority_' + k)}</option>))}
+          </select>
+          <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))}
+            className="text-xs font-medium rounded-full px-3 py-1.5 border cursor-pointer transition-colors"
+            style={filters.status ? { backgroundColor: '#f1f5f9', color: '#0f172a', borderColor: '#cbd5e1' } : { borderColor: '#cbd5e1', color: '#6b7280' }}>
+            <option value="">{t('filter_status')}</option>
+            <option value="pending">{t('status_pending')}</option>
+            <option value="done">{t('status_done')}</option>
           </select>
           <select value={filters.priority} onChange={e => setFilters(f => ({...f, priority: e.target.value}))}
             className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
@@ -651,16 +665,16 @@ export default function TodoView() {
           </select>
           {tab === 'group' && (
           <select value={filters.assigned} onChange={e => setFilters(f => ({...f, assigned: e.target.value}))}
-            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
-            <option value="">{t('all')} {t('filter_assigned')}</option>
+            className="text-xs font-medium rounded-full px-3 py-1.5 border cursor-pointer transition-colors"
+            style={filters.assigned ? { backgroundColor: '#eef2ff', color: '#4338ca', borderColor: '#c7d2fe' } : { borderColor: '#cbd5e1', color: '#6b7280' }}>
+            <option value="">{t('filter_assigned')}</option>
             <option value="unassigned">{t('unassigned')}</option>
-            {Array.from(memberMap.entries()).map(([id, name]) => (
-              <option key={id} value={id}>{name}</option>
-            ))}
+            {Array.from(memberMap.entries()).map(([id, name]) => (<option key={id} value={id}>{name}</option>))}
           </select>
           )}
           <select value={sort} onChange={e => setSort(e.target.value)}
-            className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400">
+            className="text-xs font-medium rounded-full px-3 py-1.5 border cursor-pointer transition-colors"
+            style={sort !== 'priority' ? { backgroundColor: '#eef2ff', color: '#4338ca', borderColor: '#c7d2fe' } : { borderColor: '#cbd5e1', color: '#6b7280' }}>
             <option value="priority">{t('sort_priority')}</option>
             <option value="upcoming">{t('sort_upcoming')}</option>
             <option value="alpha">{t('sort_alpha')}</option>
