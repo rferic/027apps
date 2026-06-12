@@ -603,7 +603,8 @@
       "delete_category_title": "Delete category?",
       "delete_category_has_tasks": "There {count, plural, one {is 1 task} other {are {count} tasks}} with the category {name}. What would you like to do?",
       "delete_category_delete_all": "Delete tasks & category",
-      "delete_category_keep_tasks": "Only delete category"
+      "delete_category_keep_tasks": "Only delete category",
+      "filter_group": "Grupo"
     }
   },
   "invite": {

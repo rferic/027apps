@@ -131,7 +131,7 @@ export default function TodoAdmin() {
         {groups.length > 0 && (
         <select value={filters.group} onChange={e => setFilters(f => ({...f, group: e.target.value}))}
           className="text-xs font-medium rounded-full px-3 py-1.5 border border-slate-200 bg-white text-slate-500 cursor-pointer">
-          <option value="">Group</option>
+          <option value="">{t('filter_group')}</option>
           {groups.map(g => (
             <option key={g.id} value={g.id}>{g.name}</option>
           ))}
