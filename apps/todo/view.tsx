@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Loader2, Check, Circle, Clock, AlertTriangle } from 'lucide-react'
+import { Plus, X, Loader2, Check, Circle, Clock, AlertTriangle, Pencil, UserPlus, Trash2 } from 'lucide-react'
 import { TodoItemCard } from './TodoItemCard'
 import type { TodoItem, Category } from './TodoItemCard'
 
@@ -877,9 +877,20 @@ export default function TodoView() {
               {detailItem.repeat_interval && <p>↻ {t('repeat_' + detailItem.repeat_interval)}</p>}
               {detailItem.assigned_to && <p><span className="font-medium text-slate-600">{t('assign_to')}:</span> 👤 {memberMap.get(detailItem.assigned_to) ?? '...'}</p>}
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => { setDetailItem(null); setEditItem(detailItem) }} className="flex-1 px-3 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">{t('edit')}</button>
-              <button onClick={() => { setDetailItem(null); setDeleteItem(detailItem) }} className="flex-1 px-3 py-2 text-sm font-medium border border-red-200 text-red-600 rounded-lg hover:bg-red-50">{t('delete')}</button>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div className="flex items-center gap-1">
+                <button onClick={() => { setDetailItem(null); setEditItem(detailItem) }} className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title={t('edit')}>
+                  <Pencil size={16} />
+                </button>
+                {tab === 'group' && !detailItem.assigned_to && userId && (
+                  <button onClick={() => { handleAssignToMe(detailItem); setDetailItem(null) }} className="p-2 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors" title={t('assign_to_me')}>
+                    <UserPlus size={16} />
+                  </button>
+                )}
+              </div>
+              <button onClick={() => { setDetailItem(null); setDeleteItem(detailItem) }} className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title={t('delete')}>
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
         </div>

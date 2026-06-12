@@ -85,6 +85,8 @@ export function TodoItemCard({ item, categories, memberMap, userId, showAssign, 
             )}
           </div>
         </div>
+        {compact && (
+        <>
         <div className="flex items-center gap-1">
           <button
             onClick={() => onEdit(item)}
@@ -110,6 +112,8 @@ export function TodoItemCard({ item, categories, memberMap, userId, showAssign, 
         >
           <Trash2 size={14} />
         </button>
+        </>
+        )}
       </div>
     </div>
   )
