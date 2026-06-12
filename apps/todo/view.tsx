@@ -273,6 +273,7 @@ function DeleteConfirm({ item, groupSlug, onClose, onDeleted }: {
 }) {
   const t = useTranslations('apps.todo')
   const [deleting, setDeleting] = useState(false)
+  const [deleteSeries, setDeleteSeries] = useState(false)
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
@@ -282,7 +283,8 @@ function DeleteConfirm({ item, groupSlug, onClose, onDeleted }: {
 
   async function handleDelete() {
     setDeleting(true)
-    const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}`, { method: 'DELETE' })
+    const params = deleteSeries ? '?delete_series=true' : ''
+    const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}${params}`, { method: 'DELETE' })
     setDeleting(false)
     if (res.ok) { onDeleted(); onClose() }
   }
@@ -294,6 +296,12 @@ function DeleteConfirm({ item, groupSlug, onClose, onDeleted }: {
         <h3 className="text-sm font-semibold text-slate-900 mb-2">{t('delete')}</h3>
         <p className="text-sm text-slate-500 mb-1">{t('delete_confirm')}</p>
         <p className="text-sm text-slate-700 mb-4 font-medium">&ldquo;{item.title}&rdquo;</p>
+        {item.repeat_interval && (
+        <label className="flex items-center gap-2 mb-4 cursor-pointer">
+          <input type="checkbox" checked={deleteSeries} onChange={e => setDeleteSeries(e.target.checked)} className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+          <span className="text-xs text-slate-500">{t('delete_series')}</span>
+        </label>
+        )}
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
           <button onClick={handleDelete} disabled={deleting} className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50">

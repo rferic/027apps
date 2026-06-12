@@ -27,6 +27,7 @@ export default function TodoAdmin() {
   const [editItem, setEditItem] = useState<TodoItem | null>(null)
   const [detailItem, setDetailItem] = useState<TodoItem | null>(null)
   const [deleteItem, setDeleteItem] = useState<TodoItem | null>(null)
+  const [deleteSeries, setDeleteSeries] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [refresh, setRefresh] = useState(0)
 
@@ -235,13 +236,21 @@ export default function TodoAdmin() {
             <h3 className="text-sm font-semibold text-slate-900 mb-2">{tApp('delete')}</h3>
             <p className="text-sm text-slate-500 mb-1">{tApp('delete_confirm')}</p>
             <p className="text-sm text-slate-700 mb-4 font-medium">&ldquo;{deleteItem.title}&rdquo;</p>
+            {deleteItem.repeat_interval && (
+            <label className="flex items-center gap-2 mb-4 cursor-pointer">
+              <input type="checkbox" checked={deleteSeries} onChange={e => setDeleteSeries(e.target.checked)} className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+              <span className="text-xs text-slate-500">{tApp('delete_series')}</span>
+            </label>
+            )}
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteItem(null)} className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900">{tApp('cancel')}</button>
+              <button onClick={() => { setDeleteItem(null); setDeleteSeries(false) }} className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900">{tApp('cancel')}</button>
               <button onClick={async () => {
                 setDeleting(true)
-                const res = await fetch(`/api/v1/admin/apps/todo?id=${deleteItem.id}`, { method: 'DELETE' })
+                const params = deleteSeries ? '&delete_series=true' : ''
+                const res = await fetch(`/api/v1/admin/apps/todo?id=${deleteItem.id}${params}`, { method: 'DELETE' })
                 setDeleting(false)
                 setDeleteItem(null)
+                setDeleteSeries(false)
                 if (res.ok) setRefresh(r => r + 1)
                 else toast.error('Failed to delete')
               }} disabled={deleting} className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50">

@@ -90,5 +90,6 @@
   "sort_oldest": "Antiguas",
   "sort_upcoming": "Próximo",
   "sort_alpha": "Alfabético",
-  "sort_updated": "Actualizado"
+  "sort_updated": "Actualizado",
+  "delete_series": "Delete all future occurrences"
 }

@@ -43,6 +43,7 @@
   "take": "Take",
   "delete": "Delete",
   "delete_confirm": "Are you sure?",
+  "delete_series": "Delete all future occurrences",
   "edit": "Edit",
   "all": "All",
   "filter_category": "Category",

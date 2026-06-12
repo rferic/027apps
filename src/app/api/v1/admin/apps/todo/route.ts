@@ -53,7 +53,19 @@ export async function DELETE(req: NextRequest) {
   if (!id) return apiError('BAD_REQUEST', 'Missing id parameter', 400)
 
   const adminClient = createAdminClientUntyped()
-  const { error } = await adminClient.from('todo_items').delete().eq('id', id)
-  if (error) return apiError('DELETE_FAILED', error.message, 500)
+  const deleteSeries = new URL(req.url).searchParams.get('delete_series') === 'true'
+
+  if (deleteSeries) {
+    const { data: item } = await adminClient.from('todo_items').select('title, due_date').eq('id', id).single()
+    if (!item) return apiError('NOT_FOUND', 'Item not found', 404)
+    const { error } = await adminClient.from('todo_items')
+      .delete()
+      .eq('title', item.title)
+      .gte('due_date', item.due_date ?? new Date().toISOString().slice(0, 10))
+    if (error) return apiError('DELETE_FAILED', error.message, 500)
+  } else {
+    const { error } = await adminClient.from('todo_items').delete().eq('id', id)
+    if (error) return apiError('DELETE_FAILED', error.message, 500)
+  }
   return new Response(null, { status: 204 })
 }
