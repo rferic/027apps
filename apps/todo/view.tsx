@@ -476,15 +476,6 @@ export default function TodoView() {
     }
   }, [groupSlug])
 
-  async function handleTake(item: TodoItem) {
-    await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assigned_to: 'self' }),
-    })
-    setRefresh(r => r + 1)
-  }
-
   async function handleStatus(item: TodoItem, newStatus: string) {
     await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items/${item.id}`, {
       method: 'PUT',
