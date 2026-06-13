@@ -59,7 +59,6 @@ function SortableApp({ app }: { app: AppItem }) {
       <button
         type="button"
         className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 touch-none"
-        style={{ touchAction: 'none' }}
         {...attributes}
         {...listeners}
       >
