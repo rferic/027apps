@@ -7,10 +7,10 @@ import { TodoStatusChangeEmail } from '@/emails/todo-status-change'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
 // Load email translations for a given locale
-function getEmailTranslations(locale: string, ns: string): Record<string, string> {
+async function getEmailTranslations(locale: string, ns: string): Promise<Record<string, string>> {
   try {
-    const msgs = require(`@/i18n/messages/${locale}.json`)
-    const section = msgs?.apps?.todo?.emails?.[ns] ?? {}
+    const msgs = await import(`@/i18n/messages/${locale}.json`)
+    const section = msgs?.default?.apps?.todo?.emails?.[ns] ?? {}
     return section as Record<string, string>
   } catch {
     return {}
@@ -31,7 +31,7 @@ export async function notifyAssigned(todoId: string, todoTitle: string, assigned
   if (!prefs?.on_assigned) return
 
   const locale = await getUserLocale(assignedToUserId)
-  const t = getEmailTranslations(locale, 'assigned')
+  const t = await getEmailTranslations(locale, 'assigned')
   const todoUrl = `${SITE_URL}/${locale}/${groupSlug}/apps/todo`
 
   const html = await render(
@@ -51,7 +51,7 @@ export async function notifyAssigned(todoId: string, todoTitle: string, assigned
 
   await sendEmail({
     to: user.email,
-    subject: t.subject || `[027Apps] Task assigned: ${todoTitle}`,
+    subject: (t.subject || '[027Apps] Task assigned: {title}').replace('{title}', todoTitle),
     html,
   })
 }
@@ -64,7 +64,7 @@ export async function notifyStatusChange(todoId: string, todoTitle: string, assi
   if (!prefs?.on_status_change) return
 
   const locale = await getUserLocale(assignedToUserId)
-  const t = getEmailTranslations(locale, 'status_change')
+  const t = await getEmailTranslations(locale, 'status_change')
   const todoUrl = `${SITE_URL}/${locale}/${groupSlug}/apps/todo`
 
   const html = await render(
@@ -85,7 +85,7 @@ export async function notifyStatusChange(todoId: string, todoTitle: string, assi
 
   await sendEmail({
     to: user.email,
-    subject: t.subject || `[027Apps] Task status changed: ${todoTitle}`,
+    subject: (t.subject || '[027Apps] Task status changed: {title}').replace('{title}', todoTitle),
     html,
   })
 }
