@@ -285,8 +285,8 @@ Busca la clave en `src/i18n/messages/en.json` y VERIFICA qué variables espera:
 ```
 Requiere: `t('clave', { name: '...', count: ... })`. Si falta alguna variable → FORMATTING_ERROR.
 
-## 2. DESPUÉS de añadir nuevas claves a en.json, SINCRONIZA a los otros 5 idiomas
-Ejecuta este script para copiar las claves nuevas a es, it, ca, fr, de:
+## 2. DESPUÉS de añadir nuevas claves a en.json, SINCRONIZA y TRADUCE a los otros 5 idiomas
+Ejecuta este script para copiar las claves nuevas a es, it, ca, fr, de, y LUEGO traduce manualmente cada clave nueva (no dejar texto en inglés como fallback):
 ```bash
 python3 << 'PYEOF'
 import json

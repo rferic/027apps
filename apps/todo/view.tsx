@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Loader2, Check, Circle, Clock, AlertTriangle, Pencil, UserPlus, Trash2 } from 'lucide-react'
+import { Plus, X, Loader2, Check, Circle, Clock, AlertTriangle, Pencil, UserPlus, Trash2, Bug } from 'lucide-react'
 import { TodoItemCard } from './TodoItemCard'
 import type { TodoItem, Category } from './TodoItemCard'
 import EditTodoModal, { type EditMember } from './EditTodoModal'
@@ -349,6 +349,8 @@ export default function TodoView() {
   const clearFilters = () => setFilters({ category: '', priority: '', status: '', assigned: '' })
   const [refresh, setRefresh] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
+  const [debugResults, setDebugResults] = useState<string[]>([])
+  const [debugRunning, setDebugRunning] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -509,6 +511,71 @@ export default function TodoView() {
     if (date < now && date.toDateString() !== now.toDateString()) return '⚠ ' + date.toLocaleDateString(undefined, opts)
     if (date.toDateString() === now.toDateString()) return t('today')
     return date.toLocaleDateString(undefined, opts)
+  }
+
+  async function runDebugTests() {
+    setDebugRunning(true)
+    setDebugResults([])
+    const log = (msg: string) => setDebugResults(r => [...r, msg])
+    const api = (path: string, opts?: RequestInit) => fetchWithAuth(`/api/v1/${groupSlug}/apps/todo${path}`, opts)
+
+    try {
+      log('🧪 Iniciando tests...')
+
+      const catId = categories.find(c => c.name === 'Task')?.id || categories[0]?.id || ''
+      const createRes = await api('/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: '[TEST] Debug task - delete me', description: 'Created by debug test', priority: 'high', category_id: catId, due_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), visibility: 'public' }),
+      })
+      if (!createRes.ok) { log('❌ CREATE failed: ' + (await createRes.text())); setDebugRunning(false); return }
+      const created = await createRes.json()
+      const itemId = created.id || created.data?.id
+      log('✅ CREATE: task created (' + itemId.slice(0, 8) + '...)')
+
+      const assignRes = await api(`/items/${itemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assigned_to: 'self' }),
+      })
+      if (!assignRes.ok) { log('❌ ASSIGN failed: ' + (await assignRes.text())); setDebugRunning(false); return }
+      log('✅ ASSIGN: task assigned to self (📧 email sent)')
+
+      const statusRes = await api(`/items/${itemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'in_progress' }),
+      })
+      if (!statusRes.ok) { log('❌ STATUS CHANGE failed: ' + (await statusRes.text())); setDebugRunning(false); return }
+      log('✅ STATUS CHANGE: set to in_progress (📧 email sent)')
+
+      const doneRes = await api(`/items/${itemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'done', repeat_interval: 'weekly' }),
+      })
+      if (!doneRes.ok) { log('❌ DONE + RECUR failed: ' + (await doneRes.text())); setDebugRunning(false); return }
+      log('✅ DONE + RECUR weekly: task completed, copy created')
+
+      const delRes = await api(`/items/${itemId}`, { method: 'DELETE' })
+      if (!delRes.ok) { log('❌ DELETE failed: ' + (await delRes.text())); setDebugRunning(false); return }
+      log('✅ DELETE: original deleted')
+
+      const copiesRes = await api(`/items?title=[TEST]+Debug+task+-+delete+me&limit=10`)
+      const copyData = await copiesRes.json()
+      const copies = Array.isArray(copyData) ? copyData : copyData?.data ?? []
+      if (copies.length > 0) {
+        const delSeriesRes = await api(`/items/${copies[0].id}?delete_series=true`, { method: 'DELETE' })
+        if (!delSeriesRes.ok) { log('❌ DELETE SERIES failed: ' + (await delSeriesRes.text())); setDebugRunning(false); return }
+        log('✅ DELETE SERIES: copy deleted (series cleanup)')
+      }
+
+      log('🎉 Todos los tests pasados. Revisa tu email para las notificaciones.')
+    } catch (e: any) {
+      log('❌ ERROR: ' + (e?.message || e))
+    }
+    setDebugRunning(false)
+    setRefresh(r => r + 1)
   }
 
   return (
@@ -809,6 +876,24 @@ export default function TodoView() {
         />
       )}
       {deleteItem && <DeleteConfirm item={deleteItem} groupSlug={groupSlug!} onClose={() => setDeleteItem(null)} onDeleted={() => { setDeleteItem(null); setRefresh(r => r + 1) }} />}
+
+      {/* Debug panel */}
+      <div className="mt-8 pt-4 border-t border-dashed border-slate-200">
+        <button
+          onClick={runDebugTests}
+          disabled={debugRunning}
+          className="inline-flex items-center gap-1.5 px-2 py-1 text-[10px] font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-md transition-colors disabled:opacity-50"
+        >
+          <Bug size={10} /> {debugRunning ? 'Running...' : 'Run debug tests'}
+        </button>
+        {debugResults.length > 0 && (
+          <div className="mt-2 space-y-0.5">
+            {debugResults.map((r, i) => (
+              <p key={i} className="text-[10px] font-mono text-slate-400">{r}</p>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
