@@ -6,7 +6,8 @@ import { useTranslations } from 'next-intl'
 import {
   DndContext,
   closestCenter,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -57,7 +58,8 @@ function SortableApp({ app }: { app: AppItem }) {
     >
       <button
         type="button"
-        className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
+        className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 touch-none"
+        style={{ touchAction: 'none' }}
         {...attributes}
         {...listeners}
       >
@@ -93,9 +95,15 @@ export function AppsOrderManager({ initialApps }: Props) {
   const [saving, setSaving] = useState(false)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 6,
       },
     })
   )

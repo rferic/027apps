@@ -28,7 +28,7 @@ function getInitialLocale(): InstallLocale {
 
 export function InstallForm() {
   const [locale, setLocale] = useState<InstallLocale>(
-    () => typeof document !== 'undefined' ? getInitialLocale() : 'en',
+    () => typeof window !== 'undefined' ? getInitialLocale() : 'en',
   )
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)

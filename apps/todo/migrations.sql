@@ -8,6 +8,7 @@ create table todo_categories (
   emoji         text not null default '📌',
   color         text not null default '#6B7280',
   display_order int not null default 0,
+  is_default    boolean not null default false,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
@@ -26,6 +27,8 @@ create table todo_items (
   created_by    uuid not null references auth.users(id) on delete cascade,
   due_date      timestamptz,
   completed_at  timestamptz,
+  repeat_interval text check (repeat_interval in ('weekly', 'monthly', 'yearly')),
+  repeat_end_date timestamptz,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
@@ -108,6 +111,13 @@ create policy "Any user can read categories"
 create policy "Users can manage own notification prefs"
   on todo_notification_prefs for all
   using (auth.uid() = user_id);
+
+-- Recurrence columns for existing installations
+alter table todo_items add column if not exists repeat_interval text check (repeat_interval in ('weekly', 'monthly', 'yearly'));
+alter table todo_items add column if not exists repeat_end_date timestamptz;
+
+-- Default category column for existing installations
+alter table todo_categories add column if not exists is_default boolean not null default false;
 
 -- Grant service_role access
 grant select, insert, update, delete on todo_items to service_role;
