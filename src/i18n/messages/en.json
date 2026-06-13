@@ -770,6 +770,19 @@
       "access_granted": "Access granted",
       "access_revoked": "Access revoked"
     },
+    "splitExpenses": {
+      "title": "Split Expenses Admin",
+      "searchPlaceholder": "Search...",
+      "empty": "No expense groups found",
+      "loadError": "Failed to load groups",
+      "deleteConfirm": "Delete this expense group and all its data?",
+      "deleted": "Deleted",
+      "deleteError": "Failed to delete",
+      "groupLabel": "Group: {id}… · {currency}",
+      "expensesLabel": "Expenses",
+      "noExpenses": "No expenses",
+      "settledBadge": "settled"
+    },
     "inspiration": {
       "title": "Inspiration",
       "description": "Ideas and suggestions for improving 027apps",

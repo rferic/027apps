@@ -1,10 +1,19 @@
 {
   "description": "Split expenses in groups with debt optimization.",
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "unknown": "Unknown",
+    "members": "members"
+  },
   "group": {
     "list": {
       "title": "Expense Groups",
       "empty": "No expense groups yet",
       "createFirst": "Create your first expense group",
+      "memberCount": "{count} members",
       "youOwe": "You owe",
       "youAreOwed": "You are owed",
       "settled": "All settled",
@@ -31,7 +40,8 @@
         "stats": "Statistics",
         "import": "Import"
       },
-      "noGroup": "Expense group not found"
+      "noGroup": "Expense group not found",
+      "memberCount": "{count, plural, one {# member} other {# members}}"
     }
   },
   "expense": {
@@ -63,6 +73,11 @@
       "cantEditSettled": "Cannot edit a settled expense",
       "needParticipants": "Select at least one participant"
     },
+    "delete": {
+      "title": "Delete expense",
+      "confirm": "Delete \"{title}\"?",
+      "deleting": "Deleting..."
+    },
     "item": {
       "paidBy": "paid",
       "you": "You",
@@ -91,7 +106,10 @@
     "isOwed": "is owed",
     "history": "Settlement history",
     "settledOn": "Settled on",
-    "by": "by"
+    "by": "by",
+    "noSettlements": "No settlements yet",
+    "expenseCount": "{count, plural, one {# expense} other {# expenses}}",
+    "transferCount": "{count, plural, one {# transfer} other {# transfers}}"
   },
   "member": {
     "list": {
@@ -184,6 +202,11 @@
     "UYU": "UYU - Uruguayan Peso",
     "VND": "VND - Vietnamese Dong",
     "ZAR": "ZAR - South African Rand"
+  },
+  "widget": {
+    "error": "Could not load",
+    "allSettled": "All settled up!",
+    "viewDetails": "View details"
   },
   "import": {
     "title": "Import from Splitwise",

@@ -12,6 +12,11 @@ interface BalanceWidget {
   net_balance: number
 }
 
+function currencySymbol(code: string): string {
+  const symbols: Record<string, string> = { EUR: '€', USD: '$', GBP: '£', JPY: '¥', CHF: 'Fr' }
+  return symbols[code] ?? code
+}
+
 export default function SplitExpensesWidget() {
   const ctx = useAppContext()
   const locale = useLocale()
@@ -62,12 +67,12 @@ export default function SplitExpensesWidget() {
       {loading ? (
         <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-slate-300" /></div>
       ) : error ? (
-        <p className="text-xs text-slate-400 text-center py-4">Could not load</p>
+        <p className="text-xs text-slate-400 text-center py-4">{t('widget.error')}</p>
       ) : !hasData ? (
         <div className="text-center py-4">
-          <p className="text-xs text-slate-400">All settled up!</p>
+          <p className="text-xs text-slate-400">{t('widget.allSettled')}</p>
           <Link href={`/${locale}/${ctx.groupSlug}/apps/split-expenses`} className="text-xs text-emerald-500 hover:underline mt-1 inline-block">
-            View details →
+            {t('widget.viewDetails')} →
           </Link>
         </div>
       ) : (
@@ -76,20 +81,20 @@ export default function SplitExpensesWidget() {
             {totalOwed > 0 && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-500">{t('balance.youAreOwed')}</span>
-                <span className="font-semibold text-emerald-600">€{totalOwed.toFixed(2)}</span>
+                <span className="font-semibold text-emerald-600">{totalOwed.toFixed(2)}€</span>
               </div>
             )}
             {totalOwes > 0 && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-500">{t('balance.youOwe')}</span>
-                <span className="font-semibold text-red-500">€{totalOwes.toFixed(2)}</span>
+                <span className="font-semibold text-red-500">{totalOwes.toFixed(2)}€</span>
               </div>
             )}
           </div>
           <Link href={`/${locale}/${ctx.groupSlug}/apps/split-expenses`}
             className="flex items-center justify-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium"
           >
-            <ArrowLeftRight className="w-3 h-3" /> View details
+            <ArrowLeftRight className="w-3 h-3" /> {t('widget.viewDetails')}
           </Link>
         </>
       )}

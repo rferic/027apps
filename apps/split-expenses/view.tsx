@@ -215,7 +215,7 @@ export default function SplitExpensesView() {
               <span className="text-2xl">{g.emoji}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-900">{g.title}</p>
-                <p className="text-xs text-slate-400">{g.member_count ?? 0} members · {currencySymbol(g.currency)}</p>
+                <p className="text-xs text-slate-400">{t('group.list.memberCount', { count: g.member_count ?? 0 })} · {currencySymbol(g.currency)}</p>
               </div>
               <ChevronDown className="w-4 h-4 text-slate-300 -rotate-90 flex-shrink-0" />
             </button>
@@ -249,7 +249,7 @@ function CreateGroupModal({ open, onClose, onCreated, editGroup }: { open: boole
         if (res.ok) {
           const data = await res.json()
           const list = Array.isArray(data) ? data : data?.data ?? []
-          setGroupMembers(list.map((m: { user_id: string; display_name?: string }) => ({ id: m.user_id, display_name: m.display_name ?? 'Unknown' })))
+          setGroupMembers(list.map((m: { user_id: string; display_name?: string }) => ({ id: m.user_id, display_name: m.display_name ?? t('common.unknown') })))
         }
       } catch {}
     }
@@ -353,15 +353,15 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
   return (
     <div>
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-4 transition-colors">
-        <ChevronDown className="w-4 h-4 rotate-90" /> Back
+          <button onClick={onBack} className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-4 transition-colors">
+        <ChevronDown className="w-4 h-4 rotate-90" /> {t('common.back')}
       </button>
 
       <div className="flex items-center gap-3 mb-6">
         <span className="text-3xl">{group.emoji}</span>
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold text-slate-900">{group.title}</h1>
-          <p className="text-xs text-slate-400">{currencySymbol(group.currency)} · {group.members?.length ?? 0} members</p>
+          <p className="text-xs text-slate-400">{currencySymbol(group.currency)} · {t('group.detail.memberCount', { count: group.members?.length ?? 0 })}</p>
         </div>
         <button onClick={() => setShowEditGroup(true)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
           <Pencil className="w-4 h-4" />
@@ -434,7 +434,7 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
           </select>
           <select value={filterPaidBy} onChange={e => setFilterPaidBy(e.target.value)} className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white">
             <option value="">{t('expense.list.allUsers')}</option>
-            {group.members?.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? 'Unknown'}</option>)}
+            {group.members?.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
           </select>
         </div>
         <button onClick={() => setShowCreate(true)}
@@ -458,7 +458,7 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
                     {tag && <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: tag.color + '20', color: tag.color }}>{tag.name}</span>}
                   </div>
                   <p className="text-xs text-slate-400">
-                    {e.paid_by_profile?.display_name ?? 'Unknown'} {t('expense.item.paidBy')} · {new Date(e.created_at).toLocaleDateString(locale)}
+                    {e.paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} · {new Date(e.created_at).toLocaleDateString(locale)}
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -559,7 +559,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
             className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
           >
             <option value="">{t('expense.create.paidBy')}</option>
-            {members.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? 'Unknown'}</option>)}
+            {members.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
           </select>
         </div>
         <div>
@@ -571,7 +571,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
                   onChange={e => setParticipants(e.target.checked ? [...participants, m.user_id] : participants.filter(id => id !== m.user_id))}
                   className="rounded border-slate-300 text-emerald-500 focus:ring-emerald-400"
                 />
-                <span className="text-sm text-slate-700">{m.display_name ?? 'Unknown'}</span>
+                <span className="text-sm text-slate-700">{m.display_name ?? t('common.unknown')}</span>
               </label>
             ))}
           </div>
@@ -602,6 +602,7 @@ function DeleteConfirm({ open, onClose, onDeleted, groupId, expense }: {
   open: boolean; onClose: () => void; onDeleted: () => void; groupId: string; expense: Expense | null
 }) {
   const ctx = useAppContext()
+  const t = useTranslations('apps.splitExpenses')
   const [deleting, setDeleting] = useState(false)
 
   async function handleDelete() {
@@ -614,13 +615,13 @@ function DeleteConfirm({ open, onClose, onDeleted, groupId, expense }: {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Delete expense">
-      <p className="text-sm text-slate-600 mb-4">Delete "{expense?.title}"?</p>
+    <Modal open={open} onClose={onClose} title={t('expense.delete.title')}>
+      <p className="text-sm text-slate-600 mb-4">{t('expense.delete.confirm', { title: expense?.title ?? '' })}</p>
       <div className="flex justify-end gap-2">
-        <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+        <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">{t('common.cancel')}</button>
         <button onClick={handleDelete} disabled={deleting}
           className="px-4 py-1.5 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 flex items-center gap-1.5"
-        >{deleting && <Loader2 className="w-3 h-3 animate-spin" />}Delete</button>
+        >{deleting && <Loader2 className="w-3 h-3 animate-spin" />}{t('common.delete')}</button>
       </div>
     </Modal>
   )
@@ -686,7 +687,7 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
       <div className="space-y-2 mb-6">
         {balances.map(b => (
           <div key={b.user_id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-100">
-            <span className="text-sm font-medium text-slate-700">{b.display_name ?? 'Unknown'}</span>
+            <span className="text-sm font-medium text-slate-700">{b.display_name ?? t('common.unknown')}</span>
             <span className={`text-sm font-semibold ${b.net_balance > 0 ? 'text-emerald-600' : b.net_balance < 0 ? 'text-red-500' : 'text-slate-400'}`}>
               {b.net_balance > 0
                 ? `${t('balance.isOwed')} ${formatAmount(b.net_balance, group.currency)}`
@@ -705,7 +706,7 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
             {transfers.map((tr, i) => (
               <div key={i} className="flex items-center gap-2 text-sm text-slate-600 p-2 bg-slate-50 rounded-lg">
                 <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                <span>{tr.from_name ?? 'Unknown'} {t('balance.pays')} {tr.to_name ?? 'Unknown'}</span>
+                <span>{tr.from_name ?? t('common.unknown')} {t('balance.pays')} {tr.to_name ?? t('common.unknown')}</span>
                 <span className="ml-auto font-semibold text-slate-900">{formatAmount(tr.amount, group.currency)}</span>
               </div>
             ))}
@@ -723,7 +724,7 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
         <p className="text-sm text-slate-600 mb-2">{t('balance.confirmMessage', { count: transfers.length })}</p>
         <div className="space-y-1 mb-4">
           {transfers.map((tr, i) => (
-            <p key={i} className="text-xs text-slate-500">{tr.from_name ?? 'Unknown'} → {tr.to_name ?? 'Unknown'}: {formatAmount(tr.amount, group.currency)}</p>
+            <p key={i} className="text-xs text-slate-500">{tr.from_name ?? t('common.unknown')} → {tr.to_name ?? t('common.unknown')}: {formatAmount(tr.amount, group.currency)}</p>
           ))}
         </div>
         <div className="flex justify-end gap-2">
@@ -737,11 +738,11 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
       <Modal open={showHistory} onClose={() => setShowHistory(false)} title={t('balance.history')}>
         <div className="space-y-2 max-h-80 overflow-y-auto">
           {settleHistory.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-4">No settlements yet</p>
+            <p className="text-sm text-slate-400 text-center py-4">{t('balance.noSettlements')}</p>
           ) : settleHistory.map((s: any) => (
             <div key={s.id} className="p-3 border border-slate-100 rounded-lg">
-              <p className="text-xs text-slate-400">{t('balance.settledOn')} {new Date(s.created_at).toLocaleDateString(locale)} {t('balance.by')} {s.settled_by_name ?? 'Unknown'}</p>
-              <p className="text-xs text-slate-500">{s.expense_count} expenses · {s.transfers?.length ?? 0} transfers</p>
+              <p className="text-xs text-slate-400">{t('balance.settledOn')} {new Date(s.created_at).toLocaleDateString(locale)} {t('balance.by')} {s.settled_by_name ?? t('common.unknown')}</p>
+              <p className="text-xs text-slate-500">{t('balance.expenseCount', { count: s.expense_count })} · {t('balance.transferCount', { count: s.transfers?.length ?? 0 })}</p>
             </div>
           ))}
         </div>
@@ -767,7 +768,7 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
       .then(data => {
         const list = Array.isArray(data) ? data : data?.data ?? []
         const existingIds = new Set(group.members?.map(m => m.user_id))
-        setGroupMembers(list.filter((m: { user_id: string }) => !existingIds.has(m.user_id)).map((m: { user_id: string; display_name?: string }) => ({ id: m.user_id, display_name: m.display_name ?? 'Unknown' })))
+        setGroupMembers(list.filter((m: { user_id: string }) => !existingIds.has(m.user_id)).map((m: { user_id: string; display_name?: string }) => ({ id: m.user_id, display_name: m.display_name ?? t('common.unknown') })))
       })
       .catch(() => {})
   }, [ctx.groupSlug, group.members])
@@ -811,7 +812,7 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
       <div className="space-y-2">
         {group.members?.map(m => (
           <div key={m.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-100">
-            <span className="text-sm font-medium text-slate-700 flex-1">{m.display_name ?? 'Unknown'}</span>
+            <span className="text-sm font-medium text-slate-700 flex-1">{m.display_name ?? t('common.unknown')}</span>
             <button onClick={() => handleToggle(m.id, !m.active)}
               className={`text-xs px-2 py-0.5 rounded-full ${m.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}
             >{m.active ? t('member.list.active') : t('member.list.inactive')}</button>
@@ -833,7 +834,7 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
                 {groupMembers.map(m => <option key={m.id} value={m.id}>{m.display_name}</option>)}
               </select>
               <div className="flex justify-end gap-2">
-                <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">{t('common.cancel')}</button>
                 <button onClick={handleAdd} disabled={adding || !selected}
                   className="px-4 py-1.5 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:opacity-50 flex items-center gap-1.5"
                 >{adding && <Loader2 className="w-3 h-3 animate-spin" />}{t('member.addModal.confirm')}</button>
