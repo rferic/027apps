@@ -163,7 +163,7 @@ interface Transfer { from_user: string; to_user: string; from_name: string | nul
 export default function SplitExpensesView() {
   const ctx = useAppContext()
   const locale = useLocale()
-  const t = useTranslations('apps.splitExpenses')
+  const t = useTranslations('apps.split-expenses')
 
   const [groups, setGroups] = useState<ExpenseGroup[]>([])
   const [loading, setLoading] = useState(true)
@@ -232,7 +232,7 @@ export default function SplitExpensesView() {
 
 function CreateGroupModal({ open, onClose, onCreated, editGroup }: { open: boolean; onClose: () => void; onCreated: () => void; editGroup?: GroupDetail }) {
   const ctx = useAppContext()
-  const t = useTranslations('apps.splitExpenses')
+  const t = useTranslations('apps.split-expenses')
   const [title, setTitle] = useState(editGroup?.title ?? '')
   const [emoji, setEmoji] = useState(editGroup?.emoji ?? '💰')
   const [currency, setCurrency] = useState(editGroup?.currency ?? 'EUR')
@@ -330,25 +330,39 @@ const TABS = ['expenses', 'balances', 'members', 'stats'] as const
 
 function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => void }) {
   const ctx = useAppContext()
-  const t = useTranslations('apps.splitExpenses')
+  const t = useTranslations('apps.split-expenses')
   const [group, setGroup] = useState<GroupDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<typeof TABS[number]>('expenses')
   const [showEditGroup, setShowEditGroup] = useState(false)
 
+  const [fetchError, setFetchError] = useState(false)
+
   async function fetchGroup() {
-    if (!ctx.groupSlug) return
+    if (!ctx.groupSlug) { setLoading(false); return }
     setLoading(true)
+    setFetchError(false)
     try {
       const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}`)
       if (res.ok) setGroup(await res.json())
-    } catch {} finally { setLoading(false) }
+      else setFetchError(true)
+    } catch { setFetchError(true) }
+    finally { setLoading(false) }
   }
 
   useEffect(() => { fetchGroup() }, [groupId, ctx.groupSlug])
 
-  if (loading || !group) {
+  if (loading) {
     return <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
+  }
+
+  if (fetchError || !group) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-sm text-slate-400 mb-4">{t('group.detail.noGroup')}</p>
+        <button onClick={onBack} className="text-sm text-emerald-600 hover:underline">{t('common.back')}</button>
+      </div>
+    )
   }
 
   return (
@@ -391,7 +405,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }) {
   const ctx = useAppContext()
   const locale = useLocale()
-  const t = useTranslations('apps.splitExpenses')
+  const t = useTranslations('apps.split-expenses')
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [loading, setLoading] = useState(true)
@@ -494,7 +508,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
   groupId: string; members: Member[]; tags: Tag[]; currency: string; editExpense?: Expense | null;
 }) {
   const ctx = useAppContext()
-  const t = useTranslations('apps.splitExpenses')
+  const t = useTranslations('apps.split-expenses')
   const [title, setTitle] = useState(editExpense?.title ?? '')
   const [amount, setAmount] = useState(editExpense?.amount?.toString() ?? '')
   const [paidBy, setPaidBy] = useState(editExpense?.paid_by ?? '')
@@ -602,7 +616,7 @@ function DeleteConfirm({ open, onClose, onDeleted, groupId, expense }: {
   open: boolean; onClose: () => void; onDeleted: () => void; groupId: string; expense: Expense | null
 }) {
   const ctx = useAppContext()
-  const t = useTranslations('apps.splitExpenses')
+  const t = useTranslations('apps.split-expenses')
   const [deleting, setDeleting] = useState(false)
 
   async function handleDelete() {
@@ -632,7 +646,7 @@ function DeleteConfirm({ open, onClose, onDeleted, groupId, expense }: {
 function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }) {
   const ctx = useAppContext()
   const locale = useLocale()
-  const t = useTranslations('apps.splitExpenses')
+  const t = useTranslations('apps.split-expenses')
   const [balances, setBalances] = useState<Balance[]>([])
   const [transfers, setTransfers] = useState<Transfer[]>([])
   const [loading, setLoading] = useState(true)
@@ -755,7 +769,7 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
 
 function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: GroupDetail; onUpdate: () => void }) {
   const ctx = useAppContext()
-  const t = useTranslations('apps.splitExpenses')
+  const t = useTranslations('apps.split-expenses')
   const [showAdd, setShowAdd] = useState(false)
   const [groupMembers, setGroupMembers] = useState<{ id: string; display_name: string }[]>([])
   const [adding, setAdding] = useState(false)
@@ -851,7 +865,7 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
 
 function StatsTab({ groupId }: { groupId: string }) {
   const ctx = useAppContext()
-  const t = useTranslations('apps.splitExpenses')
+  const t = useTranslations('apps.split-expenses')
   const [period, setPeriod] = useState('month')
   const [tagId, setTagId] = useState('')
   const [mode, setMode] = useState<'byPeriod' | 'cumulative'>('byPeriod')

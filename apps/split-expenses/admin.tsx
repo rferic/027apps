@@ -69,12 +69,12 @@ export default function SplitExpensesAdmin() {
 
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h2 className="text-lg font-bold text-slate-900">{t('title')}</h2>
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('searchPlaceholder')}
-            className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 w-48"
+            className="w-full sm:w-48 pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
           />
         </div>
       </div>

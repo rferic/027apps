@@ -20,7 +20,7 @@ function currencySymbol(code: string): string {
 export default function SplitExpensesWidget() {
   const ctx = useAppContext()
   const locale = useLocale()
-  const t = useTranslations('apps.splitExpenses')
+  const t = useTranslations('apps.split-expenses')
   const [loading, setLoading] = useState(true)
   const [myBalance, setMyBalance] = useState<BalanceWidget | null>(null)
   const [totalOwed, setTotalOwed] = useState(0)
