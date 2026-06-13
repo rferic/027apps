@@ -13,7 +13,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const description = typeof body.description === 'string' ? body.description : ''
   const visibility = body.visibility === 'private' ? 'private' : 'public'
   const priority = ['low', 'medium', 'high', 'urgent'].includes(body.priority as string) ? body.priority : 'medium'
-  const categoryId = typeof body.category_id === 'string' ? body.category_id : null
+  const categoryId = typeof body.category_id === 'string' && body.category_id !== '' ? body.category_id : null
   const dueDate = typeof body.due_date === 'string' ? body.due_date : null
   let assignedTo: string | null = null
   if (visibility === 'private') {

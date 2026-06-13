@@ -467,7 +467,7 @@ export default function TodoView() {
     try {
       log('🧪 Iniciando tests...')
 
-      const catId = categories.find(c => c.name === 'Task')?.id || categories[0]?.id || ''
+      const catId = categories.find(c => c.name === 'Task')?.id || categories[0]?.id || null
       const createRes = await api('/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
