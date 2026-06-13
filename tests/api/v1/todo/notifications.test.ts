@@ -136,50 +136,51 @@ describe('notifyGroupStatusChange', () => {
 
 describe('PUT route notification logic (unit)', () => {
   it('should skip assigned notification when actor equals assignee', () => {
-    const shouldNotify = 'user-1' !== null && 'user-1' !== 'user-1'
-    expect(shouldNotify).toBe(false)
+    const actorId: string = 'user-1'
+    const newAssignee: string = 'user-1'
+    expect(newAssignee !== null && newAssignee !== actorId).toBe(false)
   })
 
   it('should notify when actor differs from assignee', () => {
-    const shouldNotify = 'user-2' !== null && 'user-2' !== 'user-1'
-    expect(shouldNotify).toBe(true)
+    const actorId: string = 'user-1'
+    const newAssignee: string = 'user-2'
+    expect(newAssignee !== null && newAssignee !== actorId).toBe(true)
   })
 
   it('should skip when assigned_to unchanged', () => {
-    const shouldNotify = 'user-2' !== 'user-2' && 'user-2' !== 'user-1'
-    expect(shouldNotify).toBe(false)
+    const current: string = 'user-2'
+    const newVal: string = 'user-2'
+    const otherUser: string = 'user-1'
+    expect(newVal !== current && newVal !== otherUser).toBe(false)
   })
 
   it('should notify group on public task status change', () => {
-    const changed = 'done' !== 'pending'
+    const changed = true
     const isPublic = true
     expect(changed && isPublic).toBe(true)
   })
 
   it('should notify owner on private task change (actor ≠ owner)', () => {
-    const changed = 'done' !== 'pending'
-    const isPrivate = true
-    const ownerDiffers = 'owner-1' !== 'admin-1'
-    expect(changed && isPrivate && ownerDiffers).toBe(true)
+    const ownerDiffers = true
+    expect(true && true && ownerDiffers).toBe(true)
   })
 
   it('should NOT notify owner on private task when actor IS owner', () => {
-    const changed = 'done' !== 'pending'
-    const isPrivate = true
-    const ownerDiffers = 'owner-1' !== 'owner-1'
-    expect(changed && isPrivate && ownerDiffers).toBe(false)
+    const ownerDiffers = false
+    expect(true && true && ownerDiffers).toBe(false)
   })
 })
 
 describe('POST validation', () => {
   it('converts empty category_id to null', () => {
-    const body = { category_id: '' }
-    const result = typeof body.category_id === 'string' && body.category_id !== '' ? body.category_id : null
+    const bodyCat = ''
+    const result = typeof bodyCat === 'string' && bodyCat !== '' ? bodyCat : null
     expect(result).toBeNull()
   })
 
   it('keeps valid category_id', () => {
-    const result = typeof 'abc' === 'string' && 'abc' !== '' ? 'abc' : null
+    const bodyCat: string = 'abc'
+    const result = typeof bodyCat === 'string' && bodyCat !== '' ? bodyCat : null
     expect(result).toBe('abc')
   })
 })
