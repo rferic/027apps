@@ -750,7 +750,27 @@
       "sort_upcoming": "Próximo",
       "sort_alpha": "Alfabético",
       "sort_updated": "Actualizado",
-      "delete_series": "Eliminar todas las futuras"
+      "delete_series": "Eliminar todas las futuras",
+      "emails": {
+        "assigned": {
+          "subject": "[027Apps] Task assigned: {title}",
+          "preview": "You have been assigned a task: {title}",
+          "heading": "Task assigned to you",
+          "body": "{assignedBy} assigned you a task in {groupName}:",
+          "view_task": "View task",
+          "sent_from": "Sent from {appName}",
+          "rights": "© {year} {appName}. All rights reserved."
+        },
+        "status_change": {
+          "subject": "[027Apps] Task status changed: {title}",
+          "preview": "Task status changed: {title}",
+          "heading": "Task status updated",
+          "body": "A task in {groupName} has changed status:",
+          "view_task": "View task",
+          "sent_from": "Sent from {appName}",
+          "rights": "© {year} {appName}. All rights reserved."
+        }
+      }
     },
     "permissions": {
       "title": "Acceso",

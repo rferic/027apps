@@ -734,7 +734,27 @@
       "sort_oldest": "Oldest",
       "sort_upcoming": "Closest first",
       "sort_alpha": "Alphabetical",
-      "sort_updated": "Last updated"
+      "sort_updated": "Last updated",
+      "emails": {
+        "assigned": {
+          "subject": "[027Apps] Task assigned: {title}",
+          "preview": "You have been assigned a task: {title}",
+          "heading": "Task assigned to you",
+          "body": "{assignedBy} assigned you a task in {groupName}:",
+          "view_task": "View task",
+          "sent_from": "Sent from {appName}",
+          "rights": "© {year} {appName}. All rights reserved."
+        },
+        "status_change": {
+          "subject": "[027Apps] Task status changed: {title}",
+          "preview": "Task status changed: {title}",
+          "heading": "Task status updated",
+          "body": "A task in {groupName} has changed status:",
+          "view_task": "View task",
+          "sent_from": "Sent from {appName}",
+          "rights": "© {year} {appName}. All rights reserved."
+        }
+      }
     },
     "permissions": {
       "title": "Access",

@@ -15,6 +15,12 @@ interface TodoStatusChangeEmailProps {
   newStatus: string
   todoUrl: string
   appName?: string
+  previewText?: string
+  headingText?: string
+  bodyText?: string
+  viewTaskText?: string
+  sentFromText?: string
+  rightsText?: string
 }
 
 const year = new Date().getFullYear()
@@ -26,11 +32,17 @@ export function TodoStatusChangeEmail({
   newStatus,
   todoUrl,
   appName = '027Apps',
+  previewText = 'Task status changed: ' + taskTitle,
+  headingText = 'Task status updated',
+  bodyText = 'A task in {groupName} has changed status:',
+  viewTaskText = 'View task',
+  sentFromText = 'Sent from {appName}',
+  rightsText = '© {year} {appName}. All rights reserved.',
 }: TodoStatusChangeEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>Task status changed: {taskTitle}</Preview>
+      <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
           <table cellPadding="0" cellSpacing="0" style={tableInner}>
@@ -42,7 +54,7 @@ export function TodoStatusChangeEmail({
             </tr>
             <tr>
               <td align="center" style={headingSection}>
-                <span style={heading}>Task status updated</span>
+                <span style={heading}>{headingText}</span>
               </td>
             </tr>
             <tr>
@@ -50,7 +62,7 @@ export function TodoStatusChangeEmail({
                 <table cellPadding="0" cellSpacing="0" style={cardTable}>
                   <tr>
                     <td align="center" style={cardPadding}>
-                      <span style={inviterText}>A task in {groupName} has changed status:</span>
+                      <span style={inviterText}>{bodyText.replace('{groupName}', groupName)}</span>
                       <table cellPadding="0" cellSpacing="0" align="center">
                         <tr><td style={groupBadge}><span style={groupBadgeText}>{taskTitle}</span></td></tr>
                       </table>
@@ -63,15 +75,15 @@ export function TodoStatusChangeEmail({
             <tr>
               <td align="center" style={ctaSection}>
                 <table cellPadding="0" cellSpacing="0" align="center">
-                  <tr><td style={buttonWrapper}><Link href={todoUrl} style={button}>View task</Link></td></tr>
+                  <tr><td style={buttonWrapper}><Link href={todoUrl} style={button}>{viewTaskText}</Link></td></tr>
                 </table>
               </td>
             </tr>
             <tr><td style={hrSection}><table cellPadding="0" cellSpacing="0" style={hrTable}><tr><td style={hrLine}>&nbsp;</td></tr></table></td></tr>
             <tr>
               <td align="center" style={footerSection}>
-                <span style={footerText}>Sent from {appName}</span><br />
-                <span style={footerCopyright}>&copy; {year} {appName}. All rights reserved.</span>
+                <span style={footerText}>{sentFromText.replace('{appName}', appName)}</span><br />
+                <span style={footerCopyright}>{rightsText.replace('{year}', String(year)).replace('{appName}', appName)}</span>
               </td>
             </tr>
           </table>
