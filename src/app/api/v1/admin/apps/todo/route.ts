@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
+import { notifyAssigned, notifyStatusChange } from '@/lib/use-cases/todo/notifications'
 
 export async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
@@ -29,6 +30,10 @@ export async function PUT(req: NextRequest) {
   const id = body.id as string
   if (!id) return apiError('BAD_REQUEST', 'Missing id', 400)
 
+  const adminClient = createAdminClientUntyped()
+  const { data: existing } = await adminClient.from('todo_items').select('*').eq('id', id).single()
+  if (!existing) return apiError('NOT_FOUND', 'Item not found', 404)
+
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (typeof body.title === 'string') update.title = body.title
   if (body.description !== undefined) update.description = body.description
@@ -38,9 +43,22 @@ export async function PUT(req: NextRequest) {
   if (body.due_date !== undefined) update.due_date = typeof body.due_date === 'string' ? body.due_date : null
   if (body.assigned_to !== undefined) update.assigned_to = typeof body.assigned_to === 'string' ? body.assigned_to : null
 
-  const adminClient = createAdminClientUntyped()
   const { data, error } = await adminClient.from('todo_items').update(update).eq('id', id).select().single()
   if (error) return apiError('UPDATE_FAILED', error.message, 500)
+
+  // Fire notifications
+  const reqUserId = auth.userId
+  if (update.assigned_to && update.assigned_to !== existing.assigned_to && update.assigned_to !== reqUserId) {
+    void notifyAssigned(id, data.title as string, update.assigned_to as string, 'Admin', 'admin', 'Admin')
+  }
+  if (update.status && update.status !== existing.status) {
+    if (existing.visibility === 'public' && existing.assigned_to && existing.assigned_to !== reqUserId) {
+      void notifyStatusChange(id, data.title as string, existing.assigned_to as string, existing.status as string, update.status as string, 'admin', 'Admin')
+    } else if (existing.visibility === 'private' && existing.created_by && existing.created_by !== reqUserId) {
+      void notifyStatusChange(id, data.title as string, existing.created_by as string, existing.status as string, update.status as string, 'admin', 'Admin')
+    }
+  }
+
   return apiOk(data)
 }
 
@@ -53,6 +71,10 @@ export async function DELETE(req: NextRequest) {
   if (!id) return apiError('BAD_REQUEST', 'Missing id parameter', 400)
 
   const adminClient = createAdminClientUntyped()
+
+  const { data: existing } = await adminClient.from('todo_items').select('*').eq('id', id).single()
+  if (!existing) return apiError('NOT_FOUND', 'Item not found', 404)
+
   const deleteSeries = new URL(req.url).searchParams.get('delete_series') === 'true'
 
   if (deleteSeries) {
@@ -67,5 +89,14 @@ export async function DELETE(req: NextRequest) {
     const { error } = await adminClient.from('todo_items').delete().eq('id', id)
     if (error) return apiError('DELETE_FAILED', error.message, 500)
   }
+
+  // Notify
+  const reqUserId = auth.userId
+  if (existing.visibility === 'public' && existing.assigned_to && existing.assigned_to !== reqUserId) {
+    void notifyStatusChange(id, existing.title as string, existing.assigned_to as string, existing.status as string, 'deleted', 'admin', 'Admin')
+  } else if (existing.visibility === 'private' && existing.created_by && existing.created_by !== reqUserId) {
+    void notifyStatusChange(id, existing.title as string, existing.created_by as string, existing.status as string, 'deleted', 'admin', 'Admin')
+  }
+
   return new Response(null, { status: 204 })
 }

@@ -73,11 +73,17 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   // Fire notifications (best-effort, don't block response)
   const urlSegments = new URL(req.url).pathname.split('/')
   const groupSlug = urlSegments[4] ?? ''
-  if (update.assigned_to && update.assigned_to !== existing.assigned_to) {
+  const reqUserId = ctx.userId
+
+  if (update.assigned_to && update.assigned_to !== existing.assigned_to && update.assigned_to !== reqUserId) {
     void notifyAssigned(id, item.title as string, update.assigned_to as string, 'Someone', groupSlug, groupSlug)
   }
-  if (update.status && update.status !== existing.status && existing.assigned_to) {
-    void notifyStatusChange(id, item.title as string, existing.assigned_to as string, existing.status as string, update.status as string, groupSlug, groupSlug)
+  if (update.status && update.status !== existing.status) {
+    if (existing.visibility === 'public' && existing.assigned_to && existing.assigned_to !== reqUserId) {
+      void notifyStatusChange(id, item.title as string, existing.assigned_to as string, existing.status as string, update.status as string, groupSlug, groupSlug)
+    } else if (existing.visibility === 'private' && existing.created_by && existing.created_by !== reqUserId) {
+      void notifyStatusChange(id, item.title as string, existing.created_by as string, existing.status as string, update.status as string, groupSlug, groupSlug)
+    }
   }
 
   return apiOk(item)
