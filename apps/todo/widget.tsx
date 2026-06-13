@@ -15,6 +15,13 @@ interface TodoItem {
   category_id: string | null
 }
 
+interface Category {
+  id: string
+  name: string
+  emoji: string
+  color: string
+}
+
 const PRIORITY_COLORS: Record<string, string> = {
   urgent: '#EF4444',
   high: '#F97316',
@@ -22,37 +29,47 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: '#6B7280',
 }
 
-const PRIORITY_ICONS: Record<string, typeof AlertTriangle> = {
-  urgent: AlertTriangle,
-  high: AlertTriangle,
-  medium: Clock,
-  low: Clock,
-}
-
-function PriorityBadge({ priority }: { priority: string }) {
+function PriorityBadge({ priority, label }: { priority: string; label: string }) {
   const color = PRIORITY_COLORS[priority] ?? '#6B7280'
   return (
-    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: color + '20', color }}>
-      {priority}
+    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: color + '20', color }}>
+      {label}
     </span>
   )
 }
 
+function formatWidgetDate(d: string | null, t: ReturnType<typeof useTranslations<'apps.todo'>>): string {
+  if (!d) return t('no_date')
+  const date = new Date(d)
+  const now = new Date()
+  if (date.toDateString() === now.toDateString()) return t('today')
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+  const isOverdue = date < now
+  return (isOverdue ? '⚠ ' : '') + date.toLocaleDateString(undefined, opts)
+}
+
 export default function TodoWidget() {
   const ctx = useAppContext()
-  const groupSlug = ctx.groupSlug ?? (
-    typeof window !== 'undefined'
-      ? window.location.pathname.split('/')[2] ?? null
-      : null
-  )
+  const [mounted, setMounted] = useState(false)
   const locale = useLocale()
   const t = useTranslations('apps.todo')
   const [myTasks, setMyTasks] = useState<TodoItem[]>([])
   const [groupTasks, setGroupTasks] = useState<TodoItem[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [refresh, setRefresh] = useState(0)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  const groupSlug = mounted
+    ? (ctx.groupSlug ?? window.location.pathname.split('/')[2] ?? null)
+    : null
+
+  const catMap = new Map(categories.map(c => [c.id, c]))
 
   useEffect(() => {
+    if (!mounted) return
     if (!groupSlug) { setLoading(false); return }
 
     const abort = new AbortController()
@@ -60,11 +77,13 @@ export default function TodoWidget() {
     Promise.all([
       fetch(`/api/v1/${groupSlug}/apps/todo/widget/my`, { credentials: 'include', signal: abort.signal }).then(r => r.ok ? r.json() : []),
       fetch(`/api/v1/${groupSlug}/apps/todo/widget/group`, { credentials: 'include', signal: abort.signal }).then(r => r.ok ? r.json() : []),
+      fetch(`/api/v1/${groupSlug}/apps/todo/categories`, { credentials: 'include', signal: abort.signal }).then(r => r.ok ? r.json() : Promise.resolve([])).then(data => Array.isArray(data) ? data : (data?.data ?? [])),
     ])
-      .then(([my, group]) => {
+      .then(([my, group, cats]) => {
         if (abort.signal.aborted) return
         setMyTasks(Array.isArray(my) ? my : [])
         setGroupTasks(Array.isArray(group) ? group : [])
+        setCategories(cats as Category[])
         setLoading(false)
       })
       .catch(() => {
@@ -72,7 +91,17 @@ export default function TodoWidget() {
       })
 
     return () => abort.abort()
-  }, [groupSlug])
+  }, [groupSlug, refresh])
+
+  async function handleTake(id: string) {
+    await fetch(`/api/v1/${groupSlug}/apps/todo/items/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigned_to: 'self' }),
+      credentials: 'include',
+    })
+    setRefresh(r => r + 1)
+  }
 
   if (!groupSlug) {
     return <div className="p-4 text-center text-xs text-slate-400">{t('widget.not_available')}</div>
@@ -114,12 +143,25 @@ export default function TodoWidget() {
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t('widget.my_tasks')}</span>
           </div>
           <div className="space-y-1.5">
-            {myTasks.map(item => (
-              <div key={item.id} className="flex items-center justify-between text-sm">
-                <span className="text-slate-600 truncate flex-1 mr-2 max-w-[65%]">{item.title}</span>
-                <PriorityBadge priority={item.priority} />
-              </div>
-            ))}
+            {myTasks.map(item => {
+              const cat = item.category_id ? catMap.get(item.category_id) : null
+              return (
+                <div key={item.id} className="flex items-center justify-between text-sm gap-2">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-slate-600 truncate block">{item.title}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {cat && (
+                        <span className="text-[10px] px-1 py-0.5 rounded" style={{ backgroundColor: cat.color + '20', color: cat.color }}>{cat.emoji} {cat.name}</span>
+                      )}
+                      {item.due_date && (
+                        <span className={`text-[10px] ${new Date(item.due_date) < new Date() ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatWidgetDate(item.due_date, t)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <PriorityBadge priority={item.priority} label={t('priority_' + item.priority)} />
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -132,12 +174,28 @@ export default function TodoWidget() {
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t('widget.group_tasks')}</span>
           </div>
           <div className="space-y-1.5">
-            {groupTasks.map(item => (
-              <div key={item.id} className="flex items-center justify-between text-sm">
-                <span className="text-slate-600 truncate flex-1 mr-2 max-w-[65%]">{item.title}</span>
-                <PriorityBadge priority={item.priority} />
-              </div>
-            ))}
+            {groupTasks.map(item => {
+              const cat = item.category_id ? catMap.get(item.category_id) : null
+              return (
+                <div key={item.id} className="flex items-center justify-between text-sm gap-2">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-slate-600 truncate block">{item.title}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {cat && (
+                        <span className="text-[10px] px-1 py-0.5 rounded" style={{ backgroundColor: cat.color + '20', color: cat.color }}>{cat.emoji} {cat.name}</span>
+                      )}
+                      {item.due_date && (
+                        <span className={`text-[10px] ${new Date(item.due_date) < new Date() ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatWidgetDate(item.due_date, t)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <PriorityBadge priority={item.priority} label={t('priority_' + item.priority)} />
+                    <button onClick={() => handleTake(item.id)} className="text-[10px] font-medium text-indigo-500 hover:text-indigo-700">{t('assign_to_me')}</button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

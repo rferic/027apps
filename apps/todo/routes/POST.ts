@@ -13,11 +13,21 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const description = typeof body.description === 'string' ? body.description : ''
   const visibility = body.visibility === 'private' ? 'private' : 'public'
   const priority = ['low', 'medium', 'high', 'urgent'].includes(body.priority as string) ? body.priority : 'medium'
-  const categoryId = typeof body.category_id === 'string' ? body.category_id : null
+  const categoryId = typeof body.category_id === 'string' && body.category_id !== '' ? body.category_id : null
   const dueDate = typeof body.due_date === 'string' ? body.due_date : null
-  const assignedTo = visibility === 'public' && typeof body.assigned_to === 'string' ? body.assigned_to : null
+  let assignedTo: string | null = null
+  if (visibility === 'private') {
+    assignedTo = ctx.userId ?? null
+  } else if (visibility === 'public' && typeof body.assigned_to === 'string' && body.assigned_to !== '') {
+    assignedTo = body.assigned_to === 'self' ? (ctx.userId ?? null) : body.assigned_to
+  }
+  const repeatInterval = ['weekly', 'monthly', 'yearly'].includes(body.repeat_interval as string) ? body.repeat_interval as string : null
+  const repeatEndDate = typeof body.repeat_end_date === 'string' ? body.repeat_end_date : null
 
   const db = createAdminClientUntyped()
+
+  if (!ctx.groupId || ctx.groupId === '') return apiError('VALIDATION_ERROR', 'Invalid group', 400)
+  if (!ctx.userId) return apiError('UNAUTHORIZED', 'User not authenticated', 401)
 
   const { data: item, error } = await db.from('todo_items').insert({
     group_id: ctx.groupId,
@@ -30,6 +40,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     assigned_to: assignedTo,
     created_by: ctx.userId,
     due_date: dueDate,
+    repeat_interval: repeatInterval,
+    repeat_end_date: repeatEndDate,
   }).select().single()
 
   if (error) return apiError('CREATE_FAILED', error.message, 500)

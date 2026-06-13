@@ -1,11 +1,11 @@
 ---
 title: To-Do App
-description: Simple task list — create, complete, and remove to-do items.
+description: Task management app with categories, priorities, assignments, and notifications.
 ---
 
 # To-Do App
 
-A minimal task management app for individuals within a group. Each user manages their own private list of to-do items.
+A full-featured task management app for groups. Tasks can be public (visible to all group members) or private (visible only to the creator). Supports categories, priorities, due dates, assignments, and email notifications.
 
 ## Prerequisites
 
@@ -16,24 +16,27 @@ A minimal task management app for individuals within a group. Each user manages 
 
 Install from the admin panel at `/admin/apps`. The system will:
 
-1. Create the `todo_items` table with RLS policies
+1. Create the `todo_items`, `todo_categories`, and `todo_notification_prefs` tables with RLS policies
 2. Enable per-user row isolation automatically
 
-## Configuration
+## Features
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `max_items` | number | 50 | Maximum tasks per user (1–1000) |
+- **Public/Private tasks** — Public tasks are visible to all group members; private tasks are only visible to the creator
+- **Assignment** — Public tasks can be assigned to any group member. Tasks are unassigned when a member leaves the group
+- **Categories** — Global categories with emoji + color, managed by admins
+- **Priorities** — `urgent`, `high`, `medium`, `low` with visual indicators
+- **Due dates** — Optional due dates with overdue highlighting
+- **Email notifications** — Configurable per-user: on assignment, on status change
+- **Dashboard widgets** — "My tasks" and "Group tasks" widgets
 
 ## Views
 
 | View | URL | Description |
 |------|-----|-------------|
-| Public | `/apps/todo` | Full task list with add/complete/delete |
-| Admin | `/admin/apps/todo` | Read-only view of all users' tasks |
-| Widget | Dashboard | Pending count + 3 most recent tasks |
-| Native | Mobile screen | Full task list with FlatList |
+| Public | `/apps/todo` | Full task list with tabs, filters, create/edit/delete |
+| Admin | `/admin/apps/todo` | Category management + all tasks overview |
+| Widget | Dashboard | My tasks & unassigned group tasks with "Take" button |
 
 ## Uninstallation
 
-Uninstalling removes the `todo_items` table and **all associated data permanently**.
+Uninstalling removes all TODO tables and associated data permanently.

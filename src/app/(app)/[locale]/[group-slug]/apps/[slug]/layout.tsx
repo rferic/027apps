@@ -68,7 +68,9 @@ export default async function AppSlugLayout({ children, params }: Props) {
   return (
     <AppTheme primaryColor={manifest.primaryColor} secondaryColor={manifest.secondaryColor}>
       <AppProvider slug={slug} manifest={manifest} config={resolvedConfig} groupId={groupCtx.id} groupSlug={groupSlug}>
-        {children}
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 max-w-6xl mx-auto my-4">
+          {children}
+        </div>
       </AppProvider>
     </AppTheme>
   )

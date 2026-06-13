@@ -63,6 +63,7 @@ export default async function AdminLayout({ children, params }: Props) {
         // skip apps with invalid manifests
       }
     }
+    sidebarApps.sort((a, b) => a.name.localeCompare(b.name))
   }
 
   return (
@@ -74,8 +75,10 @@ export default async function AdminLayout({ children, params }: Props) {
           <AdminHeader displayName={displayName} locale={locale} />
           <div className="flex flex-1 overflow-hidden">
             <AdminSidebar locale={locale} initialCollapsed={sidebarCollapsed} apps={sidebarApps} />
-            <main className="flex-1 overflow-y-auto">
-              {children}
+            <main className="flex-1 overflow-y-auto p-4 md:p-6">
+              <div className="bg-white rounded-xl border border-slate-100 shadow-sm max-w-5xl mx-auto">
+                {children}
+              </div>
             </main>
           </div>
         </div>
