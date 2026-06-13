@@ -458,6 +458,7 @@ export default function TodoView() {
   }
 
   async function runDebugTests() {
+    if (!groupSlug) { setDebugResults(['❌ No group context available']); setDebugRunning(false); return }
     setDebugRunning(true)
     setDebugResults([])
     const log = (msg: string) => setDebugResults(r => [...r, msg])
@@ -845,10 +846,18 @@ export default function TodoView() {
           <Bug size={10} /> {debugRunning ? 'Running...' : 'Run debug tests'}
         </button>
         {debugResults.length > 0 && (
-          <div className="mt-2 space-y-0.5">
-            {debugResults.map((r, i) => (
-              <p key={i} className="text-[10px] font-mono text-slate-400">{r}</p>
-            ))}
+          <div className="mt-2">
+            <div className="space-y-0.5 mb-2">
+              {debugResults.map((r, i) => (
+                <p key={i} className="text-[10px] font-mono text-slate-400">{r}</p>
+              ))}
+            </div>
+            <button
+              onClick={() => navigator.clipboard.writeText(debugResults.join('\n'))}
+              className="text-[10px] text-slate-400 hover:text-slate-600 underline"
+            >
+              Copy results
+            </button>
           </div>
         )}
       </div>

@@ -26,6 +26,9 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const db = createAdminClientUntyped()
 
+  if (!ctx.groupId || ctx.groupId === '') return apiError('VALIDATION_ERROR', 'Invalid group', 400)
+  if (!ctx.userId) return apiError('UNAUTHORIZED', 'User not authenticated', 401)
+
   const { data: item, error } = await db.from('todo_items').insert({
     group_id: ctx.groupId,
     title,
