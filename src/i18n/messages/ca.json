@@ -603,6 +603,19 @@
       "delete_category_delete_all": "Delete tasks & category",
       "delete_category_keep_tasks": "Only delete category",
       "filter_group": "Grup"
+    },
+    "splitExpenses": {
+      "title": "Split Expenses Admin",
+      "searchPlaceholder": "Search...",
+      "empty": "No expense groups found",
+      "loadError": "Failed to load groups",
+      "deleteConfirm": "Delete this expense group and all its data?",
+      "deleted": "Deleted",
+      "deleteError": "Failed to delete",
+      "groupLabel": "Group: {id}… · {currency}",
+      "expensesLabel": "Expenses",
+      "noExpenses": "No expenses",
+      "settledBadge": "settled"
     }
   },
   "invite": {

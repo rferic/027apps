@@ -1,5 +1,5 @@
 {
-  "description": "Split expenses in groups with debt optimization.",
+  "description": "Teilen Sie Ausgaben in der Gruppe mit Schuldenoptimierung.",
   "group": {
     "list": {
       "title": "Expense Groups",
@@ -9,7 +9,7 @@
       "youAreOwed": "You are owed",
       "settled": "All settled",
       "totalBalance": "Total balance",
-      "memberCount": "{count} members"
+      "memberCount": "{count, plural, one {# Mitglied} other {# Mitglieder}}"
     },
     "create": {
       "title": "New expense group",
@@ -33,7 +33,7 @@
         "import": "Import"
       },
       "noGroup": "Expense group not found",
-      "memberCount": "{count, plural, one {# member} other {# members}}"
+      "memberCount": "{count, plural, one {# Mitglied} other {# Mitglieder}}"
     }
   },
   "expense": {
@@ -71,9 +71,9 @@
       "settled": "Settled"
     },
     "delete": {
-      "title": "Delete expense",
-      "confirm": "Delete \"{title}\"?",
-      "deleting": "Deleting..."
+      "title": "Ausgabe löschen",
+      "confirm": "\"{title}\" löschen?",
+      "deleting": "Löschen..."
     }
   },
   "balance": {
@@ -99,9 +99,9 @@
     "history": "Settlement history",
     "settledOn": "Settled on",
     "by": "by",
-    "noSettlements": "No settlements yet",
-    "expenseCount": "{count, plural, one {# expense} other {# expenses}}",
-    "transferCount": "{count, plural, one {# transfer} other {# transfers}}"
+    "noSettlements": "Keine Abrechnungen",
+    "expenseCount": "{count, plural, one {# Ausgabe} other {# Ausgaben}}",
+    "transferCount": "{count, plural, one {# Überweisung} other {# Überweisungen}}"
   },
   "member": {
     "list": {
@@ -227,16 +227,16 @@
     "errors": "Errors"
   },
   "common": {
-    "back": "Back",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "confirm": "Confirm",
-    "unknown": "Unknown",
-    "members": "members"
+    "back": "Zurück",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "confirm": "Bestätigen",
+    "unknown": "Unbekannt",
+    "members": "Mitglieder"
   },
   "widget": {
-    "error": "Could not load",
-    "allSettled": "All settled up!",
-    "viewDetails": "View details"
+    "error": "Konnte nicht laden",
+    "allSettled": "Alles beglichen!",
+    "viewDetails": "Details anzeigen"
   }
 }
