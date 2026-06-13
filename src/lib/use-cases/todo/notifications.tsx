@@ -57,6 +57,17 @@ export async function notifyStatusChange(todoId: string, todoTitle: string, assi
   })
 }
 
+export async function notifyGroupStatusChange(todoId: string, todoTitle: string, groupId: string, oldStatus: string, newStatus: string, groupSlug: string, groupName: string, excludeUserId?: string) {
+  const db = createAdminClientUntyped()
+  const { data: members } = await db.from('group_members').select('user_id').eq('group_id', groupId)
+  if (!members || members.length === 0) return
+
+  const targets = excludeUserId ? members.filter(m => m.user_id !== excludeUserId) : members
+  for (const m of targets) {
+    void notifyStatusChange(todoId, todoTitle, m.user_id, oldStatus, newStatus, groupSlug, groupName)
+  }
+}
+
 async function getUserEmail(userId: string): Promise<{ email: string } | null> {
   const supabase = createAdminClientUntyped()
   const { data } = await supabase.auth.admin.getUserById(userId)

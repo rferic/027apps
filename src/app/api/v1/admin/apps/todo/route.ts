@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
-import { notifyAssigned, notifyStatusChange } from '@/lib/use-cases/todo/notifications'
+import { notifyAssigned, notifyStatusChange, notifyGroupStatusChange } from '@/lib/use-cases/todo/notifications'
 
 export async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
@@ -52,8 +52,8 @@ export async function PUT(req: NextRequest) {
     void notifyAssigned(id, data.title as string, update.assigned_to as string, 'Admin', 'admin', 'Admin')
   }
   if (update.status && update.status !== existing.status) {
-    if (existing.visibility === 'public' && existing.assigned_to && existing.assigned_to !== reqUserId) {
-      void notifyStatusChange(id, data.title as string, existing.assigned_to as string, existing.status as string, update.status as string, 'admin', 'Admin')
+    if (existing.visibility === 'public') {
+      void notifyGroupStatusChange(id, data.title as string, existing.group_id as string, existing.status as string, update.status as string, 'admin', 'Admin', reqUserId)
     } else if (existing.visibility === 'private' && existing.created_by && existing.created_by !== reqUserId) {
       void notifyStatusChange(id, data.title as string, existing.created_by as string, existing.status as string, update.status as string, 'admin', 'Admin')
     }
@@ -92,8 +92,8 @@ export async function DELETE(req: NextRequest) {
 
   // Notify
   const reqUserId = auth.userId
-  if (existing.visibility === 'public' && existing.assigned_to && existing.assigned_to !== reqUserId) {
-    void notifyStatusChange(id, existing.title as string, existing.assigned_to as string, existing.status as string, 'deleted', 'admin', 'Admin')
+  if (existing.visibility === 'public') {
+    void notifyGroupStatusChange(id, existing.title as string, existing.group_id as string, existing.status as string, 'deleted', 'admin', 'Admin', reqUserId)
   } else if (existing.visibility === 'private' && existing.created_by && existing.created_by !== reqUserId) {
     void notifyStatusChange(id, existing.title as string, existing.created_by as string, existing.status as string, 'deleted', 'admin', 'Admin')
   }

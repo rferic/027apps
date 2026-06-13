@@ -1,6 +1,6 @@
 import { apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
-import { notifyStatusChange } from '@/lib/use-cases/todo/notifications'
+import { notifyStatusChange, notifyGroupStatusChange } from '@/lib/use-cases/todo/notifications'
 import type { HandlerContext } from '@/lib/apps/router-types'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
@@ -36,10 +36,10 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   // Notify (best-effort)
   const reqUserId = ctx.userId
   const groupSlug = url.pathname.split('/')[4] ?? ''
-  if (existing.visibility === 'public' && existing.assigned_to && existing.assigned_to !== reqUserId) {
-    void notifyStatusChange(id, existing.title as string, existing.assigned_to as string, existing.status as string, 'cancelled', groupSlug, groupSlug)
+  if (existing.visibility === 'public') {
+    void notifyGroupStatusChange(id, existing.title as string, ctx.groupId, existing.status as string, 'deleted', groupSlug, groupSlug, reqUserId)
   } else if (existing.visibility === 'private' && existing.created_by && existing.created_by !== reqUserId) {
-    void notifyStatusChange(id, existing.title as string, existing.created_by as string, existing.status as string, 'cancelled', groupSlug, groupSlug)
+    void notifyStatusChange(id, existing.title as string, existing.created_by as string, existing.status as string, 'deleted', groupSlug, groupSlug)
   }
 
   return new Response(null, { status: 204 })

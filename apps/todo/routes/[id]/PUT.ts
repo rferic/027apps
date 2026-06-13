@@ -1,6 +1,6 @@
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
-import { notifyAssigned, notifyStatusChange } from '@/lib/use-cases/todo/notifications'
+import { notifyAssigned, notifyStatusChange, notifyGroupStatusChange } from '@/lib/use-cases/todo/notifications'
 import type { HandlerContext } from '@/lib/apps/router-types'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
@@ -79,8 +79,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     void notifyAssigned(id, item.title as string, update.assigned_to as string, 'Someone', groupSlug, groupSlug)
   }
   if (update.status && update.status !== existing.status) {
-    if (existing.visibility === 'public' && existing.assigned_to && existing.assigned_to !== reqUserId) {
-      void notifyStatusChange(id, item.title as string, existing.assigned_to as string, existing.status as string, update.status as string, groupSlug, groupSlug)
+    if (existing.visibility === 'public') {
+      void notifyGroupStatusChange(id, item.title as string, existing.group_id as string, existing.status as string, update.status as string, groupSlug, groupSlug, reqUserId)
     } else if (existing.visibility === 'private' && existing.created_by && existing.created_by !== reqUserId) {
       void notifyStatusChange(id, item.title as string, existing.created_by as string, existing.status as string, update.status as string, groupSlug, groupSlug)
     }

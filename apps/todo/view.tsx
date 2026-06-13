@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Loader2, Check, Circle, Clock, AlertTriangle, Pencil, UserPlus, Trash2, Bug } from 'lucide-react'
+import { Plus, X, Loader2, Check, Circle, Clock, AlertTriangle, Pencil, UserPlus, Trash2, Bug, Bell, BellOff } from 'lucide-react'
 import { TodoItemCard } from './TodoItemCard'
 import type { TodoItem, Category } from './TodoItemCard'
 import EditTodoModal, { type EditMember } from './EditTodoModal'
@@ -351,6 +351,7 @@ export default function TodoView() {
   const [userId, setUserId] = useState<string | null>(null)
   const [debugResults, setDebugResults] = useState<string[]>([])
   const [debugRunning, setDebugRunning] = useState(false)
+  const [notifOn, setNotifOn] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -368,6 +369,13 @@ export default function TodoView() {
       setEditMembers([])
     }
   }, [editItem, groupSlug])
+
+  useEffect(() => {
+    fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/notification-prefs`)
+      .then(r => r.json())
+      .then(d => { if (typeof d.on_assigned === 'boolean') setNotifOn(d.on_assigned) })
+      .catch(() => {})
+  }, [groupSlug])
 
   // Compute date range for current view
   function getDateRange() {
@@ -524,13 +532,26 @@ export default function TodoView() {
       const itemId = created.id || created.data?.id
       log('✅ CREATE: task created (' + itemId.slice(0, 8) + '...)')
 
-      const assignRes = await api(`/items/${itemId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assigned_to: 'self' }),
-      })
-      if (!assignRes.ok) { log('❌ ASSIGN failed: ' + (await assignRes.text())); setDebugRunning(false); return }
-      log('✅ ASSIGN: task assigned to self (📧 email sent)')
+      // Assign to first other member (if available) to test email
+      const otherMember = memberMap.size > 0 ? [...memberMap.entries()].find(([id]) => id !== userId) : null
+      if (otherMember) {
+        const assignRes = await api(`/items/${itemId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assigned_to: otherMember[0] }),
+        })
+        if (!assignRes.ok) { log('❌ ASSIGN OTHER failed: ' + (await assignRes.text())); setDebugRunning(false); return }
+        log('✅ ASSIGN to ' + otherMember[1] + ' (📧 should trigger assign email to them)')
+      } else {
+        // Self-assign — no email expected (correct behavior)
+        const assignRes = await api(`/items/${itemId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assigned_to: 'self' }),
+        })
+        if (!assignRes.ok) { log('❌ ASSIGN SELF failed: ' + (await assignRes.text())); setDebugRunning(false); return }
+        log('✅ ASSIGN self (no email — you assigned yourself)')
+      }
 
       const statusRes = await api(`/items/${itemId}`, {
         method: 'PUT',
@@ -538,7 +559,7 @@ export default function TodoView() {
         body: JSON.stringify({ status: 'in_progress' }),
       })
       if (!statusRes.ok) { log('❌ STATUS CHANGE failed: ' + (await statusRes.text())); setDebugRunning(false); return }
-      log('✅ STATUS CHANGE: set to in_progress (📧 email sent)')
+      log('✅ STATUS CHANGE: set to in_progress (📧 should notify group members)')
 
       const doneRes = await api(`/items/${itemId}`, {
         method: 'PUT',
@@ -561,7 +582,8 @@ export default function TodoView() {
         log('✅ DELETE SERIES: copy deleted (series cleanup)')
       }
 
-      log('🎉 Todos los tests pasados. Revisa tu email para las notificaciones.')
+      log('🎉 Todos los tests pasados.')
+      log('💡 Revisa tu email si otro miembro del grupo recibe notificaciones.')
     } catch (e: any) {
       log('❌ ERROR: ' + (e?.message || e))
     }
@@ -574,9 +596,22 @@ export default function TodoView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-semibold text-slate-900">{t('title')}</h1>
-        <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-          <Plus size={14} /> {t('new_todo')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={async () => {
+            const newVal = !notifOn
+            setNotifOn(newVal)
+            await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/notification-prefs`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ on_assigned: newVal, on_status_change: newVal, on_updated: newVal }),
+            })
+          }} className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title={notifOn ? t('notif_on') || 'Notifications on' : t('notif_off') || 'Notifications off'}>
+            {notifOn ? <Bell size={16} /> : <BellOff size={16} />}
+          </button>
+          <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+            <Plus size={14} /> {t('new_todo')}
+          </button>
+        </div>
       </div>
 
       {/* Tabs + Sort */}
