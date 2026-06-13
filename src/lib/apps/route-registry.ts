@@ -36,6 +36,7 @@ import todoMembersHandler from '../../../apps/todo/routes/members/GET'
 import seGroupsGetHandler from '../../../apps/split-expenses/routes/GET'
 import seGroupsPostHandler from '../../../apps/split-expenses/routes/POST'
 import seGroupGetHandler from '../../../apps/split-expenses/routes/[id]/GET'
+import seTagsAllGetHandler from '../../../apps/split-expenses/routes/tags-all/GET'
 import seGroupPutHandler from '../../../apps/split-expenses/routes/[id]/PUT'
 import seGroupDeleteHandler from '../../../apps/split-expenses/routes/[id]/DELETE'
 import seMembersGetHandler from '../../../apps/split-expenses/routes/[id]/members/GET'
@@ -87,6 +88,7 @@ const ROUTE_REGISTRY: Record<string, RouteEntry[]> = {
   'split-expenses': [
     { method: 'GET', segments: [], handler: seGroupsGetHandler },
     { method: 'POST', segments: [], handler: seGroupsPostHandler },
+    { method: 'GET', segments: ['tags-all'], handler: seTagsAllGetHandler },
     { method: 'GET', segments: ['[id]'], handler: seGroupGetHandler },
     { method: 'PUT', segments: ['[id]'], handler: seGroupPutHandler },
     { method: 'DELETE', segments: ['[id]'], handler: seGroupDeleteHandler },

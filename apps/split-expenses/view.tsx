@@ -411,10 +411,18 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [editExpense, setEditExpense] = useState<Expense | null>(null)
+  const [detailExpense, setDetailExpense] = useState<Expense | null>(null)
   const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null)
   const [filterTag, setFilterTag] = useState('')
   const [filterPaidBy, setFilterPaidBy] = useState('')
+  const [currentUserId, setCurrentUserId] = useState('')
   const [refresh, setRefresh] = useState(0)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setCurrentUserId(session.user.id)
+    })
+  }, [])
 
   async function fetchData() {
     if (!ctx.groupSlug) return
@@ -429,7 +437,7 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
         const result = await res.json()
         setExpenses(result.data ?? [])
       }
-      const tagRes = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`)
+      const tagRes = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/tags-all`)
       if (tagRes.ok) setTags(await tagRes.json())
     } catch {} finally { setLoading(false) }
   }
@@ -465,7 +473,9 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
           {expenses.map(e => {
             const tag = tags.find(t => t.id === e.tag_id)
             return (
-              <div key={e.id} className={`flex items-center gap-3 p-3 rounded-lg border ${e.settled ? 'bg-slate-50 border-slate-100' : 'bg-white border-slate-100'} hover:border-slate-200 transition-colors`}>
+              <button key={e.id} onClick={() => setDetailExpense(e)}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left ${e.settled ? 'bg-slate-50 border-slate-100' : 'bg-white border-slate-100'} hover:border-slate-200 transition-colors`}
+              >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className={`text-sm font-medium ${e.settled ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{e.title}</p>
@@ -480,11 +490,11 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
                 </div>
                 {!e.settled && (
                   <div className="flex gap-1">
-                    <button onClick={() => setEditExpense(e)} className="p-1 text-slate-300 hover:text-slate-500 rounded"><Pencil className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => setDeleteExpense(e)} className="p-1 text-slate-300 hover:text-red-500 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={ev => { ev.stopPropagation(); setEditExpense(e) }} className="p-1 text-slate-300 hover:text-slate-500 rounded"><Pencil className="w-3.5 h-3.5" /></button>
+                    <button onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }} className="p-1 text-slate-300 hover:text-red-500 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 )}
-              </div>
+              </button>
             )
           })}
         </div>
@@ -492,38 +502,50 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
 
       <ExpenseModal open={showCreate || !!editExpense} onClose={() => { setShowCreate(false); setEditExpense(null) }}
         onSaved={() => { setShowCreate(false); setEditExpense(null); setRefresh(r => r + 1) }}
-        groupId={groupId} members={activeMembers} tags={tags} currency={group.currency} editExpense={editExpense} />
+        groupId={groupId} members={activeMembers} tags={tags} currency={group.currency} editExpense={editExpense}
+        currentUserId={currentUserId} />
 
       <DeleteConfirm open={!!deleteExpense} onClose={() => setDeleteExpense(null)}
         onDeleted={() => { setDeleteExpense(null); setRefresh(r => r + 1) }}
         groupId={groupId} expense={deleteExpense} />
+
+      <ExpenseDetailModal open={!!detailExpense} onClose={() => setDetailExpense(null)}
+        expense={detailExpense} group={group} tags={tags}
+        onEdit={() => { const e = detailExpense; setDetailExpense(null); setEditExpense(e) }}
+        onSettled={() => { setDetailExpense(null); setRefresh(r => r + 1) }}
+        onDeleted={() => { setDetailExpense(null); setRefresh(r => r + 1) }} />
     </div>
   )
 }
 
 // ─── Expense Modal ──────────────────────────────────────────────────────
 
-function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency, editExpense }: {
+function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency, editExpense, currentUserId }: {
   open: boolean; onClose: () => void; onSaved: () => void;
   groupId: string; members: Member[]; tags: Tag[]; currency: string; editExpense?: Expense | null;
+  currentUserId?: string;
 }) {
   const ctx = useAppContext()
   const t = useTranslations('apps.split-expenses')
   const [title, setTitle] = useState(editExpense?.title ?? '')
   const [amount, setAmount] = useState(editExpense?.amount?.toString() ?? '')
-  const [paidBy, setPaidBy] = useState(editExpense?.paid_by ?? '')
-  const [participants, setParticipants] = useState<string[]>(editExpense?.shares?.map(s => s.user_id) ?? [])
+  const [paidBy, setPaidBy] = useState(editExpense?.paid_by ?? currentUserId ?? '')
+  const [participants, setParticipants] = useState<string[]>(editExpense?.shares?.map(s => s.user_id) ?? (currentUserId ? [currentUserId] : []))
   const [tagId, setTagId] = useState(editExpense?.tag_id ?? '')
   const [saving, setSaving] = useState(false)
+  const [showNewTag, setShowNewTag] = useState(false)
+  const [newTagName, setNewTagName] = useState('')
+  const [newTagColor, setNewTagColor] = useState('#10B981')
+  const [creatingTag, setCreatingTag] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setTitle(editExpense?.title ?? '')
     setAmount(editExpense?.amount?.toString() ?? '')
-    setPaidBy(editExpense?.paid_by ?? '')
-    setParticipants(editExpense?.shares?.map(s => s.user_id) ?? [])
+    setPaidBy(editExpense?.paid_by ?? currentUserId ?? '')
+    setParticipants(editExpense?.shares?.map(s => s.user_id) ?? (currentUserId ? [currentUserId] : []))
     setTagId(editExpense?.tag_id ?? '')
-  }, [open, editExpense])
+  }, [open, editExpense, currentUserId])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -542,6 +564,24 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
       }
       onSaved()
     } catch {} finally { setSaving(false) }
+  }
+
+  async function handleCreateTag() {
+    if (!newTagName.trim() || !ctx.groupSlug) return
+    setCreatingTag(true)
+    try {
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newTagName.trim(), color: newTagColor }),
+      })
+      if (res.ok) {
+        const newTag = await res.json()
+        setTagId(newTag.id)
+        setShowNewTag(false)
+        setNewTagName('')
+        onSaved()
+      }
+    } catch {} finally { setCreatingTag(false) }
   }
 
   const shareAmount = participants.length > 0 ? parseFloat(amount) / participants.length : 0
@@ -592,12 +632,32 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">{t('expense.create.tag')}</label>
-          <select value={tagId} onChange={e => setTagId(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
-          >
-            <option value="">{t('expense.create.noTag')}</option>
-            {tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
-          </select>
+          <div className="flex gap-2">
+            <select value={tagId} onChange={e => {
+              if (e.target.value === '__new__') { setShowNewTag(true); return }
+              setTagId(e.target.value)
+            }}
+              className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            >
+              <option value="">{t('expense.create.noTag')}</option>
+              {tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
+              <option value="__new__">+ {t('tag.create.title')}</option>
+            </select>
+          </div>
+          {showNewTag && (
+            <div className="mt-2 flex gap-2 items-center">
+              <input value={newTagName} onChange={e => setNewTagName(e.target.value)} placeholder={t('tag.create.name')}
+                className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              />
+              <input value={newTagColor} onChange={e => setNewTagColor(e.target.value)} type="color"
+                className="w-8 h-8 p-0.5 border border-slate-200 rounded cursor-pointer"
+              />
+              <button type="button" onClick={handleCreateTag} disabled={creatingTag || !newTagName.trim()}
+                className="px-2 py-1 text-xs font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:opacity-50"
+              >{creatingTag ? '...' : t('tag.create.confirm')}</button>
+              <button type="button" onClick={() => setShowNewTag(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
+            </div>
+          )}
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">{t('expense.create.cancel')}</button>
@@ -607,6 +667,115 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
         </div>
       </form>
     </Modal>
+  )
+}
+
+// ─── Expense Detail Modal ─────────────────────────────────────────────
+
+function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSettled, onDeleted }: {
+  open: boolean; onClose: () => void; expense: Expense | null;
+  group: GroupDetail; tags: Tag[];
+  onEdit: () => void; onSettled: () => void; onDeleted: () => void;
+}) {
+  const ctx = useAppContext()
+  const locale = useLocale()
+  const t = useTranslations('apps.split-expenses')
+  const [settling, setSettling] = useState(false)
+  const [showSettleConfirm, setShowSettleConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  if (!expense) return null
+
+  const tag = tags.find(tg => tg.id === expense.tag_id)
+  const totalShares = expense.shares?.reduce((sum, s) => sum + s.amount, 0) ?? 0
+
+  return (
+    <>
+      <Modal open={open} onClose={onClose} title={expense.title}>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-2xl font-bold text-slate-900">{formatAmount(expense.amount, group.currency)}</span>
+            {tag && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: tag.color + '20', color: tag.color }}>{tag.name}</span>}
+          </div>
+
+          <div className="text-sm text-slate-500 space-y-1">
+            <p>{t('expense.create.paidBy')}: {expense.paid_by_profile?.display_name ?? t('common.unknown')}</p>
+            <p>{new Date(expense.created_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          </div>
+
+          {expense.shares && expense.shares.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-slate-500 mb-1">{t('expense.create.participants')}</p>
+              <div className="space-y-1">
+                {expense.shares.map(s => (
+                  <div key={s.id} className="flex items-center justify-between text-sm text-slate-600">
+                    <span>{s.user_profile?.display_name ?? t('common.unknown')}</span>
+                    <span className="font-medium">{formatAmount(s.amount, group.currency)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-center gap-4 pt-2 border-t border-slate-100">
+            <button onClick={onEdit} className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" title={t('expense.create.editTitle')}>
+              <Pencil className="w-5 h-5" />
+              <span className="text-[10px]">{t('expense.create.editTitle')}</span>
+            </button>
+            {!expense.settled && (
+              <button onClick={() => setShowSettleConfirm(true)} className="flex flex-col items-center gap-1 p-2 text-emerald-500 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors" title={t('balance.settleAll')}>
+                <Check className="w-5 h-5" />
+                <span className="text-[10px]">{t('balance.settleAll')}</span>
+              </button>
+            )}
+            {!expense.settled && (
+              <button onClick={() => setShowDeleteConfirm(true)} className="flex flex-col items-center gap-1 p-2 text-red-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" title={t('common.delete')}>
+                <Trash2 className="w-5 h-5" />
+                <span className="text-[10px]">{t('common.delete')}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showSettleConfirm} onClose={() => setShowSettleConfirm(false)} title={t('balance.confirmTitle')}>
+        <p className="text-sm text-slate-600 mb-4">{t('expense.delete.confirm', { title: expense.title })}</p>
+        <div className="flex justify-end gap-2">
+          <button onClick={() => setShowSettleConfirm(false)} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">{t('common.cancel')}</button>
+          <button onClick={async () => {
+            if (!ctx.groupSlug) return
+            setSettling(true)
+            try {
+              await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${expense.expense_group_id}/settlements`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ expense_ids: [expense.id] }),
+              })
+              onSettled()
+            } catch {} finally { setSettling(false) }
+          }} disabled={settling}
+            className="px-4 py-1.5 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:opacity-50 flex items-center gap-1.5"
+          >{settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}</button>
+        </div>
+      </Modal>
+
+      <Modal open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title={t('expense.delete.title')}>
+        <p className="text-sm text-slate-600 mb-4">{t('expense.delete.confirm', { title: expense.title })}</p>
+        <div className="flex justify-end gap-2">
+          <button onClick={() => setShowDeleteConfirm(false)} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">{t('common.cancel')}</button>
+          <button onClick={async () => {
+            if (!ctx.groupSlug) return
+            setDeleting(true)
+            try {
+              await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${expense.expense_group_id}/expenses/${expense.id}`, { method: 'DELETE' })
+              onDeleted()
+            } catch {} finally { setDeleting(false) }
+          }} disabled={deleting}
+            className="px-4 py-1.5 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 flex items-center gap-1.5"
+          >{deleting && <Loader2 className="w-3 h-3 animate-spin" />}{t('common.delete')}</button>
+        </div>
+      </Modal>
+    </>
   )
 }
 
