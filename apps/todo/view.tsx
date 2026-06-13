@@ -349,6 +349,11 @@ export default function TodoView() {
   const clearFilters = () => setFilters({ category: '', priority: '', status: '', assigned: '' })
   const [refresh, setRefresh] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.id) setUserId(session.user.id)
+    })
+  }, [])
   const catMap = new Map(categories.map(c => [c.id, c]))
 
   const [memberMap, setMemberMap] = useState<Map<string, string>>(new Map())
@@ -417,12 +422,12 @@ export default function TodoView() {
 
   function formatRangeHeader() {
     const { start, end } = getDateRange()
-    if (start === end) return new Date(start + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+    if (start === end) return new Date(start + 'T12:00:00').toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' })
     const s = new Date(start + 'T12:00:00')
     const e = new Date(end + 'T12:00:00')
     if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear())
-      return s.toLocaleDateString(undefined, { month: 'long' }) + ' ' + s.getDate() + ' – ' + e.getDate() + ', ' + s.getFullYear()
-    return s.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' – ' + e.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      return s.toLocaleDateString(locale, { month: 'long' }) + ' ' + s.getDate() + ' – ' + e.getDate() + ', ' + s.getFullYear()
+    return s.toLocaleDateString(locale, { month: 'short', day: 'numeric' }) + ' – ' + e.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
   function defaultDueDate() { return getDateRange().start }
@@ -432,9 +437,9 @@ export default function TodoView() {
     const date = new Date(d)
     const now = new Date()
     const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
-    if (date < now && date.toDateString() !== now.toDateString()) return '⚠ ' + date.toLocaleDateString(undefined, opts)
+    if (date < now && date.toDateString() !== now.toDateString()) return '⚠ ' + date.toLocaleDateString(locale, opts)
     if (date.toDateString() === now.toDateString()) return t('today')
-    return date.toLocaleDateString(undefined, opts)
+    return date.toLocaleDateString(locale, opts)
   }
 
   return (
@@ -712,7 +717,7 @@ export default function TodoView() {
         </div>
       )}
 
-      {showCreate && <CreateTodoModal groupSlug={groupSlug!} categories={categories} defaultCategoryId={categories.find(c => (c as any).is_default)?.id ?? ''} initialDueDate={defaultDueDate()} defaultVisibility={tab === 'group' ? 'public' : 'private'} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
+      {showCreate && <CreateTodoModal groupSlug={groupSlug!} categories={categories} defaultCategoryId={categories.find(c => c.is_default)?.id ?? ''} initialDueDate={defaultDueDate()} defaultVisibility={tab === 'group' ? 'public' : 'private'} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setRefresh(r => r + 1) }} />}
       {editItem && (
         <EditTodoModal
           item={editItem}

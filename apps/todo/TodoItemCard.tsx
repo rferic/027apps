@@ -1,6 +1,6 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Check, Repeat, Pencil, UserPlus, Trash2 } from 'lucide-react'
 
 export interface TodoItem {
@@ -22,14 +22,14 @@ const PRIORITY_CONFIG: Record<string, { color: string }> = {
   low: { color: '#6B7280' },
 }
 
-function formatDate(d: string | null, todayLabel: string): string {
+function formatDate(d: string | null, todayLabel: string, locale: string): string {
   if (!d) return ''
   const date = new Date(d)
   const now = new Date()
   const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
-  if (date < now && date.toDateString() !== now.toDateString()) return '⚠ ' + date.toLocaleDateString(undefined, opts)
+  if (date < now && date.toDateString() !== now.toDateString()) return '⚠ ' + date.toLocaleDateString(locale, opts)
   if (date.toDateString() === now.toDateString()) return todayLabel
-  return date.toLocaleDateString(undefined, opts)
+  return date.toLocaleDateString(locale, opts)
 }
 
 interface Props {
@@ -48,6 +48,7 @@ interface Props {
 
 export function TodoItemCard({ item, categories, memberMap, userId, showAssign, onStatusChange, onEdit, onDelete, onDetail, onAssign, compact }: Props) {
   const t = useTranslations('apps.todo')
+  const locale = useLocale()
   const pc = PRIORITY_CONFIG[item.priority] ?? PRIORITY_CONFIG.low
   const isOverdue = item.due_date && new Date(item.due_date) < new Date()
   const cat = item.category_id ? categories.find(c => c.id === item.category_id) ?? null : null
@@ -75,7 +76,7 @@ export function TodoItemCard({ item, categories, memberMap, userId, showAssign, 
               <span className="text-[10px] px-1 py-0.5 rounded" style={{ backgroundColor: cat.color + '20', color: cat.color }}>{cat.emoji} {cat.name}</span>
             )}
             {item.due_date ? (
-              <span className={`text-[10px] ${isOverdue ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatDate(item.due_date, t('today'))}</span>
+              <span className={`text-[10px] ${isOverdue ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatDate(item.due_date, t('today'), locale)}</span>
             ) : (
               <span className="text-[10px] text-slate-300 italic">{t('no_date')}</span>
             )}
