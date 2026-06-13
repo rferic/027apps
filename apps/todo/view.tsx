@@ -471,7 +471,7 @@ export default function TodoView() {
       const createRes = await api('/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: '[TEST] Debug task - delete me', description: 'Created by debug test', priority: 'high', category_id: catId, due_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), visibility: 'public' }),
+        body: JSON.stringify({ title: '[TEST] Tarea debug', description: 'Creada por test automático', priority: 'high', category_id: catId, due_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), visibility: 'public' }),
       })
       if (!createRes.ok) { log('❌ CREATE failed: ' + (await createRes.text())); setDebugRunning(false); return }
       const created = await createRes.json()
@@ -519,7 +519,7 @@ export default function TodoView() {
       if (!delRes.ok) { log('❌ DELETE failed: ' + (await delRes.text())); setDebugRunning(false); return }
       log('✅ DELETE: original deleted')
 
-      const copiesRes = await api(`/items?title=[TEST]+Debug+task+-+delete+me&limit=10`)
+      const copiesRes = await api(`/items?title=[TEST]+Tarea+debug&limit=10`)
       const copyData = await copiesRes.json()
       const copies = Array.isArray(copyData) ? copyData : copyData?.data ?? []
       if (copies.length > 0) {

@@ -75,8 +75,15 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const groupSlug = urlSegments[4] ?? ''
   const reqUserId = ctx.userId
 
+  // Look up the acting user's display name
+  let actorName = 'Someone'
+  if (reqUserId) {
+    const { data: profile } = await db.from('profiles').select('display_name').eq('id', reqUserId).maybeSingle()
+    if (profile?.display_name) actorName = profile.display_name
+  }
+
   if (update.assigned_to && update.assigned_to !== existing.assigned_to && update.assigned_to !== reqUserId) {
-    void notifyAssigned(id, item.title as string, update.assigned_to as string, 'Someone', groupSlug, groupSlug)
+    void notifyAssigned(id, item.title as string, update.assigned_to as string, actorName, groupSlug, groupSlug)
   }
   if (update.status && update.status !== existing.status) {
     if (existing.visibility === 'public') {
