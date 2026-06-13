@@ -747,7 +747,8 @@
       "sort_newest": "Recenti",
       "sort_oldest": "Vecchi",
       "sort_updated": "Aggiornato",
-      "sort_date": "By date"
+      "sort_date": "By date",
+      "delete_series": "Elimina tutte le future"
     },
     "permissions": {
       "title": "Accesso",

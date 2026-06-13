@@ -747,7 +747,8 @@
       "sort_newest": "Recents",
       "sort_oldest": "Antics",
       "sort_updated": "Actualitzat",
-      "sort_date": "By date"
+      "sort_date": "By date",
+      "delete_series": "Eliminar totes les futures"
     },
     "permissions": {
       "title": "Accés",
