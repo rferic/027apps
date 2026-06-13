@@ -753,22 +753,22 @@
       "delete_series": "Eliminar todas las futuras",
       "emails": {
         "assigned": {
-          "subject": "[027Apps] Task assigned: {title}",
-          "preview": "You have been assigned a task: {title}",
-          "heading": "Task assigned to you",
-          "body": "{assignedBy} assigned you a task in {groupName}:",
-          "view_task": "View task",
-          "sent_from": "Sent from {appName}",
-          "rights": "© {year} {appName}. All rights reserved."
+          "subject": "[027Apps] Tarea asignada: {title}",
+          "preview": "Te han asignado una tarea: {title}",
+          "heading": "Tarea asignada",
+          "body": "{assignedBy} te asignó una tarea en {groupName}:",
+          "view_task": "Ver tarea",
+          "sent_from": "Enviado desde {appName}",
+          "rights": "© {year} {appName}. Todos los derechos reservados."
         },
         "status_change": {
-          "subject": "[027Apps] Task status changed: {title}",
-          "preview": "Task status changed: {title}",
-          "heading": "Task status updated",
-          "body": "A task in {groupName} has changed status:",
-          "view_task": "View task",
-          "sent_from": "Sent from {appName}",
-          "rights": "© {year} {appName}. All rights reserved."
+          "subject": "[027Apps] Estado de tarea cambiado: {title}",
+          "preview": "El estado de la tarea cambió: {title}",
+          "heading": "Estado de tarea actualizado",
+          "body": "Una tarea en {groupName} cambió de estado:",
+          "view_task": "Ver tarea",
+          "sent_from": "Enviado desde {appName}",
+          "rights": "© {year} {appName}. Todos los derechos reservados."
         }
       }
     },
