@@ -11,7 +11,12 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   let body: Record<string, unknown>
   try { body = await req.json() } catch { return apiError('BAD_REQUEST', 'Invalid JSON body', 400) }
 
-  const prefs: Record<string, unknown> = { user_id: auth.userId, updated_at: new Date().toISOString() }
+  const targetUserId = (body.user_id as string) || auth.userId
+
+  // Only admin can set prefs for other users
+  if (targetUserId !== auth.userId && auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
+
+  const prefs: Record<string, unknown> = { user_id: targetUserId, updated_at: new Date().toISOString() }
   if (typeof body.on_assigned === 'boolean') prefs.on_assigned = body.on_assigned
   if (typeof body.on_status_change === 'boolean') prefs.on_status_change = body.on_status_change
   if (typeof body.on_updated === 'boolean') prefs.on_updated = body.on_updated

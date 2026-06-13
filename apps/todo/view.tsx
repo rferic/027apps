@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Loader2, Check, Circle, Clock, AlertTriangle, Pencil, UserPlus, Trash2, Bug, Bell, BellOff } from 'lucide-react'
+import { Plus, X, Loader2, Check, Circle, Clock, AlertTriangle, Pencil, UserPlus, Trash2, Bug } from 'lucide-react'
 import { TodoItemCard } from './TodoItemCard'
 import type { TodoItem, Category } from './TodoItemCard'
 import EditTodoModal, { type EditMember } from './EditTodoModal'
@@ -351,7 +351,6 @@ export default function TodoView() {
   const [userId, setUserId] = useState<string | null>(null)
   const [debugResults, setDebugResults] = useState<string[]>([])
   const [debugRunning, setDebugRunning] = useState(false)
-  const [notifOn, setNotifOn] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -369,105 +368,6 @@ export default function TodoView() {
       setEditMembers([])
     }
   }, [editItem, groupSlug])
-
-  useEffect(() => {
-    fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/notification-prefs`)
-      .then(r => r.json())
-      .then(d => { if (typeof d.on_assigned === 'boolean') setNotifOn(d.on_assigned) })
-      .catch(() => {})
-  }, [groupSlug])
-
-  // Compute date range for current view
-  function getDateRange() {
-    const d = new Date(navDate)
-    if (viewMode === 'day') {
-      const s = d.toISOString().slice(0, 10)
-      return { start: s, end: s }
-    }
-    if (viewMode === 'week') {
-      const dow = d.getDay() === 0 ? 7 : d.getDay() // Monday=1, Sunday=7
-      const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow + 1)
-      const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6)
-      return { start: mon.toISOString().slice(0, 10), end: sun.toISOString().slice(0, 10) }
-    }
-    if (viewMode === 'month') {
-      const first = new Date(d.getFullYear(), d.getMonth(), 1)
-      const last = new Date(d.getFullYear(), d.getMonth() + 1, 0)
-      return { start: first.toISOString().slice(0, 10), end: last.toISOString().slice(0, 10) }
-    }
-    // year
-    const first = new Date(d.getFullYear(), 0, 1)
-    const last = new Date(d.getFullYear(), 11, 31)
-    return { start: first.toISOString().slice(0, 10), end: last.toISOString().slice(0, 10) }
-  }
-
-  function formatRangeHeader() {
-    const d = new Date(navDate)
-    if (viewMode === 'day') {
-      const today = new Date()
-      const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
-      const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-      const dateStr = d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
-      let prefix = ''
-      if (d.toDateString() === today.toDateString()) prefix = t('today')
-      else if (d.toDateString() === tomorrow.toDateString()) prefix = t('tomorrow')
-      else if (d.toDateString() === yesterday.toDateString()) prefix = t('yesterday')
-      return prefix ? `${prefix}, ${dateStr}` : dateStr
-    }
-    if (viewMode === 'week') {
-      const dow = d.getDay() === 0 ? 7 : d.getDay()
-      const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow + 1)
-      const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6)
-      return `${mon.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} - ${sun.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`
-    }
-    if (viewMode === 'month') return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
-    return d.getFullYear().toString()
-  }
-
-  function navigate(dir: -1 | 1) {
-    const d = new Date(navDate)
-    if (viewMode === 'day') d.setDate(d.getDate() + dir)
-    else if (viewMode === 'week') d.setDate(d.getDate() + dir * 7)
-    else if (viewMode === 'month') d.setMonth(d.getMonth() + dir)
-    else d.setFullYear(d.getFullYear() + dir)
-    setNavDate(d)
-  }
-
-  function goToday() { setNavDate(new Date()) }
-
-  // Default due_date for "New task" based on current view
-  function defaultDueDate() { return getDateRange().start }
-
-  const fetchItems = useCallback(async () => {
-    if (!groupSlug) return
-    setLoading(true)
-    try {
-      const assigned = tab === 'my' ? 'me' : (filters.assigned || '')
-      const visibility = tab === 'group' ? 'public' : ''
-      const params = new URLSearchParams({ sort, limit: '50' })
-      if (assigned) params.set('assigned', assigned)
-      if (visibility) params.set('visibility', visibility)
-      if (filters.category) params.set('category_id', filters.category)
-      if (filters.priority) params.set('priority', filters.priority)
-      if (filters.status) params.set('status', filters.status)
-      const range = getDateRange()
-      params.set('date_start', range.start)
-      params.set('date_end', range.end)
-
-      const res = await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/items?${params}`)
-      if (!res.ok) throw new Error('Failed')
-      const { data } = await res.json()
-      setItems(data ?? [])
-      setError(false)
-    } catch { setError(true) }
-    finally { setLoading(false) }
-  }, [groupSlug, tab, filters, viewMode, navDate, sort])
-
-  useEffect(() => { fetchItems() }, [fetchItems, refresh])
-
-  useEffect(() => {
-    if (groupSlug) fetchCategories(groupSlug).then(setCategories)
-  }, [groupSlug])
 
   const catMap = new Map(categories.map(c => [c.id, c]))
 
@@ -501,6 +401,51 @@ export default function TodoView() {
     })
     setRefresh(r => r + 1)
   }
+
+  function getDateRange() {
+    const d = new Date(navDate)
+    if (viewMode === 'day') {
+      const s = d.toISOString().slice(0, 10)
+      return { start: s, end: s }
+    }
+    if (viewMode === 'week') {
+      const dow = d.getDay() === 0 ? 7 : d.getDay()
+      const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow + 1)
+      const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6)
+      return { start: mon.toISOString().slice(0, 10), end: sun.toISOString().slice(0, 10) }
+    }
+    if (viewMode === 'month') {
+      const first = new Date(d.getFullYear(), d.getMonth(), 1)
+      const last = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+      return { start: first.toISOString().slice(0, 10), end: last.toISOString().slice(0, 10) }
+    }
+    const first = new Date(d.getFullYear(), 0, 1)
+    const last = new Date(d.getFullYear(), 11, 31)
+    return { start: first.toISOString().slice(0, 10), end: last.toISOString().slice(0, 10) }
+  }
+
+  function navigate(dir: -1 | 1) {
+    const d = new Date(navDate)
+    if (viewMode === 'day') d.setDate(d.getDate() + dir)
+    else if (viewMode === 'week') d.setDate(d.getDate() + 7 * dir)
+    else if (viewMode === 'month') d.setMonth(d.getMonth() + dir)
+    else if (viewMode === 'year') d.setFullYear(d.getFullYear() + dir)
+    setNavDate(d)
+  }
+
+  function goToday() { setNavDate(new Date()) }
+
+  function formatRangeHeader() {
+    const { start, end } = getDateRange()
+    if (start === end) return new Date(start + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+    const s = new Date(start + 'T12:00:00')
+    const e = new Date(end + 'T12:00:00')
+    if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear())
+      return s.toLocaleDateString(undefined, { month: 'long' }) + ' ' + s.getDate() + ' – ' + e.getDate() + ', ' + s.getFullYear()
+    return s.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' – ' + e.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  function defaultDueDate() { return getDateRange().start }
 
   function formatDate(d: string | null) {
     if (!d) return ''
@@ -596,22 +541,9 @@ export default function TodoView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-semibold text-slate-900">{t('title')}</h1>
-        <div className="flex items-center gap-2">
-          <button onClick={async () => {
-            const newVal = !notifOn
-            setNotifOn(newVal)
-            await fetchWithAuth(`/api/v1/${groupSlug}/apps/todo/notification-prefs`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ on_assigned: newVal, on_status_change: newVal, on_updated: newVal }),
-            })
-          }} className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title={notifOn ? t('notif_on') || 'Notifications on' : t('notif_off') || 'Notifications off'}>
-            {notifOn ? <Bell size={16} /> : <BellOff size={16} />}
-          </button>
-          <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-            <Plus size={14} /> {t('new_todo')}
-          </button>
-        </div>
+        <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+          <Plus size={14} /> {t('new_todo')}
+        </button>
       </div>
 
       {/* Tabs + Sort */}
