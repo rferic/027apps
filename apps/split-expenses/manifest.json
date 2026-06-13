@@ -1,0 +1,26 @@
+{
+  "slug": "split-expenses",
+  "tablePrefix": "split_expenses_",
+  "name": "Split Expenses",
+  "version": "1.0.0",
+  "description": "Divide gastos en grupo al estilo Splitwise/Tricount con optimización de deudas.",
+  "logo": "logo.svg",
+  "primaryColor": "#10B981",
+  "secondaryColor": "#ECFDF5",
+  "author": {
+    "name": "027Apps",
+    "url": "https://027apps.com"
+  },
+  "minPlatformVersion": "1.0.0",
+  "views": {
+    "public": true,
+    "admin": true,
+    "widget": true,
+    "native": false
+  },
+  "api": true,
+  "dependencies": [],
+  "notifications": false,
+  "i18n": true,
+  "config": []
+}
