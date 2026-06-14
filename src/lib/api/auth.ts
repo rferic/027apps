@@ -114,9 +114,11 @@ export async function authenticate(
   return apiError('unauthorized', 'Authentication required', 401)
 }
 
-async function validateJwtImpl(token: string): Promise<{
+interface CachedUserResult {
   userId: string; email?: string; groupId: string; role: 'admin' | 'member'
-} | Response> {
+}
+
+async function validateJwtImpl(token: string): Promise<CachedUserResult | Response> {
   const supabase = createApiClient(token)
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) {
@@ -140,9 +142,13 @@ async function validateJwtImpl(token: string): Promise<{
 }
 
 const getCachedUser = cachedQuery(
-  async (token: string): Promise<{ userId: string; email?: string; groupId: string; role: 'admin' | 'member' } | null> => {
+  async (token: string): Promise<{ ok: true; data: CachedUserResult } | { ok: false; code: string; message: string; status: number }> => {
     const result = await validateJwtImpl(token)
-    return result instanceof Response ? null : result
+    if (result instanceof Response) {
+      const body = await result.json().catch(() => ({ error: 'unknown', message: 'Unknown error' }))
+      return { ok: false, code: body.error ?? 'error', message: body.message ?? 'Auth failed', status: result.status }
+    }
+    return { ok: true, data: result }
   },
   ['auth-user'],
   { revalidate: 30, tags: ['auth-session'] }
@@ -150,10 +156,10 @@ const getCachedUser = cachedQuery(
 
 async function validateJwt(token: string): Promise<UseCaseContext | Response> {
   const cached = await getCachedUser(token)
-  if (!cached) return apiError('unauthorized', 'Invalid or expired token', 401)
+  if (!cached.ok) return apiError(cached.code, cached.message, cached.status)
 
   const supabase = createApiClient(token)
-  return { supabase, ...cached }
+  return { supabase, ...cached.data }
 }
 
 async function validateApiKey(key: string): Promise<UseCaseContext | Response> {
