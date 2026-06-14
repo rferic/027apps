@@ -39,57 +39,36 @@ async function fetchUsage(config: Record<string, string>): Promise<Metric[]> {
 
   const metrics: Metric[] = []
 
-  // Try Observations API
-  try {
-    const path = teamId ? `/v1/observations/usage?teamId=${teamId}` : '/v1/observations/usage'
-    const data = await vercelApi(config.token, path) as Record<string, unknown>
-    console.log('[monitoring] Vercel observations response:', JSON.stringify(data).slice(0, 500))
-    const src = ((data as Record<string, unknown>).observations ?? data.data ?? data) as Record<string, unknown>
+  // Try multiple Vercel API endpoints for usage data
+  const endpoints = teamId
+    ? [`/v1/observations/usage?teamId=${teamId}`, `/v1/teams/${teamId}/usage`, '/v1/observations/usage']
+    : ['/v1/observations/usage', '/v1/user/usage']
 
-    const invocations = src.invocations as { total?: number; used?: number; limit?: number } | undefined
-    if (invocations) {
-      metrics.push({
-        key: 'vercel_invocations',
-        label: 'Invocaciones',
-        used: invocations.total ?? invocations.used ?? 0,
-        limit: invocations.limit ?? 0,
-        unit: 'requests',
-      })
-    }
-
-    const duration = src.duration as { total?: number; used?: number; limit?: number } | undefined
-    if (duration) {
-      metrics.push({
-        key: 'vercel_duration',
-        label: 'Tiempo ejecución',
-        used: Math.round((duration.total ?? duration.used ?? 0) / 3600),
-        limit: Math.round((duration.limit ?? 0) / 3600),
-        unit: 'hours',
-      })
-    }
-
-    const bandwidth = src.bandwidth as { total?: number; used?: number; limit?: number } | undefined
-    if (bandwidth) {
-      metrics.push({
-        key: 'vercel_bandwidth',
-        label: 'Ancho de banda',
-        used: Math.round((bandwidth.total ?? bandwidth.used ?? 0) / 1073741824 * 100) / 100,
-        limit: Math.round((bandwidth.limit ?? 0) / 1073741824 * 100) / 100,
-        unit: 'GB',
-      })
-    }
-  } catch (e) {
-    console.warn('[monitoring] Vercel Observations API failed:', e instanceof Error ? e.message : e)
-  }
-
-  // If no metrics yet, try without teamId (personal accounts)
-  if (metrics.length === 0 && teamId) {
+  for (const ep of endpoints) {
+    if (metrics.length > 0) break
     try {
-      const data = await vercelApi(config.token, '/v1/observations/usage') as Record<string, unknown>
+      const data = await vercelApi(config.token, ep) as Record<string, unknown>
+      console.log(`[monitoring] Vercel ${ep} response:`, JSON.stringify(data).slice(0, 300))
+
       const src = ((data as Record<string, unknown>).observations ?? data.data ?? data) as Record<string, unknown>
-      const inv = src.invocations as { total?: number; used?: number; limit?: number } | undefined
-      if (inv) { metrics.push({ key: 'vercel_invocations', label: 'Invocaciones', used: inv.total ?? inv.used ?? 0, limit: inv.limit ?? 0, unit: 'requests' }) }
-    } catch { /* ignore */ }
+
+      const invocations = src.invocations as { total?: number; used?: number; limit?: number } | undefined
+      if (invocations) {
+        metrics.push({ key: 'vercel_invocations', label: 'Invocaciones', used: invocations.total ?? invocations.used ?? 0, limit: invocations.limit ?? 0, unit: 'requests' })
+      }
+
+      const duration = src.duration as { total?: number; used?: number; limit?: number } | undefined
+      if (duration) {
+        metrics.push({ key: 'vercel_duration', label: 'Tiempo ejecución', used: Math.round((duration.total ?? duration.used ?? 0) / 3600), limit: Math.round((duration.limit ?? 0) / 3600), unit: 'hours' })
+      }
+
+      const bandwidth = src.bandwidth as { total?: number; used?: number; limit?: number } | undefined
+      if (bandwidth) {
+        metrics.push({ key: 'vercel_bandwidth', label: 'Ancho de banda', used: Math.round((bandwidth.total ?? bandwidth.used ?? 0) / 1073741824 * 100) / 100, limit: Math.round((bandwidth.limit ?? 0) / 1073741824 * 100) / 100, unit: 'GB' })
+      }
+    } catch (e) {
+      console.warn(`[monitoring] Vercel ${ep} failed:`, e instanceof Error ? e.message : e)
+    }
   }
 
   return metrics
