@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function MonitoringManager({ definitions, initialConfigs }: Props) {
-  const t = useTranslations('admin.monitoring')
+  const t = useTranslations('admin.settings.monitoring')
   const [configs, setConfigs] = useState(initialConfigs)
   const [testing, setTesting] = useState<string | null>(null)
 
