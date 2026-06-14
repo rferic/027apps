@@ -15,6 +15,7 @@ async function getAppConfig(): Promise<Record<string, unknown>> {
 async function saveAppConfig(config: Record<string, unknown>): Promise<void> {
   const supabase = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await supabase
     .from('installed_apps')
     .update({ config: config as any })
