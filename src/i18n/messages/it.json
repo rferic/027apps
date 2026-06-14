@@ -88,7 +88,7 @@
       "docs": "Documentazione",
       "docs_home": "Docs",
       "github": "GitHub",
-      "monitoring": "Monitoring"
+      "monitoring": "Monitoraggio"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -118,8 +118,8 @@
       "total_tasks": "Total",
       "tasks_pending": "Active",
       "tasks_done": "Done",
-      "monitoring_title": "Monitoring",
-      "monitoring_empty": "No providers configured. Go to Settings → Monitoring to connect."
+      "monitoring_title": "Monitoraggio",
+      "monitoring_empty": "Nessun provider configurato. Vai su Impostazioni → Monitoraggio per connettere."
     },
     "users": {
       "title": "Membri",
@@ -492,21 +492,21 @@
         }
       },
       "monitoring": {
-        "title": "Monitoring",
-        "subtitle": "Connect external services to view usage metrics on the dashboard.",
-        "status_connected": "Connected",
-        "status_disconnected": "Not connected",
-        "test": "Test connection",
-        "testing": "Testing…",
-        "save": "Save",
-        "saved": "Configuration saved",
-        "save_failed": "Failed to save",
-        "connected": "Connection successful!",
-        "connection_failed": "Connection failed",
-        "disconnect": "Disconnect",
-        "disconnected": "Disconnected",
-        "disconnect_confirm": "Disconnect {name}?",
-        "no_providers": "No monitoring providers available."
+        "title": "Monitoraggio",
+        "subtitle": "Connetti servizi esterni per vedere le metriche di utilizzo nella dashboard.",
+        "status_connected": "Connesso",
+        "status_disconnected": "Non connesso",
+        "test": "Test connessione",
+        "testing": "Test in corso…",
+        "save": "Salva",
+        "saved": "Configurazione salvata",
+        "save_failed": "Errore durante il salvataggio",
+        "connected": "Connessione riuscita!",
+        "connection_failed": "Connessione fallita",
+        "disconnect": "Disconnetti",
+        "disconnected": "Disconnesso",
+        "disconnect_confirm": "Disconnettere {name}?",
+        "no_providers": "Nessun provider di monitoraggio disponibile."
       }
     },
     "editUser": {

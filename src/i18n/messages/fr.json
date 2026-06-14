@@ -88,7 +88,7 @@
       "docs": "Documentation",
       "docs_home": "Docs",
       "github": "GitHub",
-      "monitoring": "Monitoring"
+      "monitoring": "Surveillance"
     },
     "dashboard": {
       "title": "Tableau de bord",
@@ -118,8 +118,8 @@
       "total_tasks": "Total",
       "tasks_pending": "Active",
       "tasks_done": "Done",
-      "monitoring_title": "Monitoring",
-      "monitoring_empty": "No providers configured. Go to Settings → Monitoring to connect."
+      "monitoring_title": "Surveillance",
+      "monitoring_empty": "Aucun fournisseur configuré. Allez dans Paramètres → Surveillance pour connecter."
     },
     "users": {
       "title": "Membres",
@@ -492,21 +492,21 @@
         }
       },
       "monitoring": {
-        "title": "Monitoring",
-        "subtitle": "Connect external services to view usage metrics on the dashboard.",
-        "status_connected": "Connected",
-        "status_disconnected": "Not connected",
-        "test": "Test connection",
-        "testing": "Testing…",
-        "save": "Save",
-        "saved": "Configuration saved",
-        "save_failed": "Failed to save",
-        "connected": "Connection successful!",
-        "connection_failed": "Connection failed",
-        "disconnect": "Disconnect",
-        "disconnected": "Disconnected",
-        "disconnect_confirm": "Disconnect {name}?",
-        "no_providers": "No monitoring providers available."
+        "title": "Surveillance",
+        "subtitle": "Connectez des services externes pour voir les métriques d'utilisation sur le tableau de bord.",
+        "status_connected": "Connecté",
+        "status_disconnected": "Non connecté",
+        "test": "Tester la connexion",
+        "testing": "Test en cours…",
+        "save": "Enregistrer",
+        "saved": "Configuration enregistrée",
+        "save_failed": "Échec de l'enregistrement",
+        "connected": "Connexion réussie!",
+        "connection_failed": "Connexion échouée",
+        "disconnect": "Déconnecter",
+        "disconnected": "Déconnecté",
+        "disconnect_confirm": "Déconnecter {name}?",
+        "no_providers": "Aucun fournisseur de surveillance disponible."
       }
     },
     "editUser": {
