@@ -62,5 +62,11 @@ export function createAdminClient() {
 }
 
 export function createAdminClientUntyped() {
-  return withSlowLog(createAdminClientBase())
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const client = createClient<any>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+  return withSlowLog(client)
 }

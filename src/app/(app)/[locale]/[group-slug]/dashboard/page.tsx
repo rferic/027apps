@@ -165,4 +165,4 @@ export default async function DashboardPage({ params }: Props) {
   )
 }
 
-export { DashboardSkeleton }
+
