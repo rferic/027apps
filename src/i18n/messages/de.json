@@ -87,7 +87,8 @@
       "apps_order": "Anwendungen",
       "docs": "Dokumentation",
       "docs_home": "Docs",
-      "github": "GitHub"
+      "github": "GitHub",
+      "monitoring": "Überwachung"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -116,7 +117,9 @@
       "todo_title": "Tasks",
       "total_tasks": "Total",
       "tasks_pending": "Active",
-      "tasks_done": "Done"
+      "tasks_done": "Done",
+      "monitoring_title": "Überwachung",
+      "monitoring_empty": "Keine Anbieter konfiguriert. Gehe zu Einstellungen → Überwachung zum Verbinden."
     },
     "users": {
       "title": "Mitglieder",
@@ -487,6 +490,23 @@
           "step3": "After installing, the Installation ID will be detected automatically (or enter it in Settings below)",
           "check": "Check installation"
         }
+      },
+      "monitoring": {
+        "title": "Überwachung",
+        "subtitle": "Verbinde externe Dienste, um Nutzungsmetriken im Dashboard anzuzeigen.",
+        "status_connected": "Verbunden",
+        "status_disconnected": "Nicht verbunden",
+        "test": "Verbindung testen",
+        "testing": "Teste…",
+        "save": "Speichern",
+        "saved": "Konfiguration gespeichert",
+        "save_failed": "Fehler beim Speichern",
+        "connected": "Verbindung erfolgreich!",
+        "connection_failed": "Verbindung fehlgeschlagen",
+        "disconnect": "Trennen",
+        "disconnected": "Getrennt",
+        "disconnect_confirm": "{name} trennen?",
+        "no_providers": "Keine Überwachungsanbieter verfügbar."
       }
     },
     "editUser": {

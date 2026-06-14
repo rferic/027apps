@@ -87,7 +87,8 @@
       "apps_order": "Applications",
       "docs": "Documentation",
       "docs_home": "Docs",
-      "github": "GitHub"
+      "github": "GitHub",
+      "monitoring": "Surveillance"
     },
     "dashboard": {
       "title": "Tableau de bord",
@@ -116,7 +117,9 @@
       "todo_title": "Tasks",
       "total_tasks": "Total",
       "tasks_pending": "Active",
-      "tasks_done": "Done"
+      "tasks_done": "Done",
+      "monitoring_title": "Surveillance",
+      "monitoring_empty": "Aucun fournisseur configuré. Allez dans Paramètres → Surveillance pour connecter."
     },
     "users": {
       "title": "Membres",
@@ -487,6 +490,23 @@
           "step3": "After installing, the Installation ID will be detected automatically (or enter it in Settings below)",
           "check": "Check installation"
         }
+      },
+      "monitoring": {
+        "title": "Surveillance",
+        "subtitle": "Connectez des services externes pour voir les métriques d'utilisation sur le tableau de bord.",
+        "status_connected": "Connecté",
+        "status_disconnected": "Non connecté",
+        "test": "Tester la connexion",
+        "testing": "Test en cours…",
+        "save": "Enregistrer",
+        "saved": "Configuration enregistrée",
+        "save_failed": "Échec de l'enregistrement",
+        "connected": "Connexion réussie!",
+        "connection_failed": "Connexion échouée",
+        "disconnect": "Déconnecter",
+        "disconnected": "Déconnecté",
+        "disconnect_confirm": "Déconnecter {name}?",
+        "no_providers": "Aucun fournisseur de surveillance disponible."
       }
     },
     "editUser": {
