@@ -107,20 +107,25 @@ export function MonitoringManager({ definitions, initialConfigs }: Props) {
   const [configs, setConfigs] = useState(initialConfigs)
   const [testing, setTesting] = useState<string | null>(null)
   const [helpProvider, setHelpProvider] = useState<string | null>(null)
-
-  const isEnabled = (def: ProviderDefinition) => def.fields.some(f => configs[def.id]?.[f.key])
-
-  const handleToggle = useCallback(async (def: ProviderDefinition, enable: boolean) => {
-    if (enable) {
-      // Just enable fields, user fills them
-      return
+  const [enabled, setEnabled] = useState<Record<string, boolean>>(() => {
+    const e: Record<string, boolean> = {}
+    for (const def of definitions) {
+      e[def.id] = def.fields.some(f => initialConfigs[def.id]?.[f.key])
     }
-    // Disable → disconnect
-    await disconnectProviderAction(def.id)
-    const cleared: Record<string, string> = {}
-    def.fields.forEach(f => { cleared[f.key] = '' })
-    setConfigs(prev => ({ ...prev, [def.id]: cleared }))
-    toast.success(`${def.name}: ${t('disconnected')}`)
+    return e
+  })
+
+  const handleToggle = useCallback(async (def: ProviderDefinition, on: boolean) => {
+    if (on) {
+      setEnabled(prev => ({ ...prev, [def.id]: true }))
+    } else {
+      await disconnectProviderAction(def.id)
+      const cleared: Record<string, string> = {}
+      def.fields.forEach(f => { cleared[f.key] = '' })
+      setConfigs(prev => ({ ...prev, [def.id]: cleared }))
+      setEnabled(prev => ({ ...prev, [def.id]: false }))
+      toast.success(`${def.name}: ${t('disconnected')}`)
+    }
   }, [t])
 
   const handleConfigChange = useCallback((providerId: string, key: string, value: string) => {
@@ -158,7 +163,7 @@ export function MonitoringManager({ definitions, initialConfigs }: Props) {
   return (
     <div className="space-y-6">
       {definitions.map(def => {
-        const enabled = isEnabled(def)
+        const isOn = enabled[def.id] ?? false
         const cfg = configs[def.id] ?? {}
         const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed'
 
@@ -182,10 +187,10 @@ export function MonitoringManager({ definitions, initialConfigs }: Props) {
                   <p className="text-xs text-slate-400">{def.description}</p>
                 </div>
               </div>
-              <Toggle checked={enabled} onChange={v => handleToggle(def, v)} />
+              <Toggle checked={isOn} onChange={v => handleToggle(def, v)} />
             </div>
 
-            <div className={`space-y-3 transition-opacity ${enabled ? '' : 'opacity-40'}`}>
+            <div className={`space-y-3 transition-opacity ${isOn ? '' : 'opacity-40'}`}>
               {def.fields.map(field => (
                 <div key={field.key}>
                   <label className="block text-xs font-medium text-slate-500 mb-1">{field.label}</label>
@@ -194,14 +199,14 @@ export function MonitoringManager({ definitions, initialConfigs }: Props) {
                     value={cfg[field.key] ?? ''}
                     onChange={e => handleConfigChange(def.id, field.key, e.target.value)}
                     placeholder={field.placeholder}
-                    disabled={!enabled}
+                    disabled={!isOn}
                     className={inputCls}
                   />
                 </div>
               ))}
             </div>
 
-            {enabled && (
+            {isOn && (
               <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
                 <button
                   type="button"
