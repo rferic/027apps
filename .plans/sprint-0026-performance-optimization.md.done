@@ -1,0 +1,386 @@
+# Sprint 26: Análisis y optimización de rendimiento
+
+**Rama:** `sprint/26-performance-optimization`
+**Tareas:** TASK-204 a TASK-221 (continúa desde Sprint 25, última TASK-203)
+
+---
+
+## Resumen
+
+Análisis profundo de tiempos de respuesta de la web y los endpoints API. Implementación de métricas, identificación de cuellos de botella y optimizaciones progresivas (índices, caché, paginación real, reducción de queries en SSR).
+
+**Documento de rendimiento:** Cada TASK de optimización actualiza el informe en `.plans/PERFORMANCE_REPORT.md` con la comparativa antes/después.
+
+---
+
+## TASK-204: Instrumentar API handlers con Server-Timing
+
+Añadir wrapper `withTiming` en `src/lib/api/response.ts` o middleware de route handler que mida duración total y la devuelva como header `Server-Timing`.
+
+**Criterios de aceptación:**
+- Cada handler API devuelve `Server-Timing: total;dur=XXX` con ms reales
+- El wrapper es opcional (solo handlers que se quieran medir)
+- No afecta a responses exitosas ni a errores
+- Los headers son visibles en DevTools → Network
+
+**Archivos afectados:**
+- `src/lib/api/response.ts` (nuevo wrapper)
+- Cada route handler existente (envolver export)
+
+**Estimación:** S (1-2h)
+
+---
+
+## TASK-205: Añadir logging de queries lentas en Supabase
+
+Envolver `createAdminClient` / `createAdminClientUntyped` con logging condicional que registre queries que excedan 200ms.
+
+**Criterios de aceptación:**
+- Solo en desarrollo y preview (no en producción, o desactivado por env var)
+- Log con `console.warn` que muestre: método, tabla, filtros, duración
+- No afecta rendimiento de queries rápidas
+
+**Archivos afectados:**
+- `src/lib/supabase/admin.ts`
+
+**Estimación:** XS (30min)
+
+---
+
+## TASK-206: Informe inicial de tiempos de carga (baseline)
+
+Antes de optimizar nada, medir y documentar los tiempos actuales de la web y la API.
+
+**Qué medir:**
+- **Páginas web:** TTFB, LCP, FCP, INP en producción (Lighthouse Mobile + Desktop)  
+  → Usar PageSpeed Insights o Chrome DevTools sobre la URL de producción
+- **API endpoints clave:**
+  - `GET /api/v1/admin/apps/inspiration` (con y sin sort aggregate)
+  - `GET /api/v1/admin/users`
+  - `GET /api/v1/admin/invitations`
+  - `GET /api/v1/{group}/apps/{slug}/...` (ruta proxy)
+  - Admin dashboard load
+  - App layout SSR (página pública con usuario logueado)
+- **SSR Layout:** medir con `Server-Timing` cuántas queries ejecuta el layout de la app y cuánto tarda cada una
+- **Bundle JS:** registrar tamaño de chunks principales
+
+**Documento:** Crear `.plans/PERFORMANCE_REPORT.md` con:
+- Estado inicial (baseline) — timestamp y URL desde donde se midió
+- Tabla por página/endpoint con métricas
+- Lista de queries del layout SSR con duración
+
+**Criterios de aceptación:**
+- El informe tiene al menos 10 filas de datos (páginas + endpoints)
+- Todas las métricas están fechadas
+- Se puede reproducir el baseline si se necesita
+
+**Archivos afectados:**
+- `.plans/PERFORMANCE_REPORT.md` (nuevo)
+
+**Estimación:** S (1-2h)
+
+---
+
+## TASK-207: Añadir índices faltantes en Supabase
+
+Crear migración SQL con índices en las tablas más consultadas.
+
+**Índices necesarios:**
+
+```sql
+-- Lookup de usuario en grupo (auth y dashboard)
+create index if not exists idx_group_members_user_id on public.group_members(user_id);
+create index if not exists idx_group_members_group_id on public.group_members(group_id);
+
+-- Lookup de invitaciones por token
+create index if not exists idx_invitations_token on public.invitations(token);
+
+-- Filtrado de inspiration_requests (admin list)
+create index if not exists idx_inspiration_requests_status on public.inspiration_requests(status);
+create index if not exists idx_inspiration_requests_type on public.inspiration_requests(type);
+create index if not exists idx_inspiration_requests_group_id on public.inspiration_requests(group_id);
+
+-- Joins frecuentes en inspiration
+create index if not exists idx_inspiration_votes_request_id on public.inspiration_votes(request_id);
+create index if not exists idx_inspiration_comments_request_id on public.inspiration_comments(request_id);
+
+-- Widget todo + admin
+create index if not exists idx_todo_items_group_id on public.todo_items(group_id);
+create index if not exists idx_todo_items_status on public.todo_items(status);
+create index if not exists idx_todo_items_assigned_to on public.todo_items(assigned_to);
+
+-- Lookup de app por slug
+create index if not exists idx_installed_apps_slug on public.installed_apps(slug);
+
+-- Lookup de group_app_access
+create index if not exists idx_group_app_access_group_id on public.group_app_access(group_id);
+```
+
+**Criterios de aceptación:**
+- Migración SQL en `supabase/migrations/`
+- `supabase db push` en local + staging funciona
+- `EXPLAIN ANALYZE` muestra seq scans → index scans
+
+**Archivos afectados:**
+- `supabase/migrations/202606YYXXXXXX_add_performance_indexes.sql`
+
+**Estimación:** S (1-2h)
+
+---
+
+## TASK-208: Cachear getMessages() con cachedQuery
+
+`getMessages()` se llama en cada layout de página y carga múltiples JSON de i18n. Envolver con `cachedQuery` con TTL 1h.
+
+**Criterios de aceptación:**
+- `getMessages()` usa `unstable_cache` con tag `i18n-messages`
+- Invalida al cambiar locale en settings (server action)
+
+**Archivos afectados:**
+- `src/i18n/request.ts`
+
+**Estimación:** XS (30min)
+
+---
+
+## TASK-209: Cachear query de apps activas en layout
+
+La query `installed_apps.select('slug, visibility').eq('status', 'active')` en `layout.tsx` se ejecuta en cada navegación. Cachear con `cachedQuery` TTL 5min.
+
+**Criterios de aceptación:**
+- Cache con tag `installed-apps`
+- Invalidación al instalar/desinstalar
+
+**Archivos afectados:**
+- `src/app/(app)/[locale]/layout.tsx`
+- `src/lib/cache.ts` (nueva función si aplica)
+
+**Estimación:** XS (30min)
+
+---
+
+## TASK-210: Cachear query de member counts en layout
+
+La query `group_members.select('group_id').in('group_id', [...])` para el contador de miembros del group switcher. Cachear con TTL 5min.
+
+**Criterios de aceptación:**
+- No se ejecuta en cada navegación si hay caché vigente
+- Tag `group-members-counts`
+
+**Archivos afectados:**
+- `src/app/(app)/[locale]/layout.tsx`
+
+**Estimación:** XS (30min)
+
+---
+
+## TASK-211: Eliminar auth duplicado en route dispatcher
+
+El route dispatcher de la API (`src/app/api/v1/[group-slug]/apps/[slug]/[[...path]]/route.ts`) llama `ssr.auth.getUser()` line 29 y luego los handlers llaman `authenticate()` que vuelve a llamar `getUser()`.
+
+**Solución:** Pasar el userId ya autenticado al handler en lugar de que cada handler re-autentique, o al menos saltar la doble llamada.
+
+**Criterios de aceptación:**
+- El dispatcher hace `getUser()` una sola vez
+- Si el handler necesita `authenticate()`, que reciba el contexto ya resuelto
+- No rompe flujo de auth existente
+
+**Archivos afectados:**
+- `src/app/api/v1/[group-slug]/apps/[slug]/[[...path]]/route.ts`
+- `src/lib/apps/router-types.ts` (posible refactor de HandlerContext)
+- Cada app handler (inspiration, todo, split-expenses)
+
+**Estimación:** M (3-5h) — toca varios handlers
+
+---
+
+## TASK-212: Paginación real en DB para admin/users
+
+`getAdminUserList()` trae **todos** los usuarios de Auth API (max 100) y pagina en JS.
+
+**Solución:** Implementar paginación server-side con `listUsers({ perPage, page })` de Auth Admin API, o mantener fetch completo pero cachear con TTL corto y filtrar en DB.
+
+**Nota:** Auth Admin API de Supabase no soporta paginación real (solo `perPage` hasta 10000). Alternativa: cachear `getAdminUserList()` con TTL 30s y mantener paginación en memoria.
+
+**Criterios de aceptación:**
+- La caché de `getAdminUserList()` se invalida al crear/editar usuario
+- Se documenta la limitación de Auth API
+
+**Archivos afectados:**
+- `src/lib/use-cases/admin/users.ts`
+
+**Estimación:** S (1-2h)
+
+---
+
+## TASK-213: Paginación real en DB para admin/invitations
+
+`getAdminInvitationList()` trae **todas** las invitaciones. Migrar a paginación real: `select('*').range(offset, offset+limit-1).order(...)`.
+
+**Criterios de aceptación:**
+- Endpoint devuelve solo la página solicitada
+- `total` se obtiene con `count: 'exact', head: true`
+
+**Archivos afectados:**
+- `src/lib/use-cases/invitations/index.ts`
+- `src/app/api/v1/admin/invitations/route.ts`
+
+**Estimación:** S (1-2h)
+
+---
+
+## TASK-214: Optimizar aggregate sorts de Inspiration
+
+`GET /admin/apps/inspiration` con `sort=most_supported` o `most_commented` trae TODOS los datos.
+
+**Solución:** Crear vista materializada o usar subquery con `left join lateral`:
+
+```sql
+-- Alternativa 1: subquery en select
+select ir.*,
+  (select count(*) from inspiration_votes iv where iv.request_id = ir.id) as vote_count,
+  (select count(*) from inspiration_comments ic where ic.request_id = ir.id) as comment_count
+from inspiration_requests ir
+order by vote_count desc
+limit 20 offset 0;
+```
+
+**Criterios de aceptación:**
+- Aggregate sorts no traen datos de más
+- La query se ejecuta en DB, no en memoria
+- El endpoint tarda menos de 500ms con 1000+ requests
+
+**Archivos afectados:**
+- `src/app/api/v1/admin/apps/inspiration/route.ts`
+
+**Estimación:** M (2-4h)
+
+---
+
+## TASK-215: Reducir queries del layout moviendo member counts al cliente
+
+El cálculo de `groupMembers` para el info drawer del group switcher se hace con 2 queries en SSR. Mover a fetch client-side lazy.
+
+**Criterios de aceptación:**
+- El drawer muestra skeleton mientras carga
+- La query SSR se elimina del layout
+- No hay regresión visual en group switcher
+
+**Archivos afectados:**
+- `src/app/(app)/[locale]/layout.tsx`
+- `src/components/group-info-button.tsx` o `group-info-drawer.tsx`
+
+**Estimación:** S (1-2h)
+
+---
+
+## TASK-216: Reducir queries de profile en layout
+
+El layout hace 3 queries de perfil/usuario: profile select, getUserGroups (cached), admin.getUserById (check bloqueo).
+
+**Optimización:**
+- Unificar profile + blocked check en una sola query `profiles.select('display_name, banned_until')`
+- O añadir `banned_until` directamente al perfil para evitar `auth.admin.getUserById()`
+
+**Criterios de aceptación:**
+- Las 3 queries se reducen a 1-2
+- Bloqueo sigue funcionando igual
+
+**Archivos afectados:**
+- `src/app/(app)/[locale]/layout.tsx`
+
+**Estimación:** S (1-2h)
+
+---
+
+## TASK-217: Analizar bundle JS con next/bundle-analyzer
+
+Añadir `@next/bundle-analyzer` para identificar módulos grandes que ralentizan la carga inicial.
+
+**Criterios de aceptación:**
+- Reporte generado con `ANALYZE=true pnpm build`
+- Identificar top 5 módulos más pesados
+- Documentar hallazgos en el sprint
+
+**Archivos afectados:**
+- `package.json` (dependencia dev)
+- `next.config.ts` (plugin)
+- No mergear a main — solo análisis
+
+**Estimación:** XS (30min)
+
+---
+
+## TASK-218: Medir LCP, FCP, INP en producción
+
+Ejecutar lighthouse audit contra producción y staging, documentar métricas actuales como baseline.
+
+**Criterios de aceptación:**
+- Scores de Lighthouse (Mobile + Desktop)
+- Web Vitals de producción
+- Identificar qué componentes contribuyen al LCP
+
+**Estimación:** XS (30min)
+
+---
+
+## TASK-219: Implementar stale-while-revalidate en cachedQuery
+
+Modificar `cachedQuery` para que cuando la caché expire, sirva dato stale y revalide en background (no bloquear el request).
+
+**Criterios de aceptación:**
+- Queries cacheadas no bloquean el render aunque el TTL haya expirado
+- La revalidación en background actualiza la caché para el siguiente request
+
+**Archivos afectados:**
+- `src/lib/cache.ts`
+
+**Estimación:** S (1-2h)
+
+---
+
+## TASK-220: Evaluar PPR para landing/login
+
+Comprobar si Partial Prerendering es viable con Fumadocs. Si sí, prerenderizar landing page y login para servir desde CDN sin ejecución server-side.
+
+**Criterios de aceptación:**
+- Documentar compatibilidad con Fumadocs
+- Si es viable: POC en rama separada
+- Medir mejora de TTFB
+
+**Estimación:** M (2-3h, solo investigación + POC)
+
+---
+
+## TASK-221: Mantener informe de rendimiento vivo
+
+`.plans/PERFORMANCE_REPORT.md` se actualiza al completar cada TASK de optimización. No esperar al final.
+
+**Reglas:**
+- Al terminar una TASK de optimización (índices, caché, auth, paginación, etc.), medir de nuevo el mismo endpoint/página y añadir una fila al informe con el resultado post-optimización
+- Cada fila indica: qué se optimizó, timestamp, duración, mejora porcentual
+- Si una optimización empeora algo, se documenta igual
+
+**Criterios de aceptación:**
+- Cada TASK de optimización menciona en sus criterios: "Actualizar PERFORMANCE_REPORT.md"
+- El informe al final del sprint tiene: baseline + N filas post-optimización + resumen final
+- Cualquier miembro del equipo puede ver la evolución en el .md
+
+**Estimación:** XS (se hace como parte de cada TASK)
+
+---
+
+## Resumen de esfuerzo
+
+| Fase | TASKs | Esfuerzo total |
+|---|---|---|
+| Medición (Fase 1) | 204, 205, 206, 217, 218 | ~6h |
+| Quick wins (Fase 2) | 207, 208, 209, 210, 219 | ~5h |
+| Arquitectura media (Fase 3) | 211, 212, 213, 214 | ~10h |
+| Páginas lentas (Fase 4) | 215, 216, 220 | ~6h |
+| Informe vivo (Fase 5) | 206 (baseline) + 221 | ~1h |
+| **Total** | **18 TASKs** | **~28h** |
+
+**Priorización:** Las TASKs 204-210 son independientes y se pueden ejecutar en paralelo. Las TASKs 211-214 tienen más riesgo y requieren pruebas cuidadosas.
+
+**Reporte de rendimiento:** `.plans/PERFORMANCE_REPORT.md` empieza con el baseline (TASK-206) y se actualiza tras cada TASK de optimización. Al final del sprint muestra la evolución completa.
