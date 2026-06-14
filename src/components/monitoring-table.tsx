@@ -39,28 +39,37 @@ export function MonitoringTable({ data }: Props) {
         </thead>
         <tbody>
           {data.map(group =>
-            group.metrics.map((m, i) => (
-              <tr key={m.key} className="border-b border-slate-50 last:border-0">
-                {i === 0 && (
-                  <td
-                    className="px-5 py-3 text-slate-700 font-medium"
-                    rowSpan={group.metrics.length}
-                  >
-                    {group.icon} {group.providerName}
-                  </td>
-                )}
-                <td className="px-5 py-3 text-slate-600">{m.label}</td>
-                <td className="px-5 py-3 text-right text-slate-800 font-medium tabular-nums">
-                  {formatVal(m.used, m.unit)}
-                </td>
-                <td className="px-5 py-3 text-right text-slate-400 tabular-nums">
-                  {formatVal(m.limit, m.unit)}
-                </td>
-                <td className={`px-5 py-3 text-right font-semibold tabular-nums ${pctColor(m.used, m.limit)}`}>
-                  {pct(m.used, m.limit)}%
+            group.metrics.length === 0 ? (
+              <tr key={group.providerName} className="border-b border-slate-50 last:border-0">
+                <td className="px-5 py-3 text-slate-700 font-medium">{group.icon} {group.providerName}</td>
+                <td colSpan={4} className="px-5 py-3 text-sm text-slate-400 italic">
+                  Conectado — esperando datos de uso
                 </td>
               </tr>
-            ))
+            ) : (
+              group.metrics.map((m, i) => (
+                <tr key={m.key} className="border-b border-slate-50 last:border-0">
+                  {i === 0 && (
+                    <td
+                      className="px-5 py-3 text-slate-700 font-medium"
+                      rowSpan={group.metrics.length}
+                    >
+                      {group.icon} {group.providerName}
+                    </td>
+                  )}
+                  <td className="px-5 py-3 text-slate-600">{m.label}</td>
+                  <td className="px-5 py-3 text-right text-slate-800 font-medium tabular-nums">
+                    {formatVal(m.used, m.unit)}
+                  </td>
+                  <td className="px-5 py-3 text-right text-slate-400 tabular-nums">
+                    {formatVal(m.limit, m.unit)}
+                  </td>
+                  <td className={`px-5 py-3 text-right font-semibold tabular-nums ${pctColor(m.used, m.limit)}`}>
+                    {pct(m.used, m.limit)}%
+                  </td>
+                </tr>
+              ))
+            )
           )}
         </tbody>
       </table>

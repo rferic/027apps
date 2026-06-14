@@ -17,8 +17,9 @@ export async function getMonitoringMetrics(): Promise<{ providerName: string; ic
       try {
         const metrics = await provider.fetchUsage(config)
         results.push({ providerName: provider.definition.name, icon: provider.definition.icon, metrics })
-      } catch {
-        // Provider not configured or failed — skip
+      } catch (e) {
+        console.warn(`[monitoring] ${provider.definition.id} fetchUsage failed:`, e instanceof Error ? e.message : e)
+        results.push({ providerName: provider.definition.name, icon: provider.definition.icon, metrics: [] })
       }
     }
   }
