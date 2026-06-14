@@ -89,7 +89,8 @@
       "apps_order": "Aplicaciones",
       "docs": "Documentación",
       "docs_home": "Docs",
-      "github": "GitHub"
+      "github": "GitHub",
+      "monitoring": "Monitoring"
     },
     "dashboard": {
       "title": "Inicio",
@@ -118,7 +119,9 @@
       "todo_title": "Tasks",
       "total_tasks": "Total",
       "tasks_pending": "Active",
-      "tasks_done": "Done"
+      "tasks_done": "Done",
+      "monitoring_title": "Monitoring",
+      "monitoring_empty": "No providers configured. Go to Settings → Monitoring to connect."
     },
     "users": {
       "title": "Miembros",
@@ -490,6 +493,23 @@
           "step3": "Al instalarla, el Installation ID se detectará automáticamente (o ingrésalo manualmente abajo)",
           "check": "Comprobar instalación"
         }
+      },
+      "monitoring": {
+        "title": "Monitoring",
+        "subtitle": "Connect external services to view usage metrics on the dashboard.",
+        "status_connected": "Connected",
+        "status_disconnected": "Not connected",
+        "test": "Test connection",
+        "testing": "Testing…",
+        "save": "Save",
+        "saved": "Configuration saved",
+        "save_failed": "Failed to save",
+        "connected": "Connection successful!",
+        "connection_failed": "Connection failed",
+        "disconnect": "Disconnect",
+        "disconnected": "Disconnected",
+        "disconnect_confirm": "Disconnect {name}?",
+        "no_providers": "No monitoring providers available."
       }
     },
     "editUser": {
