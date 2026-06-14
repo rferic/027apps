@@ -12,11 +12,11 @@ interface Props {
   initialConfigs: Record<string, Record<string, string>>
 }
 
-const HELP_CONTENT: Record<string, { title: string; steps: string[] }> = {
+const HELP_CONTENT: Record<string, { title: string; steps: (string | { text: string; url: string })[] }> = {
   vercel: {
     title: 'Obtener token de Vercel',
     steps: [
-      'Ve a vercel.com/account/tokens',
+      { text: 'vercel.com/account/tokens', url: 'https://vercel.com/account/tokens' },
       'Inicia sesión con tu cuenta de Vercel',
       'Haz clic en "Create"',
       'Asigna un nombre (ej. "027apps monitoring")',
@@ -28,7 +28,7 @@ const HELP_CONTENT: Record<string, { title: string; steps: string[] }> = {
   supabase: {
     title: 'Obtener credenciales de Supabase',
     steps: [
-      'Ve a supabase.com/dashboard/project/zbwvvzeljiymwqcbemyy/settings/api',
+      { text: 'supabase.com/dashboard/project/zbwvvzeljiymwqcbemyy/settings/api', url: 'https://supabase.com/dashboard/project/zbwvvzeljiymwqcbemyy/settings/api' },
       'Localiza "Project Reference" (en la sección General)',
       'Cópialo y pégalo en el campo "Project Reference"',
       'Localiza "service_role key" (en la sección Project API keys)',
@@ -61,7 +61,18 @@ function HelpModal({ providerId, onClose }: { providerId: string; onClose: () =>
               <span className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold flex items-center justify-center mt-0.5">
                 {i + 1}
               </span>
-              <span>{step}</span>
+              {typeof step === 'string' ? (
+                <span>{step}</span>
+              ) : (
+                <a
+                  href={step.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 hover:text-indigo-700 underline underline-offset-2"
+                >
+                  {step.text}
+                </a>
+              )}
             </li>
           ))}
         </ol>
