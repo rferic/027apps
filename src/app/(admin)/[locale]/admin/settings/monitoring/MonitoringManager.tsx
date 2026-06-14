@@ -58,13 +58,7 @@ export function MonitoringManager({ definitions, initialConfigs }: Props) {
   }, [t])
 
   return (
-    <main className="p-6 max-w-3xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-slate-900">{t('title')}</h1>
-        <p className="text-sm text-slate-400 mt-1">{t('subtitle')}</p>
-      </div>
-
-      <div className="space-y-6">
+    <div className="space-y-6">
         {definitions.map(def => {
           const cfg = configs[def.id] ?? {}
           const hasConfig = def.fields.some(f => cfg[f.key])
@@ -130,6 +124,6 @@ export function MonitoringManager({ definitions, initialConfigs }: Props) {
           )
         })}
       </div>
-    </main>
+    </div>
   )
 }
