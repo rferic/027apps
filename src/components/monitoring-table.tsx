@@ -26,8 +26,8 @@ export function MonitoringTable({ data }: Props) {
   if (data.length === 0) return null
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="bg-white rounded-xl border border-slate-100 overflow-x-auto">
+      <table className="w-full text-sm min-w-[500px]">
         <thead>
           <tr className="border-b border-slate-100 text-xs font-semibold text-slate-400 uppercase tracking-wider">
             <th className="text-left px-5 py-3 font-medium">Provider</th>
