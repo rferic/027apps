@@ -29,7 +29,7 @@ export function withTiming<Args extends unknown[]>(
     try {
       const response = await handler(...args)
       const dur = performance.now() - start
-      response.headers.set('Server-Timing', `${label};dur=${dur.toFixed(1)}`)
+      response.headers.set('X-Handler-Time', `${label};dur=${dur.toFixed(1)}`)
       return response
     } catch (err) {
       const dur = performance.now() - start
@@ -42,7 +42,7 @@ export function withTiming<Args extends unknown[]>(
           status: 500,
           headers: {
             'Content-Type': 'application/json',
-            'Server-Timing': `${label};dur=${dur.toFixed(1)}`,
+            'X-Handler-Time': `${label};dur=${dur.toFixed(1)}`,
           },
         }
       )
