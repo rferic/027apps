@@ -123,7 +123,6 @@ export function MonitoringManager({ definitions, initialConfigs }: Props) {
             </div>
           )
         })}
-      </div>
     </div>
   )
 }

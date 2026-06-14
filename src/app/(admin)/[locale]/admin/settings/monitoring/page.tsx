@@ -12,8 +12,8 @@ export default async function MonitoringPage({ params }: Props) {
   setRequestLocale(locale)
   const t = await getTranslations('admin.settings.monitoring')
 
-  let definitions = getAllDefinitions()
-  let configs: Record<string, Record<string, string>> = {}
+  const definitions = getAllDefinitions()
+  const configs: Record<string, Record<string, string>> = {}
   try {
     for (const def of definitions) {
       configs[def.id] = await getProviderConfigAction(def.id)
