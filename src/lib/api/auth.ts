@@ -1,11 +1,13 @@
 import { createApiClient, createApiAdminClient } from '@/lib/supabase/api'
 import { createServerClient } from '@supabase/ssr'
 import { apiError } from '@/lib/api/response'
+import { cachedQuery } from '@/lib/cache'
 import type { UseCaseContext, AuthLevel } from '@/lib/api/types'
 
-async function authenticateFromCookies(req: Request): Promise<UseCaseContext | null> {
+async function authenticateFromCookiesImpl(cookieHeader: string): Promise<{
+  userId: string; email?: string; groupId: string; role: 'admin' | 'member'; cookies: Array<{ name: string; value: string }>
+} | null> {
   try {
-    const cookieHeader = req.headers.get('Cookie') ?? ''
     const cookies: Array<{ name: string; value: string }> = cookieHeader
       .split(';')
       .map(c => {
@@ -38,16 +40,38 @@ async function authenticateFromCookies(req: Request): Promise<UseCaseContext | n
 
     const first = members[0]
     const isAdmin = members.some(m => m.role === 'admin')
-    return {
-      supabase,
-      userId: user.id,
-      email: user.email ?? undefined,
-      groupId: first.group_id,
-      role: isAdmin ? 'admin' : 'member',
-    }
+    return { userId: user.id, email: user.email ?? undefined, groupId: first.group_id, role: isAdmin ? 'admin' : 'member', cookies }
   } catch {
     return null
   }
+}
+
+const getCachedCookieAuth = cachedQuery(
+  async (cookieHeader: string): Promise<{
+    userId: string; email?: string; groupId: string; role: 'admin' | 'member'; cookies: Array<{ name: string; value: string }>
+  } | null> => {
+    return authenticateFromCookiesImpl(cookieHeader)
+  },
+  ['auth-cookie'],
+  { revalidate: 30, tags: ['auth-session'] }
+)
+
+async function authenticateFromCookies(req: Request): Promise<UseCaseContext | null> {
+  const cookieHeader = req.headers.get('Cookie') ?? ''
+  const cached = await getCachedCookieAuth(cookieHeader)
+  if (!cached) return null
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cached.cookies,
+        setAll: async () => {},
+      },
+    }
+  )
+  return { supabase, userId: cached.userId, email: cached.email, groupId: cached.groupId, role: cached.role }
 }
 
 export async function authenticate(
@@ -90,7 +114,9 @@ export async function authenticate(
   return apiError('unauthorized', 'Authentication required', 401)
 }
 
-async function validateJwt(token: string): Promise<UseCaseContext | Response> {
+async function validateJwtImpl(token: string): Promise<{
+  userId: string; email?: string; groupId: string; role: 'admin' | 'member'
+} | Response> {
   const supabase = createApiClient(token)
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) {
@@ -107,17 +133,27 @@ async function validateJwt(token: string): Promise<UseCaseContext | Response> {
     return apiError('forbidden', 'User is not a member of any group', 403)
   }
 
-  // Usar el primer grupo por defecto (el cliente debe especificar group_id si necesita otro)
   const first = members[0]
   const isAdmin = members.some(m => m.role === 'admin')
 
-  return {
-    supabase,
-    userId: user.id,
-    email: user.email ?? undefined,
-    groupId: first.group_id,
-    role: isAdmin ? 'admin' : 'member',
-  }
+  return { userId: user.id, email: user.email ?? undefined, groupId: first.group_id, role: isAdmin ? 'admin' : 'member' }
+}
+
+const getCachedUser = cachedQuery(
+  async (token: string): Promise<{ userId: string; email?: string; groupId: string; role: 'admin' | 'member' } | null> => {
+    const result = await validateJwtImpl(token)
+    return result instanceof Response ? null : result
+  },
+  ['auth-user'],
+  { revalidate: 30, tags: ['auth-session'] }
+)
+
+async function validateJwt(token: string): Promise<UseCaseContext | Response> {
+  const cached = await getCachedUser(token)
+  if (!cached) return apiError('unauthorized', 'Invalid or expired token', 401)
+
+  const supabase = createApiClient(token)
+  return { supabase, ...cached }
 }
 
 async function validateApiKey(key: string): Promise<UseCaseContext | Response> {
