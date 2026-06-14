@@ -361,7 +361,7 @@ export default function TodoView() {
     setError(false)
     Promise.all([
       fetch(`/api/v1/${groupSlug}/apps/todo/categories`, { credentials: 'include' }).then(r => r.ok ? r.json() : []),
-      fetch(`/api/v1/${groupSlug}/apps/todo?sort=${sort}&page=1&limit=50`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: [] }),
+      fetch(`/api/v1/${groupSlug}/apps/todo/items?sort=${sort}&page=1&limit=50`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: [] }),
     ]).then(([catsResult, itemsResult]) => {
       if (cancelled) return
       const cats = Array.isArray(catsResult) ? catsResult : (catsResult?.data ?? [])
