@@ -1,10 +1,10 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { createApiAdminClient } from '@/lib/supabase/api'
 import { ALL_LOCALES } from '@/lib/use-cases/settings'
 
-export async function GET(req: NextRequest) {
+export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
 
@@ -23,9 +23,9 @@ export async function GET(req: NextRequest) {
     role: auth.role!,
     group_id: auth.groupId,
   })
-}
+})
 
-export async function PUT(req: NextRequest) {
+export const PUT = withTiming(async function PUT(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
 
@@ -84,4 +84,4 @@ export async function PUT(req: NextRequest) {
     role: auth.role!,
     group_id: auth.groupId,
   })
-}
+})

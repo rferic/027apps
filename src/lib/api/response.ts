@@ -14,6 +14,42 @@ export function apiError(
   )
 }
 
+/**
+ * HOF that wraps a route handler to add Server-Timing header.
+ * Use at export level:
+ *   export const GET = withTiming(async function GET(req) { ... })
+ *   export const POST = withTiming(async (req, ctx) => { ... })
+ */
+export function withTiming<Args extends unknown[]>(
+  handler: (...args: Args) => Promise<Response> | Response,
+  label = 'handler'
+): (...args: Args) => Promise<Response> {
+  return async (...args: Args): Promise<Response> => {
+    const start = performance.now()
+    try {
+      const response = await handler(...args)
+      const dur = performance.now() - start
+      response.headers.set('Server-Timing', `${label};dur=${dur.toFixed(1)}`)
+      return response
+    } catch (err) {
+      const dur = performance.now() - start
+      return new Response(
+        JSON.stringify({
+          error: 'INTERNAL_ERROR',
+          message: err instanceof Error ? err.message : 'Unknown error',
+        }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Server-Timing': `${label};dur=${dur.toFixed(1)}`,
+          },
+        }
+      )
+    }
+  }
+}
+
 export function apiList<T>(
   items: T[],
   total: number,

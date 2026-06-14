@@ -13,6 +13,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { AppShell, type NavItem } from '@/components/app-shell'
 import { getUserGroups } from '@/lib/groups/context'
 import { readManifest } from '@/lib/apps/manifest'
+import { getActiveApps, getGroupAppAccess, getGroupMemberCounts } from '@/lib/layout-cache'
 
 type Props = {
   children: React.ReactNode
@@ -64,17 +65,10 @@ export default async function LocaleLayout({ children, params }: Props) {
   let userGroupsWithCounts = userGroups
   if (userGroups.length > 1) {
     const groupIds = userGroups.map(g => g.id)
-    const { data: memberCounts } = await adminClient
-      .from('group_members')
-      .select('group_id')
-      .in('group_id', groupIds)
-    const countMap = new Map<string, number>()
-    memberCounts?.forEach((m: { group_id: string }) => {
-      countMap.set(m.group_id, (countMap.get(m.group_id) || 0) + 1)
-    })
+    const counts = await getGroupMemberCounts(groupIds)
     userGroupsWithCounts = userGroups.map(g => ({
       ...g,
-      memberCount: countMap.get(g.id) || 0,
+      memberCount: counts[g.id] || 0,
     }))
   }
 
@@ -102,50 +96,13 @@ export default async function LocaleLayout({ children, params }: Props) {
     ? userGroups.find(g => g.slug === currentGroupSlug)
     : null
 
-  const { data: activeApps } = currentGroup
-    ? await adminClient
-        .from('installed_apps')
-        .select('slug, visibility')
-        .eq('status', 'active')
-        .order('display_order')
-        .order('installed_at')
-    : { data: [] }
+  const activeApps = currentGroup ? await getActiveApps() : []
 
   // Load group_app_access to determine which private apps this group can access
   let privateAppSlugs = new Set<string>()
   if (currentGroup && activeApps && activeApps.some(a => a.visibility === 'private')) {
-    const untyped = createAdminClientUntyped()
-    const { data: accessRows } = await untyped
-      .from('group_app_access')
-      .select('app_slug')
-      .eq('group_id', currentGroup.id)
-    if (accessRows) {
-      privateAppSlugs = new Set(accessRows.map((r: { app_slug: string }) => r.app_slug))
-    }
-  }
-
-  // Load members for the group info drawer
-  let groupMembers: { displayName: string; role: string }[] = []
-
-  if (currentGroup) {
-    const [membersResult, profilesResult] = await Promise.all([
-      adminClient
-        .from('group_members')
-        .select('user_id, role')
-        .eq('group_id', currentGroup.id),
-      adminClient
-        .from('profiles')
-        .select('id, display_name'),
-    ])
-
-    const profiles = profilesResult.data ?? []
-    groupMembers = (membersResult.data ?? []).map((m) => {
-      const profile = profiles.find((p) => p.id === m.user_id)
-      return {
-        displayName: profile?.display_name ?? 'Desconocido',
-        role: m.role,
-      }
-    })
+    const accessRows = await getGroupAppAccess(currentGroup.id)
+    privateAppSlugs = new Set(accessRows)
   }
 
   const navItems: NavItem[] = []
@@ -181,7 +138,7 @@ export default async function LocaleLayout({ children, params }: Props) {
             isAdmin={isAdmin}
             userGroups={userGroupsWithCounts}
             currentGroupSlug={currentGroupSlug}
-            groupMembers={groupMembers}
+            currentGroupId={currentGroup?.id}
             groupApps={groupApps}
           />
         )}

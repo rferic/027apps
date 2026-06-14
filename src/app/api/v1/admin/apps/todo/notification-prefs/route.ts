@@ -1,9 +1,9 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 
-export async function GET(req: NextRequest) {
+export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -11,9 +11,9 @@ export async function GET(req: NextRequest) {
   const db = createAdminClientUntyped()
   const { data } = await db.from('todo_notification_prefs').select('*')
   return apiOk(data ?? [])
-}
+})
 
-export async function PUT(req: NextRequest) {
+export const PUT = withTiming(async function PUT(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -32,4 +32,4 @@ export async function PUT(req: NextRequest) {
   const { error } = await db.from('todo_notification_prefs').upsert(prefs)
   if (error) return apiError('UPDATE_FAILED', error.message, 500)
   return apiOk(prefs)
-}
+})

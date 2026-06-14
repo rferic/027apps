@@ -1,14 +1,9 @@
-import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { closeIssue, updateLabels } from '@/lib/use-cases/inspiration/github'
 import type { HandlerContext } from '@/lib/apps/router-types'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
-  const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
-
   const url = new URL(req.url)
   const segments = url.pathname.split('/')
   const id = segments[segments.length - 1]
@@ -25,8 +20,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   if (fetchError || !existing) return apiError('NOT_FOUND', 'Request not found', 404)
 
-  const isAdmin = auth.role === 'admin'
-  const isCreator = existing.user_id === auth.userId
+  const isAdmin = ctx.role === 'admin'
+  const isCreator = existing.user_id === ctx.userId
 
   if (!isAdmin && !isCreator) {
     return apiError('FORBIDDEN', 'You do not have permission to delete this request', 403)

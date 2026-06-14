@@ -1,12 +1,12 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { getAdminUserList } from '@/lib/use-cases/admin/users'
 
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 500
 
-export async function GET(req: NextRequest) {
+export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -33,4 +33,4 @@ export async function GET(req: NextRequest) {
     data: paginated,
     pagination: { page, limit, total, total_pages: totalPages },
   })
-}
+})

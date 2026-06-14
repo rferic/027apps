@@ -1,10 +1,10 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiError } from '@/lib/api/response'
+import { apiError, withTiming } from '@/lib/api/response'
 import { revokeApiKey } from '@/lib/use-cases/api-keys/revoke-api-key'
 import { UseCaseError } from '@/lib/use-cases/types'
 
-export async function DELETE(
+export const DELETE = withTiming(async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -25,4 +25,4 @@ export async function DELETE(
   }
 
   return new Response(null, { status: 204 })
-}
+})

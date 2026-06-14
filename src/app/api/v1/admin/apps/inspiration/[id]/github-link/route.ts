@@ -1,10 +1,10 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { createGitHubIssueForIdea } from '../../../../../../../../../apps/inspiration/routes/github-helpers'
 
-export async function POST(
+export const POST = withTiming(async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -38,4 +38,4 @@ export async function POST(
     const message = err instanceof Error ? err.message : 'Unknown error'
     return apiError('GITHUB_ERROR', `Failed to create GitHub issue: ${message}`, 500)
   }
-}
+})

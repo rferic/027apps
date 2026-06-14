@@ -1,4 +1,3 @@
-import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyNewComment } from '@/lib/use-cases/inspiration/send-notifications'
@@ -28,10 +27,6 @@ async function syncCommentToGitHubIssue(requestId: string, body: string, userId:
 }
 
 export default async function handler(req: Request, ctx: HandlerContext) {
-  const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
-
   const url = new URL(req.url)
   const segments = url.pathname.split('/')
   const inspIndex = segments.indexOf('inspiration')
@@ -69,7 +64,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .from('inspiration_comments')
     .insert({
       request_id: requestId,
-      user_id: auth.userId,
+      user_id: ctx.userId,
       body: rawBody.trim(),
     })
     .select('*')
@@ -78,11 +73,11 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   if (error) return apiError('INSERT_ERROR', error.message, 500)
 
   // Fire-and-forget: send notification (don't block the response)
-  void notifyNewComment(requestId, auth.userId, rawBody.trim().slice(0, 150), 'en')
+  void notifyNewComment(requestId, ctx.userId, rawBody.trim().slice(0, 150), 'en')
     .catch(err => console.error('[Inspiration] Failed to send comment notification:', err))
 
   // Sync comment to GitHub issue if the idea has one
-  void syncCommentToGitHubIssue(requestId, rawBody.trim(), auth.userId)
+  void syncCommentToGitHubIssue(requestId, rawBody.trim(), ctx.userId)
     .catch(err => console.error('[Inspiration] Failed to sync comment to GitHub:', err))
 
   return apiOk(comment, 201)

@@ -1,10 +1,10 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyAssigned, notifyStatusChange, notifyGroupStatusChange } from '@/lib/use-cases/todo/notifications'
 
-export async function GET(req: NextRequest) {
+export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -17,9 +17,9 @@ export async function GET(req: NextRequest) {
 
   if (error) return apiError('QUERY_ERROR', error.message, 500)
   return apiOk(data)
-}
+})
 
-export async function PUT(req: NextRequest) {
+export const PUT = withTiming(async function PUT(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -60,9 +60,9 @@ export async function PUT(req: NextRequest) {
   }
 
   return apiOk(data)
-}
+})
 
-export async function DELETE(req: NextRequest) {
+export const DELETE = withTiming(async function DELETE(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -99,4 +99,4 @@ export async function DELETE(req: NextRequest) {
   }
 
   return new Response(null, { status: 204 })
-}
+})

@@ -32,7 +32,38 @@ export async function getAdminInvitationList(): Promise<Invitation[]> {
     .select('*')
     .order('created_at', { ascending: false })
 
-  return (data ?? []).map((row: Record<string, unknown>) => ({
+  return (data ?? []).map(mapInvitationRow)
+}
+
+export async function getAdminInvitationListPaginated(
+  page: number,
+  limit: number
+): Promise<{ data: Invitation[]; total: number }> {
+  const supabase = createAdminClient()
+
+  const { count: total, error: countError } = await supabase
+    .from('invitations')
+    .select('id', { count: 'exact', head: true })
+
+  if (countError || !total || total === 0) {
+    return { data: [], total: 0 }
+  }
+
+  const offset = (page - 1) * limit
+  const { data } = await supabase
+    .from('invitations')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  return {
+    data: (data ?? []).map(mapInvitationRow),
+    total,
+  }
+}
+
+function mapInvitationRow(row: Record<string, unknown>): Invitation {
+  return {
     id: row.id as string,
     token: row.token as string,
     title: row.title as string,
@@ -46,7 +77,7 @@ export async function getAdminInvitationList(): Promise<Invitation[]> {
     createdAt: row.created_at as string,
     groupIds: (row.group_ids as string[]) ?? [],
     locale: (row.locale as string) ?? 'es',
-  }))
+  }
 }
 
 export async function createInvitation(data: {

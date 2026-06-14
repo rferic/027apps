@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 
 const VALID_TYPES = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_general_functionality', 'other']
@@ -9,7 +9,7 @@ const VALID_STATUSES = ['pending', 'reviewing', 'approved', 'in_progress', 'comp
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 500
 
-export async function GET(req: NextRequest) {
+export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -84,49 +84,41 @@ export async function GET(req: NextRequest) {
     return apiOk({ data: [], pagination: { page, limit, total: total ?? 0, total_pages: 0 } })
   }
 
-  const totalPages = Math.ceil(total / limit)
+  let totalPages = Math.ceil(total / limit)
   const isAggregateSort = sort === 'most_supported' || sort === 'most_commented'
 
   let requests: Array<Record<string, unknown>>
 
   if (isAggregateSort) {
-    // For aggregate sorts, fetch ALL matching rows, enrich, sort in memory, then paginate
-    const allQuery = applyFilters(adminClient.from('inspiration_requests').select('*'))
+    // Use DB-level aggregation via RPC instead of fetching all rows in memory
+    const offset = (page - 1) * limit
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const allQueryResult: any = await (allQuery as any)
-    const allRequests = allQueryResult.data as Array<Record<string, unknown>> | null
-    const allError = allQueryResult.error
+    const rpcResponse: any = await (adminClient.rpc as any)(
+      'get_inspiration_requests_aggregate',
+      {
+        sort_type: sort,
+        statuses: statuses.length > 0 ? statuses : null,
+        types: types.length > 0 ? types : null,
+        search: search || null,
+        app_slug: appSlug || null,
+        my_user_id: myParam === '1' ? auth.userId : null,
+        limit_val: limit,
+        offset_val: offset,
+      }
+    )
 
-    if (allError) return apiError('QUERY_ERROR', `All query: ${allError.message} (${allError.code || 'no code'})`, 500)
-    if (!allRequests || allRequests.length === 0) {
+    if (rpcResponse.error) {
+      return apiError('QUERY_ERROR', `Aggregate query failed: ${rpcResponse.error.message}`, 500)
+    }
+
+    const aggResult = rpcResponse.data as { data: Array<Record<string, unknown>>; total: number } | null
+    if (!aggResult || !aggResult.data || aggResult.data.length === 0) {
       return apiOk({ data: [], pagination: { page, limit, total: 0, total_pages: 0 } })
     }
 
-    const allIds = allRequests.map(r => r.id)
-    const [{ data: votes }, { data: comments }] = await Promise.all([
-      adminClient.from('inspiration_votes').select('request_id').in('request_id', allIds),
-      adminClient.from('inspiration_comments').select('request_id').in('request_id', allIds),
-    ])
-
-    const voteCounts = new Map<string, number>()
-    votes?.forEach(v => voteCounts.set(v.request_id, (voteCounts.get(v.request_id) || 0) + 1))
-    const commentCounts = new Map<string, number>()
-    comments?.forEach(c => commentCounts.set(c.request_id, (commentCounts.get(c.request_id) || 0) + 1))
-
-    const enrichedAll = allRequests.map(r => ({
-      ...r,
-      vote_count: voteCounts.get(r.id as string) || 0,
-      comment_count: commentCounts.get(r.id as string) || 0,
-    }))
-
-    if (sort === 'most_supported') {
-      enrichedAll.sort((a, b) => b.vote_count - a.vote_count)
-    } else {
-      enrichedAll.sort((a, b) => b.comment_count - a.comment_count)
-    }
-
-    const offset = (page - 1) * limit
-    requests = enrichedAll.slice(offset, offset + limit)
+    requests = aggResult.data
+    total = aggResult.total
+    totalPages = Math.ceil(total / limit)
   } else {
     // For date-based sorts, paginate at DB level
     const offset = (page - 1) * limit
@@ -206,4 +198,4 @@ export async function GET(req: NextRequest) {
     data: enriched,
     pagination: { page, limit, total, total_pages: totalPages },
   })
-}
+})

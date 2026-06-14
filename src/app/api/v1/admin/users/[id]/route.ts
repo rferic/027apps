@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import {
   getAdminUser,
   changeUserRole,
@@ -10,7 +10,7 @@ import {
   deleteAdminUser,
 } from '@/lib/use-cases/admin/users'
 
-export async function GET(
+export const GET = withTiming(async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -23,9 +23,9 @@ export async function GET(
   if (!user) return apiError('not_found', 'User not found', 404)
 
   return apiOk(user)
-}
+})
 
-export async function PUT(
+export const PUT = withTiming(async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -69,9 +69,9 @@ export async function PUT(
 
   const updatedUser = await getAdminUser(userId)
   return apiOk(updatedUser)
-}
+})
 
-export async function DELETE(
+export const DELETE = withTiming(async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -86,4 +86,4 @@ export async function DELETE(
   if (result.error) return apiError('DELETE_FAILED', result.error, 400)
 
   return new Response(null, { status: 204 })
-}
+})

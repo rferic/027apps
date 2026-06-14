@@ -1,20 +1,15 @@
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
-import { authenticate } from '@/lib/api/auth'
 import type { HandlerContext } from '@/lib/apps/router-types'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
-  const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
-
   let body: Record<string, unknown>
   try { body = await req.json() } catch { return apiError('BAD_REQUEST', 'Invalid JSON body', 400) }
 
-  const targetUserId = (body.user_id as string) || auth.userId
+  const targetUserId = (body.user_id as string) || ctx.userId
 
   // Only admin can set prefs for other users
-  if (targetUserId !== auth.userId && auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
+  if (targetUserId !== ctx.userId && ctx.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
 
   const prefs: Record<string, unknown> = { user_id: targetUserId, updated_at: new Date().toISOString() }
   if (typeof body.on_assigned === 'boolean') prefs.on_assigned = body.on_assigned

@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { scanApps } from '@/lib/apps/scanner'
+import { cachedQuery } from '@/lib/cache'
 
 export type AdminUser = {
   id: string
@@ -22,7 +23,7 @@ export type AdminStats = {
   totalGroups: number
 }
 
-export async function getAdminUserList(): Promise<AdminUser[]> {
+const getAdminUserListImpl = async (): Promise<AdminUser[]> => {
   const supabase = createAdminClient()
 
   const [authResult, membersResult, profilesResult] = await Promise.all([
@@ -50,6 +51,12 @@ export async function getAdminUserList(): Promise<AdminUser[]> {
     }
   })
 }
+
+export const getAdminUserList = cachedQuery(
+  getAdminUserListImpl,
+  ['admin-users'],
+  { revalidate: 300, tags: ['admin-users'] }
+)
 
 export async function getAdminStats(): Promise<AdminStats> {
   const supabase = createAdminClient()
