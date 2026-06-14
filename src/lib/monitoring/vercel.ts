@@ -23,7 +23,7 @@ async function vercelApi(token: string, path: string): Promise<unknown> {
 
 async function validate(config: Record<string, string>): Promise<{ valid: boolean; error?: string }> {
   try {
-    await vercelApi(config.token, '/v1/teams/current')
+    await vercelApi(config.token, '/v1/user')
     return { valid: true }
   } catch (e) {
     return { valid: false, error: e instanceof Error ? e.message : 'Connection failed' }
