@@ -354,6 +354,26 @@ export default function TodoView() {
       if (session?.user?.id) setUserId(session.user.id)
     })
   }, [])
+  useEffect(() => {
+    if (!groupSlug) return
+    let cancelled = false
+    setLoading(true)
+    setError(false)
+    Promise.all([
+      fetch(`/api/v1/${groupSlug}/apps/todo/categories`, { credentials: 'include' }).then(r => r.ok ? r.json() : []),
+      fetch(`/api/v1/${groupSlug}/apps/todo?sort=${sort}&page=1&limit=50`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: [] }),
+    ]).then(([catsResult, itemsResult]) => {
+      if (cancelled) return
+      const cats = Array.isArray(catsResult) ? catsResult : (catsResult?.data ?? [])
+      const its = Array.isArray(itemsResult) ? itemsResult : (itemsResult?.data ?? [])
+      setCategories(cats)
+      setItems(its)
+      setLoading(false)
+    }).catch(() => {
+      if (!cancelled) { setError(true); setLoading(false) }
+    })
+    return () => { cancelled = true }
+  }, [groupSlug, refresh, sort])
   const catMap = new Map(categories.map(c => [c.id, c]))
 
   const [memberMap, setMemberMap] = useState<Map<string, string>>(new Map())
