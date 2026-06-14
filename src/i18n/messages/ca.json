@@ -87,8 +87,7 @@
       "apps_order": "Aplicacions",
       "docs": "Documentació",
       "docs_home": "Docs",
-      "github": "GitHub",
-      "monitoring": "Monitoratge"
+      "github": "GitHub"
     },
     "dashboard": {
       "title": "Inici",
@@ -117,9 +116,7 @@
       "todo_title": "Tasks",
       "total_tasks": "Total",
       "tasks_pending": "Active",
-      "tasks_done": "Done",
-      "monitoring_title": "Monitoratge",
-      "monitoring_empty": "No hi ha proveïdors configurats. Ves a Configuració → Monitoratge per connectar."
+      "tasks_done": "Done"
     },
     "users": {
       "title": "Membres",
@@ -490,23 +487,6 @@
           "step3": "After installing, the Installation ID will be detected automatically (or enter it in Settings below)",
           "check": "Check installation"
         }
-      },
-      "monitoring": {
-        "title": "Monitoratge",
-        "subtitle": "Connecta serveis externs per veure mètriques d'ús al dashboard.",
-        "status_connected": "Connectat",
-        "status_disconnected": "No connectat",
-        "test": "Provar connexió",
-        "testing": "Provant…",
-        "save": "Desar",
-        "saved": "Configuració desada",
-        "save_failed": "Error en desar",
-        "connected": "Connexió exitosa!",
-        "connection_failed": "Connexió fallida",
-        "disconnect": "Desconnectar",
-        "disconnected": "Desconnectat",
-        "disconnect_confirm": "Desconnectar {name}?",
-        "no_providers": "No hi ha proveïdors de monitoratge disponibles."
       }
     },
     "editUser": {

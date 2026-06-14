@@ -83,13 +83,11 @@
       "github": "GitHub",
       "menu": "Menu",
       "apps": "Apps",
-        "apps_order": "Applications",
-        "monitoring": "Monitoring",
+      "apps_order": "Applications",
       "groups": "Groups",
       "api_docs": "API Docs",
       "docs": "Documentation",
-      "docs_home": "Docs",
-      "monitoring": "Monitoring"
+      "docs_home": "Docs"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -118,9 +116,7 @@
       "todo_title": "Tasks",
       "total_tasks": "Total",
       "tasks_pending": "Active",
-      "tasks_done": "Done",
-      "monitoring_title": "Monitoring",
-      "monitoring_empty": "No providers configured. Go to Settings → Monitoring to connect."
+      "tasks_done": "Done"
     },
     "users": {
       "title": "Members",
@@ -491,23 +487,6 @@
           "step3": "After installing, the Installation ID will be detected automatically (or enter it in Settings below)",
           "check": "Check installation"
         }
-      },
-      "monitoring": {
-        "title": "Monitoring",
-        "subtitle": "Connect external services to view usage metrics on the dashboard.",
-        "status_connected": "Connected",
-        "status_disconnected": "Not connected",
-        "test": "Test connection",
-        "testing": "Testing…",
-        "save": "Save",
-        "saved": "Configuration saved",
-        "save_failed": "Failed to save",
-        "connected": "Connection successful!",
-        "connection_failed": "Connection failed",
-        "disconnect": "Disconnect",
-        "disconnected": "Disconnected",
-        "disconnect_confirm": "Disconnect {name}?",
-        "no_providers": "No monitoring providers available."
       }
     },
     "editUser": {

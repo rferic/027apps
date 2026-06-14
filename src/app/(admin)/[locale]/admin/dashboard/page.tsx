@@ -5,8 +5,6 @@ import { getAdminInvitationList, getInvitationStatus } from '@/lib/use-cases/inv
 import { getInspirationAdminStats } from '@/lib/use-cases/inspiration/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import HotIdeasList from './HotIdeasList'
-import { MonitoringTable } from '@/components/monitoring-table'
-import { getMonitoringMetrics } from '@/lib/monitoring/aggregator'
 
 interface Props {
   params: Promise<{ locale: string }>
@@ -40,12 +38,11 @@ export default async function AdminDashboard({ params }: Props) {
     .single()
   const isInspirationInstalled = !!inspirationInstalled
 
-  const [stats, users, invitations, inspirationStats, monitoringData] = await Promise.all([
+  const [stats, users, invitations, inspirationStats] = await Promise.all([
     getAdminStats(),
     getAdminUserList(),
     getAdminInvitationList(),
     isInspirationInstalled ? getInspirationAdminStats() : Promise.resolve(null),
-    getMonitoringMetrics(),
   ])
   const recentInvitations = invitations.slice(0, 5)
 
@@ -62,20 +59,6 @@ export default async function AdminDashboard({ params }: Props) {
         <StatCard label={t('statsAdmins')} value={stats.admins} href={`${base}/admins`} />
         <StatCard label={t('statsApps')} value={stats.installedApps} href={`${base}/apps`} sublabel={`${stats.totalApps} ${t('statsAppsSublabel')}`} />
       </div>
-
-      {/* ── Monitoring ──────────────────────────────────────────────── */}
-      {monitoringData.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-slate-700">{t('monitoring_title')}</h2>
-            <Link href={`/${locale}/admin/settings/monitoring`} className="text-xs text-slate-400 hover:text-slate-900 transition-colors">{t('viewAll')}</Link>
-          </div>
-          <div className="overflow-x-auto">
-            <MonitoringTable data={monitoringData} />
-          </div>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border border-slate-100 p-5">
           <div className="flex items-center justify-between mb-4">
@@ -147,7 +130,6 @@ export default async function AdminDashboard({ params }: Props) {
           )}
         </div>
       )}
-
     </main>
   )
 }
