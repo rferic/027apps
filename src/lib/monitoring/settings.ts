@@ -14,10 +14,9 @@ async function getAppConfig(): Promise<Record<string, unknown>> {
 
 async function saveAppConfig(config: Record<string, unknown>): Promise<void> {
   const supabase = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await supabase
     .from('installed_apps')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .update({ config: config as any })
     .eq('slug', 'inspiration')
   if (error) throw new Error(`Failed to save monitoring settings: ${error.message}`)
