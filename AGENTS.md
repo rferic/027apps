@@ -71,6 +71,62 @@ Push rama → Vercel preview (staging) → pruebas en preview → OK → merge a
 **Excepciones:** Solo si el usuario dice explícitamente "merge directo" o "sin preview".
 <!-- END:sprint-conventions -->
 
+<!-- BEGIN:frontend-test -->
+# Test de frontend (OBLIGATORIO antes de merge)
+
+Cada sprint DEBE incluir una TASK de verificación frontend antes del merge a main.
+
+## Flujo
+
+```
+Push rama
+  → CI pasa (lint + tsc + test + build)
+  → Vercel despliega preview
+  → [NUEVO] Ejecutar `test-frontend preview` (skill)
+  → Bugs encontrados → fix → push → repetir
+  → OK → merge a main
+```
+
+## Cuándo ejecutar
+
+| Momento | Comando | Notas |
+|---|---|---|
+| Tras push a preview | `@opencode test-frontend preview` | Verifica que el deploy funciona |
+| Antes de merge a main | `@opencode test-frontend preview` | Última comprobación |
+| Tras deploy a producción | `@opencode test-frontend production` | Solo lectura, verifica que todo OK |
+
+## Plantilla de sprint
+
+Todo plan de sprint DEBE incluir una sección de tests al final:
+
+```
+### Tests (Fase final)
+
+Incluir al final del sprint una TASK de verificación frontend:
+
+**TASK-NNN: Verificación frontend en preview**
+
+Ejecutar `@opencode test-frontend preview` y documentar resultados.
+Corregir cualquier bug encontrado antes del merge.
+
+**Criterios de aceptación:**
+- Health check: ✅
+- Páginas SSR cargan sin error: ✅
+- API autenticada responde: ✅
+- Apps (Todo, Inspiration) funcionan: ✅
+- Admin endpoints responden: ✅
+- Server-Timing headers presentes: ✅
+- Sin errores 404/500: ✅
+```
+
+## Configuración
+
+Las credenciales de test se almacenan en `~/.config/opencode/e2e-config.json`
+(FUERA del repositorio). Incluye email, password y anon keys de Supabase.
+
+Si el archivo no existe, la skill `frontend-test` pedirá los datos la primera vez.
+<!-- END:frontend-test -->
+
 <!-- BEGIN:admin-form-pattern -->
 # Patrón de formularios admin
 
