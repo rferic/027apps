@@ -1,11 +1,11 @@
 import type { Metric, ProviderDefinition, MonitoringProvider } from './types'
-import { registerProvider } from './registry'
-import { registerVercelProvider } from './vercel'
-import { registerSupabaseProvider } from './supabase'
+import { registerProvider, getAllDefinitions, getAllProviders, getProvider } from './registry'
+import { vercelProvider } from './vercel'
+import { supabaseProvider } from './supabase'
 
-export { getAllDefinitions, getAllProviders, getProvider } from './registry'
+export { getAllDefinitions, getAllProviders, getProvider }
 export type { Metric, ProviderDefinition, ConfigField, MonitoringProvider } from './types'
 
-// Register all built-in providers
-registerVercelProvider()
-registerSupabaseProvider()
+// Register all built-in providers eagerly
+registerProvider(vercelProvider)
+registerProvider(supabaseProvider)

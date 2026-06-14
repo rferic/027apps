@@ -1,5 +1,4 @@
 import type { Metric, MonitoringProvider, ProviderDefinition } from './types'
-import { registerProvider } from './registry'
 
 const DEFINITION: ProviderDefinition = {
   id: 'vercel',
@@ -73,8 +72,4 @@ async function fetchUsage(config: Record<string, string>): Promise<Metric[]> {
   return metrics
 }
 
-const provider: MonitoringProvider = { definition: DEFINITION, validate, fetchUsage }
-
-export function registerVercelProvider(): void {
-  registerProvider(provider)
-}
+export const vercelProvider: MonitoringProvider = { definition: DEFINITION, validate, fetchUsage }

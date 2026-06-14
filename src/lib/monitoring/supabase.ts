@@ -1,5 +1,4 @@
 import type { Metric, MonitoringProvider, ProviderDefinition } from './types'
-import { registerProvider } from './registry'
 
 const DEFINITION: ProviderDefinition = {
   id: 'supabase',
@@ -74,8 +73,4 @@ async function fetchUsage(config: Record<string, string>): Promise<Metric[]> {
   return metrics
 }
 
-const provider: MonitoringProvider = { definition: DEFINITION, validate, fetchUsage }
-
-export function registerSupabaseProvider(): void {
-  registerProvider(provider)
-}
+export const supabaseProvider: MonitoringProvider = { definition: DEFINITION, validate, fetchUsage }
