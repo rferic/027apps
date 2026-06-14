@@ -29,12 +29,14 @@ export function withTiming<Args extends unknown[]>(
     try {
       const response = await handler(...args)
       const dur = performance.now() - start
-      const h = new Headers(response.headers)
-      h.set('Server-Timing', `${label};dur=${dur.toFixed(1)}`)
-      return new Response(response.body, {
+      const body = await response.text()
+      return new Response(body, {
         status: response.status,
         statusText: response.statusText,
-        headers: h,
+        headers: [
+          ...response.headers,
+          ['Server-Timing', `${label};dur=${dur.toFixed(1)}`],
+        ],
       })
     } catch (err) {
       const dur = performance.now() - start
