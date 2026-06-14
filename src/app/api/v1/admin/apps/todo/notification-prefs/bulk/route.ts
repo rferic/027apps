@@ -1,9 +1,9 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 
-export async function PUT(req: NextRequest) {
+export const PUT = withTiming(async function PUT(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -40,4 +40,4 @@ export async function PUT(req: NextRequest) {
   if (error) return apiError('UPDATE_FAILED', error.message, 500)
 
   return apiOk({ updated: records.length })
-}
+})

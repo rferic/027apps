@@ -1,4 +1,3 @@
-import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyStatusChange } from '@/lib/use-cases/inspiration/send-notifications'
@@ -9,10 +8,6 @@ const VALID_TYPES = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_ge
 const VALID_STATUSES = ['pending', 'reviewing', 'approved', 'in_progress', 'completed', 'rejected', 'on_hold', 'duplicate']
 
 export default async function handler(req: Request, ctx: HandlerContext) {
-  const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
-
   const url = new URL(req.url)
   const segments = url.pathname.split('/')
   const id = segments[segments.length - 1]
@@ -41,8 +36,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   if (fetchError || !existing) return apiError('NOT_FOUND', 'Request not found', 404)
 
-  const isAdmin = auth.role === 'admin'
-  const isCreator = existing.user_id === auth.userId
+  const isAdmin = ctx.role === 'admin'
+  const isCreator = existing.user_id === ctx.userId
 
   if (!isAdmin && !isCreator) {
     return apiError('FORBIDDEN', 'You do not have permission to update this request', 403)

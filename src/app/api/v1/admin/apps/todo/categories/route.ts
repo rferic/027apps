@@ -1,9 +1,9 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 
-export async function GET(req: NextRequest) {
+export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -17,9 +17,9 @@ export async function GET(req: NextRequest) {
 
   if (error) return apiError('QUERY_ERROR', error.message, 500)
   return apiOk(data ?? [])
-}
+})
 
-export async function POST(req: NextRequest) {
+export const POST = withTiming(async function POST(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -42,4 +42,4 @@ export async function POST(req: NextRequest) {
 
   if (error) return apiError('CREATE_FAILED', error.message, 500)
   return apiOk(data, 201)
-}
+})

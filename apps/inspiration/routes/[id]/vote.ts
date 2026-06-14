@@ -1,4 +1,3 @@
-import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import type { HandlerContext } from '@/lib/apps/router-types'
@@ -7,10 +6,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   if (req.method !== 'POST') {
     return apiError('METHOD_NOT_ALLOWED', 'Only POST allowed', 405)
   }
-
-  const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
 
   const url = new URL(req.url)
   const segments = url.pathname.split('/')
@@ -34,7 +29,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .from('inspiration_votes')
     .select('id')
     .eq('request_id', requestId)
-    .eq('user_id', auth.userId)
+    .eq('user_id', ctx.userId)
     .maybeSingle()
 
   let voted: boolean
@@ -54,7 +49,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
       .from('inspiration_votes')
       .insert({
         request_id: requestId,
-        user_id: auth.userId,
+        user_id: ctx.userId,
       })
 
     if (insertError) {

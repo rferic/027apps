@@ -1,12 +1,12 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
-import { getAdminInvitationList, createInvitation } from '@/lib/use-cases/invitations'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
+import { getAdminInvitationListPaginated, createInvitation } from '@/lib/use-cases/invitations'
 
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 500
 
-export async function GET(req: NextRequest) {
+export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -15,19 +15,16 @@ export async function GET(req: NextRequest) {
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1)
   const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(url.searchParams.get('limit') || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT))
 
-  const all = await getAdminInvitationList()
-  const total = all.length
+  const { data, total } = await getAdminInvitationListPaginated(page, limit)
   const totalPages = Math.ceil(total / limit)
-  const offset = (page - 1) * limit
-  const paginated = all.slice(offset, offset + limit)
 
   return apiOk({
-    data: paginated,
+    data,
     pagination: { page, limit, total, total_pages: totalPages },
   })
-}
+})
 
-export async function POST(req: NextRequest) {
+export const POST = withTiming(async function POST(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -61,4 +58,4 @@ export async function POST(req: NextRequest) {
   if ('error' in result) return apiError('creation_failed', result.error, 400)
 
   return apiOk({ token: result.token }, 201)
-}
+})

@@ -1,3 +1,3 @@
-import { apiOk } from '@/lib/api/response'
+import { apiOk, withTiming } from '@/lib/api/response'
 
-export const GET = () => apiOk({ version: 'v1', status: 'ok' })
+export const GET = withTiming(() => apiOk({ version: 'v1', status: 'ok' }))

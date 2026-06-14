@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { listApiKeys } from '@/lib/use-cases/api-keys/list-api-keys'
 import { createApiKey } from '@/lib/use-cases/api-keys/create-api-key'
 import { UseCaseError } from '@/lib/use-cases/types'
@@ -8,7 +8,7 @@ import { UseCaseError } from '@/lib/use-cases/types'
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 500
 
-export async function GET(req: NextRequest) {
+export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -34,9 +34,9 @@ export async function GET(req: NextRequest) {
     data: paginated,
     pagination: { page, limit, total, total_pages: totalPages },
   })
-}
+})
 
-export async function POST(req: NextRequest) {
+export const POST = withTiming(async function POST(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -59,4 +59,4 @@ export async function POST(req: NextRequest) {
     if (e instanceof UseCaseError) return apiError(e.code, e.message, 400)
     return apiError('INTERNAL_ERROR', 'Failed to create API key', 500)
   }
-}
+})

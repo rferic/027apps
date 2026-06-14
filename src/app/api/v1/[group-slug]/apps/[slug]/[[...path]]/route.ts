@@ -2,7 +2,7 @@ import { type NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { apiError } from '@/lib/api/response'
+import { apiError, withTiming } from '@/lib/api/response'
 import { authenticate } from '@/lib/api/auth'
 import { resolveGroupContext } from '@/lib/groups/context'
 import { getAppRouteHandler } from '@/lib/apps/route-registry'
@@ -58,31 +58,31 @@ async function dispatch(req: NextRequest, slug: string, segments: string[], grou
     return apiError('NOT_FOUND', 'Route not found', 404)
   }
 
-  const ctx: HandlerContext = { groupId: groupCtx.id, groupSlug, userId }
+  const ctx: HandlerContext = { groupId: groupCtx.id, groupSlug, userId, role: groupCtx.role }
   return handler(req, ctx)
 }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ 'group-slug': string; slug: string; path?: string[] }> }) {
+export const GET = withTiming(async function GET(req: NextRequest, { params }: { params: Promise<{ 'group-slug': string; slug: string; path?: string[] }> }) {
   const { 'group-slug': groupSlug, slug, path: segments = [] } = await params
   return dispatch(req, slug, segments, groupSlug)
-}
+})
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ 'group-slug': string; slug: string; path?: string[] }> }) {
+export const POST = withTiming(async function POST(req: NextRequest, { params }: { params: Promise<{ 'group-slug': string; slug: string; path?: string[] }> }) {
   const { 'group-slug': groupSlug, slug, path: segments = [] } = await params
   return dispatch(req, slug, segments, groupSlug)
-}
+})
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ 'group-slug': string; slug: string; path?: string[] }> }) {
+export const PUT = withTiming(async function PUT(req: NextRequest, { params }: { params: Promise<{ 'group-slug': string; slug: string; path?: string[] }> }) {
   const { 'group-slug': groupSlug, slug, path: segments = [] } = await params
   return dispatch(req, slug, segments, groupSlug)
-}
+})
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ 'group-slug': string; slug: string; path?: string[] }> }) {
+export const PATCH = withTiming(async function PATCH(req: NextRequest, { params }: { params: Promise<{ 'group-slug': string; slug: string; path?: string[] }> }) {
   const { 'group-slug': groupSlug, slug, path: segments = [] } = await params
   return dispatch(req, slug, segments, groupSlug)
-}
+})
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ 'group-slug': string; slug: string; path?: string[] }> }) {
+export const DELETE = withTiming(async function DELETE(req: NextRequest, { params }: { params: Promise<{ 'group-slug': string; slug: string; path?: string[] }> }) {
   const { 'group-slug': groupSlug, slug, path: segments = [] } = await params
   return dispatch(req, slug, segments, groupSlug)
-}
+})

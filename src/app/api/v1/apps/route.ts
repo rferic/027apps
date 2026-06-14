@@ -1,10 +1,10 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk } from '@/lib/api/response'
+import { apiOk, withTiming } from '@/lib/api/response'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { readManifest } from '@/lib/apps/manifest'
 
-export async function GET(req: NextRequest) {
+export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'any')
   if (auth instanceof Response) return auth
 
@@ -37,4 +37,4 @@ export async function GET(req: NextRequest) {
   )
 
   return apiOk(apps.filter(Boolean))
-}
+})

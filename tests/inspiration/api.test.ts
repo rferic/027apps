@@ -4,15 +4,6 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 // Mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('@/lib/api/auth', () => ({
-  authenticate: vi.fn(),
-}))
-
-function mockAuth(overrides: Partial<{ userId: string; groupId: string; role: 'admin' | 'member' }> = {}) {
-  const defaults = { userId: 'u1', groupId: 'g1', role: 'member' as const }
-  return { supabase: {} as any, ...defaults, ...overrides }
-}
-
 vi.mock('@/lib/use-cases/inspiration/send-notifications', () => ({
   notifyNewComment: vi.fn(() => Promise.resolve()),
   notifyStatusChange: vi.fn(() => Promise.resolve()),
@@ -86,7 +77,7 @@ const sampleComment = {
   updated_at: '2025-01-15T11:00:00Z',
 }
 
-const Ctx = { groupId: 'g1', groupSlug: 'test', locale: 'en' }
+const Ctx = { groupId: 'g1', groupSlug: 'test', userId: 'u1', role: 'member' as const, locale: 'en' }
 
 // ---------------------------------------------------------------------------
 // GET listRequests
@@ -96,9 +87,6 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
   beforeEach(() => vi.resetAllMocks())
 
   it('returns 200 with paginated data for date-based sort (newest)', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     // count query
     mockFrom.mockReturnValueOnce(makeChain(null, null, 5))
     // data query (with order + range)
@@ -124,9 +112,6 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
   })
 
   it('returns 200 with empty array when count=0', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     mockFrom.mockReturnValueOnce(makeChain(null, null, 0))
     // verify query returns no rows
     mockFrom.mockReturnValueOnce(makeChain([]))
@@ -148,6 +133,7 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
     mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
     mockFrom.mockReturnValueOnce(makeChain([]))
+    mockFrom.mockReturnValueOnce(makeChain([]))
 
     const { default: handler } = await import('../../apps/inspiration/routes/GET')
     const req = makeRequest('/api/v1/test/apps/inspiration')
@@ -157,9 +143,6 @@ describe('GET /api/v1/:groupSlug/apps/inspiration', () => {
   })
 
   it('filters by status and type', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     mockFrom.mockReturnValueOnce(makeChain(null, null, 1))
     mockFrom.mockReturnValueOnce(makeChain([sampleRequest]))
     mockFrom.mockReturnValueOnce(makeChain([]))
@@ -185,9 +168,6 @@ describe('POST /api/v1/:groupSlug/apps/inspiration', () => {
   beforeEach(() => vi.resetAllMocks())
 
   it('returns 201 with the created request', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     const created = { ...sampleRequest, id: 'new-id' }
     // insert → first .from()
     mockFrom.mockReturnValueOnce(makeChain(created))
@@ -210,9 +190,6 @@ describe('POST /api/v1/:groupSlug/apps/inspiration', () => {
   })
 
   it('returns 422 when title is missing', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     const { default: handler } = await import('../../apps/inspiration/routes/POST')
     const req = makeRequest('/api/v1/test/apps/inspiration', 'POST', {
       type: 'bug',
@@ -223,9 +200,6 @@ describe('POST /api/v1/:groupSlug/apps/inspiration', () => {
   })
 
   it('returns 422 when type is invalid', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     const { default: handler } = await import('../../apps/inspiration/routes/POST')
     const req = makeRequest('/api/v1/test/apps/inspiration', 'POST', {
       title: 'Test',
@@ -237,9 +211,6 @@ describe('POST /api/v1/:groupSlug/apps/inspiration', () => {
   })
 
   it('returns 400 for non-JSON body', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     const { default: handler } = await import('../../apps/inspiration/routes/POST')
     const req = new Request('http://localhost/api/v1/test/apps/inspiration', {
       method: 'POST',
@@ -259,9 +230,6 @@ describe('PUT /api/v1/:groupSlug/apps/inspiration/:id', () => {
   beforeEach(() => vi.resetAllMocks())
 
   it('allows creator to update title', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     // Fetch existing
     mockFrom.mockReturnValueOnce(makeChain({ ...sampleRequest, user_id: 'u1' }))
     // Update
@@ -275,22 +243,20 @@ describe('PUT /api/v1/:groupSlug/apps/inspiration/:id', () => {
   })
 
   it('returns 403 when non-creator non-admin tries to update', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u2' }))
+    const testCtx = { ...Ctx, userId: 'u2' }
 
     // Fetch existing — owned by u1
     mockFrom.mockReturnValueOnce(makeChain({ ...sampleRequest, user_id: 'u1' }))
 
     const { default: handler } = await import('../../apps/inspiration/routes/[id]/PUT')
     const req = makeRequest('/api/v1/test/apps/inspiration/r1', 'PUT', { title: 'Hacked' })
-    const res = await handler(req, Ctx)
+    const res = await handler(req, testCtx)
 
     expect(res.status).toBe(403)
   })
 
   it('allows admin to update status', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'admin1', role: 'admin' }))
+    const adminCtx = { ...Ctx, userId: 'admin1', role: 'admin' as const }
 
     mockFrom.mockReturnValueOnce(makeChain({ ...sampleRequest, user_id: 'u1', status: 'pending' }))
     mockFrom.mockReturnValueOnce(makeChain({ ...sampleRequest, status: 'in_progress' }))
@@ -299,15 +265,12 @@ describe('PUT /api/v1/:groupSlug/apps/inspiration/:id', () => {
 
     const { default: handler } = await import('../../apps/inspiration/routes/[id]/PUT')
     const req = makeRequest('/api/v1/test/apps/inspiration/r1', 'PUT', { status: 'in_progress' })
-    const res = await handler(req, Ctx)
+    const res = await handler(req, adminCtx)
 
     expect(res.status).toBe(200)
   })
 
   it('returns 404 when request does not exist', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     mockFrom.mockReturnValueOnce(makeChain(null))
 
     const { default: handler } = await import('../../apps/inspiration/routes/[id]/PUT')
@@ -326,9 +289,6 @@ describe('DELETE /api/v1/:groupSlug/apps/inspiration/:id', () => {
   beforeEach(() => vi.resetAllMocks())
 
   it('returns 204 with no content for creator', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     mockFrom.mockReturnValueOnce(makeChain(sampleRequest))
     mockFrom.mockReturnValueOnce(makeChain(null, null))
 
@@ -343,14 +303,13 @@ describe('DELETE /api/v1/:groupSlug/apps/inspiration/:id', () => {
   })
 
   it('returns 403 for non-creator non-admin', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u2' }))
+    const testCtx = { ...Ctx, userId: 'u2' }
 
     mockFrom.mockReturnValueOnce(makeChain({ user_id: 'u1' }))
 
     const { default: handler } = await import('../../apps/inspiration/routes/[id]/DELETE')
     const req = makeRequest('/api/v1/test/apps/inspiration/r1', 'DELETE')
-    const res = await handler(req, Ctx)
+    const res = await handler(req, testCtx)
 
     expect(res.status).toBe(403)
   })
@@ -364,9 +323,6 @@ describe('POST /api/v1/:groupSlug/apps/inspiration/:id/vote', () => {
   beforeEach(() => vi.resetAllMocks())
 
   it('toggles vote on (no existing vote) and returns voted:true with count', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     // Request exists
     mockFrom.mockReturnValueOnce(makeChain({ id: 'r1' }))
     // No existing vote
@@ -387,9 +343,6 @@ describe('POST /api/v1/:groupSlug/apps/inspiration/:id/vote', () => {
   })
 
   it('toggles vote off (existing vote) and returns voted:false with count', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     mockFrom.mockReturnValueOnce(makeChain({ id: 'r1' }))
     // Existing vote
     mockFrom.mockReturnValueOnce(makeChain({ id: 'v1' }))
@@ -409,9 +362,6 @@ describe('POST /api/v1/:groupSlug/apps/inspiration/:id/vote', () => {
   })
 
   it('returns 404 when request does not exist', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     mockFrom.mockReturnValueOnce(makeChain(null))
 
     const { default: handler } = await import('../../apps/inspiration/routes/[id]/vote')
@@ -430,9 +380,6 @@ describe('POST /api/v1/:groupSlug/apps/inspiration/:id/comments', () => {
   beforeEach(() => vi.resetAllMocks())
 
   it('returns 201 with the created comment', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u2' }))
-
     mockFrom.mockReturnValueOnce(makeChain({ id: 'r1' }))
     const created = { ...sampleComment, id: 'new-comment-id' }
     mockFrom.mockReturnValueOnce(makeChain(created))
@@ -450,9 +397,6 @@ describe('POST /api/v1/:groupSlug/apps/inspiration/:id/comments', () => {
   })
 
   it('returns 422 when body is empty', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u2' }))
-
     mockFrom.mockReturnValueOnce(makeChain({ id: 'r1' }))
 
     const { default: handler } = await import('../../apps/inspiration/routes/[id]/comments/POST')
@@ -465,9 +409,6 @@ describe('POST /api/v1/:groupSlug/apps/inspiration/:id/comments', () => {
   })
 
   it('returns 404 when request does not exist', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u2' }))
-
     mockFrom.mockReturnValueOnce(makeChain(null))
 
     const { default: handler } = await import('../../apps/inspiration/routes/[id]/comments/POST')
@@ -488,9 +429,6 @@ describe('GET /api/v1/:groupSlug/apps/inspiration/:id/comments', () => {
   beforeEach(() => vi.resetAllMocks())
 
   it('returns 200 with paginated comments', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     // verify request exists
     mockFrom.mockReturnValueOnce(makeChain({ id: 'r1' }))
     // count comments
@@ -515,9 +453,6 @@ describe('GET /api/v1/:groupSlug/apps/inspiration/:id/comments', () => {
   })
 
   it('returns empty list with pagination when no comments', async () => {
-    const { authenticate } = await import('@/lib/api/auth')
-    vi.mocked(authenticate).mockResolvedValue(mockAuth({ userId: 'u1' }))
-
     mockFrom.mockReturnValueOnce(makeChain({ id: 'r1' }))
     mockFrom.mockReturnValueOnce(makeChain(null, null, 0))
 

@@ -1,4 +1,3 @@
-import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { createGitHubIssueForIdea } from '../github-helpers'
@@ -7,9 +6,7 @@ import type { HandlerContext } from '@/lib/apps/router-types'
 export default async function handler(req: Request, ctx: HandlerContext) {
   if (req.method !== 'POST') return apiError('METHOD_NOT_ALLOWED', 'Use POST', 405)
 
-  const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
+  if (ctx.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
 
   const url = new URL(req.url)
   const segments = url.pathname.split('/')

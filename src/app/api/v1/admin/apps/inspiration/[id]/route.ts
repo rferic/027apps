@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyStatusChange } from '@/lib/use-cases/inspiration/send-notifications'
 import { closeIssue, updateLabels } from '@/lib/use-cases/inspiration/github'
@@ -9,7 +9,7 @@ import { syncStatusToGitHubIssue } from '../../../../../../../../apps/inspiratio
 const VALID_TYPES = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_general_functionality', 'other']
 const VALID_STATUSES = ['pending', 'reviewing', 'approved', 'in_progress', 'completed', 'rejected', 'on_hold', 'duplicate']
 
-export async function GET(
+export const GET = withTiming(async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -109,9 +109,9 @@ export async function GET(
     comments: commentsEnriched,
     voters: votersEnriched,
   })
-}
+})
 
-export async function PUT(
+export const PUT = withTiming(async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -175,9 +175,9 @@ export async function PUT(
   }
 
   return apiOk(data)
-}
+})
 
-export async function DELETE(
+export const DELETE = withTiming(async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -216,4 +216,4 @@ export async function DELETE(
   if (deleteError) return apiError('DELETE_ERROR', deleteError.message, 500)
 
   return new Response(null, { status: 204 })
-}
+})
