@@ -1,3 +1,5 @@
+'use server'
+
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export interface GroupMemberInfo {
@@ -5,7 +7,7 @@ export interface GroupMemberInfo {
   role: string
 }
 
-export async function getGroupMembers(groupId: string): Promise<GroupMemberInfo[]> {
+export async function getGroupMembersAction(groupId: string): Promise<GroupMemberInfo[]> {
   const admin = createAdminClient()
   const [membersRes, profilesRes] = await Promise.all([
     admin.from('group_members').select('user_id, role').eq('group_id', groupId),

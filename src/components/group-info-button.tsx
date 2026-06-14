@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { Info } from 'lucide-react'
 import { GroupInfoDrawer } from './group-info-drawer'
-import { getGroupMembers } from '@/lib/use-cases/groups/info'
+import { getGroupMembersAction } from '@/lib/use-cases/groups/info-actions'
 
 interface MemberInfo {
   displayName: string
@@ -29,7 +29,7 @@ export function GroupInfoButton({ groupName, groupSlug, groupId, apps }: Props) 
   const handleOpen = useCallback(() => {
     setOpen(true)
     if (members.length === 0) {
-      getGroupMembers(groupId).then(setMembers).catch(() => {})
+      getGroupMembersAction(groupId).then(setMembers).catch(() => {})
     }
   }, [groupId, members.length])
 
