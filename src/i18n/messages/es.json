@@ -89,8 +89,7 @@
       "apps_order": "Aplicaciones",
       "docs": "Documentación",
       "docs_home": "Docs",
-      "github": "GitHub",
-      "monitoring": "Monitoreo"
+      "github": "GitHub"
     },
     "dashboard": {
       "title": "Inicio",
@@ -119,9 +118,7 @@
       "todo_title": "Tasks",
       "total_tasks": "Total",
       "tasks_pending": "Active",
-      "tasks_done": "Done",
-      "monitoring_title": "Monitoreo",
-      "monitoring_empty": "No hay proveedores configurados. Ve a Configuración → Monitoreo para conectar."
+      "tasks_done": "Done"
     },
     "users": {
       "title": "Miembros",
@@ -493,23 +490,6 @@
           "step3": "Al instalarla, el Installation ID se detectará automáticamente (o ingrésalo manualmente abajo)",
           "check": "Comprobar instalación"
         }
-      },
-      "monitoring": {
-        "title": "Monitoreo",
-        "subtitle": "Conecta servicios externos para ver métricas de uso en el dashboard.",
-        "status_connected": "Conectado",
-        "status_disconnected": "No conectado",
-        "test": "Probar conexión",
-        "testing": "Probando…",
-        "save": "Guardar",
-        "saved": "Configuración guardada",
-        "save_failed": "Error al guardar",
-        "connected": "¡Conexión exitosa!",
-        "connection_failed": "Conexión fallida",
-        "disconnect": "Desconectar",
-        "disconnected": "Desconectado",
-        "disconnect_confirm": "¿Desconectar {name}?",
-        "no_providers": "No hay proveedores de monitoreo disponibles."
       }
     },
     "editUser": {

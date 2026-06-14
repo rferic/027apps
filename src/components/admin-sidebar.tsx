@@ -25,7 +25,6 @@ import {
   BookOpen,
   Book,
   GitBranch,
-  Activity,
 } from 'lucide-react'
 import { useAdminMobile } from './admin-mobile-context'
 
@@ -119,7 +118,6 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
     { href: `${base}/settings/api-keys`, label: t('api_keys'), icon: Key },
     { href: `${base}/settings/apps`, label: t('apps_order'), icon: ListOrdered },
     { href: `${base}/settings/general`, label: t('general'), icon: SlidersHorizontal },
-    { href: `${base}/settings/monitoring`, label: t('monitoring'), icon: Activity },
   ]
 
   const isUsersSection = userSubItems.some((item) => isActivePrefix(item.href))
