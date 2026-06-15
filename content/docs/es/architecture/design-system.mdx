@@ -1,0 +1,96 @@
+---
+title: Sistema de Diseño
+description: Librería de componentes, tokens de diseño y referencia de Storybook
+---
+
+## Visión General
+
+027Apps tiene un **Sistema de Diseño** propio basado en la propuesta visual "Modern".
+Todos los componentes nuevos deben usar este sistema.
+
+El sistema de diseño consta de:
+
+- **Design tokens** — propiedades CSS personalizadas para colores, tipografía, espaciado y sombras
+- **Componentes base** — componentes atómicos reutilizables (Button, Badge, Card, etc.)
+- **Componentes compuestos** — componentes de negocio (TodoList, IdeaList, StatCard, etc.)
+
+## Storybook
+
+Hay un catálogo interactivo de componentes disponible via **Storybook**,
+donde puedes explorar todos los componentes, ver sus variantes y leer documentación autogenerada.
+
+```bash
+# Iniciar Storybook (servidor de desarrollo en http://localhost:6006)
+pnpm storybook
+
+# Build estático (salida en storybook-static/)
+pnpm build-storybook
+```
+
+## Design Tokens
+
+Todos los tokens están definidos en `src/design-tokens.css` como propiedades CSS personalizadas.
+También se reflejan en el `src/app/globals.css` global bajo `:root` y `.dark`.
+
+| Categoría | Token Ejemplo | Valor Claro | Valor Oscuro |
+|---|---|---|---|
+| Marca | `--color-brand` | `#9B1C1C` | `#D45050` |
+| Fondo | `--color-bg` | `#F8F6F3` | `#12120E` |
+| Superficie | `--color-surface` | `#FFFFFF` | `#1A1815` |
+| Texto | `--color-text` | `#171B22` | `#E2E0DA` |
+| Texto secundario | `--color-text-secondary` | `#6B7280` | `#8A867E` |
+| Borde | `--color-border` | `#E2DDD6` | `#2A2824` |
+| Fuente headings | `--font-heading` | Outfit | Outfit |
+| Fuente cuerpo | `--font-body` | Sora | Sora |
+| Radio | `--radius-lg` | 0.625rem | 0.625rem |
+
+## Componentes Disponibles
+
+### Componentes Base (`src/components/ds/`)
+
+| Componente | Variantes | Props clave |
+|---|---|---|
+| `DsButton` | primary, secondary, outline, ghost | size (sm/md/lg) |
+| `DsBadge` | primary, success, warning, error, neutral, outline | — |
+| `DsCard` | — | padding (sm/md/lg), hover |
+| `DsInput` / `DsTextarea` | — | label, error, disabled |
+| `DsModal` | — | open, onClose, title, maxWidth |
+| `DsTabs` | — | tabs[], defaultTab, onChange |
+| `DsAvatar` | — | size, color |
+| `DsSkeleton` | — | height, circle, count |
+| `DsEmptyState` | — | icon, title, description, action |
+| `DsAlert` | info, success, warning, error | icon, onDismiss |
+| `DsToggle` | — | checked, onChange, label, disabled |
+| `DsSelect` | — | options[], value, onChange, label |
+| `DsTable` | — | columns[], data[], onRowClick |
+| `DsPagination` | — | page, totalPages, onChange |
+
+### Componentes Compuestos (`src/components/composite/`)
+
+| Componente | Descripción |
+|---|---|
+| `TodoItem` / `TodoList` | Fila de tarea + lista con prioridades, categorías, asignados |
+| `IdeaList` | Items de ideas con votos y comentarios |
+| `StatCard` | Tarjeta de estadística con label, valor, color |
+| `BarChart` | Gráfico de barras SVG para paneles |
+
+## Guías de Uso
+
+1. **Nunca escribir HTML/Tailwind raw** si existe un componente en el sistema de diseño
+2. **Componentes nuevos** deben:
+   - Justificarse (sin duplicación)
+   - Usar tokens de `design-tokens.css` (nunca valores hardcodeados)
+   - Incluir una historia de Storybook con al menos variante por defecto + variantes principales
+3. **Mismo nivel de estilo**: todos los componentes nuevos deben usar tokens DS via `var(--token-name)`
+4. **Modo oscuro**: soportado automáticamente via clase `.dark` en el padre
+
+## Cómo Añadir un Componente Nuevo
+
+1. Crear el archivo en `src/components/ds/nombre.tsx`
+2. Usa variables CSS de `design-tokens.css` (nunca hardcodees colores)
+3. Crear `src/components/ds/nombre.stories.tsx` con:
+   - Variante por defecto
+   - Todas las variantes principales
+   - Estado interactivo si aplica
+4. Verificar: `pnpm build-storybook && pnpm build`
+5. Para compuestos de negocio, usa `src/components/composite/`

@@ -14,6 +14,7 @@ import { AppShell, type NavItem } from '@/components/app-shell'
 import { getUserGroups } from '@/lib/groups/context'
 import { readManifest } from '@/lib/apps/manifest'
 import { getActiveApps, getGroupAppAccess, getGroupMemberCounts } from '@/lib/layout-cache'
+import { ThemeProvider } from '@/components/theme-provider'
 
 type Props = {
   children: React.ReactNode
@@ -129,8 +130,9 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <Toaster theme="light" position="bottom-right" />
-      <div className="flex flex-col min-h-screen bg-slate-50">
+      <ThemeProvider>
+        <Toaster position="bottom-right" />
+        <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}>
         {user && (
           <AppHeader
             locale={locale}
@@ -153,6 +155,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         )}
         <AppFooter locale={locale} />
       </div>
+      </ThemeProvider>
     </NextIntlClientProvider>
   )
 }

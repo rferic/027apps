@@ -80,7 +80,7 @@ export default function InspirationWidget() {
 
   if (!groupSlug) {
     return (
-      <div className="p-4 text-center text-xs text-slate-400">
+      <div className="p-4 text-center text-xs text-muted-foreground">
         {t('widget.not_available')}
       </div>
     )
@@ -89,14 +89,14 @@ export default function InspirationWidget() {
   if (loading) {
     return (
       <div className="flex justify-center py-6">
-        <Loader2 size={16} className="animate-spin text-slate-200" />
+        <Loader2 size={16} className="animate-spin text-muted" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="p-4 text-center text-xs text-slate-400">
+      <div className="p-4 text-center text-xs text-muted-foreground">
         {t('widget.couldnt_load')}
       </div>
     )
@@ -110,7 +110,7 @@ export default function InspirationWidget() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <Lightbulb className="w-4 h-4" style={{ color: 'var(--app-primary)' }} />
-          <h3 className="text-sm font-semibold text-slate-700">{t('widget.heading')}</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t('widget.heading')}</h3>
         </div>
         {activeCount > 0 && (
           <span
@@ -123,7 +123,7 @@ export default function InspirationWidget() {
       </div>
 
       {!hasData ? (
-        <p className="text-xs text-slate-400 py-2 text-center">
+        <p className="text-xs text-muted-foreground py-2 text-center">
           {t('widget.no_ideas')}
         </p>
       ) : (
@@ -133,7 +133,7 @@ export default function InspirationWidget() {
             <div className="mb-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <Flame className="w-3.5 h-3.5" style={{ color: 'var(--app-primary)' }} />
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   {t('widget.most_supported')}
                 </span>
               </div>
@@ -146,7 +146,7 @@ export default function InspirationWidget() {
                       <span className="flex items-center justify-center w-5 h-5 rounded flex-shrink-0" style={{ backgroundColor: meta.color + '18', color: meta.color }}>
                         <Icon size={10} />
                         </span>
-                        <span className="text-slate-600 truncate flex-1 min-w-0">{item.title}</span>
+                        <span className="text-foreground truncate flex-1 min-w-0">{item.title}</span>
                       </div>
                     )
                   })}
@@ -162,7 +162,7 @@ export default function InspirationWidget() {
                   className="w-3.5 h-3.5"
                   style={{ color: 'var(--app-primary)' }}
                 />
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   {t('widget.recently_completed')}
                 </span>
               </div>
@@ -176,7 +176,7 @@ export default function InspirationWidget() {
                         <Icon size={10} />
                       </span>
                       <span className="text-slate-600 truncate flex-1 min-w-0">{item.title}</span>
-                      <span className="text-xs text-slate-400 flex-shrink-0">{formatDate(item.created_at)}</span>
+                      <span className="text-xs text-muted-foreground flex-shrink-0">{formatDate(item.created_at)}</span>
                     </div>
                   )
                 })}
@@ -189,7 +189,7 @@ export default function InspirationWidget() {
       {/* View all */}
       <Link
         href={`/${locale}/${groupSlug}/apps/inspiration`}
-        className="flex items-center justify-center gap-1 text-xs font-medium mt-3 pt-3 border-t border-slate-100"
+        className="flex items-center justify-center gap-1 text-xs font-medium mt-3 pt-3 border-t border-border"
         style={{ color: 'var(--app-primary)' }}
       >
         {t('widget.view_all')} <ArrowRight className="w-3 h-3" />

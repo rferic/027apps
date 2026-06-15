@@ -70,7 +70,7 @@ export function GroupSwitcher({ locale, groups, currentGroupSlug, isAdmin }: Pro
             {initials(currentGroup?.name ?? groups[0]?.name ?? '?')}
           </span>
         </div>
-        <span className="text-sm font-medium text-slate-700">
+        <span className="text-sm font-medium text-foreground">
           {currentGroup?.name ?? groups[0]?.name ?? t('fallback')}
         </span>
       </div>
@@ -92,25 +92,25 @@ export function GroupSwitcher({ locale, groups, currentGroupSlug, isAdmin }: Pro
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-muted transition-colors"
       >
         <div className="w-6 h-6 rounded-md bg-emerald-100 flex items-center justify-center flex-shrink-0">
           <span className="text-[10px] font-bold text-emerald-600">
             {initials(currentGroup?.name ?? groups[0]?.name ?? '?')}
           </span>
         </div>
-        <span className="max-w-[100px] truncate text-sm font-medium text-slate-700">
+        <span className="max-w-[100px] truncate text-sm font-medium text-foreground">
           {currentGroup?.name ?? groups[0]?.name ?? t('fallback')}
         </span>
         {currentGroup?.role === 'admin' && (
           <Shield className="w-3 h-3 text-amber-500 flex-shrink-0" />
         )}
-        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-64 bg-white rounded-xl border border-slate-100 shadow-lg py-1 z-50">
-          <p className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+        <div className="absolute left-0 top-full mt-1 w-64 bg-background rounded-xl border border-border shadow-lg py-1 z-50">
+          <p className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
             {t('switcher_label')}
           </p>
           {groups.map(group => {
@@ -123,7 +123,7 @@ export function GroupSwitcher({ locale, groups, currentGroupSlug, isAdmin }: Pro
                 key={group.id}
                 onClick={() => handleSelect(group.slug)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left transition-colors ${
-                  isActive ? 'bg-slate-50' : 'hover:bg-slate-50'
+                  isActive ? 'bg-accent' : 'hover:bg-accent'
                 }`}
               >
                 <div className="w-7 h-7 rounded-md bg-emerald-100 flex items-center justify-center flex-shrink-0">
@@ -133,12 +133,12 @@ export function GroupSwitcher({ locale, groups, currentGroupSlug, isAdmin }: Pro
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-700 font-medium truncate">{group.name}</span>
+                    <span className="text-foreground font-medium truncate">{group.name}</span>
                     {group.role === 'admin' && (
                       <Shield className="w-3 h-3 text-amber-500 flex-shrink-0" />
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                     {memberLabel && (
                       <span className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
@@ -156,10 +156,10 @@ export function GroupSwitcher({ locale, groups, currentGroupSlug, isAdmin }: Pro
           
           {isAdmin && (
             <>
-              <hr className="my-1 border-slate-100" />
+              <hr className="my-1 border-border" />
               <button
                 onClick={handleCreateGroup}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 {t('create_group')}

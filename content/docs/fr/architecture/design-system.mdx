@@ -1,0 +1,96 @@
+---
+title: Système de Design
+description: Bibliothèque de composants, tokens de design et référence Storybook
+---
+
+## Aperçu
+
+027Apps dispose d'un **Système de Design** personnalisé basé sur la proposition visuelle "Modern".
+Tous les nouveaux composants doivent utiliser ce système.
+
+Le système de design se compose de:
+
+- **Design tokens** — propriétés CSS personnalisées pour les couleurs, la typographie, l'espacement et les ombres
+- **Composants de base** — composants atomiques réutilisables (Button, Badge, Card, etc.)
+- **Composants composites** — composants métier (TodoList, IdeaList, StatCard, etc.)
+
+## Storybook
+
+Un catalogue interactif de composants est disponible via **Storybook**,
+où vous pouvez parcourir tous les composants, voir leurs variantes et lire la documentation auto-générée.
+
+```bash
+# Démarrer Storybook (serveur de développement sur http://localhost:6006)
+pnpm storybook
+
+# Build statique (sortie dans storybook-static/)
+pnpm build-storybook
+```
+
+## Design Tokens
+
+Tous les tokens sont définis dans `src/design-tokens.css` comme propriétés CSS personnalisées.
+Ils sont également reflétés dans le fichier global `src/app/globals.css` sous `:root` et `.dark`.
+
+| Catégorie | Token Exemple | Valeur Claire | Valeur Foncée |
+|---|---|---|---|
+| Marque | `--color-brand` | `#9B1C1C` | `#D45050` |
+| Fond | `--color-bg` | `#F8F6F3` | `#12120E` |
+| Surface | `--color-surface` | `#FFFFFF` | `#1A1815` |
+| Texte | `--color-text` | `#171B22` | `#E2E0DA` |
+| Texte secondaire | `--color-text-secondary` | `#6B7280` | `#8A867E` |
+| Bordure | `--color-border` | `#E2DDD6` | `#2A2824` |
+| Police titres | `--font-heading` | Outfit | Outfit |
+| Police corps | `--font-body` | Sora | Sora |
+| Rayon | `--radius-lg` | 0.625rem | 0.625rem |
+
+## Composants Disponibles
+
+### Composants de Base (`src/components/ds/`)
+
+| Composant | Variantes | Props clés |
+|---|---|---|
+| `DsButton` | primary, secondary, outline, ghost | size (sm/md/lg) |
+| `DsBadge` | primary, success, warning, error, neutral, outline | — |
+| `DsCard` | — | padding (sm/md/lg), hover |
+| `DsInput` / `DsTextarea` | — | label, error, disabled |
+| `DsModal` | — | open, onClose, title, maxWidth |
+| `DsTabs` | — | tabs[], defaultTab, onChange |
+| `DsAvatar` | — | size, color |
+| `DsSkeleton` | — | height, circle, count |
+| `DsEmptyState` | — | icon, title, description, action |
+| `DsAlert` | info, success, warning, error | icon, onDismiss |
+| `DsToggle` | — | checked, onChange, label, disabled |
+| `DsSelect` | — | options[], value, onChange, label |
+| `DsTable` | — | columns[], data[], onRowClick |
+| `DsPagination` | — | page, totalPages, onChange |
+
+### Composants Composites (`src/components/composite/`)
+
+| Composant | Description |
+|---|---|
+| `TodoItem` / `TodoList` | Ligne de tâche + liste avec priorités, catégories, assignés |
+| `IdeaList` | Éléments du tableau d'idées avec votes et commentaires |
+| `StatCard` | Carte statistique du tableau de bord avec étiquette, valeur, couleur |
+| `BarChart` | Graphique à barres SVG pour tableaux de bord |
+
+## Guide d'Utilisation
+
+1. **Ne jamais écrire de HTML/Tailwind brut** si un composant existe dans le système de design
+2. **Nouveaux composants** doivent:
+   - Être justifiés (pas de duplication)
+   - Utiliser les tokens de `design-tokens.css` (jamais de valeurs en dur)
+   - Inclure une histoire Storybook avec au moins la variante par défaut + les variantes principales
+3. **Même niveau de style**: tous les nouveaux composants doivent utiliser les tokens DS via `var(--token-name)`
+4. **Mode sombre**: supporté automatiquement via la classe `.dark` sur le parent
+
+## Ajouter un Nouveau Composant
+
+1. Créer le fichier dans `src/components/ds/nom.tsx`
+2. Utiliser les variables CSS de `design-tokens.css` (ne jamais coder les couleurs en dur)
+3. Créer `src/components/ds/nom.stories.tsx` avec:
+   - Variante par défaut
+   - Toutes les variantes principales
+   - État interactif si applicable
+4. Vérifier: `pnpm build-storybook && pnpm build`
+5. Pour les composites métier, utiliser `src/components/composite/`

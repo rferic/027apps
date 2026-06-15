@@ -26,15 +26,15 @@ export function AppSubNav({ locale, currentGroupSlug, groupApps }: Props) {
   const isActive = (slug: string) => pathname.includes(`/apps/${slug}`)
 
   return (
-    <div className="hidden md:flex items-center gap-1 px-4 sm:px-6 h-10 bg-white border-b border-slate-100 overflow-x-auto">
+    <div className="hidden md:flex items-center gap-1 px-4 sm:px-6 h-10 bg-background border-b border-border overflow-x-auto">
       <Link
         href={`/${locale}/${currentGroupSlug}/dashboard`}
-        className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 rounded-md hover:bg-slate-50 transition-colors flex-shrink-0"
+        className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors flex-shrink-0"
       >
         <Home size={13} />
         Home
       </Link>
-      <span className="text-slate-200 mx-0.5 flex-shrink-0">|</span>
+      <span className="text-border mx-0.5 flex-shrink-0">|</span>
       {groupApps.map(app => {
         const active = isActive(app.slug)
         return (
@@ -42,7 +42,7 @@ export function AppSubNav({ locale, currentGroupSlug, groupApps }: Props) {
             key={app.slug}
             href={`/${locale}/${currentGroupSlug}/apps/${app.slug}`}
             className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors flex-shrink-0 ${
-              active ? 'text-slate-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+              active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
             }`}
             style={active ? { backgroundColor: app.primaryColor + '15', color: app.primaryColor } : {}}
           >

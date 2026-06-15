@@ -1,0 +1,10 @@
+import{j as t}from"./iframe-DCrcDkvy.js";import"./preload-helper-Dp1pzeXC.js";function f({data:l,highlightIndex:b,color:d="var(--color-brand)",height:e=100}){const y=Math.max(...l.map(a=>a.value),1),i=Math.min(24,300/l.length-8);return t.jsx("svg",{width:"100%",height:e,viewBox:`0 0 ${Math.max(300,l.length*40)} ${e}`,style:{display:"block"},children:l.map((a,r)=>{const c=a.value/y*(e-28),s=b===r;return t.jsxs("g",{children:[t.jsx("rect",{x:10+r*40,y:e-18-c,width:i,height:c,rx:4,fill:s?d:"var(--color-border)",opacity:s?1:.4}),t.jsx("text",{x:10+r*40+i/2,y:e-3,textAnchor:"middle",fontSize:"8",fill:"var(--color-text-secondary)",children:a.label}),t.jsx("text",{x:10+r*40+i/2,y:e-18-c-4,textAnchor:"middle",fontSize:"8",fill:s?d:"var(--color-text-secondary)",fontWeight:s?700:400,children:a.value})]},r)})})}f.__docgenInfo={description:"",methods:[],displayName:"BarChart",props:{data:{required:!0,tsType:{name:"Array",elements:[{name:"BarDatum"}],raw:"BarDatum[]"},description:""},highlightIndex:{required:!1,tsType:{name:"number"},description:""},color:{required:!1,tsType:{name:"string"},description:"",defaultValue:{value:"'var(--color-brand)'",computed:!1}},height:{required:!1,tsType:{name:"number"},description:"",defaultValue:{value:"100",computed:!1}}}};const w={title:"Composite/BarChart",component:f,tags:["autodocs"]},v=[{label:"L",value:4},{label:"M",value:7},{label:"X",value:3},{label:"J",value:8},{label:"V",value:5},{label:"S",value:9},{label:"D",value:2}],o={args:{data:v}},n={args:{data:v,highlightIndex:5}};var u,m,p;o.parameters={...o.parameters,docs:{...(u=o.parameters)==null?void 0:u.docs,source:{originalSource:`{
+  args: {
+    data: weekData
+  }
+}`,...(p=(m=o.parameters)==null?void 0:m.docs)==null?void 0:p.source}}};var h,x,g;n.parameters={...n.parameters,docs:{...(h=n.parameters)==null?void 0:h.docs,source:{originalSource:`{
+  args: {
+    data: weekData,
+    highlightIndex: 5
+  }
+}`,...(g=(x=n.parameters)==null?void 0:x.docs)==null?void 0:g.source}}};const B=["Default","Highlighted"];export{o as Default,n as Highlighted,B as __namedExportsOrder,w as default};
