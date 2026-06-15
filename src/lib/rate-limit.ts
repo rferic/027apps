@@ -1,5 +1,16 @@
 const store = new Map<string, { count: number; resetAt: number }>()
 
+/**
+ * Extracts the real client IP from the x-forwarded-for header.
+ * Vercel appends the client's real connecting IP as the last value,
+ * so we take the last entry to avoid spoofing.
+ */
+export function getClientIp(forwardedFor: string | null): string {
+  if (!forwardedFor) return 'unknown'
+  const parts = forwardedFor.split(',').map((s) => s.trim())
+  return parts.pop() ?? 'unknown'
+}
+
 export function checkRateLimit(key: string, maxAttempts: number, windowMs: number): { allowed: boolean; remaining: number } {
   const now = Date.now()
   const entry = store.get(key)
