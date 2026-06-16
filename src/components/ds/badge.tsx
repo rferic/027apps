@@ -10,9 +10,9 @@ interface Props {
 
 const variantStyles: Record<Variant, React.CSSProperties> = {
   primary: { background: 'var(--color-brand-soft)', color: 'var(--color-brand)' },
-  success: { background: '#ECFDF5', color: '#059669' },
-  warning: { background: '#FFFBEB', color: '#D97706' },
-  error: { background: '#FEF2F2', color: '#DC2626' },
+  success: { background: 'var(--color-success-soft)', color: 'var(--color-success)' },
+  warning: { background: 'var(--color-warning-soft)', color: 'var(--color-warning)' },
+  error: { background: 'var(--color-error-soft)', color: 'var(--color-error)' },
   neutral: { background: 'var(--color-muted)', color: 'var(--color-text-secondary)' },
   outline: { background: 'transparent', color: 'var(--color-text)', border: '1px solid var(--color-border)' },
 }

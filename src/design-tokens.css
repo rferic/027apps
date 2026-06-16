@@ -31,9 +31,13 @@
 
   /* Status Colors */
   --color-success: #4ADE80;
+  --color-success-soft: #ECFDF5;
   --color-warning: #F59E0B;
+  --color-warning-soft: #FFFBEB;
   --color-error: #EF4444;
+  --color-error-soft: #FEF2F2;
   --color-info: #4F46E5;
+  --color-info-soft: #EEF2FF;
 
   /* Typography */
   --font-heading: 'Outfit', sans-serif;
@@ -93,6 +97,11 @@
 
   --color-border: #2A2824;
   --color-muted: #201E1A;
+
+  --color-success-soft: #0D2B1D;
+  --color-warning-soft: #2B2310;
+  --color-error-soft: #2D1517;
+  --color-info-soft: #161E33;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
