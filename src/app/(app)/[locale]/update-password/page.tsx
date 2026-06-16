@@ -66,7 +66,7 @@ export default function UpdatePasswordPage({ params }: Props) {
 
   if (pageState === 'loading') {
     return (
-      <div className="flex flex-1 items-center justify-center bg-slate-50 p-6">
+      <div className="flex flex-1 items-center justify-center  p-6">
         <p className="text-sm text-slate-400">{t('updating')}</p>
       </div>
     )
@@ -74,7 +74,7 @@ export default function UpdatePasswordPage({ params }: Props) {
 
   if (pageState === 'invalid_link') {
     return (
-      <div className="flex flex-1 items-center justify-center bg-slate-50 p-6">
+      <div className="flex flex-1 items-center justify-center  p-6">
         <div className="w-full max-w-sm text-center">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
             <p className="text-sm text-slate-600">{t('invalid_reset_link')}</p>
@@ -92,7 +92,7 @@ export default function UpdatePasswordPage({ params }: Props) {
 
   if (success) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-slate-50 p-6">
+      <div className="flex flex-1 items-center justify-center  p-6">
         <div className="w-full max-w-sm text-center">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
             <p className="text-sm text-slate-600">{t('password_updated')}</p>
@@ -109,7 +109,7 @@ export default function UpdatePasswordPage({ params }: Props) {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-slate-50 p-6">
+    <div className="flex flex-1 items-center justify-center  p-6">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <Image src="/logo-icon.svg" alt="027Apps" width={56} height={56} className="mb-4" />
