@@ -142,7 +142,7 @@ export default function SplitExpensesView() {
   }
 
   return (
-    <div>
+    <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-bold text-foreground">{t('group.list.title')}</h1>
         <DsButton color="#10B981" size="sm" onClick={() => setShowCreateGroup(true)}><Plus className="w-4 h-4" /> {t('group.create.title')}</DsButton>
@@ -309,7 +309,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   }
 
   return (
-    <div>
+    <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
       <DsButton variant="ghost" onClick={onBack} style={{ marginBottom: 16 }}>
         <ChevronDown className="w-4 h-4 rotate-90" /> {t('common.back')}
       </DsButton>
