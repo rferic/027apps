@@ -70,7 +70,7 @@ function TodoFilters({
     onChange({ ...filters, [key]: value })
   }
 
-  const selectCls = 'px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400'
+  const selectCls = 'px-2 py-1 text-xs border border-border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400'
 
   return (
     <div className="flex flex-wrap gap-2 mb-4">
@@ -171,34 +171,34 @@ function CreateTodoModal({
     setSaving(false)
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white'
+  const inputCls = 'w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white'
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
       <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-lg mx-4 max-h-[70vh] overflow-y-auto">
+      <div className="relative z-10 bg-background rounded-xl border border-border shadow-xl p-6 w-full max-w-lg mx-4 max-h-[70vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">{t('create_title')}</h2>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><X size={16} /></button>
+          <h2 className="text-lg font-semibold text-foreground">{t('create_title')}</h2>
+          <button onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="create-title" className="block text-sm font-medium text-slate-700 mb-1.5">{t('title_placeholder')} <span className="text-red-400">*</span></label>
+            <label htmlFor="create-title" className="block text-sm font-medium text-foreground mb-1.5">{t('title_placeholder')} <span className="text-red-400">*</span></label>
             <input id="create-title" type="text" value={title} onChange={e => setTitle(e.target.value)} className={inputCls} autoFocus required />
           </div>
           <div>
-            <label htmlFor="create-desc" className="block text-sm font-medium text-slate-700 mb-1.5">{t('desc_placeholder')} <span className="text-slate-400 font-normal normal-case tracking-normal ml-0.5">(opcional)</span></label>
+            <label htmlFor="create-desc" className="block text-sm font-medium text-foreground mb-1.5">{t('desc_placeholder')} <span className="text-muted-foreground font-normal normal-case tracking-normal ml-0.5">(opcional)</span></label>
             <textarea id="create-desc" value={description} onChange={e => setDescription(e.target.value)} className={inputCls} rows={3} />
           </div>
           <div>
-            <label htmlFor="create-category" className="block text-sm font-medium text-slate-700 mb-1.5">{t('category')}</label>
+            <label htmlFor="create-category" className="block text-sm font-medium text-foreground mb-1.5">{t('category')}</label>
             <select id="create-category" value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
               <option value="">{t('no_category')}</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
             </select>
           </div>
           <div>
-            <label htmlFor="create-priority" className="block text-sm font-medium text-slate-700 mb-1.5">{t('priority')}</label>
+            <label htmlFor="create-priority" className="block text-sm font-medium text-foreground mb-1.5">{t('priority')}</label>
             <select id="create-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
               {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k} style={{ color: v.color }}>{t('priority_' + k)}</option>)}
             </select>
@@ -206,14 +206,14 @@ function CreateTodoModal({
           {visibility === 'public' ? (
             <div className="flex gap-3">
               <div className="flex-1">
-                <label htmlFor="create-visibility" className="block text-sm font-medium text-slate-700 mb-1.5">{t('visibility_label')}</label>
+                <label htmlFor="create-visibility" className="block text-sm font-medium text-foreground mb-1.5">{t('visibility_label')}</label>
                 <select id="create-visibility" value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
                   <option value="private">{t('visibility_private')}</option>
                   <option value="public">{t('visibility_public')}</option>
                 </select>
               </div>
               <div className="flex-1">
-                <label htmlFor="create-assign" className="block text-sm font-medium text-slate-700 mb-1.5">{t('assign_to')}</label>
+                <label htmlFor="create-assign" className="block text-sm font-medium text-foreground mb-1.5">{t('assign_to')}</label>
                 <select id="create-assign" value={assignTo} onChange={e => setAssignTo(e.target.value)} className={inputCls}>
                   <option value="">{t('unassigned')}</option>
                   <option value="self">{t('assign_to_me')}</option>
@@ -225,7 +225,7 @@ function CreateTodoModal({
             </div>
           ) : (
             <div>
-              <label htmlFor="create-visibility" className="block text-sm font-medium text-slate-700 mb-1.5">{t('visibility_label')}</label>
+              <label htmlFor="create-visibility" className="block text-sm font-medium text-foreground mb-1.5">{t('visibility_label')}</label>
               <select id="create-visibility" value={visibility} onChange={e => setVisibility(e.target.value as 'public' | 'private')} className={inputCls}>
                 <option value="private">{t('visibility_private')}</option>
                 <option value="public">{t('visibility_public')}</option>
@@ -233,9 +233,9 @@ function CreateTodoModal({
             </div>
           )}
           <div>
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+            <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
               {t('due_date')}
-              <label className="flex items-center gap-1 text-[11px] font-normal normal-case tracking-normal text-slate-400 cursor-pointer">
+              <label className="flex items-center gap-1 text-[11px] font-normal normal-case tracking-normal text-muted-foreground cursor-pointer">
                 <input type="checkbox" checked={!dueDate} onChange={e => setDueDate(e.target.checked ? '' : (initialDueDate ?? today()))} className="w-4 h-4 sm:w-3 sm:h-3 rounded" />
                 {t('no_date')}
               </label>
@@ -243,7 +243,7 @@ function CreateTodoModal({
             <input id="create-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} disabled={!dueDate} className={inputCls} />
           </div>
           <div>
-            <label htmlFor="create-repeat" className="block text-sm font-medium text-slate-700 mb-1.5">{t('repeat_none')}</label>
+            <label htmlFor="create-repeat" className="block text-sm font-medium text-foreground mb-1.5">{t('repeat_none')}</label>
             <select id="create-repeat" value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
               <option value="">{t('repeat_none')}</option>
               <option value="weekly">{t('repeat_weekly')}</option>
@@ -255,7 +255,7 @@ function CreateTodoModal({
             <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{createError}</p>
           )}
           <div className="pt-2 flex gap-2 justify-end">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground">{t('cancel')}</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? t('saving') : t('create')}</button>
           </div>
         </form>
@@ -292,18 +292,18 @@ function DeleteConfirm({ item, groupSlug, onClose, onDeleted }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
-        <h3 className="text-sm font-semibold text-slate-900 mb-2">{t('delete')}</h3>
-        <p className="text-sm text-slate-500 mb-1">{t('delete_confirm')}</p>
-        <p className="text-sm text-slate-700 mb-4 font-medium">&ldquo;{item.title}&rdquo;</p>
+      <div className="relative z-10 bg-background rounded-xl border border-border shadow-xl p-6 w-full max-w-sm mx-4">
+        <h3 className="text-sm font-semibold text-foreground mb-2">{t('delete')}</h3>
+        <p className="text-sm text-muted-foreground mb-1">{t('delete_confirm')}</p>
+        <p className="text-sm text-foreground mb-4 font-medium">&ldquo;{item.title}&rdquo;</p>
         {item.repeat_interval && (
         <label className="flex items-center gap-2 mb-4 cursor-pointer">
-          <input type="checkbox" checked={deleteSeries} onChange={e => setDeleteSeries(e.target.checked)} className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-          <span className="text-xs text-slate-500">{t('delete_series')}</span>
+          <input type="checkbox" checked={deleteSeries} onChange={e => setDeleteSeries(e.target.checked)} className="rounded border-border text-indigo-600 focus:ring-indigo-500" />
+          <span className="text-xs text-muted-foreground">{t('delete_series')}</span>
         </label>
         )}
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
+          <button onClick={onClose} className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">{t('cancel')}</button>
           <button onClick={handleDelete} disabled={deleting} className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50">
             {deleting ? t('saving') : t('delete')}
           </button>
@@ -480,8 +480,8 @@ export default function TodoView() {
             <CheckSquare size={18} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">{t('title')}</h1>
-            <p className="text-xs text-slate-400">{items.length} tareas</p>
+            <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
+            <p className="text-xs text-muted-foreground">{items.length} tareas</p>
           </div>
         </div>
         <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-lg cursor-pointer transition-colors" style={{ backgroundColor: '#4F46E5' }}>
@@ -491,16 +491,16 @@ export default function TodoView() {
 
       {/* Tabs + Sort */}
       <div className="flex items-center sm:justify-between justify-center mb-4">
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-          <button onClick={() => changeTab('my')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'my' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('tab_my')}</button>
-          <button onClick={() => changeTab('group')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('tab_group')}</button>
+        <div className="flex gap-1 bg-muted rounded-lg p-1">
+          <button onClick={() => changeTab('my')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'my' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>{t('tab_my')}</button>
+          <button onClick={() => changeTab('group')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>{t('tab_group')}</button>
         </div>
       </div>
 
       {/* Filters - same pattern on all sizes: button + modal + active badges */}
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
+          <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-white text-muted-foreground hover:bg-accent cursor-pointer transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg>
             {t('filter_label')}
             {Object.values(filters).some(v => v) && (
@@ -508,7 +508,7 @@ export default function TodoView() {
             )}
           </button>
           <select value={sort} onChange={e => setSort(e.target.value)}
-            className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+            className="px-3 py-2 text-xs font-medium border border-border rounded-lg bg-white text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
             <option value="updated">{t('sort_updated')}</option>
             <option value="priority">{t('sort_priority')}</option>
             <option value="upcoming">{t('sort_upcoming')}</option>
@@ -539,7 +539,7 @@ export default function TodoView() {
           </span>
           )}
           {tab === 'group' && filters.assigned && (
-          <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+          <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
             👤 {filters.assigned === 'unassigned' ? t('unassigned') : memberMap.get(filters.assigned) ?? filters.assigned}
             <button type="button" onClick={() => setFilters(f => ({...f, assigned: ''}))} className="cursor-pointer opacity-60 hover:opacity-100"><X size={12} /></button>
           </span>
@@ -548,63 +548,63 @@ export default function TodoView() {
         {/* Filter modal - same on all sizes */}
         {showFilters && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center" onClick={() => setShowFilters(false)}>
-            <div className="relative bg-white rounded-2xl p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="relative bg-background rounded-2xl p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto shadow-xl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-base font-semibold text-slate-900">{t('filter_label')}</h3>
-                <button type="button" onClick={() => setShowFilters(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={20} /></button>
+                <h3 className="text-base font-semibold text-foreground">{t('filter_label')}</h3>
+                <button type="button" onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-muted-foreground cursor-pointer"><X size={20} /></button>
               </div>
               <div className="mb-5">
-                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_category')}</label>
+                <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('filter_category')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setFilters(f => ({...f, category: ''}))}
-                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.category ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('all')}</button>
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.category ? 'bg-primary text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{t('all')}</button>
                   {categories.map(c => (
                     <button key={c.id} type="button" onClick={() => setFilters(f => ({...f, category: f.category === c.id ? '' : c.id}))}
-                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.category === c.id ? 'text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.category === c.id ? 'text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-accent'}`}
                       style={filters.category === c.id ? { backgroundColor: c.color } : {}}>{c.emoji} {c.name}</button>
                   ))}
                 </div>
               </div>
               <div className="mb-5">
-                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_priority')}</label>
+                <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('filter_priority')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setFilters(f => ({...f, priority: ''}))}
-                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.priority ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('all')}</button>
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.priority ? 'bg-primary text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{t('all')}</button>
                   {Object.keys(PRIORITY_CONFIG).map(k => (
                     <button key={k} type="button" onClick={() => setFilters(f => ({...f, priority: f.priority === k ? '' : k}))}
-                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.priority === k ? 'text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.priority === k ? 'text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-accent'}`}
                       style={filters.priority === k ? { backgroundColor: PRIORITY_CONFIG[k].color } : {}}>{t('priority_' + k)}</button>
                   ))}
                 </div>
               </div>
               <div className="mb-5">
-                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_status')}</label>
+                <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('filter_status')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setFilters(f => ({...f, status: ''}))}
-                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.status ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('all')}</button>
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.status ? 'bg-primary text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{t('all')}</button>
                   {['pending', 'done'].map(s => (
                     <button key={s} type="button" onClick={() => setFilters(f => ({...f, status: f.status === s ? '' : s}))}
-                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.status === s ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('status_' + s)}</button>
+                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.status === s ? 'bg-primary text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{t('status_' + s)}</button>
                   ))}
                 </div>
               </div>
               {tab === 'group' && (
               <div className="mb-5">
-                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filter_assigned')}</label>
+                <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('filter_assigned')}</label>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setFilters(f => ({...f, assigned: ''}))}
-                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.assigned ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('all')}</button>
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${!filters.assigned ? 'bg-primary text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{t('all')}</button>
                   <button type="button" onClick={() => setFilters(f => ({...f, assigned: f.assigned === 'unassigned' ? '' : 'unassigned'}))}
-                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.assigned === 'unassigned' ? 'bg-slate-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t('unassigned')}</button>
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.assigned === 'unassigned' ? 'bg-primary text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{t('unassigned')}</button>
                   {Array.from(memberMap.entries()).map(([id, name]) => (
                     <button key={id} type="button" onClick={() => setFilters(f => ({...f, assigned: f.assigned === id ? '' : id}))}
-                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.assigned === id ? 'bg-indigo-600 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{name}</button>
+                      className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${filters.assigned === id ? 'bg-indigo-600 text-white font-medium' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>{name}</button>
                   ))}
                 </div>
               </div>
               )}
               <button type="button" onClick={() => setShowFilters(false)}
-                className="w-full py-3 text-sm font-semibold text-white bg-indigo-600 rounded-xl cursor-pointer hover:bg-indigo-700 shadow-sm transition-colors">{t('apply')}</button>
+                className="w-full py-3 text-sm font-semibold text-white bg-indigo-600 rounded-xl cursor-pointer hover:bg-indigo-700 transition-colors">{t('apply')}</button>
             </div>
           </div>
         )}
@@ -613,14 +613,14 @@ export default function TodoView() {
       {/* Date navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
         <div className="flex items-center justify-center sm:justify-start gap-1 min-w-0">
-          <button onClick={() => navigate(-1)} className="p-1 text-slate-400 hover:text-slate-600 text-sm flex-shrink-0">&lt;</button>
-          <button onClick={goToday} className="text-sm font-medium text-slate-700 hover:text-slate-900 px-2 truncate">{formatRangeHeader()}</button>
-          <button onClick={() => navigate(1)} className="p-1 text-slate-400 hover:text-slate-600 text-sm flex-shrink-0">&gt;</button>
+          <button onClick={() => navigate(-1)} className="p-1 text-muted-foreground hover:text-muted-foreground text-sm flex-shrink-0">&lt;</button>
+          <button onClick={goToday} className="text-sm font-medium text-foreground hover:text-foreground px-2 truncate">{formatRangeHeader()}</button>
+          <button onClick={() => navigate(1)} className="p-1 text-muted-foreground hover:text-muted-foreground text-sm flex-shrink-0">&gt;</button>
         </div>
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5 flex-shrink-0 mx-auto sm:mx-0">
+        <div className="flex gap-1 bg-muted rounded-lg p-0.5 flex-shrink-0 mx-auto sm:mx-0">
           {(['day','week','month','year'] as const).map(m => (
             <button key={m} onClick={() => setViewMode(m)}
-              className={`px-2 py-1 text-[11px] font-medium rounded-md transition-colors ${viewMode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              className={`px-2 py-1 text-[11px] font-medium rounded-md transition-colors ${viewMode === m ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               {t('view_' + m)}
             </button>
           ))}
@@ -631,9 +631,9 @@ export default function TodoView() {
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 size={20} className="animate-spin text-slate-200" /></div>
       ) : error ? (
-        <div className="text-center py-12 text-sm text-slate-400">{t('error_loading')}</div>
+        <div className="text-center py-12 text-sm text-muted-foreground">{t('error_loading')}</div>
       ) : items.length === 0 ? (
-        <div className="text-center py-12 text-sm text-slate-400">{tab === 'my' ? t('empty_my') : t('empty_group')}</div>
+        <div className="text-center py-12 text-sm text-muted-foreground">{tab === 'my' ? t('empty_my') : t('empty_group')}</div>
       ) : (
         <div className="space-y-2">
           {items.map(item => (
@@ -657,36 +657,36 @@ export default function TodoView() {
       {detailItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/40" onClick={() => setDetailItem(null)} />
-          <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
+          <div className="relative z-10 bg-background rounded-xl border border-border shadow-xl p-6 w-full max-w-sm mx-4">
             <div className="flex items-start justify-between mb-3">
-              <h3 className="text-base font-semibold text-slate-900 pr-4">{detailItem.title}</h3>
-              <button onClick={() => setDetailItem(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 -mt-1 -mr-1"><X size={16} /></button>
+              <h3 className="text-base font-semibold text-foreground pr-4">{detailItem.title}</h3>
+              <button onClick={() => setDetailItem(null)} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent -mt-1 -mr-1"><X size={16} /></button>
             </div>
-            {detailItem.description && <p className="text-sm text-slate-600 mb-3">{detailItem.description}</p>}
-            <div className="space-y-1.5 text-xs text-slate-500 mb-4">
+            {detailItem.description && <p className="text-sm text-muted-foreground mb-3">{detailItem.description}</p>}
+            <div className="space-y-1.5 text-xs text-muted-foreground mb-4">
               {(() => {
                 const dc = detailItem.category_id ? catMap.get(detailItem.category_id) : null
                 return dc ? <p><span className="font-medium">{dc.emoji}</span> <span style={{ color: dc.color }}>{dc.name}</span></p> : null
               })()}
-              <p><span className="font-medium text-slate-600">{t('priority')}:</span> <span className="font-semibold px-1.5 py-0.5 rounded text-[11px]" style={{ backgroundColor: PRIORITY_CONFIG[detailItem.priority]?.color + '20' || '#6B728020', color: PRIORITY_CONFIG[detailItem.priority]?.color || '#6B7280' }}>{t('priority_' + detailItem.priority)}</span></p>
-              <p><span className="font-medium text-slate-600">{t('filter_status')}:</span> {t('status_' + detailItem.status)}</p>
-              {detailItem.due_date && <p><span className="font-medium text-slate-600">{t('due_date')}:</span> {formatDate(detailItem.due_date)}</p>}
+              <p><span className="font-medium text-muted-foreground">{t('priority')}:</span> <span className="font-semibold px-1.5 py-0.5 rounded text-[11px]" style={{ backgroundColor: PRIORITY_CONFIG[detailItem.priority]?.color + '20' || '#6B728020', color: PRIORITY_CONFIG[detailItem.priority]?.color || '#6B7280' }}>{t('priority_' + detailItem.priority)}</span></p>
+              <p><span className="font-medium text-muted-foreground">{t('filter_status')}:</span> {t('status_' + detailItem.status)}</p>
+              {detailItem.due_date && <p><span className="font-medium text-muted-foreground">{t('due_date')}:</span> {formatDate(detailItem.due_date)}</p>}
               {!detailItem.due_date && <p className="italic">{t('no_date')}</p>}
               {detailItem.repeat_interval && <p>↻ {t('repeat_' + detailItem.repeat_interval)}</p>}
-              {detailItem.assigned_to && <p><span className="font-medium text-slate-600">{t('assign_to')}:</span> 👤 {memberMap.get(detailItem.assigned_to) ?? '...'}</p>}
+              {detailItem.assigned_to && <p><span className="font-medium text-muted-foreground">{t('assign_to')}:</span> 👤 {memberMap.get(detailItem.assigned_to) ?? '...'}</p>}
             </div>
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between pt-2 border-t border-border">
               <div className="flex items-center gap-1">
-                <button onClick={() => { setDetailItem(null); setEditItem(detailItem) }} className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title={t('edit')}>
+                <button onClick={() => { setDetailItem(null); setEditItem(detailItem) }} className="p-2 rounded-lg text-muted-foreground hover:text-muted-foreground hover:bg-accent transition-colors" title={t('edit')}>
                   <Pencil size={16} />
                 </button>
                 {tab === 'group' && !detailItem.assigned_to && userId && (
-                  <button onClick={() => { handleAssignToMe(detailItem); setDetailItem(null) }} className="p-2 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors" title={t('assign_to_me')}>
+                  <button onClick={() => { handleAssignToMe(detailItem); setDetailItem(null) }} className="p-2 rounded-lg text-muted-foreground hover:text-indigo-500 hover:bg-indigo-50 transition-colors" title={t('assign_to_me')}>
                     <UserPlus size={16} />
                   </button>
                 )}
               </div>
-              <button onClick={() => { setDetailItem(null); setDeleteItem(detailItem) }} className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title={t('delete')}>
+              <button onClick={() => { setDetailItem(null); setDeleteItem(detailItem) }} className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors" title={t('delete')}>
                 <Trash2 size={16} />
               </button>
             </div>
