@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { Loader2, Pencil, Trash2, Search } from 'lucide-react'
+import { Trash2, Search } from 'lucide-react'
 import { toast } from 'sonner'
+import { DsButton } from '@/components/ds/button'
+import { DsCard } from '@/components/ds/card'
+import { DsSkeleton } from '@/components/ds/skeleton'
+import { DsEmptyState } from '@/components/ds/empty-state'
+import { DsBadge } from '@/components/ds/badge'
 
 interface Group {
   id: string; title: string; emoji: string; currency: string;
@@ -70,50 +75,52 @@ export default function SplitExpensesAdmin() {
   return (
     <div className="p-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h2 className="text-lg font-bold text-slate-900">{t('title')}</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>{t('title')}</h2>
         <div className="relative w-full sm:w-auto">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('searchPlaceholder')}
-            className="w-full sm:w-48 pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="w-full sm:w-48 pl-8 pr-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
           />
         </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
+        <DsSkeleton height={48} count={5} />
       ) : filtered.length === 0 ? (
-        <p className="text-center py-12 text-sm text-slate-400">{t('empty')}</p>
+        <DsEmptyState title={t('empty')} />
       ) : (
         <div className="space-y-2">
           {filtered.map(g => (
-            <div key={g.id} className="border border-slate-100 rounded-xl overflow-hidden">
-              <button onClick={() => toggleGroup(g.id)}
-                className="w-full flex items-center gap-3 p-3 bg-white hover:bg-slate-50 transition-colors text-left"
-              >
-                <span className="text-xl">{g.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-900">{g.title}</p>
-                  <p className="text-xs text-slate-400">{t('groupLabel', { id: g.group_id?.slice(0, 8) ?? '', currency: g.currency })}</p>
+            <div key={g.id} style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', overflow: 'hidden' }}>
+              <DsCard padding="sm" hover onClick={() => toggleGroup(g.id)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 20 }}>{g.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>{g.title}</p>
+                    <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>{t('groupLabel', { id: g.group_id?.slice(0, 8) ?? '', currency: g.currency })}</p>
+                  </div>
+                  <span onClick={e => { e.stopPropagation(); handleDeleteGroup(g.id) }}>
+                    <DsButton variant="ghost" size="sm" style={{ color: '#EF4444' }}><Trash2 className="w-3.5 h-3.5" /></DsButton>
+                  </span>
                 </div>
-                <button onClick={e => { e.stopPropagation(); handleDeleteGroup(g.id) }} className="p-1 text-slate-300 hover:text-red-500 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
-              </button>
+              </DsCard>
 
               {expandedGroup === g.id && (
-                <div className="border-t border-slate-100 bg-slate-50 p-3">
-                  <p className="text-xs font-medium text-slate-500 mb-2">{t('expensesLabel')}</p>
+                <div style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-muted)', padding: 12 }}>
+                  <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 8 }}>{t('expensesLabel')}</p>
                   {!expenses[g.id] ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-slate-300" />
+                    <DsSkeleton height={20} />
                   ) : expenses[g.id].length === 0 ? (
-                    <p className="text-xs text-slate-400">{t('noExpenses')}</p>
+                    <p style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{t('noExpenses')}</p>
                   ) : (
-                    <div className="space-y-1">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {expenses[g.id].map(e => (
-                        <div key={e.id} className="flex items-center justify-between p-2 bg-white rounded border border-slate-100">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <p className={`text-xs ${e.settled ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{e.title}</p>
-                            {e.settled && <span className="text-[10px] text-slate-300">{t('settledBadge')}</span>}
+                        <div key={e.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 8, background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                            <p style={{ fontSize: 11, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', textDecoration: e.settled ? 'line-through' : 'none', margin: 0 }}>{e.title}</p>
+                            {e.settled && <DsBadge variant="neutral" style={{ fontSize: 9 }}>{t('settledBadge')}</DsBadge>}
                           </div>
-                          <span className="text-xs font-medium text-slate-600">{g.currency} {Number(e.amount).toFixed(2)}</span>
+                          <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text)' }}>{g.currency} {Number(e.amount).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>

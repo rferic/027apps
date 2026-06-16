@@ -4,7 +4,16 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Loader2, Pencil, Trash2, Check, Users, BarChart3, Tags, ArrowLeftRight, ChevronDown, Filter } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ChevronDown, Filter } from 'lucide-react'
+import { DsButton } from '@/components/ds/button'
+import { DsModal } from '@/components/ds/modal'
+import { DsCard } from '@/components/ds/card'
+import { DsBadge } from '@/components/ds/badge'
+import { DsTabs } from '@/components/ds/tabs'
+import { DsToggle } from '@/components/ds/toggle'
+import { DsSkeleton } from '@/components/ds/skeleton'
+import { DsEmptyState } from '@/components/ds/empty-state'
+import { DsAvatar } from '@/components/ds/avatar'
 
 const supabase = createClient()
 let cachedToken: string | null = null
@@ -45,7 +54,7 @@ function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string)
     <div className="grid grid-cols-6 gap-1.5">
       {EMOJIS.map(e => (
         <button key={e} type="button" onClick={() => onChange(e)}
-          className={`w-8 h-8 text-lg flex items-center justify-center rounded-lg border ${value === e ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500' : 'border-slate-200 hover:border-slate-300'}`}
+          className={`w-8 h-8 text-lg flex items-center justify-center rounded-lg border ${value === e ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500' : 'border-border hover:border-border'}`}
         >{e}</button>
       ))}
     </div>
@@ -53,24 +62,7 @@ function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string)
 }
 
 function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
-  useEffect(() => {
-    if (!open) return
-    function onKeyDown(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose])
-  if (!open) return null
-  return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center" onClick={onClose}>
-      <div className="bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"><X className="w-4 h-4" /></button>
-        </div>
-        {children}
-      </div>
-    </div>
-  )
+  return <DsModal open={open} onClose={onClose} title={title}>{children}</DsModal>
 }
 
 // ─── SVG Chart ──────────────────────────────────────────────────────────
@@ -191,34 +183,27 @@ export default function SplitExpensesView() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-bold text-slate-900">{t('group.list.title')}</h1>
-        <button onClick={() => setShowCreateGroup(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-colors"
-        ><Plus className="w-4 h-4" /> {t('group.create.title')}</button>
+        <h1 className="text-lg font-bold text-foreground">{t('group.list.title')}</h1>
+        <DsButton color="#10B981" size="sm" onClick={() => setShowCreateGroup(true)}><Plus className="w-4 h-4" /> {t('group.create.title')}</DsButton>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
+        <div className="py-16"><DsSkeleton height={120} count={3} /></div>
       ) : groups.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-sm text-slate-400 mb-2">{t('group.list.empty')}</p>
-          <button onClick={() => setShowCreateGroup(true)}
-            className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-          >{t('group.list.createFirst')}</button>
-        </div>
+        <DsEmptyState icon="💰" title={t('group.list.empty')} action={<DsButton color="#10B981" size="sm" onClick={() => setShowCreateGroup(true)}>{t('group.list.createFirst')}</DsButton>} />
       ) : (
         <div className="space-y-3">
           {groups.map(g => (
-            <button key={g.id} onClick={() => setSelectedGroup(g.id)}
-              className="w-full flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all text-left"
-            >
-              <span className="text-2xl">{g.emoji}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900">{g.title}</p>
-                <p className="text-xs text-slate-400">{t('group.list.memberCount', { count: g.member_count ?? 0 })} · {currencySymbol(g.currency)}</p>
+            <DsCard key={g.id} padding="lg" hover onClick={() => setSelectedGroup(g.id)}>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{g.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{g.title}</p>
+                  <p className="text-xs text-muted-foreground">{t('group.list.memberCount', { count: g.member_count ?? 0 })} · {currencySymbol(g.currency)}</p>
+                </div>
+                <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 flex-shrink-0" />
               </div>
-              <ChevronDown className="w-4 h-4 text-slate-300 -rotate-90 flex-shrink-0" />
-            </button>
+            </DsCard>
           ))}
         </div>
       )}
@@ -276,22 +261,22 @@ function CreateGroupModal({ open, onClose, onCreated, editGroup }: { open: boole
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={editGroup ? t('group.create.editTitle') : t('group.create.title')}>
+    <DsModal open={open} onClose={onClose} title={editGroup ? t('group.create.editTitle') : t('group.create.title')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">{t('group.create.name')}</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t('group.create.name')}</label>
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder={t('group.create.name')} required maxLength={100}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1.5">{t('group.create.emoji')}</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('group.create.emoji')}</label>
           <EmojiPicker value={emoji} onChange={setEmoji} />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">{t('group.create.currency')}</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t('group.create.currency')}</label>
           <select value={currency} onChange={e => setCurrency(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
           >
             {Object.entries(CURRENCY_SYMBOLS).sort().map(([code, sym]) => (
               <option key={code} value={code}>{code} ({sym})</option>
@@ -300,27 +285,27 @@ function CreateGroupModal({ open, onClose, onCreated, editGroup }: { open: boole
         </div>
         {!editGroup && (
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">{t('group.create.members')}</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">{t('group.create.members')}</label>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {groupMembers.map(m => (
-                <label key={m.id} className="flex items-center gap-2 px-2 py-1 hover:bg-slate-50 rounded cursor-pointer">
+                <label key={m.id} className="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded cursor-pointer">
                   <input type="checkbox" checked={members.includes(m.id)} onChange={e => setMembers(e.target.checked ? [...members, m.id] : members.filter(id => id !== m.id))}
-                    className="rounded border-slate-300 text-emerald-500 focus:ring-emerald-400"
+                    className="rounded border-border text-emerald-500 focus:ring-emerald-400"
                   />
-                  <span className="text-sm text-slate-700">{m.display_name}</span>
+                  <span className="text-sm text-foreground">{m.display_name}</span>
                 </label>
               ))}
             </div>
           </div>
         )}
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">{t('group.create.cancel')}</button>
-          <button type="submit" disabled={saving || !title.trim()}
-            className="px-4 py-1.5 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:opacity-50 transition-colors flex items-center gap-1.5"
-          >{saving && <Loader2 className="w-3 h-3 animate-spin" />}{editGroup ? t('group.create.save') : t('group.create.create')}</button>
+          <DsButton variant="ghost" onClick={onClose}>{t('group.create.cancel')}</DsButton>
+          <DsButton color="#10B981" disabled={saving || !title.trim()} type="submit">
+            {saving && <Loader2 className="w-3 h-3 animate-spin" />}{editGroup ? t('group.create.save') : t('group.create.create')}
+          </DsButton>
         </div>
       </form>
-    </Modal>
+    </DsModal>
   )
 }
 
@@ -353,39 +338,34 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   useEffect(() => { fetchGroup() }, [groupId, ctx.groupSlug])
 
   if (loading) {
-    return <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
+    return <div className="py-16"><DsSkeleton height={120} count={3} /></div>
   }
 
   if (fetchError || !group) {
     return (
-      <div className="text-center py-16">
-        <p className="text-sm text-slate-400 mb-4">{t('group.detail.noGroup')}</p>
-        <button onClick={onBack} className="text-sm text-emerald-600 hover:underline">{t('common.back')}</button>
-      </div>
+      <DsEmptyState icon="💰" title={t('group.detail.noGroup')} action={<DsButton variant="ghost" onClick={onBack}>{t('common.back')}</DsButton>} />
     )
   }
 
   return (
     <div>
-          <button onClick={onBack} className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 mb-4 transition-colors">
+      <DsButton variant="ghost" onClick={onBack} style={{ marginBottom: 16 }}>
         <ChevronDown className="w-4 h-4 rotate-90" /> {t('common.back')}
-      </button>
+      </DsButton>
 
       <div className="flex items-center gap-3 mb-6">
         <span className="text-3xl">{group.emoji}</span>
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold text-slate-900">{group.title}</h1>
-          <p className="text-xs text-slate-400">{currencySymbol(group.currency)} · {t('group.detail.memberCount', { count: group.members?.length ?? 0 })}</p>
+          <h1 className="text-lg font-bold text-foreground">{group.title}</h1>
+          <p className="text-xs text-muted-foreground">{currencySymbol(group.currency)} · {t('group.detail.memberCount', { count: group.members?.length ?? 0 })}</p>
         </div>
-        <button onClick={() => setShowEditGroup(true)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-          <Pencil className="w-4 h-4" />
-        </button>
+        <DsButton variant="ghost" onClick={() => setShowEditGroup(true)}><Pencil className="w-4 h-4" /></DsButton>
       </div>
 
-      <div className="flex gap-1 mb-6 border-b border-slate-100">
+      <div className="flex gap-1 mb-6 border-b border-border">
         {TABS.map(tabKey => (
           <button key={tabKey} onClick={() => setTab(tabKey)}
-            className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors ${tab === tabKey ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+            className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors ${tab === tabKey ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
           >{t(`group.detail.tabs.${tabKey}` as any)}</button>
         ))}
       </div>
@@ -450,51 +430,53 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
     <div>
       <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <div className="flex gap-2">
-          <select value={filterTag} onChange={e => setFilterTag(e.target.value)} className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white">
+          <select value={filterTag} onChange={e => setFilterTag(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
             <option value="">{t('expense.list.allTags')}</option>
             {tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
           </select>
-          <select value={filterPaidBy} onChange={e => setFilterPaidBy(e.target.value)} className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white">
+          <select value={filterPaidBy} onChange={e => setFilterPaidBy(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
             <option value="">{t('expense.list.allUsers')}</option>
             {group.members?.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
           </select>
         </div>
-        <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-colors"
-        ><Plus className="w-3.5 h-3.5" /> {t('expense.create.title')}</button>
+        <DsButton color="#10B981" size="sm" onClick={() => setShowCreate(true)}><Plus className="w-3.5 h-3.5" /> {t('expense.create.title')}</DsButton>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-slate-300" /></div>
+        <div className="py-8"><DsSkeleton height={60} count={4} /></div>
       ) : expenses.length === 0 ? (
-        <div className="text-center py-8 text-sm text-slate-400">{t('expense.list.empty')}</div>
+        <DsEmptyState title={t('expense.list.empty')} />
       ) : (
         <div className="space-y-2">
           {expenses.map(e => {
             const tag = tags.find(t => t.id === e.tag_id)
             return (
-              <button key={e.id} onClick={() => setDetailExpense(e)}
-                className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left ${e.settled ? 'bg-slate-50 border-slate-100' : 'bg-white border-slate-100'} hover:border-slate-200 transition-colors`}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className={`text-sm font-medium ${e.settled ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{e.title}</p>
-                    {tag && <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: tag.color + '20', color: tag.color }}>{tag.name}</span>}
+              <DsCard key={e.id} padding="sm" hover onClick={() => setDetailExpense(e)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div className="flex-1 min-w-0">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', textDecoration: e.settled ? 'line-through' : 'none', margin: 0 }}>
+                        {e.title}
+                      </p>
+                      {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: 10 }}>{tag.name}</DsBadge>}
+                    </div>
+                    <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
+                      {e.paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} · {new Date(e.created_at).toLocaleDateString(locale)}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-400">
-                    {e.paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} · {new Date(e.created_at).toLocaleDateString(locale)}
-                  </p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className={`text-sm font-semibold ${e.settled ? 'text-slate-300' : 'text-slate-900'}`}>{formatAmount(e.amount, group.currency)}</p>
-                </div>
-                {!e.settled && (
-                  <div className="flex gap-1">
-                    <button onClick={ev => { ev.stopPropagation(); setEditExpense(e) }} className="p-1 text-slate-300 hover:text-slate-500 rounded"><Pencil className="w-3.5 h-3.5" /></button>
-                    <button onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }} className="p-1 text-slate-300 hover:text-red-500 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', margin: 0, opacity: e.settled ? 0.5 : 1 }}>
+                      {formatAmount(e.amount, group.currency)}
+                    </p>
                   </div>
-                )}
-              </button>
+                  {!e.settled && (
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <span onClick={ev => { ev.stopPropagation(); setEditExpense(e) }}><DsButton variant="ghost" size="sm"><Pencil className="w-3.5 h-3.5" /></DsButton></span>
+                      <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5" /></DsButton></span>
+                    </div>
+                  )}
+                </div>
+              </DsCard>
             )
           })}
         </div>
@@ -587,57 +569,57 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
   const shareAmount = participants.length > 0 ? parseFloat(amount) / participants.length : 0
 
   return (
-    <Modal open={open} onClose={onClose} title={editExpense ? t('expense.create.editTitle') : t('expense.create.title')}>
+    <DsModal open={open} onClose={onClose} title={editExpense ? t('expense.create.editTitle') : t('expense.create.title')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">{t('expense.create.concept')}</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.concept')}</label>
           <input value={title} onChange={e => setTitle(e.target.value)} required maxLength={200}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">{t('expense.create.amount')}</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.amount')}</label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">{currencySymbol(currency)}</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{currencySymbol(currency)}</span>
             <input value={amount} onChange={e => setAmount(e.target.value)} type="number" step="0.01" min="0.01" required
-              className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
             />
           </div>
         </div>
         {participants.length > 1 && (
-          <p className="text-xs text-slate-400">{t('expense.create.equalSplit', { amount: formatAmount(shareAmount, currency) })}</p>
+          <p className="text-xs text-muted-foreground">{t('expense.create.equalSplit', { amount: formatAmount(shareAmount, currency) })}</p>
         )}
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">{t('expense.create.paidBy')}</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.paidBy')}</label>
           <select value={paidBy} onChange={e => setPaidBy(e.target.value)} required
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
           >
             <option value="">{t('expense.create.paidBy')}</option>
             {members.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">{t('expense.create.participants')}</label>
-          <div className="space-y-1 max-h-40 overflow-y-auto border border-slate-100 rounded-lg p-2">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.participants')}</label>
+          <div className="space-y-1 max-h-40 overflow-y-auto border border-border rounded-lg p-2">
             {members.map(m => (
-              <label key={m.user_id} className="flex items-center gap-2 px-2 py-1 hover:bg-slate-50 rounded cursor-pointer">
+              <label key={m.user_id} className="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded cursor-pointer">
                 <input type="checkbox" checked={participants.includes(m.user_id)}
                   onChange={e => setParticipants(e.target.checked ? [...participants, m.user_id] : participants.filter(id => id !== m.user_id))}
-                  className="rounded border-slate-300 text-emerald-500 focus:ring-emerald-400"
+                  className="rounded border-border text-emerald-500 focus:ring-emerald-400"
                 />
-                <span className="text-sm text-slate-700">{m.display_name ?? t('common.unknown')}</span>
+                <span className="text-sm text-foreground">{m.display_name ?? t('common.unknown')}</span>
               </label>
             ))}
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">{t('expense.create.tag')}</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.tag')}</label>
           <div className="flex gap-2">
             <select value={tagId} onChange={e => {
               if (e.target.value === '__new__') { setShowNewTag(true); return }
               setTagId(e.target.value)
             }}
-              className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
             >
               <option value="">{t('expense.create.noTag')}</option>
               {tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
@@ -647,26 +629,26 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
           {showNewTag && (
             <div className="mt-2 flex gap-2 items-center">
               <input value={newTagName} onChange={e => setNewTagName(e.target.value)} placeholder={t('tag.create.name')}
-                className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                className="flex-1 px-2 py-1 text-xs border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
               />
               <input value={newTagColor} onChange={e => setNewTagColor(e.target.value)} type="color"
-                className="w-8 h-8 p-0.5 border border-slate-200 rounded cursor-pointer"
+                className="w-8 h-8 p-0.5 border border-border rounded cursor-pointer"
               />
-              <button type="button" onClick={handleCreateTag} disabled={creatingTag || !newTagName.trim()}
-                className="px-2 py-1 text-xs font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:opacity-50"
-              >{creatingTag ? '...' : t('tag.create.confirm')}</button>
-              <button type="button" onClick={() => setShowNewTag(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
+              <DsButton color="#10B981" size="sm" disabled={creatingTag || !newTagName.trim()} onClick={handleCreateTag}>
+                {creatingTag ? '...' : t('tag.create.confirm')}
+              </DsButton>
+              <DsButton variant="ghost" size="sm" onClick={() => setShowNewTag(false)}><X className="w-3 h-3" /></DsButton>
             </div>
           )}
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">{t('expense.create.cancel')}</button>
-          <button type="submit" disabled={saving || !title.trim() || !amount || !paidBy || participants.length === 0}
-            className="px-4 py-1.5 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:opacity-50 flex items-center gap-1.5"
-          >{saving && <Loader2 className="w-3 h-3 animate-spin" />}{editExpense ? t('expense.create.save') : t('expense.create.create')}</button>
+          <DsButton variant="ghost" onClick={onClose}>{t('expense.create.cancel')}</DsButton>
+          <DsButton color="#10B981" disabled={saving || !title.trim() || !amount || !paidBy || participants.length === 0} type="submit">
+            {saving && <Loader2 className="w-3 h-3 animate-spin" />}{editExpense ? t('expense.create.save') : t('expense.create.create')}
+          </DsButton>
         </div>
       </form>
-    </Modal>
+    </DsModal>
   )
 }
 
@@ -692,58 +674,49 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
 
   return (
     <>
-      <Modal open={open} onClose={onClose} title={expense.title}>
+      <DsModal open={open} onClose={onClose} title={expense.title}>
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-slate-900">{formatAmount(expense.amount, group.currency)}</span>
-            {tag && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: tag.color + '20', color: tag.color }}>{tag.name}</span>}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text)' }}>{formatAmount(expense.amount, group.currency)}</span>
+            {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color }}>{tag.name}</DsBadge>}
           </div>
 
-          <div className="text-sm text-slate-500 space-y-1">
-            <p>{t('expense.create.paidBy')}: {expense.paid_by_profile?.display_name ?? t('common.unknown')}</p>
-            <p>{new Date(expense.created_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <p style={{ margin: 0 }}>{t('expense.create.paidBy')}: {expense.paid_by_profile?.display_name ?? t('common.unknown')}</p>
+            <p style={{ margin: 0 }}>{new Date(expense.created_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
 
           {expense.shares && expense.shares.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-slate-500 mb-1">{t('expense.create.participants')}</p>
-              <div className="space-y-1">
+              <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)', margin: '0 0 4px' }}>{t('expense.create.participants')}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {expense.shares.map(s => (
-                  <div key={s.id} className="flex items-center justify-between text-sm text-slate-600">
+                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, color: 'var(--color-text)' }}>
                     <span>{s.user_profile?.display_name ?? t('common.unknown')}</span>
-                    <span className="font-medium">{formatAmount(s.amount, group.currency)}</span>
+                    <span style={{ fontWeight: 500 }}>{formatAmount(s.amount, group.currency)}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          <div className="flex items-center justify-center gap-4 pt-2 border-t border-slate-100">
-            <button onClick={onEdit} className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-colors" title={t('expense.create.editTitle')}>
-              <Pencil className="w-5 h-5" />
-              <span className="text-[10px]">{t('expense.create.editTitle')}</span>
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 8, borderTop: '1px solid var(--color-border)' }}>
+            <DsButton variant="ghost" onClick={onEdit}><Pencil className="w-4 h-4" /></DsButton>
             {!expense.settled && (
-              <button onClick={() => setShowSettleConfirm(true)} className="flex flex-col items-center gap-1 p-2 text-emerald-500 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors" title={t('balance.settleAll')}>
-                <Check className="w-5 h-5" />
-                <span className="text-[10px]">{t('balance.settleAll')}</span>
-              </button>
+              <DsButton variant="ghost" color="#10B981" onClick={() => setShowSettleConfirm(true)}><Check className="w-4 h-4" /></DsButton>
             )}
             {!expense.settled && (
-              <button onClick={() => setShowDeleteConfirm(true)} className="flex flex-col items-center gap-1 p-2 text-red-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors" title={t('common.delete')}>
-                <Trash2 className="w-5 h-5" />
-                <span className="text-[10px]">{t('common.delete')}</span>
-              </button>
+              <DsButton variant="ghost" style={{ color: '#EF4444' }} onClick={() => setShowDeleteConfirm(true)}><Trash2 className="w-4 h-4" /></DsButton>
             )}
           </div>
         </div>
-      </Modal>
+      </DsModal>
 
-      <Modal open={showSettleConfirm} onClose={() => setShowSettleConfirm(false)} title={t('balance.confirmTitle')}>
-        <p className="text-sm text-slate-600 mb-4">{t('expense.delete.confirm', { title: expense.title })}</p>
-        <div className="flex justify-end gap-2">
-          <button onClick={() => setShowSettleConfirm(false)} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">{t('common.cancel')}</button>
-          <button onClick={async () => {
+      <DsModal open={showSettleConfirm} onClose={() => setShowSettleConfirm(false)} title={t('balance.confirmTitle')}>
+        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 16 }}>{t('expense.delete.confirm', { title: expense.title })}</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <DsButton variant="ghost" onClick={() => setShowSettleConfirm(false)}>{t('common.cancel')}</DsButton>
+          <DsButton color="#10B981" disabled={settling} onClick={async () => {
             if (!ctx.groupSlug) return
             setSettling(true)
             try {
@@ -753,28 +726,28 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
               })
               onSettled()
             } catch {} finally { setSettling(false) }
-          }} disabled={settling}
-            className="px-4 py-1.5 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:opacity-50 flex items-center gap-1.5"
-          >{settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}</button>
+          }}>
+            {settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}
+          </DsButton>
         </div>
-      </Modal>
+      </DsModal>
 
-      <Modal open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title={t('expense.delete.title')}>
-        <p className="text-sm text-slate-600 mb-4">{t('expense.delete.confirm', { title: expense.title })}</p>
-        <div className="flex justify-end gap-2">
-          <button onClick={() => setShowDeleteConfirm(false)} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">{t('common.cancel')}</button>
-          <button onClick={async () => {
+      <DsModal open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title={t('expense.delete.title')}>
+        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 16 }}>{t('expense.delete.confirm', { title: expense.title })}</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <DsButton variant="ghost" onClick={() => setShowDeleteConfirm(false)}>{t('common.cancel')}</DsButton>
+          <DsButton style={{ background: '#EF4444', color: 'white', border: 'none' }} disabled={deleting} onClick={async () => {
             if (!ctx.groupSlug) return
             setDeleting(true)
             try {
               await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${expense.expense_group_id}/expenses/${expense.id}`, { method: 'DELETE' })
               onDeleted()
             } catch {} finally { setDeleting(false) }
-          }} disabled={deleting}
-            className="px-4 py-1.5 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 flex items-center gap-1.5"
-          >{deleting && <Loader2 className="w-3 h-3 animate-spin" />}{t('common.delete')}</button>
+          }}>
+            {deleting && <Loader2 className="w-3 h-3 animate-spin" />}{t('common.delete')}
+          </DsButton>
         </div>
-      </Modal>
+      </DsModal>
     </>
   )
 }
@@ -798,15 +771,15 @@ function DeleteConfirm({ open, onClose, onDeleted, groupId, expense }: {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={t('expense.delete.title')}>
-      <p className="text-sm text-slate-600 mb-4">{t('expense.delete.confirm', { title: expense?.title ?? '' })}</p>
-      <div className="flex justify-end gap-2">
-        <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">{t('common.cancel')}</button>
-        <button onClick={handleDelete} disabled={deleting}
-          className="px-4 py-1.5 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 flex items-center gap-1.5"
-        >{deleting && <Loader2 className="w-3 h-3 animate-spin" />}{t('common.delete')}</button>
+    <DsModal open={open} onClose={onClose} title={t('expense.delete.title')}>
+      <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 16 }}>{t('expense.delete.confirm', { title: expense?.title ?? '' })}</p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <DsButton variant="ghost" onClick={onClose}>{t('common.cancel')}</DsButton>
+        <DsButton style={{ background: '#EF4444', color: 'white', border: 'none' }} disabled={deleting} onClick={handleDelete}>
+          {deleting && <Loader2 className="w-3 h-3 animate-spin" />}{t('common.delete')}
+        </DsButton>
       </div>
-    </Modal>
+    </DsModal>
   )
 }
 
@@ -863,73 +836,76 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
     } catch {}
   }
 
-  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-slate-300" /></div>
+  if (loading) return <div className="py-8"><DsSkeleton height={48} count={4} /></div>
 
   return (
     <div>
-      <div className="space-y-2 mb-6">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
         {balances.map(b => (
-          <div key={b.user_id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-100">
-            <span className="text-sm font-medium text-slate-700">{b.display_name ?? t('common.unknown')}</span>
-            <span className={`text-sm font-semibold ${b.net_balance > 0 ? 'text-emerald-600' : b.net_balance < 0 ? 'text-red-500' : 'text-slate-400'}`}>
-              {b.net_balance > 0
-                ? `${t('balance.isOwed')} ${formatAmount(b.net_balance, group.currency)}`
-                : b.net_balance < 0
-                  ? `${t('balance.owe')} ${formatAmount(Math.abs(b.net_balance), group.currency)}`
-                  : t('balance.noTransfers')}
-            </span>
-          </div>
+          <DsCard key={b.user_id} padding="sm" hover={false}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)' }}>{b.display_name ?? t('common.unknown')}</span>
+              <span style={{
+                fontSize: 13, fontWeight: 600,
+                color: b.net_balance > 0 ? 'var(--color-success)' : b.net_balance < 0 ? 'var(--color-error)' : 'var(--color-text-secondary)',
+              }}>
+                {b.net_balance > 0
+                  ? `${t('balance.isOwed')} ${formatAmount(b.net_balance, group.currency)}`
+                  : b.net_balance < 0
+                    ? `${t('balance.owe')} ${formatAmount(Math.abs(b.net_balance), group.currency)}`
+                    : t('balance.noTransfers')}
+              </span>
+            </div>
+          </DsCard>
         ))}
       </div>
 
       {transfers.length > 0 && (
         <>
-          <h3 className="text-xs font-semibold text-slate-500 uppercase mb-2">{t('balance.transfers')}</h3>
-          <div className="space-y-1.5 mb-6">
+          <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>{t('balance.transfers')}</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 24 }}>
             {transfers.map((tr, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-slate-600 p-2 bg-slate-50 rounded-lg">
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text)', padding: 8, background: 'var(--color-muted)', borderRadius: 'var(--radius-lg)' }}>
                 <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                 <span>{tr.from_name ?? t('common.unknown')} {t('balance.pays')} {tr.to_name ?? t('common.unknown')}</span>
-                <span className="ml-auto font-semibold text-slate-900">{formatAmount(tr.amount, group.currency)}</span>
+                <span style={{ marginLeft: 'auto', fontWeight: 600, color: 'var(--color-text)' }}>{formatAmount(tr.amount, group.currency)}</span>
               </div>
             ))}
           </div>
 
-          <button onClick={() => setShowSettleConfirm(true)}
-            className="w-full px-4 py-2 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-colors"
-          >{t('balance.settleAll')}</button>
+          <DsButton color="#10B981" style={{ width: '100%' }} onClick={() => setShowSettleConfirm(true)}>{t('balance.settleAll')}</DsButton>
         </>
       )}
 
-      <button onClick={fetchSettleHistory} className="mt-3 text-xs text-slate-400 hover:text-slate-600 underline">{t('balance.history')}</button>
+      <DsButton variant="ghost" onClick={fetchSettleHistory} style={{ marginTop: 12, fontSize: 12, textDecoration: 'underline' }}>{t('balance.history')}</DsButton>
 
-      <Modal open={showSettleConfirm} onClose={() => setShowSettleConfirm(false)} title={t('balance.confirmTitle')}>
-        <p className="text-sm text-slate-600 mb-2">{t('balance.confirmMessage', { count: transfers.length })}</p>
-        <div className="space-y-1 mb-4">
+      <DsModal open={showSettleConfirm} onClose={() => setShowSettleConfirm(false)} title={t('balance.confirmTitle')}>
+        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>{t('balance.confirmMessage', { count: transfers.length })}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
           {transfers.map((tr, i) => (
-            <p key={i} className="text-xs text-slate-500">{tr.from_name ?? t('common.unknown')} → {tr.to_name ?? t('common.unknown')}: {formatAmount(tr.amount, group.currency)}</p>
+            <p key={i} style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: 0 }}>{tr.from_name ?? t('common.unknown')} → {tr.to_name ?? t('common.unknown')}: {formatAmount(tr.amount, group.currency)}</p>
           ))}
         </div>
-        <div className="flex justify-end gap-2">
-          <button onClick={() => setShowSettleConfirm(false)} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">{t('expense.create.cancel')}</button>
-          <button onClick={handleSettle} disabled={settling}
-            className="px-4 py-1.5 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:opacity-50 flex items-center gap-1.5"
-          >{settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <DsButton variant="ghost" onClick={() => setShowSettleConfirm(false)}>{t('expense.create.cancel')}</DsButton>
+          <DsButton color="#10B981" disabled={settling} onClick={handleSettle}>
+            {settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}
+          </DsButton>
         </div>
-      </Modal>
+      </DsModal>
 
-      <Modal open={showHistory} onClose={() => setShowHistory(false)} title={t('balance.history')}>
-        <div className="space-y-2 max-h-80 overflow-y-auto">
+      <DsModal open={showHistory} onClose={() => setShowHistory(false)} title={t('balance.history')}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflow: 'auto' }}>
           {settleHistory.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-4">{t('balance.noSettlements')}</p>
+            <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'center', padding: 16 }}>{t('balance.noSettlements')}</p>
           ) : settleHistory.map((s: any) => (
-            <div key={s.id} className="p-3 border border-slate-100 rounded-lg">
-              <p className="text-xs text-slate-400">{t('balance.settledOn')} {new Date(s.created_at).toLocaleDateString(locale)} {t('balance.by')} {s.settled_by_name ?? t('common.unknown')}</p>
-              <p className="text-xs text-slate-500">{t('balance.expenseCount', { count: s.expense_count })} · {t('balance.transferCount', { count: s.transfers?.length ?? 0 })}</p>
+            <div key={s.id} style={{ padding: 12, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)' }}>
+              <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: 0 }}>{t('balance.settledOn')} {new Date(s.created_at).toLocaleDateString(locale)} {t('balance.by')} {s.settled_by_name ?? t('common.unknown')}</p>
+              <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>{t('balance.expenseCount', { count: s.expense_count })} · {t('balance.transferCount', { count: s.transfers?.length ?? 0 })}</p>
             </div>
           ))}
         </div>
-      </Modal>
+      </DsModal>
     </div>
   )
 }
@@ -986,46 +962,45 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-slate-700">{t('member.list.title')}</h3>
-        <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
-        ><Users className="w-3 h-3" /> {t('member.list.add')}</button>
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>{t('member.list.title')}</h3>
+        <DsButton color="#10B981" size="sm" onClick={() => setShowAdd(true)}><Users className="w-3 h-3" /> {t('member.list.add')}</DsButton>
       </div>
 
-      <div className="space-y-2">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {group.members?.map(m => (
-          <div key={m.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-100">
-            <span className="text-sm font-medium text-slate-700 flex-1">{m.display_name ?? t('common.unknown')}</span>
-            <button onClick={() => handleToggle(m.id, !m.active)}
-              className={`text-xs px-2 py-0.5 rounded-full ${m.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}
-            >{m.active ? t('member.list.active') : t('member.list.inactive')}</button>
-            <button onClick={() => handleRemove(m.id)} className="p-1 text-slate-300 hover:text-red-500 rounded"><Trash2 className="w-3 h-3" /></button>
-          </div>
+          <DsCard key={m.id} padding="sm" hover={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <DsAvatar size={28}>{m.display_name?.[0] ?? '?'}</DsAvatar>
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', flex: 1 }}>{m.display_name ?? t('common.unknown')}</span>
+              <DsToggle checked={m.active} onChange={(val) => handleToggle(m.id, val)} />
+              <DsButton variant="ghost" size="sm" style={{ color: '#EF4444' }} onClick={() => handleRemove(m.id)}><Trash2 className="w-3 h-3" /></DsButton>
+            </div>
+          </DsCard>
         ))}
       </div>
 
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title={t('member.addModal.title')}>
-        <div className="space-y-4">
+      <DsModal open={showAdd} onClose={() => setShowAdd(false)} title={t('member.addModal.title')}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {groupMembers.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-4">{t('member.addModal.noMembers')}</p>
+            <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'center', padding: 16 }}>{t('member.addModal.noMembers')}</p>
           ) : (
             <>
               <select value={selected} onChange={e => setSelected(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
               >
                 <option value="">{t('member.addModal.placeholder')}</option>
                 {groupMembers.map(m => <option key={m.id} value={m.id}>{m.display_name}</option>)}
               </select>
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">{t('common.cancel')}</button>
-                <button onClick={handleAdd} disabled={adding || !selected}
-                  className="px-4 py-1.5 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:opacity-50 flex items-center gap-1.5"
-                >{adding && <Loader2 className="w-3 h-3 animate-spin" />}{t('member.addModal.confirm')}</button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <DsButton variant="ghost" onClick={() => setShowAdd(false)}>{t('common.cancel')}</DsButton>
+                <DsButton color="#10B981" disabled={adding || !selected} onClick={handleAdd}>
+                  {adding && <Loader2 className="w-3 h-3 animate-spin" />}{t('member.addModal.confirm')}
+                </DsButton>
               </div>
             </>
           )}
         </div>
-      </Modal>
+      </DsModal>
     </div>
   )
 }
@@ -1063,29 +1038,29 @@ function StatsTab({ groupId }: { groupId: string }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <div className="flex bg-slate-100 rounded-lg p-0.5">
+        <div className="flex bg-muted rounded-lg p-0.5">
           {(['byPeriod', 'cumulative'] as const).map(m => (
             <button key={m} onClick={() => setMode(m)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${mode === m ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${mode === m ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >{t(`stats.${m}`)}</button>
           ))}
         </div>
-        <select value={period} onChange={e => setPeriod(e.target.value)} className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white ml-auto">
+        <select value={period} onChange={e => setPeriod(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground ml-auto">
           <option value="day">{t('stats.day')}</option>
           <option value="week">{t('stats.week')}</option>
           <option value="month">{t('stats.month')}</option>
           <option value="year">{t('stats.year')}</option>
         </select>
-        <select value={tagId} onChange={e => setTagId(e.target.value)} className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white">
+        <select value={tagId} onChange={e => setTagId(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
           <option value="">{t('stats.filterTag')}</option>
           {tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
         </select>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-slate-300" /></div>
+        <div className="py-8"><DsSkeleton height={200} /></div>
       ) : data.byPeriod.length === 0 ? (
-        <p className="text-center py-8 text-sm text-slate-400">{t('stats.noData')}</p>
+        <DsEmptyState title={t('stats.noData')} />
       ) : (
         <SpendingChart data={mode === 'byPeriod' ? data.byPeriod : data.cumulative} cumulative={mode === 'cumulative'} period={period} />
       )}

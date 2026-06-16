@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
-import { ArrowLeftRight, Loader2 } from 'lucide-react'
+import { ArrowLeftRight } from 'lucide-react'
 import { useAppContext } from '@/lib/apps/context'
+import { DsSkeleton } from '@/components/ds/skeleton'
 
 interface BalanceWidget {
   user_id: string
@@ -65,12 +66,12 @@ export default function SplitExpensesWidget() {
   return (
     <div className="p-4">
       {loading ? (
-        <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-slate-300" /></div>
+        <DsSkeleton height={60} />
       ) : error ? (
-        <p className="text-xs text-slate-400 text-center py-4">{t('widget.error')}</p>
+        <p className="text-xs text-muted-foreground text-center py-4">{t('widget.error')}</p>
       ) : !hasData ? (
         <div className="text-center py-4">
-          <p className="text-xs text-slate-400">{t('widget.allSettled')}</p>
+          <p className="text-xs text-muted-foreground">{t('widget.allSettled')}</p>
           <Link href={`/${locale}/${ctx.groupSlug}/apps/split-expenses`} className="text-xs text-emerald-500 hover:underline mt-1 inline-block">
             {t('widget.viewDetails')} →
           </Link>
@@ -80,13 +81,13 @@ export default function SplitExpensesWidget() {
           <div className="space-y-2 mb-3">
             {totalOwed > 0 && (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">{t('balance.youAreOwed')}</span>
+                <span className="text-muted-foreground">{t('balance.youAreOwed')}</span>
                 <span className="font-semibold text-emerald-600">{totalOwed.toFixed(2)}€</span>
               </div>
             )}
             {totalOwes > 0 && (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">{t('balance.youOwe')}</span>
+                <span className="text-muted-foreground">{t('balance.youOwe')}</span>
                 <span className="font-semibold text-red-500">{totalOwes.toFixed(2)}€</span>
               </div>
             )}

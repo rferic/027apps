@@ -6,6 +6,7 @@ type Size = 'sm' | 'md' | 'lg'
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant
   size?: Size
+  color?: string
 }
 
 const variantStyles: Record<Variant, React.CSSProperties> = {
@@ -37,7 +38,12 @@ const sizeStyles: Record<Size, React.CSSProperties> = {
   lg: { padding: '14px 28px', fontSize: 'var(--font-size-base)' },
 }
 
-export function DsButton({ variant = 'primary', size = 'md', style, children, ...props }: Props) {
+export function DsButton({ variant = 'primary', size = 'md', color, style, children, ...props }: Props) {
+  const overrides: React.CSSProperties = color ? {
+    background: variant === 'primary' || variant === 'secondary' ? color : undefined,
+    color: variant === 'outline' || variant === 'ghost' ? color : undefined,
+    borderColor: variant === 'outline' ? color : undefined,
+  } : {}
   return (
     <button
       style={{
@@ -48,6 +54,7 @@ export function DsButton({ variant = 'primary', size = 'md', style, children, ..
         transition: 'all var(--transition-fast)',
         lineHeight: 1,
         ...variantStyles[variant],
+        ...overrides,
         ...sizeStyles[size],
         ...style,
       }}
