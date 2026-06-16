@@ -75,7 +75,7 @@ export function InstallForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+    <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <div className="w-full max-w-sm">
         <div className="flex justify-end mb-4">
           <div className="flex gap-1">

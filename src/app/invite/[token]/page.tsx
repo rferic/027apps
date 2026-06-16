@@ -56,7 +56,7 @@ export default async function InvitePage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Image src="/logo-icon.svg" alt="Logo" width={36} height={36} className="mx-auto mb-4" />
@@ -79,7 +79,7 @@ export default async function InvitePage({ params }: Props) {
 
 function ErrorPage({ variant, message }: { variant: 'not_found' | 'status' | 'system'; message?: string }) {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm text-center">
         <Image src="/logo-icon.svg" alt="Logo" width={48} height={48} className="mx-auto mb-6" />
         {variant === 'not_found' && (
