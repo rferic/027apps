@@ -14,6 +14,45 @@ export function apiError(
   )
 }
 
+/**
+ * HOF that wraps a route handler to measure execution time.
+ * Timing is logged (visible in Vercel logs) and returned in the response body.
+ * Use at export level:
+ *   export const GET = withTiming(async function GET(req) { ... })
+ *   export const POST = withTiming(async (req, ctx) => { ... })
+ */
+export function withTiming<Args extends unknown[]>(
+  handler: (...args: Args) => Promise<Response> | Response,
+  label = 'handler'
+): (...args: Args) => Promise<Response> {
+  return async (...args: Args): Promise<Response> => {
+    const start = performance.now()
+    try {
+      const response = await handler(...args)
+      const dur = performance.now() - start
+      console.log(`[TIMING] ${label}: ${dur.toFixed(1)}ms`)
+      response.headers.set('X-Handler-Time', `${label};dur=${dur.toFixed(1)}`)
+      return response
+    } catch (err) {
+      const dur = performance.now() - start
+      console.log(`[TIMING] ${label}: ${dur.toFixed(1)}ms (error)`)
+      return new Response(
+        JSON.stringify({
+          error: 'INTERNAL_ERROR',
+          message: err instanceof Error ? err.message : 'Unknown error',
+        }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Handler-Time': `${label};dur=${dur.toFixed(1)}`,
+          },
+        }
+      )
+    }
+  }
+}
+
 export function apiList<T>(
   items: T[],
   total: number,

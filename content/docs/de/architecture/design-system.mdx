@@ -1,0 +1,96 @@
+---
+title: Design-System
+description: Komponentenbibliothek, Design-Tokens und Storybook-Referenz
+---
+
+## Überblick
+
+027Apps verfügt über ein eigenes **Design-System** basierend auf dem visuellen Vorschlag "Modern".
+Alle neuen Komponenten müssen dieses System verwenden.
+
+Das Design-System besteht aus:
+
+- **Design-Tokens** — CSS-benutzerdefinierte Eigenschaften für Farben, Typografie, Abstände und Schatten
+- **Basis-Komponenten** — wiederverwendbare atomare Komponenten (Button, Badge, Card, etc.)
+- **Zusammengesetzte Komponenten** — Geschäftskomponenten (TodoList, IdeaList, StatCard, etc.)
+
+## Storybook
+
+Ein interaktiver Komponentenkatalog ist über **Storybook** verfügbar,
+wo Sie alle Komponenten durchsuchen, ihre Varianten sehen und automatisch generierte Dokumentation lesen können.
+
+```bash
+# Storybook starten (Entwicklungsserver auf http://localhost:6006)
+pnpm storybook
+
+# Statischen Build erstellen (Ausgabe in storybook-static/)
+pnpm build-storybook
+```
+
+## Design-Tokens
+
+Alle Tokens sind in `src/design-tokens.css` als CSS-benutzerdefinierte Eigenschaften definiert.
+Sie werden auch in der globalen `src/app/globals.css` unter `:root` und `.dark` widergespiegelt.
+
+| Kategorie | Token-Beispiel | Heller Wert | Dunkler Wert |
+|---|---|---|---|
+| Marke | `--color-brand` | `#9B1C1C` | `#D45050` |
+| Hintergrund | `--color-bg` | `#F8F6F3` | `#12120E` |
+| Oberfläche | `--color-surface` | `#FFFFFF` | `#1A1815` |
+| Text | `--color-text` | `#171B22` | `#E2E0DA` |
+| Text sekundär | `--color-text-secondary` | `#6B7280` | `#8A867E` |
+| Rahmen | `--color-border` | `#E2DDD6` | `#2A2824` |
+| Überschrift-Schrift | `--font-heading` | Outfit | Outfit |
+| Fließtext-Schrift | `--font-body` | Sora | Sora |
+| Radius | `--radius-lg` | 0.625rem | 0.625rem |
+
+## Verfügbare Komponenten
+
+### Basis-Komponenten (`src/components/ds/`)
+
+| Komponente | Varianten | Wichtige Props |
+|---|---|---|
+| `DsButton` | primary, secondary, outline, ghost | size (sm/md/lg) |
+| `DsBadge` | primary, success, warning, error, neutral, outline | — |
+| `DsCard` | — | padding (sm/md/lg), hover |
+| `DsInput` / `DsTextarea` | — | label, error, disabled |
+| `DsModal` | — | open, onClose, title, maxWidth |
+| `DsTabs` | — | tabs[], defaultTab, onChange |
+| `DsAvatar` | — | size, color |
+| `DsSkeleton` | — | height, circle, count |
+| `DsEmptyState` | — | icon, title, description, action |
+| `DsAlert` | info, success, warning, error | icon, onDismiss |
+| `DsToggle` | — | checked, onChange, label, disabled |
+| `DsSelect` | — | options[], value, onChange, label |
+| `DsTable` | — | columns[], data[], onRowClick |
+| `DsPagination` | — | page, totalPages, onChange |
+
+### Zusammengesetzte Komponenten (`src/components/composite/`)
+
+| Komponente | Beschreibung |
+|---|---|
+| `TodoItem` / `TodoList` | Aufgabenzeile + Liste mit Prioritäten, Kategorien, Bearbeitern |
+| `IdeaList` | Ideenbrett-Elemente mit Stimmen und Kommentaren |
+| `StatCard` | Dashboard-Statistikkarte mit Bezeichnung, Wert, Farbe |
+| `BarChart` | SVG-Balkendiagramm für Dashboards |
+
+## Nutzungsrichtlinien
+
+1. **Niemals rohes HTML/Tailwind schreiben** wenn eine Komponente im Design-System existiert
+2. **Neue Komponenten** müssen:
+   - Begründet sein (keine Duplizierung)
+   - Tokens aus `design-tokens.css` verwenden (niemals fest codierte Werte)
+   - Eine Storybook-Story mit mindestens Standardvariante + Hauptvarianten enthalten
+3. **Gleiches Styling-Niveau**: alle neuen Komponenten sollten DS-Tokens via `var(--token-name)` verwenden
+4. **Dunkelmodus**: automatisch unterstützt via `.dark`-Klasse auf dem Elternelement
+
+## Hinzufügen einer Neuen Komponente
+
+1. Datei in `src/components/ds/name.tsx` erstellen
+2. CSS-Variablen aus `design-tokens.css` verwenden (niemals Farben hartcodieren)
+3. `src/components/ds/name.stories.tsx` erstellen mit:
+   - Standardvariante
+   - Allen Hauptvarianten
+   - Interaktivem Zustand falls zutreffend
+4. Überprüfen: `pnpm build-storybook && pnpm build`
+5. Für Geschäftskomponenten `src/components/composite/` verwenden

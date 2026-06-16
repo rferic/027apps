@@ -1,4 +1,3 @@
-import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { notifyNewIdea } from '@/lib/use-cases/inspiration/send-notifications'
@@ -8,10 +7,6 @@ import type { HandlerContext } from '@/lib/apps/router-types'
 const VALID_TYPES = ['bug', 'improvement', 'new_app', 'new_app_feature', 'new_general_functionality', 'other']
 
 export default async function handler(req: Request, ctx: HandlerContext) {
-  const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
-
   let body: unknown
   try {
     body = await req.json()
@@ -39,7 +34,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const { data, error } = await adminClient
     .from('inspiration_requests')
     .insert({
-      user_id: auth.userId,
+      user_id: ctx.userId,
       title: title.trim(),
       description: desc,
       type,
@@ -66,12 +61,12 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const { data: profile } = await adminClient
     .from('profiles')
     .select('display_name')
-    .eq('id', auth.userId)
+    .eq('id', ctx.userId)
     .maybeSingle()
 
   const authorName = (profile as { display_name?: string } | null)?.display_name ?? 'Someone'
   const origin = req.headers.get('Origin') ?? new URL(req.url).origin
-  void notifyNewIdea(data.id as string, auth.userId, authorName, slug, origin)
+  void notifyNewIdea(data.id as string, ctx.userId, authorName, slug, origin)
 
   return apiOk(data, 201)
 }

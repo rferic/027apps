@@ -169,19 +169,19 @@ function getStatusConfig(status: string) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-xl border border-slate-100 shadow-xs p-5 animate-pulse">
+    <div className="bg-background rounded-xl border border-border shadow-xs p-5 animate-pulse">
       <div className="flex items-center justify-between mb-3">
-        <div className="h-5 w-20 bg-slate-100 rounded-full" />
-        <div className="h-5 w-16 bg-slate-100 rounded-full" />
+        <div className="h-5 w-20 bg-muted rounded-full" />
+        <div className="h-5 w-16 bg-muted rounded-full" />
       </div>
-      <div className="h-5 w-3/4 bg-slate-100 rounded mb-2" />
-      <div className="h-4 w-full bg-slate-50 rounded mb-1" />
-      <div className="h-4 w-2/3 bg-slate-50 rounded mb-4" />
+      <div className="h-5 w-3/4 bg-muted rounded mb-2" />
+      <div className="h-4 w-full bg-muted rounded mb-1" />
+      <div className="h-4 w-2/3 bg-muted rounded mb-4" />
       <div className="flex items-center gap-4">
-        <div className="h-4 w-16 bg-slate-50 rounded" />
-        <div className="h-4 w-10 bg-slate-50 rounded" />
-        <div className="h-4 w-10 bg-slate-50 rounded" />
-        <div className="h-4 w-20 bg-slate-50 rounded ml-auto" />
+        <div className="h-4 w-16 bg-muted rounded" />
+        <div className="h-4 w-10 bg-muted rounded" />
+        <div className="h-4 w-10 bg-muted rounded" />
+        <div className="h-4 w-20 bg-muted rounded ml-auto" />
       </div>
     </div>
   )
@@ -232,8 +232,8 @@ function RequestCard({
 
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-100 shadow-xs transition-shadow cursor-pointer ${
-        isExpanded ? 'shadow-md border-slate-200' : 'hover:shadow-sm'
+      className={`bg-background rounded-xl border border-border shadow-xs transition-shadow cursor-pointer ${
+        isExpanded ? 'shadow-md border-border' : 'hover:shadow-sm'
       }`}
       onClick={onToggleExpand}
     >
@@ -255,10 +255,10 @@ function RequestCard({
           </span>
         </div>
 
-        <h3 className="text-sm font-semibold text-slate-800 mb-1.5">{item.title}</h3>
-        <p className="text-sm text-slate-500 line-clamp-2 whitespace-pre-line">{item.description}</p>
+        <h3 className="text-sm font-semibold text-foreground mb-1.5">{item.title}</h3>
+        <p className="text-sm text-muted-foreground line-clamp-2 whitespace-pre-line">{item.description}</p>
 
-        <div className="flex items-center gap-3 mt-3 text-xs text-slate-400 flex-wrap">
+        <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground flex-wrap">
           {item.creator?.display_name && (
             <span className="inline-flex items-center gap-1" title="Created by">
               <User size={12} />
@@ -278,7 +278,7 @@ function RequestCard({
             type="button"
             onClick={(e) => { e.stopPropagation(); onVote() }}
             className={`inline-flex items-center gap-1 font-medium transition-colors cursor-pointer ${
-              item.user_has_voted ? 'text-red-500' : 'text-slate-400 hover:text-red-400'
+              item.user_has_voted ? 'text-red-500' : 'text-muted-foreground hover:text-red-400'
             }`}
             title={item.user_has_voted ? 'Remove support' : 'Support this idea'}
           >
@@ -294,11 +294,11 @@ function RequestCard({
 
       {/* Expanded detail */}
       {isExpanded && (
-        <div className="border-t border-slate-100 px-5 py-4 space-y-4 relative">
+        <div className="border-t border-border px-5 py-4 space-y-4 relative">
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onToggleExpand() }}
-            className="absolute top-3 right-3 flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+            className="absolute top-3 right-3 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
             title="Collapse"
           >
             <ChevronUp size={14} />
@@ -306,8 +306,8 @@ function RequestCard({
           </button>
           {/* Full description */}
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('card.description')}</p>
-            <p className="text-sm text-slate-700 whitespace-pre-line">{item.description}</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('card.description')}</p>
+            <p className="text-sm text-foreground whitespace-pre-line">{item.description}</p>
           </div>
 
           {/* GitHub issue link */}
@@ -328,7 +328,7 @@ function RequestCard({
 
           {/* Comments section */}
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">{t('comments.title')}</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">{t('comments.title')}</p>
 
             {commentsError ? (
               <div className="py-2">
@@ -343,10 +343,10 @@ function RequestCard({
               </div>
             ) : commentsLoading ? (
               <div className="flex justify-center py-4">
-                <Loader2 size={16} className="animate-spin text-slate-200" />
+                <Loader2 size={16} className="animate-spin text-muted-foreground/30" />
               </div>
             ) : comments.length === 0 ? (
-              <p className="text-sm text-slate-400 py-2">{t('comments.empty')}</p>
+              <p className="text-sm text-muted-foreground py-2">{t('comments.empty')}</p>
             ) : (
               <div className="space-y-3">
                 {comments.map(c => (
@@ -356,12 +356,12 @@ function RequestCard({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-slate-700">
+                        <span className="text-xs font-medium text-foreground">
                           {c.user?.display_name ?? t('card.user')}
                         </span>
-                        <span className="text-xs text-slate-400">{formatTimeAgo(c.created_at, t)}</span>
+                        <span className="text-xs text-muted-foreground">{formatTimeAgo(c.created_at, t)}</span>
                       </div>
-                      <p className="text-sm text-slate-600 mt-0.5 whitespace-pre-line">{c.body}</p>
+                      <p className="text-sm text-foreground mt-0.5 whitespace-pre-line">{c.body}</p>
                     </div>
                   </div>
                 ))}
@@ -387,7 +387,7 @@ function RequestCard({
                 onChange={(e) => onNewCommentChange(e.target.value)}
                 onKeyDown={onNewCommentKeyDown}
                 placeholder={t('comments.placeholder')}
-                className="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white placeholder:text-slate-400 transition-colors"
+                className="flex-1 px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-background placeholder:text-muted-foreground transition-colors"
               />
               <button
                 type="button"
@@ -419,7 +419,7 @@ function ChangelogItem({ item, apps }: { item: RequestItem; apps: AppInfo[] }) {
   const appName = item.app_slug ? (apps.find(a => a.slug === item.app_slug)?.name ?? item.app_slug) : null
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 shadow-xs p-4 flex items-start gap-3">
+    <div className="bg-background rounded-xl border border-border shadow-xs p-4 flex items-start gap-3">
       <div className="shrink-0 mt-0.5">
         <CheckCircle2 size={18} style={{ color: 'var(--app-primary)' }} />
       </div>
@@ -433,14 +433,14 @@ function ChangelogItem({ item, apps }: { item: RequestItem; apps: AppInfo[] }) {
             {t(`types.${item.type}` as never)}
           </span>
           {appName && (
-            <span className="text-xs text-slate-400">· {appName}</span>
+            <span className="text-xs text-muted-foreground">· {appName}</span>
           )}
-          <span className="text-xs text-slate-400">{formatDateFull(item.created_at)}</span>
+          <span className="text-xs text-muted-foreground">{formatDateFull(item.created_at)}</span>
         </div>
-        <p className="text-sm font-medium text-slate-700 mt-1">{item.title}</p>
-        <p className="text-sm text-slate-500 mt-0.5 line-clamp-2 whitespace-pre-line">{item.description}</p>
+        <p className="text-sm font-medium text-foreground mt-1">{item.title}</p>
+        <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 whitespace-pre-line">{item.description}</p>
         {item.creator?.display_name && (
-          <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
             <User size={12} />
             {item.creator.display_name}
           </p>
@@ -859,8 +859,8 @@ export default function InspirationView() {
             <Lightbulb size={18} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">{t('title')}</h1>
-            <p className="text-xs text-slate-400">
+            <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
+            <p className="text-xs text-muted-foreground">
               {t('card.counts', { total: counts.total, active: counts.pending, completed: counts.completed })}
             </p>
           </div>
@@ -884,19 +884,19 @@ export default function InspirationView() {
           {/* Search (always visible) */}
           <div className="flex items-stretch gap-2">
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 value={localSearch}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={t('filters.search_placeholder')}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white placeholder:text-slate-400 transition-colors"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-background placeholder:text-muted-foreground transition-colors"
               />
               {localSearch && (
                 <button
                   type="button"
                   onClick={() => handleSearchChange('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   <X size={14} />
                 </button>
@@ -906,7 +906,7 @@ export default function InspirationView() {
             <button
               type="button"
               onClick={() => setShowMobileFilters(true)}
-              className="sm:hidden inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+              className="sm:hidden inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg text-foreground hover:bg-accent cursor-pointer transition-colors"
             >
               <SlidersHorizontal size={16} />
               {t('filters.title')}
@@ -920,7 +920,7 @@ export default function InspirationView() {
               <select
                 value={sortBy}
                 onChange={(e) => handleSortChange(e.target.value)}
-                className="w-full sm:w-auto px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 cursor-pointer transition-colors"
+                className="w-full sm:w-auto px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 cursor-pointer transition-colors"
               >
                 {SORT_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -941,7 +941,7 @@ export default function InspirationView() {
                     className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
                       isActive
                         ? 'text-white'
-                        : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
+                        : 'text-muted-foreground bg-muted hover:bg-accent'
                     }`}
                     style={isActive ? { backgroundColor: chip.value === TYPE_ALL ? '#6B7280' : chip.color ?? '#6B7280' } : undefined}
                   >
@@ -960,7 +960,7 @@ export default function InspirationView() {
                 className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
                   statusFilter === STATUS_ALL
                     ? 'text-white'
-                    : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
+                    : 'text-muted-foreground bg-muted hover:bg-accent'
                 }`}
                 style={statusFilter === STATUS_ALL ? { backgroundColor: '#6B7280' } : undefined}
               >
@@ -975,7 +975,7 @@ export default function InspirationView() {
                     type="button"
                     onClick={() => handleStatusChange(isActive ? STATUS_ALL : st)}
                     className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
-                      isActive ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
+                      isActive ? 'text-white' : 'text-muted-foreground bg-muted hover:bg-accent'
                     }`}
                     style={isActive ? { backgroundColor: cfg.color } : undefined}
                   >
@@ -990,7 +990,7 @@ export default function InspirationView() {
               type="button"
               onClick={handleMyIdeasToggle}
               className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full cursor-pointer transition-colors ${
-                myIdeas ? 'text-white bg-violet-600' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'
+                myIdeas ? 'text-white bg-violet-600' : 'text-muted-foreground bg-muted hover:bg-accent'
               }`}
             >
               <User size={14} />
@@ -1001,7 +1001,7 @@ export default function InspirationView() {
           {/* Active filter pills on mobile */}
           <div className="sm:hidden flex items-center gap-1.5 flex-wrap">
             {statusFilter !== STATUS_ALL && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-foreground">
                 {t(`statuses.${statusFilter}` as never)}
                 <button type="button" onClick={() => handleStatusChange(STATUS_ALL)} className="cursor-pointer"><X size={12} /></button>
               </span>
@@ -1035,15 +1035,15 @@ export default function InspirationView() {
           onClick={() => setShowMobileFilters(false)}
         >
           <div
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto shadow-xl"
+            className="fixed bottom-0 left-0 right-0 bg-background rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto shadow-xl"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-semibold text-slate-900">{t('filters.sort_newest')}</h3>
+              <h3 className="text-base font-semibold text-foreground">{t('filters.sort_newest')}</h3>
               <button
                 type="button"
                 onClick={() => setShowMobileFilters(false)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X size={20} />
               </button>
@@ -1051,7 +1051,7 @@ export default function InspirationView() {
 
             {/* Sort */}
             <div className="mb-5">
-              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filters.sort_newest')}</label>
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('filters.sort_newest')}</label>
               <div className="flex flex-wrap gap-2">
                 {SORT_OPTIONS.map(opt => (
                   <button
@@ -1059,7 +1059,7 @@ export default function InspirationView() {
                     type="button"
                     onClick={() => handleSortChange(opt.value)}
                     className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${
-                      sortBy === opt.value ? 'bg-violet-100 text-violet-700 font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      sortBy === opt.value ? 'bg-violet-100 text-violet-700 font-medium' : 'bg-muted text-foreground hover:bg-accent'
                     }`}
                   >
                     {opt.label}
@@ -1070,7 +1070,7 @@ export default function InspirationView() {
 
             {/* Type */}
             <div className="mb-5">
-              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filters.type_label')}</label>
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('filters.type_label')}</label>
               <div className="flex flex-wrap gap-2">
                 {[{ value: TYPE_ALL, label: t('card.all') }, ...Object.entries(TYPE_CONFIG).map(([k, v]) => ({ value: k, label: t(`types.${k}` as never), icon: v.icon, color: v.color }))].map((chip: { value: string; label: string; icon?: ComponentType<{ size?: number; className?: string }>; color?: string }) => {
                   const isActive = typeFilter.includes(chip.value) || (chip.value === TYPE_ALL && typeFilter.includes(TYPE_ALL))
@@ -1081,7 +1081,7 @@ export default function InspirationView() {
                       type="button"
                       onClick={() => handleTypeToggle(chip.value)}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${
-                        isActive ? 'text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        isActive ? 'text-white' : 'bg-muted text-foreground hover:bg-accent'
                       }`}
                       style={isActive ? { backgroundColor: chip.value === TYPE_ALL ? '#6B7280' : chip.color ?? '#6B7280' } : undefined}
                     >
@@ -1095,13 +1095,13 @@ export default function InspirationView() {
 
             {/* Status */}
             <div className="mb-5">
-              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{t('filters.status_label')}</label>
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('filters.status_label')}</label>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => handleStatusChange(STATUS_ALL)}
                   className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${
-                    statusFilter === STATUS_ALL ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    statusFilter === STATUS_ALL ? 'bg-primary text-white' : 'bg-muted text-foreground hover:bg-accent'
                   }`}
                 >
                   {t('card.all')}
@@ -1115,7 +1115,7 @@ export default function InspirationView() {
                       type="button"
                       onClick={() => handleStatusChange(isActive ? STATUS_ALL : st)}
                       className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${
-                        isActive ? 'text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        isActive ? 'text-white' : 'bg-muted text-foreground hover:bg-accent'
                       }`}
                       style={isActive ? { backgroundColor: cfg.color } : undefined}
                     >
@@ -1132,7 +1132,7 @@ export default function InspirationView() {
                 type="button"
                 onClick={() => { handleMyIdeasToggle(); setShowMobileFilters(false) }}
                 className={`inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg cursor-pointer transition-colors ${
-                  myIdeas ? 'text-violet-700 bg-violet-50 font-medium' : 'text-slate-500 hover:text-slate-700'
+                  myIdeas ? 'text-violet-700 bg-violet-50 font-medium' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <User size={16} />
@@ -1140,7 +1140,7 @@ export default function InspirationView() {
               </button>
             </div>
 
-            <hr className="border-t border-slate-100 mb-4" />
+            <hr className="border-t border-border mb-4" />
 
             <button
               type="button"
@@ -1154,12 +1154,12 @@ export default function InspirationView() {
       )}
 
       {/* ── Tabs ────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1 mb-6 bg-slate-100 rounded-lg p-1 w-fit">
+      <div className="flex items-center gap-1 mb-6 bg-muted rounded-lg p-1 w-fit">
         <button
           type="button"
           onClick={() => handleTabChange('active')}
           className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-            !isChangelog ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            !isChangelog ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           {t('active')}
@@ -1168,7 +1168,7 @@ export default function InspirationView() {
           type="button"
           onClick={() => handleTabChange('changelog')}
           className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-            isChangelog ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            isChangelog ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           {t('changelog')}
@@ -1183,7 +1183,7 @@ export default function InspirationView() {
           <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
             <X size={24} className="text-red-400" />
           </div>
-          <p className="text-sm text-slate-500 mb-4">{t('card.error_loading')}</p>
+          <p className="text-sm text-muted-foreground mb-4">{t('card.error_loading')}</p>
           <button
             type="button"
             onClick={() => setRefreshCounter(c => c + 1)}
@@ -1212,12 +1212,12 @@ export default function InspirationView() {
           </div>
           {searchQuery || !typeFilter.includes(TYPE_ALL) || statusFilter !== STATUS_ALL ? (
             <>
-              <p className="text-sm text-slate-500 mb-1">{t('card.filtered')}</p>
-              <p className="text-xs text-slate-400">{t('card.filtered_hint')}</p>
+              <p className="text-sm text-muted-foreground mb-1">{t('card.filtered')}</p>
+              <p className="text-xs text-muted-foreground">{t('card.filtered_hint')}</p>
             </>
           ) : (
             <>
-              <p className="text-sm text-slate-500 mb-1">{t('card.no_ideas_first')}</p>
+              <p className="text-sm text-muted-foreground mb-1">{t('card.no_ideas_first')}</p>
               <button
                 type="button"
                 onClick={() => setShowModal(true)}
@@ -1266,8 +1266,8 @@ export default function InspirationView() {
 
       {/* ── Pagination ──────────────────────────────────────────────────── */}
       {!loading && requests.length > 0 && totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
-          <span className="text-xs text-slate-400">
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+          <span className="text-xs text-muted-foreground">
             {viewFrom}&ndash;{viewTo} {t('card.of')} {pagination.total}
           </span>
           <div className="flex items-center gap-1">
@@ -1275,7 +1275,7 @@ export default function InspirationView() {
               type="button"
               disabled={currentPage <= 1}
               onClick={() => handlePageChange(currentPage - 1)}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
             >
               {t('pagination.prev')}
             </button>
@@ -1292,7 +1292,7 @@ export default function InspirationView() {
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
                     isCurrent
                       ? 'bg-violet-600 text-white'
-                      : 'text-slate-600 hover:bg-slate-50 border border-slate-200'
+                      : 'text-foreground hover:bg-accent border border-border'
                   }`}
                 >
                   {page}
@@ -1303,7 +1303,7 @@ export default function InspirationView() {
               type="button"
               disabled={currentPage >= totalPages}
               onClick={() => handlePageChange(currentPage + 1)}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
             >
               {t('pagination.next')}
             </button>

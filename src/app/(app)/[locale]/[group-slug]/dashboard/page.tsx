@@ -7,7 +7,9 @@ import { readManifest } from '@/lib/apps/manifest'
 import { resolveGroupContext } from '@/lib/groups/context'
 import { loadAppModule } from '@/lib/apps/registry'
 import { loadAppMessages } from '@/lib/apps/i18n'
-import { Sparkles } from 'lucide-react'
+import { DsSkeleton } from '@/components/ds/skeleton'
+import { DsEmptyState } from '@/components/ds/empty-state'
+import { DsCard } from '@/components/ds/card'
 import { AppInstalledWidget } from '@/components/app-installed-widget'
 
 const SLUG_RE = /^[a-z0-9-]+$/
@@ -98,7 +100,11 @@ function DashboardSkeleton() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-xl border border-slate-100 h-40 animate-pulse" />
+        <DsCard key={i} padding="md" hover={false}>
+          <DsSkeleton height={120} />
+          <div style={{ height: 12 }} />
+          <DsSkeleton height={14} count={2} />
+        </DsCard>
       ))}
     </div>
   )
@@ -112,22 +118,20 @@ async function WidgetGrid({ groupId }: { locale: string; groupId: string }) {
 
   if (widgets.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
-          <Sparkles className="w-8 h-8 text-emerald-400" />
-        </div>
-        <h2 className="text-base font-semibold text-slate-900 mb-1">{t('dashboard.welcome_title')}</h2>
-        <p className="text-sm text-slate-400">{t('dashboard.welcome_subtitle')}</p>
-      </div>
+      <DsEmptyState
+        icon="✨"
+        title={t('dashboard.welcome_title')}
+        description={t('dashboard.welcome_subtitle')}
+      />
     )
   }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {widgets.map(({ slug, Component }) => (
-        <div key={slug} className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+        <DsCard key={slug} padding="md" hover={false}>
           <Component />
-        </div>
+        </DsCard>
       ))}
     </div>
   )
@@ -165,4 +169,4 @@ export default async function DashboardPage({ params }: Props) {
   )
 }
 
-export { DashboardSkeleton }
+

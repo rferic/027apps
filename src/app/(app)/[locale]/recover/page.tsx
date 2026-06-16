@@ -11,7 +11,7 @@ export default async function RecoverPage({ params }: Props) {
   const t = await getTranslations('auth')
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-slate-50 p-6">
+    <div className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <Image src="/logo-icon.svg" alt="027Apps" width={56} height={56} className="mb-4" />

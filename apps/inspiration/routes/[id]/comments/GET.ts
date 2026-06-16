@@ -1,4 +1,3 @@
-import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import type { HandlerContext } from '@/lib/apps/router-types'
@@ -7,9 +6,6 @@ const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 100
 
 export default async function handler(req: Request, ctx: HandlerContext) {
-  const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-
   const url = new URL(req.url)
   const segments = url.pathname.split('/')
   const inspIndex = segments.indexOf('inspiration')
