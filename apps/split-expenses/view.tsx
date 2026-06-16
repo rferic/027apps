@@ -145,13 +145,13 @@ export default function SplitExpensesView() {
     <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-bold text-foreground">{t('group.list.title')}</h1>
-        <DsButton color="#10B981" size="sm" onClick={() => setShowCreateGroup(true)}><Plus className="w-4 h-4" /> {t('group.create.title')}</DsButton>
+        <DsButton color="#10B981" onClick={() => setShowCreateGroup(true)}><Plus className="w-4 h-4" /> {t('group.create.title')}</DsButton>
       </div>
 
       {loading ? (
         <div className="py-16"><DsSkeleton height={120} count={3} /></div>
       ) : groups.length === 0 ? (
-        <DsEmptyState icon="💰" title={t('group.list.empty')} action={<DsButton color="#10B981" size="sm" onClick={() => setShowCreateGroup(true)}>{t('group.list.createFirst')}</DsButton>} />
+        <DsEmptyState icon="💰" title={t('group.list.empty')} action={<DsButton color="#10B981" onClick={() => setShowCreateGroup(true)}>{t('group.list.createFirst')}</DsButton>} />
       ) : (
         <div className="space-y-3">
           {groups.map(g => (
@@ -400,7 +400,7 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
             {group.members?.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
           </select>
         </div>
-        <DsButton color="#10B981" size="sm" onClick={() => setShowCreate(true)}><Plus className="w-3.5 h-3.5" /> {t('expense.create.title')}</DsButton>
+        <DsButton color="#10B981" onClick={() => setShowCreate(true)}><Plus className="w-3.5 h-3.5" /> {t('expense.create.title')}</DsButton>
       </div>
 
       {loading ? (
@@ -595,7 +595,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
               <input value={newTagColor} onChange={e => setNewTagColor(e.target.value)} type="color"
                 className="w-8 h-8 p-0.5 border border-border rounded cursor-pointer"
               />
-              <DsButton color="#10B981" size="sm" disabled={creatingTag || !newTagName.trim()} onClick={handleCreateTag}>
+              <DsButton color="#10B981" disabled={creatingTag || !newTagName.trim()} onClick={handleCreateTag}>
                 {creatingTag ? '...' : t('tag.create.confirm')}
               </DsButton>
               <DsButton variant="ghost" size="sm" onClick={() => setShowNewTag(false)}><X className="w-3 h-3" /></DsButton>
@@ -924,7 +924,7 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>{t('member.list.title')}</h3>
-        <DsButton color="#10B981" size="sm" onClick={() => setShowAdd(true)}><Users className="w-3 h-3" /> {t('member.list.add')}</DsButton>
+        <DsButton color="#10B981" onClick={() => setShowAdd(true)}><Users className="w-3 h-3" /> {t('member.list.add')}</DsButton>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
