@@ -1,0 +1,96 @@
+---
+title: Sistema de Disseny
+description: Biblioteca de components, tokens de disseny i referència de Storybook
+---
+
+## Visió General
+
+027Apps té un **Sistema de Disseny** propi basat en la proposta visual "Modern".
+Tots els components nous han d'usar aquest sistema.
+
+El sistema de disseny consta de:
+
+- **Design tokens** — propietats CSS personalitzades per a colors, tipografia, espaiat i ombres
+- **Components base** — components atòmics reutilitzables (Button, Badge, Card, etc.)
+- **Components compostos** — components de negoci (TodoList, IdeaList, StatCard, etc.)
+
+## Storybook
+
+Un catàleg interactiu de components està disponible via **Storybook**,
+on pots explorar tots els components, veure les seves variants i llegir documentació autogenerada.
+
+```bash
+# Iniciar Storybook (servidor de desenvolupament a http://localhost:6006)
+pnpm storybook
+
+# Build estàtic (sortida a storybook-static/)
+pnpm build-storybook
+```
+
+## Design Tokens
+
+Tots els tokens estan definits a `src/design-tokens.css` com a propietats CSS personalitzades.
+També es reflecteixen al fitxer global `src/app/globals.css` sota `:root` i `.dark`.
+
+| Categoria | Token Exemple | Valor Clar | Valor Fosc |
+|---|---|---|---|
+| Marca | `--color-brand` | `#9B1C1C` | `#D45050` |
+| Fons | `--color-bg` | `#F8F6F3` | `#12120E` |
+| Superfície | `--color-surface` | `#FFFFFF` | `#1A1815` |
+| Text | `--color-text` | `#171B22` | `#E2E0DA` |
+| Text secundari | `--color-text-secondary` | `#6B7280` | `#8A867E` |
+| Vora | `--color-border` | `#E2DDD6` | `#2A2824` |
+| Font títols | `--font-heading` | Outfit | Outfit |
+| Font cos | `--font-body` | Sora | Sora |
+| Radi | `--radius-lg` | 0.625rem | 0.625rem |
+
+## Components Disponibles
+
+### Components Base (`src/components/ds/`)
+
+| Component | Variants | Props clau |
+|---|---|---|
+| `DsButton` | primary, secondary, outline, ghost | size (sm/md/lg) |
+| `DsBadge` | primary, success, warning, error, neutral, outline | — |
+| `DsCard` | — | padding (sm/md/lg), hover |
+| `DsInput` / `DsTextarea` | — | label, error, disabled |
+| `DsModal` | — | open, onClose, title, maxWidth |
+| `DsTabs` | — | tabs[], defaultTab, onChange |
+| `DsAvatar` | — | size, color |
+| `DsSkeleton` | — | height, circle, count |
+| `DsEmptyState` | — | icon, title, description, action |
+| `DsAlert` | info, success, warning, error | icon, onDismiss |
+| `DsToggle` | — | checked, onChange, label, disabled |
+| `DsSelect` | — | options[], value, onChange, label |
+| `DsTable` | — | columns[], data[], onRowClick |
+| `DsPagination` | — | page, totalPages, onChange |
+
+### Components Compostos (`src/components/composite/`)
+
+| Component | Descripció |
+|---|---|
+| `TodoItem` / `TodoList` | Fila de tasca + llista amb prioritats, categories, assignats |
+| `IdeaList` | Elements de tauler d'idees amb vots i comentaris |
+| `StatCard` | Targeta d'estadística amb etiqueta, valor, color |
+| `BarChart` | Gràfic de barres SVG per a panells |
+
+## Guies d'Ús
+
+1. **No escriure mai HTML/Tailwind raw** si existeix un component al sistema de disseny
+2. **Components nous** han de:
+   - Justificar-se (sense duplicació)
+   - Usar tokens de `design-tokens.css` (mai valors hardcodejats)
+   - Incloure una historia de Storybook amb almenys variant per defecte + variants principals
+3. **Mateix nivell d'estil**: tots els components nous han d'usar tokens DS via `var(--token-name)`
+4. **Mode fosc**: suportat automàticament via classe `.dark` al pare
+
+## Com Afegir un Component Nou
+
+1. Crear el fitxer a `src/components/ds/nom.tsx`
+2. Usar variables CSS de `design-tokens.css` (mai hardcodejar colors)
+3. Crear `src/components/ds/nom.stories.tsx` amb:
+   - Variant per defecte
+   - Totes les variants principals
+   - Estat interactiu si aplica
+4. Verificar: `pnpm build-storybook && pnpm build`
+5. Per a compostos de negoci, usar `src/components/composite/`

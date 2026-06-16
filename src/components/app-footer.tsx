@@ -9,8 +9,8 @@ export async function AppFooter({ locale }: Props) {
   const t = await getTranslations('nav')
 
   return (
-    <footer className="mt-auto py-6 text-center text-xs text-slate-400">
-      <Link href={`/${locale}/doc`} className="hover:text-slate-600 transition-colors">
+    <footer className="mt-auto py-6 text-center text-xs text-muted-foreground">
+      <Link href={`/${locale}/doc`} className="hover:text-foreground transition-colors">
         {t('docs')}
       </Link>
     </footer>

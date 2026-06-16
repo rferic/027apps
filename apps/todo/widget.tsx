@@ -104,15 +104,15 @@ export default function TodoWidget() {
   }
 
   if (!groupSlug) {
-    return <div className="p-4 text-center text-xs text-slate-400">{t('widget.not_available')}</div>
+    return <div className="p-4 text-center text-xs text-muted-foreground">{t('widget.not_available')}</div>
   }
 
   if (loading) {
-    return <div className="flex justify-center py-6"><Loader2 size={16} className="animate-spin text-slate-200" /></div>
+    return <div className="flex justify-center py-6"><Loader2 size={16} className="animate-spin text-muted" /></div>
   }
 
   if (error) {
-    return <div className="p-4 text-center text-xs text-slate-400">{t('widget.couldnt_load')}</div>
+    return <div className="p-4 text-center text-xs text-muted-foreground">{t('widget.couldnt_load')}</div>
   }
 
   const hasData = myTasks.length > 0 || groupTasks.length > 0
@@ -121,9 +121,9 @@ export default function TodoWidget() {
       <div className="p-4">
         <div className="flex items-center gap-1.5 mb-3">
           <CheckSquare className="w-4 h-4" style={{ color: 'var(--app-primary)' }} />
-          <h3 className="text-sm font-semibold text-slate-700">{t('widget.heading')}</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t('widget.heading')}</h3>
         </div>
-        <p className="text-xs text-slate-400 py-2 text-center">{t('widget.no_tasks')}</p>
+        <p className="text-xs text-muted-foreground py-2 text-center">{t('widget.no_tasks')}</p>
       </div>
     )
   }
@@ -140,7 +140,7 @@ export default function TodoWidget() {
         <div className="mb-3">
           <div className="flex items-center gap-1.5 mb-2">
             <UserPlus className="w-3.5 h-3.5" style={{ color: 'var(--app-primary)' }} />
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t('widget.my_tasks')}</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('widget.my_tasks')}</span>
           </div>
           <div className="space-y-1.5">
             {myTasks.map(item => {
@@ -148,15 +148,16 @@ export default function TodoWidget() {
               return (
                 <div key={item.id} className="flex items-center justify-between text-sm gap-2">
                   <div className="flex-1 min-w-0">
-                    <span className="text-slate-600 truncate block">{item.title}</span>
+                    <span className="text-foreground truncate block">{item.title}</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       {cat && (
                         <span className="text-[10px] px-1 py-0.5 rounded" style={{ backgroundColor: cat.color + '20', color: cat.color }}>{cat.emoji} {cat.name}</span>
                       )}
                       {item.due_date && (
-                        <span className={`text-[10px] ${new Date(item.due_date) < new Date() ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatWidgetDate(item.due_date, t)}</span>
+                        <span className={`text-[10px] ${new Date(item.due_date) < new Date() ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>{formatWidgetDate(item.due_date, t)}</span>
                       )}
                     </div>
+
                   </div>
                   <PriorityBadge priority={item.priority} label={t('priority_' + item.priority)} />
                 </div>
@@ -171,7 +172,7 @@ export default function TodoWidget() {
         <div>
           <div className="flex items-center gap-1.5 mb-2">
             <CheckSquare className="w-3.5 h-3.5" style={{ color: 'var(--app-primary)' }} />
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t('widget.group_tasks')}</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('widget.group_tasks')}</span>
           </div>
           <div className="space-y-1.5">
             {groupTasks.map(item => {
@@ -179,13 +180,13 @@ export default function TodoWidget() {
               return (
                 <div key={item.id} className="flex items-center justify-between text-sm gap-2">
                   <div className="flex-1 min-w-0">
-                    <span className="text-slate-600 truncate block">{item.title}</span>
+                    <span className="text-foreground truncate block">{item.title}</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       {cat && (
                         <span className="text-[10px] px-1 py-0.5 rounded" style={{ backgroundColor: cat.color + '20', color: cat.color }}>{cat.emoji} {cat.name}</span>
                       )}
                       {item.due_date && (
-                        <span className={`text-[10px] ${new Date(item.due_date) < new Date() ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatWidgetDate(item.due_date, t)}</span>
+                        <span className={`text-[10px] ${new Date(item.due_date) < new Date() ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>{formatWidgetDate(item.due_date, t)}</span>
                       )}
                     </div>
                   </div>
@@ -200,7 +201,7 @@ export default function TodoWidget() {
         </div>
       )}
 
-      <Link href={`/${locale}/${groupSlug}/apps/todo`} className="flex items-center justify-center gap-1 text-xs font-medium mt-3 pt-3 border-t border-slate-100" style={{ color: 'var(--app-primary)' }}>
+      <Link href={`/${locale}/${groupSlug}/apps/todo`} className="flex items-center justify-center gap-1 text-xs font-medium mt-3 pt-3 border-t border-border" style={{ color: 'var(--app-primary)' }}>
         {t('widget.view_all')} <ArrowRight className="w-3 h-3" />
       </Link>
     </div>

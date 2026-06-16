@@ -54,19 +54,19 @@ export function AppInstalledWidget({ apps, locale, groupSlug }: Props) {
 
   return (
     <section className="mb-6">
-      <h2 className="text-lg font-semibold text-slate-900 mb-4">
+      <h2 className="text-lg font-semibold text-foreground mb-4">
         {t('dashboard.apps_widget_title')}
       </h2>
 
       {apps.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-slate-100">
-          <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mb-3">
-            <Package className="w-6 h-6 text-slate-400" />
+        <div className="flex flex-col items-center justify-center py-12 text-center bg-background rounded-xl border border-border">
+          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-3">
+            <Package className="w-6 h-6 text-muted-foreground" />
           </div>
-          <p className="text-sm font-medium text-slate-600 mb-1">
+          <p className="text-sm font-medium text-foreground mb-1">
             {t('dashboard.apps_widget_empty')}
           </p>
-          <p className="text-xs text-slate-400 max-w-xs">
+          <p className="text-xs text-muted-foreground max-w-xs">
             {t('dashboard.apps_widget_empty_hint')}
           </p>
         </div>
@@ -76,15 +76,15 @@ export function AppInstalledWidget({ apps, locale, groupSlug }: Props) {
             <Link
               key={app.slug}
               href={appHref(app.slug)}
-              className="group bg-white rounded-xl border border-slate-100 p-4 hover:border-slate-200 hover:shadow-sm transition-all"
+              className="group bg-card rounded-xl border border-border p-4 hover:border-border/80 hover:shadow-sm transition-all"
             >
               <div className="flex items-center gap-3">
                 <AppIcon slug={app.slug} name={app.name} primaryColor={app.primaryColor} />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate group-hover:text-slate-700">
+                  <p className="text-sm font-medium text-card-foreground truncate group-hover:text-foreground">
                     {app.name}
                   </p>
-                  <p className="text-xs text-slate-500 truncate">
+                  <p className="text-xs text-muted-foreground truncate">
                     {app.description}
                   </p>
                 </div>

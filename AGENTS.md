@@ -422,3 +422,74 @@ Todos los endpoints DELETE en la API DEBEN devolver:
 **Implementación:** `return new Response(null, { status: 204 })`.
 NUNCA usar `apiOk()` en handlers DELETE exitosos.
 <!-- END:delete-convention -->
+
+<!-- BEGIN:design-system -->
+# Design System 027Apps (OBLIGATORIO)
+
+La propuesta visual ganadora es **"Modern" (H)**. Todos los componentes nuevos deben
+seguir esta estética.
+
+## Reglas de oro
+
+1. **Antes de escribir HTML/Tailwind raw**, verifica si existe un componente DS.
+2. **Para crear un componente nuevo**, debe:
+   - Justificarse (no duplicar funcionalidad existente)
+   - Implementarse con story en Storybook
+   - Usar los tokens de `src/design-tokens.css`
+3. **NUNCA** importar un componente de `@/components/ui/` (shadcn legacy) si existe
+   su equivalente en `@/components/ds/` (design system).
+
+## Tokens disponibles
+
+Todos en `src/design-tokens.css` como CSS custom properties:
+- `--color-brand`, `--color-surface`, `--color-text`, `--color-border`, etc.
+- `--font-heading` (Outfit), `--font-body` (Sora)
+- `--radius-sm/md/lg/xl`, `--shadow-sm/md/lg`
+- Variante `.dark` automática con `className="dark"`
+
+## Componentes DS disponibles
+
+### Base (`src/components/ds/`)
+| Componente | Variantes | Props clave |
+|---|---|---|
+| `DsButton` | primary, secondary, outline, ghost | size (sm/md/lg) |
+| `DsBadge` | primary, success, warning, error, neutral, outline | — |
+| `DsCard` | — | padding (sm/md/lg), hover |
+| `DsInput` / `DsTextarea` | — | label, error, disabled |
+| `DsModal` | — | open, onClose, title, maxWidth |
+| `DsTabs` | — | tabs[], defaultTab, onChange |
+| `DsAvatar` | — | size, color |
+| `DsSkeleton` | — | height, circle, count |
+| `DsEmptyState` | — | icon, title, description, action |
+| `DsAlert` | info, success, warning, error | icon, onDismiss |
+| `DsToggle` | — | checked, onChange, label, disabled |
+| `DsSelect` | — | options[], value, onChange, label |
+| `DsTable` | — | columns[], data[], onRowClick |
+| `DsPagination` | — | page, totalPages, onChange |
+
+### Compuestos (`src/components/composite/`)
+| Componente | Props clave |
+|---|---|
+| `TodoItem` / `TodoList` | items[], onNew, onToggle, onClick, onViewAll |
+| `IdeaList` | items[], onViewAll |
+| `StatCard` | label, value, color, icon |
+| `BarChart` | data[], highlightIndex, color |
+
+## Cómo correr Storybook
+
+```bash
+pnpm storybook          # Dev en http://localhost:6006
+pnpm build-storybook    # Build estático en storybook-static/
+```
+
+## Cómo añadir un componente nuevo
+
+1. Crear el archivo en `src/components/ds/nombre.tsx`
+2. Usar CSS variables de `design-tokens.css` (nunca valores hardcodeados)
+3. Crear `src/components/ds/nombre.stories.tsx` con al menos:
+   - Variante por defecto
+   - Variantes principales
+   - Estado interactivo si aplica
+4. Verificar: `pnpm build-storybook` + `pnpm build`
+5. Si es un compuesto de negocio, usa `src/components/composite/`
+<!-- END:design-system -->
