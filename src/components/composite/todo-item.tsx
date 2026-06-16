@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { DsBadge } from '@/components/ds/badge'
 import { DsAvatar } from '@/components/ds/avatar'
 import type { CSSProperties } from 'react'
@@ -27,7 +28,16 @@ const priorityColors: Record<string, string> = {
   low: 'var(--color-priority-low)',
 }
 
+function handleCheckKey(e: React.KeyboardEvent, cb?: (id: string) => void, id?: string) {
+  if ((e.key === 'Enter' || e.key === ' ') && cb && id) {
+    e.preventDefault()
+    cb(id)
+  }
+}
+
 export function TodoItem({ item, onToggle, onClick, style }: Props) {
+  const toggleId = useCallback(() => onToggle?.(item.id), [onToggle, item.id])
+
   return (
     <div
       onClick={() => onClick?.(item.id)}
@@ -44,7 +54,11 @@ export function TodoItem({ item, onToggle, onClick, style }: Props) {
       }}
     >
       <div
-        onClick={(e) => { e.stopPropagation(); onToggle?.(item.id) }}
+        role="checkbox"
+        aria-checked={item.done}
+        tabIndex={0}
+        onClick={(e) => { e.stopPropagation(); toggleId() }}
+        onKeyDown={(e) => handleCheckKey(e, onToggle, item.id)}
         style={{
           width: 20, height: 20, borderRadius: 'var(--radius-md)',
           border: `2px solid ${item.done ? 'var(--color-success)' : 'var(--color-border)'}`,

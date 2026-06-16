@@ -10,9 +10,9 @@ interface Props {
 }
 
 const variantStyles: Record<Variant, { bg: string; color: string; border: string; defaultIcon: string }> = {
-  success: { bg: '#ECFDF5', color: '#059669', border: '#A7F3D0', defaultIcon: '✅' },
-  warning: { bg: '#FFFBEB', color: '#D97706', border: '#FDE68A', defaultIcon: '⚠️' },
-  error: { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA', defaultIcon: '❌' },
+  success: { bg: 'var(--color-success-soft)', color: 'var(--color-success)', border: 'var(--color-success)', defaultIcon: '✅' },
+  warning: { bg: 'var(--color-warning-soft)', color: 'var(--color-warning)', border: 'var(--color-warning)', defaultIcon: '⚠️' },
+  error: { bg: 'var(--color-error-soft)', color: 'var(--color-error)', border: 'var(--color-error)', defaultIcon: '❌' },
   info: { bg: 'var(--color-brand-soft)', color: 'var(--color-brand)', border: 'var(--color-brand)', defaultIcon: 'ℹ️' },
 }
 

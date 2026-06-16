@@ -45,4 +45,33 @@ describe('TodoItem', () => {
     screen.getByText('Buy milk').click()
     expect(id).toBe('1')
   })
+
+  it('has checkbox role with aria-checked', () => {
+    render(<TodoItem item={item} />)
+    const checkbox = screen.getByRole('checkbox')
+    expect(checkbox).toBeDefined()
+    expect(checkbox.getAttribute('aria-checked')).toBe('false')
+  })
+
+  it('has tabIndex on checkbox', () => {
+    render(<TodoItem item={item} />)
+    const checkbox = screen.getByRole('checkbox')
+    expect(checkbox.getAttribute('tabindex')).toBe('0')
+  })
+
+  it('calls onToggle on checkbox Enter key', () => {
+    let id = ''
+    render(<TodoItem item={item} onToggle={(i) => { id = i }} />)
+    const checkbox = screen.getByRole('checkbox')
+    checkbox.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    expect(id).toBe('1')
+  })
+
+  it('calls onToggle on checkbox Space key', () => {
+    let id = ''
+    render(<TodoItem item={item} onToggle={(i) => { id = i }} />)
+    const checkbox = screen.getByRole('checkbox')
+    checkbox.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
+    expect(id).toBe('1')
+  })
 })

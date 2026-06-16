@@ -25,4 +25,9 @@ describe('DsTabs', () => {
     screen.getByText('Second').click()
     expect(changed).toBe('tab2')
   })
+
+  it('handles empty tabs array', () => {
+    const { container } = render(<DsTabs tabs={[]} />)
+    expect(container.textContent).toBe('')
+  })
 })

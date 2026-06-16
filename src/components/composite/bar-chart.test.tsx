@@ -34,4 +34,9 @@ describe('BarChart', () => {
     const rects = container.querySelectorAll('rect')
     expect(rects.length).toBe(data.length)
   })
+
+  it('handles empty data array without crashing', () => {
+    const { container } = render(<BarChart data={[]} />)
+    expect(container.querySelector('svg')).toBeDefined()
+  })
 })

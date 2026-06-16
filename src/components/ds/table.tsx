@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 interface Column<T> {
   header: string
@@ -14,6 +14,8 @@ interface Props<T> {
 }
 
 export function DsTable<T extends Record<string, unknown>>({ columns, data, onRowClick }: Props<T>) {
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null)
+
   return (
     <div style={{
       overflowX: 'auto',
@@ -60,10 +62,11 @@ export function DsTable<T extends Record<string, unknown>>({ columns, data, onRo
                 style={{
                   borderBottom: ri < data.length - 1 ? '1px solid var(--color-border)' : 'none',
                   cursor: onRowClick ? 'pointer' : 'default',
+                  background: hoveredRow === ri ? 'var(--color-muted)' : 'transparent',
                   transition: 'background var(--transition-fast)',
                 }}
-                onMouseEnter={(e) => { if (onRowClick) e.currentTarget.style.background = 'var(--color-muted)' }}
-                onMouseLeave={(e) => { if (onRowClick) e.currentTarget.style.background = 'transparent' }}
+                onMouseEnter={() => setHoveredRow(ri)}
+                onMouseLeave={() => setHoveredRow(null)}
               >
                 {columns.map((col, ci) => (
                   <td

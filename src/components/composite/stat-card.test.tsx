@@ -13,4 +13,10 @@ describe('StatCard', () => {
     render(<StatCard label="Income" value="€500" icon="💰" />)
     expect(screen.getByText('💰')).toBeDefined()
   })
+
+  it('applies custom color', () => {
+    render(<StatCard label="Debt" value="€50" color="#EF4444" />)
+    const value = screen.getByText('€50')
+    expect(value.style.color).toBe('rgb(239, 68, 68)')
+  })
 })
