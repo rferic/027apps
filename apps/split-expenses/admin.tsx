@@ -100,7 +100,7 @@ export default function SplitExpensesAdmin() {
                     <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>{t('groupLabel', { id: g.group_id?.slice(0, 8) ?? '', currency: g.currency })}</p>
                   </div>
                   <span onClick={e => { e.stopPropagation(); handleDeleteGroup(g.id) }}>
-                    <DsButton variant="ghost" size="sm" style={{ color: '#EF4444' }}><Trash2 className="w-3.5 h-3.5" /></DsButton>
+                    <DsButton variant="ghost" size="sm" style={{ color: '#EF4444' }}><Trash2 size={14} /></DsButton>
                   </span>
                 </div>
               </DsCard>

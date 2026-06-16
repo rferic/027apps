@@ -144,8 +144,16 @@ export default function SplitExpensesView() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-bold text-foreground">{t('group.list.title')}</h1>
-        <DsButton color="#10B981" onClick={() => setShowCreateGroup(true)}><Plus className="w-4 h-4" /> {t('group.create.title')}</DsButton>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#10B981', color: '#fff' }}>
+            <ArrowLeftRight size={18} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">{t('group.list.title')}</h1>
+            <p className="text-xs text-muted-foreground">{t('group.list.totalBalance', { count: groups.length })}</p>
+          </div>
+        </div>
+        <DsButton color="#10B981" onClick={() => setShowCreateGroup(true)}><Plus size={14} /> {t('group.create.title')}</DsButton>
       </div>
 
       {loading ? (
@@ -320,7 +328,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
           <h1 className="text-lg font-bold text-foreground">{group.title}</h1>
           <p className="text-xs text-muted-foreground">{currencySymbol(group.currency)} · {t('group.detail.memberCount', { count: group.members?.length ?? 0 })}</p>
         </div>
-        <DsButton variant="ghost" onClick={() => setShowEditGroup(true)}><Pencil className="w-4 h-4" /></DsButton>
+        <DsButton variant="ghost" onClick={() => setShowEditGroup(true)}><Pencil size={16} /></DsButton>
       </div>
 
       <div className="flex gap-1 mb-6 border-b border-border">
@@ -400,7 +408,7 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
             {group.members?.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
           </select>
         </div>
-        <DsButton color="#10B981" onClick={() => setShowCreate(true)}><Plus className="w-3.5 h-3.5" /> {t('expense.create.title')}</DsButton>
+        <DsButton color="#10B981" onClick={() => setShowCreate(true)}><Plus size={14} /> {t('expense.create.title')}</DsButton>
       </div>
 
       {loading ? (
@@ -432,8 +440,8 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
                   </div>
                   {!e.settled && (
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <span onClick={ev => { ev.stopPropagation(); setEditExpense(e) }}><DsButton variant="ghost" size="sm"><Pencil className="w-3.5 h-3.5" /></DsButton></span>
-                      <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 className="w-3.5 h-3.5" /></DsButton></span>
+                      <span onClick={ev => { ev.stopPropagation(); setEditExpense(e) }}><DsButton variant="ghost" size="sm"><Pencil size={14} /></DsButton></span>
+                      <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
                     </div>
                   )}
                 </div>
@@ -598,7 +606,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
               <DsButton color="#10B981" disabled={creatingTag || !newTagName.trim()} onClick={handleCreateTag}>
                 {creatingTag ? '...' : t('tag.create.confirm')}
               </DsButton>
-              <DsButton variant="ghost" size="sm" onClick={() => setShowNewTag(false)}><X className="w-3 h-3" /></DsButton>
+              <DsButton variant="ghost" size="sm" onClick={() => setShowNewTag(false)}><X size={12} /></DsButton>
             </div>
           )}
         </div>
@@ -662,12 +670,12 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 8, borderTop: '1px solid var(--color-border)' }}>
-            <DsButton variant="ghost" onClick={onEdit}><Pencil className="w-4 h-4" /></DsButton>
+            <DsButton variant="ghost" onClick={onEdit}><Pencil size={16} /></DsButton>
             {!expense.settled && (
-              <DsButton variant="ghost" color="#10B981" onClick={() => setShowSettleConfirm(true)}><Check className="w-4 h-4" /></DsButton>
+              <DsButton variant="ghost" color="#10B981" onClick={() => setShowSettleConfirm(true)}><Check size={16} /></DsButton>
             )}
             {!expense.settled && (
-              <DsButton variant="ghost" style={{ color: '#EF4444' }} onClick={() => setShowDeleteConfirm(true)}><Trash2 className="w-4 h-4" /></DsButton>
+              <DsButton variant="ghost" style={{ color: '#EF4444' }} onClick={() => setShowDeleteConfirm(true)}><Trash2 size={16} /></DsButton>
             )}
           </div>
         </div>
@@ -924,7 +932,7 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>{t('member.list.title')}</h3>
-        <DsButton color="#10B981" onClick={() => setShowAdd(true)}><Users className="w-3 h-3" /> {t('member.list.add')}</DsButton>
+        <DsButton color="#10B981" onClick={() => setShowAdd(true)}><Users size={14} /> {t('member.list.add')}</DsButton>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -934,7 +942,7 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
               <DsAvatar size={28}>{m.display_name?.[0] ?? '?'}</DsAvatar>
               <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', flex: 1 }}>{m.display_name ?? t('common.unknown')}</span>
               <DsToggle checked={m.active} onChange={(val) => handleToggle(m.id, val)} />
-              <DsButton variant="ghost" size="sm" style={{ color: '#EF4444' }} onClick={() => handleRemove(m.id)}><Trash2 className="w-3 h-3" /></DsButton>
+              <DsButton variant="ghost" size="sm" style={{ color: '#EF4444' }} onClick={() => handleRemove(m.id)}><Trash2 size={12} /></DsButton>
             </div>
           </DsCard>
         ))}
