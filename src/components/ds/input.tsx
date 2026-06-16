@@ -65,6 +65,9 @@ export function DsTextarea({ label, error, style, ...props }: TextareaProps) {
         }}
         {...props}
       />
+      {error && (
+        <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-priority-urgent)', margin: 0 }}>{error}</p>
+      )}
     </div>
   )
 }
