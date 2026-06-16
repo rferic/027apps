@@ -27,3 +27,7 @@ export const Default: Story = {
 export const Highlighted: Story = {
   args: { data: weekData, highlightIndex: 5 },
 }
+
+export const WithLine: Story = {
+  args: { data: weekData, showLine: true, color: '#10B981', height: 160 },
+}

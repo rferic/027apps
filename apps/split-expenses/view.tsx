@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ChevronDown, Filter } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ChevronDown } from 'lucide-react'
 import { DsButton } from '@/components/ds/button'
 import { DsModal } from '@/components/ds/modal'
 import { DsCard } from '@/components/ds/card'
@@ -65,55 +65,16 @@ function Modal({ open, onClose, title, children }: { open: boolean; onClose: () 
   return <DsModal open={open} onClose={onClose} title={title}>{children}</DsModal>
 }
 
-// ─── SVG Chart ──────────────────────────────────────────────────────────
+// ─── Chart ──────────────────────────────────────────────────────────────
 
-function SpendingChart({ data, cumulative, period }: { data: { label: string; total: number }[]; cumulative: boolean; period: string }) {
-  const displayData = cumulative ? data.reduce<{ label: string; total: number }[]>((acc, d) => {
+import { BarChart } from '@/components/composite/bar-chart'
+
+function chartData(data: { label: string; total: number }[], cumulative: boolean) {
+  return cumulative ? data.reduce<{ label: string; total: number }[]>((acc, d) => {
     const prev = acc.length > 0 ? acc[acc.length - 1].total : 0
     acc.push({ label: d.label, total: prev + d.total })
     return acc
   }, []) : data
-
-  if (displayData.length === 0) return null
-  const maxVal = Math.max(...displayData.map(d => d.total), 1)
-  const w = 600
-  const h = 200
-  const pad = { top: 10, right: 10, bottom: 25, left: 50 }
-  const chartW = w - pad.left - pad.right
-  const chartH = h - pad.top - pad.bottom
-  const barW = chartW / displayData.length * 0.7
-  const gap = chartW / displayData.length * 0.3
-
-  const points = displayData.map((d, i) => {
-    const x = pad.left + (chartW / displayData.length) * i + (chartW / displayData.length) / 2
-    const y = pad.top + chartH - (d.total / maxVal) * chartH
-    return `${x},${y}`
-  }).join(' ')
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto" style={{ maxHeight: 220 }}>
-      {displayData.map((d, i) => {
-        const x = pad.left + (chartW / displayData.length) * i
-        const barH = (d.total / maxVal) * chartH
-        return (
-          <g key={i}>
-            <rect x={x + gap / 2} y={pad.top + chartH - barH} width={barW} height={barH} rx={2} fill="#10B981" opacity={0.7} />
-            {i % Math.ceil(displayData.length / 8) === 0 && (
-              <text x={x + barW / 2 + gap / 2} y={h - 5} textAnchor="end" fontSize={9} fill="#94A3B8" transform={`rotate(-45, ${x + barW / 2 + gap / 2}, ${h - 5})`}>
-                {period === 'day' ? d.label.slice(5) : d.label}
-              </text>
-            )}
-          </g>
-        )
-      })}
-      <polyline points={points} fill="none" stroke="#059669" strokeWidth={2} />
-      {displayData.map((d, i) => {
-        const x = pad.left + (chartW / displayData.length) * i + (chartW / displayData.length) / 2
-        const y = pad.top + chartH - (d.total / maxVal) * chartH
-        return <circle key={i} cx={x} cy={y} r={3} fill="#059669" />
-      })}
-    </svg>
-  )
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -1062,7 +1023,9 @@ function StatsTab({ groupId }: { groupId: string }) {
       ) : data.byPeriod.length === 0 ? (
         <DsEmptyState title={t('stats.noData')} />
       ) : (
-        <SpendingChart data={mode === 'byPeriod' ? data.byPeriod : data.cumulative} cumulative={mode === 'cumulative'} period={period} />
+        <BarChart
+            data={chartData(mode === 'byPeriod' ? data.byPeriod : data.cumulative, mode === 'cumulative').map(d => ({ label: d.label.length > 5 ? d.label.slice(0, 5) : d.label, value: Math.round(d.total) }))}
+            color="#10B981" height={200} showLine />
       )}
     </div>
   )
