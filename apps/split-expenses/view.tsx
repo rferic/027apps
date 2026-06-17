@@ -380,12 +380,11 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
       if (filterTag) params.set('tag_id', filterTag)
       if (filterPaidBy) params.set('paid_by', filterPaidBy)
       params.set('settled', 'false')
-      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?${params}`)
-      if (res.ok) {
-        const result = await res.json()
-        setExpenses(result.data ?? [])
-      }
-      const tagRes = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/tags-all`)
+      const [expRes, tagRes] = await Promise.all([
+        fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?${params}`),
+        fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
+      ])
+      if (expRes.ok) { const result = await expRes.json(); setExpenses(result.data ?? []) }
       if (tagRes.ok) setTags(await tagRes.json())
     } catch {} finally { setLoading(false) }
   }
