@@ -538,7 +538,6 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
         const newTag = await res.json()
         setTagId(newTag.id)
         setNewTagName('')
-        onSaved()
         return newTag.id
       }
       return null
