@@ -34,8 +34,8 @@ const variantStyles: Record<Variant, React.CSSProperties> = {
 
 const sizeStyles: Record<Size, React.CSSProperties> = {
   sm: { padding: '6px 14px', fontSize: 'var(--font-size-xs)' },
-  md: { padding: '10px 20px', fontSize: 'var(--font-size-sm)' },
-  lg: { padding: '14px 28px', fontSize: 'var(--font-size-base)' },
+  md: { padding: '8px 16px', fontSize: 'var(--font-size-sm)' },
+  lg: { padding: '10px 24px', fontSize: 'var(--font-size-base)' },
 }
 
 export function DsButton({ variant = 'primary', size = 'md', color, style, children, ...props }: Props) {
