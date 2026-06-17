@@ -143,7 +143,7 @@ export default function SplitExpensesView() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
+    <div className="px-4 py-6 sm:px-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#10B981', color: '#fff' }}>
@@ -315,7 +315,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
+    <div className="px-4 py-6 sm:px-6">
       <DsButton variant="ghost" onClick={onBack} style={{ marginBottom: 16 }}>
         <ChevronDown className="w-4 h-4 rotate-90" /> {t('common.back')}
       </DsButton>
@@ -438,10 +438,7 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
                     </p>
                   </div>
                   {!e.settled && (
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <span onClick={ev => { ev.stopPropagation(); setEditExpense(e) }}><DsButton variant="ghost" size="sm"><Pencil size={14} /></DsButton></span>
-                      <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
-                    </div>
+                    <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
                   )}
                 </div>
               </DsCard>
