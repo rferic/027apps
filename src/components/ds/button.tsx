@@ -46,7 +46,11 @@ export function DsButton({ variant = 'primary', size = 'md', color, style, child
   } : {}
   return (
     <button
+      type="button"
       style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
         fontFamily: 'var(--font-body)',
         fontWeight: 'var(--font-weight-semibold)',
         borderRadius: 'var(--radius-lg)',
