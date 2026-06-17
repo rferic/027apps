@@ -591,35 +591,28 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
         </div>
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.tag')}</label>
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <input value={newTagName} onChange={e => {
-                setNewTagName(e.target.value)
-                if (tagId) setTagId('')
-              }} onBlur={() => {
-                if (!newTagName.trim() && !tagId) return
-                const match = tags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())
-                if (match) setTagId(match.id)
-              }}
-                placeholder={t('expense.create.noTag')}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
-              />
-              {newTagName.trim() && !tagId && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-32 overflow-auto">
-                  {tags.filter(t => t.name.toLowerCase().includes(newTagName.toLowerCase())).map(tag => (
-                    <div key={tag.id} onClick={() => { setTagId(tag.id); setNewTagName('') }}
-                      className="px-3 py-1.5 text-sm text-foreground hover:bg-accent cursor-pointer"
-                    >{tag.name}</div>
-                  ))}
-                  <div onClick={handleCreateTag}
-                    className="px-3 py-1.5 text-sm text-emerald-600 hover:bg-accent cursor-pointer border-t border-border"
-                  >+ {t('tag.create.title')}</div>
-                </div>
-              )}
-            </div>
-            <input value={newTagColor} onChange={e => setNewTagColor(e.target.value)} type="color"
-              className="w-9 h-9 p-0.5 border border-border rounded cursor-pointer flex-shrink-0" title={t('tag.create.color')}
+          <div className="relative">
+            <input value={newTagName} onChange={e => {
+              setNewTagName(e.target.value)
+              if (tagId) setTagId('')
+            }} onKeyDown={async (e) => {
+              if (e.key === 'Enter') { e.preventDefault(); await handleCreateTag() }
+            }}
+              placeholder={t('expense.create.noTag')}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
             />
+            {newTagName.trim() && !tagId && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-32 overflow-auto">
+                {tags.filter(t => t.name.toLowerCase().includes(newTagName.toLowerCase())).map(tag => (
+                  <div key={tag.id} onMouseDown={() => { setTagId(tag.id); setNewTagName('') }}
+                    className="px-3 py-1.5 text-sm text-foreground hover:bg-accent cursor-pointer"
+                  >{tag.name}</div>
+                ))}
+                <div onMouseDown={async () => { await handleCreateTag() }}
+                  className="px-3 py-1.5 text-sm text-emerald-600 hover:bg-accent cursor-pointer border-t border-border"
+                >+ {t('tag.create.title')}</div>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">

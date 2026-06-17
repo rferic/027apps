@@ -38,7 +38,8 @@
         "balances": "Balances",
         "members": "Members",
         "stats": "Statistics",
-        "import": "Import"
+        "import": "Import",
+        "tags": "Tags"
       },
       "noGroup": "Expense group not found",
       "memberCount": "{count, plural, one {# member} other {# members}}"
@@ -134,7 +135,7 @@
   },
   "tag": {
     "list": {
-      "title": "Tags",
+      "title": "Manage Tags",
       "empty": "No tags yet",
       "createFirst": "Create your first tag"
     },

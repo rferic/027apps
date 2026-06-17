@@ -30,7 +30,8 @@
         "balances": "Balances",
         "members": "Miembros",
         "stats": "Estadísticas",
-        "import": "Importar"
+        "import": "Importar",
+        "tags": "Etiquetas"
       },
       "noGroup": "Grupo de gastos no encontrado",
       "memberCount": "{count, plural, one {# miembro} other {# miembros}}"
@@ -126,8 +127,8 @@
   },
   "tag": {
     "list": {
-      "title": "Etiquetas",
-      "empty": "Aún no hay etiquetas",
+      "title": "Gestionar etiquetas",
+      "empty": "No hay etiquetas",
       "createFirst": "Crea tu primera etiqueta"
     },
     "create": {
