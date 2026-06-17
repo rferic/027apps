@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
@@ -287,8 +287,24 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<typeof TABS[number]>('expenses')
   const [showEditGroup, setShowEditGroup] = useState(false)
-
   const [fetchError, setFetchError] = useState(false)
+
+  // Centralized tab data — fetched once, shared to all tabs
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
+  const [balances, setBalances] = useState<Balance[]>([])
+  const [transfers, setTransfers] = useState<Transfer[]>([])
+  const [allMembers, setAllMembers] = useState<{ id: string; display_name: string }[]>([])
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [statsData, setStatsData] = useState<{ byPeriod: { label: string; total: number }[]; cumulative: { label: string; total: number }[] }>({ byPeriod: [], cumulative: [] })
+  const [statsTags, setStatsTags] = useState<Tag[]>([])
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [dataLoading, setDataLoading] = useState(true)
+
+  // Stats filter state (managed here so the parent refetches)
+  const [statsPeriod, setStatsPeriod] = useState('month')
+  const [statsTagId, setStatsTagId] = useState('')
+  const [statsLoading, setStatsLoading] = useState(true)
 
   async function fetchGroup() {
     if (!ctx.groupSlug) { setLoading(false); return }
@@ -304,6 +320,69 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
   useEffect(() => { fetchGroup() }, [groupId, ctx.groupSlug])
 
+  // Fetch all tab data in parallel (expenses, tags, balances, members, session)
+  useEffect(() => {
+    if (!ctx.groupSlug) return
+    async function fetchAllData() {
+      try {
+        const [expRes, tagRes, balRes, memRes, sessionRes] = await Promise.all([
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/members`),
+          supabase.auth.getSession(),
+        ])
+        if (expRes.ok) { const result = await expRes.json(); setExpenses(result.data ?? []) }
+        if (tagRes.ok) { const tagData = await tagRes.json(); setTags(Array.isArray(tagData) ? tagData : tagData?.data ?? []) }
+        if (balRes.ok) { const balData = await balRes.json(); setBalances(balData.balances ?? []); setTransfers(balData.transfers ?? []) }
+        if (memRes.ok) {
+          const memData = await memRes.json()
+          const list = Array.isArray(memData) ? memData : memData?.data ?? []
+          setAllMembers(list.map((m: { user_id: string; display_name?: string }) => ({ id: m.user_id, display_name: m.display_name ?? t('common.unknown') })))
+        }
+        const { data: { session } } = sessionRes
+        if (session?.user) setCurrentUserId(session.user.id)
+      } catch {} finally { setDataLoading(false) }
+    }
+    fetchAllData()
+  }, [groupId, ctx.groupSlug, refreshKey])
+
+  // Stats data fetch (has its own filter params)
+  useEffect(() => {
+    if (!ctx.groupSlug) return
+    async function fetchStats() {
+      setStatsLoading(true)
+      try {
+        const params = new URLSearchParams({ period: statsPeriod })
+        if (statsTagId) params.set('tag_id', statsTagId)
+        const [res, tagRes] = await Promise.all([
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/stats?${params}`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
+        ])
+        if (res.ok) setStatsData(await res.json())
+        if (tagRes.ok) setStatsTags(await tagRes.json())
+      } catch {} finally { setStatsLoading(false) }
+    }
+    fetchStats()
+  }, [groupId, ctx.groupSlug, statsPeriod, statsTagId, refreshKey])
+
+  // Derived: members of the parent group not yet in this expense group
+  const availableMembers = allMembers.filter(am => {
+    const existingIds = new Set(group?.members?.map(m => m.user_id) ?? [])
+    return !existingIds.has(am.id)
+  })
+
+  const handleRefresh = () => {
+    setDataLoading(true)
+    setRefreshKey(k => k + 1)
+  }
+
+  const handleMembersUpdate = () => {
+    fetchGroup()
+    setDataLoading(true)
+    setRefreshKey(k => k + 1)
+  }
+
   if (loading) {
     return <div className="py-16"><DsSkeleton height={120} count={3} /></div>
   }
@@ -313,6 +392,8 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       <DsEmptyState icon="💰" title={t('group.detail.noGroup')} action={<DsButton variant="ghost" onClick={onBack}>{t('common.back')}</DsButton>} />
     )
   }
+
+  const activeMembers = group.members?.filter(m => m.active) ?? []
 
   return (
     <div className="px-4 py-6 sm:px-6">
@@ -337,11 +418,11 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         ))}
       </div>
 
-      {tab === 'expenses' && <ExpensesTab groupId={groupId} group={group} />}
-      {tab === 'balances' && <BalancesTab groupId={groupId} group={group} />}
-      {tab === 'members' && <MembersTab groupId={groupId} group={group} onUpdate={fetchGroup} />}
-      {tab === 'stats' && <StatsTab groupId={groupId} />}
-      {tab === 'tags' && <TagsTab groupId={groupId} group={group} />}
+      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} />}
+      {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} />}
+      {tab === 'members' && <MembersTab groupId={groupId} members={group.members ?? []} availableMembers={availableMembers} onUpdate={handleMembersUpdate} />}
+      {tab === 'stats' && <StatsTab statsData={statsData} tags={statsTags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
+      {tab === 'tags' && <TagsTab groupId={groupId} tags={tags} loading={dataLoading} onRefresh={handleRefresh} />}
 
       {showEditGroup && <CreateGroupModal open={showEditGroup} onClose={() => setShowEditGroup(false)} onCreated={() => { setShowEditGroup(false); fetchGroup() }} editGroup={group} />}
     </div>
@@ -350,48 +431,24 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
 // ─── Expenses Tab ───────────────────────────────────────────────────────
 
-function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }) {
-  const ctx = useAppContext()
+function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh }: {
+  groupId: string; expenses: Expense[]; tags: Tag[]; currentUserId: string;
+  members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void;
+}) {
   const locale = useLocale()
   const t = useTranslations('apps.split-expenses')
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [tags, setTags] = useState<Tag[]>([])
-  const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [editExpense, setEditExpense] = useState<Expense | null>(null)
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null)
   const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null)
   const [filterTag, setFilterTag] = useState('')
   const [filterPaidBy, setFilterPaidBy] = useState('')
-  const [currentUserId, setCurrentUserId] = useState('')
-  const [refresh, setRefresh] = useState(0)
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setCurrentUserId(session.user.id)
-    })
-  }, [])
-
-  async function fetchData() {
-    if (!ctx.groupSlug) return
-    setLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (filterTag) params.set('tag_id', filterTag)
-      if (filterPaidBy) params.set('paid_by', filterPaidBy)
-      params.set('settled', 'false')
-      const [expRes, tagRes] = await Promise.all([
-        fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?${params}`),
-        fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
-      ])
-      if (expRes.ok) { const result = await expRes.json(); setExpenses(result.data ?? []) }
-      if (tagRes.ok) setTags(await tagRes.json())
-    } catch {} finally { setLoading(false) }
-  }
-
-  useEffect(() => { fetchData() }, [groupId, ctx.groupSlug, filterTag, filterPaidBy, refresh])
-
-  const activeMembers = group.members?.filter(m => m.active) ?? []
+  const filteredExpenses = expenses.filter(e => {
+    if (filterTag && e.tag_id !== filterTag) return false
+    if (filterPaidBy && e.paid_by !== filterPaidBy) return false
+    return true
+  })
 
   return (
     <div>
@@ -403,7 +460,7 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
           </select>
           <select value={filterPaidBy} onChange={e => setFilterPaidBy(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
             <option value="">{t('expense.list.allUsers')}</option>
-            {group.members?.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
+            {allMembers.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
           </select>
         </div>
         <DsButton color="#10B981" onClick={() => setShowCreate(true)}><Plus size={14} /> {t('expense.create.title')}</DsButton>
@@ -411,11 +468,11 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
 
       {loading ? (
         <div className="py-8"><DsSkeleton height={60} count={4} /></div>
-      ) : expenses.length === 0 ? (
+      ) : filteredExpenses.length === 0 ? (
         <DsEmptyState title={t('expense.list.empty')} />
       ) : (
         <div className="space-y-2">
-          {expenses.map(e => {
+          {filteredExpenses.map(e => {
             const tag = tags.find(t => t.id === e.tag_id)
             return (
               <DsCard key={e.id} padding="sm" hover onClick={() => setDetailExpense(e)}>
@@ -433,7 +490,7 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', margin: 0, opacity: e.settled ? 0.5 : 1 }}>
-                      {formatAmount(e.amount, group.currency)}
+                      {formatAmount(e.amount, currency)}
                     </p>
                   </div>
                   {!e.settled && (
@@ -447,19 +504,19 @@ function ExpensesTab({ groupId, group }: { groupId: string; group: GroupDetail }
       )}
 
       <ExpenseModal open={showCreate || !!editExpense} onClose={() => { setShowCreate(false); setEditExpense(null) }}
-        onSaved={() => { setShowCreate(false); setEditExpense(null); setRefresh(r => r + 1) }}
-        groupId={groupId} members={activeMembers} tags={tags} currency={group.currency} editExpense={editExpense}
+        onSaved={() => { setShowCreate(false); setEditExpense(null); onRefresh() }}
+        groupId={groupId} members={members} tags={tags} currency={currency} editExpense={editExpense}
         currentUserId={currentUserId} />
 
       <DeleteConfirm open={!!deleteExpense} onClose={() => setDeleteExpense(null)}
-        onDeleted={() => { setDeleteExpense(null); setRefresh(r => r + 1) }}
+        onDeleted={() => { setDeleteExpense(null); onRefresh() }}
         groupId={groupId} expense={deleteExpense} />
 
       <ExpenseDetailModal open={!!detailExpense} onClose={() => setDetailExpense(null)}
-        expense={detailExpense} group={group} tags={tags}
+        expense={detailExpense} group={{ members, currency } as GroupDetail} tags={tags}
         onEdit={() => { const e = detailExpense; setDetailExpense(null); setEditExpense(e) }}
-        onSettled={() => { setDetailExpense(null); setRefresh(r => r + 1) }}
-        onDeleted={() => { setDetailExpense(null); setRefresh(r => r + 1) }} />
+        onSettled={() => { setDetailExpense(null); onRefresh() }}
+        onDeleted={() => { setDetailExpense(null); onRefresh() }} />
     </div>
   )
 }
@@ -770,33 +827,16 @@ function DeleteConfirm({ open, onClose, onDeleted, groupId, expense }: {
 
 // ─── Balances Tab ───────────────────────────────────────────────────────
 
-function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }) {
+function BalancesTab({ groupId, balances, transfers, currency, loading, onRefresh }: {
+  groupId: string; balances: Balance[]; transfers: Transfer[]; currency: string; loading: boolean; onRefresh: () => void;
+}) {
   const ctx = useAppContext()
   const locale = useLocale()
   const t = useTranslations('apps.split-expenses')
-  const [balances, setBalances] = useState<Balance[]>([])
-  const [transfers, setTransfers] = useState<Transfer[]>([])
-  const [loading, setLoading] = useState(true)
   const [settling, setSettling] = useState(false)
   const [showSettleConfirm, setShowSettleConfirm] = useState(false)
   const [settleHistory, setSettleHistory] = useState<any[]>([])
   const [showHistory, setShowHistory] = useState(false)
-  const [refresh, setRefresh] = useState(0)
-
-  async function fetchBalances() {
-    if (!ctx.groupSlug) return
-    setLoading(true)
-    try {
-      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`)
-      if (res.ok) {
-        const data = await res.json()
-        setBalances(data.balances ?? [])
-        setTransfers(data.transfers ?? [])
-      }
-    } catch {} finally { setLoading(false) }
-  }
-
-  useEffect(() => { fetchBalances() }, [groupId, ctx.groupSlug, refresh])
 
   async function handleSettle() {
     if (!ctx.groupSlug) return
@@ -806,7 +846,7 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
       })
       setShowSettleConfirm(false)
-      setRefresh(r => r + 1)
+      onRefresh()
     } catch {} finally { setSettling(false) }
   }
 
@@ -838,9 +878,9 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
                     color: b.net_balance > 0 ? 'var(--color-success)' : b.net_balance < 0 ? 'var(--color-error)' : 'var(--color-text-secondary)',
                   }}>
                     {b.net_balance > 0
-                      ? `${t('balance.isOwed')} ${formatAmount(b.net_balance, group.currency)}`
+                      ? `${t('balance.isOwed')} ${formatAmount(b.net_balance, currency)}`
                       : b.net_balance < 0
-                        ? `${t('balance.owe')} ${formatAmount(Math.abs(b.net_balance), group.currency)}`
+                        ? `${t('balance.owe')} ${formatAmount(Math.abs(b.net_balance), currency)}`
                         : t('balance.noTransfers')}
                   </span>
                 </div>
@@ -858,7 +898,7 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text)', padding: 8, background: 'var(--color-muted)', borderRadius: 'var(--radius-lg)' }}>
                     <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                     <span>{tr.from_name ?? t('common.unknown')} {t('balance.pays')} {tr.to_name ?? t('common.unknown')}</span>
-                    <span style={{ marginLeft: 'auto', fontWeight: 600, color: 'var(--color-text)' }}>{formatAmount(tr.amount, group.currency)}</span>
+                    <span style={{ marginLeft: 'auto', fontWeight: 600, color: 'var(--color-text)' }}>{formatAmount(tr.amount, currency)}</span>
                   </div>
                 ))}
               </div>
@@ -874,7 +914,7 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
         <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>{t('balance.confirmMessage', { count: transfers.length })}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
           {transfers.map((tr, i) => (
-            <p key={i} style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: 0 }}>{tr.from_name ?? t('common.unknown')} → {tr.to_name ?? t('common.unknown')}: {formatAmount(tr.amount, group.currency)}</p>
+            <p key={i} style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: 0 }}>{tr.from_name ?? t('common.unknown')} → {tr.to_name ?? t('common.unknown')}: {formatAmount(tr.amount, currency)}</p>
           ))}
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -903,25 +943,14 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
 
 // ─── Members Tab ────────────────────────────────────────────────────────
 
-function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: GroupDetail; onUpdate: () => void }) {
+function MembersTab({ groupId, members, availableMembers, onUpdate }: {
+  groupId: string; members: Member[]; availableMembers: { id: string; display_name: string }[]; onUpdate: () => void;
+}) {
   const ctx = useAppContext()
   const t = useTranslations('apps.split-expenses')
   const [showAdd, setShowAdd] = useState(false)
-  const [groupMembers, setGroupMembers] = useState<{ id: string; display_name: string }[]>([])
   const [adding, setAdding] = useState(false)
   const [selected, setSelected] = useState('')
-
-  useEffect(() => {
-    if (!ctx.groupSlug) return
-    fetch(`/api/v1/${ctx.groupSlug}/members`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(data => {
-        const list = Array.isArray(data) ? data : data?.data ?? []
-        const existingIds = new Set(group.members?.map(m => m.user_id))
-        setGroupMembers(list.filter((m: { user_id: string }) => !existingIds.has(m.user_id)).map((m: { user_id: string; display_name?: string }) => ({ id: m.user_id, display_name: m.display_name ?? t('common.unknown') })))
-      })
-      .catch(() => {})
-  }, [ctx.groupSlug, group.members])
 
   async function handleAdd() {
     if (!selected || !ctx.groupSlug) return
@@ -958,7 +987,7 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {group.members?.map(m => (
+        {members.map(m => (
           <DsCard key={m.id} padding="sm" hover={false}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <DsAvatar size={28}>{m.display_name?.[0] ?? '?'}</DsAvatar>
@@ -972,7 +1001,7 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
 
       <DsModal open={showAdd} onClose={() => setShowAdd(false)} title={t('member.addModal.title')}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {groupMembers.length === 0 ? (
+          {availableMembers.length === 0 ? (
             <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'center', padding: 16 }}>{t('member.addModal.noMembers')}</p>
           ) : (
             <>
@@ -980,7 +1009,7 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
               >
                 <option value="">{t('member.addModal.placeholder')}</option>
-                {groupMembers.map(m => <option key={m.id} value={m.id}>{m.display_name}</option>)}
+                {availableMembers.map(m => <option key={m.id} value={m.id}>{m.display_name}</option>)}
               </select>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                 <DsButton variant="ghost" onClick={() => setShowAdd(false)}>{t('common.cancel')}</DsButton>
@@ -998,25 +1027,16 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
 
 // ─── Tags Tab ───────────────────────────────────────────────────────────
 
-function TagsTab({ groupId, group }: { groupId: string; group: GroupDetail }) {
+function TagsTab({ groupId, tags, loading, onRefresh }: {
+  groupId: string; tags: Tag[]; loading: boolean; onRefresh: () => void;
+}) {
   const ctx = useAppContext()
   const t = useTranslations('apps.split-expenses')
-  const [tags, setTags] = useState<Tag[]>([])
-  const [loading, setLoading] = useState(true)
   const [editTag, setEditTag] = useState<Tag | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState('#10B981')
   const [saving, setSaving] = useState(false)
-  const [refresh, setRefresh] = useState(0)
-
-  useEffect(() => {
-    if (!ctx.groupSlug) return
-    fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`)
-      .then(r => r.json())
-      .then(data => { setTags(Array.isArray(data) ? data : data?.data ?? []); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [groupId, ctx.groupSlug, refresh])
 
   async function handleSave() {
     if (!newName.trim() || !ctx.groupSlug) return
@@ -1034,14 +1054,14 @@ function TagsTab({ groupId, group }: { groupId: string; group: GroupDetail }) {
         })
       }
       setShowCreate(false); setEditTag(null); setNewName(''); setNewColor('#10B981')
-      setRefresh(r => r + 1)
+      onRefresh()
     } catch {} finally { setSaving(false) }
   }
 
   async function handleDelete(tagId: string) {
     if (!ctx.groupSlug) return
     await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags/${tagId}`, { method: 'DELETE' })
-    setRefresh(r => r + 1)
+    onRefresh()
   }
 
   if (loading) return <DsSkeleton height={48} count={3} />
@@ -1102,33 +1122,13 @@ function TagsTab({ groupId, group }: { groupId: string; group: GroupDetail }) {
 
 // ─── Stats Tab ──────────────────────────────────────────────────────────
 
-function StatsTab({ groupId }: { groupId: string }) {
-  const ctx = useAppContext()
+function StatsTab({ statsData, tags, period, tagId, loading, onPeriodChange, onTagIdChange }: {
+  statsData: { byPeriod: { label: string; total: number }[]; cumulative: { label: string; total: number }[] };
+  tags: Tag[]; period: string; tagId: string; loading: boolean;
+  onPeriodChange: (p: string) => void; onTagIdChange: (id: string) => void;
+}) {
   const t = useTranslations('apps.split-expenses')
-  const [period, setPeriod] = useState('month')
-  const [tagId, setTagId] = useState('')
   const [mode, setMode] = useState<'byPeriod' | 'cumulative'>('byPeriod')
-  const [data, setData] = useState<{ byPeriod: { label: string; total: number }[]; cumulative: { label: string; total: number }[] }>({ byPeriod: [], cumulative: [] })
-  const [tags, setTags] = useState<Tag[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (!ctx.groupSlug) return
-    async function fetchStats() {
-      setLoading(true)
-      try {
-        const params = new URLSearchParams({ period })
-        if (tagId) params.set('tag_id', tagId)
-        const [res, tagRes] = await Promise.all([
-          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/stats?${params}`),
-          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
-        ])
-        if (res.ok) setData(await res.json())
-        if (tagRes.ok) setTags(await tagRes.json())
-      } catch {} finally { setLoading(false) }
-    }
-    fetchStats()
-  }, [groupId, ctx.groupSlug, period, tagId])
 
   return (
     <div>
@@ -1140,13 +1140,13 @@ function StatsTab({ groupId }: { groupId: string }) {
             >{t(`stats.${m}`)}</button>
           ))}
         </div>
-        <select value={period} onChange={e => setPeriod(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground ml-auto">
+        <select value={period} onChange={e => onPeriodChange(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground ml-auto">
           <option value="day">{t('stats.day')}</option>
           <option value="week">{t('stats.week')}</option>
           <option value="month">{t('stats.month')}</option>
           <option value="year">{t('stats.year')}</option>
         </select>
-        <select value={tagId} onChange={e => setTagId(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
+        <select value={tagId} onChange={e => onTagIdChange(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
           <option value="">{t('stats.filterTag')}</option>
           {tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
         </select>
@@ -1154,11 +1154,11 @@ function StatsTab({ groupId }: { groupId: string }) {
 
       {loading ? (
         <div className="py-8"><DsSkeleton height={200} /></div>
-      ) : data.byPeriod.length === 0 ? (
+      ) : statsData.byPeriod.length === 0 ? (
         <DsEmptyState title={t('stats.noData')} />
       ) : (
         <BarChart
-            data={chartData(mode === 'byPeriod' ? data.byPeriod : data.cumulative, mode === 'cumulative').map(d => ({ label: d.label.length > 5 ? d.label.slice(0, 5) : d.label, value: Math.round(d.total) }))}
+            data={chartData(mode === 'byPeriod' ? statsData.byPeriod : statsData.cumulative, mode === 'cumulative').map(d => ({ label: d.label.length > 5 ? d.label.slice(0, 5) : d.label, value: Math.round(d.total) }))}
             color="#10B981" height={200} showLine />
       )}
     </div>
