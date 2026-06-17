@@ -826,44 +826,50 @@ function BalancesTab({ groupId, group }: { groupId: string; group: GroupDetail }
 
   return (
     <div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-        {balances.map(b => (
-          <DsCard key={b.user_id} padding="sm" hover={false}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)' }}>{b.display_name ?? t('common.unknown')}</span>
-              <span style={{
-                fontSize: 13, fontWeight: 600,
-                color: b.net_balance > 0 ? 'var(--color-success)' : b.net_balance < 0 ? 'var(--color-error)' : 'var(--color-text-secondary)',
-              }}>
-                {b.net_balance > 0
-                  ? `${t('balance.isOwed')} ${formatAmount(b.net_balance, group.currency)}`
-                  : b.net_balance < 0
-                    ? `${t('balance.owe')} ${formatAmount(Math.abs(b.net_balance), group.currency)}`
-                    : t('balance.noTransfers')}
-              </span>
-            </div>
-          </DsCard>
-        ))}
-      </div>
-
-      {transfers.length > 0 && (
-        <>
-          <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>{t('balance.transfers')}</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 24 }}>
-            {transfers.map((tr, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text)', padding: 8, background: 'var(--color-muted)', borderRadius: 'var(--radius-lg)' }}>
-                <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                <span>{tr.from_name ?? t('common.unknown')} {t('balance.pays')} {tr.to_name ?? t('common.unknown')}</span>
-                <span style={{ marginLeft: 'auto', fontWeight: 600, color: 'var(--color-text)' }}>{formatAmount(tr.amount, group.currency)}</span>
-              </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div>
+          <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>{t('balance.title')}</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {balances.map(b => (
+              <DsCard key={b.user_id} padding="sm" hover={false}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)' }}>{b.display_name ?? t('common.unknown')}</span>
+                  <span style={{
+                    fontSize: 13, fontWeight: 600,
+                    color: b.net_balance > 0 ? 'var(--color-success)' : b.net_balance < 0 ? 'var(--color-error)' : 'var(--color-text-secondary)',
+                  }}>
+                    {b.net_balance > 0
+                      ? `${t('balance.isOwed')} ${formatAmount(b.net_balance, group.currency)}`
+                      : b.net_balance < 0
+                        ? `${t('balance.owe')} ${formatAmount(Math.abs(b.net_balance), group.currency)}`
+                        : t('balance.noTransfers')}
+                  </span>
+                </div>
+              </DsCard>
             ))}
           </div>
+        </div>
 
-          <DsButton color="#10B981" style={{ width: '100%' }} onClick={() => setShowSettleConfirm(true)}>{t('balance.settleAll')}</DsButton>
-        </>
-      )}
+        <div>
+          {transfers.length > 0 && (
+            <>
+              <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>{t('balance.transfers')}</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                {transfers.map((tr, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text)', padding: 8, background: 'var(--color-muted)', borderRadius: 'var(--radius-lg)' }}>
+                    <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                    <span>{tr.from_name ?? t('common.unknown')} {t('balance.pays')} {tr.to_name ?? t('common.unknown')}</span>
+                    <span style={{ marginLeft: 'auto', fontWeight: 600, color: 'var(--color-text)' }}>{formatAmount(tr.amount, group.currency)}</span>
+                  </div>
+                ))}
+              </div>
+              <DsButton color="#10B981" style={{ width: '100%' }} onClick={() => setShowSettleConfirm(true)}>{t('balance.settleAll')}</DsButton>
+            </>
+          )}
+        </div>
+      </div>
 
-      <DsButton variant="ghost" onClick={fetchSettleHistory} style={{ marginTop: 12, fontSize: 12, textDecoration: 'underline' }}>{t('balance.history')}</DsButton>
+      <DsButton variant="ghost" onClick={fetchSettleHistory} style={{ fontSize: 12, textDecoration: 'underline' }}>{t('balance.history')}</DsButton>
 
       <DsModal open={showSettleConfirm} onClose={() => setShowSettleConfirm(false)} title={t('balance.confirmTitle')}>
         <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>{t('balance.confirmMessage', { count: transfers.length })}</p>

@@ -10,7 +10,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const db = createAdminClientUntyped()
 
-  // Get all unsettled expenses with their shares
   const { data: expenses } = await db.from('split_expenses_expenses')
     .select('id, paid_by, amount')
     .eq('expense_group_id', expenseGroupId)
@@ -35,7 +34,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     })
   }
 
-  // Load shares for all expenses
   const expenseIds = expenses.map(e => e.id)
   const { data: allShares } = await db.from('split_expenses_shares')
     .select('*')
@@ -48,7 +46,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     sharesByExpense.set(share.expense_id, list)
   }
 
-  // Build Expense objects for the optimizer
   const optimizerExpenses: Expense[] = expenses.map(e => ({
     id: e.id,
     paid_by: e.paid_by,
@@ -59,13 +56,9 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     })),
   }))
 
-  // Calculate balances
   const balances = calculateBalances(optimizerExpenses)
-
-  // Optimize transfers
   const rawTransfers = optimizeTransfers(balances)
 
-  // Enrich with profile names
   const userIds = [...new Set([...balances.map(b => b.user_id), ...rawTransfers.map(t => t.from_user), ...rawTransfers.map(t => t.to_user)])]
   const { data: profiles } = await db.from('profiles')
     .select('id, display_name')
@@ -73,19 +66,10 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const profileMap = new Map((profiles ?? []).map(p => [p.id, p.display_name]))
 
-  const enrichedBalances = balances.map(b => ({
-    ...b,
-    display_name: profileMap.get(b.user_id) ?? null,
-  }))
-
-  const enrichedTransfers = rawTransfers.map(t => ({
-    ...t,
-    from_name: profileMap.get(t.from_user) ?? null,
-    to_name: profileMap.get(t.to_user) ?? null,
-  }))
-
   return apiOk({
-    balances: enrichedBalances,
-    transfers: enrichedTransfers,
+    balances: balances.map(b => ({ ...b, display_name: profileMap.get(b.user_id) ?? null })),
+    transfers: rawTransfers.map(t => ({
+      ...t, from_name: profileMap.get(t.from_user) ?? null, to_name: profileMap.get(t.to_user) ?? null,
+    })),
   })
 }

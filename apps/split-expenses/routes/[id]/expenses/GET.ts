@@ -21,7 +21,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const db = createAdminClientUntyped()
 
-  let query = db.from('split_expenses_expenses').select('*', { count: 'exact' })
+  let query = db.from('split_expenses_expenses').select('id, paid_by, amount, title, settled, tag_id, created_by, created_at, expense_group_id', { count: 'exact' })
     .eq('expense_group_id', expenseGroupId)
 
   if (tagId) query = query.eq('tag_id', tagId)
@@ -42,20 +42,18 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const { data: rows, error, count } = await query
   if (error) return apiError('QUERY_ERROR', error.message, 500)
 
-  // Load shares and profiles for each expense
+  // Load all related data in parallel (2 queries instead of 3)
   const expenseIds = (rows ?? []).map(e => e.id)
-  const { data: allShares } = expenseIds.length > 0
-    ? await db.from('split_expenses_shares').select('*').in('expense_id', expenseIds)
-    : { data: [] }
+  const [sharesResult, profilesResult] = await Promise.all([
+    expenseIds.length > 0
+      ? db.from('split_expenses_shares').select('*').in('expense_id', expenseIds)
+      : { data: [] },
+    db.from('profiles').select('id, display_name, avatar_url')
+      .in('id', (rows ?? []).map(e => e.paid_by)),
+  ])
 
-  const userIds = [...new Set([
-    ...(rows ?? []).map(e => e.paid_by),
-    ...(allShares ?? []).map(s => s.user_id),
-  ])]
-
-  const { data: profiles } = await db.from('profiles')
-    .select('id, display_name, avatar_url')
-    .in('id', userIds)
+  const allShares = sharesResult.data ?? []
+  const profiles = profilesResult.data ?? []
 
   const profileMap = new Map((profiles ?? []).map(p => [p.id, { display_name: p.display_name, avatar_url: p.avatar_url }]))
   const sharesByExpense = new Map<string, typeof allShares>()
@@ -63,6 +61,15 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     const list = sharesByExpense.get(share.expense_id) ?? []
     list.push(share)
     sharesByExpense.set(share.expense_id, list)
+  }
+
+  // Collect all user IDs from shares for profile enrichment
+  const allUserIds = [...new Set(allShares.map(s => s.user_id))]
+  if (allUserIds.length > 0 && !allUserIds.every(id => profileMap.has(id))) {
+    const { data: extraProfiles } = await db.from('profiles')
+      .select('id, display_name, avatar_url')
+      .in('id', allUserIds.filter(id => !profileMap.has(id)))
+    for (const p of extraProfiles ?? []) profileMap.set(p.id, { display_name: p.display_name, avatar_url: p.avatar_url })
   }
 
   const enriched = (rows ?? []).map(e => ({
