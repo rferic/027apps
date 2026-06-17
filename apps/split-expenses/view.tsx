@@ -278,7 +278,7 @@ function CreateGroupModal({ open, onClose, onCreated, editGroup }: { open: boole
 
 // ─── Group Detail ───────────────────────────────────────────────────────
 
-const TABS = ['expenses', 'balances', 'members', 'stats'] as const
+const TABS = ['expenses', 'balances', 'members', 'stats', 'tags'] as const
 
 function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => void }) {
   const ctx = useAppContext()
@@ -341,6 +341,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       {tab === 'balances' && <BalancesTab groupId={groupId} group={group} />}
       {tab === 'members' && <MembersTab groupId={groupId} group={group} onUpdate={fetchGroup} />}
       {tab === 'stats' && <StatsTab groupId={groupId} />}
+      {tab === 'tags' && <TagsTab groupId={groupId} group={group} />}
 
       {showEditGroup && <CreateGroupModal open={showEditGroup} onClose={() => setShowEditGroup(false)} onCreated={() => { setShowEditGroup(false); fetchGroup() }} editGroup={group} />}
     </div>
@@ -482,8 +483,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
   const [participants, setParticipants] = useState<string[]>(editExpense?.shares?.map(s => s.user_id) ?? (currentUserId ? [currentUserId] : []))
   const [tagId, setTagId] = useState(editExpense?.tag_id ?? '')
   const [saving, setSaving] = useState(false)
-  const [showNewTag, setShowNewTag] = useState(false)
-  const [newTagName, setNewTagName] = useState('')
+  const [newTagName, setNewTagName] = useState(tags.find(t => t.id === editExpense?.tag_id)?.name ?? '')
   const [newTagColor, setNewTagColor] = useState('#10B981')
   const [creatingTag, setCreatingTag] = useState(false)
 
@@ -492,16 +492,25 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
     setTitle(editExpense?.title ?? '')
     setAmount(editExpense?.amount?.toString() ?? '')
     setPaidBy(editExpense?.paid_by ?? currentUserId ?? '')
-    setParticipants(editExpense?.shares?.map(s => s.user_id) ?? (currentUserId ? [currentUserId] : []))
+    setParticipants(editExpense?.shares?.map(s => s.user_id) ?? members.filter(m => m.active).map(m => m.user_id))
     setTagId(editExpense?.tag_id ?? '')
-  }, [open, editExpense, currentUserId])
+    setNewTagName(tags.find(t => t.id === editExpense?.tag_id)?.name ?? '')
+  }, [open, editExpense, currentUserId, members])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!title.trim() || !amount || !paidBy || participants.length === 0 || !ctx.groupSlug) return
+    const parsedAmount = parseFloat(amount.replace(',', '.'))
+    if (isNaN(parsedAmount) || parsedAmount <= 0) return
+    let resolvedTagId: string | null = tagId
+    if (newTagName.trim() && !tagId) {
+      const match = tags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())
+      if (match) { resolvedTagId = match.id; setTagId(match.id) }
+      else { resolvedTagId = await handleCreateTag(); if (!resolvedTagId) return }
+    }
     setSaving(true)
     try {
-      const body = { title: title.trim(), amount: parseFloat(amount), paid_by: paidBy, participant_ids: participants, tag_id: tagId || null }
+      const body = { title: title.trim(), amount: parsedAmount, paid_by: paidBy, participant_ids: participants, tag_id: resolvedTagId || null }
       if (editExpense) {
         await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses/${editExpense.id}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -515,8 +524,10 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
     } catch {} finally { setSaving(false) }
   }
 
-  async function handleCreateTag() {
-    if (!newTagName.trim() || !ctx.groupSlug) return
+  async function handleCreateTag(): Promise<string | null> {
+    if (!newTagName.trim() || !ctx.groupSlug) return null
+    const match = tags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())
+    if (match) { setTagId(match.id); setNewTagName(''); return match.id }
     setCreatingTag(true)
     try {
       const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`, {
@@ -526,14 +537,15 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
       if (res.ok) {
         const newTag = await res.json()
         setTagId(newTag.id)
-        setShowNewTag(false)
         setNewTagName('')
         onSaved()
+        return newTag.id
       }
-    } catch {} finally { setCreatingTag(false) }
+      return null
+    } catch { return null } finally { setCreatingTag(false) }
   }
 
-  const shareAmount = participants.length > 0 ? parseFloat(amount) / participants.length : 0
+  const shareAmount = participants.length > 0 ? (parseFloat(amount.replace(',', '.')) || 0) / participants.length : 0
 
   return (
     <DsModal open={open} onClose={onClose} title={editExpense ? t('expense.create.editTitle') : t('expense.create.title')}>
@@ -548,7 +560,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
           <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.amount')}</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{currencySymbol(currency)}</span>
-            <input value={amount} onChange={e => setAmount(e.target.value)} type="number" step="0.01" min="0.01" required
+            <input value={amount} onChange={e => setAmount(e.target.value)} type="text" inputMode="decimal" required placeholder="0.00"
               className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
             />
           </div>
@@ -581,31 +593,35 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.tag')}</label>
           <div className="flex gap-2">
-            <select value={tagId} onChange={e => {
-              if (e.target.value === '__new__') { setShowNewTag(true); return }
-              setTagId(e.target.value)
-            }}
-              className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
-            >
-              <option value="">{t('expense.create.noTag')}</option>
-              {tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
-              <option value="__new__">+ {t('tag.create.title')}</option>
-            </select>
-          </div>
-          {showNewTag && (
-            <div className="mt-2 flex gap-2 items-center">
-              <input value={newTagName} onChange={e => setNewTagName(e.target.value)} placeholder={t('tag.create.name')}
-                className="flex-1 px-2 py-1 text-xs border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+            <div className="flex-1 relative">
+              <input value={newTagName} onChange={e => {
+                setNewTagName(e.target.value)
+                if (tagId) setTagId('')
+              }} onBlur={() => {
+                if (!newTagName.trim() && !tagId) return
+                const match = tags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())
+                if (match) setTagId(match.id)
+              }}
+                placeholder={t('expense.create.noTag')}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
               />
-              <input value={newTagColor} onChange={e => setNewTagColor(e.target.value)} type="color"
-                className="w-8 h-8 p-0.5 border border-border rounded cursor-pointer"
-              />
-              <DsButton color="#10B981" disabled={creatingTag || !newTagName.trim()} onClick={handleCreateTag}>
-                {creatingTag ? '...' : t('tag.create.confirm')}
-              </DsButton>
-              <DsButton variant="ghost" size="sm" onClick={() => setShowNewTag(false)}><X size={12} /></DsButton>
+              {newTagName.trim() && !tagId && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-32 overflow-auto">
+                  {tags.filter(t => t.name.toLowerCase().includes(newTagName.toLowerCase())).map(tag => (
+                    <div key={tag.id} onClick={() => { setTagId(tag.id); setNewTagName('') }}
+                      className="px-3 py-1.5 text-sm text-foreground hover:bg-accent cursor-pointer"
+                    >{tag.name}</div>
+                  ))}
+                  <div onClick={handleCreateTag}
+                    className="px-3 py-1.5 text-sm text-emerald-600 hover:bg-accent cursor-pointer border-t border-border"
+                  >+ {t('tag.create.title')}</div>
+                </div>
+              )}
             </div>
-          )}
+            <input value={newTagColor} onChange={e => setNewTagColor(e.target.value)} type="color"
+              className="w-9 h-9 p-0.5 border border-border rounded cursor-pointer flex-shrink-0" title={t('tag.create.color')}
+            />
+          </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <DsButton variant="ghost" onClick={onClose}>{t('expense.create.cancel')}</DsButton>
@@ -965,6 +981,110 @@ function MembersTab({ groupId, group, onUpdate }: { groupId: string; group: Grou
               </div>
             </>
           )}
+        </div>
+      </DsModal>
+    </div>
+  )
+}
+
+// ─── Tags Tab ───────────────────────────────────────────────────────────
+
+function TagsTab({ groupId, group }: { groupId: string; group: GroupDetail }) {
+  const ctx = useAppContext()
+  const t = useTranslations('apps.split-expenses')
+  const [tags, setTags] = useState<Tag[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editTag, setEditTag] = useState<Tag | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newColor, setNewColor] = useState('#10B981')
+  const [saving, setSaving] = useState(false)
+  const [refresh, setRefresh] = useState(0)
+
+  useEffect(() => {
+    if (!ctx.groupSlug) return
+    fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`)
+      .then(r => r.json())
+      .then(data => { setTags(Array.isArray(data) ? data : data?.data ?? []); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [groupId, ctx.groupSlug, refresh])
+
+  async function handleSave() {
+    if (!newName.trim() || !ctx.groupSlug) return
+    setSaving(true)
+    try {
+      if (editTag) {
+        await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags/${editTag.id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName.trim(), color: newColor }),
+        })
+      } else {
+        await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName.trim(), color: newColor }),
+        })
+      }
+      setShowCreate(false); setEditTag(null); setNewName(''); setNewColor('#10B981')
+      setRefresh(r => r + 1)
+    } catch {} finally { setSaving(false) }
+  }
+
+  async function handleDelete(tagId: string) {
+    if (!ctx.groupSlug) return
+    await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags/${tagId}`, { method: 'DELETE' })
+    setRefresh(r => r + 1)
+  }
+
+  if (loading) return <DsSkeleton height={48} count={3} />
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>{t('tag.list.title')}</h3>
+        <DsButton color="#10B981" size="sm" onClick={() => { setEditTag(null); setNewName(''); setNewColor('#10B981'); setShowCreate(true) }}>
+          <Plus size={14} /> {t('tag.create.title')}
+        </DsButton>
+      </div>
+
+      {tags.length === 0 ? (
+        <DsEmptyState title={t('tag.list.empty')} />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {tags.map(tag => (
+            <DsCard key={tag.id} padding="sm" hover={false}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 16, height: 16, borderRadius: 4, backgroundColor: tag.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', flex: 1 }}>{tag.name}</span>
+                <DsButton variant="ghost" size="sm" onClick={() => { setEditTag(tag); setNewName(tag.name); setNewColor(tag.color); setShowCreate(true) }}>
+                  <Pencil size={12} />
+                </DsButton>
+                <DsButton variant="ghost" size="sm" style={{ color: '#EF4444' }} onClick={() => handleDelete(tag.id)}>
+                  <Trash2 size={12} />
+                </DsButton>
+              </div>
+            </DsCard>
+          ))}
+        </div>
+      )}
+
+      <DsModal open={showCreate} onClose={() => { setShowCreate(false); setEditTag(null) }} title={editTag ? t('tag.create.editTitle') : t('tag.create.title')}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 4, display: 'block' }}>{t('tag.create.name')}</label>
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder={t('tag.create.name')}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 4, display: 'block' }}>{t('tag.create.color')}</label>
+            <input value={newColor} onChange={e => setNewColor(e.target.value)} type="color" className="w-10 h-10 p-0.5 border border-border rounded cursor-pointer" />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <DsButton variant="ghost" onClick={() => { setShowCreate(false); setEditTag(null) }}>{t('common.cancel')}</DsButton>
+            <DsButton color="#10B981" disabled={saving || !newName.trim()} onClick={handleSave}>
+              {saving && <Loader2 className="w-3 h-3 animate-spin" />}{editTag ? t('tag.create.save') : t('tag.create.confirm')}
+            </DsButton>
+          </div>
         </div>
       </DsModal>
     </div>
