@@ -52,6 +52,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const optimizerExpenses: Expense[] = expenses.map(e => ({
     id: e.id,
     paid_by: e.paid_by,
+    amount: parseFloat(e.amount),
     shares: (sharesByExpense.get(e.id) ?? []).map(s => ({
       user_id: s.user_id,
       amount: parseFloat(s.amount),
