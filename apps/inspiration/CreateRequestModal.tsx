@@ -22,8 +22,8 @@ interface CreateRequestModalProps {
   groupSlug: string
 }
 
-const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white transition-colors placeholder:text-slate-400'
-const labelCls = 'block text-sm font-medium text-slate-700 mb-1'
+const inputCls = 'w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-card transition-colors placeholder:text-muted-foreground'
+const labelCls = 'block text-sm font-medium text-foreground mb-1'
 
 export default function CreateRequestModal({ open, onClose, onCreated, groupSlug }: CreateRequestModalProps) {
   const t = useTranslations('apps.inspiration')
@@ -214,7 +214,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
       {/* Panel */}
       <div
         ref={panelRef}
-        className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-lg mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 fade-in"
+        className="relative z-10 bg-card rounded-xl border border-border shadow-xl p-6 w-full max-w-lg mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 fade-in"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
@@ -223,12 +223,12 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
               <button
                 type="button"
                 onClick={handleBack}
-                className="p-1 -ml-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                className="p-1 -ml-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
               >
                 <ChevronLeft size={18} />
               </button>
             )}
-            <h2 className="text-base font-semibold text-slate-900">
+            <h2 className="text-base font-semibold text-foreground">
               {step1only && t('create.step1_title')}
               {step2only && typeMeta && (
                 <span className="flex items-center gap-2">
@@ -242,7 +242,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
           <button
             type="button"
             onClick={handleClose}
-            className="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+            className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
           >
             <X size={18} />
           </button>
@@ -253,10 +253,10 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
           {[1, 2, 3].map(s => (
             <div
               key={s}
-              className={`h-1 flex-1 rounded-full transition-colors ${s <= step ? 'bg-violet-500' : 'bg-slate-200'}`}
+              className={`h-1 flex-1 rounded-full transition-colors ${s <= step ? 'bg-violet-500' : 'bg-muted'}`}
             />
           ))}
-          <span className="text-xs text-slate-400 ml-2 tabular-nums">{t('create.step_label', { step })}</span>
+          <span className="text-xs text-muted-foreground ml-2 tabular-nums">{t('create.step_label', { step })}</span>
         </div>
 
         {/* =========== STEP 1: Type selection =========== */}
@@ -267,7 +267,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                 key={t.value}
                 type="button"
                 onClick={() => handleSelectType(t.value)}
-                className="flex items-start gap-3 p-4 rounded-xl border-2 border-slate-100 hover:border-violet-200 hover:shadow-sm text-left cursor-pointer transition-all group"
+                className="flex items-start gap-3 p-4 rounded-xl border-2 border-border hover:border-violet-200 hover:shadow-sm text-left cursor-pointer transition-all group"
                 style={{
                   borderLeftColor: t.color,
                   borderLeftWidth: '3px',
@@ -277,8 +277,8 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                   <t.icon size={22} style={{ color: t.color }} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-800">{t.label}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{t.description}</p>
+                  <p className="text-sm font-medium text-foreground">{t.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
                 </div>
               </button>
             ))}
@@ -327,7 +327,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                 )}
               </label>
               {installedApps.length === 0 ? (
-                <p className="text-xs text-slate-400">{t('create.no_apps')}</p>
+                <p className="text-xs text-muted-foreground">{t('create.no_apps')}</p>
               ) : (
                 <select
                   value={selectedType === 'new_app_feature' ? featureAppSlug : appSlug}
@@ -443,7 +443,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
               <button
                 type="button"
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 cursor-pointer transition-colors"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
               >
                 {t('create.cancel')}
               </button>
@@ -463,28 +463,28 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
         {step3only && typeMeta && (
           <div className="space-y-4">
             {/* Summary */}
-            <div className="bg-slate-50 rounded-lg p-4 space-y-3 text-sm">
+            <div className="bg-muted rounded-lg p-4 space-y-3 text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-slate-500 w-24 shrink-0">{t('create.type_colon')}</span>
+                <span className="text-muted-foreground w-24 shrink-0">{t('create.type_colon')}</span>
                 <span className="flex items-center gap-1.5 font-medium" style={{ color: typeMeta.color }}>
                   <typeMeta.icon size={14} />
                   {typeMeta.label}
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-slate-500 w-24 shrink-0">{t('create.title_colon')}</span>
-                <span className="text-slate-800 font-medium">{title.trim()}</span>
+                <span className="text-muted-foreground w-24 shrink-0">{t('create.title_colon')}</span>
+                <span className="text-foreground font-medium">{title.trim()}</span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-slate-500 w-24 shrink-0">{t('create.description_colon')}</span>
-                <span className="text-slate-700 line-clamp-3 whitespace-pre-line">
+                <span className="text-muted-foreground w-24 shrink-0">{t('create.description_colon')}</span>
+                <span className="text-foreground line-clamp-3 whitespace-pre-line">
                   {buildDescription()}
                 </span>
               </div>
               {getEffectiveAppSlug() && (
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-500 w-24 shrink-0">{t('create.app_colon')}</span>
-                  <span className="text-slate-700">
+                  <span className="text-muted-foreground w-24 shrink-0">{t('create.app_colon')}</span>
+                  <span className="text-foreground">
                     {installedApps.find(a => a.slug === getEffectiveAppSlug())?.name ?? getEffectiveAppSlug()}
                   </span>
                 </div>
@@ -504,7 +504,7 @@ export default function CreateRequestModal({ open, onClose, onCreated, groupSlug
                 type="button"
                 onClick={handleClose}
                 disabled={submitting}
-                className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 cursor-pointer transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground cursor-pointer transition-colors disabled:opacity-50"
               >
                 {t('create.cancel')}
               </button>

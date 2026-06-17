@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
+import { DsCheckbox } from '@/components/ds/checkbox'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
 import { Plus, X, Loader2, Check, Circle, Clock, AlertTriangle, Pencil, UserPlus, Trash2, CheckSquare } from 'lucide-react'
@@ -70,7 +71,7 @@ function TodoFilters({
     onChange({ ...filters, [key]: value })
   }
 
-  const selectCls = 'px-2 py-1 text-xs border border-border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400'
+  const selectCls = 'px-2 py-1 text-xs border border-border rounded-lg bg-card focus:outline-none focus:ring-1 focus:ring-indigo-400'
 
   return (
     <div className="flex flex-wrap gap-2 mb-4">
@@ -171,7 +172,7 @@ function CreateTodoModal({
     setSaving(false)
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white'
+  const inputCls = 'w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-card'
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
@@ -235,10 +236,7 @@ function CreateTodoModal({
           <div>
             <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
               {t('due_date')}
-              <label className="flex items-center gap-1 text-[11px] font-normal normal-case tracking-normal text-muted-foreground cursor-pointer">
-                <input type="checkbox" checked={!dueDate} onChange={e => setDueDate(e.target.checked ? '' : (initialDueDate ?? today()))} className="w-4 h-4 sm:w-3 sm:h-3 rounded" />
-                {t('no_date')}
-              </label>
+              <DsCheckbox label={t('no_date')} checked={!dueDate} onChange={e => setDueDate(e.target.checked ? '' : (initialDueDate ?? today()))} />
             </label>
             <input id="create-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} disabled={!dueDate} className={inputCls} />
           </div>
@@ -297,10 +295,9 @@ function DeleteConfirm({ item, groupSlug, onClose, onDeleted }: {
         <p className="text-sm text-muted-foreground mb-1">{t('delete_confirm')}</p>
         <p className="text-sm text-foreground mb-4 font-medium">&ldquo;{item.title}&rdquo;</p>
         {item.repeat_interval && (
-        <label className="flex items-center gap-2 mb-4 cursor-pointer">
-          <input type="checkbox" checked={deleteSeries} onChange={e => setDeleteSeries(e.target.checked)} className="rounded border-border text-indigo-600 focus:ring-indigo-500" />
-          <span className="text-xs text-muted-foreground">{t('delete_series')}</span>
-        </label>
+        <div className="mb-4">
+          <DsCheckbox label={t('delete_series')} checked={deleteSeries} onChange={e => setDeleteSeries(e.target.checked)} />
+        </div>
         )}
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">{t('cancel')}</button>
@@ -500,7 +497,7 @@ export default function TodoView() {
       {/* Filters - same pattern on all sizes: button + modal + active badges */}
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-white text-muted-foreground hover:bg-accent cursor-pointer transition-colors">
+          <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-muted-foreground hover:bg-accent cursor-pointer transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg>
             {t('filter_label')}
             {Object.values(filters).some(v => v) && (
@@ -508,7 +505,7 @@ export default function TodoView() {
             )}
           </button>
           <select value={sort} onChange={e => setSort(e.target.value)}
-            className="px-3 py-2 text-xs font-medium border border-border rounded-lg bg-white text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+            className="px-3 py-2 text-xs font-medium border border-border rounded-lg bg-card text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
             <option value="updated">{t('sort_updated')}</option>
             <option value="priority">{t('sort_priority')}</option>
             <option value="upcoming">{t('sort_upcoming')}</option>
@@ -629,7 +626,7 @@ export default function TodoView() {
 
       {/* List */}
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 size={20} className="animate-spin text-slate-200" /></div>
+        <div className="flex justify-center py-12"><Loader2 size={20} className="animate-spin text-muted-foreground" /></div>
       ) : error ? (
         <div className="text-center py-12 text-sm text-muted-foreground">{t('error_loading')}</div>
       ) : items.length === 0 ? (

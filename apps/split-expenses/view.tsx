@@ -9,6 +9,7 @@ import { DsButton } from '@/components/ds/button'
 import { DsModal } from '@/components/ds/modal'
 import { DsCard } from '@/components/ds/card'
 import { DsBadge } from '@/components/ds/badge'
+import { DsCheckbox } from '@/components/ds/checkbox'
 import { DsTabs } from '@/components/ds/tabs'
 import { DsToggle } from '@/components/ds/toggle'
 import { DsSkeleton } from '@/components/ds/skeleton'
@@ -257,12 +258,9 @@ function CreateGroupModal({ open, onClose, onCreated, editGroup }: { open: boole
             <label className="block text-xs font-medium text-muted-foreground mb-1">{t('group.create.members')}</label>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {groupMembers.map(m => (
-                <label key={m.id} className="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded cursor-pointer">
-                  <input type="checkbox" checked={members.includes(m.id)} onChange={e => setMembers(e.target.checked ? [...members, m.id] : members.filter(id => id !== m.id))}
-                    className="rounded border-border text-emerald-500 focus:ring-emerald-400"
-                  />
-                  <span className="text-sm text-foreground">{m.display_name}</span>
-                </label>
+                <div key={m.id} className="px-2 py-1 hover:bg-accent rounded">
+                  <DsCheckbox color="#10B981" label={m.display_name} checked={members.includes(m.id)} onChange={e => setMembers(e.target.checked ? [...members, m.id] : members.filter(id => id !== m.id))} />
+                </div>
               ))}
             </div>
           </div>
@@ -572,9 +570,8 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
           <div className="space-y-1 max-h-40 overflow-y-auto border border-border rounded-lg p-2">
             {members.map(m => (
               <label key={m.user_id} className="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded cursor-pointer">
-                <input type="checkbox" checked={participants.includes(m.user_id)}
+                <DsCheckbox color="#10B981" checked={participants.includes(m.user_id)}
                   onChange={e => setParticipants(e.target.checked ? [...participants, m.user_id] : participants.filter(id => id !== m.user_id))}
-                  className="rounded border-border text-emerald-500 focus:ring-emerald-400"
                 />
                 <span className="text-sm text-foreground">{m.display_name ?? t('common.unknown')}</span>
               </label>

@@ -4,6 +4,7 @@ import { useTransition, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { createInvitationAction, sendInvitationEmailAction } from './actions'
+import { DsCheckbox } from '@/components/ds/checkbox'
 
 interface Props {
   baseUrl: string
@@ -152,22 +153,15 @@ export function CreateInvitationModal({ baseUrl, onClose, onCreated, availableGr
                   </label>
                   <div className="space-y-1.5 max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2">
                     {availableGroups.map(group => (
-                      <label key={group.id} className="flex items-center gap-2 cursor-pointer py-0.5">
-                        <input
-                          type="checkbox"
-                          checked={selectedGroupIds.includes(group.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedGroupIds(prev => [...prev, group.id])
-                            } else {
-                              setSelectedGroupIds(prev => prev.filter(id => id !== group.id))
-                            }
-                          }}
-                          className="rounded border-slate-300"
-                        />
-                        <span className="text-sm text-slate-700">{group.name}</span>
-                        <span className="text-xs text-slate-400">({group.slug})</span>
-                      </label>
+                      <div key={group.id} className="py-0.5">
+                        <DsCheckbox label={group.name} checked={selectedGroupIds.includes(group.id)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          if (e.target.checked) {
+                            setSelectedGroupIds(prev => [...prev, group.id])
+                          } else {
+                            setSelectedGroupIds(prev => prev.filter(id => id !== group.id))
+                          }
+                        }} />
+                      </div>
                     ))}
                   </div>
                   {selectedGroupIds.length === 0 && (

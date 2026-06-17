@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Search } from 'lucide-react'
+import { DsCheckbox } from '@/components/ds/checkbox'
 import { addMembersAction, getAvailableUsersAction, removeMemberAction } from './actions'
 
 interface Member {
@@ -173,12 +174,7 @@ export function GroupMembersSection({ groupId, members: initialMembers, onRefres
                   key={user.id}
                   className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-50 cursor-pointer transition-colors"
                 >
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(user.id)}
-                    onChange={() => toggleUser(user.id)}
-                    className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
-                  />
+                  <DsCheckbox checked={selected.includes(user.id)} onChange={() => toggleUser(user.id)} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-slate-700 truncate">{user.displayName}</div>
                     <div className="text-xs text-slate-400 truncate">{user.email}</div>

@@ -229,7 +229,7 @@ export function GitHubSettingsManager({ initial }: Props) {
           </div>
 
           {/** Manual installation ID entry */}
-          <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">{t('connection.installation_id')}</span>
               <div className="flex items-center gap-1">
@@ -255,7 +255,7 @@ export function GitHubSettingsManager({ initial }: Props) {
       ) : !settings.connected ? (
         <div className="space-y-6">
           {/** Quick setup (manifest POST) */}
-          <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-amber-50">
                 <GitBranch size={20} className="text-amber-600" />
@@ -300,7 +300,7 @@ export function GitHubSettingsManager({ initial }: Props) {
           </div>
 
           {/** Manual setup form */}
-          <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm space-y-5">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-5">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-gray-50">
               <GitBranch size={20} className="text-gray-400" />
@@ -395,7 +395,7 @@ export function GitHubSettingsManager({ initial }: Props) {
       ) : (
         <>
           {/* Status card */}
-          <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-green-50">
@@ -501,7 +501,7 @@ export function GitHubSettingsManager({ initial }: Props) {
           </div>
 
           {/* Toggle */}
-          <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-gray-900">{t('toggle.title')}</h2>
@@ -515,7 +515,7 @@ export function GitHubSettingsManager({ initial }: Props) {
                   settings.syncEnabled ? 'bg-green-500' : 'bg-gray-300'
                 }`}
               >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
                   settings.syncEnabled ? 'translate-x-6' : 'translate-x-1'
                 }`} />
               </button>
@@ -526,7 +526,7 @@ export function GitHubSettingsManager({ initial }: Props) {
           </div>
 
           {/* Label mapping */}
-          <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-sm font-semibold text-gray-900">{t('labels.title')}</h2>
@@ -563,7 +563,7 @@ export function GitHubSettingsManager({ initial }: Props) {
       {showLabelEditor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/40" onClick={() => setShowLabelEditor(false)} />
-          <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-md mx-4">
+          <div className="relative z-10 bg-card rounded-xl border border-border shadow-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-gray-900">{t('labels.editor.title')}</h3>
               <button type="button" onClick={() => setShowLabelEditor(false)} className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer"><X size={16} /></button>
@@ -596,7 +596,7 @@ export function GitHubSettingsManager({ initial }: Props) {
       {showRepoEditor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/40" onClick={() => setShowRepoEditor(false)} />
-          <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
+          <div className="relative z-10 bg-card rounded-xl border border-border shadow-xl p-6 w-full max-w-sm mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-gray-900">{t('repo_editor.title')}</h3>
               <button type="button" onClick={() => setShowRepoEditor(false)} className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer"><X size={16} /></button>
@@ -606,7 +606,7 @@ export function GitHubSettingsManager({ initial }: Props) {
               <select
                 value={repoInput}
                 onChange={(e) => setRepoInput(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 mb-3 bg-white"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 mb-3 bg-card"
               >
                 <option value="">{t('repo_editor.select_repo')}</option>
                 {repos.map((r) => (
@@ -663,7 +663,7 @@ export function GitHubSettingsManager({ initial }: Props) {
       {showDisconnectConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/40" onClick={() => setShowDisconnectConfirm(false)} />
-          <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
+          <div className="relative z-10 bg-card rounded-xl border border-border shadow-xl p-6 w-full max-w-sm mx-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-2">{t('disconnect_confirm.title')}</h3>
             <p className="text-sm text-gray-500 mb-4">{t('disconnect_confirm.description')}</p>
             <div className="flex justify-end gap-2">
