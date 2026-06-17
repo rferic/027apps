@@ -486,6 +486,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
   const [newTagName, setNewTagName] = useState(tags.find(t => t.id === editExpense?.tag_id)?.name ?? '')
   const [newTagColor, setNewTagColor] = useState('#10B981')
   const [creatingTag, setCreatingTag] = useState(false)
+  const [localTags, setLocalTags] = useState<Tag[]>(tags)
 
   useEffect(() => {
     if (!open) return
@@ -495,7 +496,8 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
     setParticipants(editExpense?.shares?.map(s => s.user_id) ?? members.filter(m => m.active).map(m => m.user_id))
     setTagId(editExpense?.tag_id ?? '')
     setNewTagName(tags.find(t => t.id === editExpense?.tag_id)?.name ?? '')
-  }, [open, editExpense, currentUserId, members])
+    setLocalTags(tags)
+  }, [open, editExpense, currentUserId, members, tags])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -504,7 +506,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
     if (isNaN(parsedAmount) || parsedAmount <= 0) return
     let resolvedTagId: string | null = tagId
     if (newTagName.trim() && !tagId) {
-      const match = tags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())
+      const match = localTags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())
       if (match) { resolvedTagId = match.id; setTagId(match.id) }
       else { resolvedTagId = await handleCreateTag(); if (!resolvedTagId) return }
     }
@@ -526,7 +528,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
 
   async function handleCreateTag(): Promise<string | null> {
     if (!newTagName.trim() || !ctx.groupSlug) return null
-    const match = tags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())
+    const match = localTags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())
     if (match) { setTagId(match.id); setNewTagName(''); return match.id }
     setCreatingTag(true)
     try {
@@ -536,6 +538,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
       })
       if (res.ok) {
         const newTag = await res.json()
+        setLocalTags(prev => [...prev, newTag])
         setTagId(newTag.id)
         setNewTagName('')
         return newTag.id
@@ -593,7 +596,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
           <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.tag')}</label>
           {tagId ? (
             <div className="flex items-center gap-2">
-              {(() => { const tag = tags.find(t => t.id === tagId); return tag ? (
+              {(() => { const tag = localTags.find(t => t.id === tagId); return tag ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg" style={{ backgroundColor: tag.color + '20', color: tag.color }}>
                   {tag.name}
                   <X size={12} className="cursor-pointer" style={{ color: tag.color }} onClick={() => { setTagId(''); setNewTagName('') }} />
@@ -614,7 +617,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
               />
               {newTagName.trim() && !tagId && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-32 overflow-auto">
-                  {tags.filter(t => t.name.toLowerCase().includes(newTagName.toLowerCase())).map(tag => (
+                  {localTags.filter(t => t.name.toLowerCase().includes(newTagName.toLowerCase())).map(tag => (
                     <div key={tag.id} onMouseDown={() => { setTagId(tag.id); setNewTagName('') }}
                       className="px-3 py-1.5 text-sm text-foreground hover:bg-accent cursor-pointer"
                     >{tag.name}</div>
