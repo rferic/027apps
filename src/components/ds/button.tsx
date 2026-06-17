@@ -39,11 +39,12 @@ const sizeStyles: Record<Size, React.CSSProperties> = {
 }
 
 export function DsButton({ variant = 'primary', size = 'md', color, style, children, ...props }: Props) {
-  const overrides: React.CSSProperties = color ? {
-    background: variant === 'primary' || variant === 'secondary' ? color : undefined,
-    color: variant === 'outline' || variant === 'ghost' ? color : undefined,
-    borderColor: variant === 'outline' ? color : undefined,
-  } : {}
+  const overrides: React.CSSProperties = {}
+  if (color) {
+    if (variant === 'primary' || variant === 'secondary') overrides.background = color
+    if (variant === 'outline' || variant === 'ghost') overrides.color = color
+    if (variant === 'outline') overrides.borderColor = color
+  }
   return (
     <button
       type="button"
