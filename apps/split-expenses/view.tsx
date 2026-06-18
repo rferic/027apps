@@ -297,7 +297,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const [allMembers, setAllMembers] = useState<{ id: string; display_name: string }[]>([])
   const [currentUserId, setCurrentUserId] = useState('')
   const [statsData, setStatsData] = useState<{ byPeriod: { label: string; total: number }[]; cumulative: { label: string; total: number }[] }>({ byPeriod: [], cumulative: [] })
-  const [statsTags, setStatsTags] = useState<Tag[]>([])
+
   const [refreshKey, setRefreshKey] = useState(0)
   const [dataLoading, setDataLoading] = useState(true)
 
@@ -306,65 +306,38 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const [statsTagId, setStatsTagId] = useState('')
   const [statsLoading, setStatsLoading] = useState(true)
 
-  async function fetchGroup() {
-    if (!ctx.groupSlug) { setLoading(false); return }
-    setLoading(true)
-    setFetchError(false)
-    try {
-      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}`)
-      if (res.ok) setGroup(await res.json())
-      else setFetchError(true)
-    } catch { setFetchError(true) }
-    finally { setLoading(false) }
-  }
-
-  useEffect(() => { fetchGroup() }, [groupId, ctx.groupSlug])
-
-  // Fetch all tab data in parallel (expenses, tags, balances, members, session)
   useEffect(() => {
     if (!ctx.groupSlug) return
-    async function fetchAllData() {
+    setLoading(true)
+    setFetchError(false)
+    ;(async () => {
       try {
-        const [expRes, tagRes, balRes, memRes, sessionRes] = await Promise.all([
+        const [groupRes, expRes, tagRes, balRes, memRes, sessionRes, statsRes] = await Promise.all([
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/members`),
           supabase.auth.getSession(),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/stats?period=${statsPeriod}${statsTagId ? `&tag_id=${statsTagId}` : ''}`),
         ])
-        if (expRes.ok) { const result = await expRes.json(); setExpenses(result.data ?? []) }
-        if (tagRes.ok) { const tagData = await tagRes.json(); setTags(Array.isArray(tagData) ? tagData : tagData?.data ?? []) }
-        if (balRes.ok) { const balData = await balRes.json(); setBalances(balData.balances ?? []); setTransfers(balData.transfers ?? []) }
+        if (groupRes.ok) setGroup(await groupRes.json())
+        else setFetchError(true)
+        if (expRes.ok) { const r = await expRes.json(); setExpenses(r.data ?? []) }
+        if (tagRes.ok) { const d = await tagRes.json(); setTags(Array.isArray(d) ? d : d?.data ?? []) }
+        if (balRes.ok) { const d = await balRes.json(); setBalances(d.balances ?? []); setTransfers(d.transfers ?? []) }
+        if (statsRes.ok) setStatsData(await statsRes.json())
         if (memRes.ok) {
-          const memData = await memRes.json()
-          const list = Array.isArray(memData) ? memData : memData?.data ?? []
+          const d = await memRes.json()
+          const list = Array.isArray(d) ? d : d?.data ?? []
           setAllMembers(list.map((m: { user_id: string; display_name?: string }) => ({ id: m.user_id, display_name: m.display_name ?? t('common.unknown') })))
         }
         const { data: { session } } = sessionRes
         if (session?.user) setCurrentUserId(session.user.id)
-      } catch {} finally { setDataLoading(false) }
-    }
-    fetchAllData()
-  }, [groupId, ctx.groupSlug, refreshKey])
-
-  // Stats data fetch (has its own filter params)
-  useEffect(() => {
-    if (!ctx.groupSlug) return
-    async function fetchStats() {
-      setStatsLoading(true)
-      try {
-        const params = new URLSearchParams({ period: statsPeriod })
-        if (statsTagId) params.set('tag_id', statsTagId)
-        const [res, tagRes] = await Promise.all([
-          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/stats?${params}`),
-          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
-        ])
-        if (res.ok) setStatsData(await res.json())
-        if (tagRes.ok) setStatsTags(await tagRes.json())
-      } catch {} finally { setStatsLoading(false) }
-    }
-    fetchStats()
-  }, [groupId, ctx.groupSlug, statsPeriod, statsTagId, refreshKey])
+      } catch { setFetchError(true) }
+      finally { setLoading(false); setDataLoading(false); setStatsLoading(false) }
+    })()
+  }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId])
 
   // Derived: members of the parent group not yet in this expense group
   const availableMembers = allMembers.filter(am => {
@@ -378,7 +351,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   }
 
   const handleMembersUpdate = () => {
-    fetchGroup()
+    setLoading(true)
     setDataLoading(true)
     setRefreshKey(k => k + 1)
   }
@@ -421,10 +394,10 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} />}
       {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} />}
       {tab === 'members' && <MembersTab groupId={groupId} members={group.members ?? []} availableMembers={availableMembers} onUpdate={handleMembersUpdate} />}
-      {tab === 'stats' && <StatsTab statsData={statsData} tags={statsTags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
+      {tab === 'stats' && <StatsTab statsData={statsData} tags={tags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
       {tab === 'tags' && <TagsTab groupId={groupId} tags={tags} loading={dataLoading} onRefresh={handleRefresh} />}
 
-      {showEditGroup && <CreateGroupModal open={showEditGroup} onClose={() => setShowEditGroup(false)} onCreated={() => { setShowEditGroup(false); fetchGroup() }} editGroup={group} />}
+      {showEditGroup && <CreateGroupModal open={showEditGroup} onClose={() => setShowEditGroup(false)} onCreated={() => { setShowEditGroup(false); setRefreshKey(k => k + 1) }} editGroup={group} />}
     </div>
   )
 }
