@@ -322,7 +322,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       try {
         const [groupRes, expRes, tagRes, balRes, memRes, sessionRes, statsRes] = await Promise.all([
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}`),
-          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=5&page=${expensePage}`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=5&page=1`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/members`),
@@ -345,7 +345,16 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       } catch { setFetchError(true) }
       finally { setLoading(false); setDataLoading(false); setStatsLoading(false) }
     })()
-  }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId, expensePage])
+  }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId])
+
+  // Separate fetch for expense pagination (doesn't reload the whole page)
+  useEffect(() => {
+    if (!ctx.groupSlug || !expenses.length) return
+    ;(async () => {
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=5&page=${expensePage}`)
+      if (res.ok) { const r = await res.json(); setExpenses(r.data ?? []); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
+    })()
+  }, [expensePage])
 
   // Derived: members of the parent group not yet in this expense group
   const availableMembers = allMembers.filter(am => {
