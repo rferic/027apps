@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ChevronDown, Filter } from 'lucide-react'
 import { DsButton } from '@/components/ds/button'
 import { DsModal } from '@/components/ds/modal'
 import { DsCard } from '@/components/ds/card'
@@ -143,7 +143,7 @@ export default function SplitExpensesView() {
   }
 
   return (
-    <div className="px-4 py-6 sm:px-6">
+    <div className="px-4 py-6 sm:px-6 overflow-x-hidden">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#10B981', color: '#fff' }}>
@@ -370,7 +370,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const activeMembers = group.members?.filter(m => m.active) ?? []
 
   return (
-    <div className="px-4 py-6 sm:px-6">
+    <div className="px-4 py-6 sm:px-6 overflow-x-hidden">
       <DsButton variant="ghost" onClick={onBack} style={{ marginBottom: 16 }}>
         <ChevronDown className="w-4 h-4 rotate-90" /> {t('common.back')}
       </DsButton>
@@ -442,7 +442,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
     <div>
       <div className="flex flex-wrap gap-2 mb-4">
         <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
-          <SlidersHorizontal size={14} /> {t('expense.list.filters')}
+          <Filter size={14} /> {t('expense.list.filters')}
           {activeFilters > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 text-[10px] font-bold rounded-full" style={{ backgroundColor: '#10B981', color: 'white' }}>{activeFilters}</span>}
         </button>
       </div>

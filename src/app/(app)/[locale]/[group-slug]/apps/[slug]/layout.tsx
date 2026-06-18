@@ -69,7 +69,7 @@ export default async function AppSlugLayout({ children, params }: Props) {
   return (
     <AppTheme primaryColor={manifest.primaryColor} secondaryColor={manifest.secondaryColor}>
       <AppProvider slug={slug} manifest={manifest} config={resolvedConfig} groupId={groupCtx.id} groupSlug={groupSlug}>
-        <div className="bg-card border border-border" style={{ maxWidth: 1024, margin: '0 auto' }}>
+        <div className="bg-card border border-border overflow-x-hidden" style={{ maxWidth: 1024, margin: '0 auto' }}>
           <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
             <Image unoptimized src={`/api/apps/${slug}/logo`} alt={manifest.name} width={18} height={18} className="w-[18px] h-[18px] rounded" />
             <span className="text-xs font-semibold text-foreground">{manifest.name}</span>
