@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Filter } from 'lucide-react'
 import { DsCheckbox } from '@/components/ds/checkbox'
@@ -346,6 +346,9 @@ export default function TodoView() {
     }
     return 'upcoming'
   })
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     localStorage.setItem('todo-sort', sort)
@@ -368,19 +371,34 @@ export default function TodoView() {
     setError(false)
     Promise.all([
       fetch(`/api/v1/${groupSlug}/apps/todo/categories`, { credentials: 'include' }).then(r => r.ok ? r.json() : []),
-      fetch(`/api/v1/${groupSlug}/apps/todo/items?sort=${sort}&page=1&limit=50`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: [] }),
+      fetch(`/api/v1/${groupSlug}/apps/todo/items?sort=${sort}&page=${page}&limit=50`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: [] }),
     ]).then(([catsResult, itemsResult]) => {
       if (cancelled) return
       const cats = Array.isArray(catsResult) ? catsResult : (catsResult?.data ?? [])
       const its = Array.isArray(itemsResult) ? itemsResult : (itemsResult?.data ?? [])
-      setCategories(cats)
-      setItems(its)
+      if (page === 1) setCategories(cats)
+      setItems(prev => page === 1 ? its : [...prev, ...its])
+      const tp = (itemsResult as any)?.pagination?.total_pages ?? 1
+      setHasMore(page < tp)
       setLoading(false)
     }).catch(() => {
       if (!cancelled) { setError(true); setLoading(false) }
     })
     return () => { cancelled = true }
-  }, [groupSlug, refresh, sort])
+  }, [groupSlug, refresh, sort, page])
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !loading) setPage(p => p + 1)
+  }, [hasMore, loading])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) loadMore() }, { rootMargin: '200px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [loadMore])
+
   const catMap = new Map(categories.map(c => [c.id, c]))
 
   const [memberMap, setMemberMap] = useState<Map<string, string>>(new Map())
@@ -505,7 +523,7 @@ export default function TodoView() {
               <span className="ml-1 size-1.5 rounded-full bg-indigo-500" />
             )}
           </button>
-          <select value={sort} onChange={e => setSort(e.target.value)}
+          <select value={sort} onChange={e => { setSort(e.target.value); setPage(1) }}
             className="px-3 py-2 text-xs font-medium border border-border rounded-lg bg-card text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
             <option value="updated">{t('sort_updated')}</option>
             <option value="priority">{t('sort_priority')}</option>
@@ -649,6 +667,7 @@ export default function TodoView() {
               onAssign={handleAssignToMe}
             />
           ))}
+          {hasMore && <div ref={sentinelRef} className="h-4" />}
         </div>
       )}
 
