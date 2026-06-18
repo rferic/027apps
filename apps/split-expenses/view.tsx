@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ChevronDown, Filter } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ChevronDown, Filter, Send } from 'lucide-react'
 import { DsButton } from '@/components/ds/button'
 import { DsModal } from '@/components/ds/modal'
 import { DsCard } from '@/components/ds/card'
@@ -550,7 +550,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
                       return (
                         <DsCard key={e.id} padding="sm" hover onClick={() => setDetailExpense(e)}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', width: 24, textAlign: 'center', flexShrink: 0 }}>{day}</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-secondary)', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0 }}>{day}</span>
                             <div className="flex-1 min-w-0">
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <p style={{ fontSize: 13, fontWeight: 500, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', textDecoration: e.settled ? 'line-through' : 'none', margin: 0 }}>
@@ -831,7 +831,7 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
 
           {!expense.settled && (
             <DsButton color="#10B981" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowSettleConfirm(true)}>
-              {t('balance.settleAll')}
+              <Send size={16} /> {t('balance.settleAll')}
             </DsButton>
           )}
 
