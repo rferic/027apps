@@ -56,8 +56,11 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     })),
   }))
 
+  console.log('[balances] optimizerExpenses:', JSON.stringify(optimizerExpenses))
   const balances = calculateBalances(optimizerExpenses)
+  console.log('[balances] raw balances:', JSON.stringify(balances))
   const rawTransfers = optimizeTransfers(balances)
+  console.log('[balances] transfers:', JSON.stringify(rawTransfers))
 
   const userIds = [...new Set([...balances.map(b => b.user_id), ...rawTransfers.map(t => t.from_user), ...rawTransfers.map(t => t.to_user)])]
   const { data: profiles } = await db.from('profiles')
