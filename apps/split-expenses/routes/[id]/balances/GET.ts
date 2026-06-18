@@ -69,10 +69,12 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const profileMap = new Map((profiles ?? []).map(p => [p.id, p.display_name]))
 
-  return apiOk({
+  const result = {
     balances: balances.map(b => ({ ...b, display_name: profileMap.get(b.user_id) ?? null })),
     transfers: rawTransfers.map(t => ({
       ...t, from_name: profileMap.get(t.from_user) ?? null, to_name: profileMap.get(t.to_user) ?? null,
     })),
-  })
+  }
+  console.log('[balances] FINAL response:', JSON.stringify(result))
+  return apiOk(result)
 }
