@@ -31,7 +31,8 @@
         "members": "Miembros",
         "stats": "Estadísticas",
         "import": "Importar",
-        "tags": "Etiquetas"
+        "tags": "Etiquetas",
+        "settings": "Ajustes"
       },
       "noGroup": "Grupo de gastos no encontrado",
       "memberCount": "{count, plural, one {# miembro} other {# miembros}}"

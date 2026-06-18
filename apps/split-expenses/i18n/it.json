@@ -31,7 +31,8 @@
         "members": "Members",
         "stats": "Statistics",
         "import": "Import",
-        "tags": "Tags"
+        "tags": "Tags",
+        "settings": "Impostazioni"
       },
       "noGroup": "Expense group not found",
       "memberCount": "{count, plural, one {# membro} other {# membri}}"
