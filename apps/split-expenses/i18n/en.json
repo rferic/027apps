@@ -55,7 +55,8 @@
       "allTags": "All tags",
       "allUsers": "All users",
       "my": "My expenses",
-      "all": "All"
+      "all": "All",
+      "clearFilters": "Clear filters"
     },
     "create": {
       "title": "New expense",

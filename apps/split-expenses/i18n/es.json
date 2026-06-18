@@ -47,7 +47,8 @@
       "allTags": "Todas las etiquetas",
       "allUsers": "Todos los usuarios",
       "my": "Mis gastos",
-      "all": "Todos"
+      "all": "Todos",
+      "clearFilters": "Limpiar filtros"
     },
     "create": {
       "title": "Nuevo gasto",
