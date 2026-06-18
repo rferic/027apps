@@ -315,7 +315,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       try {
         const [groupRes, expRes, tagRes, balRes, memRes, sessionRes, statsRes] = await Promise.all([
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}`),
-          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=5&page=${page}`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/members`),
@@ -324,7 +324,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         ])
         if (groupRes.ok) setGroup(await groupRes.json())
         else setFetchError(true)
-        if (expRes.ok) { const r = await expRes.json(); setExpenses(r.data ?? []) }
+        if (expRes.ok) { const r = await expRes.json(); setExpenses(r.data ?? []); setTotalPages(r.pagination?.total_pages ?? 1) }
         if (tagRes.ok) { const d = await tagRes.json(); setTags(Array.isArray(d) ? d : d?.data ?? []) }
         if (balRes.ok) { const d = await balRes.json(); setBalances(d.balances ?? []); setTransfers(d.transfers ?? []) }
         if (statsRes.ok) setStatsData(await statsRes.json())
@@ -422,6 +422,8 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   const [draftTags, setDraftTags] = useState<string[]>([])
   const [draftPaidBy, setDraftPaidBy] = useState('')
   const [tagInput, setTagInput] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [viewMode, setViewMode] = useState<'all' | 'my'>(() => {
     if (typeof window !== 'undefined') return (localStorage.getItem('split-expenses-view') as 'all' | 'my') || 'my'
     return 'my'
@@ -487,130 +489,11 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
         </div>
       )}
 
-      {showFilters && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowFilters(false)}>
-          <div className="fixed inset-0 bg-black/40" />
-          <div className="relative bg-card rounded-t-2xl sm:rounded-xl p-6 w-full max-w-md mx-auto shadow-xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-semibold text-foreground">{t('expense.list.filters')}</h3>
-              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground cursor-pointer"><X size={20} /></button>
-            </div>
-
-            <div className="mb-5">
-              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('expense.list.allTags')}</label>
-              <div className="relative mb-2">
-                <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    if (!tagInput.trim()) return
-                    const match = tags.find(t => t.name.toLowerCase() === tagInput.trim().toLowerCase())
-                    if (match && !draftTags.includes(match.id)) toggleDraftTag(match.id)
-                    setTagInput('')
-                  }
-                }} placeholder={t('expense.list.allTags')}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
-                />
-                {tagInput.trim() && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-32 overflow-auto">
-                    {tags.filter(t => t.name.toLowerCase().includes(tagInput.toLowerCase()) && !draftTags.includes(t.id)).map(tag => (
-                      <div key={tag.id} onMouseDown={() => { toggleDraftTag(tag.id); setTagInput('') }}
-                        className="px-3 py-1.5 text-sm text-foreground hover:bg-accent cursor-pointer"
-                      >{tag.name}</div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {draftTags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {draftTags.map(tagId => {
-                    const tag = tags.find(t => t.id === tagId)
-                    if (!tag) return null
-                    return (
-                      <span key={tag.id} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full" style={{ backgroundColor: tag.color + '20', color: tag.color }}>
-                        {tag.name}
-                        <X size={10} className="cursor-pointer" style={{ color: tag.color }} onClick={() => toggleDraftTag(tag.id)} />
-                      </span>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="mb-5">
-              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('expense.list.allUsers')}</label>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => setDraftPaidBy('')} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftPaidBy === '' ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftPaidBy === '' ? { backgroundColor: '#10B981', color: 'white' } : {}}>
-                  {t('expense.list.allUsers')}
-                </button>
-                {allMembers.map(m => (
-                  <button key={m.user_id} onClick={() => setDraftPaidBy(m.user_id)} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftPaidBy === m.user_id ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftPaidBy === m.user_id ? { backgroundColor: '#10B981', color: 'white' } : {}}>
-                    {m.display_name ?? t('common.unknown')}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button onClick={applyFilters} className="w-full py-3 text-sm font-semibold text-white rounded-xl cursor-pointer shadow-sm transition-colors" style={{ backgroundColor: '#10B981' }}>
-              {t('expense.list.filters')}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="py-8"><DsSkeleton height={60} count={4} /></div>
-      ) : filteredExpenses.length === 0 ? (
-        <DsEmptyState title={t('expense.list.empty')} />
-      ) : (
-        <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-          {filteredExpenses.map(e => {
-            const tag = tags.find(t => t.id === e.tag_id)
-            const myShare = currentUserId ? e.shares?.find(s => s.user_id === currentUserId) : null
-            const iPaid = currentUserId && e.paid_by === currentUserId
-            const involvementAmount = iPaid && myShare ? Number(e.amount) - myShare.amount : myShare?.amount ?? null
-            const involvementColor = involvementAmount !== null ? (iPaid ? '#10B981' : '#F97316') : 'var(--color-text)'
-            return (
-              <DsCard key={e.id} padding="sm" hover onClick={() => setDetailExpense(e)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div className="flex-1 min-w-0">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <p style={{ fontSize: 13, fontWeight: 500, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', textDecoration: e.settled ? 'line-through' : 'none', margin: 0 }}>
-                        {e.title}
-                      </p>
-                      {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: 10 }}>{tag.name}</DsBadge>}
-                    </div>
-                    <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
-                      {e.paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} {formatAmount(e.amount, currency)}
-                    </p>
-                  </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    {involvementAmount !== null ? (
-                      <>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: involvementColor, margin: 0 }}>
-                          {iPaid ? `+${formatAmount(involvementAmount, currency)}` : `-${formatAmount(involvementAmount, currency)}`}
-                        </p>
-                        <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
-                          {new Date(e.created_at).toLocaleDateString(locale)}
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', margin: 0, opacity: e.settled ? 0.5 : 1 }}>
-                          {formatAmount(e.amount, currency)}
-                        </p>
-                        <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
-                          {new Date(e.created_at).toLocaleDateString(locale)}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                  {!e.settled && (
-                    <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
-                  )}
-                </div>
-              </DsCard>
-            )
-          })}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <DsButton variant="ghost" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>←</DsButton>
+          <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
+          <DsButton variant="ghost" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>→</DsButton>
         </div>
       )}
 
