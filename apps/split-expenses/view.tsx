@@ -726,7 +726,7 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
           <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.amount')}</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{currencySymbol(currency)}</span>
-            <input value={amount} onChange={e => setAmount(e.target.value)} type="text" inputMode="decimal" required placeholder="0.00"
+            <input value={amount} onChange={e => setAmount(e.target.value.replace(/[^0-9.,]/g, ''))} type="text" inputMode="decimal" required placeholder="0.00"
               className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
             />
           </div>
