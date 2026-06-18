@@ -53,7 +53,9 @@
       "noResults": "No expenses match your filters",
       "filters": "Filters",
       "allTags": "All tags",
-      "allUsers": "All users"
+      "allUsers": "All users",
+      "my": "My expenses",
+      "all": "All"
     },
     "create": {
       "title": "New expense",
@@ -82,7 +84,10 @@
     "item": {
       "paidBy": "paid",
       "you": "You",
-      "settled": "Settled"
+      "settled": "Settled",
+      "lent": "Lent",
+      "owe": "Owe",
+      "total": "total"
     }
   },
   "balance": {

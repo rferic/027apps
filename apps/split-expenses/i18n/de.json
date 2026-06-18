@@ -45,7 +45,9 @@
       "noResults": "No expenses match your filters",
       "filters": "Filters",
       "allTags": "All tags",
-      "allUsers": "All users"
+      "allUsers": "All users",
+      "my": "My expenses",
+      "all": "All"
     },
     "create": {
       "title": "New expense",

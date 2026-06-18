@@ -45,7 +45,9 @@
       "noResults": "No hay gastos que coincidan con tus filtros",
       "filters": "Filtros",
       "allTags": "Todas las etiquetas",
-      "allUsers": "Todos los usuarios"
+      "allUsers": "Todos los usuarios",
+      "my": "Mis gastos",
+      "all": "Todos"
     },
     "create": {
       "title": "Nuevo gasto",
@@ -69,7 +71,10 @@
     "item": {
       "paidBy": "pagado",
       "you": "Tú",
-      "settled": "Liquidado"
+      "settled": "Liquidado",
+      "lent": "Presté",
+      "owe": "Debo",
+      "total": "total"
     },
     "delete": {
       "title": "Eliminar gasto",

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
+import { Filter } from 'lucide-react'
 import { DsCheckbox } from '@/components/ds/checkbox'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
@@ -498,7 +499,7 @@ export default function TodoView() {
       <div className="mb-4">
         <div className="flex items-center justify-between">
           <button onClick={() => setShowFilters(true)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-muted-foreground hover:bg-accent cursor-pointer transition-colors">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg>
+            <Filter size={16} />
             {t('filter_label')}
             {Object.values(filters).some(v => v) && (
               <span className="ml-1 size-1.5 rounded-full bg-indigo-500" />

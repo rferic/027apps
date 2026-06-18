@@ -417,34 +417,52 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null)
   const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [filterTag, setFilterTag] = useState('')
+  const [filterTags, setFilterTags] = useState<string[]>([])
   const [filterPaidBy, setFilterPaidBy] = useState('')
-  const [draftTag, setDraftTag] = useState('')
+  const [draftTags, setDraftTags] = useState<string[]>([])
   const [draftPaidBy, setDraftPaidBy] = useState('')
+  const [tagInput, setTagInput] = useState('')
+  const [viewMode, setViewMode] = useState<'all' | 'my'>(() => {
+    if (typeof window !== 'undefined') return (localStorage.getItem('split-expenses-view') as 'all' | 'my') || 'all'
+    return 'all'
+  })
+
+  function handleViewChange(v: 'all' | 'my') {
+    setViewMode(v); localStorage.setItem('split-expenses-view', v)
+  }
 
   const filteredExpenses = expenses.filter(e => {
-    if (filterTag && e.tag_id !== filterTag) return false
+    if (viewMode === 'my') {
+      const isParticipant = currentUserId && (e.paid_by === currentUserId || e.shares?.some(s => s.user_id === currentUserId))
+      if (!isParticipant) return false
+    }
+    if (filterTags.length > 0 && !filterTags.includes(e.tag_id ?? '')) return false
     if (filterPaidBy && e.paid_by !== filterPaidBy) return false
     return true
   })
 
-  const activeFilters = (filterTag ? 1 : 0) + (filterPaidBy ? 1 : 0)
+  const activeFilters = filterTags.length + (filterPaidBy ? 1 : 0)
 
   function openFilters() {
-    setDraftTag(filterTag); setDraftPaidBy(filterPaidBy); setShowFilters(true)
+    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setShowFilters(true)
   }
 
   function applyFilters() {
-    setFilterTag(draftTag); setFilterPaidBy(draftPaidBy); setShowFilters(false)
+    setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setShowFilters(false)
+  }
+
+  function toggleDraftTag(tagId: string) {
+    setDraftTags(prev => prev.includes(tagId) ? prev.filter(t => t !== tagId) : [...prev, tagId])
   }
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex items-center justify-between gap-2 mb-4">
         <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
           <Filter size={14} /> {t('expense.list.filters')}
-          {activeFilters > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 text-[10px] font-bold rounded-full" style={{ backgroundColor: '#10B981', color: 'white' }}>{activeFilters}</span>}
+          {activeFilters > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[10px] font-bold rounded-full" style={{ backgroundColor: '#10B981', color: 'white' }}>{activeFilters}</span>}
         </button>
+        <DsToggle checked={viewMode === 'my'} onChange={v => handleViewChange(v ? 'my' : 'all')} label={t(viewMode === 'my' ? 'expense.list.my' : 'expense.list.all')} />
       </div>
 
       {showFilters && (
@@ -458,16 +476,42 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
 
             <div className="mb-5">
               <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('expense.list.allTags')}</label>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => setDraftTag('')} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftTag === '' ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftTag === '' ? { backgroundColor: '#10B981', color: 'white' } : {}}>
-                  {t('expense.list.allTags')}
-                </button>
-                {tags.map(tag => (
-                  <button key={tag.id} onClick={() => setDraftTag(tag.id)} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftTag === tag.id ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftTag === tag.id ? { backgroundColor: '#10B981', color: 'white' } : {}}>
-                    {tag.name}
-                  </button>
-                ))}
+              <div className="relative mb-2">
+                <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    if (!tagInput.trim()) return
+                    const match = tags.find(t => t.name.toLowerCase() === tagInput.trim().toLowerCase())
+                    if (match && !draftTags.includes(match.id)) toggleDraftTag(match.id)
+                    setTagInput('')
+                  }
+                }} placeholder={t('expense.list.allTags')}
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+                />
+                {tagInput.trim() && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-32 overflow-auto">
+                    {tags.filter(t => t.name.toLowerCase().includes(tagInput.toLowerCase()) && !draftTags.includes(t.id)).map(tag => (
+                      <div key={tag.id} onMouseDown={() => { toggleDraftTag(tag.id); setTagInput('') }}
+                        className="px-3 py-1.5 text-sm text-foreground hover:bg-accent cursor-pointer"
+                      >{tag.name}</div>
+                    ))}
+                  </div>
+                )}
               </div>
+              {draftTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {draftTags.map(tagId => {
+                    const tag = tags.find(t => t.id === tagId)
+                    if (!tag) return null
+                    return (
+                      <span key={tag.id} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full" style={{ backgroundColor: tag.color + '20', color: tag.color }}>
+                        {tag.name}
+                        <X size={10} className="cursor-pointer" style={{ color: tag.color }} onClick={() => toggleDraftTag(tag.id)} />
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="mb-5">
@@ -499,6 +543,13 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
         <div className="space-y-2">
           {filteredExpenses.map(e => {
             const tag = tags.find(t => t.id === e.tag_id)
+            const myShare = currentUserId ? e.shares?.find(s => s.user_id === currentUserId) : null
+            const iPaid = currentUserId && e.paid_by === currentUserId
+            const involvementStr = iPaid && myShare
+              ? `${t('expense.item.lent')} ${formatAmount(Number(e.amount) - myShare.amount, currency)}`
+              : myShare
+                ? `${t('expense.item.owe')} ${formatAmount(myShare.amount, currency)}`
+                : null
             return (
               <DsCard key={e.id} padding="sm" hover onClick={() => setDetailExpense(e)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -515,8 +566,11 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', margin: 0, opacity: e.settled ? 0.5 : 1 }}>
-                      {formatAmount(e.amount, currency)}
+                      {involvementStr ?? formatAmount(e.amount, currency)}
                     </p>
+                    {involvementStr && (
+                      <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>{t('expense.item.total')} {formatAmount(e.amount, currency)}</p>
+                    )}
                   </div>
                   {!e.settled && (
                     <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
@@ -767,11 +821,14 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
             </div>
           )}
 
+          {!expense.settled && (
+            <DsButton color="#10B981" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowSettleConfirm(true)}>
+              {t('balance.settleAll')}
+            </DsButton>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 8, borderTop: '1px solid var(--color-border)' }}>
             <DsButton variant="ghost" onClick={onEdit}><Pencil size={16} /></DsButton>
-            {!expense.settled && (
-              <DsButton variant="ghost" color="#10B981" onClick={() => setShowSettleConfirm(true)}><Check size={16} /></DsButton>
-            )}
             {!expense.settled && (
               <DsButton variant="ghost" style={{ color: '#EF4444' }} onClick={() => setShowDeleteConfirm(true)}><Trash2 size={16} /></DsButton>
             )}
