@@ -436,8 +436,8 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   })
 
   const filteredExpenses = expenses.filter(e => {
-    if (viewMode === 'my') {
-      const isParticipant = currentUserId && (e.paid_by === currentUserId || e.shares?.some(s => s.user_id === currentUserId))
+    if (viewMode === 'my' && currentUserId) {
+      const isParticipant = e.paid_by === currentUserId || e.shares?.some(s => s.user_id === currentUserId)
       if (!isParticipant) return false
     }
     if (filterTags.length > 0 && !filterTags.includes(e.tag_id ?? '')) return false
@@ -463,10 +463,10 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
     <div>
       <div className="flex items-center sm:justify-between justify-center mb-4">
         <div className="flex gap-1 bg-muted rounded-lg p-1">
-          <button onClick={() => { setViewMode('my'); localStorage.setItem('split-expenses-view', 'my') }}
+          <button onClick={() => { setViewMode('my'); localStorage.setItem('split-expenses-view', 'my'); onPageChange(1) }}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'my' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >{t('expense.list.my')}</button>
-          <button onClick={() => { setViewMode('all'); localStorage.setItem('split-expenses-view', 'all') }}
+          <button onClick={() => { setViewMode('all'); localStorage.setItem('split-expenses-view', 'all'); onPageChange(1) }}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'all' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >{t('expense.list.all')}</button>
         </div>
