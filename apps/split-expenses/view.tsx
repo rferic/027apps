@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
@@ -136,8 +136,7 @@ export default function SplitExpensesView() {
     } catch {} finally { setLoading(false) }
   }
 
-  const groupsMounted = useRef(false)
-  useEffect(() => { if (!groupsMounted.current) { groupsMounted.current = true; return }; fetchGroups() }, [ctx.groupSlug])
+  useEffect(() => { fetchGroups() }, [ctx.groupSlug])
 
   if (selectedGroup) {
     return <GroupDetailView groupId={selectedGroup} onBack={() => { setSelectedGroup(null); fetchGroups() }} />
@@ -307,10 +306,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const [statsTagId, setStatsTagId] = useState('')
   const [statsLoading, setStatsLoading] = useState(true)
 
-  const mountedRef = useRef(false)
-
   useEffect(() => {
-    if (!mountedRef.current) { mountedRef.current = true; return }
     if (!ctx.groupSlug) return
     setLoading(true)
     setFetchError(false)
