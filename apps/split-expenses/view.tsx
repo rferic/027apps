@@ -530,7 +530,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
             </span>
           )})()}
           {activeFilters > 0 && (
-            <button onClick={() => { setFilterTags([]); setFilterPaidBy('') }} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">
+            <button onClick={() => { setFilterTags([]); setFilterPaidBy(''); if (showSettled) onToggleSettled(); onPageChange(1) }} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">
               {t('expense.list.clearFilters')}
             </button>
           )}
