@@ -56,11 +56,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     })),
   }))
 
-  console.log('[balances] optimizerExpenses:', JSON.stringify(optimizerExpenses))
   const balances = calculateBalances(optimizerExpenses)
-  console.log('[balances] raw balances:', JSON.stringify(balances))
-  const rawTransfers = optimizeTransfers(balances)
-  console.log('[balances] transfers:', JSON.stringify(rawTransfers))
+  const rawTransfers = optimizeTransfers(balances.map(b => ({ ...b })))
 
   const userIds = [...new Set([...balances.map(b => b.user_id), ...rawTransfers.map(t => t.from_user), ...rawTransfers.map(t => t.to_user)])]
   const { data: profiles } = await db.from('profiles')
@@ -75,6 +72,5 @@ export default async function handler(req: Request, ctx: HandlerContext) {
       ...t, from_name: profileMap.get(t.from_user) ?? null, to_name: profileMap.get(t.to_user) ?? null,
     })),
   }
-  console.log('[balances] FINAL response:', JSON.stringify(result))
   return apiOk(result)
 }
