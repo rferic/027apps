@@ -425,8 +425,8 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-        <div className="flex gap-2">
+      <div className="flex items-start sm:items-center justify-between mb-4 gap-3 flex-col sm:flex-row">
+        <div className="flex gap-2 flex-wrap">
           <select value={filterTag} onChange={e => setFilterTag(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
             <option value="">{t('expense.list.allTags')}</option>
             {tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
@@ -838,7 +838,7 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6"
         <div>
           <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>{t('balance.title')}</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
