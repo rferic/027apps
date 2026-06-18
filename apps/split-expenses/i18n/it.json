@@ -2,7 +2,7 @@
   "description": "Dividi le spese di gruppo con ottimizzazione dei debiti.",
   "group": {
     "list": {
-      "title": "Expense Groups",
+      "title": "Gruppi di spesa",
       "empty": "No expense groups yet",
       "createFirst": "Create your first expense group",
       "youOwe": "You owe",
@@ -41,17 +41,18 @@
   "expense": {
     "list": {
       "title": "Expenses",
-      "empty": "No expenses yet",
+      "empty": "Ancora nessuna spesa",
       "addFirst": "Add your first expense",
       "noResults": "No expenses match your filters",
-      "filters": "Filters",
+      "filters": "Filtri",
       "allTags": "All tags",
       "allUsers": "All users",
-      "my": "My expenses",
-      "all": "All"
+      "my": "Le mie spese",
+      "all": "Tutti",
+      "clearFilters": "Cancella filtri"
     },
     "create": {
-      "title": "New expense",
+      "title": "Nuova spesa",
       "editTitle": "Edit expense",
       "concept": "Concept",
       "amount": "Amount",
@@ -72,7 +73,10 @@
     "item": {
       "paidBy": "paid",
       "you": "You",
-      "settled": "Settled"
+      "settled": "Settled",
+      "lent": "Prestato",
+      "owe": "Dovuto",
+      "total": "totale"
     },
     "delete": {
       "title": "Elimina spesa",
@@ -81,26 +85,26 @@
     }
   },
   "balance": {
-    "title": "Balances",
+    "title": "Bilanci",
     "noExpenses": "Add expenses to see balances",
     "summary": "Summary",
-    "transfers": "Proposed transfers",
-    "noTransfers": "All settled up!",
-    "settle": "Settle selected",
-    "settleAll": "Settle all",
+    "transfers": "Trasferimenti proposti",
+    "noTransfers": "Tutto saldato",
+    "settle": "Salda",
+    "settleAll": "Salda tutto",
     "selectExpenses": "Select expenses to settle",
-    "confirmTitle": "Confirm settlement",
-    "confirmMessage": "This will mark {count} expense(s) as settled and create the following transfers:",
+    "confirmTitle": "Conferma saldo",
+    "confirmMessage": "{count} trasferimento sarà creato. Vuoi procedere?",
     "confirm": "Confirm settlement",
     "cancelled": "Settlement cancelled",
     "success": "Expenses settled successfully",
     "youOwe": "You owe",
     "youAreOwed": "You are owed",
     "perPerson": "Per person",
-    "pays": "pays",
-    "owe": "owes",
-    "isOwed": "is owed",
-    "history": "Settlement history",
+    "pays": "paga",
+    "owe": "Devi",
+    "isOwed": "Ti devono",
+    "history": "Cronologia saldi",
     "settledOn": "Settled on",
     "by": "by",
     "noSettlements": "Nessuna liquidazione",
@@ -109,7 +113,7 @@
   },
   "member": {
     "list": {
-      "title": "Members",
+      "title": "Membri",
       "add": "Add member",
       "remove": "Remove",
       "active": "Active",
@@ -130,8 +134,8 @@
   },
   "tag": {
     "list": {
-      "title": "Tags",
-      "empty": "No tags yet",
+      "title": "Gestisci etichette",
+      "empty": "Nessuna etichetta",
       "createFirst": "Create your first tag"
     },
     "create": {

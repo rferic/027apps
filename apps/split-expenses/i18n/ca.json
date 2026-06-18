@@ -2,7 +2,7 @@
   "description": "Divideix despeses en grup amb optimització de deutes.",
   "group": {
     "list": {
-      "title": "Expense Groups",
+      "title": "Grups de despesa",
       "empty": "No expense groups yet",
       "createFirst": "Create your first expense group",
       "youOwe": "You owe",
@@ -41,17 +41,18 @@
   "expense": {
     "list": {
       "title": "Expenses",
-      "empty": "No expenses yet",
+      "empty": "Encara no hi ha despeses",
       "addFirst": "Add your first expense",
       "noResults": "No expenses match your filters",
-      "filters": "Filters",
+      "filters": "Filtres",
       "allTags": "All tags",
       "allUsers": "All users",
-      "my": "My expenses",
-      "all": "All"
+      "my": "Les meves despeses",
+      "all": "Totes",
+      "clearFilters": "Neteja filtres"
     },
     "create": {
-      "title": "New expense",
+      "title": "Nova despesa",
       "editTitle": "Edit expense",
       "concept": "Concept",
       "amount": "Amount",
@@ -72,7 +73,10 @@
     "item": {
       "paidBy": "paid",
       "you": "You",
-      "settled": "Settled"
+      "settled": "Settled",
+      "lent": "Prestat",
+      "owe": "Degut",
+      "total": "total"
     },
     "delete": {
       "title": "Eliminar despesa",
@@ -81,26 +85,26 @@
     }
   },
   "balance": {
-    "title": "Balances",
+    "title": "Balanços",
     "noExpenses": "Add expenses to see balances",
     "summary": "Summary",
-    "transfers": "Proposed transfers",
-    "noTransfers": "All settled up!",
-    "settle": "Settle selected",
-    "settleAll": "Settle all",
+    "transfers": "Transferències proposades",
+    "noTransfers": "Tot liquidat",
+    "settle": "Liquida",
+    "settleAll": "Liquida tot",
     "selectExpenses": "Select expenses to settle",
-    "confirmTitle": "Confirm settlement",
-    "confirmMessage": "This will mark {count} expense(s) as settled and create the following transfers:",
+    "confirmTitle": "Confirma liquidació",
+    "confirmMessage": "Es crearà {count} transferència. Vols continuar?",
     "confirm": "Confirm settlement",
     "cancelled": "Settlement cancelled",
     "success": "Expenses settled successfully",
     "youOwe": "You owe",
     "youAreOwed": "You are owed",
     "perPerson": "Per person",
-    "pays": "pays",
-    "owe": "owes",
-    "isOwed": "is owed",
-    "history": "Settlement history",
+    "pays": "paga",
+    "owe": "Deus",
+    "isOwed": "Et deuen",
+    "history": "Historial de liquidacions",
     "settledOn": "Settled on",
     "by": "by",
     "noSettlements": "No hi ha liquidacions",
@@ -109,7 +113,7 @@
   },
   "member": {
     "list": {
-      "title": "Members",
+      "title": "Membres",
       "add": "Add member",
       "remove": "Remove",
       "active": "Active",
@@ -130,8 +134,8 @@
   },
   "tag": {
     "list": {
-      "title": "Tags",
-      "empty": "No tags yet",
+      "title": "Gestiona etiquetes",
+      "empty": "No hi ha etiquetes",
       "createFirst": "Create your first tag"
     },
     "create": {

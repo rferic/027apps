@@ -2,7 +2,7 @@
   "description": "Teilen Sie Ausgaben in der Gruppe mit Schuldenoptimierung.",
   "group": {
     "list": {
-      "title": "Expense Groups",
+      "title": "Ausgabengruppen",
       "empty": "No expense groups yet",
       "createFirst": "Create your first expense group",
       "youOwe": "You owe",
@@ -41,17 +41,18 @@
   "expense": {
     "list": {
       "title": "Expenses",
-      "empty": "No expenses yet",
+      "empty": "Noch keine Ausgaben",
       "addFirst": "Add your first expense",
       "noResults": "No expenses match your filters",
-      "filters": "Filters",
+      "filters": "Filter",
       "allTags": "All tags",
       "allUsers": "All users",
-      "my": "My expenses",
-      "all": "All"
+      "my": "Meine Ausgaben",
+      "all": "Alle",
+      "clearFilters": "Filter löschen"
     },
     "create": {
-      "title": "New expense",
+      "title": "Neue Ausgabe",
       "editTitle": "Edit expense",
       "concept": "Concept",
       "amount": "Amount",
@@ -72,7 +73,10 @@
     "item": {
       "paidBy": "paid",
       "you": "You",
-      "settled": "Settled"
+      "settled": "Settled",
+      "lent": "Geliehen",
+      "owe": "Geschuldet",
+      "total": "gesamt"
     },
     "delete": {
       "title": "Ausgabe löschen",
@@ -81,26 +85,26 @@
     }
   },
   "balance": {
-    "title": "Balances",
+    "title": "Salden",
     "noExpenses": "Add expenses to see balances",
     "summary": "Summary",
-    "transfers": "Proposed transfers",
-    "noTransfers": "All settled up!",
-    "settle": "Settle selected",
-    "settleAll": "Settle all",
+    "transfers": "Vorgeschlagene Überweisungen",
+    "noTransfers": "Alles beglichen",
+    "settle": "Begleichen",
+    "settleAll": "Alles begleichen",
     "selectExpenses": "Select expenses to settle",
-    "confirmTitle": "Confirm settlement",
-    "confirmMessage": "This will mark {count} expense(s) as settled and create the following transfers:",
+    "confirmTitle": "Auszahlung bestätigen",
+    "confirmMessage": "{count} Überweisung wird erstellt. Fortfahren?",
     "confirm": "Confirm settlement",
     "cancelled": "Settlement cancelled",
     "success": "Expenses settled successfully",
     "youOwe": "You owe",
     "youAreOwed": "You are owed",
     "perPerson": "Per person",
-    "pays": "pays",
-    "owe": "owes",
-    "isOwed": "is owed",
-    "history": "Settlement history",
+    "pays": "bezahlt",
+    "owe": "Du schuldest",
+    "isOwed": "Dir wird geschuldet",
+    "history": "Auszahlungsverlauf",
     "settledOn": "Settled on",
     "by": "by",
     "noSettlements": "Keine Abrechnungen",
@@ -109,7 +113,7 @@
   },
   "member": {
     "list": {
-      "title": "Members",
+      "title": "Mitglieder",
       "add": "Add member",
       "remove": "Remove",
       "active": "Active",
@@ -130,8 +134,8 @@
   },
   "tag": {
     "list": {
-      "title": "Tags",
-      "empty": "No tags yet",
+      "title": "Etiketten verwalten",
+      "empty": "Keine Etiketten",
       "createFirst": "Create your first tag"
     },
     "create": {
