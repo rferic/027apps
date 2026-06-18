@@ -302,6 +302,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const [dataLoading, setDataLoading] = useState(true)
 
   // Stats filter state (managed here so the parent refetches)
+  const [showCreateExpense, setShowCreateExpense] = useState(false)
   const [statsPeriod, setStatsPeriod] = useState('month')
   const [statsTagId, setStatsTagId] = useState('')
   const [statsLoading, setStatsLoading] = useState(true)
@@ -380,6 +381,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
           <h1 className="text-lg font-bold text-foreground">{group.title}</h1>
           <p className="text-xs text-muted-foreground">{currencySymbol(group.currency)} · {t('group.detail.memberCount', { count: group.members?.length ?? 0 })}</p>
         </div>
+        {tab === 'expenses' && <DsButton color="#10B981" onClick={() => setShowCreateExpense(true)}><Plus size={14} /> {t('expense.create.title')}</DsButton>}
         <DsButton variant="ghost" onClick={() => setShowEditGroup(true)}><Pencil size={16} /></DsButton>
       </div>
 
@@ -391,7 +393,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         ))}
       </div>
 
-      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} />}
+      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} />}
       {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} />}
       {tab === 'members' && <MembersTab groupId={groupId} members={group.members ?? []} availableMembers={availableMembers} onUpdate={handleMembersUpdate} />}
       {tab === 'stats' && <StatsTab statsData={statsData} tags={tags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
@@ -404,13 +406,13 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
 // ─── Expenses Tab ───────────────────────────────────────────────────────
 
-function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh }: {
+function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, showCreate, onShowCreate }: {
   groupId: string; expenses: Expense[]; tags: Tag[]; currentUserId: string;
   members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void;
+  showCreate: boolean; onShowCreate: (v: boolean) => void;
 }) {
   const locale = useLocale()
   const t = useTranslations('apps.split-expenses')
-  const [showCreate, setShowCreate] = useState(false)
   const [editExpense, setEditExpense] = useState<Expense | null>(null)
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null)
   const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null)
@@ -425,18 +427,15 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
 
   return (
     <div>
-      <div className="flex items-start sm:items-center justify-between mb-4 gap-3 flex-col sm:flex-row">
-        <div className="flex gap-2 flex-wrap">
-          <select value={filterTag} onChange={e => setFilterTag(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
-            <option value="">{t('expense.list.allTags')}</option>
-            {tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
-          </select>
-          <select value={filterPaidBy} onChange={e => setFilterPaidBy(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
-            <option value="">{t('expense.list.allUsers')}</option>
-            {allMembers.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
-          </select>
-        </div>
-        <DsButton color="#10B981" onClick={() => setShowCreate(true)}><Plus size={14} /> {t('expense.create.title')}</DsButton>
+      <div className="flex flex-wrap gap-2 mb-4">
+        <select value={filterTag} onChange={e => setFilterTag(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
+          <option value="">{t('expense.list.allTags')}</option>
+          {tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
+        </select>
+        <select value={filterPaidBy} onChange={e => setFilterPaidBy(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
+          <option value="">{t('expense.list.allUsers')}</option>
+          {allMembers.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
+        </select>
       </div>
 
       {loading ? (
@@ -476,8 +475,8 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
         </div>
       )}
 
-      <ExpenseModal open={showCreate || !!editExpense} onClose={() => { setShowCreate(false); setEditExpense(null) }}
-        onSaved={() => { setShowCreate(false); setEditExpense(null); onRefresh() }}
+      <ExpenseModal open={showCreate || !!editExpense} onClose={() => { onShowCreate(false); setEditExpense(null) }}
+        onSaved={() => { onShowCreate(false); setEditExpense(null); onRefresh() }}
         groupId={groupId} members={members} tags={tags} currency={currency} editExpense={editExpense}
         currentUserId={currentUserId} />
 
@@ -838,7 +837,7 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
 
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6"
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div>
           <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>{t('balance.title')}</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
