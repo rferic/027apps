@@ -49,7 +49,8 @@
       "allUsers": "Tots els usuaris",
       "my": "Les meves despeses",
       "all": "Totes",
-      "clearFilters": "Neteja filtres"
+      "clearFilters": "Neteja filtres",
+      "settled": "Mostrar liquidats"
     },
     "create": {
       "title": "Nova despesa",

@@ -49,7 +49,8 @@
       "allUsers": "Tous les utilisateurs",
       "my": "Mes dépenses",
       "all": "Toutes",
-      "clearFilters": "Effacer les filtres"
+      "clearFilters": "Effacer les filtres",
+      "settled": "Afficher soldés"
     },
     "create": {
       "title": "Nouvelle dépense",

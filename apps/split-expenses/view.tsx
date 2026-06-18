@@ -314,6 +314,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const [showCreateExpense, setShowCreateExpense] = useState(false)
   const [expensePage, setExpensePage] = useState(1)
   const [expenseTotalPages, setExpenseTotalPages] = useState(1)
+  const [showSettled, setShowSettled] = useState(false)
   const [statsPeriod, setStatsPeriod] = useState('month')
   const [statsTagId, setStatsTagId] = useState('')
   const [statsLoading, setStatsLoading] = useState(true)
@@ -326,7 +327,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       try {
         const [groupRes, expRes, tagRes, balRes, memRes, sessionRes, statsRes] = await Promise.all([
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}`),
-          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=50&page=1`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=1${!showSettled ? '&settled=false' : ''}`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/members`),
@@ -349,16 +350,16 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       } catch { setFetchError(true) }
       finally { setLoading(false); setDataLoading(false); setStatsLoading(false) }
     })()
-  }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId])
+  }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId, showSettled])
 
   // Separate fetch for expense pagination (appends data for infinite scroll)
   useEffect(() => {
     if (!ctx.groupSlug || expensePage <= 1) return
     ;(async () => {
-      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=50&page=${expensePage}`)
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=${expensePage}${!showSettled ? '&settled=false' : ''}`)
       if (res.ok) { const r = await res.json(); setExpenses(prev => [...prev, ...(r.data ?? [])]); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
     })()
-  }, [expensePage])
+  }, [expensePage, showSettled])
 
   // Derived: members of the parent group not yet in this expense group
   const availableMembers = allMembers.filter(am => {
@@ -426,8 +427,8 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         ))}
       </div>
 
-      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} />}
-      {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} />}
+      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} showSettled={showSettled} onToggleSettled={() => setShowSettled(v => !v)} />}
+      {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} onSettle={() => setRefreshKey(k => k + 1)} />}
       {tab === 'stats' && <StatsTab statsData={statsData} tags={tags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
       {tab === 'settings' && <SettingsTab groupId={groupId} group={group} tags={tags} loading={dataLoading} onRefresh={handleRefresh} availableMembers={availableMembers} onMembersUpdate={handleMembersUpdate} />}
 
@@ -443,6 +444,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void;
   showCreate: boolean; onShowCreate: (v: boolean) => void;
   page: number; totalPages: number; onPageChange: (p: number) => void;
+  showSettled: boolean; onToggleSettled: () => void;
 }) {
   const locale = useLocale()
   const t = useTranslations('apps.split-expenses')
@@ -532,6 +534,74 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
               {t('expense.list.clearFilters')}
             </button>
           )}
+        </div>
+      )}
+
+      {showFilters && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowFilters(false)}>
+          <div className="fixed inset-0 bg-black/40" />
+          <div className="relative bg-card rounded-t-2xl sm:rounded-xl p-6 w-full max-w-md mx-auto shadow-xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-semibold text-foreground">{t('expense.list.filters')}</h3>
+              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground cursor-pointer"><X size={20} /></button>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('expense.list.allTags')}</label>
+              <div className="relative mb-2">
+                <input value={tagInput} onChange={e => {
+                  setTagInput(e.target.value)
+                }} onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); if (!tagInput.trim()) return; const match = tags.find(t => t.name.toLowerCase() === tagInput.trim().toLowerCase()); if (match && !draftTags.includes(match.id)) toggleDraftTag(match.id); setTagInput('') }
+                }} placeholder={t('expense.list.allTags')}
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+                />
+                {tagInput.trim() && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-32 overflow-auto">
+                    {tags.filter(t => t.name.toLowerCase().includes(tagInput.toLowerCase()) && !draftTags.includes(t.id)).map(tag => (
+                      <div key={tag.id} onMouseDown={() => { toggleDraftTag(tag.id); setTagInput('') }}
+                        className="px-3 py-1.5 text-sm text-foreground hover:bg-accent cursor-pointer"
+                      >{tag.name}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {draftTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {draftTags.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (
+                    <span key={tag.id} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full" style={{ backgroundColor: tag.color + '20', color: tag.color }}>
+                      {tag.name} <X size={10} className="cursor-pointer" style={{ color: tag.color }} onClick={() => toggleDraftTag(tag.id)} />
+                    </span>
+                  )})}
+                </div>
+              )}
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('expense.list.allUsers')}</label>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setDraftPaidBy('')} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftPaidBy === '' ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftPaidBy === '' ? { backgroundColor: '#10B981', color: 'white' } : {}}>
+                  {t('expense.list.allUsers')}
+                </button>
+                {allMembers.map(m => (
+                  <button key={m.user_id} onClick={() => setDraftPaidBy(m.user_id)} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftPaidBy === m.user_id ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftPaidBy === m.user_id ? { backgroundColor: '#10B981', color: 'white' } : {}}>
+                    {m.display_name ?? t('common.unknown')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-foreground">{t('expense.list.settled')}</span>
+                <DsToggle checked={showSettled} onChange={onToggleSettled} />
+              </div>
+            </div>
+
+            <button onClick={() => { setShowFilters(false) }} className="w-full py-3 text-sm font-semibold text-white rounded-xl cursor-pointer shadow-sm transition-colors" style={{ backgroundColor: '#10B981' }}>
+              {t('expense.list.filters')}
+            </button>
+          </div>
         </div>
       )}
 
@@ -933,8 +1003,8 @@ function DeleteConfirm({ open, onClose, onDeleted, groupId, expense }: {
 
 // ─── Balances Tab ───────────────────────────────────────────────────────
 
-function BalancesTab({ groupId, balances, transfers, currency, loading, onRefresh }: {
-  groupId: string; balances: Balance[]; transfers: Transfer[]; currency: string; loading: boolean; onRefresh: () => void;
+function BalancesTab({ groupId, balances, transfers, currency, loading, onRefresh, onSettle }: {
+  groupId: string; balances: Balance[]; transfers: Transfer[]; currency: string; loading: boolean; onRefresh: () => void; onSettle?: () => void;
 }) {
   const ctx = useAppContext()
   const locale = useLocale()
@@ -952,7 +1022,7 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
       })
       setShowSettleConfirm(false)
-      onRefresh()
+      ;(onSettle || onRefresh)()
     } catch {} finally { setSettling(false) }
   }
 

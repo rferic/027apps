@@ -49,7 +49,8 @@
       "allUsers": "Todos los usuarios",
       "my": "Mis gastos",
       "all": "Todos",
-      "clearFilters": "Limpiar filtros"
+      "clearFilters": "Limpiar filtros",
+      "settled": "Mostrar liquidados"
     },
     "create": {
       "title": "Nuevo gasto",

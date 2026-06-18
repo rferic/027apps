@@ -57,7 +57,8 @@
       "allUsers": "All users",
       "my": "My expenses",
       "all": "All",
-      "clearFilters": "Clear filters"
+      "clearFilters": "Clear filters",
+      "settled": "Show settled"
     },
     "create": {
       "title": "New expense",
