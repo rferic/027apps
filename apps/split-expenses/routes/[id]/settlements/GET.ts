@@ -25,6 +25,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const profileMap = new Map((profiles ?? []).map(p => [p.id, p.display_name]))
 
+  // Enrich settlements with expenses and transfer profiles
   const enriched = await Promise.all((settlements ?? []).map(async (s) => {
     const { count } = await db.from('split_expenses_settlement_items')
       .select('*', { count: 'exact', head: true })
@@ -42,11 +43,22 @@ export default async function handler(req: Request, ctx: HandlerContext) {
       : { data: [] }
     const expenseMap = new Map((expenses ?? []).map(e => [e.id, e]))
 
+    // Enrich transfers with profile names
+    const txUserIds = [...new Set((tx ?? []).flatMap(t => [t.from_user, t.to_user]))]
+    const { data: txProfiles } = txUserIds.length > 0
+      ? await db.from('profiles').select('id, display_name').in('id', txUserIds)
+      : { data: [] }
+    const txProfileMap = new Map((txProfiles ?? []).map(p => [p.id, p.display_name]))
+
     return {
       ...s,
       settled_by_name: profileMap.get(s.settled_by) ?? null,
       expense_count: count ?? 0,
-      transfers: tx ?? [],
+      transfers: (tx ?? []).map(t => ({
+        ...t,
+        from_name: txProfileMap.get(t.from_user) ?? null,
+        to_name: txProfileMap.get(t.to_user) ?? null,
+      })),
       expenses: (items ?? []).map(i => ({ ...i, expense: expenseMap.get(i.expense_id) ?? null })),
     }
   }))
