@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
@@ -322,7 +322,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       try {
         const [groupRes, expRes, tagRes, balRes, memRes, sessionRes, statsRes] = await Promise.all([
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}`),
-          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=5&page=1`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=50&page=1`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/members`),
@@ -347,12 +347,12 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
     })()
   }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId])
 
-  // Separate fetch for expense pagination (doesn't reload the whole page)
+  // Separate fetch for expense pagination (appends data for infinite scroll)
   useEffect(() => {
-    if (!ctx.groupSlug || !expenses.length) return
+    if (!ctx.groupSlug || expensePage <= 1) return
     ;(async () => {
-      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=5&page=${expensePage}`)
-      if (res.ok) { const r = await res.json(); setExpenses(r.data ?? []); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=50&page=${expensePage}`)
+      if (res.ok) { const r = await res.json(); setExpenses(prev => [...prev, ...(r.data ?? [])]); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
     })()
   }, [expensePage])
 
@@ -456,6 +456,21 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
 
   const activeFilters = filterTags.length + (filterPaidBy ? 1 : 0)
 
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const hasMore = page < totalPages
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !loading) onPageChange(page + 1)
+  }, [hasMore, loading, page, onPageChange])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) loadMore() }, { rootMargin: '200px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [loadMore])
+
   function openFilters() {
     setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setShowFilters(true)
   }
@@ -470,7 +485,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
 
   return (
     <div>
-      <div className="flex items-center sm:justify-between justify-center mb-4">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex gap-1 bg-muted rounded-lg p-1">
           <button onClick={() => { setViewMode('my'); localStorage.setItem('split-expenses-view', 'my'); onPageChange(1) }}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'my' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
@@ -509,65 +524,71 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
       ) : filteredExpenses.length === 0 ? (
         <DsEmptyState title={t('expense.list.empty')} />
       ) : (
-        <div className="space-y-2">
-          {filteredExpenses.map(e => {
-            const tag = tags.find(t => t.id === e.tag_id)
-            const myShare = currentUserId ? e.shares?.find(s => s.user_id === currentUserId) : null
-            const iPaid = currentUserId && e.paid_by === currentUserId
-            const involvementAmount = iPaid && myShare ? Number(e.amount) - myShare.amount : myShare?.amount ?? null
-            const involvementColor = involvementAmount !== null ? (iPaid ? '#10B981' : '#F97316') : 'var(--color-text)'
-            return (
-              <DsCard key={e.id} padding="sm" hover onClick={() => setDetailExpense(e)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div className="flex-1 min-w-0">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <p style={{ fontSize: 13, fontWeight: 500, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', textDecoration: e.settled ? 'line-through' : 'none', margin: 0 }}>
-                        {e.title}
-                      </p>
-                      {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: 10 }}>{tag.name}</DsBadge>}
-                    </div>
-                    <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
-                      {e.paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} {formatAmount(e.amount, currency)}
-                    </p>
+        <div>
+          {(() => {
+            const grouped: Record<string, typeof filteredExpenses> = {}
+            for (const e of filteredExpenses) {
+              const d = new Date(e.created_at)
+              const key = `${d.getFullYear()}-${d.getMonth()}`
+              if (!grouped[key]) grouped[key] = []
+              grouped[key].push(e)
+            }
+            return Object.entries(grouped).map(([key, items]) => {
+              const [year, month] = key.split('-').map(Number)
+              const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+              return (
+                <div key={key} className="mb-6">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{monthNames[month]} {year}</h3>
+                  <div className="space-y-1">
+                    {items.map(e => {
+                      const tag = tags.find(t => t.id === e.tag_id)
+                      const myShare = currentUserId ? e.shares?.find(s => s.user_id === currentUserId) : null
+                      const iPaid = currentUserId && e.paid_by === currentUserId
+                      const involvementAmount = iPaid && myShare ? Number(e.amount) - myShare.amount : myShare?.amount ?? null
+                      const involvementColor = involvementAmount !== null ? (iPaid ? '#10B981' : '#F97316') : 'var(--color-text)'
+                      const day = new Date(e.created_at).getDate()
+                      return (
+                        <DsCard key={e.id} padding="sm" hover onClick={() => setDetailExpense(e)}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', width: 24, textAlign: 'center', flexShrink: 0 }}>{day}</span>
+                            <div className="flex-1 min-w-0">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <p style={{ fontSize: 13, fontWeight: 500, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', textDecoration: e.settled ? 'line-through' : 'none', margin: 0 }}>
+                                  {e.title}
+                                </p>
+                                {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: 10 }}>{tag.name}</DsBadge>}
+                              </div>
+                              <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
+                                {e.paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} {formatAmount(e.amount, currency)}
+                              </p>
+                            </div>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              {involvementAmount !== null ? (
+                                <p style={{ fontSize: 13, fontWeight: 700, color: involvementColor, margin: 0 }}>
+                                  {iPaid ? `+${formatAmount(involvementAmount, currency)}` : `-${formatAmount(involvementAmount, currency)}`}
+                                </p>
+                              ) : (
+                                <p style={{ fontSize: 13, fontWeight: 600, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', margin: 0, opacity: e.settled ? 0.5 : 1 }}>
+                                  {formatAmount(e.amount, currency)}
+                                </p>
+                              )}
+                            </div>
+                            {!e.settled && (
+                              <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
+                            )}
+                          </div>
+                        </DsCard>
+                      )
+                    })}
                   </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    {involvementAmount !== null ? (
-                      <>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: involvementColor, margin: 0 }}>
-                          {iPaid ? `+${formatAmount(involvementAmount, currency)}` : `-${formatAmount(involvementAmount, currency)}`}
-                        </p>
-                        <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
-                          {new Date(e.created_at).toLocaleDateString(locale)}
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', margin: 0, opacity: e.settled ? 0.5 : 1 }}>
-                          {formatAmount(e.amount, currency)}
-                        </p>
-                        <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
-                          {new Date(e.created_at).toLocaleDateString(locale)}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                  {!e.settled && (
-                    <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
-                  )}
                 </div>
-              </DsCard>
-            )
-          })}
+              )
+            })
+          })()}
         </div>
       )}
 
-      {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-4">
-          <DsButton variant="ghost" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>←</DsButton>
-          <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
-          <DsButton variant="ghost" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>→</DsButton>
-        </div>
-      )}
+      {hasMore && <div ref={sentinelRef} className="h-4" />}
 
       <ExpenseModal open={showCreate || !!editExpense} onClose={() => { onShowCreate(false); setEditExpense(null) }}
         onSaved={() => { onShowCreate(false); setEditExpense(null); onRefresh() }}
