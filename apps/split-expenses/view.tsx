@@ -495,6 +495,63 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
         </div>
       )}
 
+      {loading ? (
+        <div className="py-8"><DsSkeleton height={60} count={4} /></div>
+      ) : filteredExpenses.length === 0 ? (
+        <DsEmptyState title={t('expense.list.empty')} />
+      ) : (
+        <div className="space-y-2">
+          {filteredExpenses.map(e => {
+            const tag = tags.find(t => t.id === e.tag_id)
+            const myShare = currentUserId ? e.shares?.find(s => s.user_id === currentUserId) : null
+            const iPaid = currentUserId && e.paid_by === currentUserId
+            const involvementAmount = iPaid && myShare ? Number(e.amount) - myShare.amount : myShare?.amount ?? null
+            const involvementColor = involvementAmount !== null ? (iPaid ? '#10B981' : '#F97316') : 'var(--color-text)'
+            return (
+              <DsCard key={e.id} padding="sm" hover onClick={() => setDetailExpense(e)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div className="flex-1 min-w-0">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', textDecoration: e.settled ? 'line-through' : 'none', margin: 0 }}>
+                        {e.title}
+                      </p>
+                      {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: 10 }}>{tag.name}</DsBadge>}
+                    </div>
+                    <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
+                      {e.paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} {formatAmount(e.amount, currency)}
+                    </p>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    {involvementAmount !== null ? (
+                      <>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: involvementColor, margin: 0 }}>
+                          {iPaid ? `+${formatAmount(involvementAmount, currency)}` : `-${formatAmount(involvementAmount, currency)}`}
+                        </p>
+                        <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
+                          {new Date(e.created_at).toLocaleDateString(locale)}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', margin: 0, opacity: e.settled ? 0.5 : 1 }}>
+                          {formatAmount(e.amount, currency)}
+                        </p>
+                        <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
+                          {new Date(e.created_at).toLocaleDateString(locale)}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  {!e.settled && (
+                    <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
+                  )}
+                </div>
+              </DsCard>
+            )
+          })}
+        </div>
+      )}
+
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-4">
           <DsButton variant="ghost" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>←</DsButton>
