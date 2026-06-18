@@ -283,7 +283,7 @@ function CreateGroupModal({ open, onClose, onCreated, editGroup }: { open: boole
 
 // ─── Group Detail ───────────────────────────────────────────────────────
 
-const TABS = ['expenses', 'balances', 'members', 'stats', 'tags'] as const
+const TABS = ['expenses', 'balances', 'stats', 'settings'] as const
 
 function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => void }) {
   const ctx = useAppContext()
@@ -411,9 +411,8 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
       {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} />}
       {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} />}
-      {tab === 'members' && <MembersTab groupId={groupId} members={group.members ?? []} availableMembers={availableMembers} onUpdate={handleMembersUpdate} />}
       {tab === 'stats' && <StatsTab statsData={statsData} tags={tags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
-      {tab === 'tags' && <TagsTab groupId={groupId} tags={tags} loading={dataLoading} onRefresh={handleRefresh} />}
+      {tab === 'settings' && <SettingsTab groupId={groupId} group={group} tags={tags} loading={dataLoading} onRefresh={handleRefresh} availableMembers={availableMembers} onMembersUpdate={handleMembersUpdate} />}
 
       {showEditGroup && <CreateGroupModal open={showEditGroup} onClose={() => setShowEditGroup(false)} onCreated={() => { setShowEditGroup(false); setRefreshKey(k => k + 1) }} editGroup={group} />}
     </div>
@@ -1027,6 +1026,27 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
           ))}
         </div>
       </DsModal>
+    </div>
+  )
+}
+
+// ─── Settings Tab ───────────────────────────────────────────────────────
+
+function SettingsTab({ groupId, group, tags, loading, onRefresh, availableMembers, onMembersUpdate }: {
+  groupId: string; group: GroupDetail; tags: Tag[]; loading: boolean; onRefresh: () => void;
+  availableMembers: { id: string; display_name: string }[]; onMembersUpdate: () => void;
+}) {
+  const t = useTranslations('apps.split-expenses')
+  return (
+    <div className="space-y-8">
+      <div>
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', marginBottom: 12 }}>{t('member.list.title')}</h3>
+        <MembersTab groupId={groupId} members={group.members ?? []} availableMembers={availableMembers} onUpdate={onMembersUpdate} />
+      </div>
+      <div>
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', marginBottom: 12 }}>{t('tag.list.title')}</h3>
+        <TagsTab groupId={groupId} tags={tags} loading={loading} onRefresh={onRefresh} />
+      </div>
     </div>
   )
 }
