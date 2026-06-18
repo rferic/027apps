@@ -21,6 +21,11 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const db = createAdminClientUntyped()
 
+  // Verify user is a member of this expense group
+  const { data: membership } = await db.from('split_expenses_members')
+    .select('id').eq('expense_group_id', expenseGroupId).eq('user_id', ctx.userId).single()
+  if (!membership) return apiError('FORBIDDEN', 'Not a member of this expense group', 403)
+
   let query = db.from('split_expenses_expenses').select('id, paid_by, amount, title, settled, tag_id, created_by, created_at, expense_group_id', { count: 'exact' })
     .eq('expense_group_id', expenseGroupId)
 

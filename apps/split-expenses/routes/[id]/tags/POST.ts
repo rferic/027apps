@@ -16,6 +16,10 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const db = createAdminClientUntyped()
 
+  const { data: membership } = await db.from('split_expenses_members')
+    .select('id').eq('expense_group_id', expenseGroupId).eq('user_id', ctx.userId).single()
+  if (!membership) return apiError('FORBIDDEN', 'Not a member', 403)
+
   const { data: tag, error } = await db.from('split_expenses_tags').insert({
     expense_group_id: expenseGroupId,
     name: name.trim(),

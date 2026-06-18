@@ -8,6 +8,10 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const db = createAdminClientUntyped()
 
+  const { data: membership } = await db.from('split_expenses_members')
+    .select('id').eq('expense_group_id', expenseGroupId).eq('user_id', ctx.userId).single()
+  if (!membership) return apiError('FORBIDDEN', 'Not a member', 403)
+
   const { data: members } = await db.from('split_expenses_members')
     .select('id, expense_group_id, user_id, active, created_at')
     .eq('expense_group_id', expenseGroupId)
