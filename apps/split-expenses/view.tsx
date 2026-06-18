@@ -439,7 +439,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
 // ─── Expenses Tab ───────────────────────────────────────────────────────
 
-function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, showCreate, onShowCreate, page, totalPages, onPageChange }: {
+function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, showCreate, onShowCreate, page, totalPages, onPageChange, showSettled, onToggleSettled }: {
   groupId: string; expenses: Expense[]; tags: Tag[]; currentUserId: string;
   members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void;
   showCreate: boolean; onShowCreate: (v: boolean) => void;
@@ -634,36 +634,38 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
                       const involvementColor = involvementAmount !== null ? (iPaid ? '#10B981' : '#F97316') : 'var(--color-text)'
                       const day = new Date(e.created_at).getDate()
                       return (
-                        <DsCard key={e.id} padding="sm" hover onClick={() => setDetailExpense(e)}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-secondary)', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0 }}>{day}</span>
-                            <div className="flex-1 min-w-0">
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <p style={{ fontSize: 13, fontWeight: 500, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', textDecoration: e.settled ? 'line-through' : 'none', margin: 0 }}>
-                                  {e.title}
+                        <div key={e.id} style={e.settled ? { background: 'var(--color-muted)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--color-border)' } : {}}>
+                          <DsCard padding="sm" hover={!e.settled} onClick={() => setDetailExpense(e)} style={e.settled ? { background: 'transparent', border: 'none', opacity: 0.75 } : {}}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text-secondary)', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0, opacity: e.settled ? 0.6 : 1 }}>{day}</span>
+                              <div className="flex-1 min-w-0">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 500, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', textDecoration: e.settled ? 'line-through' : 'none', margin: 0 }}>
+                                    {e.title}
+                                  </p>
+                                  {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: 10, opacity: e.settled ? 0.5 : 1 }}>{tag.name}</DsBadge>}
+                                </div>
+                                <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0', textDecoration: e.settled ? 'line-through' : 'none', opacity: e.settled ? 0.6 : 1 }}>
+                                  {e.paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} {formatAmount(e.amount, currency)}
                                 </p>
-                                {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: 10 }}>{tag.name}</DsBadge>}
                               </div>
-                              <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
-                                {e.paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} {formatAmount(e.amount, currency)}
-                              </p>
-                            </div>
-                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                              {involvementAmount !== null ? (
-                                <p style={{ fontSize: 13, fontWeight: 700, color: involvementColor, margin: 0 }}>
-                                  {iPaid ? `+${formatAmount(involvementAmount, currency)}` : `-${formatAmount(involvementAmount, currency)}`}
-                                </p>
-                              ) : (
-                                <p style={{ fontSize: 13, fontWeight: 600, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', margin: 0, opacity: e.settled ? 0.5 : 1 }}>
-                                  {formatAmount(e.amount, currency)}
-                                </p>
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                {involvementAmount !== null ? (
+                                  <p style={{ fontSize: 13, fontWeight: 700, color: e.settled ? 'var(--color-text-secondary)' : involvementColor, margin: 0, textDecoration: e.settled ? 'line-through' : 'none', opacity: e.settled ? 0.6 : 1 }}>
+                                    {iPaid ? `+${formatAmount(involvementAmount, currency)}` : `-${formatAmount(involvementAmount, currency)}`}
+                                  </p>
+                                ) : (
+                                  <p style={{ fontSize: 13, fontWeight: 600, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', margin: 0, textDecoration: e.settled ? 'line-through' : 'none', opacity: e.settled ? 0.6 : 1 }}>
+                                    {formatAmount(e.amount, currency)}
+                                  </p>
+                                )}
+                              </div>
+                              {!e.settled && (
+                                <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
                               )}
                             </div>
-                            {!e.settled && (
-                              <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
-                            )}
-                          </div>
-                        </DsCard>
+                          </DsCard>
+                        </div>
                       )
                     })}
                   </div>
