@@ -303,6 +303,8 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
   // Stats filter state (managed here so the parent refetches)
   const [showCreateExpense, setShowCreateExpense] = useState(false)
+  const [expensePage, setExpensePage] = useState(1)
+  const [expenseTotalPages, setExpenseTotalPages] = useState(1)
   const [statsPeriod, setStatsPeriod] = useState('month')
   const [statsTagId, setStatsTagId] = useState('')
   const [statsLoading, setStatsLoading] = useState(true)
@@ -315,7 +317,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       try {
         const [groupRes, expRes, tagRes, balRes, memRes, sessionRes, statsRes] = await Promise.all([
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}`),
-          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=5&page=${page}`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?settled=false&limit=5&page=${expensePage}`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/members`),
@@ -324,7 +326,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         ])
         if (groupRes.ok) setGroup(await groupRes.json())
         else setFetchError(true)
-        if (expRes.ok) { const r = await expRes.json(); setExpenses(r.data ?? []); setTotalPages(r.pagination?.total_pages ?? 1) }
+        if (expRes.ok) { const r = await expRes.json(); setExpenses(r.data ?? []); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
         if (tagRes.ok) { const d = await tagRes.json(); setTags(Array.isArray(d) ? d : d?.data ?? []) }
         if (balRes.ok) { const d = await balRes.json(); setBalances(d.balances ?? []); setTransfers(d.transfers ?? []) }
         if (statsRes.ok) setStatsData(await statsRes.json())
@@ -338,7 +340,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       } catch { setFetchError(true) }
       finally { setLoading(false); setDataLoading(false); setStatsLoading(false) }
     })()
-  }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId])
+  }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId, expensePage])
 
   // Derived: members of the parent group not yet in this expense group
   const availableMembers = allMembers.filter(am => {
@@ -393,7 +395,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         ))}
       </div>
 
-      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} />}
+      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} />}
       {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} />}
       {tab === 'members' && <MembersTab groupId={groupId} members={group.members ?? []} availableMembers={availableMembers} onUpdate={handleMembersUpdate} />}
       {tab === 'stats' && <StatsTab statsData={statsData} tags={tags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
@@ -410,6 +412,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   groupId: string; expenses: Expense[]; tags: Tag[]; currentUserId: string;
   members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void;
   showCreate: boolean; onShowCreate: (v: boolean) => void;
+  page: number; totalPages: number; onPageChange: (p: number) => void;
 }) {
   const locale = useLocale()
   const t = useTranslations('apps.split-expenses')
@@ -491,9 +494,9 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
 
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-4">
-          <DsButton variant="ghost" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>←</DsButton>
+          <DsButton variant="ghost" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>←</DsButton>
           <span className="text-xs text-muted-foreground">{page} / {totalPages}</span>
-          <DsButton variant="ghost" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>→</DsButton>
+          <DsButton variant="ghost" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>→</DsButton>
         </div>
       )}
 
