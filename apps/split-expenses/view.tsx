@@ -472,7 +472,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
     return true
   })
 
-  const activeFilters = filterTags.length + (filterPaidBy ? 1 : 0)
+  const activeFilters = filterTags.length + (filterPaidBy ? 1 : 0) + (showSettled ? 1 : 0)
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const hasMore = page < totalPages
@@ -594,7 +594,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
             <div className="mb-5">
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-foreground">{t('expense.list.settled')}</span>
-                <DsToggle checked={showSettled} onChange={onToggleSettled} />
+                <DsToggle color="#10B981" checked={showSettled} onChange={onToggleSettled} />
               </div>
             </div>
 
@@ -924,9 +924,13 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 8, borderTop: '1px solid var(--color-border)' }}>
-            <DsButton variant="ghost" onClick={onEdit}><Pencil size={16} /></DsButton>
-            {!expense.settled && (
-              <DsButton variant="ghost" style={{ color: '#EF4444' }} onClick={() => setShowDeleteConfirm(true)}><Trash2 size={16} /></DsButton>
+            {!expense.settled ? (
+              <>
+                <DsButton variant="ghost" onClick={onEdit}><Pencil size={16} /></DsButton>
+                <DsButton variant="ghost" style={{ color: '#EF4444' }} onClick={() => setShowDeleteConfirm(true)}><Trash2 size={16} /></DsButton>
+              </>
+            ) : (
+              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{t('expense.item.settled')}</span>
             )}
           </div>
         </div>

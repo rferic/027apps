@@ -7,9 +7,10 @@ interface Props {
   onChange?: (checked: boolean) => void
   label?: string
   disabled?: boolean
+  color?: string
 }
 
-export function DsToggle({ checked: controlled, onChange, label, disabled }: Props) {
+export function DsToggle({ checked: controlled, onChange, label, disabled, color }: Props) {
   const [internal, setInternal] = useState(false)
   const isChecked = controlled !== undefined ? controlled : internal
 
@@ -45,7 +46,7 @@ export function DsToggle({ checked: controlled, onChange, label, disabled }: Pro
           width: 44,
           height: 24,
           borderRadius: 9999,
-          background: isChecked ? 'var(--color-brand)' : 'var(--color-border)',
+          background: isChecked ? (color || 'var(--color-brand)') : 'var(--color-border)',
           position: 'relative',
           transition: 'background var(--transition-fast)',
         }}
