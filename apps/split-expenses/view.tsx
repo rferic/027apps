@@ -170,9 +170,13 @@ export default function SplitExpensesView() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">{g.title}</p>
                     <p className="text-xs text-muted-foreground">{t('group.list.memberCount', { count: g.member_count ?? 0 })} · {currencySymbol(g.currency)}</p>
-                    {g.my_balance !== undefined && g.my_balance !== 0 && (
-                      <p className="text-xs mt-0.5" style={{ color: g.my_balance > 0 ? '#10B981' : '#F97316' }}>
-                        {g.my_balance > 0 ? `+${currencySymbol(g.currency)}${g.my_balance.toFixed(2)}` : `-${currencySymbol(g.currency)}${Math.abs(g.my_balance).toFixed(2)}`}
+                    {g.my_balance !== undefined && (
+                      <p className="text-xs mt-0.5" style={{ color: g.my_balance > 0 ? '#10B981' : g.my_balance < 0 ? '#F97316' : 'var(--color-text-secondary)' }}>
+                        {g.my_balance > 0
+                          ? `+${currencySymbol(g.currency)}${g.my_balance.toFixed(2)}`
+                          : g.my_balance < 0
+                            ? `-${currencySymbol(g.currency)}${Math.abs(g.my_balance).toFixed(2)}`
+                            : '✓ ' + t('balance.noTransfers')}
                       </p>
                     )}
                   </div>
@@ -396,6 +400,19 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold text-foreground">{group.title}</h1>
           <p className="text-xs text-muted-foreground">{currencySymbol(group.currency)} · {t('group.detail.memberCount', { count: group.members?.length ?? 0 })}</p>
+          {currentUserId && (() => {
+            const myBalance = balances.find(b => b.user_id === currentUserId)
+            if (!myBalance) return null
+            return (
+              <p className="text-xs mt-1" style={{ color: myBalance.net_balance > 0 ? '#10B981' : myBalance.net_balance < 0 ? '#F97316' : 'var(--color-text-secondary)' }}>
+                {myBalance.net_balance > 0
+                  ? `${t('balance.isOwed')} ${formatAmount(myBalance.net_balance, group.currency)}`
+                  : myBalance.net_balance < 0
+                    ? `${t('balance.owe')} ${formatAmount(Math.abs(myBalance.net_balance), group.currency)}`
+                    : t('balance.noTransfers')}
+              </p>
+            )
+          })()}
         </div>
         {tab === 'expenses' && <DsButton color="#10B981" onClick={() => setShowCreateExpense(true)}><Plus size={14} /> {t('expense.create.title')}</DsButton>}
         <DsButton variant="ghost" onClick={() => setShowEditGroup(true)}><Pencil size={16} /></DsButton>
