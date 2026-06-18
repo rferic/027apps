@@ -848,7 +848,7 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
                   <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)' }}>{b.display_name ?? t('common.unknown')}</span>
                   <span style={{
                     fontSize: 13, fontWeight: 600,
-                    color: b.net_balance > 0 ? 'var(--color-success)' : b.net_balance < 0 ? 'var(--color-error)' : 'var(--color-text-secondary)',
+                    color: b.net_balance > 0 ? '#10B981' : b.net_balance < 0 ? '#DC2626' : 'var(--color-text-secondary)',
                   }}>
                     {b.net_balance > 0
                       ? `${t('balance.isOwed')} ${formatAmount(b.net_balance, currency)}`
