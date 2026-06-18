@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ChevronDown } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ChevronDown, Filter } from 'lucide-react'
 import { DsButton } from '@/components/ds/button'
 import { DsModal } from '@/components/ds/modal'
 import { DsCard } from '@/components/ds/card'
@@ -416,8 +416,11 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   const [editExpense, setEditExpense] = useState<Expense | null>(null)
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null)
   const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
   const [filterTag, setFilterTag] = useState('')
   const [filterPaidBy, setFilterPaidBy] = useState('')
+  const [draftTag, setDraftTag] = useState('')
+  const [draftPaidBy, setDraftPaidBy] = useState('')
 
   const filteredExpenses = expenses.filter(e => {
     if (filterTag && e.tag_id !== filterTag) return false
@@ -425,18 +428,68 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
     return true
   })
 
+  const activeFilters = (filterTag ? 1 : 0) + (filterPaidBy ? 1 : 0)
+
+  function openFilters() {
+    setDraftTag(filterTag); setDraftPaidBy(filterPaidBy); setShowFilters(true)
+  }
+
+  function applyFilters() {
+    setFilterTag(draftTag); setFilterPaidBy(draftPaidBy); setShowFilters(false)
+  }
+
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-4">
-        <select value={filterTag} onChange={e => setFilterTag(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
-          <option value="">{t('expense.list.allTags')}</option>
-          {tags.map(tag => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
-        </select>
-        <select value={filterPaidBy} onChange={e => setFilterPaidBy(e.target.value)} className="px-2 py-1 text-xs border border-border rounded-lg bg-card text-foreground">
-          <option value="">{t('expense.list.allUsers')}</option>
-          {allMembers.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
-        </select>
+        <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
+          <Filter size={14} /> {t('expense.list.filters')}
+          {activeFilters > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 text-[10px] font-bold rounded-full" style={{ backgroundColor: '#10B981', color: 'white' }}>{activeFilters}</span>}
+        </button>
       </div>
+
+      {showFilters && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowFilters(false)}>
+          <div className="fixed inset-0 bg-black/40" />
+          <div className="relative bg-card rounded-t-2xl sm:rounded-xl p-6 w-full max-w-md mx-auto shadow-xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-semibold text-foreground">{t('expense.list.filters')}</h3>
+              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground cursor-pointer"><X size={20} /></button>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('expense.list.allTags')}</label>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setDraftTag('')} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftTag === '' ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftTag === '' ? { backgroundColor: '#10B981', color: 'white' } : {}}>
+                  {t('expense.list.allTags')}
+                </button>
+                {tags.map(tag => (
+                  <button key={tag.id} onClick={() => setDraftTag(tag.id)} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftTag === tag.id ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftTag === tag.id ? { backgroundColor: '#10B981', color: 'white' } : {}}>
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('expense.list.allUsers')}</label>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setDraftPaidBy('')} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftPaidBy === '' ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftPaidBy === '' ? { backgroundColor: '#10B981', color: 'white' } : {}}>
+                  {t('expense.list.allUsers')}
+                </button>
+                {allMembers.map(m => (
+                  <button key={m.user_id} onClick={() => setDraftPaidBy(m.user_id)} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftPaidBy === m.user_id ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftPaidBy === m.user_id ? { backgroundColor: '#10B981', color: 'white' } : {}}>
+                    {m.display_name ?? t('common.unknown')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={applyFilters} className="w-full py-3 text-sm font-semibold text-white rounded-xl cursor-pointer shadow-sm transition-colors" style={{ backgroundColor: '#10B981' }}>
+              {t('expense.list.filters')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="py-8"><DsSkeleton height={60} count={4} /></div>
