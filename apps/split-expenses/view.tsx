@@ -562,7 +562,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
       ) : filteredExpenses.length === 0 ? (
         <DsEmptyState title={t('expense.list.empty')} />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
           {filteredExpenses.map(e => {
             const tag = tags.find(t => t.id === e.tag_id)
             const myShare = currentUserId ? e.shares?.find(s => s.user_id === currentUserId) : null
