@@ -82,7 +82,7 @@ function chartData(data: { label: string; total: number }[], cumulative: boolean
 
 interface ExpenseGroup {
   id: string; title: string; emoji: string; currency: string;
-  created_by: string; created_at: string; member_count?: number;
+  created_by: string; created_at: string; member_count?: number; my_balance?: number;
 }
 
 interface GroupDetail extends ExpenseGroup {
@@ -167,10 +167,15 @@ export default function SplitExpensesView() {
             <DsCard key={g.id} padding="lg" hover onClick={() => setSelectedGroup(g.id)}>
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{g.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{g.title}</p>
-                  <p className="text-xs text-muted-foreground">{t('group.list.memberCount', { count: g.member_count ?? 0 })} · {currencySymbol(g.currency)}</p>
-                </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">{g.title}</p>
+                    <p className="text-xs text-muted-foreground">{t('group.list.memberCount', { count: g.member_count ?? 0 })} · {currencySymbol(g.currency)}</p>
+                    {g.my_balance !== undefined && g.my_balance !== 0 && (
+                      <p className="text-xs mt-0.5" style={{ color: g.my_balance > 0 ? '#10B981' : '#F97316' }}>
+                        {g.my_balance > 0 ? `+${currencySymbol(g.currency)}${g.my_balance.toFixed(2)}` : `-${currencySymbol(g.currency)}${Math.abs(g.my_balance).toFixed(2)}`}
+                      </p>
+                    )}
+                  </div>
                 <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 flex-shrink-0" />
               </div>
             </DsCard>
@@ -408,7 +413,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
 // ─── Expenses Tab ───────────────────────────────────────────────────────
 
-function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, showCreate, onShowCreate }: {
+function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, showCreate, onShowCreate, page, totalPages, onPageChange }: {
   groupId: string; expenses: Expense[]; tags: Tag[]; currentUserId: string;
   members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void;
   showCreate: boolean; onShowCreate: (v: boolean) => void;
@@ -425,8 +430,6 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   const [draftTags, setDraftTags] = useState<string[]>([])
   const [draftPaidBy, setDraftPaidBy] = useState('')
   const [tagInput, setTagInput] = useState('')
-  const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const [viewMode, setViewMode] = useState<'all' | 'my'>(() => {
     if (typeof window !== 'undefined') return (localStorage.getItem('split-expenses-view') as 'all' | 'my') || 'my'
     return 'my'
@@ -449,7 +452,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   }
 
   function applyFilters() {
-    setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setShowFilters(false)
+    setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setShowFilters(false); onPageChange(1)
   }
 
   function toggleDraftTag(tagId: string) {
