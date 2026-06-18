@@ -1032,13 +1032,27 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
       </DsModal>
 
       <DsModal open={showHistory} onClose={() => setShowHistory(false)} title={t('balance.history')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflow: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflow: 'auto' }}>
           {settleHistory.length === 0 ? (
             <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'center', padding: 16 }}>{t('balance.noSettlements')}</p>
           ) : settleHistory.map((s: any) => (
             <div key={s.id} style={{ padding: 12, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)' }}>
               <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: 0 }}>{t('balance.settledOn')} {new Date(s.created_at).toLocaleDateString(locale)} {t('balance.by')} {s.settled_by_name ?? t('common.unknown')}</p>
-              <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>{t('balance.expenseCount', { count: s.expense_count })} · {t('balance.transferCount', { count: s.transfers?.length ?? 0 })}</p>
+              {s.expenses?.map((item: any) => item.expense ? (
+                <div key={item.expense_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--color-text)', marginTop: 6, padding: '4px 0', borderTop: '1px solid var(--color-border)' }}>
+                  <span>{item.expense.title}</span>
+                  <span style={{ fontWeight: 500 }}>{formatAmount(Number(item.expense.amount), currency)}</span>
+                </div>
+              ) : null)}
+              {s.transfers?.length > 0 && (
+                <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--color-border)' }}>
+                  {s.transfers.map((t: any, i: number) => (
+                    <p key={i} style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: '2px 0' }}>
+                      {t.from_name ?? t('common.unknown')} → {t.to_name ?? t('common.unknown')}: {formatAmount(Number(t.amount), currency)}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

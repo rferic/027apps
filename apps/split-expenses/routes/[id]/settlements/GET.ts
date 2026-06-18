@@ -33,11 +33,21 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     const { data: tx } = await db.from('split_expenses_transfers')
       .select('*').eq('settlement_id', s.id)
 
+    // Fetch expense details for this settlement
+    const { data: items } = await db.from('split_expenses_settlement_items')
+      .select('expense_id').eq('settlement_id', s.id)
+    const expenseIds = (items ?? []).map(i => i.expense_id)
+    const { data: expenses } = expenseIds.length > 0
+      ? await db.from('split_expenses_expenses').select('id, title, amount').in('id', expenseIds)
+      : { data: [] }
+    const expenseMap = new Map((expenses ?? []).map(e => [e.id, e]))
+
     return {
       ...s,
       settled_by_name: profileMap.get(s.settled_by) ?? null,
       expense_count: count ?? 0,
       transfers: tx ?? [],
+      expenses: (items ?? []).map(i => ({ ...i, expense: expenseMap.get(i.expense_id) ?? null })),
     }
   }))
 
