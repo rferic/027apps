@@ -831,7 +831,7 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
 
           {!expense.settled && (
             <DsButton color="#10B981" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowSettleConfirm(true)}>
-              <Send size={16} /> {t('balance.settleAll')}
+              <Send size={16} /> {t('balance.settle')}
             </DsButton>
           )}
 

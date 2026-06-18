@@ -89,7 +89,7 @@
     "summary": "Resumen",
     "transfers": "Transferencias propuestas",
     "noTransfers": "¡Todo liquidado!",
-    "settle": "Liquidar seleccionados",
+    "settle": "Liquidar",
     "settleAll": "Liquidar todo",
     "selectExpenses": "Selecciona los gastos a liquidar",
     "confirmTitle": "Confirmar liquidación",

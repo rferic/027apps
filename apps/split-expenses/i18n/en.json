@@ -97,7 +97,7 @@
     "summary": "Summary",
     "transfers": "Proposed transfers",
     "noTransfers": "All settled up!",
-    "settle": "Settle selected",
+    "settle": "Settle",
     "settleAll": "Settle all",
     "selectExpenses": "Select expenses to settle",
     "confirmTitle": "Confirm settlement",
