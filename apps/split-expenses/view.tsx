@@ -1046,9 +1046,9 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
               ) : null)}
               {s.transfers?.length > 0 && (
                 <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--color-border)' }}>
-                  {s.transfers.map((t: any, i: number) => (
+                  {s.transfers.map((tr: any, i: number) => (
                     <p key={i} style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: '2px 0' }}>
-                      {t.from_name ?? t('common.unknown')} → {t.to_name ?? t('common.unknown')}: {formatAmount(Number(t.amount), currency)}
+                      {tr.from_name ?? t('common.unknown')} → {tr.to_name ?? t('common.unknown')}: {formatAmount(Number(tr.amount), currency)}
                     </p>
                   ))}
                 </div>
