@@ -36,7 +36,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     let myBalance = 0
     if (expenseIds.length > 0) {
       const { data: shares } = await db.from('split_expenses_shares')
-        .select('user_id, amount').in('expense_id', expenseIds)
+        .select('user_id, expense_id, amount').in('expense_id', expenseIds)
       for (const s of shares ?? []) {
         if (s.user_id === ctx.userId) myBalance -= parseFloat(s.amount)
       }
