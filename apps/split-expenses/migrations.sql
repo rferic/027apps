@@ -315,5 +315,4 @@ grant select, insert, update, delete on split_expenses_tags to service_role;
 grant select, insert, update, delete on split_expenses_expenses to service_role;
 grant select, insert, update, delete on split_expenses_shares to service_role;
 grant select, insert, update, delete on split_expenses_settlements to service_role;
-grant select, insert, update, delete on split_expenses_settlement_items to service_role;
 grant select, insert, update, delete on split_expenses_transfers to service_role;

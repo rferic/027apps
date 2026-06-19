@@ -3,7 +3,7 @@ import Image from 'next/image'
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { useTranslations, useLocale } from 'next-intl'
+import { useTranslations, useLocale, useMessages } from 'next-intl'
 import { Package, CheckCircle, XCircle, Loader2, AlertTriangle, Info } from 'lucide-react'
 import { installAppAction, uninstallAppAction, updateAppVisibilityAction } from '@/lib/apps/actions'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -32,7 +32,8 @@ function StatusBadge({ status }: { status: string }) {
 function AppCard({ app }: { app: CombinedApp }) {
   const t = useTranslations('admin.apps')
   const tErrors = useTranslations('apps.errors')
-  const tApp = useTranslations(`apps.${app.slug}`)
+  const allMessages = useMessages()
+  const appDescription = (allMessages as Record<string, any>)?.apps?.[app.slug]?.description
   const locale = useLocale()
   const [isPending, startTransition] = useTransition()
   const [isPendingVisibility, startVisibilityTransition] = useTransition()
@@ -99,7 +100,7 @@ function AppCard({ app }: { app: CombinedApp }) {
               )}
               {app.installed && <StatusBadge status={app.installed.status} />}
             </div>
-            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{tApp('description')}</p>
+            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{appDescription ?? app.slug}</p>
             {app.manifest?.author?.name && (
               <p className="text-xs text-gray-400 mt-0.5">{app.manifest.author.name}</p>
             )}
