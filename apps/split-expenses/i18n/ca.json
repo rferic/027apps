@@ -110,7 +110,9 @@
     "by": "per",
     "noSettlements": "No hi ha liquidacions",
     "expenseCount": "{count, plural, one {# despesa} other {# despeses}}",
-    "transferCount": "{count, plural, one {# transferència} other {# transferències}}"
+    "transferCount": "{count, plural, one {# transferència} other {# transferències}}",
+    "recordPayment": "Registrar com a pagat",
+    "paymentRecorded": "Pagament registrat"
   },
   "member": {
     "list": {

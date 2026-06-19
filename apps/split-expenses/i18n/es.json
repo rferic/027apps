@@ -110,7 +110,9 @@
     "by": "por",
     "noSettlements": "No hay liquidaciones aún",
     "expenseCount": "{count, plural, one {# gasto} other {# gastos}}",
-    "transferCount": "{count, plural, one {# transferencia} other {# transferencias}}"
+    "transferCount": "{count, plural, one {# transferencia} other {# transferencias}}",
+    "recordPayment": "Registrar como pagado",
+    "paymentRecorded": "Pago registrado"
   },
   "member": {
     "list": {

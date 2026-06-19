@@ -110,7 +110,9 @@
     "by": "par",
     "noSettlements": "Aucun règlement",
     "expenseCount": "{count, plural, one {# dépense} other {# dépenses}}",
-    "transferCount": "{count, plural, one {# transfert} other {# transferts}}"
+    "transferCount": "{count, plural, one {# transfert} other {# transferts}}",
+    "recordPayment": "Enregistrer comme payé",
+    "paymentRecorded": "Paiement enregistré"
   },
   "member": {
     "list": {

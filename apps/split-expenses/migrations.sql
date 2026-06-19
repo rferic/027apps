@@ -98,6 +98,8 @@ create table split_expenses_transfers (
   to_user           uuid not null references auth.users(id),
   amount            numeric(12,2) not null check (amount > 0),
   status            text not null default 'pending' check (status in ('pending', 'completed', 'cancelled')),
+  is_manual         boolean not null default false,
+  note              text,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );

@@ -1035,6 +1035,7 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
   const [historyPage, setHistoryPage] = useState(1)
   const [historyHasMore, setHistoryHasMore] = useState(true)
   const HISTORY_LIMIT = 10
+  const [payingTransfer, setPayingTransfer] = useState<number | null>(null)
 
   async function handleSettle() {
     if (!ctx.groupSlug) return
@@ -1046,6 +1047,20 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
       setShowSettleConfirm(false)
       ;(onSettle || onRefresh)()
     } catch {} finally { setSettling(false) }
+  }
+
+  async function handleRecordPayment(index: number) {
+    if (!ctx.groupSlug) return
+    const tr = transfers[index]
+    if (!tr) return
+    setPayingTransfer(index)
+    try {
+      await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/payments`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from_user: tr.from_user, to_user: tr.to_user, amount: tr.amount }),
+      })
+      onRefresh()
+    } catch {} finally { setPayingTransfer(null) }
   }
 
   async function fetchSettleHistory(page = 1) {
@@ -1100,10 +1115,19 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
               <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>{t('balance.transfers')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
                 {transfers.map((tr, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text)', padding: 8, background: 'var(--color-muted)', borderRadius: 'var(--radius-lg)' }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text)', padding: '6px 8px', background: 'var(--color-muted)', borderRadius: 'var(--radius-lg)' }}>
                     <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                     <span>{tr.from_name ?? t('common.unknown')} {t('balance.pays')} {tr.to_name ?? t('common.unknown')}</span>
-                    <span style={{ marginLeft: 'auto', fontWeight: 600, color: 'var(--color-text)' }}>{formatAmount(tr.amount, currency)}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>{formatAmount(tr.amount, currency)}</span>
+                    <button
+                      onClick={() => handleRecordPayment(i)}
+                      disabled={payingTransfer === i}
+                      className="flex-shrink-0 p-1 rounded-md hover:bg-emerald-100 disabled:opacity-50 cursor-pointer transition-colors"
+                      style={{ color: '#10B981', marginLeft: 'auto' }}
+                      title={t('balance.recordPayment')}
+                    >
+                      {payingTransfer === i ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
                 ))}
               </div>

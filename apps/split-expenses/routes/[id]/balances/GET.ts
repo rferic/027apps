@@ -61,9 +61,31 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   }))
 
   const balances = calculateBalances(optimizerExpenses)
-  const rawTransfers = optimizeTransfers(balances.map(b => ({ ...b })))
+  const balancesMap = new Map(balances.map(b => [b.user_id, b.net_balance]))
 
-  const userIds = [...new Set([...balances.map(b => b.user_id), ...rawTransfers.map(t => t.from_user), ...rawTransfers.map(t => t.to_user)])]
+  // Subtract manual payments from net balance
+  const { data: manualPayments } = await db.from('split_expenses_transfers')
+    .select('*')
+    .eq('expense_group_id', expenseGroupId)
+    .eq('is_manual', true)
+    .eq('status', 'completed')
+
+  if (manualPayments) {
+    for (const p of manualPayments) {
+      const from = balancesMap.get(p.from_user) ?? 0
+      const to = balancesMap.get(p.to_user) ?? 0
+      balancesMap.set(p.from_user, from - parseFloat(p.amount))
+      balancesMap.set(p.to_user, to + parseFloat(p.amount))
+    }
+  }
+
+  const adjustedBalances = Array.from(balancesMap.entries())
+    .filter(([_, amount]) => Math.abs(amount) > 0.01)
+    .map(([user_id, net_balance]) => ({ user_id, net_balance: Math.round(net_balance * 100) / 100 }))
+
+  const rawTransfers = optimizeTransfers(adjustedBalances.map(b => ({ ...b })))
+
+  const userIds = [...new Set([...adjustedBalances.map(b => b.user_id), ...rawTransfers.map(t => t.from_user), ...rawTransfers.map(t => t.to_user)])]
   const { data: profiles } = await db.from('profiles')
     .select('id, display_name')
     .in('id', userIds)
@@ -71,7 +93,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const profileMap = new Map((profiles ?? []).map(p => [p.id, p.display_name]))
 
   const result = {
-    balances: balances.map(b => ({ ...b, display_name: profileMap.get(b.user_id) ?? null })),
+    balances: adjustedBalances.map(b => ({ ...b, display_name: profileMap.get(b.user_id) ?? null })),
     transfers: rawTransfers.map(t => ({
       ...t, from_name: profileMap.get(t.from_user) ?? null, to_name: profileMap.get(t.to_user) ?? null,
     })),

@@ -110,7 +110,9 @@
     "by": "von",
     "noSettlements": "Keine Abrechnungen",
     "expenseCount": "{count, plural, one {# Ausgabe} other {# Ausgaben}}",
-    "transferCount": "{count, plural, one {# Überweisung} other {# Überweisungen}}"
+    "transferCount": "{count, plural, one {# Überweisung} other {# Überweisungen}}",
+    "recordPayment": "Als bezahlt markieren",
+    "paymentRecorded": "Zahlung aufgezeichnet"
   },
   "member": {
     "list": {

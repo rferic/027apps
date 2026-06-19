@@ -118,7 +118,9 @@
     "by": "by",
     "noSettlements": "No settlements yet",
     "expenseCount": "{count, plural, one {# expense} other {# expenses}}",
-    "transferCount": "{count, plural, one {# transfer} other {# transfers}}"
+    "transferCount": "{count, plural, one {# transfer} other {# transfers}}",
+    "recordPayment": "Record as paid",
+    "paymentRecorded": "Payment recorded"
   },
   "member": {
     "list": {
