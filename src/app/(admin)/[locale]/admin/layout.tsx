@@ -67,7 +67,7 @@ export default async function AdminLayout({ children, params }: Props) {
   }
 
   return (
-    <NextIntlClientProvider messages={messages} getMessageFallback={({key}) => key}>
+    <NextIntlClientProvider messages={messages}>
       <AdminMobileProvider>
         <AdminOverflowReset />
         <Toaster theme="light" position="bottom-right" />
