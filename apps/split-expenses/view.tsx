@@ -464,6 +464,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   const [filterPaidBy, setFilterPaidBy] = useState('')
   const [draftTags, setDraftTags] = useState<string[]>([])
   const [draftPaidBy, setDraftPaidBy] = useState('')
+  const [draftSettled, setDraftSettled] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [viewMode, setViewMode] = useState<'all' | 'my'>(() => {
     if (typeof window !== 'undefined') return (localStorage.getItem('split-expenses-view') as 'all' | 'my') || 'my'
@@ -498,11 +499,12 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   }, [loadMore])
 
   function openFilters() {
-    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setShowFilters(true)
+    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setDraftSettled(showSettled); setShowFilters(true)
   }
 
   function applyFilters() {
     setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setShowFilters(false); onPageChange(1)
+    if (draftSettled !== showSettled) onToggleSettled()
   }
 
   function toggleDraftTag(tagId: string) {
@@ -541,7 +543,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
             </span>
           )})()}
           {activeFilters > 0 && (
-            <button onClick={() => { setFilterTags([]); setFilterPaidBy(''); if (showSettled) onToggleSettled(); onPageChange(1) }} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">
+            <button onClick={() => { setFilterTags([]); setFilterPaidBy(''); if (showSettled) { onToggleSettled() }; onPageChange(1) }} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">
               {t('expense.list.clearFilters')}
             </button>
           )}
@@ -605,7 +607,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
             <div className="mb-5">
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-foreground">{t('expense.list.settled')}</span>
-                <DsToggle color="#10B981" checked={showSettled} onChange={onToggleSettled} />
+                <DsToggle color="#10B981" checked={draftSettled} onChange={v => setDraftSettled(v)} />
               </div>
             </div>
 
