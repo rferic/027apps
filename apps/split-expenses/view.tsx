@@ -1036,6 +1036,18 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
   const [historyHasMore, setHistoryHasMore] = useState(true)
   const HISTORY_LIMIT = 10
 
+  async function handleSettle() {
+    if (!ctx.groupSlug) return
+    setSettling(true)
+    try {
+      await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/settlements`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      })
+      setShowSettleConfirm(false)
+      ;(onSettle || onRefresh)()
+    } catch {} finally { setSettling(false) }
+  }
+
   async function fetchSettleHistory(page = 1) {
     if (!ctx.groupSlug) return
     if (page === 1) setShowHistory(true)
@@ -1103,7 +1115,7 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
 
       <DsButton variant="ghost" onClick={openHistory} style={{ fontSize: 12, textDecoration: 'underline' }}>{t('balance.history')}</DsButton>
 
-      <DsModal open={showSettleConfirm} onClose={() => setShowSettleConfirm(false)} title={t('balance.confirmTitle')}>
+        <DsModal open={showSettleConfirm} onClose={() => setShowSettleConfirm(false)} title={t('balance.confirmTitle')}>
         <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>{t('balance.confirmMessage', { count: transfers.length })}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
           {transfers.map((tr, i) => (
@@ -1112,17 +1124,7 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <DsButton variant="ghost" onClick={() => setShowSettleConfirm(false)}>{t('expense.create.cancel')}</DsButton>
-          <DsButton color="#10B981" disabled={settling} onClick={async () => {
-            if (!ctx.groupSlug) return
-            setSettling(true)
-            try {
-              await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${expense.expense_group_id}/settlements`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ expense_ids: [expense.id] }),
-              })
-              onSettled()
-            } catch {} finally { setSettling(false) }
-          }}>
+          <DsButton color="#10B981" disabled={settling} onClick={handleSettle}>
             {settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}
           </DsButton>
         </div>
