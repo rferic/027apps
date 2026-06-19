@@ -314,6 +314,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const [showCreateExpense, setShowCreateExpense] = useState(false)
   const [expensePage, setExpensePage] = useState(1)
   const [expenseTotalPages, setExpenseTotalPages] = useState(1)
+  const [expensesLoading, setExpensesLoading] = useState(false)
   const [showSettled, setShowSettled] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('se-show-settled') === 'true'
     return false
@@ -360,8 +361,10 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
     if (!ctx.groupSlug) return
     if (expensePage <= 1 && !showSettled) return  // initial load handled by main fetch
     ;(async () => {
+      if (expensePage <= 1) setExpensesLoading(true)
       const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=${expensePage}${!showSettled ? '&settled=false' : ''}`)
       if (res.ok) { const r = await res.json(); setExpenses((prev: Expense[]) => expensePage <= 1 ? (r.data ?? []) : [...prev, ...(r.data ?? [])]); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
+      setExpensesLoading(false)
     })()
   }, [expensePage, showSettled])
 
@@ -431,7 +434,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         ))}
       </div>
 
-      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} showSettled={showSettled} onToggleSettled={() => { setShowSettled(v => { const next = !v; localStorage.setItem('se-show-settled', String(next)); return next }) }} />}
+      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} showSettled={showSettled} onToggleSettled={() => { setShowSettled(v => { const next = !v; localStorage.setItem('se-show-settled', String(next)); return next }) }} expensesLoading={expensesLoading} />}
       {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} onSettle={() => setRefreshKey(k => k + 1)} />}
       {tab === 'stats' && <StatsTab statsData={statsData} tags={tags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
       {tab === 'settings' && <SettingsTab groupId={groupId} group={group} tags={tags} loading={dataLoading} onRefresh={handleRefresh} availableMembers={availableMembers} onMembersUpdate={handleMembersUpdate} />}
@@ -448,7 +451,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void;
   showCreate: boolean; onShowCreate: (v: boolean) => void;
   page: number; totalPages: number; onPageChange: (p: number) => void;
-  showSettled: boolean; onToggleSettled: () => void;
+  showSettled: boolean; onToggleSettled: () => void; expensesLoading?: boolean;
 }) {
   const locale = useLocale()
   const t = useTranslations('apps.split-expenses')
@@ -516,10 +519,13 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'all' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >{t('expense.list.all')}</button>
         </div>
-        <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
-          <Filter size={14} /> {t('expense.list.filters')}
-          {activeFilters > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[10px] font-bold rounded-full" style={{ backgroundColor: '#10B981', color: 'white' }}>{activeFilters}</span>}
-        </button>
+        <div className="flex items-center gap-2">
+          {expensesLoading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
+          <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
+            <Filter size={14} /> {t('expense.list.filters')}
+            {activeFilters > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[10px] font-bold rounded-full" style={{ backgroundColor: '#10B981', color: 'white' }}>{activeFilters}</span>}
+          </button>
+        </div>
       </div>
       {activeFilters > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4">
