@@ -63,7 +63,7 @@ export default async function AdminDashboard({ params }: Props) {
         <AdminStatCard label={t('statsApps')} value={stats.installedApps} href={`${base}/apps`} sublabel={`${stats.totalApps} ${t('statsAppsSublabel')}`} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <DsCard padding="md" hover={false}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>{t('recentUsers')}</h2>
