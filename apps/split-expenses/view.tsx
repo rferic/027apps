@@ -446,7 +446,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
 // ─── Expenses Tab ───────────────────────────────────────────────────────
 
-function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, showCreate, onShowCreate, page, totalPages, onPageChange, showSettled, onToggleSettled }: {
+function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, showCreate, onShowCreate, page, totalPages, onPageChange, showSettled, onToggleSettled, expensesLoading }: {
   groupId: string; expenses: Expense[]; tags: Tag[]; currentUserId: string;
   members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void;
   showCreate: boolean; onShowCreate: (v: boolean) => void;
@@ -608,7 +608,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
               </div>
             </div>
 
-            <button onClick={() => { setShowFilters(false) }} className="w-full py-3 text-sm font-semibold text-white rounded-xl cursor-pointer shadow-sm transition-colors" style={{ backgroundColor: '#10B981' }}>
+            <button onClick={applyFilters} className="w-full py-3 text-sm font-semibold text-white rounded-xl cursor-pointer shadow-sm transition-colors" style={{ backgroundColor: '#10B981' }}>
               {t('expense.list.filters')}
             </button>
           </div>
