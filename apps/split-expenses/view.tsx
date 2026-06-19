@@ -356,12 +356,13 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
     })()
   }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId])
 
+  const initialExpensesLoaded = useRef(false)
   // Fetch expenses (appends on page scroll, replaces on filter change)
   useEffect(() => {
     if (!ctx.groupSlug) return
-    if (expensePage <= 1 && !showSettled) return  // initial load handled by main fetch
+    if (!initialExpensesLoaded.current) { initialExpensesLoaded.current = true; return }  // initial load handled by main fetch
     ;(async () => {
-      if (expensePage <= 1) setExpensesLoading(true)
+      setExpensesLoading(true)
       const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=${expensePage}${!showSettled ? '&settled=false' : ''}`)
       if (res.ok) { const r = await res.json(); setExpenses((prev: Expense[]) => expensePage <= 1 ? (r.data ?? []) : [...prev, ...(r.data ?? [])]); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
       setExpensesLoading(false)
