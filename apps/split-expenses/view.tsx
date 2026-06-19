@@ -314,7 +314,10 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const [showCreateExpense, setShowCreateExpense] = useState(false)
   const [expensePage, setExpensePage] = useState(1)
   const [expenseTotalPages, setExpenseTotalPages] = useState(1)
-  const [showSettled, setShowSettled] = useState(false)
+  const [showSettled, setShowSettled] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('se-show-settled') === 'true'
+    return false
+  })
   const [statsPeriod, setStatsPeriod] = useState('month')
   const [statsTagId, setStatsTagId] = useState('')
   const [statsLoading, setStatsLoading] = useState(true)
@@ -350,14 +353,15 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       } catch { setFetchError(true) }
       finally { setLoading(false); setDataLoading(false); setStatsLoading(false) }
     })()
-  }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId, showSettled])
+  }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId])
 
-  // Separate fetch for expense pagination (appends data for infinite scroll)
+  // Fetch expenses (appends on page scroll, replaces on filter change)
   useEffect(() => {
-    if (!ctx.groupSlug || expensePage <= 1) return
+    if (!ctx.groupSlug) return
+    if (expensePage <= 1 && !showSettled) return  // initial load handled by main fetch
     ;(async () => {
       const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=${expensePage}${!showSettled ? '&settled=false' : ''}`)
-      if (res.ok) { const r = await res.json(); setExpenses(prev => [...prev, ...(r.data ?? [])]); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
+      if (res.ok) { const r = await res.json(); setExpenses((prev: Expense[]) => expensePage <= 1 ? (r.data ?? []) : [...prev, ...(r.data ?? [])]); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
     })()
   }, [expensePage, showSettled])
 
@@ -427,7 +431,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         ))}
       </div>
 
-      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} showSettled={showSettled} onToggleSettled={() => setShowSettled(v => !v)} />}
+      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} showSettled={showSettled} onToggleSettled={() => { setShowSettled(v => { const next = !v; localStorage.setItem('se-show-settled', String(next)); return next }) }} />}
       {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} onSettle={() => setRefreshKey(k => k + 1)} />}
       {tab === 'stats' && <StatsTab statsData={statsData} tags={tags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
       {tab === 'settings' && <SettingsTab groupId={groupId} group={group} tags={tags} loading={dataLoading} onRefresh={handleRefresh} availableMembers={availableMembers} onMembersUpdate={handleMembersUpdate} />}
