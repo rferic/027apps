@@ -2,7 +2,7 @@ import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import type { HandlerContext } from '@/lib/apps/router-types'
 
-const DEFAULT_LIMIT = 20
+const DEFAULT_LIMIT = 50
 const MAX_LIMIT = 500
 
 export default async function handler(req: Request, ctx: HandlerContext) {
@@ -16,25 +16,21 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const dateStart = url.searchParams.get('date_start')
   const dateEnd = url.searchParams.get('date_end')
   const paidBy = url.searchParams.get('paid_by')
-  const settled = url.searchParams.get('settled')
   const sort = url.searchParams.get('sort') || 'newest'
 
   const db = createAdminClientUntyped()
 
-  // Verify user is a member of this expense group
   const { data: membership } = await db.from('split_expenses_members')
     .select('id').eq('expense_group_id', expenseGroupId).eq('user_id', ctx.userId).single()
   if (!membership) return apiError('FORBIDDEN', 'Not a member of this expense group', 403)
 
-  let query = db.from('split_expenses_expenses').select('id, paid_by, amount, title, settled, tag_id, created_by, created_at, expense_group_id', { count: 'exact' })
+  let query = db.from('split_expenses_expenses').select('id, paid_by, amount, title, tag_id, created_by, created_at, expense_group_id', { count: 'exact' })
     .eq('expense_group_id', expenseGroupId)
 
   if (tagId) query = query.eq('tag_id', tagId)
   if (dateStart) query = query.gte('created_at', dateStart)
   if (dateEnd) query = query.lte('created_at', dateEnd)
   if (paidBy) query = query.eq('paid_by', paidBy)
-  if (settled === 'true') query = query.eq('settled', true)
-  else if (settled === 'false') query = query.eq('settled', false)
 
   if (sort === 'oldest') query = query.order('created_at', { ascending: true })
   else if (sort === 'amount_asc') query = query.order('amount', { ascending: true })
@@ -47,7 +43,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const { data: rows, error, count } = await query
   if (error) return apiError('QUERY_ERROR', error.message, 500)
 
-  // Load all related data in parallel (2 queries instead of 3)
   const expenseIds = (rows ?? []).map(e => e.id)
   const [sharesResult, profilesResult] = await Promise.all([
     expenseIds.length > 0
@@ -68,7 +63,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     sharesByExpense.set(share.expense_id, list)
   }
 
-  // Collect all user IDs from shares for profile enrichment
   const allUserIds = [...new Set(allShares.map(s => s.user_id))]
   if (allUserIds.length > 0 && !allUserIds.every(id => profileMap.has(id))) {
     const { data: extraProfiles } = await db.from('profiles')

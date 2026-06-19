@@ -50,7 +50,10 @@
       "my": "Le mie spese",
       "all": "Tutti",
       "clearFilters": "Cancella filtri",
-      "settled": "Mostra saldati"
+      "settled": "Mostra saldati",
+      "typeExpenses": "Spese",
+      "typeTransfers": "Trasferimenti",
+      "typeAll": "Tutto"
     },
     "create": {
       "title": "Nuova spesa",
@@ -249,5 +252,10 @@
     "error": "Impossibile caricare",
     "allSettled": "Tutto saldato!",
     "viewDetails": "Vedi dettagli"
+  },
+  "transfer": {
+    "item": {
+      "manual": "Manuale"
+    }
   }
 }

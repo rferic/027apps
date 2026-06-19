@@ -50,7 +50,10 @@
       "my": "Les meves despeses",
       "all": "Totes",
       "clearFilters": "Neteja filtres",
-      "settled": "Mostrar liquidats"
+      "settled": "Mostrar liquidats",
+      "typeExpenses": "Despeses",
+      "typeTransfers": "Transferències",
+      "typeAll": "Tot"
     },
     "create": {
       "title": "Nova despesa",
@@ -249,5 +252,10 @@
     "error": "No s'ha pogut carregar",
     "allSettled": "Tot liquidat!",
     "viewDetails": "Veure detall"
+  },
+  "transfer": {
+    "item": {
+      "manual": "Manual"
+    }
   }
 }

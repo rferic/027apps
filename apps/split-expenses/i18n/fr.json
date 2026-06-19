@@ -50,7 +50,10 @@
       "my": "Mes dépenses",
       "all": "Toutes",
       "clearFilters": "Effacer les filtres",
-      "settled": "Afficher soldés"
+      "settled": "Afficher soldés",
+      "typeExpenses": "Dépenses",
+      "typeTransfers": "Virements",
+      "typeAll": "Tout"
     },
     "create": {
       "title": "Nouvelle dépense",
@@ -249,5 +252,10 @@
     "error": "Impossible de charger",
     "allSettled": "Tout est soldé !",
     "viewDetails": "Voir les détails"
+  },
+  "transfer": {
+    "item": {
+      "manual": "Manuel"
+    }
   }
 }

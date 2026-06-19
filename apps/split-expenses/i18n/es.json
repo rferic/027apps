@@ -50,7 +50,10 @@
       "my": "Mis gastos",
       "all": "Todos",
       "clearFilters": "Limpiar filtros",
-      "settled": "Mostrar liquidados"
+      "settled": "Mostrar liquidados",
+      "typeExpenses": "Gastos",
+      "typeTransfers": "Transferencias",
+      "typeAll": "Todo"
     },
     "create": {
       "title": "Nuevo gasto",
@@ -249,5 +252,10 @@
     "error": "No se pudo cargar",
     "allSettled": "¡Todo liquidado!",
     "viewDetails": "Ver detalle"
+  },
+  "transfer": {
+    "item": {
+      "manual": "Manual"
+    }
   }
 }

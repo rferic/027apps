@@ -54,7 +54,6 @@ create table split_expenses_expenses (
   amount            numeric(12,2) not null check (amount > 0),
   paid_by           uuid not null references auth.users(id),
   tag_id            uuid references split_expenses_tags(id) on delete set null,
-  settled           boolean not null default false,
   created_by        uuid not null references auth.users(id) on delete cascade,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
@@ -79,13 +78,6 @@ create table split_expenses_settlements (
   settled_by        uuid not null references auth.users(id),
   note              text,
   created_at        timestamptz not null default now()
-);
-
-create table split_expenses_settlement_items (
-  id            uuid primary key default gen_random_uuid(),
-  settlement_id uuid not null references split_expenses_settlements(id) on delete cascade,
-  expense_id    uuid not null references split_expenses_expenses(id) on delete cascade,
-  unique (settlement_id, expense_id)
 );
 
 -- ─── Transfers ──────────────────────────────────────────────────────────────
@@ -113,11 +105,9 @@ create index idx_se_tags_expense_group on split_expenses_tags(expense_group_id);
 create index idx_se_expenses_expense_group on split_expenses_expenses(expense_group_id);
 create index idx_se_expenses_paid_by on split_expenses_expenses(paid_by);
 create index idx_se_expenses_tag on split_expenses_expenses(tag_id);
-create index idx_se_expenses_settled on split_expenses_expenses(expense_group_id, settled);
 create index idx_se_shares_expense on split_expenses_shares(expense_id);
 create index idx_se_shares_user on split_expenses_shares(user_id);
 create index idx_se_settlements_expense_group on split_expenses_settlements(expense_group_id);
-create index idx_se_settlement_items_settlement on split_expenses_settlement_items(settlement_id);
 create index idx_se_transfers_expense_group on split_expenses_transfers(expense_group_id);
 create index idx_se_transfers_settlement on split_expenses_transfers(settlement_id);
 create index idx_se_transfers_from on split_expenses_transfers(from_user);
@@ -131,7 +121,6 @@ alter table split_expenses_tags enable row level security;
 alter table split_expenses_expenses enable row level security;
 alter table split_expenses_shares enable row level security;
 alter table split_expenses_settlements enable row level security;
-alter table split_expenses_settlement_items enable row level security;
 alter table split_expenses_transfers enable row level security;
 
 -- Helper: check if user is a member of the parent 027apps group
@@ -299,28 +288,6 @@ create policy "Group members can create settlements"
 create policy "Creator or admin can delete settlements"
   on split_expenses_settlements for delete
   using (split_expenses_is_creator_or_admin(expense_group_id));
-
--- ── Settlement items ───────────────────────────────────────────────────
-
-create policy "Group members can view settlement items"
-  on split_expenses_settlement_items for select
-  using (
-    exists (
-      select 1 from split_expenses_settlements s
-      where s.id = split_expenses_settlement_items.settlement_id
-      and split_expenses_is_group_member(s.expense_group_id)
-    )
-  );
-
-create policy "Group members can create settlement items"
-  on split_expenses_settlement_items for insert
-  with check (
-    exists (
-      select 1 from split_expenses_settlements s
-      where s.id = split_expenses_settlement_items.settlement_id
-      and split_expenses_is_group_member(s.expense_group_id)
-    )
-  );
 
 -- ── Transfers ──────────────────────────────────────────────────────────
 

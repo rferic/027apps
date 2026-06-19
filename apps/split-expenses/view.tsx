@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ChevronDown, Filter, Send } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ChevronDown, Filter } from 'lucide-react'
 import { DsButton } from '@/components/ds/button'
 import { DsModal } from '@/components/ds/modal'
 import { DsCard } from '@/components/ds/card'
@@ -96,7 +96,7 @@ interface Member {
 
 interface Expense {
   id: string; expense_group_id: string; title: string; amount: number;
-  paid_by: string; tag_id: string | null; settled: boolean;
+  paid_by: string; tag_id: string | null;
   created_by: string; created_at: string;
   paid_by_profile?: { display_name: string | null } | null;
   shares?: Share[]
@@ -315,10 +315,6 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const [expensePage, setExpensePage] = useState(1)
   const [expenseTotalPages, setExpenseTotalPages] = useState(1)
   const [expensesLoading, setExpensesLoading] = useState(false)
-  const [showSettled, setShowSettled] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('se-show-settled') === 'true'
-    return false
-  })
   const [statsPeriod, setStatsPeriod] = useState('month')
   const [statsTagId, setStatsTagId] = useState('')
   const [statsLoading, setStatsLoading] = useState(true)
@@ -331,7 +327,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
       try {
         const [groupRes, expRes, tagRes, balRes, memRes, sessionRes, statsRes] = await Promise.all([
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}`),
-          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=1${!showSettled ? '&settled=false' : ''}`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=1`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`),
           fetchWithAuth(`/api/v1/${ctx.groupSlug}/members`),
@@ -363,11 +359,11 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
     if (!initialExpensesLoaded.current) { initialExpensesLoaded.current = true; return }  // initial load handled by main fetch
     ;(async () => {
       setExpensesLoading(true)
-      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=${expensePage}${!showSettled ? '&settled=false' : ''}`)
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=${expensePage}`)
       if (res.ok) { const r = await res.json(); setExpenses((prev: Expense[]) => expensePage <= 1 ? (r.data ?? []) : [...prev, ...(r.data ?? [])]); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
       setExpensesLoading(false)
     })()
-  }, [expensePage, showSettled])
+  }, [expensePage])
 
   // Derived: members of the parent group not yet in this expense group
   const availableMembers = allMembers.filter(am => {
@@ -435,7 +431,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         ))}
       </div>
 
-      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} showSettled={showSettled} onToggleSettled={() => { setShowSettled(v => { const next = !v; localStorage.setItem('se-show-settled', String(next)); return next }) }} expensesLoading={expensesLoading} />}
+      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} expensesLoading={expensesLoading} />}
       {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} onSettle={() => setRefreshKey(k => k + 1)} />}
       {tab === 'stats' && <StatsTab statsData={statsData} tags={tags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
       {tab === 'settings' && <SettingsTab groupId={groupId} group={group} tags={tags} loading={dataLoading} onRefresh={handleRefresh} availableMembers={availableMembers} onMembersUpdate={handleMembersUpdate} />}
@@ -447,13 +443,14 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
 // ─── Expenses Tab ───────────────────────────────────────────────────────
 
-function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, showCreate, onShowCreate, page, totalPages, onPageChange, showSettled, onToggleSettled, expensesLoading }: {
+function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, showCreate, onShowCreate, page, totalPages, onPageChange, expensesLoading }: {
   groupId: string; expenses: Expense[]; tags: Tag[]; currentUserId: string;
   members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void;
   showCreate: boolean; onShowCreate: (v: boolean) => void;
   page: number; totalPages: number; onPageChange: (p: number) => void;
-  showSettled: boolean; onToggleSettled: () => void; expensesLoading?: boolean;
+  expensesLoading?: boolean;
 }) {
+  const ctx = useAppContext()
   const locale = useLocale()
   const t = useTranslations('apps.split-expenses')
   const [editExpense, setEditExpense] = useState<Expense | null>(null)
@@ -464,12 +461,24 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   const [filterPaidBy, setFilterPaidBy] = useState('')
   const [draftTags, setDraftTags] = useState<string[]>([])
   const [draftPaidBy, setDraftPaidBy] = useState('')
-  const [draftSettled, setDraftSettled] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [viewMode, setViewMode] = useState<'all' | 'my'>(() => {
     if (typeof window !== 'undefined') return (localStorage.getItem('split-expenses-view') as 'all' | 'my') || 'my'
     return 'my'
   })
+  const [contentType, setContentType] = useState<'expenses' | 'transfers' | 'all'>('expenses')
+  const [transfersList, setTransfersList] = useState<any[]>([])
+  const [transfersLoading, setTransfersLoading] = useState(false)
+
+  useEffect(() => {
+    if (!ctx.groupSlug || contentType === 'expenses') return
+    setTransfersLoading(true)
+    ;(async () => {
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/transfers?limit=50&page=1`)
+      if (res.ok) { const r = await res.json(); setTransfersList(r.data ?? []) }
+      setTransfersLoading(false)
+    })()
+  }, [contentType, ctx.groupSlug, groupId])
 
   const filteredExpenses = expenses.filter(e => {
     if (viewMode === 'my' && currentUserId) {
@@ -481,7 +490,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
     return true
   })
 
-  const activeFilters = filterTags.length + (filterPaidBy ? 1 : 0) + (showSettled ? 1 : 0)
+  const activeFilters = filterTags.length + (filterPaidBy ? 1 : 0)
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const hasMore = page < totalPages
@@ -499,12 +508,11 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   }, [loadMore])
 
   function openFilters() {
-    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setDraftSettled(showSettled); setShowFilters(true)
+    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setShowFilters(true)
   }
 
   function applyFilters() {
     setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setShowFilters(false); onPageChange(1)
-    if (draftSettled !== showSettled) onToggleSettled()
   }
 
   function toggleDraftTag(tagId: string) {
@@ -514,13 +522,24 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-1 bg-muted rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
           <button onClick={() => { setViewMode('my'); localStorage.setItem('split-expenses-view', 'my'); onPageChange(1) }}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'my' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >{t('expense.list.my')}</button>
           <button onClick={() => { setViewMode('all'); localStorage.setItem('split-expenses-view', 'all'); onPageChange(1) }}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'all' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >{t('expense.list.all')}</button>
+        </div>
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+          <button onClick={() => setContentType('expenses')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${contentType === 'expenses' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >{t('expense.list.typeExpenses')}</button>
+          <button onClick={() => setContentType('transfers')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${contentType === 'transfers' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >{t('expense.list.typeTransfers')}</button>
+          <button onClick={() => setContentType('all')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${contentType === 'all' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >{t('expense.list.typeAll')}</button>
         </div>
         <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
           <Filter size={14} /> {t('expense.list.filters')}
@@ -540,7 +559,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
             </span>
           )})()}
           {activeFilters > 0 && (
-            <button onClick={() => { setFilterTags([]); setFilterPaidBy(''); if (showSettled) { onToggleSettled() }; onPageChange(1) }} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">
+            <button onClick={() => { setFilterTags([]); setFilterPaidBy(''); onPageChange(1) }} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">
               {t('expense.list.clearFilters')}
             </button>
           )}
@@ -601,13 +620,6 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
               </div>
             </div>
 
-            <div className="mb-5">
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-foreground">{t('expense.list.settled')}</span>
-                <DsToggle color="#10B981" checked={draftSettled} onChange={v => setDraftSettled(v)} />
-              </div>
-            </div>
-
             <button onClick={applyFilters} className="w-full py-3 text-sm font-semibold text-white rounded-xl cursor-pointer shadow-sm transition-colors" style={{ backgroundColor: '#10B981' }}>
               {t('expense.list.filters')}
             </button>
@@ -619,6 +631,94 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
         <div className="py-8"><DsSkeleton height={60} count={4} /></div>
       ) : expensesLoading ? (
         <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-muted-foreground" /></div>
+      ) : contentType === 'transfers' ? (
+        transfersLoading ? (
+          <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-muted-foreground" /></div>
+        ) : transfersList.length === 0 ? (
+          <DsEmptyState title={t('expense.list.empty')} />
+        ) : (
+          <div className="space-y-1">
+            {transfersList.map((tr: any) => (
+              <DsCard key={tr.id} padding="sm" hover={false}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <ArrowLeftRight className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                  <span style={{ fontSize: 13, color: 'var(--color-text)' }}>
+                    {tr.from_name ?? t('common.unknown')} {t('balance.pays')} {tr.to_name ?? t('common.unknown')}
+                  </span>
+                  <span style={{ marginLeft: 'auto', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>
+                    {formatAmount(Number(tr.amount), currency)}
+                  </span>
+                  {tr.is_manual && (
+                    <DsBadge variant="neutral" style={{ fontSize: 10 }}>{t('transfer.item.manual')}</DsBadge>
+                  )}
+                </div>
+              </DsCard>
+            ))}
+          </div>
+        )
+      ) : contentType === 'all' ? (
+        <div>
+          {(() => {
+            const allItems = [
+              ...filteredExpenses.map(e => ({ ...e, _type: 'expense' as const })),
+              ...transfersList.map((t: any) => ({ _type: 'transfer' as const, id: t.id, created_at: t.created_at, from_name: t.from_name, to_name: t.to_name, amount: t.amount, is_manual: t.is_manual })),
+            ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+            if (allItems.length === 0) return <DsEmptyState title={t('expense.list.empty')} />
+
+            const grouped: Record<string, typeof allItems> = {}
+            for (const item of allItems) {
+              const d = new Date(item.created_at)
+              const key = `${d.getFullYear()}-${d.getMonth()}`
+              if (!grouped[key]) grouped[key] = []
+              grouped[key].push(item)
+            }
+            return Object.entries(grouped).map(([key, items]) => {
+              const [year, month] = key.split('-').map(Number)
+              const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+              return (
+                <div key={key} className="mb-6">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{monthNames[month]} {year}</h3>
+                  <div className="space-y-1">
+                    {items.map(item => item._type === 'transfer' ? (
+                      <DsCard key={item.id} padding="sm" hover={false}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <ArrowLeftRight className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                          <span style={{ fontSize: 13, color: 'var(--color-text)' }}>
+                            {(item as any).from_name ?? t('common.unknown')} {t('balance.pays')} {(item as any).to_name ?? t('common.unknown')}
+                          </span>
+                          <span style={{ marginLeft: 'auto', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>
+                            {formatAmount(Number((item as any).amount), currency)}
+                          </span>
+                          {(item as any).is_manual && (
+                            <DsBadge variant="neutral" style={{ fontSize: 10 }}>{t('transfer.item.manual')}</DsBadge>
+                          )}
+                        </div>
+                      </DsCard>
+                    ) : (
+                      <DsCard key={(item as any).id} padding="sm" hover onClick={() => setDetailExpense(item as any)}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-secondary)', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0 }}>
+                            {new Date((item as any).created_at).getDate()}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', margin: 0 }}>{(item as any).title}</p>
+                            <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
+                              {(item as any).paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} {formatAmount((item as any).amount, currency)}
+                            </p>
+                          </div>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>
+                            {formatAmount((item as any).amount, currency)}
+                          </span>
+                        </div>
+                      </DsCard>
+                    ))}
+                  </div>
+                </div>
+              )
+            })
+          })()}
+        </div>
       ) : filteredExpenses.length === 0 ? (
         <DsEmptyState title={t('expense.list.empty')} />
       ) : (
@@ -646,35 +746,33 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
                       const involvementColor = involvementAmount !== null ? (iPaid ? '#10B981' : '#F97316') : 'var(--color-text)'
                       const day = new Date(e.created_at).getDate()
                       return (
-                        <div key={e.id} style={e.settled ? { background: 'var(--color-muted)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--color-border)' } : {}}>
-                          <DsCard padding="sm" hover={!e.settled} onClick={() => setDetailExpense(e)} style={e.settled ? { background: 'transparent', border: 'none', opacity: 0.75 } : {}}>
+                        <div key={e.id}>
+                          <DsCard padding="sm" hover onClick={() => setDetailExpense(e)}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text-secondary)', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0, opacity: e.settled ? 0.6 : 1 }}>{day}</span>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-secondary)', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0 }}>{day}</span>
                               <div className="flex-1 min-w-0">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <p style={{ fontSize: 13, fontWeight: 500, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', textDecoration: e.settled ? 'line-through' : 'none', margin: 0 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', margin: 0 }}>
                                     {e.title}
                                   </p>
-                                  {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: 10, opacity: e.settled ? 0.5 : 1 }}>{tag.name}</DsBadge>}
+                                  {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: 10 }}>{tag.name}</DsBadge>}
                                 </div>
-                                <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0', textDecoration: e.settled ? 'line-through' : 'none', opacity: e.settled ? 0.6 : 1 }}>
+                                <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
                                   {e.paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} {formatAmount(e.amount, currency)}
                                 </p>
                               </div>
                               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                                 {involvementAmount !== null ? (
-                                  <p style={{ fontSize: 13, fontWeight: 700, color: e.settled ? 'var(--color-text-secondary)' : involvementColor, margin: 0, textDecoration: e.settled ? 'line-through' : 'none', opacity: e.settled ? 0.6 : 1 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 700, color: involvementColor, margin: 0 }}>
                                     {iPaid ? `+${formatAmount(involvementAmount, currency)}` : `-${formatAmount(involvementAmount, currency)}`}
                                   </p>
                                 ) : (
-                                  <p style={{ fontSize: 13, fontWeight: 600, color: e.settled ? 'var(--color-text-secondary)' : 'var(--color-text)', margin: 0, textDecoration: e.settled ? 'line-through' : 'none', opacity: e.settled ? 0.6 : 1 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>
                                     {formatAmount(e.amount, currency)}
                                   </p>
                                 )}
                               </div>
-                              {!e.settled && (
-                                <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
-                              )}
+                              <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(e) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
                             </div>
                           </DsCard>
                         </div>
@@ -702,7 +800,6 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
       <ExpenseDetailModal open={!!detailExpense} onClose={() => setDetailExpense(null)}
         expense={detailExpense} group={{ members, currency } as GroupDetail} tags={tags}
         onEdit={() => { const e = detailExpense; setDetailExpense(null); setEditExpense(e) }}
-        onSettled={() => { setDetailExpense(null); onRefresh() }}
         onDeleted={() => { setDetailExpense(null); onRefresh() }} />
     </div>
   )
@@ -883,16 +980,14 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
 
 // ─── Expense Detail Modal ─────────────────────────────────────────────
 
-function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSettled, onDeleted }: {
+function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onDeleted }: {
   open: boolean; onClose: () => void; expense: Expense | null;
   group: GroupDetail; tags: Tag[];
-  onEdit: () => void; onSettled: () => void; onDeleted: () => void;
+  onEdit: () => void; onDeleted: () => void;
 }) {
   const ctx = useAppContext()
   const locale = useLocale()
   const t = useTranslations('apps.split-expenses')
-  const [settling, setSettling] = useState(false)
-  const [showSettleConfirm, setShowSettleConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -929,42 +1024,10 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
             </div>
           )}
 
-          {!expense.settled && (
-            <DsButton color="#10B981" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowSettleConfirm(true)}>
-              <Send size={16} /> {t('balance.settle')}
-            </DsButton>
-          )}
-
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 8, borderTop: '1px solid var(--color-border)' }}>
-            {!expense.settled ? (
-              <>
-                <DsButton variant="ghost" onClick={onEdit}><Pencil size={16} /></DsButton>
-                <DsButton variant="ghost" style={{ color: '#EF4444' }} onClick={() => setShowDeleteConfirm(true)}><Trash2 size={16} /></DsButton>
-              </>
-            ) : (
-              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{t('expense.item.settled')}</span>
-            )}
+            <DsButton variant="ghost" onClick={onEdit}><Pencil size={16} /></DsButton>
+            <DsButton variant="ghost" style={{ color: '#EF4444' }} onClick={() => setShowDeleteConfirm(true)}><Trash2 size={16} /></DsButton>
           </div>
-        </div>
-      </DsModal>
-
-      <DsModal open={showSettleConfirm} onClose={() => setShowSettleConfirm(false)} title={t('balance.confirmTitle')}>
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 16 }}>{t('balance.confirmMessage', { count: 1 })}</p>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <DsButton variant="ghost" onClick={() => setShowSettleConfirm(false)}>{t('common.cancel')}</DsButton>
-          <DsButton color="#10B981" disabled={settling} onClick={async () => {
-            if (!ctx.groupSlug) return
-            setSettling(true)
-            try {
-              await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${expense.expense_group_id}/settlements`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ expense_ids: [expense.id] }),
-              })
-              onSettled()
-            } catch {} finally { setSettling(false) }
-          }}>
-            {settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}
-          </DsButton>
         </div>
       </DsModal>
 
@@ -1165,12 +1228,6 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
               {settleHistory.map((s: any) => (
                 <div key={s.id} style={{ padding: 12, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)' }}>
                   <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: 0 }}>{t('balance.settledOn')} {new Date(s.created_at).toLocaleDateString(locale)} {t('balance.by')} {s.settled_by_name ?? t('common.unknown')}</p>
-                  {s.expenses?.map((item: any) => item.expense ? (
-                    <div key={item.expense_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--color-text)', marginTop: 6, padding: '4px 0', borderTop: '1px solid var(--color-border)' }}>
-                      <span>{item.expense.title}</span>
-                      <span style={{ fontWeight: 500 }}>{formatAmount(Number(item.expense.amount), currency)}</span>
-                    </div>
-                  ) : null)}
                   {s.transfers?.length > 0 && (
                     <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--color-border)' }}>
                       {s.transfers.map((tr: any, i: number) => (

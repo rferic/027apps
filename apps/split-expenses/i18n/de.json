@@ -50,7 +50,10 @@
       "my": "Meine Ausgaben",
       "all": "Alle",
       "clearFilters": "Filter löschen",
-      "settled": "Erledigte anzeigen"
+      "settled": "Erledigte anzeigen",
+      "typeExpenses": "Ausgaben",
+      "typeTransfers": "Überweisungen",
+      "typeAll": "Alle"
     },
     "create": {
       "title": "Neue Ausgabe",
@@ -249,5 +252,10 @@
     "error": "Konnte nicht laden",
     "allSettled": "Alles beglichen!",
     "viewDetails": "Details anzeigen"
+  },
+  "transfer": {
+    "item": {
+      "manual": "Manuell"
+    }
   }
 }

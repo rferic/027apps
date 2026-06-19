@@ -20,33 +20,28 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .select('id').eq('expense_group_id', expenseGroupId).eq('user_id', ctx.userId).single()
   if (!membership) return apiError('FORBIDDEN', 'Not a member', 403)
 
-  // Verify expense group exists
   const { data: group } = await db.from('split_expenses_groups')
     .select('id').eq('id', expenseGroupId).eq('group_id', ctx.groupId).single()
   if (!group) return apiError('NOT_FOUND', 'Expense group not found', 404)
 
-  // Determine which expenses to settle
   let expensesToSettle
   if (Array.isArray(expenseIds) && expenseIds.length > 0) {
     const { data: exps } = await db.from('split_expenses_expenses')
       .select('id, paid_by, amount')
       .eq('expense_group_id', expenseGroupId)
-      .eq('settled', false)
       .in('id', expenseIds)
     expensesToSettle = exps
   } else {
     const { data: exps } = await db.from('split_expenses_expenses')
       .select('id, paid_by, amount')
       .eq('expense_group_id', expenseGroupId)
-      .eq('settled', false)
     expensesToSettle = exps
   }
 
   if (!expensesToSettle || expensesToSettle.length === 0) {
-    return apiError('BAD_REQUEST', 'No unsettled expenses to settle', 400)
+    return apiError('BAD_REQUEST', 'No expenses found', 400)
   }
 
-  // Load shares for optimization
   const settleIds = expensesToSettle.map(e => e.id)
   const { data: allShares } = await db.from('split_expenses_shares')
     .select('*').in('expense_id', settleIds)
@@ -58,7 +53,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     sharesByExpense.set(share.expense_id, list)
   }
 
-  // Build expenses for optimizer
   const optimizerExpenses: Expense[] = expensesToSettle.map(e => ({
     id: e.id,
     paid_by: e.paid_by,
@@ -71,7 +65,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const balances = calculateBalances(optimizerExpenses)
   const transfers = optimizeTransfers(balances)
 
-  // Create settlement record
   const { data: settlement, error: settleErr } = await db.from('split_expenses_settlements').insert({
     expense_group_id: expenseGroupId,
     settled_by: ctx.userId,
@@ -80,19 +73,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   if (settleErr) return apiError('CREATE_FAILED', settleErr.message, 500)
 
-  // Link expenses to settlement
-  const settlementItems = settleIds.map(expenseId => ({
-    settlement_id: settlement.id,
-    expense_id: expenseId,
-  }))
-  await db.from('split_expenses_settlement_items').insert(settlementItems)
-
-  // Mark expenses as settled
-  await db.from('split_expenses_expenses')
-    .update({ settled: true, updated_at: new Date().toISOString() })
-    .in('id', settleIds)
-
-  // Create transfers as completed
   if (transfers.length > 0) {
     const transferRows = transfers.map(t => ({
       expense_group_id: expenseGroupId,

@@ -58,7 +58,9 @@
       "my": "My expenses",
       "all": "All",
       "clearFilters": "Clear filters",
-      "settled": "Show settled"
+      "typeExpenses": "Expenses",
+      "typeTransfers": "Transfers",
+      "typeAll": "All"
     },
     "create": {
       "title": "New expense",
@@ -76,7 +78,6 @@
       "success": "Expense added",
       "updated": "Expense updated",
       "deleted": "Expense deleted",
-      "cantEditSettled": "Cannot edit a settled expense",
       "needParticipants": "Select at least one participant"
     },
     "delete": {
@@ -86,11 +87,7 @@
     },
     "item": {
       "paidBy": "paid",
-      "you": "You",
-      "settled": "Settled",
-      "lent": "Lent",
-      "owe": "Owe",
-      "total": "total"
+      "you": "You"
     }
   },
   "balance": {
@@ -132,8 +129,7 @@
       "makeActive": "Activate",
       "makeInactive": "Deactivate",
       "owes": "owes",
-      "isOwed": "is owed",
-      "settled": "Settled"
+      "isOwed": "is owed"
     },
     "addModal": {
       "title": "Add member",
@@ -160,6 +156,11 @@
       "updated": "Tag updated",
       "deleted": "Tag deleted",
       "confirmDelete": "Are you sure you want to delete this tag?"
+    }
+  },
+  "transfer": {
+    "item": {
+      "manual": "Manual"
     }
   },
   "stats": {

@@ -21,7 +21,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   let query = db.from('split_expenses_expenses')
     .select('amount, created_at')
     .eq('expense_group_id', expenseGroupId)
-    .eq('settled', false)
     .order('created_at', { ascending: true })
 
   if (tagId) query = query.eq('tag_id', tagId)
@@ -29,7 +28,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const { data: expenses, error } = await query
   if (error) return apiError('QUERY_ERROR', error.message, 500)
 
-  // Group by period
   const grouped = new Map<string, number>()
   const now = new Date()
 
@@ -65,7 +63,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     total: Math.round(total * 100) / 100,
   }))
 
-  // Also compute cumulative
   let cumulative = 0
   const cumulativeData = data.map(d => {
     cumulative += d.total

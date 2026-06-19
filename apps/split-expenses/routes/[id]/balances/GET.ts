@@ -17,7 +17,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const { data: expenses } = await db.from('split_expenses_expenses')
     .select('id, paid_by, amount')
     .eq('expense_group_id', expenseGroupId)
-    .eq('settled', false)
 
   if (!expenses || expenses.length === 0) {
     const { data: members } = await db.from('split_expenses_members')
@@ -63,15 +62,14 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const balances = calculateBalances(optimizerExpenses)
   const balancesMap = new Map(balances.map(b => [b.user_id, b.net_balance]))
 
-  // Subtract manual payments from net balance
-  const { data: manualPayments } = await db.from('split_expenses_transfers')
+  // Subtract all completed transfers from net balance
+  const { data: completedTransfers } = await db.from('split_expenses_transfers')
     .select('*')
     .eq('expense_group_id', expenseGroupId)
-    .eq('is_manual', true)
     .eq('status', 'completed')
 
-  if (manualPayments) {
-    for (const p of manualPayments) {
+  if (completedTransfers) {
+    for (const p of completedTransfers) {
       const from = balancesMap.get(p.from_user) ?? 0
       const to = balancesMap.get(p.to_user) ?? 0
       balancesMap.set(p.from_user, from - parseFloat(p.amount))
