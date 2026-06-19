@@ -522,13 +522,10 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'all' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >{t('expense.list.all')}</button>
         </div>
-        <div className="flex items-center gap-2">
-          {expensesLoading && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
-          <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
-            <Filter size={14} /> {t('expense.list.filters')}
-            {activeFilters > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[10px] font-bold rounded-full" style={{ backgroundColor: '#10B981', color: 'white' }}>{activeFilters}</span>}
-          </button>
-        </div>
+        <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
+          <Filter size={14} /> {t('expense.list.filters')}
+          {activeFilters > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[10px] font-bold rounded-full" style={{ backgroundColor: '#10B981', color: 'white' }}>{activeFilters}</span>}
+        </button>
       </div>
       {activeFilters > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4">
@@ -620,6 +617,8 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
 
       {loading ? (
         <div className="py-8"><DsSkeleton height={60} count={4} /></div>
+      ) : expensesLoading ? (
+        <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-muted-foreground" /></div>
       ) : filteredExpenses.length === 0 ? (
         <DsEmptyState title={t('expense.list.empty')} />
       ) : (
