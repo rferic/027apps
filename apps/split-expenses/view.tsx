@@ -1054,17 +1054,6 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
 
   function openHistory() { setSettleHistory([]); fetchSettleHistory(1) }
 
-  async function fetchSettleHistory() {
-    if (!ctx.groupSlug) return
-    try {
-      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/settlements`)
-      if (res.ok) {
-        setSettleHistory(await res.json())
-        setShowHistory(true)
-      }
-    } catch {}
-  }
-
   if (loading) return <div className="py-8"><DsSkeleton height={48} count={4} /></div>
 
   return (
@@ -1123,7 +1112,17 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <DsButton variant="ghost" onClick={() => setShowSettleConfirm(false)}>{t('expense.create.cancel')}</DsButton>
-          <DsButton color="#10B981" disabled={settling} onClick={handleSettle}>
+          <DsButton color="#10B981" disabled={settling} onClick={async () => {
+            if (!ctx.groupSlug) return
+            setSettling(true)
+            try {
+              await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${expense.expense_group_id}/settlements`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ expense_ids: [expense.id] }),
+              })
+              onSettled()
+            } catch {} finally { setSettling(false) }
+          }}>
             {settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}
           </DsButton>
         </div>
