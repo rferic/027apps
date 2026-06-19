@@ -1031,18 +1031,28 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
   const [showSettleConfirm, setShowSettleConfirm] = useState(false)
   const [settleHistory, setSettleHistory] = useState<any[]>([])
   const [showHistory, setShowHistory] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyHasMore, setHistoryHasMore] = useState(true)
+  const HISTORY_LIMIT = 10
 
-  async function handleSettle() {
+  async function fetchSettleHistory(page = 1) {
     if (!ctx.groupSlug) return
-    setSettling(true)
+    if (page === 1) setShowHistory(true)
+    setHistoryLoading(true)
     try {
-      await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/settlements`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
-      })
-      setShowSettleConfirm(false)
-      ;(onSettle || onRefresh)()
-    } catch {} finally { setSettling(false) }
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/settlements?limit=${HISTORY_LIMIT}&page=${page}`)
+      if (res.ok) {
+        const data = await res.json()
+        const list = Array.isArray(data) ? data : data?.data ?? []
+        setSettleHistory(prev => page === 1 ? list : [...prev, ...list])
+        setHistoryHasMore(list.length >= HISTORY_LIMIT)
+        setHistoryPage(page)
+      }
+    } catch {} finally { setHistoryLoading(false) }
   }
+
+  function openHistory() { setSettleHistory([]); fetchSettleHistory(1) }
 
   async function fetchSettleHistory() {
     if (!ctx.groupSlug) return
@@ -1102,7 +1112,7 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
         </div>
       </div>
 
-      <DsButton variant="ghost" onClick={fetchSettleHistory} style={{ fontSize: 12, textDecoration: 'underline' }}>{t('balance.history')}</DsButton>
+      <DsButton variant="ghost" onClick={openHistory} style={{ fontSize: 12, textDecoration: 'underline' }}>{t('balance.history')}</DsButton>
 
       <DsModal open={showSettleConfirm} onClose={() => setShowSettleConfirm(false)} title={t('balance.confirmTitle')}>
         <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>{t('balance.confirmMessage', { count: transfers.length })}</p>
@@ -1121,28 +1131,39 @@ function BalancesTab({ groupId, balances, transfers, currency, loading, onRefres
 
       <DsModal open={showHistory} onClose={() => setShowHistory(false)} title={t('balance.history')}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflow: 'auto' }}>
-          {settleHistory.length === 0 ? (
+          {historyLoading && settleHistory.length === 0 ? (
+            <div className="flex justify-center py-8"><Loader2 size={20} className="animate-spin text-muted-foreground" /></div>
+          ) : settleHistory.length === 0 ? (
             <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'center', padding: 16 }}>{t('balance.noSettlements')}</p>
-          ) : settleHistory.map((s: any) => (
-            <div key={s.id} style={{ padding: 12, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)' }}>
-              <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: 0 }}>{t('balance.settledOn')} {new Date(s.created_at).toLocaleDateString(locale)} {t('balance.by')} {s.settled_by_name ?? t('common.unknown')}</p>
-              {s.expenses?.map((item: any) => item.expense ? (
-                <div key={item.expense_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--color-text)', marginTop: 6, padding: '4px 0', borderTop: '1px solid var(--color-border)' }}>
-                  <span>{item.expense.title}</span>
-                  <span style={{ fontWeight: 500 }}>{formatAmount(Number(item.expense.amount), currency)}</span>
+          ) : (
+            <>
+              {settleHistory.map((s: any) => (
+                <div key={s.id} style={{ padding: 12, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)' }}>
+                  <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: 0 }}>{t('balance.settledOn')} {new Date(s.created_at).toLocaleDateString(locale)} {t('balance.by')} {s.settled_by_name ?? t('common.unknown')}</p>
+                  {s.expenses?.map((item: any) => item.expense ? (
+                    <div key={item.expense_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--color-text)', marginTop: 6, padding: '4px 0', borderTop: '1px solid var(--color-border)' }}>
+                      <span>{item.expense.title}</span>
+                      <span style={{ fontWeight: 500 }}>{formatAmount(Number(item.expense.amount), currency)}</span>
+                    </div>
+                  ) : null)}
+                  {s.transfers?.length > 0 && (
+                    <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--color-border)' }}>
+                      {s.transfers.map((tr: any, i: number) => (
+                        <p key={i} style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: '2px 0' }}>
+                          {tr.from_name ?? t('common.unknown')} → {tr.to_name ?? t('common.unknown')}: {formatAmount(Number(tr.amount), currency)}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ) : null)}
-              {s.transfers?.length > 0 && (
-                <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--color-border)' }}>
-                  {s.transfers.map((tr: any, i: number) => (
-                    <p key={i} style={{ fontSize: 11, color: 'var(--color-text-secondary)', margin: '2px 0' }}>
-                      {tr.from_name ?? t('common.unknown')} → {tr.to_name ?? t('common.unknown')}: {formatAmount(Number(tr.amount), currency)}
-                    </p>
-                  ))}
-                </div>
+              ))}
+              {historyHasMore && (
+                <DsButton variant="ghost" size="sm" disabled={historyLoading} onClick={() => fetchSettleHistory(historyPage + 1)} style={{ width: '100%', justifyContent: 'center' }}>
+                  {historyLoading ? <Loader2 size={14} className="animate-spin" /> : t('common.loadMore')}
+                </DsButton>
               )}
-            </div>
-          ))}
+            </>
+          )}
         </div>
       </DsModal>
     </div>

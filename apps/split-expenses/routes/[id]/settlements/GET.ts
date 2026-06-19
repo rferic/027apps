@@ -13,10 +13,19 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .select('id').eq('expense_group_id', expenseGroupId).eq('user_id', ctx.userId).single()
   if (!membership) return apiError('FORBIDDEN', 'Not a member', 403)
 
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1)
+  const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10) || 10))
+  const offset = (page - 1) * limit
+
+  const { count: total } = await db.from('split_expenses_settlements')
+    .select('*', { count: 'exact', head: true })
+    .eq('expense_group_id', expenseGroupId)
+
   const { data: settlements } = await db.from('split_expenses_settlements')
     .select('*')
     .eq('expense_group_id', expenseGroupId)
     .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
 
   // Enrich with creator profile
   const userIds = [...new Set((settlements ?? []).map(s => s.settled_by))]
@@ -63,5 +72,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     }
   }))
 
-  return apiOk(enriched)
+  return apiOk({
+    data: enriched,
+    pagination: { page, limit, total: total ?? 0, total_pages: Math.ceil((total ?? 0) / limit) },
+  })
 }
