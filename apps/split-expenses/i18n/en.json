@@ -150,6 +150,7 @@
       "editTitle": "Edit tag",
       "name": "Tag name",
       "color": "Color",
+      "save": "Save tag",
       "confirm": "Save tag",
       "delete": "Delete tag",
       "success": "Tag created",

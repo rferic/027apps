@@ -154,7 +154,8 @@
       "success": "Etikett erstellt",
       "updated": "Etikett aktualisiert",
       "deleted": "Etikett gelöscht",
-      "confirmDelete": "Bist du sicher, dass du dieses Etikett löschen möchtest?"
+      "confirmDelete": "Bist du sicher, dass du dieses Etikett löschen möchtest?",
+      "save": "Tag speichern"
     }
   },
   "stats": {

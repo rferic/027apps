@@ -154,7 +154,8 @@
       "success": "Etiqueta creada",
       "updated": "Etiqueta actualitzada",
       "deleted": "Etiqueta eliminada",
-      "confirmDelete": "Estàs segur que vols eliminar aquesta etiqueta?"
+      "confirmDelete": "Estàs segur que vols eliminar aquesta etiqueta?",
+      "save": "Desar etiqueta"
     }
   },
   "stats": {

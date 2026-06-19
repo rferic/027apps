@@ -154,7 +154,8 @@
       "success": "Étiquette créée",
       "updated": "Étiquette mise à jour",
       "deleted": "Étiquette supprimée",
-      "confirmDelete": "Es-tu sûr de vouloir supprimer cette étiquette ?"
+      "confirmDelete": "Es-tu sûr de vouloir supprimer cette étiquette ?",
+      "save": "Enregistrer l'étiquette"
     }
   },
   "stats": {
