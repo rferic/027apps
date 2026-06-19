@@ -13,6 +13,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const note = (body.note as string) || null
   const expenseIds = body.expense_ids as string[] | undefined
+  const settleUsers = body.settle_users as string[] | undefined
 
   const db = createAdminClientUntyped()
 
@@ -53,17 +54,29 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     sharesByExpense.set(share.expense_id, list)
   }
 
-  const optimizerExpenses: Expense[] = expensesToSettle.map(e => ({
+  // Filter shares by settle_users if provided (partial settlement)
+  let optimizerExpenses: Expense[] = expensesToSettle.map(e => ({
     id: e.id,
     paid_by: e.paid_by,
-    shares: (sharesByExpense.get(e.id) ?? []).map(s => ({
-      user_id: s.user_id,
-      amount: parseFloat(s.amount),
-    })),
+    shares: (sharesByExpense.get(e.id) ?? [])
+      .filter(s => {
+        // Always include the payer's share (they owe themselves nothing)
+        // Filter to only selected users
+        if (!settleUsers || settleUsers.length === 0) return true
+        return settleUsers.includes(s.user_id) || s.user_id === e.paid_by
+      })
+      .map(s => ({
+        user_id: s.user_id,
+        amount: parseFloat(s.amount),
+      })),
   }))
 
   const balances = calculateBalances(optimizerExpenses)
   const transfers = optimizeTransfers(balances)
+
+  if (transfers.length === 0) {
+    return apiError('BAD_REQUEST', 'No transfers needed for the selected users', 400)
+  }
 
   const { data: settlement, error: settleErr } = await db.from('split_expenses_settlements').insert({
     expense_group_id: expenseGroupId,
@@ -73,21 +86,18 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   if (settleErr) return apiError('CREATE_FAILED', settleErr.message, 500)
 
-  if (transfers.length > 0) {
-    const transferRows = transfers.map(t => ({
-      expense_group_id: expenseGroupId,
-      settlement_id: settlement.id,
-      from_user: t.from_user,
-      to_user: t.to_user,
-      amount: t.amount,
-      status: 'completed',
-    }))
-    await db.from('split_expenses_transfers').insert(transferRows)
-  }
+  const transferRows = transfers.map(t => ({
+    expense_group_id: expenseGroupId,
+    settlement_id: settlement.id,
+    from_user: t.from_user,
+    to_user: t.to_user,
+    amount: t.amount,
+    status: 'completed',
+  }))
+  await db.from('split_expenses_transfers').insert(transferRows)
 
   return apiOk({
     settlement,
-    expenses_settled: settleIds.length,
     transfers_created: transfers.length,
     transfers,
   }, 201)

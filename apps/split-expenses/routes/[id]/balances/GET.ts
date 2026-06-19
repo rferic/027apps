@@ -72,8 +72,10 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     for (const p of completedTransfers) {
       const from = balancesMap.get(p.from_user) ?? 0
       const to = balancesMap.get(p.to_user) ?? 0
-      balancesMap.set(p.from_user, from - parseFloat(p.amount))
-      balancesMap.set(p.to_user, to + parseFloat(p.amount))
+      // from_user paid the transfer → their net balance increases (debt reduced)
+      // to_user received the transfer → their net balance decreases (credit reduced)
+      balancesMap.set(p.from_user, from + parseFloat(p.amount))
+      balancesMap.set(p.to_user, to - parseFloat(p.amount))
     }
   }
 

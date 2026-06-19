@@ -461,11 +461,9 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   const [filterPaidBy, setFilterPaidBy] = useState('')
   const [draftTags, setDraftTags] = useState<string[]>([])
   const [draftPaidBy, setDraftPaidBy] = useState('')
+  const [draftViewMode, setDraftViewMode] = useState<'all' | 'my'>('my')
+  const [viewMode, setViewMode] = useState<'all' | 'my'>('my')
   const [tagInput, setTagInput] = useState('')
-  const [viewMode, setViewMode] = useState<'all' | 'my'>(() => {
-    if (typeof window !== 'undefined') return (localStorage.getItem('split-expenses-view') as 'all' | 'my') || 'my'
-    return 'my'
-  })
   const [contentType, setContentType] = useState<'expenses' | 'transfers' | 'all'>('expenses')
   const [transfersList, setTransfersList] = useState<any[]>([])
   const [transfersLoading, setTransfersLoading] = useState(false)
@@ -490,7 +488,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
     return true
   })
 
-  const activeFilters = filterTags.length + (filterPaidBy ? 1 : 0)
+  const activeFilters = filterTags.length + (filterPaidBy ? 1 : 0) + (viewMode === 'my' ? 1 : 0)
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const hasMore = page < totalPages
@@ -508,11 +506,11 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   }, [loadMore])
 
   function openFilters() {
-    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setShowFilters(true)
+    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setDraftViewMode(viewMode); setShowFilters(true)
   }
 
   function applyFilters() {
-    setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setShowFilters(false); onPageChange(1)
+    setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setViewMode(draftViewMode); setShowFilters(false); onPageChange(1)
   }
 
   function toggleDraftTag(tagId: string) {
@@ -523,22 +521,14 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-          <button onClick={() => { setViewMode('my'); localStorage.setItem('split-expenses-view', 'my'); onPageChange(1) }}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'my' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >{t('expense.list.my')}</button>
-          <button onClick={() => { setViewMode('all'); localStorage.setItem('split-expenses-view', 'all'); onPageChange(1) }}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'all' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >{t('expense.list.all')}</button>
-        </div>
-        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
           <button onClick={() => setContentType('expenses')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${contentType === 'expenses' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${contentType === 'expenses' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >{t('expense.list.typeExpenses')}</button>
           <button onClick={() => setContentType('transfers')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${contentType === 'transfers' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${contentType === 'transfers' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >{t('expense.list.typeTransfers')}</button>
           <button onClick={() => setContentType('all')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${contentType === 'all' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${contentType === 'all' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >{t('expense.list.typeAll')}</button>
         </div>
         <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
@@ -559,7 +549,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
             </span>
           )})()}
           {activeFilters > 0 && (
-            <button onClick={() => { setFilterTags([]); setFilterPaidBy(''); onPageChange(1) }} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">
+            <button onClick={() => { setFilterTags([]); setFilterPaidBy(''); setViewMode('all'); onPageChange(1) }} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">
               {t('expense.list.clearFilters')}
             </button>
           )}
@@ -617,6 +607,13 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
                     {m.display_name ?? t('common.unknown')}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-foreground">{t('expense.list.my')}</span>
+                <DsToggle color="#10B981" checked={draftViewMode === 'my'} onChange={v => setDraftViewMode(v ? 'my' : 'all')} />
               </div>
             </div>
 
@@ -696,22 +693,43 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
                         </div>
                       </DsCard>
                     ) : (
-                      <DsCard key={(item as any).id} padding="sm" hover onClick={() => setDetailExpense(item as any)}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-secondary)', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0 }}>
-                            {new Date((item as any).created_at).getDate()}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', margin: 0 }}>{(item as any).title}</p>
-                            <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
-                              {(item as any).paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} {formatAmount((item as any).amount, currency)}
-                            </p>
-                          </div>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>
-                            {formatAmount((item as any).amount, currency)}
-                          </span>
-                        </div>
-                      </DsCard>
+                      (() => {
+                        const expense = item as any
+                        const tag = tags.find((t: Tag) => t.id === expense.tag_id)
+                        const myShare = currentUserId ? expense.shares?.find((s: any) => s.user_id === currentUserId) : null
+                        const iPaid = currentUserId && expense.paid_by === currentUserId
+                        const involvementAmount = iPaid && myShare ? Number(expense.amount) - myShare.amount : myShare?.amount ?? null
+                        const involvementColor = involvementAmount !== null ? (iPaid ? '#10B981' : '#F97316') : 'var(--color-text)'
+                        return (
+                          <DsCard key={expense.id} padding="sm" hover onClick={() => setDetailExpense(expense)}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-secondary)', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0 }}>
+                                {new Date(expense.created_at).getDate()}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', margin: 0 }}>{expense.title}</p>
+                                  {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: 10 }}>{tag.name}</DsBadge>}
+                                </div>
+                                <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
+                                  {expense.paid_by_profile?.display_name ?? t('common.unknown')} {t('expense.item.paidBy')} {formatAmount(expense.amount, currency)}
+                                </p>
+                              </div>
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                {involvementAmount !== null ? (
+                                  <p style={{ fontSize: 13, fontWeight: 700, color: involvementColor, margin: 0 }}>
+                                    {iPaid ? `+${formatAmount(involvementAmount, currency)}` : `-${formatAmount(involvementAmount, currency)}`}
+                                  </p>
+                                ) : (
+                                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>
+                                    {formatAmount(expense.amount, currency)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </DsCard>
+                        )
+                      })()
                     ))}
                   </div>
                 </div>
@@ -800,6 +818,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
       <ExpenseDetailModal open={!!detailExpense} onClose={() => setDetailExpense(null)}
         expense={detailExpense} group={{ members, currency } as GroupDetail} tags={tags}
         onEdit={() => { const e = detailExpense; setDetailExpense(null); setEditExpense(e) }}
+        onSettled={() => { setDetailExpense(null); onRefresh() }}
         onDeleted={() => { setDetailExpense(null); onRefresh() }} />
     </div>
   )
@@ -980,16 +999,19 @@ function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency
 
 // ─── Expense Detail Modal ─────────────────────────────────────────────
 
-function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onDeleted }: {
+function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSettled, onDeleted }: {
   open: boolean; onClose: () => void; expense: Expense | null;
   group: GroupDetail; tags: Tag[];
-  onEdit: () => void; onDeleted: () => void;
+  onEdit: () => void; onSettled: () => void; onDeleted: () => void;
 }) {
   const ctx = useAppContext()
   const locale = useLocale()
   const t = useTranslations('apps.split-expenses')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showSettle, setShowSettle] = useState(false)
+  const [settleUsers, setSettleUsers] = useState<string[]>([])
+  const [settling, setSettling] = useState(false)
 
   if (!expense) return null
 
@@ -1024,6 +1046,14 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onDel
             </div>
           )}
 
+          <DsButton color="#10B981" size="sm" style={{ width: '100%', justifyContent: 'center' }} onClick={() => {
+            const debtors = (expense.shares ?? []).filter(s => s.user_id !== expense.paid_by)
+            setSettleUsers(debtors.map(s => s.user_id))
+            setShowSettle(true)
+          }}>
+            {t('balance.settle')}
+          </DsButton>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 8, borderTop: '1px solid var(--color-border)' }}>
             <DsButton variant="ghost" onClick={onEdit}><Pencil size={16} /></DsButton>
             <DsButton variant="ghost" style={{ color: '#EF4444' }} onClick={() => setShowDeleteConfirm(true)}><Trash2 size={16} /></DsButton>
@@ -1044,6 +1074,38 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onDel
             } catch {} finally { setDeleting(false) }
           }}>
             {deleting && <Loader2 className="w-3 h-3 animate-spin" />}{t('common.delete')}
+          </DsButton>
+        </div>
+      </DsModal>
+
+      <DsModal open={showSettle} onClose={() => setShowSettle(false)} title={t('balance.settle')}>
+        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12 }}>{t('balance.selectExpenses')}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          {(expense.shares ?? []).filter(s => s.user_id !== expense.paid_by).map(s => (
+            <label key={s.user_id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded cursor-pointer">
+              <DsCheckbox color="#10B981" checked={settleUsers.includes(s.user_id)}
+                onChange={e => setSettleUsers(e.target.checked ? [...settleUsers, s.user_id] : settleUsers.filter(id => id !== s.user_id))}
+              />
+              <span style={{ fontSize: 13, color: 'var(--color-text)' }}>{s.user_profile?.display_name ?? t('common.unknown')}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 500, color: 'var(--color-text)' }}>{formatAmount(s.amount, group.currency)}</span>
+            </label>
+          ))}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <DsButton variant="ghost" onClick={() => setShowSettle(false)}>{t('common.cancel')}</DsButton>
+          <DsButton color="#10B981" disabled={settling || settleUsers.length === 0} onClick={async () => {
+            if (!ctx.groupSlug || !expense) return
+            setSettling(true)
+            try {
+              await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${expense.expense_group_id}/settlements`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ expense_ids: [expense.id], settle_users: settleUsers }),
+              })
+              setShowSettle(false)
+              onSettled()
+            } catch {} finally { setSettling(false) }
+          }}>
+            {settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}
           </DsButton>
         </div>
       </DsModal>
