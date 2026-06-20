@@ -80,7 +80,13 @@ export function GroupSwitcher({ locale, groups, currentGroupSlug, isAdmin }: Pro
   function handleSelect(slug: string) {
     setLastGroupCookie(slug)
     setOpen(false)
-    router.push(`/${locale}/${slug}/dashboard`)
+    // Detect if we're on an app page: /{locale}/{group}/apps/{appSlug}
+    const appMatch = pathname.match(/\/apps\/([^/]+)/)
+    if (appMatch) {
+      router.push(`/${locale}/${slug}${appMatch[0]}`)
+    } else {
+      router.push(`/${locale}/${slug}/dashboard`)
+    }
   }
 
   function handleCreateGroup() {

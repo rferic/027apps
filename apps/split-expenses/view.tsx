@@ -467,7 +467,6 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   })
   const [draftTags, setDraftTags] = useState<string[]>([])
   const [draftPaidBy, setDraftPaidBy] = useState('')
-  const [draftViewMode, setDraftViewMode] = useState<'all' | 'my'>('my')
   const [tagInput, setTagInput] = useState('')
   const [contentType, setContentType] = useState<'expenses' | 'transfers' | 'all'>(() => {
     if (typeof window !== 'undefined') return (localStorage.getItem('se-content-type') as any) || 'expenses'
@@ -524,11 +523,11 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   }, [loadMore])
 
   function openFilters() {
-    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setDraftViewMode(viewMode); setShowFilters(true)
+    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setShowFilters(true)
   }
 
   function applyFilters() {
-    setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setViewMode(draftViewMode); setShowFilters(false); onPageChange(1)
+    setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setShowFilters(false); onPageChange(1)
   }
 
   function toggleDraftTag(tagId: string) {
@@ -549,10 +548,13 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${contentType === 'all' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >{t('expense.list.typeAll')}</button>
         </div>
-        <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
+        <div className="flex items-center gap-2">
+          <DsToggle color="#10B981" checked={viewMode === 'my'} onChange={v => setViewMode(v ? 'my' : 'all')} label={t('expense.list.my')} />
+          <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
           <Filter size={14} /> {t('expense.list.filters')}
           {activeFilters > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[10px] font-bold rounded-full" style={{ backgroundColor: '#10B981', color: 'white' }}>{activeFilters}</span>}
         </button>
+        </div>
       </div>
       {activeFilters > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4">
@@ -630,13 +632,6 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
                     {m.display_name ?? t('common.unknown')}
                   </button>
                 ))}
-              </div>
-            </div>
-
-            <div className="mb-5">
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-foreground">{t('expense.list.my')}</span>
-                <DsToggle color="#10B981" checked={draftViewMode === 'my'} onChange={v => setDraftViewMode(v ? 'my' : 'all')} />
               </div>
             </div>
 

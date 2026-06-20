@@ -23,12 +23,17 @@ export function AppSubNav({ locale, currentGroupSlug, groupApps }: Props) {
 
   if (!currentGroupSlug) return null
 
+  // Use the group slug from the current URL path, falling back to the prop
+  const segments = pathname.split('/').filter(Boolean)
+  const slugFromUrl = segments.length >= 2 ? segments[1] : null
+  const effectiveSlug = slugFromUrl ?? currentGroupSlug
+
   const isActive = (slug: string) => pathname.includes(`/apps/${slug}`)
 
   return (
     <div className="hidden md:flex items-center gap-1 px-4 sm:px-6 h-10 bg-background border-b border-border overflow-x-auto">
       <Link
-        href={`/${locale}/${currentGroupSlug}/dashboard`}
+        href={`/${locale}/${effectiveSlug}/dashboard`}
         className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors flex-shrink-0"
       >
         <Home size={13} />
@@ -40,7 +45,7 @@ export function AppSubNav({ locale, currentGroupSlug, groupApps }: Props) {
         return (
           <Link
             key={app.slug}
-            href={`/${locale}/${currentGroupSlug}/apps/${app.slug}`}
+            href={`/${locale}/${effectiveSlug}/apps/${app.slug}`}
             className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors flex-shrink-0 ${
               active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
             }`}
