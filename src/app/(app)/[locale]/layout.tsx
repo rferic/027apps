@@ -92,6 +92,13 @@ export default async function LocaleLayout({ children, params }: Props) {
     userGroups[0]?.slug ??
     null
 
+  // Sync the last_group cookie whenever the group is resolved (from URL or fallback)
+  if (currentGroupSlug && currentGroupSlug !== cookieGroupSlug) {
+    cookieStore.set('last_group', currentGroupSlug, {
+      path: '/', maxAge: 365 * 24 * 60 * 60, sameSite: 'lax',
+    })
+  }
+
   // Usar el grupo correspondiente para cargar las apps instaladas
   const currentGroup = currentGroupSlug
     ? userGroups.find(g => g.slug === currentGroupSlug)

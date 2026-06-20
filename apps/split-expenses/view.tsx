@@ -457,16 +457,34 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null)
   const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [filterTags, setFilterTags] = useState<string[]>([])
-  const [filterPaidBy, setFilterPaidBy] = useState('')
+  const [filterTags, setFilterTags] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') { try { const v = localStorage.getItem('se-filter-tags'); return v ? JSON.parse(v) : [] } catch {} }
+    return []
+  })
+  const [filterPaidBy, setFilterPaidBy] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('se-filter-paidby') ?? ''
+    return ''
+  })
   const [draftTags, setDraftTags] = useState<string[]>([])
   const [draftPaidBy, setDraftPaidBy] = useState('')
   const [draftViewMode, setDraftViewMode] = useState<'all' | 'my'>('my')
-  const [viewMode, setViewMode] = useState<'all' | 'my'>('my')
   const [tagInput, setTagInput] = useState('')
-  const [contentType, setContentType] = useState<'expenses' | 'transfers' | 'all'>('expenses')
+  const [contentType, setContentType] = useState<'expenses' | 'transfers' | 'all'>(() => {
+    if (typeof window !== 'undefined') return (localStorage.getItem('se-content-type') as any) || 'expenses'
+    return 'expenses'
+  })
+  const [viewMode, setViewMode] = useState<'all' | 'my'>(() => {
+    if (typeof window !== 'undefined') return (localStorage.getItem('se-view-mode') as any) || 'my'
+    return 'my'
+  })
   const [transfersList, setTransfersList] = useState<any[]>([])
   const [transfersLoading, setTransfersLoading] = useState(false)
+
+  // Persist filters to localStorage
+  useEffect(() => { try { localStorage.setItem('se-filter-tags', JSON.stringify(filterTags)) } catch {} }, [filterTags])
+  useEffect(() => { try { localStorage.setItem('se-filter-paidby', filterPaidBy) } catch {} }, [filterPaidBy])
+  useEffect(() => { try { localStorage.setItem('se-content-type', contentType) } catch {} }, [contentType])
+  useEffect(() => { try { localStorage.setItem('se-view-mode', viewMode) } catch {} }, [viewMode])
 
   useEffect(() => {
     if (!ctx.groupSlug || contentType === 'expenses') return
