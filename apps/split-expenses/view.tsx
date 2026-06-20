@@ -70,6 +70,7 @@ function Modal({ open, onClose, title, children }: { open: boolean; onClose: () 
 // ─── Chart ──────────────────────────────────────────────────────────────
 
 import { BarChart } from '@/components/composite/bar-chart'
+import { toast } from 'sonner'
 
 function chartData(data: { label: string; total: number }[], cumulative: boolean) {
   return cumulative ? data.reduce<{ label: string; total: number }[]>((acc, d) => {
@@ -309,6 +310,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const [statsData, setStatsData] = useState<{ byPeriod: { label: string; total: number }[]; cumulative: { label: string; total: number }[] }>({ byPeriod: [], cumulative: [] })
 
   const [refreshKey, setRefreshKey] = useState(0)
+  const [lightRefreshKey, setLightRefreshKey] = useState(0)
   const [dataLoading, setDataLoading] = useState(true)
 
   // Stats filter state (managed here so the parent refetches)
@@ -353,6 +355,26 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
     })()
   }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId])
 
+  // Light refresh: only expenses and balances (used after settlement)
+  useEffect(() => {
+    if (!ctx.groupSlug || lightRefreshKey === 0) return
+    setDataLoading(true)
+    ;(async () => {
+      try {
+        const [expRes, balRes] = await Promise.all([
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=1`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`),
+        ])
+        if (expRes.ok && lightRefreshKey > 0) {
+          const r = await expRes.json(); setExpenses(r.data ?? []); setExpenseTotalPages(r.pagination?.total_pages ?? 1)
+        }
+        if (balRes.ok && lightRefreshKey > 0) {
+          const d = await balRes.json(); setBalances(d.balances ?? []); setTransfers(d.transfers ?? [])
+        }
+      } catch {} finally { setDataLoading(false) }
+    })()
+  }, [lightRefreshKey])
+
   const initialExpensesLoaded = useRef(false)
   // Fetch expenses (appends on page scroll, replaces on filter change)
   useEffect(() => {
@@ -375,6 +397,10 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
   const handleRefresh = () => {
     setDataLoading(true)
     setRefreshKey(k => k + 1)
+  }
+
+  const handleLightRefresh = () => {
+    setLightRefreshKey(k => k + 1)
   }
 
   const handleMembersUpdate = () => {
@@ -432,8 +458,8 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         ))}
       </div>
 
-      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} expensesLoading={expensesLoading} />}
-      {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} onSettle={() => setRefreshKey(k => k + 1)} />}
+      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} onRefreshLight={handleLightRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} expensesLoading={expensesLoading} />}
+      {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleLightRefresh} onSettle={handleLightRefresh} />}
       {tab === 'stats' && <StatsTab statsData={statsData} tags={tags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
       {tab === 'settings' && <SettingsTab groupId={groupId} group={group} tags={tags} loading={dataLoading} onRefresh={handleRefresh} availableMembers={availableMembers} onMembersUpdate={handleMembersUpdate} />}
 
@@ -444,9 +470,9 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
 // ─── Expenses Tab ───────────────────────────────────────────────────────
 
-function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, showCreate, onShowCreate, page, totalPages, onPageChange, expensesLoading }: {
+function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, onRefreshLight, showCreate, onShowCreate, page, totalPages, onPageChange, expensesLoading }: {
   groupId: string; expenses: Expense[]; tags: Tag[]; currentUserId: string;
-  members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void;
+  members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void; onRefreshLight: () => void;
   showCreate: boolean; onShowCreate: (v: boolean) => void;
   page: number; totalPages: number; onPageChange: (p: number) => void;
   expensesLoading?: boolean;
@@ -843,7 +869,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
       <ExpenseDetailModal open={!!detailExpense} onClose={() => setDetailExpense(null)}
         expense={detailExpense} group={{ members, currency } as GroupDetail} tags={tags}
         onEdit={() => { const e = detailExpense; setDetailExpense(null); setEditExpense(e) }}
-        onSettled={() => { setDetailExpense(null); onRefresh() }}
+        onSettled={() => { setDetailExpense(null); onRefreshLight() }}
         onDeleted={() => { setDetailExpense(null); onRefresh() }} />
     </div>
   )
@@ -1037,7 +1063,6 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
   const [showSettle, setShowSettle] = useState(false)
   const [settleUsers, setSettleUsers] = useState<string[]>([])
   const [settling, setSettling] = useState(false)
-  const [settleResult, setSettleResult] = useState<any>(null)
 
   if (!expense) return null
 
@@ -1127,44 +1152,19 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ expense_ids: [expense.id], settle_users: settleUsers }),
               })
+              setShowSettle(false)
               if (res.ok) {
-                const data = await res.json()
-                setSettleResult(data.transfers ?? [])
-                setShowSettle(false)
+                toast.success(t('balance.success'))
+                onSettled()
               } else {
                 const err = await res.json().catch(() => ({}))
-                console.warn('Settlement failed:', err)
-                setShowSettle(false)
+                toast.error(err.message || t('balance.cancelled'))
               }
-            } catch (e) { console.warn('Settlement error:', e) } finally { setSettling(false) }
+            } catch { toast.error(t('balance.cancelled')) } finally { setSettling(false) }
           }}>
             {settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}
           </DsButton>
         </div>
-      </DsModal>
-
-      <DsModal open={!!settleResult} onClose={() => { setSettleResult(null); onSettled() }} title={t('balance.success')}>
-        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12 }}>{t('balance.settleSuccess')}</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-          {(settleResult ?? []).map((tr: any, i: number) => {
-            const toUser = (expense?.shares ?? []).find(s => s.user_id === tr.to_user)
-            const fromUser = (expense?.shares ?? []).find(s => s.user_id === tr.from_user)
-            return (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 8, background: 'var(--color-muted)', borderRadius: 'var(--radius-lg)' }}>
-                <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                <span style={{ fontSize: 13, color: 'var(--color-text)' }}>
-                  {fromUser?.user_profile?.display_name ?? t('common.unknown')} {t('balance.pays')} {toUser?.user_profile?.display_name ?? t('common.unknown')}
-                </span>
-                <span style={{ marginLeft: 'auto', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>
-                  {formatAmount(Number(tr.amount), group.currency)}
-                </span>
-              </div>
-            )
-          })}
-        </div>
-        <DsButton color="#10B981" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setSettleResult(null); onSettled() }}>
-          {t('common.confirm')}
-        </DsButton>
       </DsModal>
     </>
   )
