@@ -15,6 +15,7 @@ import { DsToggle } from '@/components/ds/toggle'
 import { DsSkeleton } from '@/components/ds/skeleton'
 import { DsEmptyState } from '@/components/ds/empty-state'
 import { DsAvatar } from '@/components/ds/avatar'
+import { DsSegmented } from '@/components/ds/segmented'
 
 const supabase = createClient()
 let cachedToken: string | null = null
@@ -467,6 +468,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   })
   const [draftTags, setDraftTags] = useState<string[]>([])
   const [draftPaidBy, setDraftPaidBy] = useState('')
+  const [draftViewMode, setDraftViewMode] = useState<'all' | 'my'>('my')
   const [tagInput, setTagInput] = useState('')
   const [contentType, setContentType] = useState<'expenses' | 'transfers' | 'all'>(() => {
     if (typeof window !== 'undefined') return (localStorage.getItem('se-content-type') as any) || 'expenses'
@@ -523,11 +525,11 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   }, [loadMore])
 
   function openFilters() {
-    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setShowFilters(true)
+    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setDraftViewMode(viewMode); setShowFilters(true)
   }
 
   function applyFilters() {
-    setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setShowFilters(false); onPageChange(1)
+    setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setViewMode(draftViewMode); setShowFilters(false); onPageChange(1)
   }
 
   function toggleDraftTag(tagId: string) {
@@ -537,25 +539,16 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-          <button onClick={() => setContentType('expenses')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${contentType === 'expenses' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >{t('expense.list.typeExpenses')}</button>
-          <button onClick={() => setContentType('transfers')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${contentType === 'transfers' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >{t('expense.list.typeTransfers')}</button>
-          <button onClick={() => setContentType('all')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${contentType === 'all' ? 'bg-background text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >{t('expense.list.typeAll')}</button>
-        </div>
-        <div className="flex items-center gap-2">
-          <DsToggle color="#10B981" checked={viewMode === 'my'} onChange={v => setViewMode(v ? 'my' : 'all')} label={t('expense.list.my')} />
-          <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
+        <DsSegmented options={[
+          { value: 'expenses', label: t('expense.list.typeExpenses') },
+          { value: 'transfers', label: t('expense.list.typeTransfers') },
+          { value: 'all', label: t('expense.list.typeAll') },
+        ]} value={contentType} onChange={setContentType} color="#10B981" />
+        <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
           <Filter size={14} /> {t('expense.list.filters')}
           {activeFilters > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[10px] font-bold rounded-full" style={{ backgroundColor: '#10B981', color: 'white' }}>{activeFilters}</span>}
         </button>
         </div>
-      </div>
       {activeFilters > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4">
           {filterTags.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (
@@ -633,6 +626,13 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div className="mb-5">
+              <DsSegmented options={[
+                { value: 'all', label: t('expense.list.all') },
+                { value: 'my', label: t('expense.list.my') },
+              ]} value={draftViewMode} onChange={setDraftViewMode} color="#10B981" />
             </div>
 
             <button onClick={applyFilters} className="w-full py-3 text-sm font-semibold text-white rounded-xl cursor-pointer shadow-sm transition-colors" style={{ backgroundColor: '#10B981' }}>
@@ -1131,8 +1131,12 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
                 const data = await res.json()
                 setSettleResult(data.transfers ?? [])
                 setShowSettle(false)
+              } else {
+                const err = await res.json().catch(() => ({}))
+                console.warn('Settlement failed:', err)
+                setShowSettle(false)
               }
-            } catch {} finally { setSettling(false) }
+            } catch (e) { console.warn('Settlement error:', e) } finally { setSettling(false) }
           }}>
             {settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}
           </DsButton>
