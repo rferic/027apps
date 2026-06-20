@@ -247,7 +247,8 @@
     "delete": "Löschen",
     "confirm": "Bestätigen",
     "unknown": "Unbekannt",
-    "members": "Mitglieder"
+    "members": "Mitglieder",
+    "loadMore": "Mehr laden"
   },
   "widget": {
     "error": "Konnte nicht laden",

@@ -247,7 +247,8 @@
     "delete": "Supprimer",
     "confirm": "Confirmer",
     "unknown": "Inconnu",
-    "members": "membres"
+    "members": "membres",
+    "loadMore": "Charger plus"
   },
   "widget": {
     "error": "Impossible de charger",

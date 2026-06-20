@@ -1,22 +1,45 @@
 import { getRequestConfig } from 'next-intl/server'
 import { routing } from './routing'
 import { scanInstalledAppSlugs } from '@/lib/apps/scanner'
-import { loadAppMessages } from '@/lib/apps/i18n'
+import { loadAppMessages, hasAppI18n } from '@/lib/apps/i18n'
 import { cachedQuery } from '@/lib/cache'
+import { promises as fs } from 'fs'
+import path from 'path'
+
+async function scanLocalAppSlugs(): Promise<string[]> {
+  try {
+    const appsDir = path.join(process.cwd(), 'apps')
+    const entries = await fs.readdir(appsDir, { withFileTypes: true })
+    const slugs: string[] = []
+    for (const entry of entries) {
+      if (entry.isDirectory() && await hasAppI18n(entry.name)) {
+        slugs.push(entry.name)
+      }
+    }
+    return slugs
+  } catch {
+    return []
+  }
+}
 
 const getCachedMessages = cachedQuery(
   async (locale: string): Promise<Record<string, unknown>> => {
     const globalMessages = (await import(`./messages/${locale}.json`)).default as Record<string, unknown>
 
-    let appMessages: Record<string, Record<string, unknown>> = {}
+    let slugs: string[] = []
     try {
-      const slugs = await scanInstalledAppSlugs()
+      slugs = await scanInstalledAppSlugs()
+    } catch {
+      // DB not available — fall back to filesystem scan
+      slugs = await scanLocalAppSlugs()
+    }
+
+    let appMessages: Record<string, Record<string, unknown>> = {}
+    if (slugs.length > 0) {
       const entries = await Promise.all(
         slugs.map(async (slug) => [slug, await loadAppMessages(slug, locale)] as const)
       )
       appMessages = Object.fromEntries(entries)
-    } catch {
-      // DB not available (e.g. build time) — continue without app messages
     }
 
     return {

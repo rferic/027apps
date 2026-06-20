@@ -6,7 +6,8 @@
     "delete": "Delete",
     "confirm": "Confirm",
     "unknown": "Unknown",
-    "members": "members"
+    "members": "members",
+    "loadMore": "Load more"
   },
   "group": {
     "list": {

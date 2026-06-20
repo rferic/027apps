@@ -247,7 +247,8 @@
     "delete": "Eliminar",
     "confirm": "Confirmar",
     "unknown": "Desconegut",
-    "members": "membres"
+    "members": "membres",
+    "loadMore": "Carregar més"
   },
   "widget": {
     "error": "No s'ha pogut carregar",
