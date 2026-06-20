@@ -47,7 +47,7 @@
       "filters": "Filter",
       "allTags": "Alle Etiketten",
       "allUsers": "Alle Benutzer",
-      "my": "Meine Ausgaben",
+      "my": "Meine Bewegungen",
       "all": "Alle",
       "clearFilters": "Filter löschen",
       "settled": "Erledigte anzeigen",
@@ -115,7 +115,8 @@
     "expenseCount": "{count, plural, one {# Ausgabe} other {# Ausgaben}}",
     "transferCount": "{count, plural, one {# Überweisung} other {# Überweisungen}}",
     "recordPayment": "Als bezahlt markieren",
-    "paymentRecorded": "Zahlung aufgezeichnet"
+    "paymentRecorded": "Zahlung aufgezeichnet",
+    "settleSuccess": "Die folgenden Überweisungen wurden erstellt:"
   },
   "member": {
     "list": {

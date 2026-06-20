@@ -47,7 +47,7 @@
       "filters": "Filtres",
       "allTags": "Totes les etiquetes",
       "allUsers": "Tots els usuaris",
-      "my": "Les meves despeses",
+      "my": "Els meus moviments",
       "all": "Totes",
       "clearFilters": "Neteja filtres",
       "settled": "Mostrar liquidats",
@@ -115,7 +115,8 @@
     "expenseCount": "{count, plural, one {# despesa} other {# despeses}}",
     "transferCount": "{count, plural, one {# transferència} other {# transferències}}",
     "recordPayment": "Registrar com a pagat",
-    "paymentRecorded": "Pagament registrat"
+    "paymentRecorded": "Pagament registrat",
+    "settleSuccess": "Es van crear les següents transferències:"
   },
   "member": {
     "list": {

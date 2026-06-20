@@ -47,7 +47,7 @@
       "filters": "Filtres",
       "allTags": "Toutes les étiquettes",
       "allUsers": "Tous les utilisateurs",
-      "my": "Mes dépenses",
+      "my": "Mes mouvements",
       "all": "Toutes",
       "clearFilters": "Effacer les filtres",
       "settled": "Afficher soldés",
@@ -115,7 +115,8 @@
     "expenseCount": "{count, plural, one {# dépense} other {# dépenses}}",
     "transferCount": "{count, plural, one {# transfert} other {# transferts}}",
     "recordPayment": "Enregistrer comme payé",
-    "paymentRecorded": "Paiement enregistré"
+    "paymentRecorded": "Paiement enregistré",
+    "settleSuccess": "Les virements suivants ont été créés :"
   },
   "member": {
     "list": {

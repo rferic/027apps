@@ -548,6 +548,11 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
               {m?.display_name ?? filterPaidBy} <X size={10} />
             </span>
           )})()}
+          {viewMode === 'my' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-muted text-foreground cursor-pointer" onClick={() => setViewMode('all')}>
+              {t('expense.list.my')} <X size={10} />
+            </span>
+          )}
           {activeFilters > 0 && (
             <button onClick={() => { setFilterTags([]); setFilterPaidBy(''); setViewMode('all'); onPageChange(1) }} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">
               {t('expense.list.clearFilters')}
@@ -703,8 +708,9 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
                         return (
                           <DsCard key={expense.id} padding="sm" hover onClick={() => setDetailExpense(expense)}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-secondary)', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0 }}>
-                                {new Date(expense.created_at).getDate()}
+                              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', width: 40, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0, gap: 2 }}>
+                                <span>{new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(new Date(expense.created_at)).replace('.', '')}</span>
+                                <span>{new Date(expense.created_at).getDate()}</span>
                               </span>
                               <div className="flex-1 min-w-0">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -726,6 +732,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
                                   </p>
                                 )}
                               </div>
+                              <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(expense) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
                             </div>
                           </DsCard>
                         )
@@ -762,12 +769,17 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
                       const iPaid = currentUserId && e.paid_by === currentUserId
                       const involvementAmount = iPaid && myShare ? Number(e.amount) - myShare.amount : myShare?.amount ?? null
                       const involvementColor = involvementAmount !== null ? (iPaid ? '#10B981' : '#F97316') : 'var(--color-text)'
-                      const day = new Date(e.created_at).getDate()
+                      const day = new Date(e.created_at)
+
+                      const dayLabel = new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(day).replace('.', '')
                       return (
                         <div key={e.id}>
                           <DsCard padding="sm" hover onClick={() => setDetailExpense(e)}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-secondary)', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0 }}>{day}</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', width: 40, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', background: 'var(--color-muted)', flexShrink: 0, gap: 2 }}>
+                                <span>{dayLabel}</span>
+                                <span>{day.getDate()}</span>
+                              </span>
                               <div className="flex-1 min-w-0">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                   <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', margin: 0 }}>
@@ -1012,6 +1024,7 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
   const [showSettle, setShowSettle] = useState(false)
   const [settleUsers, setSettleUsers] = useState<string[]>([])
   const [settling, setSettling] = useState(false)
+  const [settleResult, setSettleResult] = useState<any>(null)
 
   if (!expense) return null
 
@@ -1097,17 +1110,44 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
             if (!ctx.groupSlug || !expense) return
             setSettling(true)
             try {
-              await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${expense.expense_group_id}/settlements`, {
+              const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${expense.expense_group_id}/settlements`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ expense_ids: [expense.id], settle_users: settleUsers }),
               })
-              setShowSettle(false)
-              onSettled()
+              if (res.ok) {
+                const data = await res.json()
+                setSettleResult(data.transfers ?? [])
+                setShowSettle(false)
+              }
             } catch {} finally { setSettling(false) }
           }}>
             {settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}
           </DsButton>
         </div>
+      </DsModal>
+
+      <DsModal open={!!settleResult} onClose={() => { setSettleResult(null); onSettled() }} title={t('balance.success')}>
+        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12 }}>{t('balance.settleSuccess')}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          {(settleResult ?? []).map((tr: any, i: number) => {
+            const toUser = (expense?.shares ?? []).find(s => s.user_id === tr.to_user)
+            const fromUser = (expense?.shares ?? []).find(s => s.user_id === tr.from_user)
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 8, background: 'var(--color-muted)', borderRadius: 'var(--radius-lg)' }}>
+                <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                <span style={{ fontSize: 13, color: 'var(--color-text)' }}>
+                  {fromUser?.user_profile?.display_name ?? t('common.unknown')} {t('balance.pays')} {toUser?.user_profile?.display_name ?? t('common.unknown')}
+                </span>
+                <span style={{ marginLeft: 'auto', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>
+                  {formatAmount(Number(tr.amount), group.currency)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+        <DsButton color="#10B981" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setSettleResult(null); onSettled() }}>
+          {t('common.confirm')}
+        </DsButton>
       </DsModal>
     </>
   )

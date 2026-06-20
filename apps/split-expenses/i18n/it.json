@@ -47,7 +47,7 @@
       "filters": "Filtri",
       "allTags": "Tutte le etichette",
       "allUsers": "Tutti gli utenti",
-      "my": "Le mie spese",
+      "my": "I miei movimenti",
       "all": "Tutti",
       "clearFilters": "Cancella filtri",
       "settled": "Mostra saldati",
@@ -115,7 +115,8 @@
     "expenseCount": "{count, plural, one {# spesa} other {# spese}}",
     "transferCount": "{count, plural, one {# trasferimento} other {# trasferimenti}}",
     "recordPayment": "Registra come pagato",
-    "paymentRecorded": "Pagamento registrato"
+    "paymentRecorded": "Pagamento registrato",
+    "settleSuccess": "Sono stati creati i seguenti trasferimenti:"
   },
   "member": {
     "list": {
