@@ -629,7 +629,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
             </div>
 
             <div className="mb-5">
-              <DsSegmented options={[
+              <DsSegmented fullWidth options={[
                 { value: 'all', label: t('expense.list.all') },
                 { value: 'my', label: t('expense.list.my') },
               ]} value={draftViewMode} onChange={setDraftViewMode} color="#10B981" />

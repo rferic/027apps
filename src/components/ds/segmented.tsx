@@ -10,12 +10,13 @@ interface Props<T extends string = string> {
   value: T
   onChange: (value: T) => void
   color?: string
+  fullWidth?: boolean
 }
 
-export function DsSegmented<T extends string = string>({ options, value, onChange, color = '#10B981' }: Props<T>) {
+export function DsSegmented<T extends string = string>({ options, value, onChange, color = '#10B981', fullWidth }: Props<T>) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 1,
+      display: fullWidth ? 'flex' : 'inline-flex', alignItems: 'center', gap: 1,
       background: 'var(--color-muted)', borderRadius: 'var(--radius-lg)',
       padding: 2,
     }}>
@@ -24,6 +25,7 @@ export function DsSegmented<T extends string = string>({ options, value, onChang
         return (
           <button key={opt.value} onClick={() => onChange(opt.value)}
             style={{
+              flex: fullWidth ? 1 : undefined,
               padding: '5px 12px', fontSize: 12, fontWeight: isActive ? 600 : 400,
               borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
               whiteSpace: 'nowrap', transition: 'all var(--transition-fast)',
