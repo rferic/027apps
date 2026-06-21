@@ -70,7 +70,7 @@ function Modal({ open, onClose, title, children }: { open: boolean; onClose: () 
 // ─── Chart ──────────────────────────────────────────────────────────────
 
 import { BarChart } from '@/components/composite/bar-chart'
-import { toast } from 'sonner'
+import { dsToast } from '@/components/ds/toast'
 
 function chartData(data: { label: string; total: number }[], cumulative: boolean) {
   return cumulative ? data.reduce<{ label: string; total: number }[]>((acc, d) => {
@@ -458,7 +458,7 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
         ))}
       </div>
 
-      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} onRefreshLight={handleLightRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} expensesLoading={expensesLoading} />}
+      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} onRefreshLight={handleLightRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} expensesLoading={expensesLoading} lightRefreshKey={lightRefreshKey} />}
       {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleLightRefresh} onSettle={handleLightRefresh} />}
       {tab === 'stats' && <StatsTab statsData={statsData} tags={tags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} />}
       {tab === 'settings' && <SettingsTab groupId={groupId} group={group} tags={tags} loading={dataLoading} onRefresh={handleRefresh} availableMembers={availableMembers} onMembersUpdate={handleMembersUpdate} />}
@@ -470,12 +470,12 @@ function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => v
 
 // ─── Expenses Tab ───────────────────────────────────────────────────────
 
-function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, onRefreshLight, showCreate, onShowCreate, page, totalPages, onPageChange, expensesLoading }: {
+function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, onRefreshLight, showCreate, onShowCreate, page, totalPages, onPageChange, expensesLoading, lightRefreshKey }: {
   groupId: string; expenses: Expense[]; tags: Tag[]; currentUserId: string;
   members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void; onRefreshLight: () => void;
   showCreate: boolean; onShowCreate: (v: boolean) => void;
   page: number; totalPages: number; onPageChange: (p: number) => void;
-  expensesLoading?: boolean;
+  expensesLoading?: boolean; lightRefreshKey?: number;
 }) {
   const ctx = useAppContext()
   const locale = useLocale()
@@ -521,7 +521,7 @@ function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembe
       if (res.ok) { const r = await res.json(); setTransfersList(r.data ?? []) }
       setTransfersLoading(false)
     })()
-  }, [contentType, ctx.groupSlug, groupId])
+  }, [contentType, ctx.groupSlug, groupId, lightRefreshKey])
 
   const filteredExpenses = expenses.filter(e => {
     if (viewMode === 'my' && currentUserId) {
@@ -1154,13 +1154,13 @@ function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSet
               })
               setShowSettle(false)
               if (res.ok) {
-                toast.success(t('balance.success'))
+                dsToast.success(t('balance.success'))
                 onSettled()
               } else {
                 const err = await res.json().catch(() => ({}))
-                toast.error(err.message || t('balance.cancelled'))
+                dsToast.error(err.message || t('balance.cancelled'))
               }
-            } catch { toast.error(t('balance.cancelled')) } finally { setSettling(false) }
+            } catch { dsToast.error(t('balance.cancelled')) } finally { setSettling(false) }
           }}>
             {settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}
           </DsButton>
