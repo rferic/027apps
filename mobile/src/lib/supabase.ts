@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import * as SecureStore from 'expo-secure-store'
+import { setTokens, clearTokens } from './token-store'
+import { invalidateApiClient } from './api'
 
 const secureStoreAdapter = {
   getItem: async (key: string) => {
@@ -35,4 +37,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false,
   },
+})
+
+supabase.auth.onAuthStateChange(async (_event, session) => {
+  if (session) {
+    await setTokens(session.access_token, session.refresh_token || '')
+  } else {
+    await clearTokens()
+  }
+  invalidateApiClient()
 })
