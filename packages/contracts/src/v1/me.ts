@@ -4,6 +4,13 @@ import { UnauthorizedResponseSchema, ForbiddenResponseSchema } from '../common'
 
 const c = initContract()
 
+const GroupSchema = z.object({
+  id: z.string().describe('Group UUID'),
+  slug: z.string().describe('Group URL slug'),
+  name: z.string().describe('Group display name'),
+  role: z.string().describe('User role in this group: admin or member'),
+})
+
 const MeResponseSchema = z.object({
   id: z.string().describe('User UUID'),
   email: z.string().describe('User email address'),
@@ -12,6 +19,7 @@ const MeResponseSchema = z.object({
   locale: z.string().nullable().describe('Preferred locale code'),
   role: z.string().describe('User role: admin or member'),
   group_id: z.string().describe('Primary group UUID'),
+  groups: z.array(GroupSchema).describe('Groups the user belongs to'),
 })
 
 export const meContract = c.router({
