@@ -10,8 +10,10 @@ export default function ModulesLayout() {
     >
       <Stack.Screen name="todo/index" options={{ title: 'TODO' }} />
       <Stack.Screen name="todo/[id]" options={{ title: 'TODO Detail' }} />
+      <Stack.Screen name="todo/create" options={{ title: 'New TODO', presentation: 'modal' }} />
       <Stack.Screen name="inspiration/index" options={{ title: 'Inspiration' }} />
       <Stack.Screen name="inspiration/[id]" options={{ title: 'Idea Detail' }} />
+      <Stack.Screen name="inspiration/create" options={{ title: 'New Idea', presentation: 'modal' }} />
     </Stack>
   )
 }
