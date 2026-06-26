@@ -30,9 +30,11 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const enriched = await Promise.all((rows ?? []).map(async (group) => {
     const [{ count: memberCount }, { data: expenses }] = await Promise.all([
       db.from('split_expenses_members').select('*', { count: 'exact', head: true }).eq('expense_group_id', group.id),
-      db.from('split_expenses_expenses').select('id, paid_by').eq('expense_group_id', group.id).eq('settled', false),
+      db.from('split_expenses_expenses').select('id, paid_by, amount').eq('expense_group_id', group.id),
     ])
     const expenseIds = (expenses ?? []).map(e => e.id)
+    const totalAmount = (expenses ?? []).reduce((sum, e) => sum + parseFloat(e.amount), 0)
+    const myPaid = (expenses ?? []).filter(e => e.paid_by === ctx.userId).reduce((sum, e) => sum + parseFloat(e.amount), 0)
     let myBalance = 0
     if (expenseIds.length > 0) {
       const { data: shares } = await db.from('split_expenses_shares')
@@ -47,7 +49,30 @@ export default async function handler(req: Request, ctx: HandlerContext) {
         }
       }
     }
-    return { ...group, member_count: memberCount ?? 0, my_balance: Math.round(myBalance * 100) / 100 }
+    // Subtract completed transfers
+    const { data: transfers } = await db.from('split_expenses_transfers')
+      .select('from_user, to_user, amount').eq('expense_group_id', group.id).eq('status', 'completed')
+
+    // Calculate group-wide pending: sum of positive net balances after transfers
+    const netMap: Record<string, number> = {}
+    for (const e of expenses ?? []) {
+      netMap[e.paid_by] = (netMap[e.paid_by] ?? 0) + parseFloat(e.amount)
+    }
+    if (expenseIds.length > 0) {
+      const { data: allShares } = await db.from('split_expenses_shares')
+        .select('user_id, expense_id, amount').in('expense_id', expenseIds)
+      for (const s of allShares ?? []) {
+        netMap[s.user_id] = (netMap[s.user_id] ?? 0) - parseFloat(s.amount)
+      }
+    }
+    for (const t of transfers ?? []) {
+      netMap[t.from_user] = (netMap[t.from_user] ?? 0) + parseFloat(t.amount)
+      netMap[t.to_user] = (netMap[t.to_user] ?? 0) - parseFloat(t.amount)
+      if (t.from_user === ctx.userId) myBalance += parseFloat(t.amount)
+      if (t.to_user === ctx.userId) myBalance -= parseFloat(t.amount)
+    }
+    const pendingAmount = Object.values(netMap).filter(v => v > 0).reduce((sum, v) => sum + v, 0)
+    return { ...group, member_count: memberCount ?? 0, my_balance: Math.round(myBalance * 100) / 100, total_amount: Math.round(totalAmount * 100) / 100, my_paid: Math.round(myPaid * 100) / 100, pending_amount: Math.round(pendingAmount * 100) / 100 }
   }))
 
   const total = count ?? 0

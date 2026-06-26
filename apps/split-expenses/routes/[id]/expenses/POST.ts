@@ -32,14 +32,17 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   if (!group) return apiError('NOT_FOUND', 'Expense group not found', 404)
 
   // Create expense
-  const { data: expense, error: expenseErr } = await db.from('split_expenses_expenses').insert({
+  const insertData: Record<string, unknown> = {
     expense_group_id: expenseGroupId,
     title: title.trim(),
     amount,
     paid_by: paidBy,
     tag_id: tagId || null,
     created_by: ctx.userId,
-  }).select().single()
+  }
+  if (body.created_at) insertData.created_at = body.created_at
+
+  const { data: expense, error: expenseErr } = await db.from('split_expenses_expenses').insert(insertData).select().single()
 
   if (expenseErr) return apiError('CREATE_FAILED', expenseErr.message, 500)
 

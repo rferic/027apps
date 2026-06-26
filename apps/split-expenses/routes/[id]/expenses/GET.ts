@@ -29,7 +29,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   if (tagId) query = query.eq('tag_id', tagId)
   if (dateStart) query = query.gte('created_at', dateStart)
-  if (dateEnd) query = query.lte('created_at', dateEnd)
+  if (dateEnd) query = query.lte('created_at', dateEnd + 'T23:59:59.999Z')
   if (paidBy) query = query.eq('paid_by', paidBy)
 
   if (sort === 'oldest') query = query.order('created_at', { ascending: true })

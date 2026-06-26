@@ -33,7 +33,7 @@ function AppCard({ app }: { app: CombinedApp }) {
   const t = useTranslations('admin.apps')
   const tErrors = useTranslations('apps.errors')
   const allMessages = useMessages()
-  const appDescription = (allMessages as Record<string, any>)?.apps?.[app.slug]?.description
+  const appDescription = ((allMessages as Record<string, unknown>)?.apps as Record<string, { description: string }> | undefined)?.[app.slug]?.description
   const locale = useLocale()
   const [isPending, startTransition] = useTransition()
   const [isPendingVisibility, startVisibilityTransition] = useTransition()

@@ -72,7 +72,26 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   }))
 
   const balances = calculateBalances(optimizerExpenses)
-  const transfers = optimizeTransfers(balances)
+  const balancesMap = new Map(balances.map(b => [b.user_id, b.net_balance]))
+
+  // Subtract already completed transfers so we don't double-settle
+  const { data: existingTransfers } = await db.from('split_expenses_transfers')
+    .select('from_user, to_user, amount')
+    .eq('expense_group_id', expenseGroupId)
+    .eq('status', 'completed')
+
+  for (const t of existingTransfers ?? []) {
+    const from = balancesMap.get(t.from_user) ?? 0
+    const to = balancesMap.get(t.to_user) ?? 0
+    balancesMap.set(t.from_user, from + parseFloat(t.amount))
+    balancesMap.set(t.to_user, to - parseFloat(t.amount))
+  }
+
+  const netBalances = Array.from(balancesMap.entries())
+    .map(([user_id, net_balance]) => ({ user_id, net_balance: Math.round(net_balance * 100) / 100 }))
+    .filter(b => Math.abs(b.net_balance) > 0.01)
+
+  const transfers = optimizeTransfers(netBalances)
 
   if (transfers.length === 0) {
     return apiError('BAD_REQUEST', 'No transfers needed for the selected users', 400)
@@ -94,7 +113,10 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     amount: t.amount,
     status: 'completed',
   }))
-  await db.from('split_expenses_transfers').insert(transferRows)
+  const { error: transferError } = await db.from('split_expenses_transfers').insert(transferRows)
+  if (transferError) {
+    return new Response(JSON.stringify({ error: 'Failed to create transfers' }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+  }
 
   return apiOk({
     settlement,

@@ -1,10 +1,10 @@
 {
-  "description": "Divide gastos en grupo con optimización de deudas.",
+  "description": "Divide movimientos en grupo con optimización de deudas.",
   "group": {
     "list": {
-      "title": "Grupos de gastos",
-      "empty": "Aún no hay grupos de gastos",
-      "createFirst": "Crea tu primer grupo de gastos",
+      "title": "Grupos de movimientos",
+      "empty": "Aún no hay grupos de movimientos",
+      "createFirst": "Crea tu primer grupo de movimientos",
       "youOwe": "Debes",
       "youAreOwed": "Te deben",
       "settled": "Todo liquidado",
@@ -12,8 +12,8 @@
       "memberCount": "{count, plural, one {# miembro} other {# miembros}}"
     },
     "create": {
-      "title": "Nuevo grupo de gastos",
-      "editTitle": "Editar grupo de gastos",
+      "title": "Nuevo grupo",
+      "editTitle": "Editar grupo",
       "name": "Nombre del grupo",
       "emoji": "Icono",
       "currency": "Moneda",
@@ -21,12 +21,12 @@
       "create": "Crear grupo",
       "save": "Guardar cambios",
       "cancel": "Cancelar",
-      "success": "Grupo de gastos creado",
-      "updated": "Grupo de gastos actualizado"
+      "success": "Grupo de movimientos creado",
+      "updated": "Grupo de movimientos actualizado"
     },
     "detail": {
       "tabs": {
-        "expenses": "Gastos",
+        "expenses": "Movimientos",
         "balances": "Balances",
         "members": "Miembros",
         "stats": "Estadísticas",
@@ -34,16 +34,16 @@
         "tags": "Etiquetas",
         "settings": "Ajustes"
       },
-      "noGroup": "Grupo de gastos no encontrado",
+      "noGroup": "Grupo de movimientos no encontrado",
       "memberCount": "{count, plural, one {# miembro} other {# miembros}}"
     }
   },
   "expense": {
     "list": {
-      "title": "Gastos",
-      "empty": "Aún no hay gastos",
-      "addFirst": "Añade tu primer gasto",
-      "noResults": "No hay gastos que coincidan con tus filtros",
+      "title": "Movimientos",
+      "empty": "Aún no hay movimientos",
+      "addFirst": "Añade tu primer movimiento",
+      "noResults": "No hay movimientos que coincidan con tus filtros",
       "filters": "Filtros",
       "allTags": "Todas las etiquetas",
       "allUsers": "Todos los usuarios",
@@ -56,8 +56,8 @@
       "typeAll": "Todo"
     },
     "create": {
-      "title": "Nuevo gasto",
-      "editTitle": "Editar gasto",
+      "title": "Nuevo movimiento",
+      "editTitle": "Editar movimiento",
       "concept": "Concepto",
       "amount": "Importe",
       "paidBy": "Pagado por",
@@ -65,13 +65,13 @@
       "tag": "Etiqueta (opcional)",
       "noTag": "Sin etiqueta",
       "equalSplit": "Reparto igual ({amount} cada uno)",
-      "create": "Añadir gasto",
+      "create": "Añadir movimiento",
       "save": "Guardar",
       "cancel": "Cancelar",
-      "success": "Gasto añadido",
-      "updated": "Gasto actualizado",
-      "deleted": "Gasto eliminado",
-      "cantEditSettled": "No se puede editar un gasto liquidado",
+      "success": "Movimiento añadido",
+      "updated": "Movimiento actualizado",
+      "deleted": "Movimiento eliminado",
+      "cantEditSettled": "No se puede editar un movimiento liquidado",
       "needParticipants": "Selecciona al menos un participante"
     },
     "item": {
@@ -83,14 +83,14 @@
       "total": "total"
     },
     "delete": {
-      "title": "Eliminar gasto",
+      "title": "Eliminar movimiento",
       "confirm": "¿Eliminar \"{title}\"?",
       "deleting": "Eliminando..."
     }
   },
   "balance": {
     "title": "Balances",
-    "noExpenses": "Añade gastos para ver los balances",
+    "noExpenses": "Añade movimientos para ver los balances",
     "summary": "Resumen",
     "transfers": "Transferencias propuestas",
     "noTransfers": "¡Todo liquidado!",
@@ -116,7 +116,7 @@
     "transferCount": "{count, plural, one {# transferencia} other {# transferencias}}",
     "recordPayment": "Registrar como pagado",
     "paymentRecorded": "Pago registrado",
-    "settleSuccess": "Se crearon las siguientes transferencias:"
+    "settleSuccess": "Se han creado {count} transferencias."
   },
   "member": {
     "list": {
@@ -228,17 +228,17 @@
     "manualMapping": "Asociación manual",
     "mustMapAll": "Todos los usuarios deben estar asociados para continuar",
     "previewTitle": "Vista previa de la importación",
-    "totalExpenses": "Total de gastos",
+    "totalExpenses": "Total de movimientos",
     "totalAmount": "Importe total",
     "dateRange": "Rango de fechas",
     "membersToAdd": "Miembros a añadir",
     "tagsToCreate": "Etiquetas a crear",
     "transfersToCreate": "Transferencias a crear",
     "warnings": "Avisos",
-    "confirmImport": "Importar {count} gastos",
+    "confirmImport": "Importar {count} movimientos",
     "importing": "Importando...",
     "success": "Importación completada correctamente",
-    "expensesCreated": "Gastos creados",
+    "expensesCreated": "Movimientos creados",
     "expensesSkipped": "Duplicados omitidos",
     "errors": "Errores"
   },
@@ -259,6 +259,17 @@
   "transfer": {
     "item": {
       "manual": "Manual"
+    },
+    "delete": {
+      "title": "Eliminar transferencia",
+      "confirm": "¿Eliminar esta transferencia?",
+      "deleting": "Eliminando..."
+    },
+    "edit": {
+      "title": "Editar transferencia",
+      "amount": "Importe",
+      "note": "Nota (opcional)",
+      "save": "Guardar"
     }
   }
 }

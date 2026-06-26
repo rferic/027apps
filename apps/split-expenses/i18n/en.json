@@ -1,5 +1,5 @@
 {
-  "description": "Split expenses in groups with debt optimization.",
+  "description": "Split movements in groups with debt optimization.",
   "common": {
     "back": "Back",
     "cancel": "Cancel",
@@ -11,9 +11,9 @@
   },
   "group": {
     "list": {
-      "title": "Expense Groups",
-      "empty": "No expense groups yet",
-      "createFirst": "Create your first expense group",
+      "title": "Movement Groups",
+      "empty": "No movement groups yet",
+      "createFirst": "Create your first movement group",
       "memberCount": "{count} members",
       "youOwe": "You owe",
       "youAreOwed": "You are owed",
@@ -21,8 +21,8 @@
       "totalBalance": "Total balance"
     },
     "create": {
-      "title": "New expense group",
-      "editTitle": "Edit expense group",
+      "title": "New group",
+      "editTitle": "Edit group",
       "name": "Group name",
       "emoji": "Icon",
       "currency": "Currency",
@@ -30,12 +30,12 @@
       "create": "Create group",
       "save": "Save changes",
       "cancel": "Cancel",
-      "success": "Expense group created",
-      "updated": "Expense group updated"
+      "success": "Movement group created",
+      "updated": "Movement group updated"
     },
     "detail": {
       "tabs": {
-        "expenses": "Expenses",
+        "movements": "Movements",
         "balances": "Balances",
         "members": "Members",
         "stats": "Statistics",
@@ -43,13 +43,13 @@
         "tags": "Tags",
         "settings": "Settings"
       },
-      "noGroup": "Expense group not found",
+      "noGroup": "Movement group not found",
       "memberCount": "{count, plural, one {# member} other {# members}}"
     }
   },
   "expense": {
     "list": {
-      "title": "Expenses",
+      "title": "Movements",
       "empty": "No expenses yet",
       "addFirst": "Add your first expense",
       "noResults": "No expenses match your filters",
@@ -64,8 +64,8 @@
       "typeAll": "All"
     },
     "create": {
-      "title": "New expense",
-      "editTitle": "Edit expense",
+      "title": "New movement",
+      "editTitle": "Edit movement",
       "concept": "Concept",
       "amount": "Amount",
       "paidBy": "Paid by",
@@ -73,16 +73,16 @@
       "tag": "Tag (optional)",
       "noTag": "No tag",
       "equalSplit": "Equal split ({amount} each)",
-      "create": "Add expense",
+      "create": "Add movement",
       "save": "Save",
       "cancel": "Cancel",
-      "success": "Expense added",
-      "updated": "Expense updated",
-      "deleted": "Expense deleted",
+      "success": "Movement added",
+      "updated": "Movement updated",
+      "deleted": "Movement deleted",
       "needParticipants": "Select at least one participant"
     },
     "delete": {
-      "title": "Delete expense",
+      "title": "Delete movement",
       "confirm": "Delete \"{title}\"?",
       "deleting": "Deleting..."
     },
@@ -105,7 +105,7 @@
     "confirm": "Confirm settlement",
     "cancelled": "Settlement cancelled",
     "success": "Expenses settled successfully",
-    "settleSuccess": "The following transfers were created:",
+    "settleSuccess": "Created {count} transfers.",
     "youOwe": "You owe",
     "youAreOwed": "You are owed",
     "perPerson": "Per person",
@@ -164,6 +164,17 @@
   "transfer": {
     "item": {
       "manual": "Manual"
+    },
+    "delete": {
+      "title": "Delete transfer",
+      "confirm": "Delete this transfer?",
+      "deleting": "Deleting..."
+    },
+    "edit": {
+      "title": "Edit transfer",
+      "amount": "Amount",
+      "note": "Note (optional)",
+      "save": "Save"
     }
   },
   "stats": {
@@ -240,18 +251,18 @@
     "manualMapping": "Manual mapping",
     "mustMapAll": "All users must be mapped to continue",
     "previewTitle": "Preview import",
-    "totalExpenses": "Total expenses",
+    "totalMovements": "Total movements",
     "totalAmount": "Total amount",
     "dateRange": "Date range",
     "membersToAdd": "Members to add",
     "tagsToCreate": "Tags to create",
     "transfersToCreate": "Transfers to create",
     "warnings": "Warnings",
-    "confirmImport": "Import {count} expenses",
+    "confirmImport": "Import {count} movements",
     "importing": "Importing...",
     "success": "Import completed successfully",
-    "expensesCreated": "Expenses created",
-    "expensesSkipped": "Duplicates skipped",
+    "movementsCreated": "Movements created",
+    "movementsSkipped": "Duplicates skipped",
     "errors": "Errors"
   }
 }

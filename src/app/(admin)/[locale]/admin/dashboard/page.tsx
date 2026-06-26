@@ -8,6 +8,7 @@ import { DsCard } from '@/components/ds/card'
 import { DsBadge } from '@/components/ds/badge'
 import { DsAvatar } from '@/components/ds/avatar'
 import HotIdeasList from './HotIdeasList'
+import SplitExpensesDashboardWidget from '../../../../../../apps/split-expenses/dashboard-widget'
 
 interface Props {
   params: Promise<{ locale: string }>
@@ -36,6 +37,13 @@ export default async function AdminDashboard({ params }: Props) {
     .from('installed_apps')
     .select('slug')
     .eq('slug', 'inspiration')
+    .eq('status', 'active')
+    .single()
+
+  const { data: splitExpensesInstalled } = await adminClient
+    .from('installed_apps')
+    .select('slug')
+    .eq('slug', 'split-expenses')
     .eq('status', 'active')
     .single()
   const isInspirationInstalled = !!inspirationInstalled
@@ -139,6 +147,13 @@ export default async function AdminDashboard({ params }: Props) {
               <HotIdeasList ideas={inspirationStats.hotIdeas} />
             </DsCard>
           )}
+        </div>
+      )}
+
+      {/* Split Expenses Widget */}
+      {splitExpensesInstalled && (
+        <div style={{ marginTop: 32 }}>
+          <SplitExpensesDashboardWidget />
         </div>
       )}
     </main>

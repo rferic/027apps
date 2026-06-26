@@ -57,6 +57,11 @@ import seTagsPostHandler from '../../../apps/split-expenses/routes/[id]/tags/POS
 import seTagPutHandler from '../../../apps/split-expenses/routes/[id]/tags/[tagId]/PUT'
 import seTagDeleteHandler from '../../../apps/split-expenses/routes/[id]/tags/[tagId]/DELETE'
 import seStatsGetHandler from '../../../apps/split-expenses/routes/[id]/stats/GET'
+import seTransfersGetHandler from '../../../apps/split-expenses/routes/[id]/transfers/GET'
+import seTransferPutHandler from '../../../apps/split-expenses/routes/[id]/transfers/[transferId]/PUT'
+import seTransferDeleteHandler from '../../../apps/split-expenses/routes/[id]/transfers/[transferId]/DELETE'
+import seMovementsGetHandler from '../../../apps/split-expenses/routes/[id]/movements/GET'
+import sePaymentsPostHandler from '../../../apps/split-expenses/routes/[id]/payments/POST'
 
 const ROUTE_REGISTRY: Record<string, RouteEntry[]> = {
   todo: [
@@ -110,6 +115,11 @@ const ROUTE_REGISTRY: Record<string, RouteEntry[]> = {
     { method: 'PUT', segments: ['[id]', 'tags', '[tagId]'], handler: seTagPutHandler },
     { method: 'DELETE', segments: ['[id]', 'tags', '[tagId]'], handler: seTagDeleteHandler },
     { method: 'GET', segments: ['[id]', 'stats'], handler: seStatsGetHandler },
+    { method: 'GET', segments: ['[id]', 'transfers'], handler: seTransfersGetHandler },
+    { method: 'PUT', segments: ['[id]', 'transfers', '[transferId]'], handler: seTransferPutHandler },
+    { method: 'DELETE', segments: ['[id]', 'transfers', '[transferId]'], handler: seTransferDeleteHandler },
+    { method: 'GET', segments: ['[id]', 'movements'], handler: seMovementsGetHandler },
+    { method: 'POST', segments: ['[id]', 'payments'], handler: sePaymentsPostHandler },
   ],
 }
 

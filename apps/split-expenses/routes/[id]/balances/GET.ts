@@ -80,7 +80,6 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   }
 
   const adjustedBalances = Array.from(balancesMap.entries())
-    .filter(([_, amount]) => Math.abs(amount) > 0.01)
     .map(([user_id, net_balance]) => ({ user_id, net_balance: Math.round(net_balance * 100) / 100 }))
 
   const rawTransfers = optimizeTransfers(adjustedBalances.map(b => ({ ...b })))

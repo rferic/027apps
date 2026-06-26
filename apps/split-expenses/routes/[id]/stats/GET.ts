@@ -8,6 +8,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const period = url.searchParams.get('period') || 'month'
   const tagId = url.searchParams.get('tag_id')
+  const dateStart = url.searchParams.get('date_start')
+  const dateEnd = url.searchParams.get('date_end')
 
   const validPeriods = ['day', 'week', 'month', 'year']
   if (!validPeriods.includes(period)) return apiError('BAD_REQUEST', 'period must be day, week, month, or year', 400)
@@ -24,6 +26,8 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     .order('created_at', { ascending: true })
 
   if (tagId) query = query.eq('tag_id', tagId)
+  if (dateStart) query = query.gte('created_at', dateStart)
+  if (dateEnd) query = query.lte('created_at', dateEnd + 'T23:59:59.999Z')
 
   const { data: expenses, error } = await query
   if (error) return apiError('QUERY_ERROR', error.message, 500)

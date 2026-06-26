@@ -1,10 +1,10 @@
 {
-  "description": "Teilen Sie Ausgaben in der Gruppe mit Schuldenoptimierung.",
+  "description": "Teilen Sie Bewegungen in der Gruppe mit Schuldenoptimierung.",
   "group": {
     "list": {
-      "title": "Ausgabengruppen",
-      "empty": "Noch keine Ausgabengruppen",
-      "createFirst": "Erstelle deine erste Ausgabengruppe",
+      "title": "Bewegungsgruppen",
+      "empty": "Noch keine Bewegungsgruppen",
+      "createFirst": "Erstelle deine erste Bewegungsgruppe",
       "youOwe": "Du schuldest",
       "youAreOwed": "Dir wird geschuldet",
       "settled": "Alles beglichen",
@@ -12,8 +12,8 @@
       "memberCount": "{count, plural, one {# Mitglied} other {# Mitglieder}}"
     },
     "create": {
-      "title": "Neue Ausgabengruppe",
-      "editTitle": "Ausgabengruppe bearbeiten",
+      "title": "Neue Gruppe",
+      "editTitle": "Gruppe bearbeiten",
       "name": "Gruppenname",
       "emoji": "Symbol",
       "currency": "Währung",
@@ -21,12 +21,12 @@
       "create": "Gruppe erstellen",
       "save": "Änderungen speichern",
       "cancel": "Abbrechen",
-      "success": "Ausgabengruppe erstellt",
-      "updated": "Ausgabengruppe aktualisiert"
+      "success": "Bewegungsgruppe erstellt",
+      "updated": "Bewegungsgruppe aktualisiert"
     },
     "detail": {
       "tabs": {
-        "expenses": "Ausgaben",
+        "expenses": "Bewegungen",
         "balances": "Salden",
         "members": "Mitglieder",
         "stats": "Statistiken",
@@ -34,16 +34,16 @@
         "tags": "Etiketten",
         "settings": "Einstellungen"
       },
-      "noGroup": "Ausgabengruppe nicht gefunden",
+      "noGroup": "Bewegungsgruppe nicht gefunden",
       "memberCount": "{count, plural, one {# Mitglied} other {# Mitglieder}}"
     }
   },
   "expense": {
     "list": {
-      "title": "Ausgaben",
-      "empty": "Noch keine Ausgaben",
-      "addFirst": "Füge deine erste Ausgabe hinzu",
-      "noResults": "Keine Ausgaben passen zu deinen Filtern",
+      "title": "Bewegungen",
+      "empty": "Noch keine Bewegungen",
+      "addFirst": "Füge deine erste Bewegung hinzu",
+      "noResults": "Keine Bewegungen passen zu deinen Filtern",
       "filters": "Filter",
       "allTags": "Alle Etiketten",
       "allUsers": "Alle Benutzer",
@@ -56,8 +56,8 @@
       "typeAll": "Alle"
     },
     "create": {
-      "title": "Neue Ausgabe",
-      "editTitle": "Ausgabe bearbeiten",
+      "title": "Neue Bewegung",
+      "editTitle": "Bewegung bearbeiten",
       "concept": "Beschreibung",
       "amount": "Betrag",
       "paidBy": "Bezahlt von",
@@ -65,13 +65,13 @@
       "tag": "Etikett (optional)",
       "noTag": "Kein Etikett",
       "equalSplit": "Gleichmäßig aufteilen ({amount} pro Person)",
-      "create": "Ausgabe hinzufügen",
+      "create": "Bewegung hinzufügen",
       "save": "Speichern",
       "cancel": "Abbrechen",
-      "success": "Ausgabe hinzugefügt",
-      "updated": "Ausgabe aktualisiert",
-      "deleted": "Ausgabe gelöscht",
-      "cantEditSettled": "Eine beglichene Ausgabe kann nicht bearbeitet werden",
+      "success": "Bewegung hinzugefügt",
+      "updated": "Bewegung aktualisiert",
+      "deleted": "Bewegung gelöscht",
+      "cantEditSettled": "Eine beglichene Bewegung kann nicht bearbeitet werden",
       "needParticipants": "Wähle mindestens einen Teilnehmer aus"
     },
     "item": {
@@ -83,14 +83,14 @@
       "total": "gesamt"
     },
     "delete": {
-      "title": "Ausgabe löschen",
+      "title": "Bewegung löschen",
       "confirm": "\"{title}\" löschen?",
       "deleting": "Löschen..."
     }
   },
   "balance": {
     "title": "Salden",
-    "noExpenses": "Füge Ausgaben hinzu, um Salden zu sehen",
+    "noExpenses": "Füge Bewegungen hinzu, um Salden zu sehen",
     "summary": "Übersicht",
     "transfers": "Vorgeschlagene Überweisungen",
     "noTransfers": "Alles beglichen",
@@ -98,7 +98,7 @@
     "settleAll": "Alles begleichen",
     "selectExpenses": "Wähle Ausgaben zum Begleichen aus",
     "confirmTitle": "Auszahlung bestätigen",
-    "confirmMessage": "{count} Überweisung wird erstellt. Fortfahren?",
+    "confirmMessage": "Dies markiert {count} Ausgabe(n) als beglichen und erstellt die folgenden Überweisungen:",
     "confirm": "Auszahlung bestätigen",
     "cancelled": "Auszahlung abgebrochen",
     "success": "Ausgaben erfolgreich beglichen",
@@ -116,7 +116,7 @@
     "transferCount": "{count, plural, one {# Überweisung} other {# Überweisungen}}",
     "recordPayment": "Als bezahlt markieren",
     "paymentRecorded": "Zahlung aufgezeichnet",
-    "settleSuccess": "Die folgenden Überweisungen wurden erstellt:"
+    "settleSuccess": "{count} Überweisungen erstellt."
   },
   "member": {
     "list": {
@@ -228,17 +228,17 @@
     "manualMapping": "Manuelle Zuordnung",
     "mustMapAll": "Alle Benutzer müssen zugeordnet werden, um fortzufahren",
     "previewTitle": "Import-Vorschau",
-    "totalExpenses": "Ausgaben gesamt",
+    "totalExpenses": "Bewegungen gesamt",
     "totalAmount": "Gesamtbetrag",
     "dateRange": "Datumsbereich",
     "membersToAdd": "Hinzuzufügende Mitglieder",
     "tagsToCreate": "Zu erstellende Etiketten",
     "transfersToCreate": "Zu erstellende Überweisungen",
     "warnings": "Warnungen",
-    "confirmImport": "{count} Ausgaben importieren",
+    "confirmImport": "{count} Bewegungen importieren",
     "importing": "Importieren...",
     "success": "Import erfolgreich abgeschlossen",
-    "expensesCreated": "Ausgaben erstellt",
+    "expensesCreated": "Bewegungen erstellt",
     "expensesSkipped": "Duplikate übersprungen",
     "errors": "Fehler"
   },
@@ -259,6 +259,17 @@
   "transfer": {
     "item": {
       "manual": "Manuell"
+    },
+    "delete": {
+      "title": "Überweisung löschen",
+      "confirm": "Diese Überweisung löschen?",
+      "deleting": "Löschen..."
+    },
+    "edit": {
+      "title": "Überweisung bearbeiten",
+      "amount": "Betrag",
+      "note": "Notiz (optional)",
+      "save": "Speichern"
     }
   }
 }

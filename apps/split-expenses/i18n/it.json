@@ -1,10 +1,10 @@
 {
-  "description": "Dividi le spese di gruppo con ottimizzazione dei debiti.",
+  "description": "Dividi le movimenti di gruppo con ottimizzazione dei debiti.",
   "group": {
     "list": {
-      "title": "Gruppi di spesa",
-      "empty": "Nessun gruppo di spesa ancora",
-      "createFirst": "Crea il tuo primo gruppo di spesa",
+      "title": "Gruppi di movimento",
+      "empty": "Nessun gruppo di movimento ancora",
+      "createFirst": "Crea il tuo primo gruppo di movimento",
       "youOwe": "Devi",
       "youAreOwed": "Ti devono",
       "settled": "Tutto saldato",
@@ -12,8 +12,8 @@
       "memberCount": "{count, plural, one {# membro} other {# membri}}"
     },
     "create": {
-      "title": "Nuovo gruppo di spesa",
-      "editTitle": "Modifica gruppo di spesa",
+      "title": "Nuovo gruppo",
+      "editTitle": "Modifica gruppo",
       "name": "Nome del gruppo",
       "emoji": "Icona",
       "currency": "Valuta",
@@ -21,12 +21,12 @@
       "create": "Crea gruppo",
       "save": "Salva modifiche",
       "cancel": "Annulla",
-      "success": "Gruppo di spesa creato",
-      "updated": "Gruppo di spesa aggiornato"
+      "success": "Gruppo di movimento creato",
+      "updated": "Gruppo di movimento aggiornato"
     },
     "detail": {
       "tabs": {
-        "expenses": "Spese",
+        "expenses": "Movimenti",
         "balances": "Saldi",
         "members": "Membri",
         "stats": "Statistiche",
@@ -34,16 +34,16 @@
         "tags": "Etichette",
         "settings": "Impostazioni"
       },
-      "noGroup": "Gruppo di spesa non trovato",
+      "noGroup": "Gruppo di movimento non trovato",
       "memberCount": "{count, plural, one {# membro} other {# membri}}"
     }
   },
   "expense": {
     "list": {
-      "title": "Spese",
-      "empty": "Ancora nessuna spesa",
-      "addFirst": "Aggiungi la tua prima spesa",
-      "noResults": "Nessuna spesa corrisponde ai tuoi filtri",
+      "title": "Movimenti",
+      "empty": "Ancora nessuna movimento",
+      "addFirst": "Aggiungi la tua prima movimento",
+      "noResults": "Nessuna movimento corrisponde ai tuoi filtri",
       "filters": "Filtri",
       "allTags": "Tutte le etichette",
       "allUsers": "Tutti gli utenti",
@@ -56,8 +56,8 @@
       "typeAll": "Tutto"
     },
     "create": {
-      "title": "Nuova spesa",
-      "editTitle": "Modifica spesa",
+      "title": "Nuova movimento",
+      "editTitle": "Modifica movimento",
       "concept": "Concetto",
       "amount": "Importo",
       "paidBy": "Pagato da",
@@ -65,13 +65,13 @@
       "tag": "Etichetta (opzionale)",
       "noTag": "Nessuna etichetta",
       "equalSplit": "Divisione uguale ({amount} a testa)",
-      "create": "Aggiungi spesa",
+      "create": "Aggiungi movimento",
       "save": "Salva",
       "cancel": "Annulla",
-      "success": "Spesa aggiunta",
-      "updated": "Spesa aggiornata",
-      "deleted": "Spesa eliminata",
-      "cantEditSettled": "Non puoi modificare una spesa saldata",
+      "success": "Movimento aggiunta",
+      "updated": "Movimento aggiornata",
+      "deleted": "Movimento eliminata",
+      "cantEditSettled": "Non puoi modificare una movimento saldata",
       "needParticipants": "Seleziona almeno un partecipante"
     },
     "item": {
@@ -83,14 +83,14 @@
       "total": "totale"
     },
     "delete": {
-      "title": "Elimina spesa",
+      "title": "Elimina movimento",
       "confirm": "Eliminare \"{title}\"?",
       "deleting": "Eliminazione..."
     }
   },
   "balance": {
     "title": "Saldi",
-    "noExpenses": "Aggiungi spese per vedere i saldi",
+    "noExpenses": "Aggiungi movimenti per vedere i saldi",
     "summary": "Riepilogo",
     "transfers": "Trasferimenti proposti",
     "noTransfers": "Tutto saldato",
@@ -98,7 +98,7 @@
     "settleAll": "Salda tutto",
     "selectExpenses": "Seleziona le spese da saldare",
     "confirmTitle": "Conferma saldo",
-    "confirmMessage": "{count} trasferimento sarà creato. Vuoi procedere?",
+    "confirmMessage": "Questo segnerà {count} spesa/spese come saldata/e e creerà i seguenti trasferimenti:",
     "confirm": "Conferma liquidazione",
     "cancelled": "Liquidazione annullata",
     "success": "Spese saldate con successo",
@@ -116,7 +116,7 @@
     "transferCount": "{count, plural, one {# trasferimento} other {# trasferimenti}}",
     "recordPayment": "Registra come pagato",
     "paymentRecorded": "Pagamento registrato",
-    "settleSuccess": "Sono stati creati i seguenti trasferimenti:"
+    "settleSuccess": "Creati {count} trasferimenti."
   },
   "member": {
     "list": {
@@ -228,17 +228,17 @@
     "manualMapping": "Mappatura manuale",
     "mustMapAll": "Tutti gli utenti devono essere mappati per continuare",
     "previewTitle": "Anteprima importazione",
-    "totalExpenses": "Spese totali",
+    "totalExpenses": "Movimenti totali",
     "totalAmount": "Importo totale",
     "dateRange": "Intervallo date",
     "membersToAdd": "Membri da aggiungere",
     "tagsToCreate": "Etichette da creare",
     "transfersToCreate": "Trasferimenti da creare",
     "warnings": "Avvertimenti",
-    "confirmImport": "Importa {count} spese",
+    "confirmImport": "Importa {count} movimenti",
     "importing": "Importazione...",
     "success": "Importazione completata con successo",
-    "expensesCreated": "Spese create",
+    "expensesCreated": "Movimenti create",
     "expensesSkipped": "Duplicati saltati",
     "errors": "Errori"
   },
@@ -259,6 +259,17 @@
   "transfer": {
     "item": {
       "manual": "Manuale"
+    },
+    "delete": {
+      "title": "Elimina trasferimento",
+      "confirm": "Eliminare questo trasferimento?",
+      "deleting": "Eliminando..."
+    },
+    "edit": {
+      "title": "Modifica trasferimento",
+      "amount": "Importo",
+      "note": "Nota (opzionale)",
+      "save": "Salva"
     }
   }
 }

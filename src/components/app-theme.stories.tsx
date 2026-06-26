@@ -75,12 +75,7 @@ export const LocalScope: Story = {
 }
 
 export const MultipleThemes: Story = {
-  args: {
-    primaryColor: '#9B1C1C',
-    secondaryColor: '#FDF2F2',
-    scope: 'local',
-  },
-  render: (args) => (
+  render: () => (
     <div style={{ display: 'flex', gap: 12 }}>
       <AppTheme primaryColor="#4F46E5" secondaryColor="#EEF2FF" scope="local">
         <div

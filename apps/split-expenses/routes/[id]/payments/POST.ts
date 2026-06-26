@@ -4,7 +4,7 @@ import type { HandlerContext } from '@/lib/apps/router-types'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
   const url = new URL(req.url)
-  const expenseGroupId = url.pathname.split('/').at(-3)
+  const expenseGroupId = url.pathname.split('/').at(-2)
 
   let body: Record<string, unknown>
   try { body = await req.json() } catch { return apiError('BAD_REQUEST', 'Invalid JSON', 400) }
@@ -36,7 +36,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     status: 'completed',
     is_manual: true,
     note,
-    created_at: new Date().toISOString(),
+    created_at: (body.created_at as string) ?? new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }).select().single()
 

@@ -5,7 +5,7 @@ import { useEffect, useCallback, type ReactNode } from 'react'
 interface Props {
   open: boolean
   onClose: () => void
-  title?: string
+  title?: ReactNode
   children: ReactNode
   maxWidth?: number
 }
@@ -28,7 +28,7 @@ export function DsModal({ open, onClose, title, children, maxWidth = 480 }: Prop
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={typeof title === 'string' ? title : undefined}
         style={{
           position: 'relative',
           background: 'var(--color-surface)',

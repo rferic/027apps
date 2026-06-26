@@ -31,6 +31,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   }
   if (typeof body.paid_by === 'string') update.paid_by = body.paid_by
   if (body.tag_id !== undefined) update.tag_id = body.tag_id || null
+  if (body.created_at) update.created_at = body.created_at
 
   const { data, error } = await db.from('split_expenses_expenses')
     .update(update).eq('id', expenseId).select().single()
