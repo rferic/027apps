@@ -13,11 +13,6 @@ interface GroupInfo {
   memberCount?: number
 }
 
-interface MemberInfo {
-  displayName: string
-  role: string
-}
-
 interface AppInfo {
   slug: string
   name: string
@@ -29,11 +24,11 @@ interface Props {
   isAdmin: boolean
   userGroups?: GroupInfo[]
   currentGroupSlug?: string | null
-  groupMembers?: MemberInfo[]
+  currentGroupId?: string
   groupApps?: AppInfo[]
 }
 
-export async function AppHeader({ locale, displayName, isAdmin, userGroups, currentGroupSlug, groupMembers, groupApps }: Props) {
+export async function AppHeader({ locale, displayName, isAdmin, userGroups, currentGroupSlug, currentGroupId, groupApps }: Props) {
   const settings = await getGroupSettings()
 
   const homeHref = currentGroupSlug
@@ -41,14 +36,14 @@ export async function AppHeader({ locale, displayName, isAdmin, userGroups, curr
     : `/${locale}/`
 
   const currentGroup = userGroups?.find(g => g.slug === currentGroupSlug)
-  const showGroupInfo = currentGroup && groupMembers && groupApps
+  const showGroupInfo = currentGroup && groupApps
 
   return (
-    <header className="h-14 border-b border-slate-100 bg-white px-4 sm:px-6 flex items-center justify-between sticky top-0 z-10">
+    <header className="h-14 border-b border-border bg-background px-4 sm:px-6 flex items-center justify-between sticky top-0 z-10">
       <div className="flex items-center gap-3 min-w-0">
         <Link href={homeHref} className="flex items-center gap-2 flex-shrink-0">
           <Image src="/logo-icon.svg" alt="027Apps" width={26} height={26} priority />
-          <span className="font-semibold text-slate-900 text-sm hidden sm:inline">027Apps</span>
+          <span className="font-semibold text-foreground text-sm hidden sm:inline">027Apps</span>
         </Link>
 
         {userGroups && userGroups.length > 0 && (
@@ -67,7 +62,7 @@ export async function AppHeader({ locale, displayName, isAdmin, userGroups, curr
           <GroupInfoButton
             groupName={currentGroup.name}
             groupSlug={currentGroup.slug}
-            members={groupMembers}
+            groupId={currentGroupId!}
             apps={groupApps}
           />
         )}

@@ -55,12 +55,12 @@ export function TodoItemCard({ item, categories, memberMap, userId, showAssign, 
   const isDone = item.status === 'done'
 
   return (
-    <div className={`bg-white rounded-xl border transition-all duration-200 mb-3 ${isDone ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-100 hover:border-slate-200 hover:shadow-sm'}`}>
+    <div className={`bg-card rounded-xl border transition-all duration-200 mb-3 ${isDone ? 'border-emerald-300 opacity-60' : 'border-border hover:border-border hover:shadow-sm'}`}>
       <div className="flex items-center gap-3 p-4">
         <button
           onClick={() => onStatusChange(item, isDone ? 'pending' : 'done')}
           className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-            isDone ? 'border-emerald-500 text-white' : 'border-slate-300 hover:border-emerald-400'
+            isDone ? 'border-emerald-500 text-white' : 'border-border hover:border-emerald-400'
           }`}
           style={isDone ? { backgroundColor: '#10B981' } : {}}
         >
@@ -68,7 +68,7 @@ export function TodoItemCard({ item, categories, memberMap, userId, showAssign, 
         </button>
         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onDetail(item)}>
           <div className="flex items-center gap-2">
-            <span className={`text-sm ${isDone ? 'line-through text-slate-400' : 'text-slate-800'}`}>{item.title}</span>
+            <span className={`text-sm ${isDone ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{item.title}</span>
             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: pc.color + '20', color: pc.color }}>{t('priority_' + item.priority)}</span>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
@@ -76,13 +76,12 @@ export function TodoItemCard({ item, categories, memberMap, userId, showAssign, 
               <span className="text-[10px] px-1 py-0.5 rounded" style={{ backgroundColor: cat.color + '20', color: cat.color }}>{cat.emoji} {cat.name}</span>
             )}
             {item.due_date ? (
-              <span className={`text-[10px] ${isOverdue ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{formatDate(item.due_date, t('today'), locale)}</span>
+              <span className={`text-[10px] ${isOverdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>{formatDate(item.due_date, t('today'), locale)}</span>
             ) : (
-              <span className="text-[10px] text-slate-300 italic">{t('no_date')}</span>
-            )}
-            {item.repeat_interval && <Repeat size={11} className="text-slate-300" />}
+              <span className="text-[10px] text-muted-foreground italic">{t('no_date')}</span>)}
+            {item.repeat_interval && <Repeat size={11} className="text-muted-foreground" />}
             {item.assigned_to && (
-              <span className="text-[10px] text-slate-400">👤 {memberMap.get(item.assigned_to) ?? '...'}</span>
+              <span className="text-[10px] text-muted-foreground">👤 {memberMap.get(item.assigned_to) ?? '...'}</span>
             )}
           </div>
         </div>
@@ -91,7 +90,7 @@ export function TodoItemCard({ item, categories, memberMap, userId, showAssign, 
         <div className="flex items-center gap-1">
           <button
             onClick={() => onEdit(item)}
-            className="p-1.5 rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title={t('edit')}
           >
             <Pencil size={14} />
@@ -99,7 +98,7 @@ export function TodoItemCard({ item, categories, memberMap, userId, showAssign, 
           {showAssign && !item.assigned_to && userId && onAssign && (
             <button
               onClick={() => onAssign(item)}
-              className="p-1.5 rounded text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+              className="p-1.5 rounded text-muted-foreground hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
               title={t('assign_to_me')}
             >
               <UserPlus size={14} />
@@ -108,7 +107,7 @@ export function TodoItemCard({ item, categories, memberMap, userId, showAssign, 
         </div>
         <button
           onClick={() => onDelete(item)}
-          className="p-1.5 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+          className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
           title={t('delete')}
         >
           <Trash2 size={14} />

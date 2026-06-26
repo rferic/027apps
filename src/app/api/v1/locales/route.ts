@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk } from '@/lib/api/response'
+import { apiOk, withTiming } from '@/lib/api/response'
 
 // NOTE: locale fallback uses English as default. Per-group default comes from
 // group_settings.default_locale when configured.
@@ -13,7 +13,7 @@ const LOCALE_NAMES: Record<string, string> = {
   de: 'German',
 }
 
-export async function GET(req: NextRequest) {
+export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'public')
   if (auth instanceof Response) return auth
 
@@ -34,4 +34,4 @@ export async function GET(req: NextRequest) {
   }))
 
   return apiOk(locales)
-}
+})

@@ -1,0 +1,275 @@
+{
+  "description": "Teilen Sie Bewegungen in der Gruppe mit Schuldenoptimierung.",
+  "group": {
+    "list": {
+      "title": "Bewegungsgruppen",
+      "empty": "Noch keine Bewegungsgruppen",
+      "createFirst": "Erstelle deine erste Bewegungsgruppe",
+      "youOwe": "Du schuldest",
+      "youAreOwed": "Dir wird geschuldet",
+      "settled": "Alles beglichen",
+      "totalBalance": "Gesamtsaldo",
+      "memberCount": "{count, plural, one {# Mitglied} other {# Mitglieder}}"
+    },
+    "create": {
+      "title": "Neue Gruppe",
+      "editTitle": "Gruppe bearbeiten",
+      "name": "Gruppenname",
+      "emoji": "Symbol",
+      "currency": "Währung",
+      "members": "Mitglieder",
+      "create": "Gruppe erstellen",
+      "save": "Änderungen speichern",
+      "cancel": "Abbrechen",
+      "success": "Bewegungsgruppe erstellt",
+      "updated": "Bewegungsgruppe aktualisiert"
+    },
+    "detail": {
+      "tabs": {
+        "expenses": "Bewegungen",
+        "balances": "Salden",
+        "members": "Mitglieder",
+        "stats": "Statistiken",
+        "import": "Importieren",
+        "tags": "Etiketten",
+        "settings": "Einstellungen"
+      },
+      "noGroup": "Bewegungsgruppe nicht gefunden",
+      "memberCount": "{count, plural, one {# Mitglied} other {# Mitglieder}}"
+    }
+  },
+  "expense": {
+    "list": {
+      "title": "Bewegungen",
+      "empty": "Noch keine Bewegungen",
+      "addFirst": "Füge deine erste Bewegung hinzu",
+      "noResults": "Keine Bewegungen passen zu deinen Filtern",
+      "filters": "Filter",
+      "allTags": "Alle Etiketten",
+      "allUsers": "Alle Benutzer",
+      "my": "Meine Bewegungen",
+      "all": "Alle",
+      "clearFilters": "Filter löschen",
+      "settled": "Erledigte anzeigen",
+      "typeExpenses": "Ausgaben",
+      "typeTransfers": "Überweisungen",
+      "typeAll": "Alle"
+    },
+    "create": {
+      "title": "Neue Bewegung",
+      "editTitle": "Bewegung bearbeiten",
+      "concept": "Beschreibung",
+      "amount": "Betrag",
+      "paidBy": "Bezahlt von",
+      "participants": "Teilnehmer",
+      "tag": "Etikett (optional)",
+      "noTag": "Kein Etikett",
+      "equalSplit": "Gleichmäßig aufteilen ({amount} pro Person)",
+      "create": "Bewegung hinzufügen",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "success": "Bewegung hinzugefügt",
+      "updated": "Bewegung aktualisiert",
+      "deleted": "Bewegung gelöscht",
+      "cantEditSettled": "Eine beglichene Bewegung kann nicht bearbeitet werden",
+      "needParticipants": "Wähle mindestens einen Teilnehmer aus"
+    },
+    "item": {
+      "paidBy": "bezahlt",
+      "you": "Du",
+      "settled": "Beglichen",
+      "lent": "Geliehen",
+      "owe": "Geschuldet",
+      "total": "gesamt"
+    },
+    "delete": {
+      "title": "Bewegung löschen",
+      "confirm": "\"{title}\" löschen?",
+      "deleting": "Löschen..."
+    }
+  },
+  "balance": {
+    "title": "Salden",
+    "noExpenses": "Füge Bewegungen hinzu, um Salden zu sehen",
+    "summary": "Übersicht",
+    "transfers": "Vorgeschlagene Überweisungen",
+    "noTransfers": "Alles beglichen",
+    "settle": "Begleichen",
+    "settleAll": "Alles begleichen",
+    "selectExpenses": "Wähle Ausgaben zum Begleichen aus",
+    "confirmTitle": "Auszahlung bestätigen",
+    "confirmMessage": "Dies markiert {count} Ausgabe(n) als beglichen und erstellt die folgenden Überweisungen:",
+    "confirm": "Auszahlung bestätigen",
+    "cancelled": "Auszahlung abgebrochen",
+    "success": "Ausgaben erfolgreich beglichen",
+    "youOwe": "Du schuldest",
+    "youAreOwed": "Dir wird geschuldet",
+    "perPerson": "Pro Person",
+    "pays": "bezahlt",
+    "owe": "Du schuldest",
+    "isOwed": "Dir wird geschuldet",
+    "history": "Auszahlungsverlauf",
+    "settledOn": "Beglichen am",
+    "by": "von",
+    "noSettlements": "Keine Abrechnungen",
+    "expenseCount": "{count, plural, one {# Ausgabe} other {# Ausgaben}}",
+    "transferCount": "{count, plural, one {# Überweisung} other {# Überweisungen}}",
+    "recordPayment": "Als bezahlt markieren",
+    "paymentRecorded": "Zahlung aufgezeichnet",
+    "settleSuccess": "{count} Überweisungen erstellt."
+  },
+  "member": {
+    "list": {
+      "title": "Mitglieder",
+      "add": "Mitglied hinzufügen",
+      "remove": "Entfernen",
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "makeActive": "Aktivieren",
+      "makeInactive": "Deaktivieren",
+      "owes": "schuldet",
+      "isOwed": "wird geschuldet",
+      "settled": "Beglichen"
+    },
+    "addModal": {
+      "title": "Mitglied hinzufügen",
+      "placeholder": "Wähle ein Mitglied aus der Gruppe",
+      "noMembers": "Alle Gruppenmitglieder sind bereits hinzugefügt",
+      "confirm": "Hinzufügen",
+      "success": "Mitglied hinzugefügt"
+    }
+  },
+  "tag": {
+    "list": {
+      "title": "Etiketten verwalten",
+      "empty": "Keine Etiketten",
+      "createFirst": "Erstelle dein erstes Etikett"
+    },
+    "create": {
+      "title": "Neues Etikett",
+      "editTitle": "Etikett bearbeiten",
+      "name": "Etikettenname",
+      "color": "Farbe",
+      "confirm": "Etikett speichern",
+      "delete": "Etikett löschen",
+      "success": "Etikett erstellt",
+      "updated": "Etikett aktualisiert",
+      "deleted": "Etikett gelöscht",
+      "confirmDelete": "Bist du sicher, dass du dieses Etikett löschen möchtest?",
+      "save": "Tag speichern"
+    }
+  },
+  "stats": {
+    "title": "Statistiken",
+    "byPeriod": "Nach Zeitraum",
+    "cumulative": "Kumuliert",
+    "period": "Zeitraum",
+    "day": "Tag",
+    "week": "Woche",
+    "month": "Monat",
+    "year": "Jahr",
+    "total": "Gesamt",
+    "noData": "Keine Daten für den gewählten Zeitraum",
+    "filterTag": "Nach Etikett filtern"
+  },
+  "currency": {
+    "AED": "AED - UAE Dirham",
+    "ARS": "ARS - Argentinischer Peso",
+    "AUD": "AUD - Australischer Dollar",
+    "BRL": "BRL - Brasilianischer Real",
+    "CAD": "CAD - Kanadischer Dollar",
+    "CHF": "CHF - Schweizer Franken",
+    "CLP": "CLP - Chilenischer Peso",
+    "CNY": "CNY - Chinesischer Yuan",
+    "COP": "COP - Kolumbianischer Peso",
+    "CRC": "CRC - Costa-Rica-Colón",
+    "EUR": "EUR - Euro",
+    "GBP": "GBP - Britisches Pfund",
+    "HKD": "HKD - Hongkong-Dollar",
+    "ILS": "ILS - Israelischer Schekel",
+    "INR": "INR - Indische Rupie",
+    "JPY": "JPY - Japanischer Yen",
+    "KRW": "KRW - Südkoreanischer Won",
+    "KZT": "KZT - Kasachischer Tenge",
+    "MXN": "MXN - Mexikanischer Peso",
+    "MYR": "MYR - Malaysischer Ringgit",
+    "NOK": "NOK - Norwegische Krone",
+    "NZD": "NZD - Neuseeland-Dollar",
+    "PEN": "PEN - Peruanischer Sol",
+    "PHP": "PHP - Philippinischer Peso",
+    "PKR": "PKR - Pakistanische Rupie",
+    "PLN": "PLN - Polnischer Zloty",
+    "RUB": "RUB - Russischer Rubel",
+    "SEK": "SEK - Schwedische Krone",
+    "SGD": "SGD - Singapur-Dollar",
+    "THB": "THB - Thailändischer Baht",
+    "TRY": "TRY - Türkische Lira",
+    "TWD": "TWD - Taiwan-Dollar",
+    "UAH": "UAH - Ukrainische Hrywnja",
+    "USD": "USD - US-Dollar",
+    "UYU": "UYU - Uruguayischer Peso",
+    "VND": "VND - Vietnamesischer Dong",
+    "ZAR": "ZAR - Südafrikanischer Rand"
+  },
+  "import": {
+    "title": "Von Splitwise importieren",
+    "step1": "API-Schlüssel",
+    "step2": "Gruppe auswählen",
+    "step3": "Benutzerzuordnung",
+    "step4": "Vorschau",
+    "step5": "Bestätigen",
+    "apiKeyLabel": "Splitwise API-Schlüssel",
+    "apiKeyPlaceholder": "Füge deinen Splitwise API-Schlüssel ein",
+    "verify": "Verbindung prüfen",
+    "verified": "Verbunden als {name}",
+    "selectGroup": "Wähle eine Splitwise-Gruppe zum Importieren",
+    "userMapping": "Ordne Splitwise-Benutzer 027apps-Benutzern zu",
+    "autoMatched": "Automatisch per E-Mail zugeordnet",
+    "manualMapping": "Manuelle Zuordnung",
+    "mustMapAll": "Alle Benutzer müssen zugeordnet werden, um fortzufahren",
+    "previewTitle": "Import-Vorschau",
+    "totalExpenses": "Bewegungen gesamt",
+    "totalAmount": "Gesamtbetrag",
+    "dateRange": "Datumsbereich",
+    "membersToAdd": "Hinzuzufügende Mitglieder",
+    "tagsToCreate": "Zu erstellende Etiketten",
+    "transfersToCreate": "Zu erstellende Überweisungen",
+    "warnings": "Warnungen",
+    "confirmImport": "{count} Bewegungen importieren",
+    "importing": "Importieren...",
+    "success": "Import erfolgreich abgeschlossen",
+    "expensesCreated": "Bewegungen erstellt",
+    "expensesSkipped": "Duplikate übersprungen",
+    "errors": "Fehler"
+  },
+  "common": {
+    "back": "Zurück",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "confirm": "Bestätigen",
+    "unknown": "Unbekannt",
+    "members": "Mitglieder",
+    "loadMore": "Mehr laden"
+  },
+  "widget": {
+    "error": "Konnte nicht laden",
+    "allSettled": "Alles beglichen!",
+    "viewDetails": "Details anzeigen"
+  },
+  "transfer": {
+    "item": {
+      "manual": "Manuell"
+    },
+    "delete": {
+      "title": "Überweisung löschen",
+      "confirm": "Diese Überweisung löschen?",
+      "deleting": "Löschen..."
+    },
+    "edit": {
+      "title": "Überweisung bearbeiten",
+      "amount": "Betrag",
+      "note": "Notiz (optional)",
+      "save": "Speichern"
+    }
+  }
+}

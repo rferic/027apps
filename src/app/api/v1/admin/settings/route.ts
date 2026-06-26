@@ -1,18 +1,18 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk, apiError } from '@/lib/api/response'
+import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { getGroupSettings, updateGroupSettings, ALL_LOCALES } from '@/lib/use-cases/settings'
 
-export async function GET(req: NextRequest) {
+export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
 
   const settings = await getGroupSettings()
   return apiOk(settings)
-}
+})
 
-export async function PUT(req: NextRequest) {
+export const PUT = withTiming(async function PUT(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
   if (auth instanceof Response) return auth
   if (auth.role !== 'admin') return apiError('FORBIDDEN', 'Admin access required', 403)
@@ -41,4 +41,4 @@ export async function PUT(req: NextRequest) {
   await updateGroupSettings({ activeLocales, defaultLocale })
   const settings = await getGroupSettings()
   return apiOk(settings)
-}
+})

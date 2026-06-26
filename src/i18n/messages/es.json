@@ -606,6 +606,19 @@
       "delete_category_delete_all": "Delete tasks & category",
       "delete_category_keep_tasks": "Only delete category",
       "filter_group": "Grupo"
+    },
+    "splitExpenses": {
+      "title": "Panel de Control Split Expenses",
+      "searchPlaceholder": "Buscar...",
+      "empty": "No hay grupos de gastos",
+      "loadError": "Error al cargar grupos",
+      "deleteConfirm": "¿Eliminar este grupo de gastos y todos sus datos?",
+      "deleted": "Eliminado",
+      "deleteError": "Error al eliminar",
+      "groupLabel": "Grupo: {id}… · {currency}",
+      "expensesLabel": "Gastos",
+      "noExpenses": "Sin gastos",
+      "settledBadge": "liquidado"
     }
   },
   "invite": {

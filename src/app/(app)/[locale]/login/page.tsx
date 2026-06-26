@@ -41,7 +41,7 @@ export default async function LoginPage({ params, searchParams }: Props) {
   ])
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-slate-50 p-6">
+    <div className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-sm">
         <div className="flex justify-end mb-4">
           <LocaleSwitcher currentLocale={locale} locales={settings.activeLocales} targetPath="login" />

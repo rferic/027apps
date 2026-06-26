@@ -46,42 +46,42 @@ function CategoryForm({ edit, onClose, onSaved }: {
     else { toast.error(edit ? 'Failed to update' : 'Failed to create') }
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white'
+  const inputCls = 'w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-card'
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
       <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-md mx-4">
+      <div className="relative z-10 bg-card rounded-xl border border-border shadow-xl p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">{edit ? t('edit_category') : t('new_category')}</h2>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><X size={16} /></button>
+          <h2 className="text-lg font-semibold text-foreground">{edit ? t('edit_category') : t('new_category')}</h2>
+          <button onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-end gap-3">
             <div className="flex-1">
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">{t('name')}</label>
+              <label className="block text-xs font-semibold text-foreground uppercase tracking-wide mb-1.5">{t('name')}</label>
               <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputCls} autoFocus required />
             </div>
             <div className="relative">
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">{t('emoji')}</label>
+              <label className="block text-xs font-semibold text-foreground uppercase tracking-wide mb-1.5">{t('emoji')}</label>
                 <button
                   type="button"
                   onClick={() => setShowEmoji(!showEmoji)}
-                  className="w-12 h-[42px] text-xl border border-slate-200 rounded-lg hover:border-indigo-300 transition-colors flex items-center justify-center bg-white cursor-pointer"
+                  className="w-12 h-[42px] text-xl border border-border rounded-lg hover:border-indigo-300 transition-colors flex items-center justify-center bg-card cursor-pointer"
                 >
                   {emoji}
                 </button>
                 {showEmoji && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setShowEmoji(false)} />
-                    <div className="absolute top-full left-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 z-20 grid grid-cols-8 gap-1 w-64">
+                    <div className="absolute top-full left-0 mt-2 bg-card border border-border rounded-2xl shadow-xl p-3 z-20 grid grid-cols-8 gap-1 w-64">
                       {COMMON_EMOJIS.map(e => (
                         <button
                           key={e}
                           type="button"
                           onClick={() => { setEmoji(e); setShowEmoji(false) }}
                           className={`w-7 h-7 flex items-center justify-center text-base rounded-lg transition-all hover:scale-125 cursor-pointer ${
-                            emoji === e ? 'bg-indigo-100 scale-110' : 'hover:bg-slate-100'
+                            emoji === e ? 'bg-indigo-100 scale-110' : 'hover:bg-muted'
                           }`}
                         >
                           {e}
@@ -92,12 +92,12 @@ function CategoryForm({ edit, onClose, onSaved }: {
                 )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">{t('color_label')}</label>
-              <input type="color" value={color} onChange={e => setColor(e.target.value)} className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer" />
+              <label className="block text-xs font-semibold text-foreground uppercase tracking-wide mb-1.5">{t('color_label')}</label>
+              <input type="color" value={color} onChange={e => setColor(e.target.value)} className="w-10 h-10 rounded-lg border border-border cursor-pointer" />
             </div>
           </div>
           <div className="pt-2 flex gap-2 justify-end">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600">{t('cancel')}</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-foreground">{t('cancel')}</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">
               {saving ? t('saving') : (edit ? t('save') : t('create'))}
             </button>
@@ -166,15 +166,15 @@ export function CategoriesSettings() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-6"><Loader2 size={16} className="animate-spin text-slate-300" /></div>
+        <div className="flex justify-center py-6"><Loader2 size={16} className="animate-spin text-muted-foreground" /></div>
       ) : categories.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-6">{t('no_categories')}</p>
+        <p className="text-sm text-muted-foreground text-center py-6">{t('no_categories')}</p>
       ) : (
         <div className="space-y-1.5">
           {categories.map(cat => (
-            <div key={cat.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg ${cat.is_default ? 'bg-indigo-50 border-l-2 border-indigo-400' : 'bg-slate-50'}`}>
+            <div key={cat.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg ${cat.is_default ? 'bg-indigo-50 border-l-2 border-indigo-400' : 'bg-muted'}`}>
               <span className="text-base">{cat.emoji}</span>
-              <span className="text-sm text-slate-700 flex-1">{cat.name}</span>
+              <span className="text-sm text-foreground flex-1">{cat.name}</span>
               {cat.is_default ? (
                 <button
                   onClick={() => setDefault(cat.id)}
@@ -187,13 +187,13 @@ export function CategoriesSettings() {
                 <button
                   onClick={() => setDefault(cat.id)}
                   title="Set as default"
-                  className="p-1 rounded-md text-slate-300 hover:text-amber-400 hover:bg-amber-50 transition-colors group"
+                  className="p-1 rounded-md text-muted-foreground hover:text-amber-400 hover:bg-amber-50 transition-colors group"
                 >
                   <span className="block group-hover:hidden"><Star size={13} /></span>
                   <span className="hidden group-hover:block"><Star size={13} fill="currentColor" /></span>
                 </button>
               )}
-              <button onClick={() => { setEditCat(cat); setShowForm(true) }} className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"><Pencil size={13} /></button>
+              <button onClick={() => { setEditCat(cat); setShowForm(true) }} className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Pencil size={13} /></button>
               <button onClick={() => handleDelete(cat.id, cat.name, 0)} className="p-1 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 size={13} /></button>
             </div>
           ))}

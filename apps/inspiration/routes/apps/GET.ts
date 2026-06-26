@@ -1,14 +1,9 @@
-import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { readManifest } from '@/lib/apps/manifest'
 import type { HandlerContext } from '@/lib/apps/router-types'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
-  const auth = await authenticate(req, 'jwt')
-  if (auth instanceof Response) return auth
-  if (!auth.userId) return apiError('UNAUTHORIZED', 'User ID required', 401)
-
   const adminClient = createAdminClientUntyped()
 
   const { data: installedApps } = await adminClient

@@ -18,7 +18,7 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   const dateRange = url.searchParams.get('date_range')
   const dateStart = url.searchParams.get('date_start')
   const dateEnd = url.searchParams.get('date_end')
-  const sort = url.searchParams.get('sort') || 'newest'
+  const sort = url.searchParams.get('sort') || 'upcoming'
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1)
   const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(url.searchParams.get('limit') || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT))
 

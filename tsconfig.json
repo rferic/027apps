@@ -32,5 +32,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "apps/*/native.tsx", "mobile"]
+  "exclude": ["node_modules", "apps/*/native.tsx", "mobile", "**/*.stories.tsx", "**/*.stories.ts"]
 }

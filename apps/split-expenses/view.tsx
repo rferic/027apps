@@ -1,0 +1,1998 @@
+'use client'
+
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
+import { useAppContext } from '@/lib/apps/context'
+import { createClient } from '@/lib/supabase/client'
+import { Plus, X, Loader2, Pencil, Trash2, Check, Users, ArrowLeftRight, ArrowUpDown, ChevronDown, Filter, Receipt } from 'lucide-react'
+import { DsButton } from '@/components/ds/button'
+import { DsModal } from '@/components/ds/modal'
+import { DsCard } from '@/components/ds/card'
+import { DsBadge } from '@/components/ds/badge'
+import { DsCheckbox } from '@/components/ds/checkbox'
+import { DsConfirmModal } from '@/components/ds/confirm-modal'
+import { MemberSelect } from '@/components/ds/member-select'
+import { DsTabs } from '@/components/ds/tabs'
+import { DsToggle } from '@/components/ds/toggle'
+import { DsSkeleton } from '@/components/ds/skeleton'
+import { DsEmptyState } from '@/components/ds/empty-state'
+import { DsAvatar } from '@/components/ds/avatar'
+import { DsSegmented } from '@/components/ds/segmented'
+import { DateRangePicker } from '@/components/ds/date-range-picker'
+
+const supabase = createClient()
+let cachedToken: string | null = null
+
+async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  if (cachedToken) {
+    const h: Record<string, string> = { ...(options.headers as Record<string, string> ?? {}), Authorization: `Bearer ${cachedToken}` }
+    return fetch(url, { ...options, headers: h, credentials: 'include' })
+  }
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session?.access_token) cachedToken = session.access_token
+  const h: Record<string, string> = { ...(options.headers as Record<string, string> ?? {}) }
+  if (cachedToken) h['Authorization'] = `Bearer ${cachedToken}`
+  return fetch(url, { ...options, headers: h, credentials: 'include' })
+}
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  EUR: '€', USD: '$', GBP: '£', JPY: '¥', CHF: 'Fr', CAD: 'C$', AUD: 'A$',
+  BRL: 'R$', CNY: '¥', INR: '₹', KRW: '₩', MXN: 'Mex$', RUB: '₽', SEK: 'kr',
+  NOK: 'kr', DKK: 'kr', PLN: 'zł', TRY: '₺', ZAR: 'R', SGD: 'S$', HKD: 'HK$',
+  NZD: 'NZ$', THB: '฿', ILS: '₪', CLP: 'CLP$', PHP: '₱', AED: 'د.إ',
+  MYR: 'RM', COP: 'COL$', PEN: 'S/', CRC: '₡', UYU: '$U', VND: '₫',
+  PKR: '₨', KZT: '₸', UAH: '₴', TWD: 'NT$', ARS: 'AR$',
+}
+
+function debtColor(ratio: number): string {
+  // Green (#10B981) at 0% → Red (#DC2626) at 100%
+  const r = Math.round(parseInt('10', 16) + (parseInt('DC', 16) - parseInt('10', 16)) * ratio)
+  const g = Math.round(parseInt('B9', 16) + (parseInt('26', 16) - parseInt('B9', 16)) * ratio)
+  const b = Math.round(parseInt('81', 16) + (parseInt('26', 16) - parseInt('81', 16)) * ratio)
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+}
+
+function currencySymbol(code: string): string {
+  return CURRENCY_SYMBOLS[code] ?? code
+}
+
+function formatAmount(amount: number, currency: string): string {
+  return `${currencySymbol(currency)}${amount.toFixed(2)}`
+}
+
+const EMOJIS = ['💰', '🏖️', '🍕', '🎉', '🛒', '🏠', '🚗', '✈️', '🎁', '🍺', '☕', '🎬', '🏋️', '👕', '📚', '🐕', '🌺', '🏨', '⚽', '🎸', '🍷', '🌮', '🍦', '👶', '🎵']
+
+function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string) => void }) {
+  return (
+    <div className="grid grid-cols-6 gap-1.5">
+      {EMOJIS.map(e => (
+        <button key={e} type="button" onClick={() => onChange(e)}
+          className={`w-8 h-8 text-lg flex items-center justify-center rounded-lg border ${value === e ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500' : 'border-border hover:border-border'}`}
+        >{e}</button>
+      ))}
+    </div>
+  )
+}
+
+function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+  return <DsModal open={open} onClose={onClose} title={title}>{children}</DsModal>
+}
+
+// ─── Chart ──────────────────────────────────────────────────────────────
+
+import { BarChart } from '@/components/composite/bar-chart'
+import { dsToast } from '@/components/ds/toast'
+
+function chartData(data: { label: string; total: number }[], cumulative: boolean) {
+  return cumulative ? data.reduce<{ label: string; total: number }[]>((acc, d) => {
+    const prev = acc.length > 0 ? acc[acc.length - 1].total : 0
+    acc.push({ label: d.label, total: prev + d.total })
+    return acc
+  }, []) : data
+}
+
+// ─── Types ──────────────────────────────────────────────────────────────
+
+interface ExpenseGroup {
+  id: string; title: string; emoji: string; currency: string;
+  created_by: string; created_at: string; member_count?: number; my_balance?: number; total_amount?: number; my_paid?: number; pending_amount?: number;
+}
+
+interface GroupDetail extends ExpenseGroup {
+  members: Member[]
+}
+
+interface Member {
+  id: string; expense_group_id: string; user_id: string; active: boolean;
+  display_name: string | null; avatar_url: string | null; created_at: string;
+}
+
+interface Expense {
+  id: string; expense_group_id: string; title: string; amount: number;
+  paid_by: string; tag_id: string | null;
+  created_by: string; created_at: string;
+  paid_by_profile?: { display_name: string | null } | null;
+  shares?: Share[]
+}
+
+interface Share {
+  id: string; expense_id: string; user_id: string; amount: number;
+  user_profile?: { display_name: string | null } | null;
+}
+
+interface Tag { id: string; expense_group_id: string; name: string; color: string; }
+
+interface Balance { user_id: string; display_name: string | null; net_balance: number; }
+interface Transfer { from_user: string; to_user: string; from_name: string | null; to_name: string | null; amount: number; }
+
+// ─── Main View ──────────────────────────────────────────────────────────
+
+export default function SplitExpensesView() {
+  const ctx = useAppContext()
+  const locale = useLocale()
+  const t = useTranslations('apps.split-expenses')
+
+  const [groups, setGroups] = useState<ExpenseGroup[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
+  const [showCreateGroup, setShowCreateGroup] = useState(false)
+
+  async function fetchGroups() {
+    if (!ctx.groupSlug) return
+    setLoading(true)
+    try {
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses`)
+      if (res.ok) {
+        const result = await res.json()
+        setGroups(result.data ?? [])
+      }
+    } catch {} finally { setLoading(false) }
+  }
+
+  useEffect(() => { fetchGroups() }, [ctx.groupSlug])
+
+  if (selectedGroup) {
+    return <GroupDetailView groupId={selectedGroup} onBack={() => { setSelectedGroup(null); fetchGroups() }} />
+  }
+
+  return (
+    <>
+    <div className="px-4 py-6 sm:px-6 overflow-x-hidden">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#10B981', color: '#fff' }}>
+            <ArrowLeftRight size={18} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">{t('group.list.title')}</h1>
+            <p className="text-xs text-muted-foreground">{t('group.list.totalBalance', { count: groups.length })}</p>
+          </div>
+        </div>
+        <DsButton color="#10B981" onClick={() => setShowCreateGroup(true)}><Plus size={14} /> {t('group.create.title')}</DsButton>
+      </div>
+
+      {loading ? (
+        <div className="py-16"><DsSkeleton height={120} count={3} /></div>
+      ) : groups.length === 0 ? (
+      <DsEmptyState icon="💰" title={t('group.list.empty')} action={<DsButton color="#10B981" onClick={() => setShowCreateGroup(true)}>{t('group.list.createFirst')}</DsButton>} />
+      ) : (
+        <div className="space-y-3">
+          {groups.map(g => (
+            <DsCard key={g.id} padding="lg" hover onClick={() => setSelectedGroup(g.id)}>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{g.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">{g.title} <span className="text-xs font-normal text-muted-foreground">· {g.member_count ?? 0} miembros</span></p>
+                    {(() => {
+                      const total = (g.total_amount ?? 0)
+                      const pending = (g.pending_amount ?? 0)
+                      const ratio = total > 0 ? pending / total : 0
+                      return (
+                        <p className="text-xs">
+                          <span className="text-muted-foreground">Pendiente {formatAmount(pending, g.currency)}</span>
+                          <span className="text-muted-foreground"> · Saldado {formatAmount(total - pending, g.currency)}</span>
+                          <span className="text-muted-foreground"> · </span>
+                          <span style={{ color: debtColor(ratio), fontWeight: 600 }}>{Math.round(ratio * 100)}%</span>
+                        </p>
+                      )
+                    })()}
+                    {(g.my_balance !== undefined || g.my_paid) && (
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                        Pagado {formatAmount(g.my_paid ?? 0, g.currency)}
+                        {g.my_balance !== undefined && (
+                          <span style={{ color: g.my_balance > 0 ? '#10B981' : g.my_balance < 0 ? '#F97316' : 'var(--color-text-secondary)', marginLeft: 8 }}>
+                            · {g.my_balance > 0 ? `Te deben ${formatAmount(g.my_balance, g.currency)}` : g.my_balance < 0 ? `Debes ${formatAmount(Math.abs(g.my_balance), g.currency)}` : 'Al día'}
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 flex-shrink-0" />
+              </div>
+            </DsCard>
+          ))}
+        </div>
+          )}
+      </div>
+
+      {showCreateGroup && <CreateGroupModal open={showCreateGroup} onClose={() => setShowCreateGroup(false)} onCreated={() => { setShowCreateGroup(false); fetchGroups() }} />}
+    </>
+    )
+}
+
+// ─── Create Group Modal ─────────────────────────────────────────────────
+
+function CreateGroupModal({ open, onClose, onCreated, editGroup }: { open: boolean; onClose: () => void; onCreated: () => void; editGroup?: GroupDetail }) {
+  const ctx = useAppContext()
+  const t = useTranslations('apps.split-expenses')
+  const [title, setTitle] = useState(editGroup?.title ?? '')
+  const [emoji, setEmoji] = useState(editGroup?.emoji ?? '💰')
+  const [currency, setCurrency] = useState(editGroup?.currency ?? 'EUR')
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [members, setMembers] = useState<string[]>([])
+  const [groupMembers, setGroupMembers] = useState<{ id: string; display_name: string }[]>([])
+
+  useEffect(() => {
+    if (!open) return
+    async function load() {
+      if (!ctx.groupSlug) return
+      try {
+        const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/members`)
+        if (res.ok) {
+          const data = await res.json()
+          const list = Array.isArray(data) ? data : data?.data ?? []
+          setGroupMembers(list.map((m: { user_id: string; display_name?: string }) => ({ id: m.user_id, display_name: m.display_name ?? t('common.unknown') })))
+        }
+      } catch {}
+    }
+    load()
+    if (!editGroup) { setTitle(''); setEmoji('💰'); setCurrency('EUR'); setMembers([]) }
+  }, [open, ctx.groupSlug, editGroup])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setFormError('')
+    if (!title.trim()) { setFormError('El nombre del grupo es obligatorio'); return }
+    if (!ctx.groupSlug) return
+    setSaving(true)
+    try {
+      if (editGroup) {
+        await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${editGroup.id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: title.trim(), emoji, currency }),
+        })
+      } else {
+        await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: title.trim(), emoji, currency, members }),
+        })
+      }
+      onCreated()
+    } catch {} finally { setSaving(false) }
+  }
+
+  return (
+    <DsModal open={open} onClose={onClose} title={editGroup ? t('group.create.editTitle') : t('group.create.title')}>
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t('group.create.name')}</label>
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder={t('group.create.name')} maxLength={100}
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t('group.create.emoji')}</label>
+          <EmojiPicker value={emoji} onChange={setEmoji} />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t('group.create.currency')}</label>
+          <select value={currency} onChange={e => setCurrency(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+          >
+            {Object.entries(CURRENCY_SYMBOLS).sort().map(([code, sym]) => (
+              <option key={code} value={code}>{code} ({sym})</option>
+            ))}
+          </select>
+        </div>
+        {!editGroup && (
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">{t('group.create.members')}</label>
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {groupMembers.map(m => (
+                <div key={m.id} className="px-2 py-1 hover:bg-accent rounded">
+                  <DsCheckbox color="#10B981" label={m.display_name} checked={members.includes(m.id)} onChange={e => setMembers(e.target.checked ? [...members, m.id] : members.filter(id => id !== m.id))} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {formError && (
+          <div className="text-xs text-red-500 mb-2 space-y-1">
+            {formError.split(' · ').map((e: string, i: number) => <p key={i} style={{ margin: 0 }}>{e}</p>)}
+          </div>
+        )}
+        <div className="flex justify-end gap-2 pt-2">
+          <DsButton variant="ghost" onClick={onClose}>{t('group.create.cancel')}</DsButton>
+          <DsButton color="#10B981" disabled={saving} type="submit">
+            {saving && <Loader2 className="w-3 h-3 animate-spin" />}{editGroup ? t('group.create.save') : t('group.create.create')}
+          </DsButton>
+        </div>
+      </form>
+    </DsModal>
+  )
+}
+
+// ─── Group Detail ───────────────────────────────────────────────────────
+
+const TABS = ['expenses', 'balances', 'stats', 'settings'] as const
+
+function GroupDetailView({ groupId, onBack }: { groupId: string; onBack: () => void }) {
+  const ctx = useAppContext()
+  const locale = useLocale()
+  const t = useTranslations('apps.split-expenses')
+  const [group, setGroup] = useState<GroupDetail | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<typeof TABS[number]>('expenses')
+  const [showEditGroup, setShowEditGroup] = useState(false)
+  const [showDeleteGroup, setShowDeleteGroup] = useState(false)
+  const [showGroupMenu, setShowGroupMenu] = useState(false)
+  const [fetchError, setFetchError] = useState(false)
+
+  // Centralized tab data — fetched once, shared to all tabs
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
+  const [balances, setBalances] = useState<Balance[]>([])
+  const [transfers, setTransfers] = useState<Transfer[]>([])
+  const [filterDateFrom, setFilterDateFrom] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('se-filter-date-from') ?? ''
+    return ''
+  })
+  const [filterDateTo, setFilterDateTo] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('se-filter-date-to') ?? ''
+    return ''
+  })
+  const [statsDateFrom, setStatsDateFrom] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('se-stats-date-from') ?? ''
+    return ''
+  })
+  const [statsDateTo, setStatsDateTo] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('se-stats-date-to') ?? ''
+    return ''
+  })
+  const [allMembers, setAllMembers] = useState<{ id: string; display_name: string }[]>([])
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [statsData, setStatsData] = useState<{ byPeriod: { label: string; total: number }[]; cumulative: { label: string; total: number }[] }>({ byPeriod: [], cumulative: [] })
+
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [lightRefreshKey, setLightRefreshKey] = useState(0)
+  const [dataLoading, setDataLoading] = useState(true)
+
+  // Stats filter state (managed here so the parent refetches)
+  const [showCreateExpense, setShowCreateExpense] = useState(false)
+  const [expensePage, setExpensePage] = useState(1)
+  const [expenseTotalPages, setExpenseTotalPages] = useState(1)
+  const [expensesLoading, setExpensesLoading] = useState(false)
+  const [statsPeriod, setStatsPeriod] = useState('month')
+  const [statsTagId, setStatsTagId] = useState('')
+  const [statsLoading, setStatsLoading] = useState(true)
+
+  useEffect(() => { try { localStorage.setItem('se-filter-date-from', filterDateFrom) } catch {} }, [filterDateFrom])
+  useEffect(() => { try { localStorage.setItem('se-filter-date-to', filterDateTo) } catch {} }, [filterDateTo])
+  useEffect(() => { try { localStorage.setItem('se-stats-date-from', statsDateFrom) } catch {} }, [statsDateFrom])
+  useEffect(() => { try { localStorage.setItem('se-stats-date-to', statsDateTo) } catch {} }, [statsDateTo])
+
+  useEffect(() => {
+    if (!ctx.groupSlug) return
+    setLoading(true)
+    setFetchError(false)
+    ;(async () => {
+      try {
+        const [groupRes, expRes, tagRes, balRes, memRes, sessionRes, statsRes] = await Promise.all([
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=1${filterDateFrom ? `&date_start=${filterDateFrom}` : ''}${filterDateTo ? `&date_end=${filterDateTo}` : ''}`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/members`),
+          supabase.auth.getSession(),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/stats?period=${statsPeriod}${statsTagId ? `&tag_id=${statsTagId}` : ''}${statsDateFrom ? `&date_start=${statsDateFrom}` : ''}${statsDateTo ? `&date_end=${statsDateTo}` : ''}`),
+        ])
+        if (groupRes.ok) setGroup(await groupRes.json())
+        else setFetchError(true)
+        if (expRes.ok) { const r = await expRes.json(); setExpenses(r.data ?? []); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
+        if (tagRes.ok) { const d = await tagRes.json(); setTags(Array.isArray(d) ? d : d?.data ?? []) }
+        if (balRes.ok) { const d = await balRes.json(); setBalances(d.balances ?? []); setTransfers(d.transfers ?? []) }
+        if (statsRes.ok) setStatsData(await statsRes.json())
+        if (memRes.ok) {
+          const d = await memRes.json()
+          const list = Array.isArray(d) ? d : d?.data ?? []
+          setAllMembers(list.map((m: { user_id: string; display_name?: string }) => ({ id: m.user_id, display_name: m.display_name ?? t('common.unknown') })))
+        }
+        const { data: { session } } = sessionRes
+        if (session?.user) setCurrentUserId(session.user.id)
+      } catch { setFetchError(true) }
+      finally { setLoading(false); setDataLoading(false); setStatsLoading(false) }
+    })()
+  }, [groupId, ctx.groupSlug, refreshKey, statsPeriod, statsTagId, statsDateFrom, statsDateTo])
+
+  // Light refresh: only expenses and balances (used after settlement)
+  useEffect(() => {
+    if (!ctx.groupSlug || lightRefreshKey === 0) return
+    setDataLoading(true)
+    ;(async () => {
+      try {
+        const [expRes, balRes] = await Promise.all([
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=1${filterDateFrom ? `&date_start=${filterDateFrom}` : ''}${filterDateTo ? `&date_end=${filterDateTo}` : ''}`),
+          fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/balances`),
+        ])
+        if (expRes.ok && lightRefreshKey > 0) {
+          const r = await expRes.json(); setExpenses(r.data ?? []); setExpenseTotalPages(r.pagination?.total_pages ?? 1)
+        }
+        if (balRes.ok && lightRefreshKey > 0) {
+          const d = await balRes.json(); setBalances(d.balances ?? []); setTransfers(d.transfers ?? [])
+        }
+      } catch {} finally { setDataLoading(false) }
+    })()
+  }, [lightRefreshKey])
+
+  const initialExpensesLoaded = useRef(false)
+  // Fetch expenses (appends on page scroll, replaces on filter change)
+  useEffect(() => {
+    if (!ctx.groupSlug) return
+    if (!initialExpensesLoaded.current) { initialExpensesLoaded.current = true; return }  // initial load handled by main fetch
+    ;(async () => {
+      setExpensesLoading(true)
+      const dateParams = [filterDateFrom ? `date_start=${filterDateFrom}` : '', filterDateTo ? `date_end=${filterDateTo}` : ''].filter(Boolean).join('&')
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses?limit=50&page=${expensePage}${dateParams ? '&' + dateParams : ''}`)
+      if (res.ok) { const r = await res.json(); setExpenses((prev: Expense[]) => expensePage <= 1 ? (r.data ?? []) : [...prev, ...(r.data ?? [])]); setExpenseTotalPages(r.pagination?.total_pages ?? 1) }
+      setExpensesLoading(false)
+    })()
+  }, [expensePage, filterDateFrom, filterDateTo])
+
+  // Derived: members of the parent group not yet in this expense group
+  const availableMembers = allMembers.filter(am => {
+    const existingIds = new Set(group?.members?.map(m => m.user_id) ?? [])
+    return !existingIds.has(am.id)
+  })
+
+  const handleRefresh = () => {
+    setDataLoading(true)
+    setRefreshKey(k => k + 1)
+  }
+
+  const handleLightRefresh = () => {
+    setLightRefreshKey(k => k + 1)
+  }
+
+  const handleMembersUpdate = () => {
+    setLoading(true)
+    setDataLoading(true)
+    setRefreshKey(k => k + 1)
+  }
+
+  if (loading) {
+    return <div className="py-16"><DsSkeleton height={120} count={3} /></div>
+  }
+
+  if (fetchError || !group) {
+    return (
+      <DsEmptyState icon="💰" title={t('group.detail.noGroup')} action={<DsButton variant="ghost" onClick={onBack}>{t('common.back')}</DsButton>} />
+    )
+  }
+
+  const activeMembers = group.members?.filter(m => m.active) ?? []
+
+  return (
+    <div className="px-4 py-6 sm:px-6 overflow-x-hidden">
+      <DsButton variant="ghost" onClick={onBack} style={{ marginBottom: 16 }}>
+        <ChevronDown className="w-4 h-4 rotate-90" /> {t('common.back')}
+      </DsButton>
+
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-3xl">{group.emoji}</span>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold text-foreground">{group.title} <span className="text-xs font-normal text-muted-foreground">· {group.members?.length ?? 0} miembros</span></h1>
+            {(() => {
+              const totalExp = expenses.reduce((s: number, e: any) => s + Number(e.amount), 0)
+              const pending = balances.reduce((s: number, b: any) => s + (b.net_balance > 0 ? b.net_balance : 0), 0)
+              const ratio = totalExp > 0 ? pending / totalExp : 0
+              return (
+                <p className="text-xs">
+                  <span className="text-muted-foreground">Pendiente {formatAmount(pending, group.currency)}</span>
+                  <span className="text-muted-foreground"> · Saldado {formatAmount(totalExp - pending, group.currency)}</span>
+                  <span className="text-muted-foreground"> · </span>
+                  <span style={{ color: debtColor(ratio), fontWeight: 600 }}>{Math.round(ratio * 100)}%</span>
+                </p>
+              )
+            })()}
+            {currentUserId && (
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                Pagado {formatAmount(expenses.filter((e: any) => e.paid_by === currentUserId).reduce((sum: number, e: any) => sum + Number(e.amount), 0), group.currency)}
+                {(() => {
+                  const myBalance = balances.find(b => b.user_id === currentUserId)
+                  if (!myBalance) return null
+                  return <span style={{ color: myBalance.net_balance > 0 ? '#10B981' : myBalance.net_balance < 0 ? '#F97316' : 'var(--color-text-secondary)', marginLeft: 8 }}>
+                    · {myBalance.net_balance > 0 ? `${t('balance.isOwed')} ${formatAmount(myBalance.net_balance, group.currency)}` : myBalance.net_balance < 0 ? `${t('balance.owe')} ${formatAmount(Math.abs(myBalance.net_balance), group.currency)}` : '0'}
+                  </span>
+                })()}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {tab === 'expenses' && <DsButton color="#10B981" onClick={() => setShowCreateExpense(true)}><Plus size={14} /> {t('expense.create.title')}</DsButton>}
+          </div>
+          <div style={{ position: 'relative' }}>
+            <DsButton variant="ghost" size="sm" onClick={() => setShowGroupMenu(!showGroupMenu)}>
+              <ChevronDown size={16} />
+            </DsButton>
+            {showGroupMenu && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowGroupMenu(false)} />
+                <div style={{
+                  position: 'absolute', right: 0, top: '100%', marginTop: 4,
+                  background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)',
+                  zIndex: 100, minWidth: 140, padding: 4,
+                }}>
+                  <button onClick={() => { setShowGroupMenu(false); setShowEditGroup(true) }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', border: 'none', borderRadius: 'var(--radius-md)', background: 'transparent', color: 'var(--color-text)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                  ><Pencil size={14} /> Editar</button>
+                  <button onClick={() => { setShowGroupMenu(false); setShowDeleteGroup(true) }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', border: 'none', borderRadius: 'var(--radius-md)', background: 'transparent', color: '#EF4444', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                  ><Trash2 size={14} /> Eliminar</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-1 mb-6 border-b border-border">
+        {TABS.map(tabKey => (
+          <button key={tabKey} onClick={() => setTab(tabKey)}
+            className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors ${tab === tabKey ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >{t(`group.detail.tabs.${tabKey}` as any)}</button>
+        ))}
+      </div>
+
+      {tab === 'expenses' && <ExpensesTab groupId={groupId} expenses={expenses} tags={tags} currentUserId={currentUserId} members={activeMembers} allMembers={group.members ?? []} currency={group.currency} loading={dataLoading} onRefresh={handleRefresh} onRefreshLight={handleLightRefresh} showCreate={showCreateExpense} onShowCreate={setShowCreateExpense} page={expensePage} totalPages={expenseTotalPages} onPageChange={setExpensePage} expensesLoading={expensesLoading} lightRefreshKey={lightRefreshKey} filterDateFrom={filterDateFrom} filterDateTo={filterDateTo} onDateFilter={(from, to) => { setFilterDateFrom(from); setFilterDateTo(to) }} />}
+      {tab === 'balances' && <BalancesTab groupId={groupId} balances={balances} transfers={transfers} currency={group.currency} loading={dataLoading} onRefresh={handleLightRefresh} onSettle={handleLightRefresh} />}
+      {tab === 'stats' && <StatsTab statsData={statsData} tags={tags} period={statsPeriod} tagId={statsTagId} loading={statsLoading} onPeriodChange={setStatsPeriod} onTagIdChange={setStatsTagId} statsDateFrom={statsDateFrom} statsDateTo={statsDateTo} onDateChange={(from, to) => { setStatsDateFrom(from); setStatsDateTo(to) }} />}
+      {tab === 'settings' && <SettingsTab groupId={groupId} group={group} tags={tags} loading={dataLoading} onRefresh={handleRefresh} availableMembers={availableMembers} onMembersUpdate={handleMembersUpdate} />}
+
+      {showEditGroup && <CreateGroupModal open={showEditGroup} onClose={() => setShowEditGroup(false)} onCreated={() => { setShowEditGroup(false); setRefreshKey(k => k + 1) }} editGroup={group} />}
+
+      <DsConfirmModal open={showDeleteGroup} onClose={() => setShowDeleteGroup(false)}
+        title="Eliminar grupo"
+        message={`¿Eliminar el grupo "${group.title}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar" cancelLabel="Cancelar"
+        onConfirm={async () => {
+          if (!ctx.groupSlug) return
+          await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}`, { method: 'DELETE' })
+          setShowDeleteGroup(false)
+          window.location.href = `/${locale}/${ctx.groupSlug}/dashboard`
+        }}
+      />
+    </div>
+  )
+}
+
+// ─── Expenses Tab ───────────────────────────────────────────────────────
+
+function ExpensesTab({ groupId, expenses, tags, currentUserId, members, allMembers, currency, loading, onRefresh, onRefreshLight, showCreate, onShowCreate, page, totalPages, onPageChange, expensesLoading, lightRefreshKey, filterDateFrom, filterDateTo, onDateFilter }: {
+  groupId: string; expenses: Expense[]; tags: Tag[]; currentUserId: string;
+  members: Member[]; allMembers: Member[]; currency: string; loading: boolean; onRefresh: () => void; onRefreshLight: () => void;
+  showCreate: boolean; onShowCreate: (v: boolean) => void;
+  page: number; totalPages: number; onPageChange: (p: number) => void;
+  expensesLoading?: boolean; lightRefreshKey?: number;
+  filterDateFrom: string; filterDateTo: string;
+  onDateFilter: (from: string, to: string) => void;
+}) {
+  const ctx = useAppContext()
+  const locale = useLocale()
+  const t = useTranslations('apps.split-expenses')
+  const [editExpense, setEditExpense] = useState<Expense | null>(null)
+  const [detailExpense, setDetailExpense] = useState<Expense | null>(null)
+  const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null)
+  const [detailTransfer, setDetailTransfer] = useState<any>(null)
+  const [editTransfer, setEditTransfer] = useState<any>(null)
+  const [deleteTransfer, setDeleteTransfer] = useState<any>(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const [filterTags, setFilterTags] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') { try { const v = localStorage.getItem('se-filter-tags'); return v ? JSON.parse(v) : [] } catch {} }
+    return []
+  })
+  const [filterPaidBy, setFilterPaidBy] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('se-filter-paidby') ?? ''
+    return ''
+  })
+  const [draftTags, setDraftTags] = useState<string[]>([])
+  const [draftPaidBy, setDraftPaidBy] = useState('')
+  const [draftViewMode, setDraftViewMode] = useState<'all' | 'my'>('my')
+  const [draftDateFrom, setDraftDateFrom] = useState('')
+  const [draftDateTo, setDraftDateTo] = useState('')
+  const [tagInput, setTagInput] = useState('')
+  const [contentType, setContentType] = useState<'expenses' | 'transfers' | 'all'>(() => {
+    if (typeof window !== 'undefined') return (localStorage.getItem('se-content-type') as any) || 'all'
+    return 'all'
+  })
+  const [viewMode, setViewMode] = useState<'all' | 'my'>(() => {
+    if (typeof window !== 'undefined') return (localStorage.getItem('se-view-mode') as any) || 'my'
+    return 'my'
+  })
+  const [movements, setMovements] = useState<any[]>([])
+  const [movementsLoading, setMovementsLoading] = useState(false)
+  const [movementsPage, setMovementsPage] = useState(1)
+  const [movementsTotalPages, setMovementsTotalPages] = useState(1)
+  const [movementsTotal, setMovementsTotal] = useState(0)
+
+  // Persist filters to localStorage
+  useEffect(() => { try { localStorage.setItem('se-filter-tags', JSON.stringify(filterTags)) } catch {} }, [filterTags])
+  useEffect(() => { try { localStorage.setItem('se-filter-paidby', filterPaidBy) } catch {} }, [filterPaidBy])
+  useEffect(() => { try { localStorage.setItem('se-content-type', contentType) } catch {} }, [contentType])
+  useEffect(() => { try { localStorage.setItem('se-view-mode', viewMode) } catch {} }, [viewMode])
+
+  useEffect(() => {
+    if (!ctx.groupSlug) return
+    setMovementsLoading(true)
+    ;(async () => {
+      const params = new URLSearchParams({ limit: '50', page: String(movementsPage) })
+      if (contentType !== 'all') params.set('type', contentType)
+      if (filterDateFrom) params.set('date_start', filterDateFrom)
+      if (filterDateTo) params.set('date_end', filterDateTo)
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/movements?${params}`)
+      if (res.ok) {
+        const r = await res.json()
+        setMovements(prev => movementsPage <= 1 ? (r.data ?? []) : [...prev, ...(r.data ?? [])])
+        setMovementsTotalPages(r.pagination?.total_pages ?? 1)
+        setMovementsTotal(r.pagination?.total ?? 0)
+      }
+      setMovementsLoading(false)
+    })()
+  }, [ctx.groupSlug, groupId, contentType, filterDateFrom, filterDateTo, movementsPage, lightRefreshKey])
+
+  const filteredMovements = movements.filter((item: any) => {
+    if (viewMode === 'my' && currentUserId) {
+      if (item._type === 'expense') {
+        const isParticipant = item.paid_by === currentUserId
+        if (!isParticipant) return false
+      } else {
+        const isInvolved = item.from_user === currentUserId || item.to_user === currentUserId
+        if (!isInvolved) return false
+      }
+    }
+    if (filterTags.length > 0) {
+      if (item._type === 'expense' && !filterTags.includes(item.tag_id ?? '')) return false
+      if (item._type === 'transfer') return false // transfers don't have tags
+    }
+    if (filterPaidBy) {
+      if (item._type === 'expense' && item.paid_by !== filterPaidBy) return false
+      if (item._type === 'transfer') return false
+    }
+    return true
+  })
+
+  const activeFilters = filterTags.length + (filterPaidBy ? 1 : 0) + (viewMode === 'my' ? 1 : 0) + (filterDateFrom || filterDateTo ? 1 : 0)
+
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const hasMore = movementsPage < movementsTotalPages
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !movementsLoading) setMovementsPage(p => p + 1)
+  }, [hasMore, movementsLoading])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) loadMore() }, { rootMargin: '200px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [loadMore])
+
+  function openFilters() {
+    setDraftTags([...filterTags]); setDraftPaidBy(filterPaidBy); setDraftViewMode(viewMode); setDraftDateFrom(filterDateFrom); setDraftDateTo(filterDateTo); setShowFilters(true)
+  }
+
+  function applyFilters() {
+    setFilterTags([...draftTags]); setFilterPaidBy(draftPaidBy); setViewMode(draftViewMode); setShowFilters(false); setMovementsPage(1); onDateFilter(draftDateFrom, draftDateTo)
+  }
+
+  function toggleDraftTag(tagId: string) {
+    setDraftTags(prev => prev.includes(tagId) ? prev.filter(t => t !== tagId) : [...prev, tagId])
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <DsSegmented options={[
+          { value: 'all', label: t('expense.list.typeAll') },
+          { value: 'expenses', label: t('expense.list.typeExpenses') },
+          { value: 'transfers', label: t('expense.list.typeTransfers') },
+        ]} value={contentType} onChange={setContentType} color="#10B981" />
+        <button onClick={openFilters} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
+          <Filter size={14} /> {t('expense.list.filters')}
+          {activeFilters > 0 && <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[10px] font-bold rounded-full" style={{ backgroundColor: '#10B981', color: 'white' }}>{activeFilters}</span>}
+        </button>
+        </div>
+      {activeFilters > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {filterTags.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (
+            <span key={tag.id} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full cursor-pointer" style={{ backgroundColor: tag.color + '20', color: tag.color }} onClick={() => setFilterTags(prev => prev.filter(t => t !== tagId))}>
+              {tag.name} <X size={10} />
+            </span>
+          )})}
+          {filterPaidBy && (() => { const m = allMembers.find(m => m.user_id === filterPaidBy); return (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-muted text-foreground cursor-pointer" onClick={() => setFilterPaidBy('')}>
+              {m?.display_name ?? filterPaidBy} <X size={10} />
+            </span>
+          )})()}
+          {viewMode === 'my' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-muted text-foreground cursor-pointer" onClick={() => setViewMode('all')}>
+              {t('expense.list.my')} <X size={10} />
+            </span>
+          )}
+          {(filterDateFrom || filterDateTo) && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-muted text-foreground cursor-pointer" onClick={() => { onDateFilter('', '') }}>
+              {filterDateFrom || '...'} → {filterDateTo || '...'} <X size={10} />
+            </span>
+          )}
+          {activeFilters > 0 && (
+            <button onClick={() => { setFilterTags([]); setFilterPaidBy(''); setViewMode('all'); onDateFilter('', '') }} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">
+              {t('expense.list.clearFilters')}
+            </button>
+          )}
+        </div>
+      )}
+
+      {showFilters && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowFilters(false)}>
+          <div className="fixed inset-0 bg-black/40" />
+          <div className="relative bg-card rounded-t-2xl sm:rounded-xl p-6 w-full max-w-md mx-auto shadow-xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-semibold text-foreground">{t('expense.list.filters')}</h3>
+              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground cursor-pointer"><X size={20} /></button>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('expense.list.allTags')}</label>
+              <div className="relative mb-2">
+                <input value={tagInput} onChange={e => {
+                  setTagInput(e.target.value)
+                }} onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); if (!tagInput.trim()) return; const match = tags.find(t => t.name.toLowerCase() === tagInput.trim().toLowerCase()); if (match && !draftTags.includes(match.id)) toggleDraftTag(match.id); setTagInput('') }
+                }} placeholder={t('expense.list.allTags')}
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+                />
+                {tagInput.trim() && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-32 overflow-auto">
+                    {tags.filter(t => t.name.toLowerCase().includes(tagInput.toLowerCase()) && !draftTags.includes(t.id)).map(tag => (
+                      <div key={tag.id} onMouseDown={() => { toggleDraftTag(tag.id); setTagInput('') }}
+                        className="px-3 py-1.5 text-sm text-foreground hover:bg-accent cursor-pointer"
+                      >{tag.name}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {draftTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {draftTags.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (
+                    <span key={tag.id} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full" style={{ backgroundColor: tag.color + '20', color: tag.color }}>
+                      {tag.name} <X size={10} className="cursor-pointer" style={{ color: tag.color }} onClick={() => toggleDraftTag(tag.id)} />
+                    </span>
+                  )})}
+                </div>
+              )}
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('expense.list.allUsers')}</label>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setDraftPaidBy('')} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftPaidBy === '' ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftPaidBy === '' ? { backgroundColor: '#10B981', color: 'white' } : {}}>
+                  {t('expense.list.allUsers')}
+                </button>
+                {allMembers.map(m => (
+                  <button key={m.user_id} onClick={() => setDraftPaidBy(m.user_id)} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftPaidBy === m.user_id ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftPaidBy === m.user_id ? { backgroundColor: '#10B981', color: 'white' } : {}}>
+                    {m.display_name ?? t('common.unknown')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <DsSegmented fullWidth options={[
+                { value: 'all', label: t('expense.list.all') },
+                { value: 'my', label: t('expense.list.my') },
+              ]} value={draftViewMode} onChange={setDraftViewMode} color="#10B981" />
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Rango de fechas</label>
+              <DateRangePicker from={draftDateFrom} to={draftDateTo} onFromChange={setDraftDateFrom} onToChange={setDraftDateTo} />
+            </div>
+
+            <button onClick={applyFilters} className="w-full py-3 text-sm font-semibold text-white rounded-xl cursor-pointer shadow-sm transition-colors" style={{ backgroundColor: '#10B981' }}>
+              {t('expense.list.filters')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="py-8"><DsSkeleton height={60} count={4} /></div>
+      ) : movementsLoading ? (
+        <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-muted-foreground" /></div>
+      ) : movements.length === 0 ? (
+        <DsEmptyState title={t('expense.list.empty')} />
+      ) : (
+        <div>
+          {(() => {
+            const grouped: Record<string, any[]> = {}
+            for (const item of filteredMovements) {
+              const d = new Date(item.created_at)
+              const key = `${d.getFullYear()}-${d.getMonth()}`
+              if (!grouped[key]) grouped[key] = []
+              grouped[key].push(item)
+            }
+            return Object.entries(grouped).map(([key, items]) => {
+              const [year, month] = key.split('-').map(Number)
+              const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+              return (
+                <div key={key} className="mb-6">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{monthNames[month]} {year}</h3>
+                  <div className="space-y-1">
+                    {items.map(item => item._type === 'transfer' ? (
+                      (() => {
+                        const tr = item
+                        const day = new Date(tr.created_at)
+                        const dayLabel = new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(day).replace('.', '')
+                        const trInvolvement = (currentUserId && tr.from_user === currentUserId) ? 'out' : (currentUserId && tr.to_user === currentUserId) ? 'in' : null
+                        const trAmountColor = trInvolvement === 'out' ? '#DC2626' : trInvolvement === 'in' ? '#10B981' : 'var(--color-text)'
+                        return (
+                          <div key={tr.id} style={{
+                            background: 'var(--color-surface)',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: 'var(--radius-xl)',
+                            overflow: 'hidden',
+                            cursor: !tr.settlement_id ? 'pointer' : 'default',
+                            transition: 'all var(--transition-base)',
+                          }} onClick={!tr.settlement_id ? () => setDetailTransfer(tr) : undefined}>
+                            <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                              <div style={{
+                                background: 'var(--color-muted)',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                padding: '10px 14px', gap: 4, flexShrink: 0, minWidth: 56,
+                              }}>
+                                <ArrowLeftRight size={16} style={{ color: '#10B981', flexShrink: 0 }} />
+                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2 }}>
+                                  <span>{dayLabel}</span>
+                                  <span>{day.getDate()}</span>
+                                </span>
+                              </div>
+                              <div style={{ flex: 1, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                                <div className="flex-1 min-w-0">
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', margin: 0 }}>
+                                      {tr.from_name ?? t('common.unknown')}
+                                    </p>
+                                    {tr.is_manual && <DsBadge variant="neutral" style={{ fontSize: 10 }}>{t('transfer.item.manual')}</DsBadge>}
+                                  </div>
+                                  <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
+                                    a {tr.to_name ?? t('common.unknown')}{tr.note ? ` • ${tr.note}` : ''}
+                                  </p>
+                                </div>
+                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 700, color: trAmountColor, margin: 0 }}>
+                                    {trInvolvement === 'out' ? '-' : trInvolvement === 'in' ? '+' : ''}{formatAmount(Number(tr.amount), currency)}
+                                  </p>
+                                </div>
+                                {!tr.settlement_id && (
+                                  <span onClick={ev => { ev.stopPropagation(); setDetailTransfer(tr) }}>
+                                    <DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()
+                    ) : (
+                      (() => {
+                        const expense = item
+                        const tag = tags.find((t: Tag) => t.id === expense.tag_id)
+                        // For expense cards, shares won't be available from movements endpoint
+                        const expDay = new Date(expense.created_at)
+                        const expDayLabel = new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(expDay).replace('.', '')
+                        return (
+                          <div key={expense.id} style={{
+                            background: 'var(--color-surface)',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: 'var(--radius-xl)',
+                            overflow: 'hidden',
+                            cursor: 'pointer',
+                            transition: 'all var(--transition-base)',
+                          }} onClick={() => setDetailExpense(expense as any)}>
+                            <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                              <div style={{
+                                background: 'var(--color-muted)',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                padding: '10px 14px', gap: 4, flexShrink: 0, minWidth: 56,
+                              }}>
+                                <Receipt size={16} style={{ color: '#8B5CF6', flexShrink: 0 }} />
+                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2 }}>
+                                  <span>{expDayLabel}</span>
+                                  <span>{expDay.getDate()}</span>
+                                </span>
+                              </div>
+                              <div style={{ flex: 1, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                                <div className="flex-1 min-w-0">
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', margin: 0 }}>{expense.title}</p>
+                                    {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color, fontSize: 10 }}>{tag.name}</DsBadge>}
+                                  </div>
+                                  <p style={{ fontSize: 10, color: 'var(--color-text-secondary)', margin: '1px 0 0' }}>
+                                    {expense.paid_by_name ?? t('common.unknown')} {t('expense.item.paidBy')} {formatAmount(Number(expense.amount), currency)}
+                                  </p>
+                                </div>
+                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>
+                                    {formatAmount(Number(expense.amount), currency)}
+                                  </p>
+                                </div>
+                                <span onClick={ev => { ev.stopPropagation(); setDeleteExpense(expense as any) }}><DsButton variant="ghost" size="sm"><Trash2 size={14} /></DsButton></span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()
+                    ))}
+                  </div>
+                </div>
+              )
+            })
+          })()}
+        </div>
+      )}
+
+      {hasMore && <div ref={sentinelRef} className="h-4" />}
+
+      <ExpenseModal open={showCreate || !!editExpense} onClose={() => { onShowCreate(false); setEditExpense(null) }}
+        onSaved={() => { onShowCreate(false); setEditExpense(null); onRefresh() }}
+        groupId={groupId} members={members} tags={tags} currency={currency} editExpense={editExpense}
+        currentUserId={currentUserId} />
+
+      <DsConfirmModal open={!!deleteExpense} onClose={() => setDeleteExpense(null)}
+        title={t('expense.delete.title')}
+        message={t('expense.delete.confirm', { title: deleteExpense?.title ?? '' })}
+        confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')}
+        onConfirm={async () => {
+          if (!deleteExpense || !ctx.groupSlug) return
+          await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses/${deleteExpense.id}`, { method: 'DELETE' })
+          setDeleteExpense(null); onRefresh()
+        }}
+      >
+        {deleteExpense && (
+          <>
+            <p style={{ margin: 0, color: 'var(--color-text)', fontWeight: 500 }}>{deleteExpense.title}</p>
+            <p style={{ margin: '4px 0 0', fontWeight: 600, color: 'var(--color-text)' }}>{formatAmount(Number(deleteExpense.amount), currency)}</p>
+            {deleteExpense.paid_by_profile?.display_name && <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: 11 }}>{deleteExpense.paid_by_profile.display_name} pagado</p>}
+          </>
+        )}
+      </DsConfirmModal>
+
+      <DsConfirmModal open={!!deleteTransfer} onClose={() => setDeleteTransfer(null)}
+        title={t('transfer.delete.title')}
+        message={t('transfer.delete.confirm')}
+        confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')}
+        onConfirm={async () => {
+          if (!deleteTransfer || !ctx.groupSlug) return
+          await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/transfers/${deleteTransfer.id}`, { method: 'DELETE' })
+          setDeleteTransfer(null); onRefresh()
+        }}
+      >
+        {deleteTransfer && (
+          <>
+            <p style={{ margin: 0, color: 'var(--color-text)' }}>{deleteTransfer.from_name ?? '?'} → {deleteTransfer.to_name ?? '?'}</p>
+            <p style={{ margin: '4px 0 0', fontWeight: 600, color: 'var(--color-text)' }}>{formatAmount(Number(deleteTransfer.amount), currency)}</p>
+            {deleteTransfer.note && <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: 11 }}>{deleteTransfer.note}</p>}
+          </>
+        )}
+      </DsConfirmModal>
+
+      <TransferDetailModal open={!!detailTransfer} onClose={() => setDetailTransfer(null)}
+        transfer={detailTransfer} currency={currency}
+        onEdit={() => { const t = detailTransfer; setDetailTransfer(null); setEditTransfer(t) }}
+        onDeleted={() => { setDetailTransfer(null); onRefresh() }} />
+
+      <TransferEditModal open={!!editTransfer} onClose={() => setEditTransfer(null)}
+        onSaved={() => { setEditTransfer(null); onRefresh() }}
+        groupId={groupId} transfer={editTransfer} members={members} currency={currency} />
+
+      <ExpenseDetailModal open={!!detailExpense} onClose={() => setDetailExpense(null)}
+        expense={detailExpense} group={{ members, currency } as GroupDetail} tags={tags}
+        onEdit={() => { const e = detailExpense; setDetailExpense(null); setEditExpense(e) }}
+        onSettled={() => { setDetailExpense(null); onRefreshLight() }}
+        onDeleted={() => { setDetailExpense(null); onRefresh() }} />
+    </div>
+  )
+}
+
+// ─── Expense Modal ──────────────────────────────────────────────────────
+
+function ExpenseModal({ open, onClose, onSaved, groupId, members, tags, currency, editExpense, currentUserId }: {
+  open: boolean; onClose: () => void; onSaved: () => void;
+  groupId: string; members: Member[]; tags: Tag[]; currency: string; editExpense?: Expense | null;
+  currentUserId?: string;
+}) {
+  const ctx = useAppContext()
+  const t = useTranslations('apps.split-expenses')
+  const [entryType, setEntryType] = useState<'expense' | 'transfer'>('expense')
+  const [title, setTitle] = useState(editExpense?.title ?? '')
+  const [amount, setAmount] = useState(editExpense?.amount?.toString() ?? '')
+  const [paidBy, setPaidBy] = useState(editExpense?.paid_by ?? currentUserId ?? '')
+  const [participants, setParticipants] = useState<string[]>(editExpense?.shares?.map(s => s.user_id) ?? (currentUserId ? [currentUserId] : []))
+  const [tagId, setTagId] = useState(editExpense?.tag_id ?? '')
+  const [saving, setSaving] = useState(false)
+  const [newTagName, setNewTagName] = useState(tags.find(t => t.id === editExpense?.tag_id)?.name ?? '')
+  const [newTagColor, setNewTagColor] = useState('#10B981')
+  const [creatingTag, setCreatingTag] = useState(false)
+  const [localTags, setLocalTags] = useState<Tag[]>(tags)
+  const [fromUser, setFromUser] = useState('')
+  const [toUser, setToUser] = useState('')
+  const [transferNote, setTransferNote] = useState('')
+  const [transferDate, setTransferDate] = useState(new Date().toISOString().split('T')[0])
+  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0])
+  const [formError, setFormError] = useState('')
+
+  useEffect(() => {
+    if (!open) return
+    setTitle(editExpense?.title ?? '')
+    setAmount(editExpense?.amount?.toString() ?? '')
+    setPaidBy(editExpense?.paid_by ?? currentUserId ?? '')
+    setParticipants(editExpense?.shares?.map(s => s.user_id) ?? members.filter(m => m.active).map(m => m.user_id))
+    setTagId(editExpense?.tag_id ?? '')
+    setNewTagName(tags.find(t => t.id === editExpense?.tag_id)?.name ?? '')
+    setLocalTags(tags)
+    setExpenseDate(editExpense?.created_at ? new Date(editExpense.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+    setFormError('')
+  }, [open, editExpense, currentUserId, members, tags])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const errors: string[] = []
+    if (!ctx.groupSlug) return
+
+    if (entryType === 'transfer') {
+      if (!fromUser) errors.push('Selecciona quién envía')
+      if (!toUser) errors.push('Selecciona quién recibe')
+      if (!amount) errors.push('El importe es obligatorio')
+      else {
+        const parsed = parseFloat(amount.replace(',', '.'))
+        if (isNaN(parsed) || parsed <= 0) errors.push('El importe debe ser mayor que 0')
+      }
+      if (errors.length > 0) { setFormError(errors.join(' · ')); return }
+      const parsedAmount = parseFloat(amount.replace(',', '.'))
+      setSaving(true)
+      try {
+        await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/payments`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from_user: fromUser, to_user: toUser, amount: parsedAmount, note: transferNote || null, created_at: transferDate ? new Date(transferDate).toISOString() : undefined }),
+        })
+        onSaved()
+      } catch {} finally { setSaving(false) }
+      return
+    }
+
+    if (!title.trim()) errors.push('El concepto es obligatorio')
+    if (!amount) errors.push('El importe es obligatorio')
+    else {
+      const parsedAmount = parseFloat(amount.replace(',', '.'))
+      if (isNaN(parsedAmount) || parsedAmount <= 0) errors.push('El importe debe ser mayor que 0')
+    }
+    if (!paidBy) errors.push('Selecciona quién pagó')
+    if (participants.length === 0) errors.push('Selecciona al menos un participante')
+    if (errors.length > 0) { setFormError(errors.join(' · ')); return }
+    const parsedAmount = parseFloat(amount.replace(',', '.'))
+    let resolvedTagId: string | null = tagId
+    if (newTagName.trim() && !tagId) {
+      const match = localTags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())
+      if (match) { resolvedTagId = match.id; setTagId(match.id) }
+      else { resolvedTagId = await handleCreateTag(); if (!resolvedTagId) return }
+    }
+    setSaving(true)
+    try {
+      const body = { title: title.trim(), amount: parsedAmount, paid_by: paidBy, participant_ids: participants, tag_id: resolvedTagId || null, created_at: expenseDate ? new Date(expenseDate).toISOString() : undefined }
+      if (editExpense) {
+        await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses/${editExpense.id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        })
+      } else {
+        await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/expenses`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        })
+      }
+      onSaved()
+    } catch {} finally { setSaving(false) }
+  }
+
+  async function handleCreateTag(): Promise<string | null> {
+    if (!newTagName.trim() || !ctx.groupSlug) return null
+    const match = localTags.find(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())
+    if (match) { setTagId(match.id); setNewTagName(''); return match.id }
+    setCreatingTag(true)
+    try {
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newTagName.trim(), color: newTagColor }),
+      })
+      if (res.ok) {
+        const newTag = await res.json()
+        setLocalTags(prev => [...prev, newTag])
+        setTagId(newTag.id)
+        setNewTagName('')
+        return newTag.id
+      }
+      return null
+    } catch { return null } finally { setCreatingTag(false) }
+  }
+
+  const shareAmount = participants.length > 0 ? (parseFloat(amount.replace(',', '.')) || 0) / participants.length : 0
+
+  return (
+    <DsModal open={open} onClose={onClose} title={<span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{editExpense ? <><Receipt size={18} style={{ color: '#8B5CF6' }} />{t('expense.create.editTitle')}</> : entryType === 'transfer' ? <><ArrowLeftRight size={18} style={{ color: '#10B981' }} />{t('transfer.edit.title')}</> : <><Receipt size={18} style={{ color: '#8B5CF6' }} />{t('expense.create.title')}</>}</span>}>
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {!editExpense && (
+          <DsSegmented options={[
+            { value: 'expense', label: t('expense.list.typeExpenses') },
+            { value: 'transfer', label: t('expense.list.typeTransfers') },
+          ]} value={entryType} onChange={v => setEntryType(v as 'expense' | 'transfer')} color="#10B981" />
+        )}
+        {entryType === 'expense' && (
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.concept')}</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} maxLength={200}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+            />
+          </div>
+        )}
+        {entryType === 'expense' && (
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Fecha</label>
+            <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} max={new Date().toISOString().split('T')[0]}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+            />
+          </div>
+        )}
+        {entryType === 'transfer' && (
+          <TransferFormFields fromUser={fromUser} setFromUser={setFromUser} toUser={toUser} setToUser={setToUser}
+            amount={amount} setAmount={setAmount} note={transferNote} setNote={setTransferNote}
+            transferDate={transferDate} setTransferDate={setTransferDate}
+            members={members} currency={currency} t={t} />
+        )}
+        {entryType === 'expense' && (
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.amount')}</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{currencySymbol(currency)}</span>
+              <input value={amount} onChange={e => setAmount(e.target.value.replace(/[^0-9.,]/g, ''))} type="text" inputMode="decimal" placeholder="0.00"
+                className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+              />
+            </div>
+          </div>
+        )}
+        {entryType === 'expense' && participants.length > 1 && (
+          <p className="text-xs text-muted-foreground">{t('expense.create.equalSplit', { amount: formatAmount(shareAmount, currency) })}</p>
+        )}
+        {entryType === 'expense' && (
+          <>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.paidBy')}</label>
+              <select value={paidBy} onChange={e => setPaidBy(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+              >
+                <option value="">{t('expense.create.paidBy')}</option>
+                {members.map(m => <option key={m.user_id} value={m.user_id}>{m.display_name ?? t('common.unknown')}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.participants')}</label>
+              <div className="space-y-1 max-h-40 overflow-y-auto border border-border rounded-lg p-2">
+                {members.map(m => (
+                  <label key={m.user_id} className="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded cursor-pointer">
+                    <DsCheckbox color="#10B981" checked={participants.includes(m.user_id)}
+                      onChange={e => setParticipants(e.target.checked ? [...participants, m.user_id] : participants.filter(id => id !== m.user_id))}
+                    />
+                    <span className="text-sm text-foreground">{m.display_name ?? t('common.unknown')}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">{t('expense.create.tag')}</label>
+              {tagId ? (
+                <div className="flex items-center gap-2">
+                  {(() => { const tag = localTags.find(t => t.id === tagId); return tag ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-lg" style={{ backgroundColor: tag.color + '20', color: tag.color }}>
+                      {tag.name}
+                      <X size={12} className="cursor-pointer" style={{ color: tag.color }} onClick={() => { setTagId(''); setNewTagName('') }} />
+                    </span>
+                  ) : null })()}
+                  <span className="text-xs text-muted-foreground cursor-pointer" onClick={() => { setTagId(''); setNewTagName('') }}>{t('expense.create.noTag')}</span>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input value={newTagName} onChange={e => {
+                    setNewTagName(e.target.value)
+                    if (tagId) setTagId('')
+                  }} onKeyDown={async (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); await handleCreateTag() }
+                  }}
+                    placeholder={t('expense.create.noTag')}
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+                  />
+                  {newTagName.trim() && !tagId && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 max-h-32 overflow-auto">
+                      {localTags.filter(t => t.name.toLowerCase().includes(newTagName.toLowerCase())).map(tag => (
+                        <div key={tag.id} onMouseDown={() => { setTagId(tag.id); setNewTagName('') }}
+                          className="px-3 py-1.5 text-sm text-foreground hover:bg-accent cursor-pointer"
+                        >{tag.name}</div>
+                      ))}
+                      <div onMouseDown={async () => { await handleCreateTag() }}
+                        className="px-3 py-1.5 text-sm text-emerald-600 hover:bg-accent cursor-pointer border-t border-border"
+                      >+ {t('tag.create.title')}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+        {formError && (
+          <div className="text-xs text-red-500 mb-2 space-y-1">
+            {formError.split(' · ').map((e: string, i: number) => <p key={i} style={{ margin: 0 }}>{e}</p>)}
+          </div>
+        )}
+        <div className="flex justify-end gap-2 pt-2">
+          <DsButton variant="ghost" onClick={onClose}>{t('expense.create.cancel')}</DsButton>
+          <DsButton color="#10B981" disabled={saving} type="submit">
+            {saving && <Loader2 className="w-3 h-3 animate-spin" />}{(() => { if (editExpense) return t('expense.create.save'); return entryType === 'transfer' ? t('common.confirm') : t('expense.create.create') })()}
+          </DsButton>
+        </div>
+      </form>
+    </DsModal>
+  )
+}
+
+// ─── Expense Detail Modal ─────────────────────────────────────────────
+
+function ExpenseDetailModal({ open, onClose, expense, group, tags, onEdit, onSettled, onDeleted }: {
+  open: boolean; onClose: () => void; expense: Expense | null;
+  group: GroupDetail; tags: Tag[];
+  onEdit: () => void; onSettled: () => void; onDeleted: () => void;
+}) {
+  const ctx = useAppContext()
+  const locale = useLocale()
+  const t = useTranslations('apps.split-expenses')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [showSettle, setShowSettle] = useState(false)
+  const [settleUsers, setSettleUsers] = useState<string[]>([])
+  const [settling, setSettling] = useState(false)
+
+  if (!expense) return null
+
+  const tag = tags.find(tg => tg.id === expense.tag_id)
+  const totalShares = expense.shares?.reduce((sum, s) => sum + s.amount, 0) ?? 0
+
+  return (
+    <>
+      <DsModal open={open} onClose={onClose} title={<span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Receipt size={18} style={{ color: '#8B5CF6' }} />{expense.title}</span>}>
+        <div className="space-y-4">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text)' }}>{formatAmount(expense.amount, group.currency)}</span>
+            {tag && <DsBadge variant="neutral" style={{ backgroundColor: tag.color + '20', color: tag.color }}>{tag.name}</DsBadge>}
+          </div>
+
+          <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <p style={{ margin: 0 }}>{t('expense.create.paidBy')}: {expense.paid_by_profile?.display_name ?? t('common.unknown')}</p>
+            <p style={{ margin: 0 }}>{new Date(expense.created_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          </div>
+
+          {expense.shares && expense.shares.length > 0 && (
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)', margin: '0 0 4px' }}>{t('expense.create.participants')}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {expense.shares.map(s => (
+                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, color: 'var(--color-text)' }}>
+                    <span>{s.user_profile?.display_name ?? t('common.unknown')}</span>
+                    <span style={{ fontWeight: 500 }}>{formatAmount(s.amount, group.currency)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <DsButton color="#10B981" size="sm" style={{ width: '100%', justifyContent: 'center' }} onClick={() => {
+            const debtors = (expense.shares ?? []).filter(s => s.user_id !== expense.paid_by)
+            setSettleUsers(debtors.map(s => s.user_id))
+            setShowSettle(true)
+          }}>
+            {t('balance.settle')}
+          </DsButton>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 8, borderTop: '1px solid var(--color-border)' }}>
+            <DsButton variant="ghost" onClick={onEdit}><Pencil size={16} /></DsButton>
+            <DsButton variant="ghost" style={{ color: '#EF4444' }} onClick={() => setShowDeleteConfirm(true)}><Trash2 size={16} /></DsButton>
+          </div>
+        </div>
+      </DsModal>
+
+      <DsConfirmModal open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)}
+        title={t('expense.delete.title')}
+        message={t('expense.delete.confirm', { title: expense.title })}
+        confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')}
+        onConfirm={async () => {
+          if (!ctx.groupSlug) return
+          await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${expense.expense_group_id}/expenses/${expense.id}`, { method: 'DELETE' })
+          onDeleted()
+        }}
+      />
+
+      <DsModal open={showSettle} onClose={() => setShowSettle(false)} title={t('balance.settle')}>
+        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12 }}>{t('balance.selectExpenses')}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          {(expense.shares ?? []).filter(s => s.user_id !== expense.paid_by).map(s => (
+            <label key={s.user_id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded cursor-pointer">
+              <DsCheckbox color="#10B981" checked={settleUsers.includes(s.user_id)}
+                onChange={e => setSettleUsers(e.target.checked ? [...settleUsers, s.user_id] : settleUsers.filter(id => id !== s.user_id))}
+              />
+              <span style={{ fontSize: 13, color: 'var(--color-text)' }}>{s.user_profile?.display_name ?? t('common.unknown')}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 500, color: 'var(--color-text)' }}>{formatAmount(s.amount, group.currency)}</span>
+            </label>
+          ))}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <DsButton variant="ghost" onClick={() => setShowSettle(false)}>{t('common.cancel')}</DsButton>
+          <DsButton color="#10B981" disabled={settling || settleUsers.length === 0} onClick={async () => {
+            if (!ctx.groupSlug || !expense) return
+            setSettling(true)
+            try {
+              const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${expense.expense_group_id}/settlements`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ expense_ids: [expense.id], settle_users: settleUsers }),
+              })
+              setShowSettle(false)
+              if (res.ok) {
+                dsToast.success(t('balance.success'))
+                onSettled()
+              } else {
+                const err = await res.json().catch(() => ({}))
+                dsToast.error(err.message || t('balance.cancelled'))
+              }
+            } catch { dsToast.error(t('balance.cancelled')) } finally { setSettling(false) }
+          }}>
+            {settling && <Loader2 className="w-3 h-3 animate-spin" />}{t('balance.confirm')}
+          </DsButton>
+        </div>
+      </DsModal>
+    </>
+  )
+}
+
+
+// ─── Transfer Detail Modal ──────────────────────────────────────────────
+
+function TransferDetailModal({ open, onClose, transfer, currency, onEdit, onDeleted }: {
+  open: boolean; onClose: () => void; transfer: any; currency: string; onEdit: () => void; onDeleted: () => void;
+}) {
+  const ctx = useAppContext()
+  const locale = useLocale()
+  const t = useTranslations('apps.split-expenses')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  if (!transfer) return null
+
+  return (
+    <>
+      <DsModal open={open} onClose={onClose} title={<span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><ArrowLeftRight size={18} style={{ color: '#10B981' }} />{transfer.from_name ?? t('common.unknown')} → {transfer.to_name ?? t('common.unknown')}</span>}>
+        <div className="space-y-4">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-text)' }}>{formatAmount(Number(transfer.amount), currency)}</span>
+            {transfer.is_manual && <DsBadge variant="neutral">{t('transfer.item.manual')}</DsBadge>}
+          </div>
+
+          <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <p style={{ margin: 0 }}>{new Date(transfer.created_at).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            {transfer.note && <p style={{ margin: 0 }}>{transfer.note}</p>}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 8, borderTop: '1px solid var(--color-border)' }}>
+            <DsButton variant="ghost" onClick={onEdit}><Pencil size={16} /></DsButton>
+            <DsButton variant="ghost" style={{ color: '#EF4444' }} onClick={() => setShowDeleteConfirm(true)}><Trash2 size={16} /></DsButton>
+          </div>
+        </div>
+      </DsModal>
+
+      <DsConfirmModal open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)}
+        title={t('transfer.delete.title')}
+        message={t('transfer.delete.confirm')}
+        confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')}
+        onConfirm={async () => {
+          if (!ctx.groupSlug) return
+          await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${transfer.expense_group_id}/transfers/${transfer.id}`, { method: 'DELETE' })
+          onDeleted()
+        }}
+      >
+        <p style={{ margin: 0, color: 'var(--color-text)' }}>{transfer.from_name ?? '?'} → {transfer.to_name ?? '?'}</p>
+        <p style={{ margin: '4px 0 0', fontWeight: 600, color: 'var(--color-text)' }}>{formatAmount(Number(transfer.amount), currency)}</p>
+        {transfer.note && <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: 11 }}>{transfer.note}</p>}
+      </DsConfirmModal>
+    </>
+  )
+}
+
+
+// ─── Transfer Form ──────────────────────────────────────────────────────
+
+function TransferFormFields({ fromUser, setFromUser, toUser, setToUser, amount, setAmount, note, setNote, transferDate, setTransferDate, members, currency, t }: {
+  fromUser: string; setFromUser: (v: string) => void; toUser: string; setToUser: (v: string) => void;
+  amount: string; setAmount: (v: string) => void; note: string; setNote: (v: string) => void;
+  transferDate: string; setTransferDate: (v: string) => void;
+  members: Member[]; currency: string; t: ReturnType<typeof useTranslations<'apps.split-expenses'>>;
+}) {
+  return (
+    <>
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">De</label>
+        <MemberSelect members={members} value={fromUser} onChange={setFromUser} placeholder="Selecciona..." idKey="user_id" excludeId={toUser} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <DsButton variant="ghost" size="sm" disabled={!fromUser || !toUser} onClick={() => { const f = fromUser; setFromUser(toUser); setToUser(f) }}>
+          <ArrowUpDown size={14} /> Intercambiar
+        </DsButton>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">A</label>
+        <MemberSelect members={members} value={toUser} onChange={setToUser} placeholder="Selecciona..." idKey="user_id" excludeId={fromUser} />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">{t('transfer.edit.amount')} ({currency})</label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{currencySymbol(currency)}</span>
+          <input value={amount} onChange={e => setAmount(e.target.value.replace(/[^0-9.,]/g, ''))} type="text" inputMode="decimal" placeholder="0.00"
+            className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Fecha</label>
+        <input type="date" value={transferDate} onChange={e => setTransferDate(e.target.value)} max={new Date().toISOString().split('T')[0]}
+          className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">{t('transfer.edit.note')}</label>
+        <input value={note} onChange={e => setNote(e.target.value)}
+          className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground" />
+      </div>
+    </>
+  )
+}
+
+// ─── Transfer Edit Modal ────────────────────────────────────────────────
+
+function TransferEditModal({ open, onClose, onSaved, groupId, transfer, members, currency }: {
+  open: boolean; onClose: () => void; onSaved: () => void; groupId: string; transfer: any; members: Member[]; currency: string;
+}) {
+  const ctx = useAppContext()
+  const t = useTranslations('apps.split-expenses')
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [fromUser, setFromUser] = useState('')
+  const [toUser, setToUser] = useState('')
+  const [amount, setAmount] = useState('')
+  const [note, setNote] = useState('')
+  const [transferDate, setTransferDate] = useState(new Date().toISOString().split('T')[0])
+
+  useEffect(() => {
+    if (transfer) {
+      setFromUser(transfer.from_user ?? '')
+      setToUser(transfer.to_user ?? '')
+      setAmount(transfer.amount != null ? String(transfer.amount) : '')
+      setNote(transfer.note ?? '')
+      setTransferDate(transfer.created_at ? new Date(transfer.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+      setFormError('')
+    }
+  }, [transfer])
+
+  async function handleSave() {
+    const errors: string[] = []
+    if (!ctx.groupSlug || !transfer) return
+    if (!fromUser) errors.push('Selecciona quién envía')
+    if (!toUser) errors.push('Selecciona quién recibe')
+    if (!amount) errors.push('El importe es obligatorio')
+    else {
+      const parsedAmount = parseFloat(amount)
+      if (isNaN(parsedAmount) || parsedAmount <= 0) errors.push('El importe debe ser mayor que 0')
+    }
+    if (errors.length > 0) { setFormError(errors.join(' · ')); return }
+    setSaving(true)
+    try {
+      await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/transfers/${transfer.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from_user: fromUser, to_user: toUser, amount: parseFloat(amount), note: note || null, created_at: transferDate ? new Date(transferDate).toISOString() : undefined }),
+      })
+      onSaved()
+    } catch {} finally { setSaving(false) }
+  }
+
+  return (
+    <DsModal open={open} onClose={onClose} title={t('transfer.edit.title')}>
+      <div className="space-y-4">
+        <TransferFormFields fromUser={fromUser} setFromUser={setFromUser} toUser={toUser} setToUser={setToUser}
+          amount={amount} setAmount={setAmount} note={note} setNote={setNote}
+          transferDate={transferDate} setTransferDate={setTransferDate}
+          members={members} currency={currency} t={t} />
+        {formError && (
+          <div className="text-xs text-red-500 mb-2 space-y-1">
+            {formError.split(' · ').map((e: string, i: number) => <p key={i} style={{ margin: 0 }}>{e}</p>)}
+          </div>
+        )}
+        <div className="flex justify-end gap-2 pt-2">
+          <DsButton variant="ghost" onClick={onClose}>{t('common.cancel')}</DsButton>
+          <DsButton color="#10B981" disabled={saving} onClick={handleSave}>
+            {saving && <Loader2 className="w-3 h-3 animate-spin" />}{t('transfer.edit.save')}
+          </DsButton>
+        </div>
+      </div>
+    </DsModal>
+  )
+}
+
+// ─── Balances Tab ───────────────────────────────────────────────────────
+
+function BalancesTab({ groupId, balances, transfers, currency, loading, onRefresh, onSettle }: {
+  groupId: string; balances: Balance[]; transfers: Transfer[]; currency: string; loading: boolean; onRefresh: () => void; onSettle?: () => void;
+}) {
+  const ctx = useAppContext()
+  const locale = useLocale()
+  const t = useTranslations('apps.split-expenses')
+  const [settling, setSettling] = useState(false)
+  const [showSettleConfirm, setShowSettleConfirm] = useState(false)
+  const [payingTransfer, setPayingTransfer] = useState<number | null>(null)
+  const [recordConfirm, setRecordConfirm] = useState<number | null>(null)
+
+  async function handleSettle() {
+    if (!ctx.groupSlug) return
+    setSettling(true)
+    try {
+      const res = await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/settlements`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      })
+      setShowSettleConfirm(false)
+      if (res.ok) {
+        const data = await res.json()
+        dsToast.success(t('balance.settleSuccess', { count: data.transfers_created || 0 }))
+      } else {
+        const err = await res.json().catch(() => ({}))
+        dsToast.error(err.message || t('balance.cancelled'))
+        return
+      }
+      ;(onSettle || onRefresh)()
+    } catch { dsToast.error(t('balance.cancelled')) } finally { setSettling(false) }
+  }
+
+  async function handleRecordPayment(index: number) {
+    if (!ctx.groupSlug) return
+    const tr = transfers[index]
+    if (!tr) return
+    setPayingTransfer(index)
+    try {
+      await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/payments`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from_user: tr.from_user, to_user: tr.to_user, amount: tr.amount }),
+      })
+      onRefresh()
+    } catch {} finally { setPayingTransfer(null) }
+  }
+
+  return (
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div>
+          <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>{t('balance.title')}</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {balances.map(b => (
+              <DsCard key={b.user_id} padding="sm" hover={false}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)' }}>{b.display_name ?? t('common.unknown')}</span>
+                  <span style={{
+                    fontSize: 13, fontWeight: 600,
+                    color: b.net_balance > 0 ? '#10B981' : b.net_balance < 0 ? '#DC2626' : 'var(--color-text-secondary)',
+                  }}>
+                    {b.net_balance > 0
+                      ? `${t('balance.isOwed')} ${formatAmount(b.net_balance, currency)}`
+                      : b.net_balance < 0
+                        ? `${t('balance.owe')} ${formatAmount(Math.abs(b.net_balance), currency)}`
+                    : formatAmount(b.net_balance, currency)}
+                  </span>
+                </div>
+              </DsCard>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          {transfers.length > 0 && (
+            <>
+              <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>{t('balance.transfers')}</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                {transfers.map((tr, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text)', padding: '6px 8px', background: 'var(--color-muted)', borderRadius: 'var(--radius-lg)' }}>
+                    <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                    <span>{tr.from_name ?? t('common.unknown')} {t('balance.pays')} {tr.to_name ?? t('common.unknown')}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>{formatAmount(tr.amount, currency)}</span>
+                    <button
+                      onClick={() => setRecordConfirm(i)}
+                      disabled={payingTransfer === i}
+                      className="flex-shrink-0 p-1 rounded-md hover:bg-emerald-100 disabled:opacity-50 cursor-pointer transition-colors"
+                      style={{ color: '#10B981', marginLeft: 'auto' }}
+                      title={t('balance.recordPayment')}
+                    >
+                      {payingTransfer === i ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <DsButton color="#10B981" style={{ width: '100%' }} onClick={() => setShowSettleConfirm(true)}>{t('balance.settleAll')}</DsButton>
+            </>
+          )}
+        </div>
+      </div>
+
+        <DsConfirmModal open={showSettleConfirm} onClose={() => setShowSettleConfirm(false)}
+          title={t('balance.confirmTitle')}
+          message={t('balance.confirmMessage', { count: transfers.length })}
+          confirmLabel={t('balance.confirm')} cancelLabel={t('expense.create.cancel')}
+          variant="success"
+          onConfirm={async () => { await handleSettle() }}
+        >
+          {transfers.map((tr, i) => (
+            <p key={i} style={{ fontSize: 12, color: 'var(--color-text-secondary)', margin: '2px 0' }}>{tr.from_name ?? t('common.unknown')} → {tr.to_name ?? t('common.unknown')}: {formatAmount(tr.amount, currency)}</p>
+          ))}
+        </DsConfirmModal>
+
+      <DsConfirmModal open={recordConfirm !== null} onClose={() => setRecordConfirm(null)}
+        title="Confirmar pago"
+        message="¿Registrar esta transferencia como pagada?"
+        confirmLabel="Confirmar" cancelLabel={t('common.cancel')}
+        variant="success"
+        onConfirm={async () => {
+          if (recordConfirm !== null) {
+            await handleRecordPayment(recordConfirm)
+            setRecordConfirm(null)
+          }
+        }}
+      >
+        {recordConfirm !== null && transfers[recordConfirm] && (
+          <p style={{ margin: 0, color: 'var(--color-text)' }}>
+            {transfers[recordConfirm].from_name ?? '?'} → {transfers[recordConfirm].to_name ?? '?'}: {formatAmount(Number(transfers[recordConfirm].amount), currency)}
+          </p>
+        )}
+      </DsConfirmModal>
+    </div>
+  )
+}
+
+// ─── Settings Tab ───────────────────────────────────────────────────────
+
+function SettingsTab({ groupId, group, tags, loading, onRefresh, availableMembers, onMembersUpdate }: {
+  groupId: string; group: GroupDetail; tags: Tag[]; loading: boolean; onRefresh: () => void;
+  availableMembers: { id: string; display_name: string }[]; onMembersUpdate: () => void;
+}) {
+  const t = useTranslations('apps.split-expenses')
+  return (
+    <div className="space-y-8">
+      <MembersTab groupId={groupId} members={group.members ?? []} availableMembers={availableMembers} onUpdate={onMembersUpdate} />
+      <TagsTab groupId={groupId} tags={tags} loading={loading} onRefresh={onRefresh} />
+    </div>
+  )
+}
+
+// ─── Members Tab ────────────────────────────────────────────────────────
+
+function MembersTab({ groupId, members, availableMembers, onUpdate }: {
+  groupId: string; members: Member[]; availableMembers: { id: string; display_name: string }[]; onUpdate: () => void;
+}) {
+  const ctx = useAppContext()
+  const t = useTranslations('apps.split-expenses')
+  const [showAdd, setShowAdd] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [selected, setSelected] = useState('')
+
+  async function handleAdd() {
+    if (!selected || !ctx.groupSlug) return
+    setAdding(true)
+    try {
+      await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/members`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: selected }),
+      })
+      setShowAdd(false)
+      setSelected('')
+      onUpdate()
+    } catch {} finally { setAdding(false) }
+  }
+
+  async function handleToggle(memberId: string, active: boolean) {
+    if (!ctx.groupSlug) return
+    await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/members/${memberId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active }),
+    })
+    onUpdate()
+  }
+
+  async function handleRemove(memberId: string) {
+    if (!ctx.groupSlug) return
+    await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/members/${memberId}`, { method: 'DELETE' })
+    onUpdate()
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>{t('member.list.title')}</h3>
+        <DsButton color="#10B981" onClick={() => setShowAdd(true)}><Users size={14} /> {t('member.list.add')}</DsButton>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {members.map(m => (
+          <DsCard key={m.id} padding="sm" hover={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <DsAvatar size={28} color="#10B981">{m.display_name?.[0] ?? '?'}</DsAvatar>
+              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', flex: 1 }}>{m.display_name ?? t('common.unknown')}</span>
+              <DsToggle checked={m.active} onChange={(val) => handleToggle(m.id, val)} color="#10B981" />
+              <DsButton variant="ghost" size="sm" style={{ color: '#EF4444' }} onClick={() => handleRemove(m.id)}><Trash2 size={12} /></DsButton>
+            </div>
+          </DsCard>
+        ))}
+      </div>
+
+      <DsModal open={showAdd} onClose={() => setShowAdd(false)} title={t('member.addModal.title')}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {availableMembers.length === 0 ? (
+            <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'center', padding: 16 }}>{t('member.addModal.noMembers')}</p>
+          ) : (
+            <>
+              <select value={selected} onChange={e => setSelected(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+              >
+                <option value="">{t('member.addModal.placeholder')}</option>
+                {availableMembers.map(m => <option key={m.id} value={m.id}>{m.display_name}</option>)}
+              </select>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <DsButton variant="ghost" onClick={() => setShowAdd(false)}>{t('common.cancel')}</DsButton>
+                <DsButton color="#10B981" disabled={adding || !selected} onClick={handleAdd}>
+                  {adding && <Loader2 className="w-3 h-3 animate-spin" />}{t('member.addModal.confirm')}
+                </DsButton>
+              </div>
+            </>
+          )}
+        </div>
+      </DsModal>
+    </div>
+  )
+}
+
+// ─── Tags Tab ───────────────────────────────────────────────────────────
+
+function TagsTab({ groupId, tags, loading, onRefresh }: {
+  groupId: string; tags: Tag[]; loading: boolean; onRefresh: () => void;
+}) {
+  const ctx = useAppContext()
+  const t = useTranslations('apps.split-expenses')
+  const [editTag, setEditTag] = useState<Tag | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newColor, setNewColor] = useState('#10B981')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!newName.trim() || !ctx.groupSlug) return
+    setSaving(true)
+    try {
+      if (editTag) {
+        await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags/${editTag.id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName.trim(), color: newColor }),
+        })
+      } else {
+        await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName.trim(), color: newColor }),
+        })
+      }
+      setShowCreate(false); setEditTag(null); setNewName(''); setNewColor('#10B981')
+      onRefresh()
+    } catch {} finally { setSaving(false) }
+  }
+
+  async function handleDelete(tagId: string) {
+    if (!ctx.groupSlug) return
+    await fetchWithAuth(`/api/v1/${ctx.groupSlug}/apps/split-expenses/${groupId}/tags/${tagId}`, { method: 'DELETE' })
+    onRefresh()
+  }
+
+  if (loading) return <DsSkeleton height={48} count={3} />
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>{t('tag.list.title')}</h3>
+        <DsButton color="#10B981" size="sm" onClick={() => { setEditTag(null); setNewName(''); setNewColor('#10B981'); setShowCreate(true) }}>
+          <Plus size={14} /> {t('tag.create.title')}
+        </DsButton>
+      </div>
+
+      {tags.length === 0 ? (
+        <DsEmptyState title={t('tag.list.empty')} />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {tags.map(tag => (
+            <DsCard key={tag.id} padding="sm" hover={false}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 16, height: 16, borderRadius: 4, backgroundColor: tag.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', flex: 1 }}>{tag.name}</span>
+                <DsButton variant="ghost" size="sm" onClick={() => { setEditTag(tag); setNewName(tag.name); setNewColor(tag.color); setShowCreate(true) }}>
+                  <Pencil size={12} />
+                </DsButton>
+                <DsButton variant="ghost" size="sm" style={{ color: '#EF4444' }} onClick={() => handleDelete(tag.id)}>
+                  <Trash2 size={12} />
+                </DsButton>
+              </div>
+            </DsCard>
+          ))}
+        </div>
+      )}
+
+      <DsModal open={showCreate} onClose={() => { setShowCreate(false); setEditTag(null) }} title={editTag ? t('tag.create.editTitle') : t('tag.create.title')}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 4, display: 'block' }}>{t('tag.create.name')}</label>
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder={t('tag.create.name')}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-card text-foreground"
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 4, display: 'block' }}>{t('tag.create.color')}</label>
+            <input value={newColor} onChange={e => setNewColor(e.target.value)} type="color" className="w-10 h-10 p-0.5 border border-border rounded cursor-pointer" />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <DsButton variant="ghost" onClick={() => { setShowCreate(false); setEditTag(null) }}>{t('common.cancel')}</DsButton>
+            <DsButton color="#10B981" disabled={saving || !newName.trim()} onClick={handleSave}>
+              {saving && <Loader2 className="w-3 h-3 animate-spin" />}{editTag ? t('tag.create.save') : t('tag.create.confirm')}
+            </DsButton>
+          </div>
+        </div>
+      </DsModal>
+    </div>
+  )
+}
+
+// ─── Stats Tab ──────────────────────────────────────────────────────────
+
+function StatsTab({ statsData, tags, period, tagId, loading, onPeriodChange, onTagIdChange, statsDateFrom, statsDateTo, onDateChange }: {
+  statsData: { byPeriod: { label: string; total: number }[]; cumulative: { label: string; total: number }[] };
+  tags: Tag[]; period: string; tagId: string; loading: boolean;
+  onPeriodChange: (p: string) => void; onTagIdChange: (id: string) => void;
+  statsDateFrom: string; statsDateTo: string;
+  onDateChange: (from: string, to: string) => void;
+}) {
+  const t = useTranslations('apps.split-expenses')
+  const [mode, setMode] = useState<'byPeriod' | 'cumulative'>('byPeriod')
+  const [showFilters, setShowFilters] = useState(false)
+  const [draftPeriod, setDraftPeriod] = useState(period)
+  const [draftTagId, setDraftTagId] = useState(tagId)
+  const [draftDateFrom, setDraftDateFrom] = useState('')
+  const [draftDateTo, setDraftDateTo] = useState('')
+
+  const periodOptions = [
+    { value: 'day', label: t('stats.day') },
+    { value: 'week', label: t('stats.week') },
+    { value: 'month', label: t('stats.month') },
+    { value: 'year', label: t('stats.year') },
+  ]
+
+  const activeFilters = (period !== 'month' ? 1 : 0) + (tagId ? 1 : 0) + (statsDateFrom || statsDateTo ? 1 : 0)
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex bg-muted rounded-lg p-0.5">
+          {(['byPeriod', 'cumulative'] as const).map(m => (
+            <button key={m} onClick={() => setMode(m)}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${mode === m ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >{t(`stats.${m}`)}</button>
+          ))}
+        </div>
+        <button onClick={() => { setShowFilters(true); setDraftPeriod(period); setDraftTagId(tagId); setDraftDateFrom(statsDateFrom); setDraftDateTo(statsDateTo) }}
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground hover:bg-accent cursor-pointer transition-colors">
+          <Filter size={14} /> {t('expense.list.filters')}
+        </button>
+      </div>
+
+      {activeFilters > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {period !== 'month' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-muted text-foreground cursor-pointer" onClick={() => onPeriodChange('month')}>
+              {periodOptions.find(p => p.value === period)?.label ?? period} <X size={10} />
+            </span>
+          )}
+          {tagId && (() => { const tag = tags.find(t => t.id === tagId); return (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full cursor-pointer" style={{ backgroundColor: tag?.color + '20', color: tag?.color }} onClick={() => onTagIdChange('')}>
+              {tag?.name ?? tagId} <X size={10} />
+            </span>
+          )})()}
+          {(statsDateFrom || statsDateTo) && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-muted text-foreground cursor-pointer" onClick={() => onDateChange('', '')}>
+              {statsDateFrom || '...'} → {statsDateTo || '...'} <X size={10} />
+            </span>
+          )}
+          <button onClick={() => { onPeriodChange('month'); onTagIdChange(''); onDateChange('', '') }} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">
+            {t('expense.list.clearFilters')}
+          </button>
+        </div>
+      )}
+
+      {showFilters && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowFilters(false)}>
+          <div className="fixed inset-0 bg-black/40" />
+          <div className="relative bg-card rounded-t-2xl sm:rounded-xl p-6 w-full max-w-md mx-auto shadow-xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-base font-semibold text-foreground">{t('expense.list.filters')}</h3>
+              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground cursor-pointer"><X size={20} /></button>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Rango de fechas</label>
+              <DateRangePicker from={draftDateFrom} to={draftDateTo} onFromChange={setDraftDateFrom} onToChange={setDraftDateTo} />
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('stats.filterTag')}</label>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setDraftTagId('')} className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftTagId === '' ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`} style={draftTagId === '' ? { backgroundColor: '#10B981', color: 'white' } : {}}>
+                  {t('expense.list.allTags')}
+                </button>
+                {tags.map(tag => (
+                  <button key={tag.id} onClick={() => setDraftTagId(tag.id === draftTagId ? '' : tag.id)}
+                    className={`px-3 py-1.5 text-sm rounded-lg cursor-pointer transition-colors ${draftTagId === tag.id ? 'font-medium' : 'bg-muted text-foreground hover:bg-accent'}`}
+                    style={draftTagId === tag.id ? { backgroundColor: tag.color, color: 'white' } : {}}>
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={() => { onPeriodChange(draftPeriod || 'month'); onTagIdChange(draftTagId); onDateChange(draftDateFrom, draftDateTo); setShowFilters(false) }}
+              className="w-full py-3 text-sm font-semibold text-white rounded-xl cursor-pointer shadow-sm transition-colors"
+              style={{ backgroundColor: '#10B981' }}>
+              Aplicar filtros
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="py-8"><DsSkeleton height={200} /></div>
+      ) : statsData.byPeriod.length === 0 ? (
+        <DsEmptyState title={t('stats.noData')} />
+      ) : (
+        <BarChart
+            data={chartData(mode === 'byPeriod' ? statsData.byPeriod : statsData.cumulative, mode === 'cumulative').map(d => ({ label: d.label.length > 5 ? d.label.slice(0, 5) : d.label, value: Math.round(d.total) }))}
+            color="#10B981" height={200} showLine />
+      )}
+    </div>
+  )
+}

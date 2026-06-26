@@ -7,14 +7,21 @@ import { readManifest } from '@/lib/apps/manifest'
 import { resolveGroupContext } from '@/lib/groups/context'
 import { loadAppModule } from '@/lib/apps/registry'
 import { loadAppMessages } from '@/lib/apps/i18n'
-import { Sparkles } from 'lucide-react'
+import { DsSkeleton } from '@/components/ds/skeleton'
+import { DsEmptyState } from '@/components/ds/empty-state'
+import { DsCard } from '@/components/ds/card'
 import { AppInstalledWidget } from '@/components/app-installed-widget'
+import { WidgetWrapper } from '@/components/widget-wrapper'
+import { resolveAppConfig, getAppConfig } from '@/lib/apps/config'
+import type { AppManifest } from '@/types/apps'
 
 const SLUG_RE = /^[a-z0-9-]+$/
 
 interface WidgetEntry {
   slug: string
   Component: React.ComponentType
+  manifest: AppManifest
+  config: Record<string, string | number | boolean>
 }
 
 interface AppWidgetData {
@@ -47,8 +54,12 @@ async function loadWidgets(groupId: string): Promise<WidgetEntry[]> {
     try {
       const manifest = await readManifest(app.slug)
       if (!manifest.views.widget) continue
-      const Component = await loadAppModule(app.slug, 'widget') as React.ComponentType
-      results.push({ slug: app.slug, Component })
+      const [Component, rawConfig] = await Promise.all([
+        loadAppModule(app.slug, 'widget') as Promise<React.ComponentType>,
+        getAppConfig(app.slug),
+      ])
+      const config = resolveAppConfig(manifest, rawConfig)
+      results.push({ slug: app.slug, Component, manifest, config })
     } catch {
       // App has no valid widget — skip silently
     }
@@ -98,13 +109,17 @@ function DashboardSkeleton() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-xl border border-slate-100 h-40 animate-pulse" />
+        <DsCard key={i} padding="md" hover={false}>
+          <DsSkeleton height={120} />
+          <div style={{ height: 12 }} />
+          <DsSkeleton height={14} count={2} />
+        </DsCard>
       ))}
     </div>
   )
 }
 
-async function WidgetGrid({ groupId }: { locale: string; groupId: string }) {
+async function WidgetGrid({ groupId, groupSlug }: { groupId: string; groupSlug: string }) {
   const [widgets, t] = await Promise.all([
     loadWidgets(groupId),
     getTranslations('app'),
@@ -112,22 +127,22 @@ async function WidgetGrid({ groupId }: { locale: string; groupId: string }) {
 
   if (widgets.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
-          <Sparkles className="w-8 h-8 text-emerald-400" />
-        </div>
-        <h2 className="text-base font-semibold text-slate-900 mb-1">{t('dashboard.welcome_title')}</h2>
-        <p className="text-sm text-slate-400">{t('dashboard.welcome_subtitle')}</p>
-      </div>
+      <DsEmptyState
+        icon="✨"
+        title={t('dashboard.welcome_title')}
+        description={t('dashboard.welcome_subtitle')}
+      />
     )
   }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {widgets.map(({ slug, Component }) => (
-        <div key={slug} className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-          <Component />
-        </div>
+      {widgets.map(({ slug, Component, manifest, config }) => (
+        <DsCard key={slug} padding="md" hover={false}>
+          <WidgetWrapper slug={slug} manifest={manifest} config={config} groupId={groupId} groupSlug={groupSlug}>
+            <Component />
+          </WidgetWrapper>
+        </DsCard>
       ))}
     </div>
   )
@@ -159,10 +174,10 @@ export default async function DashboardPage({ params }: Props) {
         <AppInstalledWidgetAsync locale={locale} groupId={groupCtx.id} groupSlug={groupSlug} />
       </Suspense>
       <Suspense fallback={<DashboardSkeleton />}>
-        <WidgetGrid locale={locale} groupId={groupCtx.id} />
+        <WidgetGrid groupId={groupCtx.id} groupSlug={groupSlug} />
       </Suspense>
     </main>
   )
 }
 
-export { DashboardSkeleton }
+

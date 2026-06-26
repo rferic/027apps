@@ -424,16 +424,16 @@ export default function InspirationAdmin() {
         {/* Search + Sort */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1 max-w-sm w-full sm:w-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               placeholder={t('admin.search')}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 bg-white placeholder:text-slate-400"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 bg-card placeholder:text-muted-foreground"
             />
             {searchInput && (
-              <button onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+              <button onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
                 <X size={14} />
               </button>
             )}
@@ -442,20 +442,20 @@ export default function InspirationAdmin() {
             <button
               type="button"
               onClick={() => setSortOpen(o => !o)}
-              className="flex items-center justify-between gap-2 w-full sm:w-auto px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
+              className="flex items-center justify-between gap-2 w-full sm:w-auto px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
             >
               <span>{SORT_OPTIONS.find(o => o.value === sort)?.label ?? sort}</span>
-              <ChevronDown size={14} className={`text-slate-400 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`text-muted-foreground transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
             </button>
             {sortOpen && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-1">
+              <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-lg shadow-lg z-50 py-1">
                 {SORT_OPTIONS.map(opt => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => { setSort(opt.value); setPage(1); setSortOpen(false) }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 transition-colors cursor-pointer ${
-                      sort === opt.value ? 'font-medium text-slate-900' : 'text-slate-600'
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors cursor-pointer ${
+                      sort === opt.value ? 'font-medium text-foreground' : 'text-foreground'
                     }`}
                   >
                     {opt.label}
@@ -468,7 +468,7 @@ export default function InspirationAdmin() {
 
         {/* Type chips */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-medium text-slate-500 mr-1">{t('admin.filter.type')}</span>
+          <span className="text-xs font-medium text-muted-foreground mr-1">{t('admin.filter.type')}</span>
           {REQUEST_TYPES.map(t => (
             <button
               key={t.value}
@@ -476,7 +476,7 @@ export default function InspirationAdmin() {
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer transition-colors ${
                 selectedTypes.has(t.value)
                   ? 'border-slate-900 bg-slate-900 text-white'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  : 'border-border bg-card text-foreground hover:border-border'
               }`}
             >
               <t.icon size={12} />
@@ -487,7 +487,7 @@ export default function InspirationAdmin() {
 
         {/* Status chips */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-medium text-slate-500 mr-1">{t('admin.filter.status')}</span>
+          <span className="text-xs font-medium text-muted-foreground mr-1">{t('admin.filter.status')}</span>
           {Object.entries(STATUS_CONFIG).map(([value, config]) => (
             <button
               key={value}
@@ -495,7 +495,7 @@ export default function InspirationAdmin() {
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer transition-colors ${
                 selectedStatuses.has(value)
                   ? 'border-slate-900 bg-slate-900 text-white'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  : 'border-border bg-card text-foreground hover:border-border'
               }`}
             >
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: config.color }} />
@@ -508,15 +508,15 @@ export default function InspirationAdmin() {
       {/* Loading */}
       {loading && (
         <div className="flex justify-center py-12">
-          <Loader2 size={24} className="animate-spin text-slate-300" />
+          <Loader2 size={24} className="animate-spin text-muted-foreground" />
         </div>
       )}
 
       {/* Error */}
       {!loading && error && (
-        <div className="bg-white rounded-xl border border-slate-100 p-8 text-center">
+        <div className="bg-card rounded-xl border border-border p-8 text-center">
           <p className="text-sm text-red-600 mb-2">{error}</p>
-           <button onClick={fetchRequests} className="text-xs text-slate-600 hover:text-slate-900 underline cursor-pointer">
+           <button onClick={fetchRequests} className="text-xs text-foreground hover:text-foreground underline cursor-pointer">
             {t('admin.retry')}
           </button>
         </div>
@@ -524,18 +524,18 @@ export default function InspirationAdmin() {
 
       {/* Empty */}
       {!loading && !error && requests.length === 0 && (
-        <div className="bg-white rounded-xl border border-slate-100 p-8 text-center">
-           <p className="text-sm text-slate-400">{t('admin.no_ideas_found')}</p>
+        <div className="bg-card rounded-xl border border-border p-8 text-center">
+           <p className="text-sm text-muted-foreground">{t('admin.no_ideas_found')}</p>
         </div>
       )}
 
       {/* Table */}
       {!loading && !error && requests.length > 0 && (
         <>
-          <div className="bg-white rounded-xl border border-slate-100 overflow-x-auto">
+          <div className="bg-card rounded-xl border border-border overflow-x-auto">
             <div className="min-w-[700px]">
               {/* Table header */}
-              <div className="grid grid-cols-[44px_1fr_120px_60px_80px_100px_100px_44px] gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              <div className="grid grid-cols-[44px_1fr_120px_60px_80px_100px_100px_44px] gap-2 px-4 py-2.5 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 <span>{t('admin.columns.type')}</span>
                 <span>{t('admin.columns.title')}</span>
                 <span>{t('admin.columns.creator')}</span>
@@ -556,7 +556,7 @@ export default function InspirationAdmin() {
                   return (
                     <div
                       key={item.id}
-                      className="grid grid-cols-[44px_1fr_120px_60px_80px_100px_100px_44px] gap-2 px-4 py-3 items-center hover:bg-slate-50/50 transition-colors"
+                      className="grid grid-cols-[44px_1fr_120px_60px_80px_100px_100px_44px] gap-2 px-4 py-3 items-center hover:bg-muted/50 transition-colors"
                     >
                       {/* Type */}
                       <div
@@ -569,27 +569,27 @@ export default function InspirationAdmin() {
                       {/* Title — clickable for detail */}
                       <button
                         onClick={() => fetchDetail(item.id)}
-                        className="text-sm font-medium text-slate-800 text-left truncate cursor-pointer hover:text-slate-600 transition-colors"
+                        className="text-sm font-medium text-foreground text-left truncate cursor-pointer hover:text-foreground transition-colors"
                         title={item.title}
                       >
                         {truncate(item.title, 60)}
                       </button>
 
                       {/* Creator */}
-                      <span className="text-xs text-slate-500 truncate" title={getCreatorName(item)}>
+                      <span className="text-xs text-muted-foreground truncate" title={getCreatorName(item)}>
                         {getCreatorName(item)}
                       </span>
 
                       {/* Votes */}
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <ArrowUp size={12} className="text-slate-400" />
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <ArrowUp size={12} className="text-muted-foreground" />
                         {item.vote_count}
                       </span>
 
                       {/* App */}
-                      <span className="text-xs text-slate-500 truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         {item.app_slug ? (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[10px]">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-[10px]">
                             {item.app_slug}
                           </span>
                         ) : (
@@ -598,7 +598,7 @@ export default function InspirationAdmin() {
                       </span>
 
                       {/* Group */}
-                      <span className="text-xs text-slate-500 truncate">
+                      <span className="text-xs text-muted-foreground truncate">
                         {item.group_name ?? item.group_slug ?? '\u2014'}
                       </span>
 
@@ -622,9 +622,9 @@ export default function InspirationAdmin() {
                           className="p-1 rounded-md hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                         >
                           {isUpdating ? (
-                            <Loader2 size={16} className="animate-spin text-slate-400" />
+                            <Loader2 size={16} className="animate-spin text-muted-foreground" />
                           ) : (
-                            <ChevronDown size={16} className="text-slate-400" />
+                            <ChevronDown size={16} className="text-muted-foreground" />
                           )}
                         </button>
                       </div>
@@ -637,25 +637,25 @@ export default function InspirationAdmin() {
 
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4">
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-muted-foreground">
               {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} {t('admin.pagination.of')} {pagination.total}
             </span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-2 sm:px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:bg-slate-50 transition-colors flex items-center gap-1"
+                className="px-2 sm:px-3 py-1.5 text-sm border border-border rounded-lg bg-card disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:bg-muted transition-colors flex items-center gap-1"
               >
                 <ChevronLeft size={14} />
                 <span className="hidden sm:inline">{t('admin.pagination.prev')}</span>
               </button>
-              <span className="text-xs text-slate-500 px-2">
+              <span className="text-xs text-muted-foreground px-2">
                 {pagination.page} / {pagination.total_pages || 1}
               </span>
               <button
                 onClick={() => setPage(p => Math.min(pagination.total_pages, p + 1))}
                 disabled={page >= pagination.total_pages}
-                className="px-2 sm:px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:bg-slate-50 transition-colors flex items-center gap-1"
+                className="px-2 sm:px-3 py-1.5 text-sm border border-border rounded-lg bg-card disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer hover:bg-muted transition-colors flex items-center gap-1"
               >
                 <span className="hidden sm:inline">{t('admin.pagination.next')}</span>
                 <ChevronRight size={14} />
@@ -672,7 +672,7 @@ export default function InspirationAdmin() {
           onClick={() => setRowMenuPos(null)}
         >
           <div
-            className="absolute bg-white rounded-lg shadow-lg border border-slate-200 py-1 min-w-[150px]"
+            className="absolute bg-card rounded-lg shadow-lg border border-border py-1 min-w-[150px]"
             style={{ left: rowMenuPos.x, top: rowMenuPos.y }}
             onClick={e => e.stopPropagation()}
           >
@@ -688,25 +688,25 @@ export default function InspirationAdmin() {
                         handleStatusChange(request.id, status)
                         setRowMenuPos(null)
                       }}
-                      className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-2"
+                      className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-muted cursor-pointer transition-colors flex items-center gap-2"
                     >
                       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor(status) }} />
                       {statusLabel(status)}
                     </button>
                   ))}
                   {(request as any).github_issue_number ? null : (
-                    <div className="border-t border-slate-100 mt-1 pt-1">
+                    <div className="border-t border-border mt-1 pt-1">
                       <button
                         onClick={() => handleGitHubLink(request.id)}
                         disabled={linkingId === request.id}
-                        className="w-full text-left px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors disabled:opacity-50 flex items-center gap-2"
+                        className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-muted cursor-pointer transition-colors disabled:opacity-50 flex items-center gap-2"
                       >
                         {linkingId === request.id ? <Loader2 size={14} className="animate-spin" /> : null}
                         {t('admin.github.generate_issue')}
                       </button>
                     </div>
                   )}
-                  <div className="border-t border-slate-100 mt-1 pt-1">
+                  <div className="border-t border-border mt-1 pt-1">
                     <button
                       onClick={() => {
                         setRowMenuPos(null)
@@ -732,15 +732,15 @@ export default function InspirationAdmin() {
           <div className="absolute inset-0 bg-black/40" onClick={closeDetail} />
 
           {/* Panel */}
-          <div className="relative w-full max-w-lg bg-white shadow-xl overflow-y-auto">
+          <div className="relative w-full max-w-lg bg-card shadow-xl overflow-y-auto">
             {detailLoading ? (
               <div className="flex justify-center py-16">
-                <Loader2 size={24} className="animate-spin text-slate-300" />
+                <Loader2 size={24} className="animate-spin text-muted-foreground" />
               </div>
             ) : detail ? (
               <div className="p-6">
                 {/* Close */}
-                <button onClick={closeDetail} className="absolute top-4 right-4 p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer">
+                <button onClick={closeDetail} className="absolute top-4 right-4 p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer">
                   <X size={20} />
                 </button>
 
@@ -762,23 +762,23 @@ export default function InspirationAdmin() {
                 </div>
 
                 {/* Title */}
-                <h2 className="text-lg font-semibold text-slate-900 mb-2">{detail.title}</h2>
+                <h2 className="text-lg font-semibold text-foreground mb-2">{detail.title}</h2>
 
                 {/* Description */}
-                <div className="text-sm text-slate-600 whitespace-pre-line mb-4 leading-relaxed">
+                <div className="text-sm text-foreground whitespace-pre-line mb-4 leading-relaxed">
                   {detail.description || t('admin.detail.no_description')}
                 </div>
 
                 {/* Meta grid */}
-                <div className="grid grid-cols-2 gap-3 mb-4 p-3 bg-slate-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-3 mb-4 p-3 bg-muted rounded-lg">
                   {detail.creator && (
                     <div>
-                      <p className="text-xs text-slate-400 mb-0.5">{t('admin.detail.created_by')}</p>
-                      <p className="text-sm text-slate-700 flex items-center gap-1.5">
+                      <p className="text-xs text-muted-foreground mb-0.5">{t('admin.detail.created_by')}</p>
+                      <p className="text-sm text-foreground flex items-center gap-1.5">
                         {detail.creator.avatar_url ? (
                           <img src={detail.creator.avatar_url} alt="" className="w-5 h-5 rounded-full" />
                         ) : (
-                          <User size={14} className="text-slate-400" />
+                          <User size={14} className="text-muted-foreground" />
                         )}
                         {detail.creator.display_name ?? t('admin.detail.unknown')}
                       </p>
@@ -786,36 +786,36 @@ export default function InspirationAdmin() {
                   )}
                   {detail.group_name && (
                     <div>
-                      <p className="text-xs text-slate-400 mb-0.5">Group</p>
-                      <p className="text-sm text-slate-700">{detail.group_name}</p>
+                      <p className="text-xs text-muted-foreground mb-0.5">Group</p>
+                      <p className="text-sm text-foreground">{detail.group_name}</p>
                     </div>
                   )}
                   {detail.app_slug && (
                     <div>
-                      <p className="text-xs text-slate-400 mb-0.5">App</p>
-                      <p className="text-sm text-slate-700">{detail.app_slug}</p>
+                      <p className="text-xs text-muted-foreground mb-0.5">App</p>
+                      <p className="text-sm text-foreground">{detail.app_slug}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-xs text-slate-400 mb-0.5">{t('admin.detail.created_at')}</p>
-                    <p className="text-sm text-slate-700">{formatDateFull(detail.created_at)}</p>
+                    <p className="text-xs text-muted-foreground mb-0.5">{t('admin.detail.created_at')}</p>
+                    <p className="text-sm text-foreground">{formatDateFull(detail.created_at)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 mb-0.5">{t('admin.detail.updated_at')}</p>
-                    <p className="text-sm text-slate-700">{formatDateFull(detail.updated_at)}</p>
+                    <p className="text-xs text-muted-foreground mb-0.5">{t('admin.detail.updated_at')}</p>
+                    <p className="text-sm text-foreground">{formatDateFull(detail.updated_at)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 mb-0.5">{t('admin.detail.votes_label')}</p>
-                    <p className="text-sm text-slate-700">{detail.vote_count}</p>
+                    <p className="text-xs text-muted-foreground mb-0.5">{t('admin.detail.votes_label')}</p>
+                    <p className="text-sm text-foreground">{detail.vote_count}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 mb-0.5">{t('admin.detail.comments_label')}</p>
-                    <p className="text-sm text-slate-700">{detail.comment_count}</p>
+                    <p className="text-xs text-muted-foreground mb-0.5">{t('admin.detail.comments_label')}</p>
+                    <p className="text-sm text-foreground">{detail.comment_count}</p>
                   </div>
                 </div>
 
                 {/* GitHub */}
-                <div className="mb-4 p-3 bg-slate-50 rounded-lg">
+                <div className="mb-4 p-3 bg-muted rounded-lg">
                   {detail.github_issue_url ? (
                     <div className="flex items-center justify-between">
                       <a
@@ -836,7 +836,7 @@ export default function InspirationAdmin() {
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-500">{t('admin.github.not_linked')}</span>
+                      <span className="text-sm text-muted-foreground">{t('admin.github.not_linked')}</span>
                       <button
                         onClick={() => handleGitHubLink(detail.id)}
                         disabled={linkingId === detail.id}
@@ -852,20 +852,20 @@ export default function InspirationAdmin() {
                 {/* Comments */}
                 {detail.comments && detail.comments.length > 0 && (
                   <div className="mb-4">
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                    <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
                       <MessageCircle size={14} />
                       {t('admin.detail.comments_label')} ({detail.comments.length})
                     </h3>
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {detail.comments.map(c => (
-                        <div key={c.id} className="bg-slate-50 rounded-lg p-3">
+                        <div key={c.id} className="bg-muted rounded-lg p-3">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-medium text-slate-700">
+                            <span className="text-xs font-medium text-foreground">
                               {c.author?.display_name ?? (c.user_id?.slice(0, 8) ?? 'User') + '\u2026'}
                             </span>
-                            <span className="text-xs text-slate-400">{formatDate(c.created_at)}</span>
+                            <span className="text-xs text-muted-foreground">{formatDate(c.created_at)}</span>
                           </div>
-                          <p className="text-sm text-slate-600 whitespace-pre-line">{c.body}</p>
+                          <p className="text-sm text-foreground whitespace-pre-line">{c.body}</p>
                         </div>
                       ))}
                     </div>
@@ -875,17 +875,17 @@ export default function InspirationAdmin() {
                 {/* Voters */}
                 {detail.voters && detail.voters.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                    <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
                       <ArrowUp size={14} />
                       {t('admin.detail.voters')} ({detail.voters.length})
                     </h3>
                     <div className="flex flex-wrap gap-1.5">
                       {detail.voters.map((v, i) => (
-                        <span key={v.user_id ?? i} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-50 rounded text-xs text-slate-600">
+                        <span key={v.user_id ?? i} className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs text-foreground">
                           {v.avatar_url ? (
                             <img src={v.avatar_url} alt="" className="w-4 h-4 rounded-full" />
                           ) : (
-                            <User size={12} className="text-slate-400" />
+                            <User size={12} className="text-muted-foreground" />
                           )}
                           {v.display_name ?? (v.user_id?.slice(0, 8) ?? 'User') + '\u2026'}
                         </span>
@@ -895,7 +895,7 @@ export default function InspirationAdmin() {
                 )}
               </div>
             ) : (
-              <div className="p-6 text-center text-sm text-slate-400">{t('admin.detail.error')}</div>
+              <div className="p-6 text-center text-sm text-muted-foreground">{t('admin.detail.error')}</div>
             )}
           </div>
         </div>
@@ -905,15 +905,15 @@ export default function InspirationAdmin() {
       {confirmChange && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmChange(null)} />
-          <div className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
-            <h3 className="text-base font-semibold text-slate-900">{t('admin.confirm_title')}</h3>
-            <p className="text-sm text-slate-500">
+          <div className="relative bg-card rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="text-base font-semibold text-foreground">{t('admin.confirm_title')}</h3>
+            <p className="text-sm text-muted-foreground">
               {t('admin.confirm_final_status')}
             </p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setConfirmChange(null)}
-                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-border bg-card text-foreground hover:bg-muted cursor-pointer transition-colors"
               >
                 {t('admin.cancel')}
               </button>
@@ -932,15 +932,15 @@ export default function InspirationAdmin() {
       {deleteTarget && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setDeleteTarget(null)} />
-          <div className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
-            <h3 className="text-base font-semibold text-slate-900">{t('admin.delete_title')}</h3>
-            <p className="text-sm text-slate-500">
+          <div className="relative bg-card rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="text-base font-semibold text-foreground">{t('admin.delete_title')}</h3>
+            <p className="text-sm text-muted-foreground">
               {t('admin.delete_confirm')}
             </p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-border bg-card text-foreground hover:bg-muted cursor-pointer transition-colors"
               >
                 {t('admin.cancel')}
               </button>

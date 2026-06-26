@@ -67,7 +67,7 @@ export function AdminAppPermissions({ slug, visibility: initialVisibility, group
           className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
             optimisticVisibility === 'public'
               ? 'bg-slate-900 text-white border-slate-900'
-              : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+              : 'bg-card text-muted-foreground border-border hover:border-slate-400'
           }`}
         >
           {t('permissions.visibility_public')}
@@ -79,7 +79,7 @@ export function AdminAppPermissions({ slug, visibility: initialVisibility, group
           className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
             optimisticVisibility === 'private'
               ? 'bg-slate-900 text-white border-slate-900'
-              : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+              : 'bg-card text-muted-foreground border-border hover:border-slate-400'
           }`}
         >
           {t('permissions.visibility_private')}
@@ -97,7 +97,7 @@ export function AdminAppPermissions({ slug, visibility: initialVisibility, group
               <div key={group.groupId} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50">
                 <div>
                   <span className="text-sm font-medium text-slate-700">{group.groupName}</span>
-                  <span className="text-xs text-slate-400 ml-2">{group.groupSlug}</span>
+                  <span className="text-xs text-muted-foreground ml-2">{group.groupSlug}</span>
                 </div>
                 <button
                   type="button"
@@ -106,7 +106,7 @@ export function AdminAppPermissions({ slug, visibility: initialVisibility, group
                   className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors disabled:opacity-50 ${
                     group.hasAccess
                       ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                      : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+                      : 'bg-muted border-border text-muted-foreground hover:bg-accent'
                   }`}
                 >
                   {group.hasAccess ? t('permissions.revoke_access') : t('permissions.grant_access')}

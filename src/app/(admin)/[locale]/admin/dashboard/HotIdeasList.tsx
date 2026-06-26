@@ -34,7 +34,7 @@ export default function HotIdeasList({ ideas }: { ideas: HotIdea[] }) {
               <Icon size={10} />
             </span>
             <span className="text-slate-700 truncate flex-1 min-w-0">{idea.title}</span>
-            <div className="flex items-center gap-3 flex-shrink-0 text-xs text-slate-400">
+            <div className="flex items-center gap-3 flex-shrink-0 text-xs text-muted-foreground">
               <span>{t('votes', { count: idea.vote_count })}</span>
               <span>{t('comments', { count: idea.comment_count })}</span>
             </div>

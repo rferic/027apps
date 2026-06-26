@@ -33,8 +33,8 @@ export default async function AdminUsersPage({ params }: Props) {
   return (
     <main className="p-6 max-w-5xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-slate-900">{t('title')}</h1>
-        <p className="text-sm text-slate-400 mt-1">{members.length === 1 ? t('subtitle', { count: members.length }) : t('subtitlePlural', { count: members.length })}</p>
+        <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{members.length === 1 ? t('subtitle', { count: members.length }) : t('subtitlePlural', { count: members.length })}</p>
       </div>
       <AdminUserTable users={members} currentUserId={currentUser!.userId} locale={locale} availableLocales={settings.activeLocales} groupCounts={groupCounts} />
     </main>

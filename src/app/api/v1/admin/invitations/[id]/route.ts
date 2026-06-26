@@ -1,9 +1,9 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiError } from '@/lib/api/response'
+import { apiError, withTiming } from '@/lib/api/response'
 import { deleteInvitation } from '@/lib/use-cases/invitations'
 
-export async function DELETE(
+export const DELETE = withTiming(async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -16,4 +16,4 @@ export async function DELETE(
   if (result.error) return apiError('not_found', 'Invitation not found', 404)
 
   return new Response(null, { status: 204 })
-}
+})

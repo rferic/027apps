@@ -46,15 +46,15 @@ export function GroupDetailDrawer({ groupId, groupName, groupSlug, isOpen, onOpe
     <div className="h-full overflow-auto">
       <div className="flex items-start justify-between p-6 pb-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">{groupName}</h2>
-          <p className="text-xs text-slate-400 font-mono mt-0.5">{groupSlug}</p>
+          <h2 className="text-lg font-semibold text-foreground">{groupName}</h2>
+          <p className="text-xs text-muted-foreground font-mono mt-0.5">{groupSlug}</p>
         </div>
         {isDesktop ? (
-          <Drawer.Close className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors">
+          <Drawer.Close className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-muted-foreground hover:bg-muted cursor-pointer transition-colors">
             <X size={18} />
           </Drawer.Close>
         ) : (
-          <Dialog.Close className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors">
+          <Dialog.Close className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-muted-foreground hover:bg-muted cursor-pointer transition-colors">
             <X size={18} />
           </Dialog.Close>
         )}
@@ -62,14 +62,14 @@ export function GroupDetailDrawer({ groupId, groupName, groupSlug, isOpen, onOpe
 
       <div className="px-6 pb-8 space-y-6">
         {!data && !error ? (
-          <p className="text-sm text-slate-400">Loading…</p>
+          <p className="text-sm text-muted-foreground">Loading…</p>
         ) : error ? (
           <p className="text-sm text-red-500">Failed to load group details</p>
         ) : data ? (
           <>
             {/* Members section */}
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 {t('groups.members_section')}
               </h3>
               <GroupMembersSection groupId={groupId} members={data.members} onRefresh={() => setRefreshKey(k => k + 1)} />
@@ -78,13 +78,13 @@ export function GroupDetailDrawer({ groupId, groupName, groupSlug, isOpen, onOpe
             {/* Apps section */}
             {data.apps.length > 0 && (
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                   {t('groups.apps_section')}
                 </h3>
                 <GroupAppsSection groupId={groupId} apps={data.apps} />
               </section>
             )}
-            <div className="pt-4 border-t border-slate-100">
+            <div className="pt-4 border-t border-border">
               <button
                 type="button"
                 onClick={() => {
@@ -118,7 +118,7 @@ export function GroupDetailDrawer({ groupId, groupName, groupSlug, isOpen, onOpe
         <Drawer.Portal>
           <Drawer.Backdrop className="fixed inset-0 bg-black/40 z-40 transition-opacity data-[starting-style]:opacity-0 data-[ending-style]:opacity-0" />
           <Drawer.Viewport className="fixed z-50 top-0 right-0 h-full w-full max-w-lg">
-            <Drawer.Popup className="bg-white shadow-2xl outline-none h-full transition-transform duration-300 data-[starting-style]:translate-x-full data-[ending-style]:translate-x-full">
+            <Drawer.Popup className="bg-card shadow-2xl outline-none h-full transition-transform duration-300 data-[starting-style]:translate-x-full data-[ending-style]:translate-x-full">
               <Drawer.Title className="sr-only">{t('groups.title')}: {groupName}</Drawer.Title>
               <Drawer.Description className="sr-only">
                 {groupSlug}
@@ -135,7 +135,7 @@ export function GroupDetailDrawer({ groupId, groupName, groupSlug, isOpen, onOpe
     <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 bg-black/40 z-40 transition-opacity data-[starting-style]:opacity-0 data-[ending-style]:opacity-0" />
-        <Dialog.Popup className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-lg max-h-[85vh] bg-white rounded-xl shadow-xl outline-none transition-opacity data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 overflow-auto">
+        <Dialog.Popup className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-lg max-h-[85vh] bg-card rounded-xl shadow-xl outline-none transition-opacity data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 overflow-auto">
           <Dialog.Title className="sr-only">{t('groups.title')}: {groupName}</Dialog.Title>
           <Dialog.Description className="sr-only">
             {groupSlug}

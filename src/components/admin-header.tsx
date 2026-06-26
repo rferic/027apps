@@ -17,12 +17,12 @@ export async function AdminHeader({ displayName, locale }: Props) {
   ])
 
   return (
-    <header className="h-14 bg-white px-4 sm:px-6 flex items-center justify-between flex-shrink-0 z-10 border-b border-gray-200">
+    <header className="h-14 bg-card px-4 sm:px-6 flex items-center justify-between flex-shrink-0 z-10 border-b border-border">
       <div className="flex items-center gap-3">
         <HamburgerButton />
         <Link href={`/${locale}/admin/dashboard`} className="flex items-center gap-2">
           <Image src="/logo-icon.svg" alt="027Apps" width={22} height={22} priority />
-          <span className="font-bold text-gray-900 text-sm">{t('title')}</span>
+          <span className="font-bold text-foreground text-sm">{t('title')}</span>
         </Link>
       </div>
 

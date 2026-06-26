@@ -1,0 +1,96 @@
+---
+title: Design System
+description: Component library, design tokens, and Storybook reference
+---
+
+## Overview
+
+027Apps has a custom **Design System** based on the "Modern" visual proposal.
+All new UI components must use this system.
+
+The design system consists of:
+
+- **Design tokens** — CSS custom properties for colors, typography, spacing, and shadows
+- **Base components** — reusable atomic components (Button, Badge, Card, etc.)
+- **Composite components** — business-level components (TodoList, IdeaList, StatCard, etc.)
+
+## Storybook
+
+An interactive component catalog is available via **Storybook**,
+where you can browse all components, see their variants, and read auto-generated documentation.
+
+```bash
+# Start Storybook (dev server on http://localhost:6006)
+pnpm storybook
+
+# Build static site (outputs to storybook-static/)
+pnpm build-storybook
+```
+
+## Design Tokens
+
+All tokens are defined in `src/design-tokens.css` as CSS custom properties.
+They are also reflected in the global `src/app/globals.css` under `:root` and `.dark`.
+
+| Category | Token Example | Light Value | Dark Value |
+|---|---|---|---|
+| Brand | `--color-brand` | `#9B1C1C` | `#D45050` |
+| Background | `--color-bg` | `#F8F6F3` | `#12120E` |
+| Surface | `--color-surface` | `#FFFFFF` | `#1A1815` |
+| Text | `--color-text` | `#171B22` | `#E2E0DA` |
+| Text secondary | `--color-text-secondary` | `#6B7280` | `#8A867E` |
+| Border | `--color-border` | `#E2DDD6` | `#2A2824` |
+| Heading font | `--font-heading` | Outfit | Outfit |
+| Body font | `--font-body` | Sora | Sora |
+| Radius | `--radius-lg` | 0.625rem | 0.625rem |
+
+## Available Components
+
+### Base Components (`src/components/ds/`)
+
+| Component | Variants | Key Props |
+|---|---|---|
+| `DsButton` | primary, secondary, outline, ghost | size (sm/md/lg) |
+| `DsBadge` | primary, success, warning, error, neutral, outline | — |
+| `DsCard` | — | padding (sm/md/lg), hover |
+| `DsInput` / `DsTextarea` | — | label, error, disabled |
+| `DsModal` | — | open, onClose, title, maxWidth |
+| `DsTabs` | — | tabs[], defaultTab, onChange |
+| `DsAvatar` | — | size, color |
+| `DsSkeleton` | — | height, circle, count |
+| `DsEmptyState` | — | icon, title, description, action |
+| `DsAlert` | info, success, warning, error | icon, onDismiss |
+| `DsToggle` | — | checked, onChange, label, disabled |
+| `DsSelect` | — | options[], value, onChange, label |
+| `DsTable` | — | columns[], data[], onRowClick |
+| `DsPagination` | — | page, totalPages, onChange |
+
+### Composite Components (`src/components/composite/`)
+
+| Component | Description |
+|---|---|
+| `TodoItem` / `TodoList` | Task row + list with priorities, categories, assignees |
+| `IdeaList` | Idea board items with votes and comments |
+| `StatCard` | Dashboard stat card with label, value, color |
+| `BarChart` | SVG bar chart for dashboards |
+
+## Usage Guidelines
+
+1. **Never write raw HTML/Tailwind** if a component exists in the design system
+2. **New components** must:
+   - Be justified (no duplication)
+   - Use tokens from `design-tokens.css` (never hardcoded values)
+   - Include a Storybook story with at least default variant + main variants
+3. **Same-level styling**: all new components should use DS tokens via `var(--token-name)`
+4. **Dark mode**: automatically supported via `.dark` class on parent
+
+## Adding a New Component
+
+1. Create the file in `src/components/ds/name.tsx`
+2. Use CSS variables from `design-tokens.css` (never hardcode colors)
+3. Create `src/components/ds/name.stories.tsx` with:
+   - Default variant
+   - All main variants
+   - Interactive state if applicable
+4. Verify: `pnpm build-storybook && pnpm build`
+5. For business composites, use `src/components/composite/`

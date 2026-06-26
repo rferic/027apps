@@ -17,7 +17,7 @@ export default async function SettingsGeneralPage({ params }: Props) {
     <div className="p-6 max-w-3xl mx-auto">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">{t('title')}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{tg('subtitle')}</p>
+        <p className="text-sm text-muted-foreground mt-0.5">{tg('subtitle')}</p>
       </div>
       <SettingsForm
         activeLocales={settings.activeLocales}

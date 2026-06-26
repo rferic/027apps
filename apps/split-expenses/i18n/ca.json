@@ -1,0 +1,275 @@
+{
+  "description": "Divideix moviments en grup amb optimització de deutes.",
+  "group": {
+    "list": {
+      "title": "Grups de moviment",
+      "empty": "Encara no hi ha grups de moviments",
+      "createFirst": "Crea el teu primer grup de moviments",
+      "youOwe": "Deus",
+      "youAreOwed": "Et deuen",
+      "settled": "Tot liquidat",
+      "totalBalance": "Balanç total",
+      "memberCount": "{count, plural, one {# membre} other {# membres}}"
+    },
+    "create": {
+      "title": "Nou grup",
+      "editTitle": "Edita grup",
+      "name": "Nom del grup",
+      "emoji": "Icona",
+      "currency": "Moneda",
+      "members": "Membres",
+      "create": "Crea el grup",
+      "save": "Desa els canvis",
+      "cancel": "Cancel·la",
+      "success": "Grup de moviments creat",
+      "updated": "Grup de moviments actualitzat"
+    },
+    "detail": {
+      "tabs": {
+        "expenses": "Moviments",
+        "balances": "Balanços",
+        "members": "Membres",
+        "stats": "Estadístiques",
+        "import": "Importa",
+        "tags": "Etiquetes",
+        "settings": "Configuració"
+      },
+      "noGroup": "No s'ha trobat el grup de moviments",
+      "memberCount": "{count, plural, one {# membre} other {# membres}}"
+    }
+  },
+  "expense": {
+    "list": {
+      "title": "Moviments",
+      "empty": "Encara no hi ha moviments",
+      "addFirst": "Afegeix la teva primera moviment",
+      "noResults": "Cap moviment coincideix amb els teus filtres",
+      "filters": "Filtres",
+      "allTags": "Totes les etiquetes",
+      "allUsers": "Tots els usuaris",
+      "my": "Els meus moviments",
+      "all": "Totes",
+      "clearFilters": "Neteja filtres",
+      "settled": "Mostrar liquidats",
+      "typeExpenses": "Despeses",
+      "typeTransfers": "Transferències",
+      "typeAll": "Tot"
+    },
+    "create": {
+      "title": "Nova moviment",
+      "editTitle": "Edita la moviment",
+      "concept": "Concepte",
+      "amount": "Import",
+      "paidBy": "Pagat per",
+      "participants": "Participants",
+      "tag": "Etiqueta (opcional)",
+      "noTag": "Sense etiqueta",
+      "equalSplit": "Repartiment igual ({amount} cadascú)",
+      "create": "Afegeix moviment",
+      "save": "Desa",
+      "cancel": "Cancel·la",
+      "success": "Moviment afegida",
+      "updated": "Moviment actualitzada",
+      "deleted": "Moviment eliminada",
+      "cantEditSettled": "No es pot editar una moviment liquidada",
+      "needParticipants": "Selecciona almenys un participant"
+    },
+    "item": {
+      "paidBy": "pagat",
+      "you": "Tu",
+      "settled": "Liquidada",
+      "lent": "Prestat",
+      "owe": "Degut",
+      "total": "total"
+    },
+    "delete": {
+      "title": "Eliminar moviment",
+      "confirm": "Eliminar \"{title}\"?",
+      "deleting": "Eliminant..."
+    }
+  },
+  "balance": {
+    "title": "Balanços",
+    "noExpenses": "Afegeix moviments per veure els balanços",
+    "summary": "Resum",
+    "transfers": "Transferències proposades",
+    "noTransfers": "Tot liquidat",
+    "settle": "Liquida",
+    "settleAll": "Liquida tot",
+    "selectExpenses": "Selecciona les despeses a liquidar",
+    "confirmTitle": "Confirma liquidació",
+    "confirmMessage": "Això marcarà {count} despesa/despeses com a liquidada/es i crearà les següents transferències:",
+    "confirm": "Confirma la liquidació",
+    "cancelled": "Liquidació cancel·lada",
+    "success": "Despeses liquidades correctament",
+    "youOwe": "Deus",
+    "youAreOwed": "Et deuen",
+    "perPerson": "Per persona",
+    "pays": "paga",
+    "owe": "Deus",
+    "isOwed": "Et deuen",
+    "history": "Historial de liquidacions",
+    "settledOn": "Liquidada el",
+    "by": "per",
+    "noSettlements": "No hi ha liquidacions",
+    "expenseCount": "{count, plural, one {# despesa} other {# despeses}}",
+    "transferCount": "{count, plural, one {# transferència} other {# transferències}}",
+    "recordPayment": "Registrar com a pagat",
+    "paymentRecorded": "Pagament registrat",
+    "settleSuccess": "S'han creat {count} transferències."
+  },
+  "member": {
+    "list": {
+      "title": "Membres",
+      "add": "Afegeix membre",
+      "remove": "Elimina",
+      "active": "Actiu",
+      "inactive": "Inactiu",
+      "makeActive": "Activa",
+      "makeInactive": "Desactiva",
+      "owes": "deu",
+      "isOwed": "li deuen",
+      "settled": "Liquidat"
+    },
+    "addModal": {
+      "title": "Afegeix membre",
+      "placeholder": "Selecciona un membre del grup",
+      "noMembers": "Tots els membres del grup ja estan afegits",
+      "confirm": "Afegeix",
+      "success": "Membre afegit"
+    }
+  },
+  "tag": {
+    "list": {
+      "title": "Gestiona etiquetes",
+      "empty": "No hi ha etiquetes",
+      "createFirst": "Crea la teva primera etiqueta"
+    },
+    "create": {
+      "title": "Nova etiqueta",
+      "editTitle": "Edita l'etiqueta",
+      "name": "Nom de l'etiqueta",
+      "color": "Color",
+      "confirm": "Desa l'etiqueta",
+      "delete": "Elimina l'etiqueta",
+      "success": "Etiqueta creada",
+      "updated": "Etiqueta actualitzada",
+      "deleted": "Etiqueta eliminada",
+      "confirmDelete": "Estàs segur que vols eliminar aquesta etiqueta?",
+      "save": "Desar etiqueta"
+    }
+  },
+  "stats": {
+    "title": "Estadístiques",
+    "byPeriod": "Per període",
+    "cumulative": "Acumulat",
+    "period": "Període",
+    "day": "Dia",
+    "week": "Setmana",
+    "month": "Mes",
+    "year": "Any",
+    "total": "Total",
+    "noData": "No hi ha dades per al període seleccionat",
+    "filterTag": "Filtra per etiqueta"
+  },
+  "currency": {
+    "AED": "AED - Dirham dels EAU",
+    "ARS": "ARS - Peso argentí",
+    "AUD": "AUD - Dòlar australià",
+    "BRL": "BRL - Real brasiler",
+    "CAD": "CAD - Dòlar canadenc",
+    "CHF": "CHF - Franc suís",
+    "CLP": "CLP - Peso xilè",
+    "CNY": "CNY - Iuan xinès",
+    "COP": "COP - Peso colombià",
+    "CRC": "CRC - Colón costa-riqueny",
+    "EUR": "EUR - Euro",
+    "GBP": "GBP - Lliura britànica",
+    "HKD": "HKD - Dòlar de Hong Kong",
+    "ILS": "ILS - Nou xíquel israelià",
+    "INR": "INR - Rupia índia",
+    "JPY": "JPY - Ien japonès",
+    "KRW": "KRW - Won sud-coreà",
+    "KZT": "KZT - Tenge kazakh",
+    "MXN": "MXN - Peso mexicà",
+    "MYR": "MYR - Ringgit malaisi",
+    "NOK": "NOK - Corona noruega",
+    "NZD": "NZD - Dòlar neozelandès",
+    "PEN": "PEN - Sol peruà",
+    "PHP": "PHP - Peso filipí",
+    "PKR": "PKR - Rupia pakistanesa",
+    "PLN": "PLN - Zloty polonès",
+    "RUB": "RUB - Ruble rus",
+    "SEK": "SEK - Corona sueca",
+    "SGD": "SGD - Dòlar de Singapur",
+    "THB": "THB - Baht tailandès",
+    "TRY": "TRY - Lira turca",
+    "TWD": "TWD - Dòlar taiwanès",
+    "UAH": "UAH - Hrívnia ucraïnesa",
+    "USD": "USD - Dòlar estatunidenc",
+    "UYU": "UYU - Peso uruguaià",
+    "VND": "VND - Dong vietnamita",
+    "ZAR": "ZAR - Rand sud-africà"
+  },
+  "import": {
+    "title": "Importa des de Splitwise",
+    "step1": "Clau API",
+    "step2": "Selecciona un grup",
+    "step3": "Assignació d'usuaris",
+    "step4": "Previsualització",
+    "step5": "Confirma",
+    "apiKeyLabel": "Clau API de Splitwise",
+    "apiKeyPlaceholder": "Enganxa la teva clau API de Splitwise",
+    "verify": "Verifica la connexió",
+    "verified": "Connectat com a {name}",
+    "selectGroup": "Selecciona un grup de Splitwise per importar",
+    "userMapping": "Assigna usuaris de Splitwise a usuaris de 027apps",
+    "autoMatched": "Assignats automàticament per correu",
+    "manualMapping": "Assignació manual",
+    "mustMapAll": "Tots els usuaris han d'estar assignats per continuar",
+    "previewTitle": "Previsualització de la importació",
+    "totalExpenses": "Total de moviments",
+    "totalAmount": "Import total",
+    "dateRange": "Rang de dates",
+    "membersToAdd": "Membres a afegir",
+    "tagsToCreate": "Etiquetes a crear",
+    "transfersToCreate": "Transferències a crear",
+    "warnings": "Avisos",
+    "confirmImport": "Importa {count} moviments",
+    "importing": "Important...",
+    "success": "Importació completada correctament",
+    "expensesCreated": "Moviments creades",
+    "expensesSkipped": "Duplicats omesos",
+    "errors": "Errors"
+  },
+  "common": {
+    "back": "Tornar",
+    "cancel": "Cancel·lar",
+    "delete": "Eliminar",
+    "confirm": "Confirmar",
+    "unknown": "Desconegut",
+    "members": "membres",
+    "loadMore": "Carregar més"
+  },
+  "widget": {
+    "error": "No s'ha pogut carregar",
+    "allSettled": "Tot liquidat!",
+    "viewDetails": "Veure detall"
+  },
+  "transfer": {
+    "item": {
+      "manual": "Manual"
+    },
+    "delete": {
+      "title": "Elimina transferència",
+      "confirm": "Eliminar aquesta transferència?",
+      "deleting": "Eliminant..."
+    },
+    "edit": {
+      "title": "Edita transferència",
+      "amount": "Import",
+      "note": "Nota (opcional)",
+      "save": "Desa"
+    }
+  }
+}
