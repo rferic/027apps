@@ -89,7 +89,8 @@
       "apps_order": "Aplicaciones",
       "docs": "Documentación",
       "docs_home": "Docs",
-      "github": "GitHub"
+      "github": "GitHub",
+      "mobile_app": "App Móvil"
     },
     "dashboard": {
       "title": "Inicio",

@@ -15,14 +15,29 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.rferic.apps027"
+      "bundleIdentifier": "com.rferic.apps027",
+      "associatedDomains": ["applinks:027apps.com"]
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.rferic.apps027"
+      "package": "com.rferic.apps027",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "027apps",
+              "host": "*",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "plugins": [
       "expo-router",

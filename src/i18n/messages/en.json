@@ -87,7 +87,8 @@
       "groups": "Groups",
       "api_docs": "API Docs",
       "docs": "Documentation",
-      "docs_home": "Docs"
+      "docs_home": "Docs",
+      "mobile_app": "Mobile App"
     },
     "dashboard": {
       "title": "Dashboard",

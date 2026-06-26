@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
-import { Link, useRouter } from 'expo-router'
+import { Link, useRouter, useLocalSearchParams } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 
 export default function ResetPasswordScreen() {
   const router = useRouter()
+  // code comes from deep links: 027apps://reset-password?code=xxx
+  const { code } = useLocalSearchParams<{ code?: string }>()
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert, Linking as RNLinking } from 'react-native'
 import { Link, useRouter } from 'expo-router'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useAuth } from '@/hooks/useAuth'
@@ -52,6 +52,22 @@ export default function LoginScreen() {
     }
 
     router.replace('/(app)/dashboard')
+  }
+
+  const handleForgotPassword = () => {
+    Alert.alert(
+      'Reset Password',
+      'Password reset is handled via the web app. Open your browser to continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Open in Browser',
+          onPress: () => {
+            RNLinking.openURL('https://027apps.com/reset-password')
+          },
+        },
+      ]
+    )
   }
 
   return (
@@ -131,9 +147,9 @@ export default function LoginScreen() {
         )}
 
         <View className="flex-row justify-between">
-          <Link href="/reset-password" className="py-2">
+          <TouchableOpacity onPress={handleForgotPassword} className="py-2">
             <Text className="text-red-800 text-sm font-medium">{t('auth.forgot_password')}</Text>
-          </Link>
+          </TouchableOpacity>
           <Link href="/register" className="py-2">
             <Text className="text-red-800 text-sm font-medium">{t('mobile.auth.createAccount')}</Text>
           </Link>

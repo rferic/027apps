@@ -3,7 +3,7 @@ import { healthContract } from './v1/health'
 import { appsContract } from './v1/apps'
 import { meContract } from './v1/me'
 import { localesContract } from './v1/locales'
-import { mobileContract } from './v1/mobile'
+import { mobileContract, versionContract } from './v1/mobile'
 import { adminTodoContract } from './v1/admin/todo'
 
 const c = initContract()
@@ -14,6 +14,7 @@ export const apiContract = c.router({
   me: meContract,
   locales: localesContract,
   mobile: mobileContract,
+  version: versionContract,
   admin: c.router({
     apps: c.router({
       todo: adminTodoContract,
