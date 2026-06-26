@@ -16,7 +16,7 @@
     "public": true,
     "admin": true,
     "widget": true,
-    "native": false
+    "native": true
   },
   "api": true,
   "dependencies": [],
