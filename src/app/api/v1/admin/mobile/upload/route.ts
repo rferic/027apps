@@ -3,6 +3,10 @@ import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createApiAdminClient } from '@/lib/supabase/api'
 
+function getSettingsKey(variant: string): string {
+  return variant === 'beta' ? 'mobile_version_beta' : 'mobile_version'
+}
+
 async function uploadToStorage(
   fileName: string,
   fileBuffer: ArrayBuffer,
@@ -36,6 +40,12 @@ export async function POST(req: NextRequest) {
   const minVersion = formData.get('min_version')
   const releaseNotes = formData.get('release_notes')
   const file = formData.get('file')
+  const variant = formData.get('variant')
+
+  const variantStr = typeof variant === 'string' ? variant : 'production'
+  if (variantStr !== 'beta' && variantStr !== 'production') {
+    return apiError('VALIDATION_ERROR', 'variant must be "beta" or "production"', 400)
+  }
 
   if (!version || typeof version !== 'string') {
     return apiError('VALIDATION_ERROR', 'version is required', 400)
@@ -60,8 +70,9 @@ export async function POST(req: NextRequest) {
 
   const fileBuffer = await file.arrayBuffer()
 
-  // Upload to Supabase Storage
-  const fileName = `027apps-${version}.apk`
+  // Upload to Supabase Storage with variant prefix
+  const prefix = variantStr === 'beta' ? 'beta/' : ''
+  const fileName = `${prefix}027apps-${version}.apk`
   let apkPath: string
   try {
     apkPath = await uploadToStorage(fileName, fileBuffer, file.type || 'application/vnd.android.package-archive')
@@ -79,7 +90,7 @@ export async function POST(req: NextRequest) {
   const { error: upsertError } = await admin
     .from('app_settings')
     .upsert({
-      key: 'mobile_version',
+      key: getSettingsKey(variantStr),
       value: {
         latest_version: version,
         min_version: effectiveMinVersion,

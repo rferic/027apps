@@ -16,11 +16,16 @@ const VersionResponseSchema = z.object({
   release_notes: z.string().nullable().describe('Release notes'),
 })
 
+const VersionQuerySchema = z.object({
+  variant: z.enum(['production', 'beta']).optional().default('production').describe('App variant'),
+})
+
 export const versionContract = c.router({
   getVersion: {
     method: 'GET',
     path: '/api/v1/mobile/version',
     summary: 'Get latest mobile app version',
+    query: VersionQuerySchema,
     responses: {
       200: VersionResponseSchema,
     },

@@ -18,6 +18,12 @@ import { getActiveGroupSlug } from '@/lib/group-store'
 import { setStoredLanguage } from '@/lib/i18n'
 import { useNotifications } from '@/hooks/useNotifications'
 import { requestNotificationPermissions } from '@/lib/notifications'
+import {
+  getNotificationPrefs,
+  updateNotificationPrefs,
+  getNotificationLabel,
+} from '@/lib/prefs'
+import type { NotificationPrefs } from '@/lib/prefs'
 
 const LANGUAGES = [
   { code: 'en', key: 'mobile.locales.en' as const },
@@ -39,6 +45,11 @@ export default function SettingsScreen() {
   const [urlInput, setUrlInput] = useState('')
   const [savingUrl, setSavingUrl] = useState(false)
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs | null>(null)
+
+  useEffect(() => {
+    getNotificationPrefs().then(setNotificationPrefs)
+  }, [])
 
   useEffect(() => {
     getServerUrl().then((url) => {
@@ -207,6 +218,67 @@ export default function SettingsScreen() {
           )}
         </View>
       </View>
+
+      {/* Notification Preferences */}
+      {notificationPrefs && (
+        <View className="px-6 pt-6">
+          <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+            Notification Types
+          </Text>
+          <View className="bg-slate-50 rounded-xl p-4">
+            {/* Global toggle */}
+            <View className="flex-row justify-between items-center mb-3 pb-3 border-b border-slate-200">
+              <View className="flex-1 mr-3">
+                <Text className="text-base text-[#1E293B] font-medium">All notifications</Text>
+                <Text className="text-xs text-slate-400 mt-0.5">Master switch</Text>
+              </View>
+              <Switch
+                value={notificationPrefs.global_enabled}
+                onValueChange={async (val) => {
+                  await updateNotificationPrefs({ global_enabled: val })
+                  setNotificationPrefs((prev) =>
+                    prev ? { ...prev, global_enabled: val } : prev
+                  )
+                }}
+                trackColor={{ false: '#CBD5E1', true: '#9B1C1C' }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            {/* Per-type toggles */}
+            {notificationPrefs.all_types.map((type) => {
+              const label = getNotificationLabel(type)
+              const enabled = notificationPrefs.types[type] ?? notificationPrefs.global_enabled
+              return (
+                <View
+                  key={type}
+                  className="flex-row justify-between items-center py-2"
+                >
+                  <View className="flex-1 mr-3">
+                    <Text className="text-sm text-[#1E293B]">{label.title}</Text>
+                    <Text className="text-xs text-slate-400">{label.description}</Text>
+                  </View>
+                  <Switch
+                    value={enabled}
+                    onValueChange={async (val) => {
+                      const newTypes = {
+                        ...notificationPrefs.types,
+                        [type]: val,
+                      }
+                      await updateNotificationPrefs({ types: newTypes })
+                      setNotificationPrefs((prev) =>
+                        prev ? { ...prev, types: newTypes } : prev
+                      )
+                    }}
+                    trackColor={{ false: '#CBD5E1', true: '#9B1C1C' }}
+                    thumbColor="#fff"
+                  />
+                </View>
+              )
+            })}
+          </View>
+        </View>
+      )}
 
       {/* Appearance & Language */}
       <View className="px-6 pt-6">

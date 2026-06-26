@@ -3,6 +3,8 @@ import { sendEmail } from '@/lib/email/send'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { TodoAssignedEmail } from '@/emails/todo-assigned'
 import { TodoStatusChangeEmail } from '@/emails/todo-status-change'
+import { sendPushToUser } from '@/lib/push'
+import { NOTIFICATION_TYPES } from '@/lib/push'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -54,6 +56,14 @@ export async function notifyAssigned(todoId: string, todoTitle: string, assigned
     subject: (t.subject || '[027Apps] Task assigned: {title}').replace('{title}', todoTitle),
     html,
   })
+
+  // Send push (fire-and-forget)
+  sendPushToUser(assignedToUserId, {
+    type: NOTIFICATION_TYPES.TODO_ASSIGNED,
+    title: 'Task assigned',
+    body: `${assignedByName} assigned you: "${todoTitle}" in ${groupName}`,
+    data: { todoId, groupSlug },
+  }).catch((err) => console.error('[TODO] Failed to send push:', err))
 }
 
 export async function notifyStatusChange(todoId: string, todoTitle: string, assignedToUserId: string, oldStatus: string, newStatus: string, groupSlug: string, groupName: string) {
@@ -88,6 +98,14 @@ export async function notifyStatusChange(todoId: string, todoTitle: string, assi
     subject: (t.subject || '[027Apps] Task status changed: {title}').replace('{title}', todoTitle),
     html,
   })
+
+  // Send push (fire-and-forget)
+  sendPushToUser(assignedToUserId, {
+    type: NOTIFICATION_TYPES.TODO_STATUS_CHANGE,
+    title: 'Task status updated',
+    body: `"${todoTitle}" in ${groupName} changed from ${translateStatus(oldStatus, 'en')} to ${translateStatus(newStatus, 'en')}`,
+    data: { todoId, groupSlug, oldStatus, newStatus },
+  }).catch((err) => console.error('[TODO] Failed to send push:', err))
 }
 
 export async function notifyGroupStatusChange(todoId: string, todoTitle: string, groupId: string, oldStatus: string, newStatus: string, groupSlug: string, groupName: string, excludeUserId?: string) {

@@ -5,6 +5,8 @@ import InspirationNewCommentEmail, { NEW_COMMENT_SUBJECT } from '@/emails/inspir
 import InspirationStatusChangeEmail, { STATUS_CHANGE_SUBJECT } from '@/emails/inspiration-status-change'
 import InspirationClosureEmail, { CLOSURE_SUBJECT } from '@/emails/inspiration-closure'
 import InspirationNewIdeaEmail, { NEW_IDEA_SUBJECT } from '@/emails/inspiration-new-idea'
+import { sendPushNotifications } from '@/lib/push'
+import { NOTIFICATION_TYPES } from '@/lib/push'
 
 type RequestInfo = {
   id: string
@@ -165,6 +167,14 @@ export async function notifyNewIdea(
         )
       })
     )
+
+    // Send push to admins (fire-and-forget)
+    sendPushNotifications(adminIds, {
+      type: NOTIFICATION_TYPES.INSPIRATION_NEW_IDEA,
+      title: 'New idea submitted',
+      body: `${authorName} submitted "${request.title}"`,
+      data: { requestId, groupId: request.group_id },
+    }).catch((err) => console.error('[Inspiration] Failed to send push:', err))
   } catch (err) {
     console.error('[Inspiration] notifyNewIdea failed:', err)
   }
@@ -216,6 +226,14 @@ export async function notifyNewComment(
         )
       )
     )
+
+    // Send push to author + voters (fire-and-forget)
+    sendPushNotifications(recipients, {
+      type: NOTIFICATION_TYPES.INSPIRATION_NEW_COMMENT,
+      title: `New comment on "${request.title}"`,
+      body: `${commentAuthorName}: ${commentSnippet}`,
+      data: { requestId, groupId: request.group_id },
+    }).catch((err) => console.error('[Inspiration] Failed to send push:', err))
   } catch (err) {
     console.error('[Inspiration] notifyNewComment failed:', err)
   }
@@ -294,6 +312,15 @@ export async function notifyStatusChange(
         )
       )
     )
+
+    // Send push to author + voters (fire-and-forget)
+    const statusLabel = isClosure ? newStatus : `${oldStatus} → ${newStatus}`
+    sendPushNotifications(recipients, {
+      type: NOTIFICATION_TYPES.INSPIRATION_STATUS_CHANGE,
+      title: `Status updated: "${request.title}"`,
+      body: `Changed to ${statusLabel}${message ? ` — ${message}` : ''}`,
+      data: { requestId, groupId: request.group_id, oldStatus, newStatus },
+    }).catch((err) => console.error('[Inspiration] Failed to send push:', err))
   } catch (err) {
     console.error('[Inspiration] notifyStatusChange failed:', err)
   }

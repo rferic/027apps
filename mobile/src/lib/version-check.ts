@@ -1,3 +1,4 @@
+import Constants from 'expo-constants'
 import { getApiClient } from './api'
 
 interface VersionInfo {
@@ -7,10 +8,19 @@ interface VersionInfo {
   release_notes: string | null
 }
 
+function getVariant(): 'production' | 'beta' {
+  const extra = Constants.expoConfig?.extra as Record<string, unknown> | undefined
+  const v = (extra?.appVariant as string) ?? 'production'
+  return v === 'beta' ? 'beta' : 'production'
+}
+
 export async function checkAppVersion(): Promise<VersionInfo | null> {
   try {
     const client = await getApiClient()
-    const response = await client.version.getVersion({})
+    const variant = getVariant()
+    const response = await client.version.getVersion({
+      query: { variant },
+    })
     if (response.status === 200) return response.body
     return null
   } catch {

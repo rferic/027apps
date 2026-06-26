@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert, Linking as RNLinking } from 'react-native'
 import { Link, useRouter } from 'expo-router'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useAuth } from '@/hooks/useAuth'
 import { isBiometricsAvailable, authenticateWithBiometrics } from '@/lib/biometrics'
+import { getServerUrl, getDefaultUrl } from '@/lib/server-url'
 
 export default function LoginScreen() {
   const { t } = useTranslation()
@@ -17,9 +18,9 @@ export default function LoginScreen() {
   const [biometricsReady, setBiometricsReady] = useState(false)
 
   // Check biometrics availability on mount
-  useState(() => {
+  useEffect(() => {
     isBiometricsAvailable().then(setBiometricsReady)
-  })
+  }, [])
 
   const handleSignIn = async () => {
     setError('')
@@ -54,7 +55,8 @@ export default function LoginScreen() {
     router.replace('/(app)/dashboard')
   }
 
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
+    const baseUrl = (await getServerUrl()) || getDefaultUrl()
     Alert.alert(
       'Reset Password',
       'Password reset is handled via the web app. Open your browser to continue?',
@@ -63,7 +65,7 @@ export default function LoginScreen() {
         {
           text: 'Open in Browser',
           onPress: () => {
-            RNLinking.openURL('https://027apps.com/reset-password')
+            RNLinking.openURL(`${baseUrl}/reset-password`)
           },
         },
       ]

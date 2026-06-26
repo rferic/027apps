@@ -4,15 +4,13 @@ import { useAuth } from '@/hooks/useAuth'
 import { ModuleCard } from '@/components/ModuleCard'
 import { EmptyState } from '@/components/EmptyState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-
-const MODULES = [
-  { slug: 'todo', name: 'TODO', description: 'Task management', color: '#0EA5E9', icon: '✅' },
-  { slug: 'inspiration', name: 'Inspiration', description: 'Capture and vote on ideas', color: '#8B5CF6', icon: '💡' },
-]
+import { getAllModules } from '@/lib/modules/registry'
 
 export default function DashboardScreen() {
   const router = useRouter()
   const { user, isLoading } = useAuth()
+
+  const modules = getAllModules()
 
   if (isLoading) {
     return (
@@ -47,7 +45,7 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {MODULES.length === 0 ? (
+        {modules.length === 0 ? (
           <EmptyState
             title="No modules installed"
             icon="📦"
@@ -55,14 +53,14 @@ export default function DashboardScreen() {
           />
         ) : (
           <View className="gap-3">
-            {MODULES.map((mod) => (
+            {modules.map((mod) => (
               <ModuleCard
                 key={mod.slug}
                 slug={mod.slug}
                 name={mod.name}
                 description={mod.description}
-                icon={mod.icon}
-                primaryColor={mod.color}
+                icon={mod.icon ?? '📦'}
+                primaryColor={mod.primaryColor ?? '#64748B'}
                 onPress={() => router.push(`/(app)/modules/${mod.slug}`)}
               />
             ))}

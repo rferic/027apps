@@ -16,16 +16,20 @@ interface MobileVersion {
 }
 
 interface Props {
+  label: string
+  settingsKey: string
   current: MobileVersion | null
 }
 
-export function MobileVersionManager({ current }: Props) {
+export function MobileVersionManager({ label, settingsKey, current }: Props) {
   const [version, setVersion] = useState('')
   const [minVersion, setMinVersion] = useState('')
   const [setAsMin, setSetAsMin] = useState(false)
   const [releaseNotes, setReleaseNotes] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [uploading, startUpload] = useTransition()
+
+  const variant = settingsKey === 'mobile_version_beta' ? 'beta' : 'production'
 
   async function handleUpload() {
     if (!version.trim() || !file) return
@@ -38,6 +42,7 @@ export function MobileVersionManager({ current }: Props) {
 
     const formData = new FormData()
     formData.append('version', version.trim())
+    formData.append('variant', variant)
     formData.append('min_version', setAsMin ? version.trim() : (minVersion.trim() || version.trim()))
     if (releaseNotes.trim()) formData.append('release_notes', releaseNotes.trim())
     formData.append('file', file)
@@ -56,14 +61,12 @@ export function MobileVersionManager({ current }: Props) {
           return
         }
 
-        toast.success('Version uploaded successfully')
-        // Reset form
+        toast.success(`${label}: version ${version.trim()} uploaded successfully`)
         setVersion('')
         setMinVersion('')
         setSetAsMin(false)
         setReleaseNotes('')
         setFile(null)
-        // Reload to show updated version
         window.location.reload()
       } catch {
         toast.error('Upload failed')
@@ -73,8 +76,16 @@ export function MobileVersionManager({ current }: Props) {
 
   return (
     <div className="space-y-8">
-      {/* Current Version */}
-      <Card className="p-5">
+      <Card className="p-5 border-l-4" style={{ borderLeftColor: variant === 'beta' ? '#F59E0B' : '#0EA5E9' }}>
+        <div className="flex items-center gap-2 mb-4">
+          <span className={`text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+            variant === 'beta' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
+          }`}>
+            {label}
+          </span>
+        </div>
+
+        {/* Current Version */}
         <h2 className="text-base font-semibold text-slate-800 mb-4">Current Version</h2>
         {current ? (
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -100,18 +111,18 @@ export function MobileVersionManager({ current }: Props) {
             )}
           </div>
         ) : (
-          <p className="text-sm text-slate-400">No version published yet. Upload the first version below.</p>
+          <p className="text-sm text-slate-400">No version published yet.</p>
         )}
       </Card>
 
       {/* Upload Form */}
       <Card className="p-5">
-        <h2 className="text-base font-semibold text-slate-800 mb-4">Upload New Version</h2>
+        <h2 className="text-base font-semibold text-slate-800 mb-4">Upload New Version ({label})</h2>
         <div className="space-y-4 max-w-md">
           <div>
-            <Label htmlFor="version">Version (semver)</Label>
+            <Label htmlFor={`version-${variant}`}>Version (semver)</Label>
             <Input
-              id="version"
+              id={`version-${variant}`}
               type="text"
               placeholder="1.0.1"
               value={version}
@@ -131,9 +142,9 @@ export function MobileVersionManager({ current }: Props) {
 
           {!setAsMin && (
             <div>
-              <Label htmlFor="minVersion">Minimum version (optional)</Label>
+              <Label htmlFor={`minVersion-${variant}`}>Minimum version (optional)</Label>
               <Input
-                id="minVersion"
+                id={`minVersion-${variant}`}
                 type="text"
                 placeholder="1.0.0"
                 value={minVersion}
@@ -143,9 +154,9 @@ export function MobileVersionManager({ current }: Props) {
           )}
 
           <div>
-            <Label htmlFor="releaseNotes">Release notes</Label>
+            <Label htmlFor={`releaseNotes-${variant}`}>Release notes</Label>
             <textarea
-              id="releaseNotes"
+              id={`releaseNotes-${variant}`}
               rows={3}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white resize-y"
               placeholder="What's new in this version..."
@@ -155,9 +166,9 @@ export function MobileVersionManager({ current }: Props) {
           </div>
 
           <div>
-            <Label htmlFor="apkFile">APK file (.apk)</Label>
+            <Label htmlFor={`apkFile-${variant}`}>APK file (.apk)</Label>
             <input
-              id="apkFile"
+              id={`apkFile-${variant}`}
               type="file"
               accept=".apk"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}

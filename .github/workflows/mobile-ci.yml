@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'mobile/**'
+      - 'packages/contracts/**'
 
 concurrency:
   group: mobile-ci-${{ github.ref }}
@@ -28,3 +29,7 @@ jobs:
       - name: Type check
         working-directory: mobile
         run: npx tsc --noEmit
+
+      - name: Run tests
+        working-directory: mobile
+        run: npx vitest run

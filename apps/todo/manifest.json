@@ -12,6 +12,7 @@
     "url": "https://027apps.com"
   },
   "minPlatformVersion": "1.0.0",
+  "beta": false,
   "views": {
     "public": true,
     "admin": true,

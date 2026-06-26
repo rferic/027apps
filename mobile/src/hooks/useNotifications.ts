@@ -56,8 +56,18 @@ export function useNotifications() {
 
     const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as Record<string, unknown> | undefined
-      if (data?.type === 'comment' && data?.requestId) {
-        router.push(`/(app)/requests/${data.requestId}`)
+      if (!data) return
+      const type = data.type as string | undefined
+      const requestId = data.requestId as string | undefined
+      const todoId = data.todoId as string | undefined
+      const expenseGroupId = data.expenseGroupId as string | undefined
+
+      if (requestId && type?.startsWith('inspiration')) {
+        router.push(`/(app)/modules/inspiration/${requestId}`)
+      } else if (todoId && type?.startsWith('todo')) {
+        router.push(`/(app)/modules/todo/${todoId}`)
+      } else if (expenseGroupId && type?.startsWith('expenses')) {
+        router.push(`/(app)/modules/split-expenses/${expenseGroupId}`)
       }
     })
 

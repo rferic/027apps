@@ -12,6 +12,7 @@
     "url": "https://github.com/rferic"
   },
   "minPlatformVersion": "1.0.0",
+  "beta": false,
   "views": {
     "public": true,
     "admin": true,

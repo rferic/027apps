@@ -11,8 +11,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ota-update:
+  verify:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        working-directory: mobile
+        run: npx tsc --noEmit
+
+  ota:
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        channel: [production, beta]
     steps:
       - uses: actions/checkout@v4
 
@@ -32,10 +55,6 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Type check
+      - name: Publish OTA update (${{ matrix.channel }})
         working-directory: mobile
-        run: npx tsc --noEmit
-
-      - name: Publish OTA update
-        working-directory: mobile
-        run: eas update --channel production --non-interactive
+        run: eas update --channel ${{ matrix.channel }} --non-interactive

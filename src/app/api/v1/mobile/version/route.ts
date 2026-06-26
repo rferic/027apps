@@ -18,15 +18,22 @@ const DEFAULTS: MobileVersion = {
   apk_path: null,
 }
 
+function getSettingsKey(variant: string): string {
+  return variant === 'beta' ? 'mobile_version_beta' : 'mobile_version'
+}
+
 export async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'public')
   if (auth instanceof Response) return auth
+
+  const { searchParams } = new URL(req.url)
+  const variant = searchParams.get('variant') ?? 'production'
 
   const admin = createApiAdminClient()
   const { data: setting } = await admin
     .from('app_settings')
     .select('value')
-    .eq('key', 'mobile_version')
+    .eq('key', getSettingsKey(variant))
     .maybeSingle()
 
   let version: MobileVersion = DEFAULTS

@@ -13,7 +13,7 @@ on:
         type: choice
         options:
           - production
-          - preview
+          - beta
 
 concurrency:
   group: mobile-build-${{ github.ref }}
@@ -46,4 +46,67 @@ jobs:
         run: |
           eas build --platform android --profile ${{ inputs.profile }} \
             --non-interactive \
+            --wait \
             --message "Release ${{ inputs.version }}"
+
+      - name: Download APK
+        working-directory: mobile
+        run: |
+          mkdir -p build-output
+          eas build:download --platform android --output-dir ./build-output \
+            --non-interactive
+
+      - name: Publish APK
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          APK_FILE=$(ls build-output/*.apk 2>/dev/null | head -1)
+          if [ -z "$APK_FILE" ]; then
+            echo "::error::No APK file found in build-output/"
+            exit 1
+          fi
+          echo "Publishing $APK_FILE ($(du -h "$APK_FILE" | cut -f1)) — ${{ inputs.profile }} v${{ inputs.version }}"
+
+          PREFIX="${{ inputs.profile == 'beta' && 'beta/' || '' }}"
+          STORAGE_PATH="${PREFIX}027apps-${{ inputs.version }}.apk"
+          BUCKET="apk-releases"
+
+          # ── Upload to Supabase Storage ──
+          echo "::group::Upload to Supabase Storage"
+          curl -sS -X POST "${SUPABASE_URL}/storage/v1/object/${BUCKET}/${STORAGE_PATH}" \
+            -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary "@${APK_FILE}" \
+            --fail-with-status
+          echo ""
+          echo "✓ apk-releases/${STORAGE_PATH}"
+          echo "::endgroup::"
+
+          # ── Update app_settings ──
+          SETTINGS_KEY="${{ inputs.profile == 'beta' && 'mobile_version_beta' || 'mobile_version' }}"
+          DOWNLOAD_URL="${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${STORAGE_PATH}"
+
+          echo "::group::Update $SETTINGS_KEY"
+          curl -sS -X POST "${SUPABASE_URL}/rest/v1/app_settings" \
+            -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: resolution=merge-duplicates" \
+            -d "$(cat <<-JSON
+          {
+            "key": "${SETTINGS_KEY}",
+            "value": {
+              "latest_version": "${{ inputs.version }}",
+              "min_version": "${{ inputs.version }}",
+              "download_url": "${DOWNLOAD_URL}",
+              "release_notes": null,
+              "apk_path": "${STORAGE_PATH}"
+            },
+            "updated_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          JSON
+          )" \
+            --fail-with-status
+          echo ""
+          echo "✓ Version record updated"
+          echo "::endgroup::"

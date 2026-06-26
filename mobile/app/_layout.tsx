@@ -9,7 +9,10 @@ import { OfflineBanner } from '@/components/OfflineBanner'
 import i18n from '@/lib/i18n'
 import { useNotifications } from '@/hooks/useNotifications'
 import { parseDeepLink } from '@/lib/deep-links'
+import { initModuleRegistry } from '@/lib/modules'
 import '../global.css'
+
+initModuleRegistry()
 
 function NotificationInitializer({ children }: { children: ReactNode }) {
   useNotifications()

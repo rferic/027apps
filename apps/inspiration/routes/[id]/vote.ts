@@ -2,6 +2,8 @@ import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import type { HandlerContext } from '@/lib/apps/router-types'
+import { sendPushToUser } from '@/lib/push'
+import { NOTIFICATION_TYPES } from '@/lib/push'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
   if (req.method !== 'POST') {
@@ -66,6 +68,29 @@ export default async function handler(req: Request, ctx: HandlerContext) {
       }
     } else {
       voted = true
+
+      // Notify idea author about the vote (fire-and-forget)
+      const { data: idea } = await adminClient
+        .from('inspiration_requests')
+        .select('user_id, title')
+        .eq('id', requestId)
+        .maybeSingle()
+
+      if (idea && idea.user_id !== auth.userId) {
+        const { data: voter } = await adminClient
+          .from('profiles')
+          .select('display_name')
+          .eq('id', auth.userId)
+          .maybeSingle()
+
+        const voterName = (voter as { display_name?: string } | null)?.display_name ?? 'Someone'
+        sendPushToUser(idea.user_id, {
+          type: NOTIFICATION_TYPES.INSPIRATION_VOTE,
+          title: 'Your idea got a vote',
+          body: `${voterName} voted for "${idea.title}"`,
+          data: { requestId },
+        }).catch((err) => console.error('[Inspiration] Failed to send vote push:', err))
+      }
     }
   }
 

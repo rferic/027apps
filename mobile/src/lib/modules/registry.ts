@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import Constants from 'expo-constants'
 
 export interface MobileModule {
   slug: string
@@ -7,6 +8,7 @@ export interface MobileModule {
   icon?: string
   primaryColor?: string
   secondaryColor?: string
+  beta?: boolean
   View: ComponentType<Record<string, never>>
 }
 
@@ -17,13 +19,27 @@ export function registerModule(module: MobileModule): void {
 }
 
 export function getModule(slug: string): MobileModule | undefined {
-  return moduleRegistry.get(slug)
+  const mod = moduleRegistry.get(slug)
+  if (!mod) return undefined
+  if (isBetaVariant() && mod.beta) return mod
+  if (!isBetaVariant() && mod.beta) return undefined
+  return mod
 }
 
 export function getAllModules(): MobileModule[] {
-  return Array.from(moduleRegistry.values())
+  const beta = isBetaVariant()
+  return Array.from(moduleRegistry.values()).filter((m) => {
+    if (beta && m.beta) return true
+    if (!beta && m.beta) return false
+    return true
+  })
 }
 
 export function isModuleRegistered(slug: string): boolean {
-  return moduleRegistry.has(slug)
+  return getModule(slug) !== undefined
+}
+
+function isBetaVariant(): boolean {
+  const extra = Constants.expoConfig?.extra as Record<string, unknown> | undefined
+  return extra?.appVariant === 'beta'
 }
