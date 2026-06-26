@@ -1,0 +1,399 @@
+---
+title: Mobile Architecture
+description: Mobile app architecture — file structure, auth, API client, modules, themes, and i18n.
+---
+
+# Mobile Architecture
+
+This page covers the internal architecture of the 027Apps mobile application: how authentication flows work, how the API client is constructed, how modules are registered and composed, how theming and internationalization are wired, and how deep links and push notifications integrate.
+
+---
+
+## Auth Flow
+
+The authentication system uses Supabase Auth with a custom SecureStore adapter for session persistence on mobile devices.
+
+### Initialization
+
+When the app mounts, `RootLayout` (`app/_layout.tsx`) wraps the entire tree in `AuthProvider`. The provider:
+
+1. Calls `supabase.auth.getSession()` to restore any existing session from SecureStore.
+2. Subscribes to `onAuthStateChange` to react to sign-in, sign-out, and token refresh events.
+
+```tsx
+// src/lib/auth.tsx — AuthProvider
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setIsLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setIsLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // ... signIn, signUp, signOut, resetPassword, signInWithBiometrics
+}
+```
+
+### SecureStore Integration
+
+Supabase Auth's default storage (AsyncStorage) is replaced with a SecureStore adapter (`src/lib/supabase.ts`). This ensures that JWT tokens are stored in the platform's encrypted keychain (iOS Keychain / Android Keystore):
+
+```tsx
+// src/lib/supabase.ts — SecureStore adapter
+const secureStoreAdapter = {
+  getItem: async (key: string) => SecureStore.getItemAsync(key),
+  setItem: async (key: string, value: string) => SecureStore.setItemAsync(key, value),
+  removeItem: async (key: string) => SecureStore.deleteItemAsync(key),
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: secureStoreAdapter,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+})
+```
+
+### Token Sync
+
+When the auth state changes, tokens are also mirrored to a separate `token-store` that the API client reads:
+
+```tsx
+// src/lib/supabase.ts — onAuthStateChange listener
+supabase.auth.onAuthStateChange(async (_event, session) => {
+  if (session) {
+    await setTokens(session.access_token, session.refresh_token || '')
+  } else {
+    await clearTokens()
+  }
+  invalidateApiClient()
+})
+```
+
+### Biometric Unlock
+
+The app supports biometric authentication (Face ID / fingerprint) as an additional convenience. `signInWithBiometrics` checks for an existing stored session; if present, the user is authenticated without re-entering credentials:
+
+```tsx
+// src/lib/biometrics.ts
+export async function authenticateWithBiometrics(): Promise<boolean> {
+  const result = await LocalAuthentication.authenticateAsync({
+    promptMessage: 'Sign in to 027Apps',
+    fallbackLabel: 'Use passcode',
+  })
+  return result.success
+}
+```
+
+---
+
+## API Client (ts-rest)
+
+The mobile app uses `@ts-rest/core` to consume the 027Apps REST API. The contract is shared via the `@027apps/contracts` package, ensuring type-safe request and response handling across web and mobile.
+
+### Client Factory
+
+The API client is lazily initialized with the configured server URL and JWT token:
+
+```tsx
+// src/lib/api.ts
+export async function createApiClient() {
+  const baseUrl = (await getServerUrl()) || getDefaultUrl()
+  const token = await getAccessToken()
+
+  return initClient(apiContract, {
+    baseUrl,
+    baseHeaders: token
+      ? { Authorization: `Bearer ${token}` }
+      : {},
+  })
+}
+```
+
+The client is cached in memory and invalidated when:
+- Auth state changes (sign-in, sign-out, token refresh).
+- The server URL is modified in Settings.
+
+### Usage in Components
+
+Components fetch data through the client:
+
+```tsx
+import { getApiClient } from '@/lib/api'
+
+async function fetchTodos() {
+  const client = await getApiClient()
+  const response = await client.todo.list({ params: { groupSlug } })
+  if (response.status === 200) return response.body
+  throw new Error('Failed to fetch')
+}
+```
+
+---
+
+## Module System
+
+Each app is a self-contained workspace under `apps/` that provides a `native.tsx` file exporting the React Native view. The mobile shell imports these views and composes them into the navigation tree.
+
+### Module Registry
+
+The registry (`src/lib/modules/registry.ts`) provides a simple Map-based API:
+
+```tsx
+// src/lib/modules/registry.ts
+export interface MobileModule {
+  slug: string
+  name: string
+  description: string
+  icon?: string
+  primaryColor?: string
+  View: ComponentType<Record<string, never>>
+}
+
+export function registerModule(module: MobileModule): void
+export function getModule(slug: string): MobileModule | undefined
+export function getAllModules(): MobileModule[]
+```
+
+### App-provided native.tsx
+
+Each app exports a default component from `apps/<app>/native.tsx`. The component accepts typed props:
+
+```tsx
+// apps/inspiration/native.tsx — simplified interface
+export interface InspirationRequest {
+  id: string
+  title: string
+  type: RequestType
+  status: RequestStatus
+  vote_count: number
+  // ...
+}
+
+interface Props {
+  requests: InspirationRequest[]
+  onRefresh: () => void
+  onVote: (id: string) => void
+  onPressRequest: (id: string) => void
+  onFilterChange: (filters: Filters) => void
+  loading: boolean
+  refreshing: boolean
+  // ...
+}
+
+export default function InspirationNativeView(props: Props) {
+  // Pure UI: handles rendering, modals, filtering UI
+}
+```
+
+### Screen Composition
+
+The mobile app's screen (`app/(app)/modules/inspiration/index.tsx`) imports the native view, manages data fetching and state, and passes it as props:
+
+```tsx
+// app/(app)/modules/inspiration/index.tsx
+import InspirationNativeView from '../../../../../apps/inspiration/native'
+
+export default function InspirationListScreen() {
+  const [requests, setRequests] = useState<InspirationRequest[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Data fetching, vote handlers, filter logic...
+
+  return (
+    <InspirationNativeView
+      requests={requests}
+      loading={loading}
+      onRefresh={handleRefresh}
+      onVote={handleVote}
+      // ...
+    />
+  )
+}
+```
+
+This pattern keeps app UI logic inside each app's directory while the mobile shell owns data fetching, navigation, and platform integration.
+
+### Navigating to Modules
+
+The app layout provides a tab bar with three tabs: Dashboard, Apps, and Settings. The "Apps" tab renders the module stack navigator, which defines screens for each installed module:
+
+```tsx
+// app/(app)/modules/_layout.tsx
+<Stack>
+  <Stack.Screen name="todo/index" options={{ title: 'TODO' }} />
+  <Stack.Screen name="todo/[id]" options={{ title: 'TODO Detail' }} />
+  <Stack.Screen name="todo/create" options={{ title: 'New TODO', presentation: 'modal' }} />
+  <Stack.Screen name="inspiration/index" options={{ title: 'Inspiration' }} />
+  <Stack.Screen name="inspiration/[id]" options={{ title: 'Idea Detail' }} />
+  <Stack.Screen name="inspiration/create" options={{ title: 'New Idea', presentation: 'modal' }} />
+</Stack>
+```
+
+---
+
+## Theme System
+
+The theme provider (`src/lib/theme.tsx`) supports three modes: light, dark, and system. The preference is stored in SecureStore and survives app restarts.
+
+```tsx
+// src/lib/theme.tsx
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const systemColorScheme = useColorScheme()
+  const [theme, setThemeState] = useState<Theme>('system')
+
+  useEffect(() => {
+    SecureStore.getItemAsync(THEME_KEY).then((stored) => {
+      if (stored === 'light' || stored === 'dark' || stored === 'system') {
+        setThemeState(stored)
+      }
+    })
+  }, [])
+
+  const resolvedTheme = theme === 'system'
+    ? (systemColorScheme === 'dark' ? 'dark' : 'light')
+    : theme
+
+  return (
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, isDark }}>
+      <View className={isDark ? 'dark flex-1' : 'flex-1'}>
+        {children}
+      </View>
+    </ThemeContext.Provider>
+  )
+}
+```
+
+The root `View` toggles the `dark` class on the entire tree, enabling NativeWind's dark mode variant (`dark:bg-gray-950`, `dark:text-gray-100`, etc.).
+
+---
+
+## Internationalization (i18n)
+
+The mobile app shares the same i18n framework as the web platform: `i18next` with `react-i18next`, using the same translation keys from `@027apps/i18n`.
+
+### Language Detection
+
+At startup, the app detects the device language via `expo-localization`:
+
+```tsx
+// src/lib/i18n.ts
+function detectLanguage(): string {
+  const deviceLang = Localization.getLocales()[0]?.languageCode
+  if (deviceLang && SUPPORTED_LNGS.includes(deviceLang as SupportedLng)) {
+    return deviceLang
+  }
+  return 'en'
+}
+```
+
+### Supported Languages
+
+Six languages are supported: English, Spanish, Italian, Catalan, French, and German.
+
+### Language Switching
+
+Users can change the language in the Settings screen. The preference is persisted in SecureStore and applied immediately:
+
+```tsx
+export async function setStoredLanguage(lang: string): Promise<void> {
+  await SecureStore.setItemAsync(STORAGE_KEY, lang)
+  await i18n.changeLanguage(lang)
+}
+```
+
+### Translation Keys
+
+Translation keys are shared between web and mobile. Mobile-specific keys are defined in `src/i18n/missing-keys.ts` and merged at initialization.
+
+---
+
+## Deep Links
+
+The app handles custom URL scheme `027apps://` for password reset flows and direct navigation to app content:
+
+```tsx
+// src/lib/deep-links.ts
+export function parseDeepLink(url: string): {
+  route: string
+  params: Record<string, string>
+} | null {
+  const parsed = new URL(url)
+  const path = parsed.pathname.replace(/^\//, '')
+  const params: Record<string, string> = {}
+  parsed.searchParams.forEach((value, key) => { params[key] = value })
+  return { route: path, params }
+}
+```
+
+Supported URLs:
+- `027apps://reset-password?code=xxx` — password reset screen
+- `027apps://(app)/modules/inspiration/:id` — idea detail
+
+---
+
+## Push Notifications
+
+On sign-in, the app registers for push notifications and sends the Expo push token to the server:
+
+```tsx
+// src/lib/notifications.ts
+export async function getExpoPushToken(): Promise<string | null> {
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId
+  const token = await Notifications.getExpoPushTokenAsync({ projectId })
+  return token.data
+}
+
+export async function registerPushToken(token: string, apiBaseUrl: string): Promise<boolean> {
+  const accessToken = await getAccessToken()
+  if (!accessToken) return false
+
+  const res = await fetch(`${apiBaseUrl}/api/v1/mobile/push-token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ token, platform: Platform.OS }),
+  })
+  return res.status === 204
+}
+```
+
+---
+
+## Version Enforcement
+
+The app checks the server's minimum required version on startup. If the installed version is below the minimum, the user sees `UpdateRequiredScreen` with a download link:
+
+```tsx
+// src/lib/version-check.ts
+export async function checkAppVersion(): Promise<VersionInfo | null> {
+  const client = await getApiClient()
+  const response = await client.version.getVersion({})
+  if (response.status === 200) return response.body
+  return null
+}
+
+export function isUpdateRequired(current: string, min: string): boolean {
+  return compareVersions(current, min) < 0
+}
+```
+
+---
+
+## Error Handling
+
+A global error boundary (`src/components/ErrorBoundary.tsx`) catches rendering errors, displays a fallback UI, and logs the error. Individual screens handle API errors locally via try/catch blocks that show contextual error messages.

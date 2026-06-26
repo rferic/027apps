@@ -1,0 +1,397 @@
+---
+title: Module Guide
+description: How to add a new app module to the 027Apps mobile shell.
+---
+
+# Mobile Module Guide
+
+This guide walks through adding a new app module to the 027Apps mobile application. Each app lives in its own directory under `apps/` and provides a `native.tsx` file containing the React Native view.
+
+---
+
+## Overview
+
+The mobile module system follows a **screen-per-app** pattern: each installed app contributes one or more screens to the mobile shell. The shell handles authentication, navigation, and data fetching; the app's `native.tsx` handles the UI.
+
+### Architecture
+
+```
+apps/<app-slug>/
+├── native.tsx            # React Native view component (app-owned)
+└── manifest.json          # App metadata (web + mobile)
+
+mobile/
+├── app/(app)/modules/     # Screen wrappers (mobile-owned)
+│   └── <app-slug>/
+│       ├── index.tsx        # List screen
+│       ├── [id].tsx         # Detail screen
+│       └── create.tsx       # Create screen (modal)
+└── src/lib/modules/
+    └── registry.ts        # Module registration
+```
+
+The separation of concerns:
+- **`apps/<app-slug>/native.tsx`** — Pure UI component. Receives data and callbacks as props. No data fetching, no navigation logic.
+- **`mobile/app/(app)/modules/<app-slug>/`** — Screen wrappers. Handle data fetching, state management, and navigation. Import the native view and pass props.
+
+---
+
+## Step 1: Create the Native View
+
+Create `apps/<app-slug>/native.tsx` with a default export that accepts typed props:
+
+```tsx
+// apps/example/native.tsx
+import React from 'react'
+import {
+  View, Text, FlatList, TouchableOpacity, StyleSheet,
+  ActivityIndicator, RefreshControl,
+} from 'react-native'
+
+// ─── Types ─────────────────────────────────────────────────────
+export interface ExampleItem {
+  id: string
+  title: string
+  description: string
+  created_at: string
+}
+
+interface Props {
+  items: ExampleItem[]
+  loading: boolean
+  refreshing: boolean
+  onRefresh: () => void
+  onPressItem: (id: string) => void
+  onCreateItem: () => void
+  onLoadMore?: () => void
+  hasMore?: boolean
+}
+
+// ─── Component ─────────────────────────────────────────────────
+export default function ExampleNativeView({
+  items,
+  loading,
+  refreshing,
+  onRefresh,
+  onPressItem,
+  onCreateItem,
+  onLoadMore,
+  hasMore = false,
+}: Props) {
+  if (loading && items.length === 0) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#0EA5E9" />
+      </View>
+    )
+  }
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        onEndReached={hasMore ? onLoadMore : undefined}
+        onEndReachedThreshold={0.3}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>No items yet</Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => onPressItem(item.id)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardDesc} numberOfLines={2}>
+              {item.description}
+            </Text>
+          </TouchableOpacity>
+        )}
+      />
+    </View>
+  )
+}
+
+// ─── Styles ─────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  empty: { paddingVertical: 60, alignItems: 'center' },
+  emptyText: { fontSize: 14, color: '#94A3B8' },
+  card: {
+    backgroundColor: '#FFFFFF', borderRadius: 12,
+    marginHorizontal: 16, marginTop: 10, padding: 14,
+    borderWidth: 1, borderColor: '#F1F5F9',
+  },
+  cardTitle: { fontSize: 15, fontWeight: '600', color: '#0F172A', marginBottom: 4 },
+  cardDesc: { fontSize: 13, color: '#64748B' },
+})
+```
+
+Key principles for native views:
+- Accept all data and callbacks as **props** — no side effects.
+- Use `StyleSheet.create` for styles (consistent with the existing apps).
+- Export types needed by the consumer (item interfaces, filter types).
+- Keep the component self-contained and renderable in isolation.
+
+---
+
+## Step 2: Create Screen Wrappers
+
+Under `mobile/app/(app)/modules/<app-slug>/`, create the screen files.
+
+### List Screen (`index.tsx`)
+
+This is the main screen. It imports the native view, handles data fetching, and passes data as props:
+
+```tsx
+// mobile/app/(app)/modules/example/index.tsx
+import { useState, useCallback, useEffect } from 'react'
+import { useRouter } from 'expo-router'
+import { getApiClient } from '@/lib/api'
+import ExampleNativeView, { type ExampleItem } from '../../../../../apps/example/native'
+
+export default function ExampleListScreen() {
+  const router = useRouter()
+  const [items, setItems] = useState<ExampleItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const fetchItems = useCallback(async () => {
+    const client = await getApiClient()
+    const response = await client.example.list({ params: { groupSlug } })
+    if (response.status === 200) setItems(response.body)
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchItems() }, [fetchItems])
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await fetchItems()
+    setRefreshing(false)
+  }, [fetchItems])
+
+  const handlePressItem = useCallback((id: string) => {
+    router.push(`/(app)/modules/example/${id}`)
+  }, [router])
+
+  const handleCreateItem = useCallback(() => {
+    router.push('/(app)/modules/example/create')
+  }, [router])
+
+  return (
+    <ExampleNativeView
+      items={items}
+      loading={loading}
+      refreshing={refreshing}
+      onRefresh={handleRefresh}
+      onPressItem={handlePressItem}
+      onCreateItem={handleCreateItem}
+    />
+  )
+}
+```
+
+### Detail Screen (`[id].tsx`)
+
+Uses `useLocalSearchParams` from expo-router to get the `id`:
+
+```tsx
+// mobile/app/(app)/modules/example/[id].tsx
+import { useLocalSearchParams } from 'expo-router'
+import { View, Text, ScrollView } from 'react-native'
+import { useEffect, useState } from 'react'
+import { getApiClient } from '@/lib/api'
+import { type ExampleItem } from '../../../../../apps/example/native'
+
+export default function ExampleDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>()
+  const [item, setItem] = useState<ExampleItem | null>(null)
+
+  useEffect(() => {
+    getApiClient().then(async (client) => {
+      const response = await client.example.get({ params: { id: id!, groupSlug } })
+      if (response.status === 200) setItem(response.body)
+    })
+  }, [id])
+
+  if (!item) return null
+
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: '#fff', padding: 16 }}>
+      <Text style={{ fontSize: 20, fontWeight: '700' }}>{item.title}</Text>
+      <Text style={{ fontSize: 15, color: '#475569', marginTop: 8 }}>{item.description}</Text>
+    </ScrollView>
+  )
+}
+```
+
+### Create Screen (`create.tsx`)
+
+Marked as `presentation: 'modal'` in the layout:
+
+```tsx
+// mobile/app/(app)/modules/example/create.tsx
+import { useState } from 'react'
+import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native'
+import { useRouter } from 'expo-router'
+import { getApiClient } from '@/lib/api'
+
+export default function ExampleCreateScreen() {
+  const router = useRouter()
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const handleCreate = async () => {
+    if (!title.trim()) return
+    setSaving(true)
+    const client = await getApiClient()
+    const response = await client.example.create({
+      body: { title: title.trim(), description: description.trim() },
+      params: { groupSlug },
+    })
+    setSaving(false)
+    if (response.status === 201) router.back()
+    else Alert.alert('Error', 'Failed to create item')
+  }
+
+  return (
+    <View style={{ flex: 1, padding: 16, backgroundColor: '#F8FAFC' }}>
+      <TextInput
+        placeholder="Title"
+        value={title}
+        onChangeText={setTitle}
+        style={inputStyle}
+      />
+      <TextInput
+        placeholder="Description"
+        value={description}
+        onChangeText={setDescription}
+        multiline
+        style={[inputStyle, { minHeight: 100 }]}
+      />
+      <TouchableOpacity
+        onPress={handleCreate}
+        disabled={!title.trim() || saving}
+        style={buttonStyle}
+      >
+        <Text style={{ color: '#fff', fontWeight: '600' }}>Create</Text>
+      </TouchableOpacity>
+    </View>
+  )
+}
+
+const inputStyle = {
+  borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10,
+  paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
+  backgroundColor: '#fff', marginBottom: 12, color: '#0F172A',
+}
+
+const buttonStyle = {
+  backgroundColor: '#0EA5E9', borderRadius: 10,
+  paddingVertical: 12, alignItems: 'center' as const,
+}
+```
+
+---
+
+## Step 3: Register Routes in the Module Layout
+
+Update `mobile/app/(app)/modules/_layout.tsx` to add the new screens:
+
+```tsx
+// mobile/app/(app)/modules/_layout.tsx
+import { Stack } from 'expo-router'
+
+export default function ModulesLayout() {
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: '#9B1C1C' },
+        headerTintColor: '#fff',
+      }}
+    >
+      {/* Existing modules */}
+      <Stack.Screen name="todo/index" options={{ title: 'TODO' }} />
+      <Stack.Screen name="todo/[id]" options={{ title: 'TODO Detail' }} />
+      <Stack.Screen name="todo/create" options={{ title: 'New TODO', presentation: 'modal' }} />
+      <Stack.Screen name="inspiration/index" options={{ title: 'Inspiration' }} />
+      <Stack.Screen name="inspiration/[id]" options={{ title: 'Idea Detail' }} />
+      <Stack.Screen name="inspiration/create" options={{ title: 'New Idea', presentation: 'modal' }} />
+
+      {/* New module */}
+      <Stack.Screen name="example/index" options={{ title: 'Example' }} />
+      <Stack.Screen name="example/[id]" options={{ title: 'Example Detail' }} />
+      <Stack.Screen name="example/create" options={{ title: 'New Example', presentation: 'modal' }} />
+    </Stack>
+  )
+}
+```
+
+---
+
+## Step 4: Add the Module Card to Dashboard
+
+Update `mobile/app/(app)/dashboard.tsx` to include the new module in the `MODULES` array:
+
+```tsx
+const MODULES = [
+  { slug: 'todo', name: 'TODO', description: 'Task management', color: '#0EA5E9', icon: '✅' },
+  { slug: 'inspiration', name: 'Inspiration', description: 'Capture and vote on ideas', color: '#8B5CF6', icon: '💡' },
+  { slug: 'example', name: 'Example', description: 'Example app module', color: '#10B981', icon: '📋' },
+]
+```
+
+---
+
+## Step 5: Register in the Module Registry (Optional)
+
+If you need runtime module discovery, register it via the `MobileModule` registry:
+
+```tsx
+// In your app's entry point or initialization file
+import { registerModule } from '@/lib/modules/registry'
+import ExampleNativeView from '../../../../apps/example/native'
+
+registerModule({
+  slug: 'example',
+  name: 'Example',
+  description: 'Example app module',
+  icon: '📋',
+  primaryColor: '#10B981',
+  View: ExampleNativeView,
+})
+```
+
+---
+
+## File Checklist
+
+When adding a new module, create or modify these files:
+
+| File | Action |
+|---|---|
+| `apps/<slug>/native.tsx` | Create — native view component |
+| `mobile/app/(app)/modules/<slug>/index.tsx` | Create — list screen wrapper |
+| `mobile/app/(app)/modules/<slug>/[id].tsx` | Create — detail screen wrapper |
+| `mobile/app/(app)/modules/<slug>/create.tsx` | Create — create modal wrapper |
+| `mobile/app/(app)/modules/_layout.tsx` | Modify — add Stack.Screen entries |
+| `mobile/app/(app)/dashboard.tsx` | Modify — add to MODULES array |
+
+---
+
+## Conventions
+
+- **Props-driven UI:** The native view in `apps/<slug>/native.tsx` must be a pure component — no data fetching, no navigation calls.
+- **Data fetching in wrappers:** Screen files in `mobile/app/(app)/modules/<slug>/` own data fetching, state, and navigation logic.
+- **Modal presentation:** Create screens use `presentation: 'modal'` for a bottom-sheet modal experience.
+- **Type sharing:** Export types (item interfaces, filter types) from `native.tsx` so screens can use them.
+- **StyleSheet vs NativeWind:** Existing modules use `StyleSheet.create`. New modules may use NativeWind (`className`) for consistency with the rest of the mobile shell.

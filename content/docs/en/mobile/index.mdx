@@ -1,0 +1,134 @@
+---
+title: Mobile App
+description: 027Apps mobile application — Expo SDK 56, React Native, and NativeWind.
+---
+
+# 027Apps Mobile
+
+The 027Apps mobile application brings the platform to iOS and Android devices. It provides native authentication, dashboard access, per-app native screens, push notifications, biometric sign-in, and customizable server connections — all while sharing the same ts-rest API contract and i18n translations as the web platform.
+
+---
+
+## Architecture at a Glance
+
+| Layer | Technology |
+|---|---|
+| Runtime | Expo SDK 56 + React Native 0.85 |
+| Routing | expo-router (file-based) |
+| Styling | NativeWind v4 (Tailwind CSS for React Native) |
+| API Client | ts-rest (`@027apps/contracts`) with JWT Bearer auth |
+| Auth | Supabase Auth + SecureStore session persistence |
+| i18n | i18next + react-i18next (6 languages) |
+| State | React Context (auth, theme) |
+| Testing | Vitest + React Native Testing Library |
+
+---
+
+## Key Features
+
+**Authentication** — Email/password sign-in via Supabase Auth, session persistence in SecureStore, biometric unlock fallback, and deep link handling for password reset flows.
+
+**Server URL** — The mobile app connects to any 027Apps server. Users configure the API base URL in Settings, stored in SecureStore. The default is `https://027apps.com`, but self-hosted instances are fully supported.
+
+**Module System** — Each app (To-Do, Inspiration, etc.) provides a `native.tsx` file that defines the React Native screen. The mobile app imports these views through its module registry, keeping app logic within each app's directory while the mobile shell handles navigation and composition.
+
+**Push Notifications** — Expo push tokens are registered with the server on sign-in. Notifications are delivered via Expo's push service, with channel configuration for Android importance levels.
+
+**Theme Support** — Light/dark/system mode selection persisted to SecureStore, rendering via NativeWind's dark mode class toggling.
+
+**Offline Banner** — Network state monitoring via `expo-network` displays a non-blocking banner when connectivity is lost.
+
+---
+
+## Project Layout
+
+```
+mobile/
+├── app/                        # expo-router file-based routes
+│   ├── _layout.tsx             # Root layout (providers, deep links)
+│   ├── index.tsx               # Auth check / redirect screen
+│   ├── welcome.tsx             # Onboarding welcome screen
+│   ├── login.tsx               # Email/password login
+│   ├── register.tsx            # Registration screen
+│   ├── reset-password.tsx      # Password reset (deep link target)
+│   └── (app)/                  # Authenticated tab group
+│       ├── _layout.tsx         # Tab bar (Dashboard, Apps, Settings)
+│       ├── dashboard.tsx       # Module cards + welcome header
+│       ├── modules/            # Per-app screens
+│       │   ├── _layout.tsx     # Stack navigator for app screens
+│       │   ├── todo/           # To-Do list, detail, create
+│       │   └── inspiration/    # Ideas list, detail, create
+│       └── settings.tsx        # Server URL, language, notifications, sign out
+├── src/
+│   ├── lib/
+│   │   ├── api.ts              # ts-rest client factory
+│   │   ├── auth.tsx            # AuthProvider (React Context)
+│   │   ├── supabase.ts         # Supabase client (SecureStore adapter)
+│   │   ├── token-store.ts      # JWT access/refresh token persistence
+│   │   ├── server-url.ts       # Server URL storage
+│   │   ├── group-store.ts      # Active group slug storage
+│   │   ├── theme.tsx           # ThemeProvider (light/dark/system)
+│   │   ├── i18n.ts             # i18next init (6 languages)
+│   │   ├── notifications.ts    # Push token registration
+│   │   ├── biometrics.ts       # Local authentication
+│   │   ├── deep-links.ts       # URL scheme parsing
+│   │   ├── version-check.ts    # Min version enforcement
+│   │   ├── error-handler.ts    # Global error boundary logic
+│   │   └── modules/
+│   │       └── registry.ts     # Module registration API
+│   ├── components/             # Shared UI components
+│   ├── hooks/                  # Custom hooks (useAuth, useTranslation, useNotifications)
+│   └── i18n/                   # Translations shared with web platform
+├── tests/                      # Vitest unit + component tests
+├── app.json                    # Expo config (schemes, plugins, updates)
+├── eas.json                    # EAS Build profiles
+├── metro.config.js             # Metro bundler config
+├── tailwind.config.js          # NativeWind v4 config
+└── vitest.config.ts            # Test runner config
+```
+
+---
+
+## Quick Start
+
+```bash
+# Install dependencies from monorepo root
+pnpm install
+
+# Start Expo dev server
+cd mobile && npx expo start
+
+# Run on Android emulator
+cd mobile && npx expo start --android
+
+# Run on iOS simulator
+cd mobile && npx expo start --ios
+
+# Run type check
+cd mobile && npx tsc --noEmit
+
+# Run tests
+cd mobile && npx vitest run
+```
+
+---
+
+## Related Pages
+
+<Cards>
+  <Card
+    title="Architecture"
+    href="/doc/mobile/architecture"
+    description="Deep dive into auth flow, API client, module system, theming, and i18n."
+  />
+  <Card
+    title="Module Guide"
+    href="/doc/mobile/module-guide"
+    description="Step-by-step guide for adding a new app module to the mobile shell."
+  />
+  <Card
+    title="Distribution"
+    href="/doc/mobile/distribution"
+    description="EAS Build, OTA updates, version constraints, and self-hosting."
+  />
+</Cards>

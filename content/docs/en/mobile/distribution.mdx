@@ -1,0 +1,265 @@
+---
+title: Distribution
+description: Mobile app build, version management, EAS Update, and distribution workflows.
+---
+
+# Distribution
+
+The 027Apps mobile app uses Expo Application Services (EAS) for building, updating, and distributing the application to users.
+
+---
+
+## Build Profiles
+
+Three build profiles are defined in `eas.json`, each serving a different purpose:
+
+| Profile | Dev Client | Distribution | Build Type | Purpose |
+|---|---|---|---|---|
+| `development` | Yes | Internal | APK | Local development with expo-dev-client |
+| `preview` | No | Internal | APK | Internal testing via EAS distribution link |
+| `production` | No | — | APK | Release builds for production distribution |
+
+### eas.json
+
+```json
+{
+  "cli": {
+    "version": ">= 13.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": { "buildType": "apk" }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" }
+    },
+    "production": {
+      "android": { "buildType": "apk" }
+    }
+  }
+}
+```
+
+### Running Builds
+
+```bash
+# Preview build (internal distribution link)
+cd mobile
+eas build --platform android --profile preview
+
+# Production build
+cd mobile
+eas build --platform android --profile production
+
+# iOS build (preview)
+cd mobile
+eas build --platform ios --profile preview
+```
+
+---
+
+## Version Management
+
+The app version is defined in `app.json` under `expo.version`:
+
+```json
+{
+  "expo": {
+    "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  }
+}
+```
+
+The runtime version policy is set to `appVersion`, meaning each new version requires a new build.
+
+### Version Constraints
+
+The app enforces a minimum version via the server API. On startup, the app calls `GET /api/v1/version` and compares the server's `min_version` against the installed version:
+
+```tsx
+// src/lib/version-check.ts
+export function isUpdateRequired(current: string, min: string): boolean {
+  return compareVersions(current, min) < 0
+}
+
+export function isUpdateAvailable(current: string, latest: string): boolean {
+  return compareVersions(current, latest) < 0
+}
+```
+
+If the minimum version is not met, `UpdateRequiredScreen` blocks the UI and presents a download link.
+
+### Server Response Format
+
+```json
+{
+  "latest_version": "1.2.0",
+  "min_version": "1.0.0",
+  "download_url": "https://027apps.com/download",
+  "release_notes": "- New dashboard\n- Bug fixes"
+}
+```
+
+**Bumping versions workflow:**
+1. Update `expo.version` in `app.json`.
+2. Run `eas build --profile production` to create the new APK.
+3. Update the server's version endpoint to reflect the new `latest_version` (and `min_version` if the old one is no longer supported).
+
+---
+
+## EAS Update (OTA)
+
+Over-the-Air updates allow pushing JavaScript/asset changes without requiring a new native build. Updates are configured in `app.json`:
+
+```json
+{
+  "expo": {
+    "updates": {
+      "url": "https://u.expo.dev/REPLACE_WITH_PROJECT_ID"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  }
+}
+```
+
+Replace `REPLACE_WITH_PROJECT_ID` with the actual Expo project ID after running `eas init`.
+
+### Publishing Updates
+
+Updates are published via GitHub Actions (`mobile-ota.yml`) which triggers on push to `main` with changes in `mobile/`:
+
+```yaml
+# mobile-ota.yml — simplified
+on:
+  push:
+    branches: [main]
+    paths: [mobile/**]
+
+jobs:
+  ota-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd mobile && npx tsc --noEmit
+      - run: cd mobile && npx eas update --channel production --message "${{ github.event.head_commit.message }}"
+```
+
+### Manual OTA
+
+```bash
+cd mobile
+
+# Publish to production channel
+npx eas update --channel production --message "Fix: login screen layout"
+
+# Publish to preview channel
+npx eas update --channel preview --message "Preview: new module"
+```
+
+### Channel Strategy
+
+- `production` — Stable updates for released versions.
+- `preview` — Internal testing updates.
+- EAS Update channels are independent of app version; use `runtimeVersion.policy = 'appVersion'` to prevent incompatible updates.
+
+---
+
+## CI/CD Pipelines
+
+Three GitHub Actions workflows manage the mobile CI/CD:
+
+| Workflow | Trigger | Actions |
+|---|---|---|
+| `mobile-ci.yml` | PR affecting `mobile/` | Type check only |
+| `mobile-ota.yml` | Push to `main` with `mobile/` changes | Type check + OTA update |
+| `mobile-build.yml` | Manual `workflow_dispatch` | EAS native build (APK) |
+
+### Native Build Workflow
+
+The `mobile-build.yml` workflow requires:
+- `version`: The app version to use in the build.
+- `profile`: The EAS build profile (`preview` or `production`).
+
+### Required Secrets
+
+- `EXPO_TOKEN` — Expo personal access token (generated at https://expo.dev/settings/access-tokens).
+
+---
+
+## Self-Hosting
+
+The mobile app is designed to work with self-hosted 027Apps servers. Users configure the server URL in the Settings screen:
+
+1. Navigate to Settings > Server.
+2. Tap the current URL to enter edit mode.
+3. Enter the self-hosted server URL (e.g., `https://myinstance.example.com`).
+4. Tap Save.
+
+The URL is stored in SecureStore and used by the API client for all requests. The app ships with `https://027apps.com` as the default.
+
+### Server Requirements for Mobile
+
+A self-hosted server must expose:
+- The REST API under `/api/v1/`.
+- The mobile version endpoint at `GET /api/v1/version`.
+- The push token endpoint at `POST /api/v1/mobile/push-token`.
+
+---
+
+## App Configuration (`app.json`)
+
+Key Expo configuration used by the mobile app:
+
+```json
+{
+  "expo": {
+    "scheme": "027apps",
+    "ios": {
+      "bundleIdentifier": "com.rferic.apps027",
+      "associatedDomains": ["applinks:027apps.com"]
+    },
+    "android": {
+      "package": "com.rferic.apps027",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [{ "scheme": "027apps", "host": "*", "pathPrefix": "/" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-local-authentication",
+      "expo-localization",
+      "expo-notifications",
+      "expo-updates"
+    ]
+  }
+}
+```
+
+---
+
+## Environment Variables
+
+The mobile app uses Expo's environment variable convention (`EXPO_PUBLIC_*`):
+
+| Variable | Purpose |
+|---|---|
+| `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key |
+| `EXPO_PUBLIC_API_URL` | Server API base URL (used by `apps/todo/native.tsx`) |
+
+These are set in `.env.local` (local development) and in EAS secrets (build-time).
