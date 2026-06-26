@@ -39,6 +39,14 @@ yarn-error.log*
 # supabase
 supabase/.temp/
 
+# expo / eas
+.eas-build/
+mobile/*.jks
+mobile/*.p8
+mobile/*.p12
+mobile/*.key
+mobile/*.mobileprovision
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
