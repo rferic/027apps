@@ -98,37 +98,37 @@ export function ApiKeysManager({ initialKeys }: Props) {
     <>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-gray-700">{t('title')}</h2>
+        <h2 className="text-sm font-semibold text-foreground">{t('title')}</h2>
         <button
           type="button"
           onClick={openCreateModal}
-          className="cursor-pointer px-3.5 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 text-white rounded-lg transition-colors"
+          className="cursor-pointer px-3.5 py-2 text-sm font-medium bg-foreground hover:bg-foreground text-white rounded-lg transition-colors"
         >
           {t('new_key')}
         </button>
       </div>
 
       {/* Keys list */}
-      <div className="bg-white rounded-xl border border-slate-100">
+      <div className="bg-card rounded-xl border border-border">
         {keys.length === 0 ? (
-          <div className="p-10 text-center text-sm text-gray-400">{t('no_keys')}</div>
+          <div className="p-10 text-center text-sm text-muted-foreground">{t('no_keys')}</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <tr className="border-b border-border">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {t('key_name_label')}
                 </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {t('prefix_label')}
                 </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">
                   Scope
                 </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">
                   {t('created_at_label')}
                 </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">
                   {t('last_used_label')}
                 </th>
                 <th className="px-5 py-3" />
@@ -138,16 +138,16 @@ export function ApiKeysManager({ initialKeys }: Props) {
               {keys.map((key) => (
                 <tr key={key.id} className="border-b border-slate-50 last:border-0">
                   <td className="px-5 py-3 font-medium text-gray-900">{key.name}</td>
-                  <td className="px-5 py-3 font-mono text-gray-500 text-xs">{key.keyPrefix}…</td>
+                  <td className="px-5 py-3 font-mono text-muted-foreground text-xs">{key.keyPrefix}…</td>
                   <td className="px-5 py-3 hidden sm:table-cell">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
                       {key.scope === 'group' ? t('scope_group') : t('scope_user')}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-gray-500 hidden md:table-cell">
+                  <td className="px-5 py-3 text-muted-foreground hidden md:table-cell">
                     {key.createdAt ? format.dateTime(new Date(key.createdAt), { year: 'numeric', month: 'short', day: 'numeric' }) : t('never')}
                   </td>
-                  <td className="px-5 py-3 text-gray-500 hidden lg:table-cell">
+                  <td className="px-5 py-3 text-muted-foreground hidden lg:table-cell">
                     {key.lastUsedAt ? format.dateTime(new Date(key.lastUsedAt), { year: 'numeric', month: 'short', day: 'numeric' }) : t('never')}
                   </td>
                   <td className="px-5 py-3 text-right">
@@ -174,10 +174,10 @@ export function ApiKeysManager({ initialKeys }: Props) {
             onClick={closeCreateModal}
             aria-hidden="true"
           />
-          <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-md mx-4">
+          <div className="relative z-10 bg-card rounded-xl border border-border shadow-xl p-6 w-full max-w-md mx-4">
             {createdKey ? (
               <>
-                <h3 className="text-base font-semibold text-gray-900 mb-1">{t('created_title')}</h3>
+                <h3 className="text-base font-semibold text-foreground mb-1">{t('created_title')}</h3>
                 <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
                   {t('created_warning')}
                 </p>
@@ -186,12 +186,12 @@ export function ApiKeysManager({ initialKeys }: Props) {
                     type="text"
                     readOnly
                     value={createdKey.rawKey}
-                    className="flex-1 font-mono text-xs border border-slate-200 rounded-lg px-3 py-2 bg-gray-50 text-gray-800 select-all"
+                    className="flex-1 font-mono text-xs border border-border rounded-lg px-3 py-2 bg-muted text-foreground select-all"
                   />
                   <button
                     type="button"
                     onClick={handleCopy}
-                    className="cursor-pointer px-3 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 text-white rounded-lg transition-colors whitespace-nowrap"
+                    className="cursor-pointer px-3 py-2 text-sm font-medium bg-foreground hover:bg-foreground text-white rounded-lg transition-colors whitespace-nowrap"
                   >
                     {copied ? '✓' : t('copy_button')}
                   </button>
@@ -199,15 +199,15 @@ export function ApiKeysManager({ initialKeys }: Props) {
                 <button
                   type="button"
                   onClick={handleDone}
-                  className="cursor-pointer w-full py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 text-white rounded-lg transition-colors"
+                  className="cursor-pointer w-full py-2 text-sm font-medium bg-foreground hover:bg-foreground text-white rounded-lg transition-colors"
                 >
                   {t('done_button')}
                 </button>
               </>
             ) : (
               <>
-                <h3 className="text-base font-semibold text-gray-900 mb-4">{t('create_modal_title')}</h3>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
+                <h3 className="text-base font-semibold text-foreground mb-4">{t('create_modal_title')}</h3>
+                <label className="block mb-1 text-sm font-medium text-foreground">
                   {t('key_name_label')}
                 </label>
                 <input
@@ -215,7 +215,7 @@ export function ApiKeysManager({ initialKeys }: Props) {
                   value={keyName}
                   onChange={(e) => setKeyName(e.target.value)}
                   placeholder={t('key_name_placeholder')}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 mb-4 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder-muted-foreground mb-4 focus:outline-none focus:ring-2 focus:ring-slate-300"
                   onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
                   autoFocus
                 />
@@ -226,7 +226,7 @@ export function ApiKeysManager({ initialKeys }: Props) {
                   <button
                     type="button"
                     onClick={closeCreateModal}
-                    className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                    className="cursor-pointer px-4 py-2 text-sm font-medium text-foreground hover:text-foreground transition-colors"
                   >
                     {t('cancel_button')}
                   </button>
@@ -234,7 +234,7 @@ export function ApiKeysManager({ initialKeys }: Props) {
                     type="button"
                     onClick={handleCreate}
                     disabled={isCreating || !keyName.trim()}
-                    className="cursor-pointer px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                    className="cursor-pointer px-4 py-2 text-sm font-medium bg-foreground hover:bg-foreground disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                   >
                     {isCreating ? '…' : t('create_button')}
                   </button>
@@ -253,9 +253,9 @@ export function ApiKeysManager({ initialKeys }: Props) {
             onClick={closeRevokeModal}
             aria-hidden="true"
           />
-          <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-sm mx-4">
-            <h3 className="text-base font-semibold text-gray-900 mb-2">{t('revoke_confirm_title')}</h3>
-            <p className="text-sm text-gray-500 mb-5">{t('revoke_confirm_message')}</p>
+          <div className="relative z-10 bg-card rounded-xl border border-border shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-base font-semibold text-foreground mb-2">{t('revoke_confirm_title')}</h3>
+            <p className="text-sm text-muted-foreground mb-5">{t('revoke_confirm_message')}</p>
             {revokeError && (
               <p className="text-sm text-red-600 mb-3">{revokeError}</p>
             )}
@@ -263,7 +263,7 @@ export function ApiKeysManager({ initialKeys }: Props) {
               <button
                 type="button"
                 onClick={closeRevokeModal}
-                className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                className="cursor-pointer px-4 py-2 text-sm font-medium text-foreground hover:text-foreground transition-colors"
               >
                 {t('cancel_button')}
               </button>

@@ -52,13 +52,13 @@ function SortableApp({ app }: { app: AppItem }) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 ${
+      className={`flex items-center gap-3 p-3 bg-card rounded-lg border border-border ${
         isDragging ? 'shadow-lg z-50 ring-2 ring-rose-200 border-rose-300' : ''
       }`}
     >
       <button
         type="button"
-        className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 touch-none"
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-muted-foreground transition-colors flex-shrink-0 touch-none"
         style={{ touchAction: 'none' }}
         {...attributes}
         {...listeners}
@@ -84,7 +84,7 @@ function SortableApp({ app }: { app: AppItem }) {
       >
         {app.name.slice(0, 2).toUpperCase()}
       </div>
-      <span className="text-sm font-medium text-slate-700">{app.name}</span>
+      <span className="text-sm font-medium text-foreground">{app.name}</span>
     </div>
   )
 }
@@ -138,8 +138,8 @@ export function AppsOrderManager({ initialApps }: Props) {
 
   if (apps.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-100 p-10 text-center">
-        <p className="text-sm text-slate-400">{t('empty')}</p>
+      <div className="bg-card rounded-xl border border-border p-10 text-center">
+        <p className="text-sm text-muted-foreground">{t('empty')}</p>
       </div>
     )
   }
@@ -148,8 +148,8 @@ export function AppsOrderManager({ initialApps }: Props) {
     <div>
       {saving && (
         <div className="flex items-center justify-end gap-2 mb-3">
-          <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-          <span className="text-xs text-slate-400">{t('saving')}</span>
+          <div className="w-3.5 h-3.5 border-2 border-border border-t-border rounded-full animate-spin" />
+          <span className="text-xs text-muted-foreground">{t('saving')}</span>
         </div>
       )}
       <DndContext

@@ -29,7 +29,7 @@ export function GroupsTable({ groups, locale }: Props) {
     return (
       <div className="bg-white rounded-xl border border-slate-100 p-12 text-center">
         <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <p className="text-sm text-gray-500">{t('groups.empty')}</p>
+        <p className="text-sm text-muted-foreground">{t('groups.empty')}</p>
       </div>
     )
   }
@@ -39,7 +39,7 @@ export function GroupsTable({ groups, locale }: Props) {
       <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-slate-100">
+            <tr className="border-b border-border">
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('groups.table_name')}</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('groups.table_slug')}</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('groups.table_members')}</th>
@@ -61,9 +61,9 @@ export function GroupsTable({ groups, locale }: Props) {
                   </button>
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-500 font-mono">{group.slug}</td>
-                <td className="px-4 py-3 text-sm text-slate-500">{group.memberCount}</td>
-                <td className="px-4 py-3 text-sm text-slate-500">{group.appCount}</td>
-                <td className="px-4 py-3 text-sm text-slate-400">
+                <td className="px-4 py-3 text-sm text-muted-foreground">{group.memberCount}</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">{group.appCount}</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   {new Date(group.created_at).toLocaleDateString(locale)}
                 </td>
                 <td className="px-4 py-3">

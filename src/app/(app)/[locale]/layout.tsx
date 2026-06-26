@@ -8,6 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { AppHeader } from '@/components/app-header'
 import { AppSubNav } from '@/components/app-sub-nav'
 import { AppFooter } from '@/components/app-footer'
+import { GroupCookieSync } from '@/components/group-cookie-sync'
 import { BlockedOverlay } from '@/components/blocked-overlay'
 import { Toaster } from '@/components/ui/sonner'
 import { AppShell, type NavItem } from '@/components/app-shell'
@@ -131,6 +132,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <NextIntlClientProvider messages={messages}>
       <ThemeProvider>
+        <GroupCookieSync slug={currentGroupSlug} />
         <Toaster position="bottom-right" />
         <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}>
         {user && (

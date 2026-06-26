@@ -24,7 +24,7 @@ export function RoleChangeButton({ userId, currentRole, currentUserId }: Props) 
       onClick={() => startTransition(async () => { await changeRoleAction(userId, newRole) })}
       className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md border transition-colors disabled:opacity-50 cursor-pointer ${
         newRole === 'admin'
-          ? 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'
+          ? 'border-border bg-muted text-foreground hover:bg-accent'
           : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
       }`}
     >

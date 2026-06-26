@@ -493,3 +493,21 @@ pnpm build-storybook    # Build estático en storybook-static/
 4. Verificar: `pnpm build-storybook` + `pnpm build`
 5. Si es un compuesto de negocio, usa `src/components/composite/`
 <!-- END:design-system -->
+
+<!-- BEGIN:filter-icon-convention -->
+# Convención de icono de filtros
+
+TODOS los botones de filtro en cualquier app DEBEN usar el icono `Filter` de lucide-react (el embudo).
+
+```tsx
+import { Filter } from 'lucide-react'
+
+<button className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg bg-card ...">
+  <Filter size={14} /> {t('filter_label')}
+  {activeFilters > 0 && <span className="badge">{count}</span>}
+</button>
+```
+
+**NO usar:** `SlidersHorizontal`, ni SVG inline del icono de sliders.
+**NO usar:** selects inline para filtros — usar botón + modal bottom sheet.
+<!-- END:filter-icon-convention -->

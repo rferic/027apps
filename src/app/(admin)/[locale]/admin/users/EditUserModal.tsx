@@ -19,7 +19,7 @@ export function EditUserModal({ user, availableLocales, onClose }: Props) {
       />
       <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Edit User</h2>
+          <h2 className="text-lg font-semibold text-foreground">Edit User</h2>
           <button
             type="button"
             onClick={onClose}

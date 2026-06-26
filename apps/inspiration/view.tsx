@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import {
   Lightbulb, Search, Bug, Sparkles, AppWindow, Puzzle, MoreHorizontal,
   Heart, MessageSquare, Plus, X, Loader2, ChevronDown, ChevronUp,
-  CheckCircle2, Flame, Clock, User, SlidersHorizontal, ExternalLink,
+  CheckCircle2, Flame, Clock, User, Filter, ExternalLink,
 } from 'lucide-react'
 import { useAppContext } from '@/lib/apps/context'
 import { createClient } from '@/lib/supabase/client'
@@ -908,7 +908,7 @@ export default function InspirationView() {
               onClick={() => setShowMobileFilters(true)}
               className="sm:hidden inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg text-foreground hover:bg-accent cursor-pointer transition-colors"
             >
-              <SlidersHorizontal size={16} />
+              <Filter size={16} />
               {t('filters.title')}
             </button>
           </div>

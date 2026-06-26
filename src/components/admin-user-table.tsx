@@ -49,7 +49,7 @@ export function AdminUserTable({ users, currentUserId, locale, availableLocales,
 
   if (users.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400 text-sm">
+      <div className="text-center py-12 text-muted-foreground text-sm">
         {t('noUsers')}
       </div>
     )
@@ -60,22 +60,22 @@ export function AdminUserTable({ users, currentUserId, locale, availableLocales,
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-100 bg-gray-50">
-            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               {t('user')}
             </th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden md:table-cell">
               {t('email')}
             </th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               {t('role')}
             </th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">
               {t('locale')}
             </th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               {t('groups')}
             </th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">
               {t('lastLogin')}
             </th>
             <th className="px-4 py-3" />
@@ -83,7 +83,7 @@ export function AdminUserTable({ users, currentUserId, locale, availableLocales,
         </thead>
         <tbody className="divide-y divide-gray-50">
           {users.map((user) => (
-            <tr key={user.id} className={`bg-white hover:bg-gray-50 transition-colors ${user.isBlocked ? 'opacity-60' : ''}`}>
+            <tr key={user.id} className={`bg-card hover:bg-muted transition-colors ${user.isBlocked ? 'opacity-60' : ''}`}>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
@@ -100,11 +100,11 @@ export function AdminUserTable({ users, currentUserId, locale, availableLocales,
                         <span className="ml-2 text-[10px] font-semibold text-red-500 uppercase">{t('blockedBadge')}</span>
                       )}
                     </p>
-                    <p className="text-xs text-gray-400 md:hidden">{user.email}</p>
+                    <p className="text-xs text-muted-foreground md:hidden">{user.email}</p>
                   </div>
                 </div>
               </td>
-              <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{user.email}</td>
+              <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{user.email}</td>
               <td className="px-4 py-3">
                 <span
                   className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
@@ -116,13 +116,13 @@ export function AdminUserTable({ users, currentUserId, locale, availableLocales,
                   {user.role}
                 </span>
               </td>
-              <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
+              <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">
                 {user.locale ?? '—'}
               </td>
-              <td className="px-4 py-3 text-gray-500 text-sm font-medium">
+              <td className="px-4 py-3 text-muted-foreground text-sm font-medium">
                 {groupCounts?.get(user.id) ?? 0}
               </td>
-              <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
+              <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">
                 {user.lastLoginAt ? formatRelative(user.lastLoginAt) : formatDate(user.joinedAt)}
               </td>
               <td className="px-4 py-3">

@@ -139,50 +139,50 @@
 
 .dark {
   /* Shadcn compatibility tokens */
-  --background: #12120E;
-  --foreground: #E2E0DA;
-  --card: #1A1815;
-  --card-foreground: #E2E0DA;
-  --popover: #1A1815;
-  --popover-foreground: #E2E0DA;
+  --background: #0F0F0C;
+  --foreground: #EEECE6;
+  --card: #1C1A16;
+  --card-foreground: #EEECE6;
+  --popover: #1C1A16;
+  --popover-foreground: #EEECE6;
   --primary: #D45050;
   --primary-foreground: #FFFFFF;
-  --secondary: #201E1A;
-  --secondary-foreground: #E2E0DA;
-  --muted: #201E1A;
-  --muted-foreground: #8A867E;
-  --accent: #201E1A;
-  --accent-foreground: #E2E0DA;
+  --secondary: #24211C;
+  --secondary-foreground: #EEECE6;
+  --muted: #2A2722;
+  --muted-foreground: #A09C94;
+  --accent: #24211C;
+  --accent-foreground: #EEECE6;
   --destructive: #EF4444;
-  --border: #2A2824;
-  --input: #2A2824;
+  --border: #33302A;
+  --input: #2A2722;
   --ring: #D45050;
   --chart-1: #D45050;
   --chart-2: #6366F1;
   --chart-3: #F59E0B;
   --chart-4: #10B981;
-  --chart-5: #8A867E;
-  --sidebar: #1A1815;
-  --sidebar-foreground: #E2E0DA;
+  --chart-5: #A09C94;
+  --sidebar: #1C1A16;
+  --sidebar-foreground: #EEECE6;
   --sidebar-primary: #D45050;
   --sidebar-primary-foreground: #FFF;
-  --sidebar-accent: #201E1A;
-  --sidebar-accent-foreground: #E2E0DA;
-  --sidebar-border: #2A2824;
+  --sidebar-accent: #24211C;
+  --sidebar-accent-foreground: #EEECE6;
+  --sidebar-border: #33302A;
   --sidebar-ring: #D45050;
 
   /* Design System tokens */
   --color-brand: #D45050;
   --color-brand-hover: #E06464;
   --color-brand-soft: #2A1818;
-  --color-bg: #12120E;
-  --color-surface: #1A1815;
-  --color-surface-hover: #24221E;
-  --color-surface-secondary: #24221E;
-  --color-text: #E2E0DA;
-  --color-text-secondary: #8A867E;
-  --color-border: #2A2824;
-  --color-muted: #201E1A;
+  --color-bg: #0F0F0C;
+  --color-surface: #1C1A16;
+  --color-surface-hover: #282520;
+  --color-surface-secondary: #24211C;
+  --color-text: #EEECE6;
+  --color-text-secondary: #A09C94;
+  --color-border: #33302A;
+  --color-muted: #2A2722;
 }
 
 @layer base {

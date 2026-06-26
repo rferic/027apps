@@ -1,6 +1,13 @@
 import type { Preview } from '@storybook/nextjs-vite'
 import '@/design-tokens.css'
 import '@/app/globals.css'
+import { NextIntlClientProvider } from 'next-intl'
+import { initialize, mswLoader } from 'msw-storybook-addon'
+import { mswHandlers } from './msw-handlers'
+import enMessages from '../src/i18n/messages/en.json'
+import { AdminMobileProvider } from '../src/components/admin-mobile-context'
+
+initialize({ onUnhandledRequest: 'bypass' })
 
 const preview: Preview = {
   parameters: {
@@ -19,13 +26,19 @@ const preview: Preview = {
     },
     a11y: {
       test: 'todo'
-    }
+    },
+    msw: { handlers: mswHandlers },
   },
+  loaders: [mswLoader],
   decorators: [
     (Story) => (
-      <div style={{ fontFamily: "'Sora', sans-serif", padding: '16px' }}>
-        <Story />
-      </div>
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        <AdminMobileProvider>
+          <div style={{ fontFamily: "'Sora', sans-serif", padding: '16px' }}>
+            <Story />
+          </div>
+        </AdminMobileProvider>
+      </NextIntlClientProvider>
     ),
   ],
 }

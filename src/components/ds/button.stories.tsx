@@ -8,6 +8,7 @@ const meta: Meta<typeof DsButton> = {
   argTypes: {
     variant: { control: 'select', options: ['primary', 'secondary', 'outline', 'ghost'] },
     size: { control: 'select', options: ['sm', 'md', 'lg'] },
+    color: { control: 'color' },
     children: { control: 'text' },
   },
 }
@@ -17,6 +18,10 @@ type Story = StoryObj<typeof DsButton>
 
 export const Primary: Story = {
   args: { children: 'Primary', variant: 'primary' },
+}
+
+export const CustomColor: Story = {
+  args: { children: 'Emerald', variant: 'primary', color: '#10B981' },
 }
 
 export const Secondary: Story = {

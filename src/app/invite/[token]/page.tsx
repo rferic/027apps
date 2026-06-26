@@ -60,10 +60,10 @@ export default async function InvitePage({ params }: Props) {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Image src="/logo-icon.svg" alt="Logo" width={36} height={36} className="mx-auto mb-4" />
-          <h1 className="text-xl font-semibold text-slate-900">{t('title')}</h1>
-          <p className="text-sm text-slate-400 mt-1">{invitation.title}</p>
+          <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{invitation.title}</p>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+        <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
           <InviteForm
             token={token}
             lockedEmail={invitation.email}
@@ -84,22 +84,22 @@ function ErrorPage({ variant, message }: { variant: 'not_found' | 'status' | 'sy
         <Image src="/logo-icon.svg" alt="Logo" width={48} height={48} className="mx-auto mb-6" />
         {variant === 'not_found' && (
           <>
-            <h1 className="text-lg font-semibold text-slate-900 mb-2">Invalid invitation link</h1>
-            <p className="text-sm text-slate-500 mb-6">This invitation link doesn&apos;t exist or may have been removed.</p>
+            <h1 className="text-lg font-semibold text-foreground mb-2">Invalid invitation link</h1>
+            <p className="text-sm text-muted-foreground mb-6">This invitation link doesn&apos;t exist or may have been removed.</p>
           </>
         )}
         {variant === 'status' && (
-          <p className="text-sm text-slate-500 mb-6">{message}</p>
+          <p className="text-sm text-muted-foreground mb-6">{message}</p>
         )}
         {variant === 'system' && (
           <>
-            <h1 className="text-lg font-semibold text-slate-900 mb-2">Something went wrong</h1>
-            <p className="text-sm text-slate-500 mb-6">An unexpected error occurred. Please try again later.</p>
+            <h1 className="text-lg font-semibold text-foreground mb-2">Something went wrong</h1>
+            <p className="text-sm text-muted-foreground mb-6">An unexpected error occurred. Please try again later.</p>
           </>
         )}
         <Link
           href="/"
-          className="inline-block px-5 py-2.5 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-700 transition-colors"
+          className="inline-block px-5 py-2.5 text-sm font-medium bg-foreground text-background rounded-lg hover:opacity-80 transition-colors"
         >
           Go to home
         </Link>

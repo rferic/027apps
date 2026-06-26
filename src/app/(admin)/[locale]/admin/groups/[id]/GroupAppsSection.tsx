@@ -40,14 +40,14 @@ export function GroupAppsSection({ groupId, apps: initialApps }: Props) {
   }
 
   if (initialApps.length === 0) {
-    return <p className="text-sm text-slate-500">{t('groups.apps_empty')}</p>
+    return <p className="text-sm text-muted-foreground">{t('groups.apps_empty')}</p>
   }
 
   return (
     <div className="space-y-1">
       {optimisticApps.map(app => (
         <div key={app.slug} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50">
-          <span className="text-sm font-medium text-slate-700">{app.slug}</span>
+          <span className="text-sm font-medium text-foreground">{app.slug}</span>
           <button
             type="button"
             disabled={pending}

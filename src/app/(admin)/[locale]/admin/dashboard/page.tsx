@@ -8,6 +8,7 @@ import { DsCard } from '@/components/ds/card'
 import { DsBadge } from '@/components/ds/badge'
 import { DsAvatar } from '@/components/ds/avatar'
 import HotIdeasList from './HotIdeasList'
+import SplitExpensesDashboardWidget from '../../../../../../apps/split-expenses/dashboard-widget'
 
 interface Props {
   params: Promise<{ locale: string }>
@@ -38,6 +39,13 @@ export default async function AdminDashboard({ params }: Props) {
     .eq('slug', 'inspiration')
     .eq('status', 'active')
     .single()
+
+  const { data: splitExpensesInstalled } = await adminClient
+    .from('installed_apps')
+    .select('slug')
+    .eq('slug', 'split-expenses')
+    .eq('status', 'active')
+    .single()
   const isInspirationInstalled = !!inspirationInstalled
 
   const [stats, users, invitations, inspirationStats] = await Promise.all([
@@ -63,7 +71,7 @@ export default async function AdminDashboard({ params }: Props) {
         <AdminStatCard label={t('statsApps')} value={stats.installedApps} href={`${base}/apps`} sublabel={`${stats.totalApps} ${t('statsAppsSublabel')}`} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <DsCard padding="md" hover={false}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>{t('recentUsers')}</h2>
@@ -139,6 +147,13 @@ export default async function AdminDashboard({ params }: Props) {
               <HotIdeasList ideas={inspirationStats.hotIdeas} />
             </DsCard>
           )}
+        </div>
+      )}
+
+      {/* Split Expenses Widget */}
+      {splitExpensesInstalled && (
+        <div style={{ marginTop: 32 }}>
+          <SplitExpensesDashboardWidget />
         </div>
       )}
     </main>

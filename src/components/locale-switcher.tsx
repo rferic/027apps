@@ -54,8 +54,8 @@ export function LocaleSwitcher({ currentLocale, locales, targetPath, saveToDb = 
           onClick={() => switchLocale(loc as Locale)}
           className={`cursor-pointer text-[11px] font-semibold px-2 py-1 rounded-md transition-all disabled:opacity-50 ${
             selected === loc
-              ? 'bg-white text-slate-800 shadow-sm'
-              : 'text-slate-400 hover:text-slate-600'
+              ? 'bg-card text-slate-800 shadow-sm'
+              : 'text-muted-foreground hover:text-slate-600'
           }`}
         >
           {loc.toUpperCase()}

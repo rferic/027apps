@@ -90,22 +90,22 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
   const linkCls = (href: string) =>
     `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
       isActive(href)
-        ? 'bg-rose-50 text-rose-700'
-        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+        ? 'bg-accent text-foreground font-medium'
+        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
     }`
 
   const subLinkCls = (href: string) =>
     `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ml-4 ${
       isActive(href)
-        ? 'bg-rose-50 text-rose-700 font-medium'
-        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+        ? 'bg-accent text-foreground font-medium font-medium'
+        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
     }`
 
   const collapsedLinkCls = (href: string) =>
     `flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer ${
       isActive(href)
-        ? 'bg-rose-50 text-rose-700'
-        : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+        ? 'bg-accent text-foreground font-medium'
+        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
     }`
 
   const userSubItems = [
@@ -150,7 +150,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                   <LayoutDashboard size={18} />
                 </Link>
                 {hoveredMenu === 'dashboard' && (
-                  <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                  <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-foreground text-background text-xs rounded whitespace-nowrap z-50">
                     {t('dashboard')}
                   </div>
                 )}
@@ -166,7 +166,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                   <Package size={18} />
                 </Link>
                 {hoveredMenu === 'apps' && (
-                  <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                  <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-foreground text-background text-xs rounded whitespace-nowrap z-50">
                     {t('apps')}
                   </div>
                 )}
@@ -184,8 +184,8 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                     href={`${base}/apps/${app.slug}`}
                     className={`flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer ${
                       isActive(`${base}/apps/${app.slug}`)
-                        ? 'bg-rose-50 text-rose-700'
-                        : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+                        ? 'bg-accent text-foreground font-medium'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                     }`}
                   >
                     <Image unoptimized
@@ -197,7 +197,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                     />
                   </Link>
                   {hoveredMenu === `app_${app.slug}` && (
-                    <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                    <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-foreground text-background text-xs rounded whitespace-nowrap z-50">
                       {app.name}
                     </div>
                   )}
@@ -214,7 +214,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                   <Building2 size={18} />
                 </Link>
                 {hoveredMenu === 'groups' && (
-                  <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                  <div className="absolute left-full top-1 ml-2 px-2 py-1 bg-foreground text-background text-xs rounded whitespace-nowrap z-50">
                     {t('groups')}
                   </div>
                 )}
@@ -229,18 +229,18 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                 <button
                   type="button"
                   className={`flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer ${
-                    isActive(`${base}/users`) || isActivePrefix(`${base}/users`) ? 'bg-rose-50 text-rose-700' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/users`) || isActivePrefix(`${base}/users`) ? 'bg-accent text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }`}
                 >
                   <Users size={18} />
                 </button>
                 {hoveredMenu === 'users' && (
                   <div
-                    className="absolute left-full top-0 ml-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px] z-50"
+                    className="absolute left-full top-0 ml-2 bg-card rounded-lg shadow-lg border border-border py-1 min-w-[160px] z-50"
                     onMouseEnter={() => handleMenuEnter('users')}
                     onMouseLeave={handleMenuLeave}
                   >
-                    <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    <p className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('users')}
                     </p>
                     {userSubItems.map(({ href, label, icon: Icon }) => (
@@ -248,7 +248,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                         key={href}
                         href={href}
                         className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
-                          isActive(href) ? 'text-rose-700 bg-rose-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                          isActive(href) ? 'text-foreground bg-accent' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                         }`}
                       >
                         <Icon size={14} />
@@ -268,18 +268,18 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                 <button
                   type="button"
                   className={`flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer ${
-                    isActive(`${base}/settings`) || isActivePrefix(`${base}/settings`) ? 'bg-rose-50 text-rose-700' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/settings`) || isActivePrefix(`${base}/settings`) ? 'bg-accent text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }`}
                 >
                   <Settings size={18} />
                 </button>
                 {hoveredMenu === 'settings' && (
                   <div
-                    className="absolute left-full top-0 ml-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px] z-50"
+                    className="absolute left-full top-0 ml-2 bg-card rounded-lg shadow-lg border border-border py-1 min-w-[160px] z-50"
                     onMouseEnter={() => handleMenuEnter('settings')}
                     onMouseLeave={handleMenuLeave}
                   >
-                    <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    <p className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                       {t('settings')}
                     </p>
                     {settingsSubItems.map(({ href, label, icon: Icon }) => (
@@ -287,7 +287,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                         key={href}
                         href={href}
                         className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
-                          isActive(href) ? 'text-rose-700 bg-rose-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                          isActive(href) ? 'text-foreground bg-accent' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                         }`}
                       >
                         <Icon size={14} />
@@ -341,7 +341,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                   type="button"
                   onClick={() => setUsersOpen((open) => !open)}
                   className={`cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive(`${base}/users`) || isActivePrefix(`${base}/users`) ? 'text-rose-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/users`) || isActivePrefix(`${base}/users`) ? 'text-foreground bg-accent font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }`}
                 >
                   <Users size={16} className="flex-shrink-0" />
@@ -366,7 +366,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                   type="button"
                   onClick={() => setSettingsOpen((open) => !open)}
                   className={`cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive(`${base}/settings`) || isActivePrefix(`${base}/settings`) ? 'text-rose-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    isActive(`${base}/settings`) || isActivePrefix(`${base}/settings`) ? 'text-foreground bg-accent font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }`}
                 >
                   <Settings size={16} className="flex-shrink-0" />
@@ -396,24 +396,24 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
             >
               <button
                 type="button"
-                className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer text-gray-400 hover:text-gray-900 hover:bg-gray-100"
+                className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
               >
                 <BookOpen size={18} />
               </button>
               {hoveredMenu === 'docs' && (
                 <div
-                  className="absolute left-full top-0 ml-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px] z-50"
+                  className="absolute left-full top-0 ml-2 bg-card rounded-lg shadow-lg border border-border py-1 min-w-[160px] z-50"
                   onMouseEnter={() => handleMenuEnter('docs')}
                   onMouseLeave={handleMenuLeave}
                 >
-                  <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                  <p className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                     {t('docs')}
                   </p>
                   <a
                     href="/api-docs"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   >
                     <FileText size={14} />
                     {t('api_docs')}
@@ -422,7 +422,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
                     href={`/${locale}/doc`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   >
                     <Book size={14} />
                     {t('docs_home')}
@@ -435,7 +435,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
               <button
                 type="button"
                 onClick={() => setDocsOpen((open) => !open)}
-                className="cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                className="cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-accent"
               >
                 <BookOpen size={16} className="flex-shrink-0" />
                 <span className="flex-1 text-left">{t('docs')}</span>
@@ -468,11 +468,11 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
         </nav>
 
         {!forceExpanded && (
-          <div className="p-2 border-t border-gray-100">
+          <div className="p-2 border-t border-border">
             <button
               type="button"
               onClick={toggleCollapsed}
-              className="cursor-pointer w-full flex items-center justify-center h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              className="cursor-pointer w-full flex items-center justify-center h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             >
               {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </button>
@@ -486,9 +486,9 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
     <>
       {/* Desktop sidebar */}
       <aside
-        className={`hidden md:flex bg-white flex-col transition-all duration-200 ${
+        className={`hidden md:flex bg-card flex-col transition-all duration-200 ${
           collapsed ? 'w-14' : 'w-56'
-        } flex-shrink-0 border-r border-gray-200`}
+        } flex-shrink-0 border-r border-border`}
       >
         {navContent()}
       </aside>
@@ -503,13 +503,13 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
             aria-hidden="true"
           />
           {/* Drawer panel */}
-          <aside className="relative z-50 w-64 bg-white flex flex-col shadow-xl">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <span className="text-sm font-semibold text-gray-700">{t('menu')}</span>
+          <aside className="relative z-50 w-64 bg-card flex flex-col shadow-xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <span className="text-sm font-semibold text-foreground">{t('menu')}</span>
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 aria-label="Close menu"
               >
                 <X size={16} />

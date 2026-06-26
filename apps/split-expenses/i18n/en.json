@@ -1,0 +1,268 @@
+{
+  "description": "Split movements in groups with debt optimization.",
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "unknown": "Unknown",
+    "members": "members",
+    "loadMore": "Load more"
+  },
+  "group": {
+    "list": {
+      "title": "Movement Groups",
+      "empty": "No movement groups yet",
+      "createFirst": "Create your first movement group",
+      "memberCount": "{count} members",
+      "youOwe": "You owe",
+      "youAreOwed": "You are owed",
+      "settled": "All settled",
+      "totalBalance": "Total balance"
+    },
+    "create": {
+      "title": "New group",
+      "editTitle": "Edit group",
+      "name": "Group name",
+      "emoji": "Icon",
+      "currency": "Currency",
+      "members": "Members",
+      "create": "Create group",
+      "save": "Save changes",
+      "cancel": "Cancel",
+      "success": "Movement group created",
+      "updated": "Movement group updated"
+    },
+    "detail": {
+      "tabs": {
+        "movements": "Movements",
+        "balances": "Balances",
+        "members": "Members",
+        "stats": "Statistics",
+        "import": "Import",
+        "tags": "Tags",
+        "settings": "Settings"
+      },
+      "noGroup": "Movement group not found",
+      "memberCount": "{count, plural, one {# member} other {# members}}"
+    }
+  },
+  "expense": {
+    "list": {
+      "title": "Movements",
+      "empty": "No expenses yet",
+      "addFirst": "Add your first expense",
+      "noResults": "No expenses match your filters",
+      "filters": "Filters",
+      "allTags": "All tags",
+      "allUsers": "All users",
+      "my": "My transactions",
+      "all": "All",
+      "clearFilters": "Clear filters",
+      "typeExpenses": "Expenses",
+      "typeTransfers": "Transfers",
+      "typeAll": "All"
+    },
+    "create": {
+      "title": "New movement",
+      "editTitle": "Edit movement",
+      "concept": "Concept",
+      "amount": "Amount",
+      "paidBy": "Paid by",
+      "participants": "Participants",
+      "tag": "Tag (optional)",
+      "noTag": "No tag",
+      "equalSplit": "Equal split ({amount} each)",
+      "create": "Add movement",
+      "save": "Save",
+      "cancel": "Cancel",
+      "success": "Movement added",
+      "updated": "Movement updated",
+      "deleted": "Movement deleted",
+      "needParticipants": "Select at least one participant"
+    },
+    "delete": {
+      "title": "Delete movement",
+      "confirm": "Delete \"{title}\"?",
+      "deleting": "Deleting..."
+    },
+    "item": {
+      "paidBy": "paid",
+      "you": "You"
+    }
+  },
+  "balance": {
+    "title": "Balances",
+    "noExpenses": "Add expenses to see balances",
+    "summary": "Summary",
+    "transfers": "Proposed transfers",
+    "noTransfers": "All settled up!",
+    "settle": "Settle",
+    "settleAll": "Settle all",
+    "selectExpenses": "Select expenses to settle",
+    "confirmTitle": "Confirm settlement",
+    "confirmMessage": "This will mark {count} expense(s) as settled and create the following transfers:",
+    "confirm": "Confirm settlement",
+    "cancelled": "Settlement cancelled",
+    "success": "Expenses settled successfully",
+    "settleSuccess": "Created {count} transfers.",
+    "youOwe": "You owe",
+    "youAreOwed": "You are owed",
+    "perPerson": "Per person",
+    "pays": "pays",
+    "owe": "owes",
+    "isOwed": "is owed",
+    "history": "Settlement history",
+    "settledOn": "Settled on",
+    "by": "by",
+    "noSettlements": "No settlements yet",
+    "expenseCount": "{count, plural, one {# expense} other {# expenses}}",
+    "transferCount": "{count, plural, one {# transfer} other {# transfers}}",
+    "recordPayment": "Record as paid",
+    "paymentRecorded": "Payment recorded"
+  },
+  "member": {
+    "list": {
+      "title": "Members",
+      "add": "Add member",
+      "remove": "Remove",
+      "active": "Active",
+      "inactive": "Inactive",
+      "makeActive": "Activate",
+      "makeInactive": "Deactivate",
+      "owes": "owes",
+      "isOwed": "is owed"
+    },
+    "addModal": {
+      "title": "Add member",
+      "placeholder": "Select a member from the group",
+      "noMembers": "All group members are already added",
+      "confirm": "Add",
+      "success": "Member added"
+    }
+  },
+  "tag": {
+    "list": {
+      "title": "Manage Tags",
+      "empty": "No tags yet",
+      "createFirst": "Create your first tag"
+    },
+    "create": {
+      "title": "New tag",
+      "editTitle": "Edit tag",
+      "name": "Tag name",
+      "color": "Color",
+      "save": "Save tag",
+      "confirm": "Save tag",
+      "delete": "Delete tag",
+      "success": "Tag created",
+      "updated": "Tag updated",
+      "deleted": "Tag deleted",
+      "confirmDelete": "Are you sure you want to delete this tag?"
+    }
+  },
+  "transfer": {
+    "item": {
+      "manual": "Manual"
+    },
+    "delete": {
+      "title": "Delete transfer",
+      "confirm": "Delete this transfer?",
+      "deleting": "Deleting..."
+    },
+    "edit": {
+      "title": "Edit transfer",
+      "amount": "Amount",
+      "note": "Note (optional)",
+      "save": "Save"
+    }
+  },
+  "stats": {
+    "title": "Statistics",
+    "byPeriod": "By period",
+    "cumulative": "Cumulative",
+    "period": "Period",
+    "day": "Day",
+    "week": "Week",
+    "month": "Month",
+    "year": "Year",
+    "total": "Total",
+    "noData": "No data for the selected period",
+    "filterTag": "Filter by tag"
+  },
+  "currency": {
+    "AED": "AED - UAE Dirham",
+    "ARS": "ARS - Argentine Peso",
+    "AUD": "AUD - Australian Dollar",
+    "BRL": "BRL - Brazilian Real",
+    "CAD": "CAD - Canadian Dollar",
+    "CHF": "CHF - Swiss Franc",
+    "CLP": "CLP - Chilean Peso",
+    "CNY": "CNY - Chinese Yuan",
+    "COP": "COP - Colombian Peso",
+    "CRC": "CRC - Costa Rican Colón",
+    "EUR": "EUR - Euro",
+    "GBP": "GBP - British Pound",
+    "HKD": "HKD - Hong Kong Dollar",
+    "ILS": "ILS - Israeli Shekel",
+    "INR": "INR - Indian Rupee",
+    "JPY": "JPY - Japanese Yen",
+    "KRW": "KRW - South Korean Won",
+    "KZT": "KZT - Kazakhstani Tenge",
+    "MXN": "MXN - Mexican Peso",
+    "MYR": "MYR - Malaysian Ringgit",
+    "NOK": "NOK - Norwegian Krone",
+    "NZD": "NZD - New Zealand Dollar",
+    "PEN": "PEN - Peruvian Sol",
+    "PHP": "PHP - Philippine Peso",
+    "PKR": "PKR - Pakistani Rupee",
+    "PLN": "PLN - Polish Zloty",
+    "RUB": "RUB - Russian Ruble",
+    "SEK": "SEK - Swedish Krona",
+    "SGD": "SGD - Singapore Dollar",
+    "THB": "THB - Thai Baht",
+    "TRY": "TRY - Turkish Lira",
+    "TWD": "TWD - Taiwan Dollar",
+    "UAH": "UAH - Ukrainian Hryvnia",
+    "USD": "USD - US Dollar",
+    "UYU": "UYU - Uruguayan Peso",
+    "VND": "VND - Vietnamese Dong",
+    "ZAR": "ZAR - South African Rand"
+  },
+  "widget": {
+    "error": "Could not load",
+    "allSettled": "All settled up!",
+    "viewDetails": "View details"
+  },
+  "import": {
+    "title": "Import from Splitwise",
+    "step1": "API Key",
+    "step2": "Select group",
+    "step3": "User mapping",
+    "step4": "Preview",
+    "step5": "Confirm",
+    "apiKeyLabel": "Splitwise API Key",
+    "apiKeyPlaceholder": "Paste your Splitwise API key",
+    "verify": "Verify connection",
+    "verified": "Connected as {name}",
+    "selectGroup": "Select a Splitwise group to import",
+    "userMapping": "Map Splitwise users to 027apps users",
+    "autoMatched": "Auto-matched by email",
+    "manualMapping": "Manual mapping",
+    "mustMapAll": "All users must be mapped to continue",
+    "previewTitle": "Preview import",
+    "totalMovements": "Total movements",
+    "totalAmount": "Total amount",
+    "dateRange": "Date range",
+    "membersToAdd": "Members to add",
+    "tagsToCreate": "Tags to create",
+    "transfersToCreate": "Transfers to create",
+    "warnings": "Warnings",
+    "confirmImport": "Import {count} movements",
+    "importing": "Importing...",
+    "success": "Import completed successfully",
+    "movementsCreated": "Movements created",
+    "movementsSkipped": "Duplicates skipped",
+    "errors": "Errors"
+  }
+}

@@ -23,7 +23,7 @@ export function LogoutButton({ variant, locale = 'en', label }: Props) {
     <button
       onClick={handleClick}
       disabled={pending}
-      className="text-xs text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+      className="text-xs text-muted-foreground hover:text-slate-200 transition-colors disabled:opacity-50"
     >
       {pending ? '…' : label}
     </button>

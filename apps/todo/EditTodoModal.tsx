@@ -82,34 +82,34 @@ export default function EditTodoModal({ item, categories, members = [], showStat
     setSaving(false)
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white'
+  const inputCls = 'w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-card'
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
       <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-lg mx-4 max-h-[70vh] overflow-y-auto">
+      <div className="relative z-10 bg-card rounded-xl border border-border shadow-xl p-6 w-full max-w-lg mx-4 max-h-[70vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">{t('edit_title')}</h2>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><X size={16} /></button>
+          <h2 className="text-lg font-semibold text-foreground">{t('edit_title')}</h2>
+          <button onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="edit-title" className="block text-sm font-medium text-slate-700 mb-1.5">{t('title_placeholder')}</label>
+            <label htmlFor="edit-title" className="block text-sm font-medium text-foreground mb-1.5">{t('title_placeholder')}</label>
             <input id="edit-title" type="text" value={title} onChange={e => setTitle(e.target.value)} className={inputCls} autoFocus required />
           </div>
           <div>
-            <label htmlFor="edit-desc" className="block text-sm font-medium text-slate-700 mb-1.5">{t('desc_placeholder')}</label>
+            <label htmlFor="edit-desc" className="block text-sm font-medium text-foreground mb-1.5">{t('desc_placeholder')}</label>
             <textarea id="edit-desc" value={description} onChange={e => setDescription(e.target.value)} className={inputCls} rows={3} />
           </div>
           <div>
-            <label htmlFor="edit-priority" className="block text-sm font-medium text-slate-700 mb-1.5">{t('priority')}</label>
+            <label htmlFor="edit-priority" className="block text-sm font-medium text-foreground mb-1.5">{t('priority')}</label>
             <select id="edit-priority" value={priority} onChange={e => setPriority(e.target.value)} className={inputCls}>
               {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k} style={{ color: v.color }}>{t('priority_' + k)}</option>)}
             </select>
           </div>
           {showStatus && (
           <div>
-            <label htmlFor="edit-status" className="block text-sm font-medium text-slate-700 mb-1.5">{t('filter_status')}</label>
+            <label htmlFor="edit-status" className="block text-sm font-medium text-foreground mb-1.5">{t('filter_status')}</label>
             <select id="edit-status" value={status} onChange={e => setStatus(e.target.value)} className={inputCls}>
               <option value="pending">{t('status_pending')}</option>
               <option value="in_progress">{t('status_in_progress')}</option>
@@ -119,7 +119,7 @@ export default function EditTodoModal({ item, categories, members = [], showStat
           </div>
           )}
           <div>
-            <label htmlFor="edit-category" className="block text-sm font-medium text-slate-700 mb-1.5">{t('category')}</label>
+            <label htmlFor="edit-category" className="block text-sm font-medium text-foreground mb-1.5">{t('category')}</label>
             <select id="edit-category" value={categoryId} onChange={e => setCategoryId(e.target.value)} className={inputCls}>
               <option value="">{t('no_category')}</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
@@ -127,7 +127,7 @@ export default function EditTodoModal({ item, categories, members = [], showStat
           </div>
           {item.visibility === 'public' && assigneeMode === 'select' && members.length > 0 && (
           <div>
-            <label htmlFor="edit-assign" className="block text-sm font-medium text-slate-700 mb-1.5">{t('assign_to')}</label>
+            <label htmlFor="edit-assign" className="block text-sm font-medium text-foreground mb-1.5">{t('assign_to')}</label>
             <select id="edit-assign" value={assignTo} onChange={e => setAssignTo(e.target.value)} className={inputCls}>
               <option value="">{t('unassigned')}</option>
               {members.map(m => (<option key={m.user_id} value={m.user_id}>{m.display_name}</option>))}
@@ -136,17 +136,17 @@ export default function EditTodoModal({ item, categories, members = [], showStat
           )}
           {assigneeMode === 'input' && (
           <div>
-            <label htmlFor="edit-assign" className="block text-sm font-medium text-slate-700 mb-1.5">{t('assign_to')}</label>
+            <label htmlFor="edit-assign" className="block text-sm font-medium text-foreground mb-1.5">{t('assign_to')}</label>
             <input id="edit-assign" type="text" value={assignTo} onChange={e => setAssignTo(e.target.value)} className={inputCls} placeholder="User ID" />
           </div>
           )}
           <div>
-            <label htmlFor="edit-date" className="block text-sm font-medium text-slate-700 mb-1.5">{t('due_date')}</label>
+            <label htmlFor="edit-date" className="block text-sm font-medium text-foreground mb-1.5">{t('due_date')}</label>
             <input id="edit-date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={today()} className={inputCls} />
           </div>
           {showRepeat && (
           <div>
-            <label htmlFor="edit-repeat" className="block text-sm font-medium text-slate-700 mb-1.5">{t('repeat_none')}</label>
+            <label htmlFor="edit-repeat" className="block text-sm font-medium text-foreground mb-1.5">{t('repeat_none')}</label>
             <select id="edit-repeat" value={repeatInterval} onChange={e => setRepeatInterval(e.target.value)} className={inputCls}>
               <option value="">{t('repeat_none')}</option>
               <option value="weekly">{t('repeat_weekly')}</option>
@@ -159,7 +159,7 @@ export default function EditTodoModal({ item, categories, members = [], showStat
             <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
           )}
           <div className="pt-2 flex gap-2 justify-end">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">{t('cancel')}</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-foreground hover:text-foreground">{t('cancel')}</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">{saving ? t('saving') : t('save')}</button>
           </div>
         </form>

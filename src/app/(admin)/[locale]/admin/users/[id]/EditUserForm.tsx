@@ -42,7 +42,7 @@ export function EditUserForm({ user, availableLocales }: Props) {
           <label className="block text-sm font-medium text-slate-700 mb-1">{t('role')}</label>
           <div className="flex items-center gap-2">
             <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${user.role === 'admin' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}>{user.role}</span>
-            <span className="text-xs text-slate-400">{t('roleNote')}</span>
+            <span className="text-xs text-muted-foreground">{t('roleNote')}</span>
           </div>
         </div>
         <div>
@@ -63,10 +63,10 @@ export function EditUserForm({ user, availableLocales }: Props) {
               </label>
             ))}
           </div>
-          <p className="mt-1.5 text-xs text-slate-400">{t('localeNote')}</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">{t('localeNote')}</p>
         </div>
 
-        <div className="pt-3 border-t border-slate-100">
+        <div className="pt-3 border-t border-border">
           <button type="submit" disabled={pending} className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50 cursor-pointer">
             {pending ? t('saving') : t('save')}
           </button>

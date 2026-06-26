@@ -588,7 +588,7 @@
 <header>
   <div class="wrap">
     <h1>Manifest Debugger</h1>
-    <div class="summary"><a class="filter-pill all" data-k="all" href="#filter-all">All</a><span class="filter-pill ok" aria-disabled="true">21 components ok</span><a class="filter-pill info" data-k="infos" href="#filter-infos">20/21 infos</a><span class="filter-pill ok" aria-disabled="true">62 stories ok</span><a class="filter-pill ok" data-k="docs" href="#filter-docs">1 doc ok</a></div>
+    <div class="summary"><a class="filter-pill all" data-k="all" href="#filter-all">All</a><a class="filter-pill err" data-k="errors" href="#filter-errors">1/26 prop type error</a><a class="filter-pill info" data-k="infos" href="#filter-infos">26/26 infos</a><span class="filter-pill ok" aria-disabled="true">86 stories ok</span></div>
   </div>
 </header>
 <main>
@@ -611,19 +611,19 @@
   no-story-error
   no-doc-error"
   role="listitem"
-  aria-label="BarChart">
+  aria-label="AppTheme">
   <div class="head">
     <div class="title">
-      <h2><span class="status-dot dot-ok"></span> BarChart</h2>
+      <h2><span class="status-dot dot-ok"></span> AppTheme</h2>
       <div class="badges">
-        <label for="c-0-composite-barchart-props" class="badge ok as-toggle">4 prop types</label>
-        <label for="c-0-composite-barchart-info" class="badge info as-toggle">1 info</label>
-        <label for="c-0-composite-barchart-stories" class="badge ok as-toggle">2 stories</label>
+        <label for="c-0-components-app-theme-props" class="badge ok as-toggle">4 prop types</label>
+        <label for="c-0-components-app-theme-info" class="badge info as-toggle">1 info</label>
+        <label for="c-0-components-app-theme-stories" class="badge ok as-toggle">3 stories</label>
         
         
       </div>
     </div>
-    <div class="meta" title="./src/components/composite/bar-chart.stories.tsx">composite-barchart · ./src/components/composite/bar-chart.stories.tsx</div>
+    <div class="meta" title="./src/components/app-theme.stories.tsx">components-app-theme · ./src/components/app-theme.stories.tsx</div>
     
     
     
@@ -631,11 +631,11 @@
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-0-composite-barchart-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-0-composite-barchart-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-0-components-app-theme-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-0-components-app-theme-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-0-composite-barchart-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-0-components-app-theme-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -654,6 +654,161 @@
               <span class="ex-name">Prop types <small>(react-docgen)</small></span>
               <span class="badge ok">4 prop types</span>
             </div>
+            <pre><code>Component: src/components/app-theme.tsx::default</code></pre>
+            <pre><code>Props:</code></pre>
+            <pre><code>children: ReactNode
+
+primaryColor: string
+
+scope?: &#39;global&#39; | &#39;local&#39; = &#39;global&#39;
+
+secondaryColor: string</code></pre>
+          </div>
+        </div>
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { AppTheme } from "027apps";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Global Scope</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const GlobalScope = () =&gt; &lt;AppTheme primaryColor=&quot;#4F46E5&quot; secondaryColor=&quot;#EEF2FF&quot; scope=&quot;global&quot;&gt;
+    &lt;div
+        data-testid=&quot;themed-box&quot;
+        style={{
+          padding: 16,
+          background: &#39;var(--app-primary)&#39;,
+          color: &#39;white&#39;,
+          borderRadius: 8,
+        }}&gt;Themed container
+              &lt;/div&gt;
+&lt;/AppTheme&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Local Scope</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const LocalScope = () =&gt; &lt;AppTheme primaryColor=&quot;#10B981&quot; secondaryColor=&quot;#ECFDF5&quot; scope=&quot;local&quot;&gt;
+    &lt;div
+        data-testid=&quot;local-box&quot;
+        style={{
+          padding: 16,
+          border: &#39;2px solid var(--app-primary)&#39;,
+          borderRadius: 8,
+          color: &#39;var(--color-text)&#39;,
+        }}&gt;Local scope
+              &lt;/div&gt;
+&lt;/AppTheme&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Multiple Themes</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const MultipleThemes = (args) =&gt; (
+  &lt;div style={{ display: &#39;flex&#39;, gap: 12 }}&gt;
+    &lt;AppTheme primaryColor=&quot;#4F46E5&quot; secondaryColor=&quot;#EEF2FF&quot; scope=&quot;local&quot;&gt;
+      &lt;div
+        data-testid=&quot;blue-box&quot;
+        style={{
+          padding: 12,
+          background: &#39;var(--app-primary)&#39;,
+          color: &#39;white&#39;,
+          borderRadius: 6,
+        }}
+      &gt;
+        Blue
+      &lt;/div&gt;
+    &lt;/AppTheme&gt;
+    &lt;AppTheme primaryColor=&quot;#F59E0B&quot; secondaryColor=&quot;#FFFBEB&quot; scope=&quot;local&quot;&gt;
+      &lt;div
+        data-testid=&quot;amber-box&quot;
+        style={{
+          padding: 12,
+          background: &#39;var(--app-primary)&#39;,
+          color: &#39;white&#39;,
+          borderRadius: 6,
+        }}
+      &gt;
+        Amber
+      &lt;/div&gt;
+    &lt;/AppTheme&gt;
+  &lt;/div&gt;
+);</code></pre>
+            </div>
+        </div>
+    
+    
+  </div>
+</article>
+<article
+  class="card 
+  no-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
+  aria-label="BarChart">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> BarChart</h2>
+      <div class="badges">
+        <label for="c-1-composite-barchart-props" class="badge ok as-toggle">6 prop types</label>
+        <label for="c-1-composite-barchart-info" class="badge info as-toggle">1 info</label>
+        <label for="c-1-composite-barchart-stories" class="badge ok as-toggle">3 stories</label>
+        
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/components/composite/bar-chart.stories.tsx">composite-barchart · ./src/components/composite/bar-chart.stories.tsx</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="c-1-composite-barchart-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-1-composite-barchart-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  
+  <input id="c-1-composite-barchart-props" class="tg tg-props" type="checkbox" hidden />
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+        <div class="panel panel-props">
+          <div class="note ok">
+            <div class="row">
+              <span class="ex-name">Prop types <small>(react-docgen)</small></span>
+              <span class="badge ok">6 prop types</span>
+            </div>
             <pre><code>Component: src/components/composite/bar-chart.tsx::BarChart</code></pre>
             <pre><code>Props:</code></pre>
             <pre><code>color?: string = &#39;var(--color-brand)&#39;
@@ -662,7 +817,11 @@ data: BarDatum[]
 
 height?: number = 100
 
-highlightIndex?: number</code></pre>
+highlightIndex?: number
+
+lineColor?: string
+
+showLine?: boolean</code></pre>
           </div>
         </div>
     
@@ -696,6 +855,15 @@ highlightIndex?: number</code></pre>
               
               <pre><code>const Highlighted = () =&gt; &lt;BarChart data={weekData} highlightIndex={5} /&gt;;</code></pre>
             </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">With Line</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const WithLine = () =&gt; &lt;BarChart data={weekData} showLine color=&quot;#10B981&quot; height={160} /&gt;;</code></pre>
+            </div>
         </div>
     
     
@@ -704,72 +872,72 @@ highlightIndex?: number</code></pre>
 <article
   class="card 
   no-error 
-  no-info 
+  has-info 
   no-story-error
   no-doc-error"
   role="listitem"
-  aria-label="Button">
+  aria-label="ConfirmDialog">
   <div class="head">
     <div class="title">
-      <h2><span class="status-dot dot-ok"></span> Button</h2>
+      <h2><span class="status-dot dot-ok"></span> ConfirmDialog</h2>
       <div class="badges">
-        <label for="c-1-example-button-props" class="badge ok as-toggle">5 prop types</label>
-        
-        <label for="c-1-example-button-stories" class="badge ok as-toggle">4 stories</label>
+        <label for="c-2-components-ui-confirm-dialog-props" class="badge ok as-toggle">9 prop types</label>
+        <label for="c-2-components-ui-confirm-dialog-info" class="badge info as-toggle">1 info</label>
+        <label for="c-2-components-ui-confirm-dialog-stories" class="badge ok as-toggle">5 stories</label>
         
         
       </div>
     </div>
-    <div class="meta" title="./src/stories/Button.stories.ts">example-button · ./src/stories/Button.stories.ts</div>
+    <div class="meta" title="./src/components/ui/confirm-dialog.stories.tsx">components-ui-confirm-dialog · ./src/components/ui/confirm-dialog.stories.tsx</div>
     
-    <div class="hint">Primary UI component for user interaction</div>
+    
     
   </div>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
+  <input id="c-2-components-ui-confirm-dialog-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-2-components-ui-confirm-dialog-stories" class="tg tg-stories" type="checkbox" hidden />
   
-  <input id="c-1-example-button-stories" class="tg tg-stories" type="checkbox" hidden />
   
-  
-  <input id="c-1-example-button-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-2-components-ui-confirm-dialog-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
     
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
     
         <div class="panel panel-props">
           <div class="note ok">
             <div class="row">
               <span class="ex-name">Prop types <small>(react-docgen)</small></span>
-              <span class="badge ok">5 prop types</span>
+              <span class="badge ok">9 prop types</span>
             </div>
-            <pre><code>Component: src/stories/Button.tsx::Button</code></pre>
+            <pre><code>Component: src/components/ui/confirm-dialog.tsx::ConfirmDialog</code></pre>
             <pre><code>Props:</code></pre>
-            <pre><code>/**
- * What background color to use
- */
-backgroundColor?: string
+            <pre><code>cancelLabel: string
 
-/**
- * Button contents
- */
-label: string
+confirmLabel: string
 
-/**
- * Optional click handler
- */
-onClick?: () =&gt; void
+description?: string
 
-/**
- * Is this the principal call to action on the page?
- */
-primary?: boolean = false
+loading?: boolean = false
 
-/**
- * How large should the button be?
- */
-size?: &#39;small&#39; | &#39;medium&#39; | &#39;large&#39; = &#39;medium&#39;</code></pre>
+onConfirm: () =&gt; void
+
+onOpenChange: (open: boolean) =&gt; void
+
+open: boolean
+
+title: string
+
+variant?: &#39;default&#39; | &#39;destructive&#39; = &#39;default&#39;</code></pre>
           </div>
         </div>
     
@@ -781,45 +949,89 @@ size?: &#39;small&#39; | &#39;medium&#39; | &#39;large&#39; = &#39;medium&#39;</
                 <div class="row">
                   <span class="ex-name">Imports</span>
                 </div>
-                <pre><code>import { Button } from "027apps";</code></pre>
+                <pre><code>import { ConfirmDialog } from "027apps";</code></pre>
               </div>
           
           
             <div class="note ok">
               <div class="row">
-                <span class="ex-name">Primary</span>
+                <span class="ex-name">Default</span>
                 <span class="badge ok">story ok</span>
               </div>
               
               
-              <pre><code>const Primary = () =&gt; &lt;Button onClick={fn()} primary label=&quot;Button&quot; /&gt;;</code></pre>
+              <pre><code>const Default = () =&gt; &lt;ConfirmDialog
+    open
+    title=&quot;Delete item?&quot;
+    description=&quot;This action cannot be undone.&quot;
+    confirmLabel=&quot;Delete&quot;
+    cancelLabel=&quot;Cancel&quot;
+    onConfirm={() =&gt; {}}
+    onOpenChange={() =&gt; {}} /&gt;;</code></pre>
             </div>
             <div class="note ok">
               <div class="row">
-                <span class="ex-name">Secondary</span>
+                <span class="ex-name">Destructive</span>
                 <span class="badge ok">story ok</span>
               </div>
               
               
-              <pre><code>const Secondary = () =&gt; &lt;Button onClick={fn()} label=&quot;Button&quot; /&gt;;</code></pre>
+              <pre><code>const Destructive = () =&gt; &lt;ConfirmDialog
+    open
+    title=&quot;Remove user&quot;
+    description=&quot;They will lose all access.&quot;
+    confirmLabel=&quot;Remove&quot;
+    cancelLabel=&quot;Keep&quot;
+    variant=&quot;destructive&quot;
+    onConfirm={() =&gt; {}}
+    onOpenChange={() =&gt; {}} /&gt;;</code></pre>
             </div>
             <div class="note ok">
               <div class="row">
-                <span class="ex-name">Large</span>
+                <span class="ex-name">Loading</span>
                 <span class="badge ok">story ok</span>
               </div>
               
               
-              <pre><code>const Large = () =&gt; &lt;Button onClick={fn()} size=&quot;large&quot; label=&quot;Button&quot; /&gt;;</code></pre>
+              <pre><code>const Loading = () =&gt; &lt;ConfirmDialog
+    open
+    title=&quot;Processing...&quot;
+    confirmLabel=&quot;Confirm&quot;
+    cancelLabel=&quot;Cancel&quot;
+    loading
+    onConfirm={() =&gt; {}}
+    onOpenChange={() =&gt; {}} /&gt;;</code></pre>
             </div>
             <div class="note ok">
               <div class="row">
-                <span class="ex-name">Small</span>
+                <span class="ex-name">With Callback</span>
                 <span class="badge ok">story ok</span>
               </div>
               
               
-              <pre><code>const Small = () =&gt; &lt;Button onClick={fn()} size=&quot;small&quot; label=&quot;Button&quot; /&gt;;</code></pre>
+              <pre><code>const WithCallback = () =&gt; &lt;ConfirmDialog
+    open
+    title=&quot;Confirm action&quot;
+    confirmLabel=&quot;Yes&quot;
+    cancelLabel=&quot;No&quot;
+    onConfirm={() =&gt; {}}
+    onOpenChange={() =&gt; {}} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Css Check</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const CssCheck = () =&gt; &lt;ConfirmDialog
+    open
+    title=&quot;Theme check&quot;
+    confirmLabel=&quot;Submit&quot;
+    cancelLabel=&quot;Back&quot;
+    variant=&quot;destructive&quot;
+    onConfirm={() =&gt; {}}
+    onOpenChange={() =&gt; {}} /&gt;;</code></pre>
             </div>
         </div>
     
@@ -838,9 +1050,9 @@ size?: &#39;small&#39; | &#39;medium&#39; | &#39;large&#39; = &#39;medium&#39;</
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsAlert</h2>
       <div class="badges">
-        <label for="c-2-design-system-alert-props" class="badge ok as-toggle">4 prop types</label>
-        <label for="c-2-design-system-alert-info" class="badge info as-toggle">1 info</label>
-        <label for="c-2-design-system-alert-stories" class="badge ok as-toggle">6 stories</label>
+        <label for="c-3-design-system-alert-props" class="badge ok as-toggle">4 prop types</label>
+        <label for="c-3-design-system-alert-info" class="badge info as-toggle">1 info</label>
+        <label for="c-3-design-system-alert-stories" class="badge ok as-toggle">6 stories</label>
         
         
       </div>
@@ -853,11 +1065,11 @@ size?: &#39;small&#39; | &#39;medium&#39; | &#39;large&#39; = &#39;medium&#39;</
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-2-design-system-alert-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-2-design-system-alert-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-3-design-system-alert-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-3-design-system-alert-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-2-design-system-alert-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-3-design-system-alert-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -982,9 +1194,9 @@ variant?: &#39;success&#39; | &#39;warning&#39; | &#39;error&#39; | &#39;info&#3
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsAvatar</h2>
       <div class="badges">
-        <label for="c-3-design-system-avatar-props" class="badge ok as-toggle">4 prop types</label>
-        <label for="c-3-design-system-avatar-info" class="badge info as-toggle">1 info</label>
-        <label for="c-3-design-system-avatar-stories" class="badge ok as-toggle">4 stories</label>
+        <label for="c-4-design-system-avatar-props" class="badge ok as-toggle">4 prop types</label>
+        <label for="c-4-design-system-avatar-info" class="badge info as-toggle">1 info</label>
+        <label for="c-4-design-system-avatar-stories" class="badge ok as-toggle">4 stories</label>
         
         
       </div>
@@ -997,11 +1209,11 @@ variant?: &#39;success&#39; | &#39;warning&#39; | &#39;error&#39; | &#39;info&#3
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-3-design-system-avatar-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-3-design-system-avatar-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-4-design-system-avatar-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-4-design-system-avatar-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-3-design-system-avatar-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-4-design-system-avatar-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -1111,9 +1323,9 @@ size?: number = 32</code></pre>
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsBadge</h2>
       <div class="badges">
-        <label for="c-4-design-system-badge-props" class="badge ok as-toggle">3 prop types</label>
-        <label for="c-4-design-system-badge-info" class="badge info as-toggle">1 info</label>
-        <label for="c-4-design-system-badge-stories" class="badge ok as-toggle">5 stories</label>
+        <label for="c-5-design-system-badge-props" class="badge ok as-toggle">3 prop types</label>
+        <label for="c-5-design-system-badge-info" class="badge info as-toggle">1 info</label>
+        <label for="c-5-design-system-badge-stories" class="badge ok as-toggle">5 stories</label>
         
         
       </div>
@@ -1126,11 +1338,11 @@ size?: number = 32</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-4-design-system-badge-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-4-design-system-badge-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-5-design-system-badge-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-5-design-system-badge-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-4-design-system-badge-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-5-design-system-badge-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -1242,9 +1454,9 @@ variant?: &#39;primary&#39; | &#39;success&#39; | &#39;warning&#39; | &#39;error
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsButton</h2>
       <div class="badges">
-        <label for="c-5-design-system-button-props" class="badge ok as-toggle">2 prop types</label>
-        <label for="c-5-design-system-button-info" class="badge info as-toggle">1 info</label>
-        <label for="c-5-design-system-button-stories" class="badge ok as-toggle">6 stories</label>
+        <label for="c-6-design-system-button-props" class="badge ok as-toggle">3 prop types</label>
+        <label for="c-6-design-system-button-info" class="badge info as-toggle">1 info</label>
+        <label for="c-6-design-system-button-stories" class="badge ok as-toggle">7 stories</label>
         
         
       </div>
@@ -1257,11 +1469,11 @@ variant?: &#39;primary&#39; | &#39;success&#39; | &#39;warning&#39; | &#39;error
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-5-design-system-button-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-5-design-system-button-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-6-design-system-button-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-6-design-system-button-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-5-design-system-button-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-6-design-system-button-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -1278,11 +1490,13 @@ variant?: &#39;primary&#39; | &#39;success&#39; | &#39;warning&#39; | &#39;error
           <div class="note ok">
             <div class="row">
               <span class="ex-name">Prop types <small>(react-docgen)</small></span>
-              <span class="badge ok">2 prop types</span>
+              <span class="badge ok">3 prop types</span>
             </div>
             <pre><code>Component: src/components/ds/button.tsx::DsButton</code></pre>
             <pre><code>Props:</code></pre>
-            <pre><code>size?: &#39;sm&#39; | &#39;md&#39; | &#39;lg&#39; = &#39;md&#39;
+            <pre><code>color?: string
+
+size?: &#39;sm&#39; | &#39;md&#39; | &#39;lg&#39; = &#39;md&#39;
 
 variant?: &#39;primary&#39; | &#39;secondary&#39; | &#39;outline&#39; | &#39;ghost&#39; = &#39;primary&#39;</code></pre>
           </div>
@@ -1308,6 +1522,15 @@ variant?: &#39;primary&#39; | &#39;secondary&#39; | &#39;outline&#39; | &#39;gho
               
               
               <pre><code>const Primary = () =&gt; &lt;DsButton variant=&quot;primary&quot;&gt;Primary&lt;/DsButton&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Custom Color</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const CustomColor = () =&gt; &lt;DsButton variant=&quot;primary&quot; color=&quot;#10B981&quot;&gt;Emerald&lt;/DsButton&gt;;</code></pre>
             </div>
             <div class="note ok">
               <div class="row">
@@ -1384,9 +1607,9 @@ variant?: &#39;primary&#39; | &#39;secondary&#39; | &#39;outline&#39; | &#39;gho
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsCard</h2>
       <div class="badges">
-        <label for="c-6-design-system-card-props" class="badge ok as-toggle">3 prop types</label>
-        <label for="c-6-design-system-card-info" class="badge info as-toggle">1 info</label>
-        <label for="c-6-design-system-card-stories" class="badge ok as-toggle">2 stories</label>
+        <label for="c-7-design-system-card-props" class="badge ok as-toggle">3 prop types</label>
+        <label for="c-7-design-system-card-info" class="badge info as-toggle">1 info</label>
+        <label for="c-7-design-system-card-stories" class="badge ok as-toggle">2 stories</label>
         
         
       </div>
@@ -1399,11 +1622,11 @@ variant?: &#39;primary&#39; | &#39;secondary&#39; | &#39;outline&#39; | &#39;gho
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-6-design-system-card-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-6-design-system-card-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-7-design-system-card-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-7-design-system-card-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-6-design-system-card-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-7-design-system-card-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -1484,14 +1707,159 @@ padding?: &#39;sm&#39; | &#39;md&#39; | &#39;lg&#39; = &#39;md&#39;</code></pre>
   no-story-error
   no-doc-error"
   role="listitem"
+  aria-label="DsCheckbox">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> DsCheckbox</h2>
+      <div class="badges">
+        <label for="c-8-design-system-checkbox-props" class="badge ok as-toggle">2 prop types</label>
+        <label for="c-8-design-system-checkbox-info" class="badge info as-toggle">1 info</label>
+        <label for="c-8-design-system-checkbox-stories" class="badge ok as-toggle">7 stories</label>
+        
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/components/ds/checkbox.stories.tsx">design-system-checkbox · ./src/components/ds/checkbox.stories.tsx</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="c-8-design-system-checkbox-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-8-design-system-checkbox-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  
+  <input id="c-8-design-system-checkbox-props" class="tg tg-props" type="checkbox" hidden />
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+        <div class="panel panel-props">
+          <div class="note ok">
+            <div class="row">
+              <span class="ex-name">Prop types <small>(react-docgen)</small></span>
+              <span class="badge ok">2 prop types</span>
+            </div>
+            <pre><code>Component: src/components/ds/checkbox.tsx::DsCheckbox</code></pre>
+            <pre><code>Props:</code></pre>
+            <pre><code>color?: string
+
+label?: string</code></pre>
+          </div>
+        </div>
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { DsCheckbox } from "027apps";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Default</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Default = () =&gt; &lt;DsCheckbox label=&quot;Option&quot; /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Checked</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Checked = () =&gt; &lt;DsCheckbox label=&quot;Selected&quot; checked /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Disabled</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Disabled = () =&gt; &lt;DsCheckbox label=&quot;Disabled&quot; disabled /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Disabled Checked</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const DisabledChecked = () =&gt; &lt;DsCheckbox label=&quot;Disabled checked&quot; disabled checked /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Without Label</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const WithoutLabel = () =&gt; &lt;DsCheckbox /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Custom Color</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const CustomColor = () =&gt; &lt;DsCheckbox label=&quot;Emerald&quot; color=&quot;#10B981&quot; checked /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">All States</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const AllStates = () =&gt; (
+  &lt;div style={{ display: &#39;flex&#39;, flexDirection: &#39;column&#39;, gap: 12 }}&gt;
+    &lt;DsCheckbox label=&quot;Unchecked&quot; /&gt;
+    &lt;DsCheckbox label=&quot;Checked&quot; checked /&gt;
+    &lt;DsCheckbox label=&quot;Disabled&quot; disabled /&gt;
+    &lt;DsCheckbox label=&quot;Disabled checked&quot; disabled checked /&gt;
+  &lt;/div&gt;
+);</code></pre>
+            </div>
+        </div>
+    
+    
+  </div>
+</article>
+<article
+  class="card 
+  no-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
   aria-label="DsEmptyState">
   <div class="head">
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsEmptyState</h2>
       <div class="badges">
-        <label for="c-7-design-system-empty-state-props" class="badge ok as-toggle">4 prop types</label>
-        <label for="c-7-design-system-empty-state-info" class="badge info as-toggle">1 info</label>
-        <label for="c-7-design-system-empty-state-stories" class="badge ok as-toggle">2 stories</label>
+        <label for="c-9-design-system-empty-state-props" class="badge ok as-toggle">4 prop types</label>
+        <label for="c-9-design-system-empty-state-info" class="badge info as-toggle">1 info</label>
+        <label for="c-9-design-system-empty-state-stories" class="badge ok as-toggle">2 stories</label>
         
         
       </div>
@@ -1504,11 +1872,11 @@ padding?: &#39;sm&#39; | &#39;md&#39; | &#39;lg&#39; = &#39;md&#39;</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-7-design-system-empty-state-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-7-design-system-empty-state-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-9-design-system-empty-state-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-9-design-system-empty-state-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-7-design-system-empty-state-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-9-design-system-empty-state-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -1593,9 +1961,9 @@ title: string</code></pre>
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsInput</h2>
       <div class="badges">
-        <label for="c-8-design-system-input-props" class="badge ok as-toggle">2 prop types</label>
-        <label for="c-8-design-system-input-info" class="badge info as-toggle">1 info</label>
-        <label for="c-8-design-system-input-stories" class="badge ok as-toggle">5 stories</label>
+        <label for="c-10-design-system-input-props" class="badge ok as-toggle">2 prop types</label>
+        <label for="c-10-design-system-input-info" class="badge info as-toggle">1 info</label>
+        <label for="c-10-design-system-input-stories" class="badge ok as-toggle">5 stories</label>
         
         
       </div>
@@ -1608,11 +1976,11 @@ title: string</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-8-design-system-input-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-8-design-system-input-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-10-design-system-input-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-10-design-system-input-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-8-design-system-input-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-10-design-system-input-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -1713,9 +2081,9 @@ label?: string</code></pre>
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsModal</h2>
       <div class="badges">
-        <label for="c-9-design-system-modal-props" class="badge ok as-toggle">5 prop types</label>
-        <label for="c-9-design-system-modal-info" class="badge info as-toggle">1 info</label>
-        <label for="c-9-design-system-modal-stories" class="badge ok as-toggle">1 story</label>
+        <label for="c-11-design-system-modal-props" class="badge ok as-toggle">5 prop types</label>
+        <label for="c-11-design-system-modal-info" class="badge info as-toggle">1 info</label>
+        <label for="c-11-design-system-modal-stories" class="badge ok as-toggle">1 story</label>
         
         
       </div>
@@ -1728,11 +2096,11 @@ label?: string</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-9-design-system-modal-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-9-design-system-modal-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-11-design-system-modal-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-11-design-system-modal-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-9-design-system-modal-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-11-design-system-modal-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -1819,9 +2187,9 @@ title?: string</code></pre>
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsPagination</h2>
       <div class="badges">
-        <label for="c-10-design-system-pagination-props" class="badge ok as-toggle">3 prop types</label>
-        <label for="c-10-design-system-pagination-info" class="badge info as-toggle">1 info</label>
-        <label for="c-10-design-system-pagination-stories" class="badge ok as-toggle">3 stories</label>
+        <label for="c-12-design-system-pagination-props" class="badge ok as-toggle">3 prop types</label>
+        <label for="c-12-design-system-pagination-info" class="badge info as-toggle">1 info</label>
+        <label for="c-12-design-system-pagination-stories" class="badge ok as-toggle">3 stories</label>
         
         
       </div>
@@ -1834,11 +2202,11 @@ title?: string</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-10-design-system-pagination-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-10-design-system-pagination-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-12-design-system-pagination-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-12-design-system-pagination-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-10-design-system-pagination-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-12-design-system-pagination-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -1921,14 +2289,151 @@ totalPages: number</code></pre>
   no-story-error
   no-doc-error"
   role="listitem"
+  aria-label="DsSegmented">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> DsSegmented</h2>
+      <div class="badges">
+        <label for="c-13-design-system-segmented-props" class="badge ok as-toggle">5 prop types</label>
+        <label for="c-13-design-system-segmented-info" class="badge info as-toggle">1 info</label>
+        <label for="c-13-design-system-segmented-stories" class="badge ok as-toggle">3 stories</label>
+        
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/components/ds/segmented.stories.tsx">design-system-segmented · ./src/components/ds/segmented.stories.tsx</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="c-13-design-system-segmented-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-13-design-system-segmented-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  
+  <input id="c-13-design-system-segmented-props" class="tg tg-props" type="checkbox" hidden />
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+        <div class="panel panel-props">
+          <div class="note ok">
+            <div class="row">
+              <span class="ex-name">Prop types <small>(react-docgen)</small></span>
+              <span class="badge ok">5 prop types</span>
+            </div>
+            <pre><code>Component: src/components/ds/segmented.tsx::DsSegmented</code></pre>
+            <pre><code>Props:</code></pre>
+            <pre><code>color?: string = &#39;#10B981&#39;
+
+fullWidth?: boolean
+
+onChange: (value: T) =&gt; void
+
+options: Option&lt;T&gt;[]
+
+value: T</code></pre>
+          </div>
+        </div>
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { DsSegmented } from "027apps";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Default</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Default = () =&gt; {
+  const [val, setVal] = useState(&#39;expenses&#39;)
+  return &lt;DsSegmented options={defaultOptions} value={val} onChange={setVal} /&gt;
+};</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">With Color</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const WithColor = () =&gt; {
+  const [val, setVal] = useState(&#39;a&#39;)
+  return (
+    &lt;DsSegmented
+      options={[
+        { value: &#39;a&#39;, label: &#39;Option A&#39; },
+        { value: &#39;b&#39;, label: &#39;Option B&#39; },
+      ]}
+      value={val}
+      onChange={setVal}
+      color=&quot;#8B5CF6&quot;
+    /&gt;
+  )
+};</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Three Options</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const ThreeOptions = () =&gt; {
+  const [val, setVal] = useState(&#39;middle&#39;)
+  return (
+    &lt;DsSegmented
+      options={[
+        { value: &#39;left&#39;, label: &#39;Left&#39; },
+        { value: &#39;middle&#39;, label: &#39;Middle&#39; },
+        { value: &#39;right&#39;, label: &#39;Right&#39; },
+      ]}
+      value={val}
+      onChange={setVal}
+    /&gt;
+  )
+};</code></pre>
+            </div>
+        </div>
+    
+    
+  </div>
+</article>
+<article
+  class="card 
+  no-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
   aria-label="DsSelect">
   <div class="head">
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsSelect</h2>
       <div class="badges">
-        <label for="c-11-design-system-select-props" class="badge ok as-toggle">5 prop types</label>
-        <label for="c-11-design-system-select-info" class="badge info as-toggle">1 info</label>
-        <label for="c-11-design-system-select-stories" class="badge ok as-toggle">2 stories</label>
+        <label for="c-14-design-system-select-props" class="badge ok as-toggle">5 prop types</label>
+        <label for="c-14-design-system-select-info" class="badge info as-toggle">1 info</label>
+        <label for="c-14-design-system-select-stories" class="badge ok as-toggle">2 stories</label>
         
         
       </div>
@@ -1941,11 +2446,11 @@ totalPages: number</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-11-design-system-select-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-11-design-system-select-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-14-design-system-select-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-14-design-system-select-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-11-design-system-select-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-14-design-system-select-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -2028,9 +2533,9 @@ value?: string</code></pre>
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsSkeleton</h2>
       <div class="badges">
-        <label for="c-12-design-system-skeleton-props" class="badge ok as-toggle">4 prop types</label>
-        <label for="c-12-design-system-skeleton-info" class="badge info as-toggle">1 info</label>
-        <label for="c-12-design-system-skeleton-stories" class="badge ok as-toggle">3 stories</label>
+        <label for="c-15-design-system-skeleton-props" class="badge ok as-toggle">4 prop types</label>
+        <label for="c-15-design-system-skeleton-info" class="badge info as-toggle">1 info</label>
+        <label for="c-15-design-system-skeleton-stories" class="badge ok as-toggle">3 stories</label>
         
         
       </div>
@@ -2043,11 +2548,11 @@ value?: string</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-12-design-system-skeleton-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-12-design-system-skeleton-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-15-design-system-skeleton-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-15-design-system-skeleton-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-12-design-system-skeleton-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-15-design-system-skeleton-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -2147,9 +2652,9 @@ width?: string = &#39;100%&#39;</code></pre>
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsTable</h2>
       <div class="badges">
-        <label for="c-13-design-system-table-props" class="badge ok as-toggle">3 prop types</label>
-        <label for="c-13-design-system-table-info" class="badge info as-toggle">1 info</label>
-        <label for="c-13-design-system-table-stories" class="badge ok as-toggle">1 story</label>
+        <label for="c-16-design-system-table-props" class="badge ok as-toggle">3 prop types</label>
+        <label for="c-16-design-system-table-info" class="badge info as-toggle">1 info</label>
+        <label for="c-16-design-system-table-stories" class="badge ok as-toggle">1 story</label>
         
         
       </div>
@@ -2162,11 +2667,11 @@ width?: string = &#39;100%&#39;</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-13-design-system-table-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-13-design-system-table-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-16-design-system-table-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-16-design-system-table-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-13-design-system-table-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-16-design-system-table-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -2233,9 +2738,9 @@ onRowClick?: (row: T) =&gt; void</code></pre>
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsTabs</h2>
       <div class="badges">
-        <label for="c-14-design-system-tabs-props" class="badge ok as-toggle">3 prop types</label>
-        <label for="c-14-design-system-tabs-info" class="badge info as-toggle">1 info</label>
-        <label for="c-14-design-system-tabs-stories" class="badge ok as-toggle">1 story</label>
+        <label for="c-17-design-system-tabs-props" class="badge ok as-toggle">3 prop types</label>
+        <label for="c-17-design-system-tabs-info" class="badge info as-toggle">1 info</label>
+        <label for="c-17-design-system-tabs-stories" class="badge ok as-toggle">1 story</label>
         
         
       </div>
@@ -2248,11 +2753,11 @@ onRowClick?: (row: T) =&gt; void</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-14-design-system-tabs-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-14-design-system-tabs-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-17-design-system-tabs-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-17-design-system-tabs-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-14-design-system-tabs-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-17-design-system-tabs-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -2319,9 +2824,9 @@ tabs: Tab[]</code></pre>
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> DsToggle</h2>
       <div class="badges">
-        <label for="c-15-design-system-toggle-props" class="badge ok as-toggle">4 prop types</label>
-        <label for="c-15-design-system-toggle-info" class="badge info as-toggle">1 info</label>
-        <label for="c-15-design-system-toggle-stories" class="badge ok as-toggle">4 stories</label>
+        <label for="c-18-design-system-toggle-props" class="badge ok as-toggle">5 prop types</label>
+        <label for="c-18-design-system-toggle-info" class="badge info as-toggle">1 info</label>
+        <label for="c-18-design-system-toggle-stories" class="badge ok as-toggle">4 stories</label>
         
         
       </div>
@@ -2334,11 +2839,11 @@ tabs: Tab[]</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-15-design-system-toggle-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-15-design-system-toggle-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-18-design-system-toggle-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-18-design-system-toggle-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-15-design-system-toggle-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-18-design-system-toggle-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -2355,11 +2860,13 @@ tabs: Tab[]</code></pre>
           <div class="note ok">
             <div class="row">
               <span class="ex-name">Prop types <small>(react-docgen)</small></span>
-              <span class="badge ok">4 prop types</span>
+              <span class="badge ok">5 prop types</span>
             </div>
             <pre><code>Component: src/components/ds/toggle.tsx::DsToggle</code></pre>
             <pre><code>Props:</code></pre>
             <pre><code>checked?: boolean
+
+color?: string
 
 disabled?: boolean
 
@@ -2432,19 +2939,19 @@ onChange?: (checked: boolean) =&gt; void</code></pre>
   no-story-error
   no-doc-error"
   role="listitem"
-  aria-label="Header">
+  aria-label="GroupInfoDrawer">
   <div class="head">
     <div class="title">
-      <h2><span class="status-dot dot-ok"></span> Header</h2>
+      <h2><span class="status-dot dot-ok"></span> GroupInfoDrawer</h2>
       <div class="badges">
-        <label for="c-16-example-header-props" class="badge ok as-toggle">4 prop types</label>
-        <label for="c-16-example-header-info" class="badge info as-toggle">1 info</label>
-        <label for="c-16-example-header-stories" class="badge ok as-toggle">2 stories</label>
+        <label for="c-19-components-group-info-drawer-props" class="badge ok as-toggle">6 prop types</label>
+        <label for="c-19-components-group-info-drawer-info" class="badge info as-toggle">1 info</label>
+        <label for="c-19-components-group-info-drawer-stories" class="badge ok as-toggle">3 stories</label>
         
         
       </div>
     </div>
-    <div class="meta" title="./src/stories/Header.stories.ts">example-header · ./src/stories/Header.stories.ts</div>
+    <div class="meta" title="./src/components/group-info-drawer.stories.tsx">components-group-info-drawer · ./src/components/group-info-drawer.stories.tsx</div>
     
     
     
@@ -2452,11 +2959,11 @@ onChange?: (checked: boolean) =&gt; void</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-16-example-header-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-16-example-header-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-19-components-group-info-drawer-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-19-components-group-info-drawer-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-16-example-header-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-19-components-group-info-drawer-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -2473,19 +2980,21 @@ onChange?: (checked: boolean) =&gt; void</code></pre>
           <div class="note ok">
             <div class="row">
               <span class="ex-name">Prop types <small>(react-docgen)</small></span>
-              <span class="badge ok">4 prop types</span>
+              <span class="badge ok">6 prop types</span>
             </div>
-            <pre><code>Component: src/stories/Header.tsx::Header</code></pre>
+            <pre><code>Component: src/components/group-info-drawer.tsx::GroupInfoDrawer</code></pre>
             <pre><code>Props:</code></pre>
-            <pre><code>onCreateAccount?: () =&gt; void
+            <pre><code>apps: AppInfo[]
 
-onLogin?: () =&gt; void
+groupName: string
 
-onLogout?: () =&gt; void
+groupSlug: string
 
-user?: {
-  name: string;
-}</code></pre>
+isOpen: boolean
+
+members: MemberInfo[]
+
+onClose: () =&gt; void</code></pre>
           </div>
         </div>
     
@@ -2497,33 +3006,134 @@ user?: {
                 <div class="row">
                   <span class="ex-name">Imports</span>
                 </div>
-                <pre><code>import { Header } from "027apps";</code></pre>
+                <pre><code>import { GroupInfoDrawer } from "027apps";</code></pre>
               </div>
           
           
             <div class="note ok">
               <div class="row">
-                <span class="ex-name">Logged In</span>
+                <span class="ex-name">Open</span>
                 <span class="badge ok">story ok</span>
               </div>
               
               
-              <pre><code>const LoggedIn = () =&gt; &lt;Header
-    onLogin={fn()}
-    onLogout={fn()}
-    onCreateAccount={fn()}
-    user={{
-      name: &#39;Jane Doe&#39;,
-    }} /&gt;;</code></pre>
+              <pre><code>const Open = () =&gt; &lt;GroupInfoDrawer
+    isOpen
+    onClose={() =&gt; {}}
+    groupName=&quot;Family&quot;
+    groupSlug=&quot;family&quot;
+    members={mockMembers}
+    apps={mockApps} /&gt;;</code></pre>
             </div>
             <div class="note ok">
               <div class="row">
-                <span class="ex-name">Logged Out</span>
+                <span class="ex-name">Closed</span>
                 <span class="badge ok">story ok</span>
               </div>
               
               
-              <pre><code>const LoggedOut = () =&gt; &lt;Header onLogin={fn()} onLogout={fn()} onCreateAccount={fn()} /&gt;;</code></pre>
+              <pre><code>const Closed = () =&gt; &lt;GroupInfoDrawer
+    isOpen={false}
+    onClose={() =&gt; {}}
+    groupName=&quot;Family&quot;
+    groupSlug=&quot;family&quot;
+    members={mockMembers}
+    apps={mockApps} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Empty Members And Apps</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const EmptyMembersAndApps = () =&gt; &lt;GroupInfoDrawer
+    isOpen
+    onClose={() =&gt; {}}
+    groupName=&quot;Solo&quot;
+    groupSlug=&quot;solo&quot;
+    members={[]}
+    apps={[]} /&gt;;</code></pre>
+            </div>
+        </div>
+    
+    
+  </div>
+</article>
+<article
+  class="card 
+  no-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
+  aria-label="HamburgerButton">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> HamburgerButton</h2>
+      <div class="badges">
+        
+        <label for="c-20-components-admin-hamburger-button-info" class="badge info as-toggle">1 info</label>
+        <label for="c-20-components-admin-hamburger-button-stories" class="badge ok as-toggle">2 stories</label>
+        
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/components/admin-hamburger-button.stories.tsx">components-admin-hamburger-button · ./src/components/admin-hamburger-button.stories.tsx</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="c-20-components-admin-hamburger-button-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-20-components-admin-hamburger-button-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  
+  
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { AdminMobileProvider, HamburgerButton } from "027apps";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Default</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Default = () =&gt; &lt;HamburgerButton /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">With Aria Label</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const WithAriaLabel = () =&gt; &lt;HamburgerButton /&gt;;</code></pre>
             </div>
         </div>
     
@@ -2542,9 +3152,9 @@ user?: {
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> IdeaList</h2>
       <div class="badges">
-        <label for="c-17-composite-idealist-props" class="badge ok as-toggle">3 prop types</label>
-        <label for="c-17-composite-idealist-info" class="badge info as-toggle">1 info</label>
-        <label for="c-17-composite-idealist-stories" class="badge ok as-toggle">2 stories</label>
+        <label for="c-21-composite-idealist-props" class="badge ok as-toggle">3 prop types</label>
+        <label for="c-21-composite-idealist-info" class="badge info as-toggle">1 info</label>
+        <label for="c-21-composite-idealist-stories" class="badge ok as-toggle">2 stories</label>
         
         
       </div>
@@ -2557,11 +3167,11 @@ user?: {
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-17-composite-idealist-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-17-composite-idealist-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-21-composite-idealist-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-21-composite-idealist-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-17-composite-idealist-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-21-composite-idealist-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -2632,94 +3242,14 @@ title?: string = &#39;Inspiración&#39;</code></pre>
   no-story-error
   no-doc-error"
   role="listitem"
-  aria-label="Page">
-  <div class="head">
-    <div class="title">
-      <h2><span class="status-dot dot-ok"></span> Page</h2>
-      <div class="badges">
-        
-        <label for="c-18-example-page-info" class="badge info as-toggle">1 info</label>
-        <label for="c-18-example-page-stories" class="badge ok as-toggle">2 stories</label>
-        
-        
-      </div>
-    </div>
-    <div class="meta" title="./src/stories/Page.stories.ts">example-page · ./src/stories/Page.stories.ts</div>
-    
-    
-    
-  </div>
-
-  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
-  
-  <input id="c-18-example-page-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-18-example-page-stories" class="tg tg-stories" type="checkbox" hidden />
-  
-  
-  
-
-  <div class="panels">
-    
-    
-        <div class="panel panel-info">
-          
-    <div class="note info">
-      <div class="note-title">Info</div>
-      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
-    </div>
-        </div>
-    
-    
-        <div class="panel panel-stories">
-          
-          
-          
-          <div class="note ok">
-                <div class="row">
-                  <span class="ex-name">Imports</span>
-                </div>
-                <pre><code>import { Page } from "027apps";</code></pre>
-              </div>
-          
-          
-            <div class="note ok">
-              <div class="row">
-                <span class="ex-name">Logged Out</span>
-                <span class="badge ok">story ok</span>
-              </div>
-              
-              
-              <pre><code>const LoggedOut = () =&gt; &lt;Page /&gt;;</code></pre>
-            </div>
-            <div class="note ok">
-              <div class="row">
-                <span class="ex-name">Logged In</span>
-                <span class="badge ok">story ok</span>
-              </div>
-              
-              
-              <pre><code>const LoggedIn = () =&gt; &lt;Page /&gt;;</code></pre>
-            </div>
-        </div>
-    
-    
-  </div>
-</article>
-<article
-  class="card 
-  no-error 
-  has-info 
-  no-story-error
-  no-doc-error"
-  role="listitem"
   aria-label="StatCard">
   <div class="head">
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> StatCard</h2>
       <div class="badges">
-        <label for="c-19-composite-statcard-props" class="badge ok as-toggle">4 prop types</label>
-        <label for="c-19-composite-statcard-info" class="badge info as-toggle">1 info</label>
-        <label for="c-19-composite-statcard-stories" class="badge ok as-toggle">3 stories</label>
+        <label for="c-22-composite-statcard-props" class="badge ok as-toggle">4 prop types</label>
+        <label for="c-22-composite-statcard-info" class="badge info as-toggle">1 info</label>
+        <label for="c-22-composite-statcard-stories" class="badge ok as-toggle">3 stories</label>
         
         
       </div>
@@ -2732,11 +3262,11 @@ title?: string = &#39;Inspiración&#39;</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-19-composite-statcard-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-19-composite-statcard-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-22-composite-statcard-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-22-composite-statcard-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-19-composite-statcard-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-22-composite-statcard-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -2820,6 +3350,271 @@ value: string</code></pre>
 </article>
 <article
   class="card 
+  has-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
+  aria-label="Toast">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-err"></span> Toast</h2>
+      <div class="badges">
+        <label for="c-23-design-system-toast-err" class="badge err as-toggle">prop type error</label>
+        <label for="c-23-design-system-toast-info" class="badge info as-toggle">1 info</label>
+        <label for="c-23-design-system-toast-stories" class="badge ok as-toggle">1 story</label>
+        
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/components/ds/toast.stories.tsx">design-system-toast · ./src/components/ds/toast.stories.tsx</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  <input id="c-23-design-system-toast-err" class="tg tg-err" type="checkbox" hidden />
+  <input id="c-23-design-system-toast-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-23-design-system-toast-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  
+  
+
+  <div class="panels">
+    
+        <div class="panel panel-err">
+          
+    <div class="note err">
+      <div class="note-title">Prop type error</div>
+      <div class="note-body"><pre><code>We could not detect the component from your story file. Specify meta.component.
+  4 | import { Toaster } from &#39;@/components/ui/sonner&#39;
+  5 |
+&gt; 6 | const meta: Meta = {
+    | ^
+  7 |   title: &#39;Design System/Toast&#39;,
+  8 |   tags: [&#39;autodocs&#39;],
+  9 |   parameters: {
+
+./src/components/ds/toast.stories.tsx:
+import type { Meta, StoryObj } from &#39;@storybook/react&#39;
+import { dsToast } from &#39;./toast&#39;
+import { DsButton } from &#39;./button&#39;
+import { Toaster } from &#39;@/components/ui/sonner&#39;
+
+const meta: Meta = {
+  title: &#39;Design System/Toast&#39;,
+  tags: [&#39;autodocs&#39;],
+  parameters: {
+    docs: {
+      description: {
+        component: &#39;`dsToast` es una API funcional que envuelve sonner. Úsala así:\n\n```tsx\nimport { dsToast } from &quot;@/components/ds/toast&quot;\n\ndsToast.success(&quot;Operación completada&quot;)\ndsToast.error(&quot;Algo salió mal&quot;)\ndsToast.info(&quot;Aquí hay información&quot;)\ndsToast.warning(&quot;Cuidado con esto&quot;)\n```&#39;,
+      },
+    },
+  },
+  decorators: [
+    (Story) =&gt; (
+      &lt;&gt;
+        &lt;Toaster /&gt;
+        &lt;Story /&gt;
+      &lt;/&gt;
+    ),
+  ],
+}
+
+export default meta
+
+export const Variants: StoryObj = {
+  render: () =&gt; (
+    &lt;div style={{ display: &#39;flex&#39;, gap: 8, flexWrap: &#39;wrap&#39; }}&gt;
+      &lt;DsButton onClick={() =&gt; dsToast.success(&#39;Operación completada&#39;)}&gt;Success&lt;/DsButton&gt;
+      &lt;DsButton onClick={() =&gt; dsToast.error(&#39;Algo salió mal&#39;)}&gt;Error&lt;/DsButton&gt;
+      &lt;DsButton onClick={() =&gt; dsToast.info(&#39;Información importante&#39;)}&gt;Info&lt;/DsButton&gt;
+      &lt;DsButton onClick={() =&gt; dsToast.warning(&#39;Cuidado&#39;)}&gt;Warning&lt;/DsButton&gt;
+    &lt;/div&gt;
+  ),
+}
+</code></pre></div>
+    </div>
+        </div>
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { DsButton, Toaster } from "027apps";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Variants</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Variants = () =&gt; (
+  &lt;div style={{ display: &#39;flex&#39;, gap: 8, flexWrap: &#39;wrap&#39; }}&gt;
+    &lt;DsButton onClick={() =&gt; dsToast.success(&#39;Operación completada&#39;)}&gt;Success&lt;/DsButton&gt;
+    &lt;DsButton onClick={() =&gt; dsToast.error(&#39;Algo salió mal&#39;)}&gt;Error&lt;/DsButton&gt;
+    &lt;DsButton onClick={() =&gt; dsToast.info(&#39;Información importante&#39;)}&gt;Info&lt;/DsButton&gt;
+    &lt;DsButton onClick={() =&gt; dsToast.warning(&#39;Cuidado&#39;)}&gt;Warning&lt;/DsButton&gt;
+  &lt;/div&gt;
+);</code></pre>
+            </div>
+        </div>
+    
+    
+  </div>
+</article>
+<article
+  class="card 
+  no-error 
+  has-info 
+  no-story-error
+  no-doc-error"
+  role="listitem"
+  aria-label="TodoItem">
+  <div class="head">
+    <div class="title">
+      <h2><span class="status-dot dot-ok"></span> TodoItem</h2>
+      <div class="badges">
+        <label for="c-24-components-composite-todo-item-props" class="badge ok as-toggle">4 prop types</label>
+        <label for="c-24-components-composite-todo-item-info" class="badge info as-toggle">1 info</label>
+        <label for="c-24-components-composite-todo-item-stories" class="badge ok as-toggle">6 stories</label>
+        
+        
+      </div>
+    </div>
+    <div class="meta" title="./src/components/composite/todo-item.stories.tsx">components-composite-todo-item · ./src/components/composite/todo-item.stories.tsx</div>
+    
+    
+    
+  </div>
+
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  
+  <input id="c-24-components-composite-todo-item-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-24-components-composite-todo-item-stories" class="tg tg-stories" type="checkbox" hidden />
+  
+  
+  <input id="c-24-components-composite-todo-item-props" class="tg tg-props" type="checkbox" hidden />
+
+  <div class="panels">
+    
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+        <div class="panel panel-props">
+          <div class="note ok">
+            <div class="row">
+              <span class="ex-name">Prop types <small>(react-docgen)</small></span>
+              <span class="badge ok">4 prop types</span>
+            </div>
+            <pre><code>Component: src/components/composite/todo-item.tsx::TodoItem</code></pre>
+            <pre><code>Props:</code></pre>
+            <pre><code>item: TodoItemData
+
+onClick?: (id: string) =&gt; void
+
+onToggle?: (id: string) =&gt; void
+
+style?: CSSProperties</code></pre>
+          </div>
+        </div>
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { TodoItem } from "027apps";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Default</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Default = () =&gt; &lt;TodoItem item={baseItem} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Done</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Done = () =&gt; &lt;TodoItem item={{ ...baseItem, done: true }} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Urgent</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Urgent = () =&gt; &lt;TodoItem item={{ ...baseItem, priority: &#39;urgent&#39;, due: &#39;Hoy&#39; }} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">No Assignee</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const NoAssignee = () =&gt; &lt;TodoItem item={{ ...baseItem, assignee: &#39;&#39;, due: &#39;Next week&#39; }} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">With Toggle</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const WithToggle = () =&gt; &lt;TodoItem item={baseItem} onToggle={() =&gt; {}} /&gt;;</code></pre>
+            </div>
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">With Click</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const WithClick = () =&gt; &lt;TodoItem item={baseItem} onClick={() =&gt; {}} /&gt;;</code></pre>
+            </div>
+        </div>
+    
+    
+  </div>
+</article>
+<article
+  class="card 
   no-error 
   has-info 
   no-story-error
@@ -2830,9 +3625,9 @@ value: string</code></pre>
     <div class="title">
       <h2><span class="status-dot dot-ok"></span> TodoList</h2>
       <div class="badges">
-        <label for="c-20-composite-todolist-props" class="badge ok as-toggle">6 prop types</label>
-        <label for="c-20-composite-todolist-info" class="badge info as-toggle">1 info</label>
-        <label for="c-20-composite-todolist-stories" class="badge ok as-toggle">2 stories</label>
+        <label for="c-25-composite-todolist-props" class="badge ok as-toggle">6 prop types</label>
+        <label for="c-25-composite-todolist-info" class="badge info as-toggle">1 info</label>
+        <label for="c-25-composite-todolist-stories" class="badge ok as-toggle">2 stories</label>
         
         
       </div>
@@ -2845,11 +3640,11 @@ value: string</code></pre>
 
   <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
   
-  <input id="c-20-composite-todolist-info" class="tg tg-info" type="checkbox" hidden />
-  <input id="c-20-composite-todolist-stories" class="tg tg-stories" type="checkbox" hidden />
+  <input id="c-25-composite-todolist-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-25-composite-todolist-stories" class="tg tg-stories" type="checkbox" hidden />
   
   
-  <input id="c-20-composite-todolist-props" class="tg tg-props" type="checkbox" hidden />
+  <input id="c-25-composite-todolist-props" class="tg tg-props" type="checkbox" hidden />
 
   <div class="panels">
     
@@ -2931,487 +3726,150 @@ title?: string = &#39;Todo&#39;</code></pre>
   </div>
 </article>
     </div>
-    
-    <h2 class="section-title">Unattached Docs</h2>
-    <div class="grid" role="list">
-      
+    <div class="error-groups" role="region" aria-label="Prop type error groups">
+        <section class="group">
+          <input id="no-component-found-toggle" class="group-tg" type="checkbox" hidden />
+          <label for="no-component-found-toggle" class="group-header">
+            <span class="caret">▸</span>
+            <span class="group-title">No component found</span>
+            <span class="group-count">1</span>
+          </label>
+          <div class="group-cards">
 <article
-  class="card is-doc no-doc-error"
+  class="card 
+  has-error 
+  has-info 
+  no-story-error
+  no-doc-error"
   role="listitem"
-  aria-label="Docs">
+  aria-label="Toast">
   <div class="head">
     <div class="title">
-      <h2><span class="status-dot dot-ok"></span> Configure your project</h2>
+      <h2><span class="status-dot dot-err"></span> Toast</h2>
       <div class="badges">
+        <label for="c-error-0-design-system-toast-err" class="badge err as-toggle">prop type error</label>
+        <label for="c-error-0-design-system-toast-info" class="badge info as-toggle">1 info</label>
+        <label for="c-error-0-design-system-toast-stories" class="badge ok as-toggle">1 story</label>
         
-        <label for="doc-0-configure-your-project-docs-content" class="badge ok as-toggle">view content</label>
+        
       </div>
     </div>
-    <div class="meta" title="./src/stories/Configure.mdx">configure-your-project--docs · ./src/stories/Configure.mdx</div>
+    <div class="meta" title="./src/components/ds/toast.stories.tsx">design-system-toast · ./src/components/ds/toast.stories.tsx</div>
+    
+    
     
   </div>
 
-  <!-- Hidden toggles must be siblings BEFORE .panels -->
+  <!-- ⬇️ Hidden toggles must be siblings BEFORE .panels -->
+  <input id="c-error-0-design-system-toast-err" class="tg tg-err" type="checkbox" hidden />
+  <input id="c-error-0-design-system-toast-info" class="tg tg-info" type="checkbox" hidden />
+  <input id="c-error-0-design-system-toast-stories" class="tg tg-stories" type="checkbox" hidden />
   
-  <input id="doc-0-configure-your-project-docs-content" class="tg tg-content" type="checkbox" hidden />
+  
+  
 
   <div class="panels">
     
-    
-        <div class="panel panel-content">
-          <div class="mdx-content">
-            <pre><code>import { Meta } from &quot;@storybook/addon-docs/blocks&quot;;
-import Image from &quot;next/image&quot;;
+        <div class="panel panel-err">
+          
+    <div class="note err">
+      <div class="note-title">Prop type error</div>
+      <div class="note-body"><pre><code>We could not detect the component from your story file. Specify meta.component.
+  4 | import { Toaster } from &#39;@/components/ui/sonner&#39;
+  5 |
+&gt; 6 | const meta: Meta = {
+    | ^
+  7 |   title: &#39;Design System/Toast&#39;,
+  8 |   tags: [&#39;autodocs&#39;],
+  9 |   parameters: {
 
-import Github from &quot;./assets/github.svg&quot;;
-import Discord from &quot;./assets/discord.svg&quot;;
-import Youtube from &quot;./assets/youtube.svg&quot;;
-import Tutorials from &quot;./assets/tutorials.svg&quot;;
-import Styling from &quot;./assets/styling.png&quot;;
-import Context from &quot;./assets/context.png&quot;;
-import Assets from &quot;./assets/assets.png&quot;;
-import Docs from &quot;./assets/docs.png&quot;;
-import Share from &quot;./assets/share.png&quot;;
-import FigmaPlugin from &quot;./assets/figma-plugin.png&quot;;
-import Testing from &quot;./assets/testing.png&quot;;
-import Accessibility from &quot;./assets/accessibility.png&quot;;
-import Theming from &quot;./assets/theming.png&quot;;
-import AddonLibrary from &quot;./assets/addon-library.png&quot;;
+./src/components/ds/toast.stories.tsx:
+import type { Meta, StoryObj } from &#39;@storybook/react&#39;
+import { dsToast } from &#39;./toast&#39;
+import { DsButton } from &#39;./button&#39;
+import { Toaster } from &#39;@/components/ui/sonner&#39;
 
-export const RightArrow = () =&gt; &lt;svg 
-    viewBox=&quot;0 0 14 14&quot; 
-    width=&quot;8px&quot; 
-    height=&quot;14px&quot; 
-    style={{ 
-      marginLeft: &#39;4px&#39;,
-      display: &#39;inline-block&#39;,
-      shapeRendering: &#39;inherit&#39;,
-      verticalAlign: &#39;middle&#39;,
-      fill: &#39;currentColor&#39;,
-      &#39;path fill&#39;: &#39;currentColor&#39;
-    }}
-&gt;
-  &lt;path d=&quot;m11.1 7.35-5.5 5.5a.5.5 0 0 1-.7-.7L10.04 7 4.9 1.85a.5.5 0 1 1 .7-.7l5.5 5.5c.2.2.2.5 0 .7Z&quot; /&gt;
-&lt;/svg&gt;
+const meta: Meta = {
+  title: &#39;Design System/Toast&#39;,
+  tags: [&#39;autodocs&#39;],
+  parameters: {
+    docs: {
+      description: {
+        component: &#39;`dsToast` es una API funcional que envuelve sonner. Úsala así:\n\n```tsx\nimport { dsToast } from &quot;@/components/ds/toast&quot;\n\ndsToast.success(&quot;Operación completada&quot;)\ndsToast.error(&quot;Algo salió mal&quot;)\ndsToast.info(&quot;Aquí hay información&quot;)\ndsToast.warning(&quot;Cuidado con esto&quot;)\n```&#39;,
+      },
+    },
+  },
+  decorators: [
+    (Story) =&gt; (
+      &lt;&gt;
+        &lt;Toaster /&gt;
+        &lt;Story /&gt;
+      &lt;/&gt;
+    ),
+  ],
+}
 
-&lt;Meta title=&quot;Configure your project&quot; /&gt;
+export default meta
 
-&lt;div className=&quot;sb-container&quot;&gt;
-  &lt;div className=&#39;sb-section-title&#39;&gt;
-    # Configure your project
-
-    Because Storybook works separately from your app, you&#39;ll need to configure it for your specific stack and setup. Below, explore guides for configuring Storybook with popular frameworks and tools. If you get stuck, learn how you can ask for help from our community.
-  &lt;/div&gt;
-  &lt;div className=&quot;sb-section&quot;&gt;
-    &lt;div className=&quot;sb-section-item&quot;&gt;
-      &lt;Image
-        src={Styling}
-        alt=&quot;A wall of logos representing different styling technologies&quot;
-        width={0}
-        height={0}
-        style={{ width: &#39;100%&#39;, height: &#39;auto&#39; }}
-      /&gt;
-      &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Add styling and CSS&lt;/h4&gt;
-      &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Like with web applications, there are many ways to include CSS within Storybook. Learn more about setting up styling within Storybook.&lt;/p&gt;
-      &lt;a
-        href=&quot;https://storybook.js.org/docs/configure/styling-and-css/?renderer=react&amp;ref=configure&quot;
-        target=&quot;_blank&quot;
-      &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
+export const Variants: StoryObj = {
+  render: () =&gt; (
+    &lt;div style={{ display: &#39;flex&#39;, gap: 8, flexWrap: &#39;wrap&#39; }}&gt;
+      &lt;DsButton onClick={() =&gt; dsToast.success(&#39;Operación completada&#39;)}&gt;Success&lt;/DsButton&gt;
+      &lt;DsButton onClick={() =&gt; dsToast.error(&#39;Algo salió mal&#39;)}&gt;Error&lt;/DsButton&gt;
+      &lt;DsButton onClick={() =&gt; dsToast.info(&#39;Información importante&#39;)}&gt;Info&lt;/DsButton&gt;
+      &lt;DsButton onClick={() =&gt; dsToast.warning(&#39;Cuidado&#39;)}&gt;Warning&lt;/DsButton&gt;
     &lt;/div&gt;
-    &lt;div className=&quot;sb-section-item&quot;&gt;
-      &lt;Image 
-        width={0}
-        height={0}
-        style={{ width: &#39;100%&#39;, height: &#39;auto&#39; }}
-        src={Context}
-        alt=&quot;An abstraction representing the composition of data for a component&quot;
-      /&gt;
-      &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Provide context and mocking&lt;/h4&gt;
-      &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Often when a story doesn&#39;t render, it&#39;s because your component is expecting a specific environment or context (like a theme provider) to be available.&lt;/p&gt;
-      &lt;a
-        href=&quot;https://storybook.js.org/docs/writing-stories/decorators/?renderer=react&amp;ref=configure#context-for-mocking&quot;
-        target=&quot;_blank&quot;
-      &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
-    &lt;/div&gt;
-    &lt;div className=&quot;sb-section-item&quot;&gt;
-      &lt;Image 
-        width={0}
-        height={0}
-        style={{ width: &#39;100%&#39;, height: &#39;auto&#39; }} 
-        src={Assets} 
-        alt=&quot;A representation of typography and image assets&quot; 
-      /&gt;
-      &lt;div&gt;
-        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Load assets and resources&lt;/h4&gt;
-        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;To link static files (like fonts) to your projects and stories, use the
-        `staticDirs` configuration option to specify folders to load when
-        starting Storybook.&lt;/p&gt;
-        &lt;a
-          href=&quot;https://storybook.js.org/docs/configure/images-and-assets/?renderer=react&amp;ref=configure&quot;
-          target=&quot;_blank&quot;
-        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-&lt;div className=&quot;sb-container&quot;&gt;
-  &lt;div className=&#39;sb-section-title&#39;&gt;
-    # Do more with Storybook
-
-    Now that you know the basics, let&#39;s explore other parts of Storybook that will improve your experience. This list is just to get you started. You can customise Storybook in many ways to fit your needs.
-  &lt;/div&gt;
-
-  &lt;div className=&quot;sb-section&quot;&gt;
-    &lt;div className=&quot;sb-features-grid&quot;&gt;
-      &lt;div className=&quot;sb-grid-item&quot;&gt;
-        &lt;Image 
-          width={0}
-          height={0}
-          style={{ width: &#39;100%&#39;, height: &#39;auto&#39; }} 
-          src={Docs} 
-          alt=&quot;A screenshot showing the autodocs tag being set, pointing a docs page being generated&quot; 
-        /&gt;
-        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Autodocs&lt;/h4&gt;
-        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Auto-generate living,
-          interactive reference documentation from your components and stories.&lt;/p&gt;
-        &lt;a
-          href=&quot;https://storybook.js.org/docs/writing-docs/autodocs/?renderer=react&amp;ref=configure&quot;
-          target=&quot;_blank&quot;
-        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
-      &lt;/div&gt;
-      &lt;div className=&quot;sb-grid-item&quot;&gt;
-        &lt;Image 
-          width={0}
-          height={0}
-          style={{ width: &#39;100%&#39;, height: &#39;auto&#39; }} 
-          src={Share} 
-          alt=&quot;A browser window showing a Storybook being published to a chromatic.com URL&quot; 
-        /&gt;
-        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Publish to Chromatic&lt;/h4&gt;
-        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Publish your Storybook to review and collaborate with your entire team.&lt;/p&gt;
-        &lt;a
-          href=&quot;https://storybook.js.org/docs/sharing/publish-storybook/?renderer=react&amp;ref=configure#publish-storybook-with-chromatic&quot;
-          target=&quot;_blank&quot;
-        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
-      &lt;/div&gt;
-      &lt;div className=&quot;sb-grid-item&quot;&gt;
-        &lt;Image 
-          width={0}
-          height={0}
-          style={{ width: &#39;100%&#39;, height: &#39;auto&#39; }} 
-          src={FigmaPlugin} 
-          alt=&quot;Windows showing the Storybook plugin in Figma&quot; 
-        /&gt;
-        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Figma Plugin&lt;/h4&gt;
-        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Embed your stories into Figma to cross-reference the design and live
-          implementation in one place.&lt;/p&gt;
-        &lt;a
-          href=&quot;https://storybook.js.org/docs/sharing/design-integrations/?renderer=react&amp;ref=configure#embed-storybook-in-figma-with-the-plugin&quot;
-          target=&quot;_blank&quot;
-        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
-      &lt;/div&gt;
-      &lt;div className=&quot;sb-grid-item&quot;&gt;
-        &lt;Image 
-          width={0}
-          height={0}
-          style={{ width: &#39;100%&#39;, height: &#39;auto&#39; }} 
-          src={Testing} 
-          alt=&quot;Screenshot of tests passing and failing&quot; 
-        /&gt;
-        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Testing&lt;/h4&gt;
-        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Use stories to test a component in all its variations, no matter how
-          complex.&lt;/p&gt;
-        &lt;a
-          href=&quot;https://storybook.js.org/docs/writing-tests/?renderer=react&amp;ref=configure&quot;
-          target=&quot;_blank&quot;
-        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
-      &lt;/div&gt;
-      &lt;div className=&quot;sb-grid-item&quot;&gt;
-        &lt;Image 
-          width={0}
-          height={0}
-          style={{ width: &#39;100%&#39;, height: &#39;auto&#39; }} 
-          src={Accessibility} 
-          alt=&quot;Screenshot of accessibility tests passing and failing&quot; 
-        /&gt;
-        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Accessibility&lt;/h4&gt;
-        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Automatically test your components for a11y issues as you develop.&lt;/p&gt;
-        &lt;a
-          href=&quot;https://storybook.js.org/docs/writing-tests/accessibility-testing/?renderer=react&amp;ref=configure&quot;
-          target=&quot;_blank&quot;
-        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
-      &lt;/div&gt;
-      &lt;div className=&quot;sb-grid-item&quot;&gt;
-        &lt;Image 
-          width={0}
-          height={0}
-          style={{ width: &#39;100%&#39;, height: &#39;auto&#39; }} 
-          src={Theming} 
-          alt=&quot;Screenshot of Storybook in light and dark mode&quot; 
-        /&gt;
-        &lt;h4 className=&quot;sb-section-item-heading&quot;&gt;Theming&lt;/h4&gt;
-        &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Theme Storybook&#39;s UI to personalize it to your project.&lt;/p&gt;
-        &lt;a
-          href=&quot;https://storybook.js.org/docs/configure/theming/?renderer=react&amp;ref=configure&quot;
-          target=&quot;_blank&quot;
-        &gt;Learn more&lt;RightArrow /&gt;&lt;/a&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-&lt;div className=&#39;sb-addon&#39;&gt;
-  &lt;div className=&#39;sb-addon-text&#39;&gt;
-    &lt;h4&gt;Addons&lt;/h4&gt;
-    &lt;p className=&quot;sb-section-item-paragraph&quot;&gt;Integrate your tools with Storybook to connect workflows.&lt;/p&gt;
-    &lt;a
-        href=&quot;https://storybook.js.org/addons/?ref=configure&quot;
-        target=&quot;_blank&quot;
-      &gt;Discover all addons&lt;RightArrow /&gt;&lt;/a&gt;
-  &lt;/div&gt;
-  &lt;div className=&#39;sb-addon-img&#39;&gt;
-    &lt;Image 
-      width={650}
-      height={347}
-      src={AddonLibrary} 
-      alt=&quot;Integrate your tools with Storybook to connect workflows.&quot; 
-    /&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-
-&lt;div className=&quot;sb-section sb-socials&quot;&gt;
-    &lt;div className=&quot;sb-section-item&quot;&gt;
-      &lt;Image 
-        width={32}
-        height={32}
-        layout=&quot;fixed&quot;
-        src={Github} 
-        alt=&quot;Github logo&quot; 
-        className=&quot;sb-explore-image&quot;
-      /&gt;
-      Join our contributors building the future of UI development.
-
-      &lt;a
-        href=&quot;https://github.com/storybookjs/storybook&quot;
-        target=&quot;_blank&quot;
-      &gt;Star on GitHub&lt;RightArrow /&gt;&lt;/a&gt;
-    &lt;/div&gt;
-    &lt;div className=&quot;sb-section-item&quot;&gt;
-      &lt;Image 
-        width={33}
-        height={32}
-        layout=&quot;fixed&quot;
-        src={Discord} 
-        alt=&quot;Discord logo&quot; 
-        className=&quot;sb-explore-image&quot;
-      /&gt;
-      &lt;div&gt;
-        Get support and chat with frontend developers.
-
-        &lt;a
-          href=&quot;https://discord.gg/storybook&quot;
-          target=&quot;_blank&quot;
-        &gt;Join Discord server&lt;RightArrow /&gt;&lt;/a&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
-    &lt;div className=&quot;sb-section-item&quot;&gt;
-      &lt;Image 
-        width={32}
-        height={32}
-        layout=&quot;fixed&quot;
-        src={Youtube} 
-        alt=&quot;Youtube logo&quot; 
-        className=&quot;sb-explore-image&quot;
-      /&gt;
-      &lt;div&gt;
-        Watch tutorials, feature previews and interviews.
-
-        &lt;a
-          href=&quot;https://www.youtube.com/@chromaticui&quot;
-          target=&quot;_blank&quot;
-        &gt;Watch on YouTube&lt;RightArrow /&gt;&lt;/a&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
-    &lt;div className=&quot;sb-section-item&quot;&gt;
-      &lt;Image 
-        width={33}
-        height={32}
-        layout=&quot;fixed&quot;
-        src={Tutorials} 
-        alt=&quot;A book&quot; 
-        className=&quot;sb-explore-image&quot;
-      /&gt;
-      &lt;p&gt;Follow guided walkthroughs on for key workflows.&lt;/p&gt;
-
-      &lt;a
-          href=&quot;https://storybook.js.org/tutorials/?ref=configure&quot;
-          target=&quot;_blank&quot;
-        &gt;Discover tutorials&lt;RightArrow /&gt;&lt;/a&gt;
-    &lt;/div&gt;
-&lt;/div&gt;
-
-&lt;style&gt;
-  {`
-  .sb-container {
-    margin-bottom: 48px;
-  }
-
-  .sb-section {
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
-  }
-
-  img {
-    object-fit: cover;
-  }
-
-  .sb-section-title {
-    margin-bottom: 32px;
-  }
-
-  .sb-section a:not(h1 a, h2 a, h3 a) {
-    font-size: 14px;
-  }
-
-  .sb-section-item, .sb-grid-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .sb-section-item-heading {
-    padding-top: 20px !important;
-    padding-bottom: 5px !important;
-    margin: 0 !important;
-  }
-  .sb-section-item-paragraph {
-    margin: 0;
-    padding-bottom: 10px;
-  }
-
-  .sb-chevron {
-    margin-left: 5px;
-  }
-
-  .sb-features-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-gap: 32px 20px;
-  }
-
-  .sb-socials {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .sb-socials p {
-    margin-bottom: 10px;
-  }
-
-  .sb-explore-image {
-    max-height: 32px;
-    align-self: flex-start;
-  }
-
-  .sb-addon {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    position: relative;
-    background-color: #EEF3F8;
-    border-radius: 5px;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    background: #EEF3F8;
-    height: 180px;
-    margin-bottom: 48px;
-    overflow: hidden;
-  }
-
-  .sb-addon-text {
-    padding-left: 48px;
-    max-width: 240px;
-  }
-
-  .sb-addon-text h4 {
-    padding-top: 0px;
-  }
-
-  .sb-addon-img {
-    position: absolute;
-    left: 345px;
-    top: 0;
-    height: 100%;
-    width: 200%;
-    overflow: hidden;
-  }
-
-  .sb-addon-img img {
-    width: 650px;
-    transform: rotate(-15deg);
-    margin-left: 40px;
-    margin-top: -72px;
-    box-shadow: 0 0 1px rgba(255, 255, 255, 0);
-    backface-visibility: hidden;
-  }
-
-  @media screen and (max-width: 800px) {
-    .sb-addon-img {
-      left: 300px;
-    }
-  }
-
-  @media screen and (max-width: 600px) {
-    .sb-section {
-      flex-direction: column;
-    }
-
-    .sb-features-grid {
-      grid-template-columns: repeat(1, 1fr);
-    }
-
-    .sb-socials {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .sb-addon {
-      height: 280px;
-      align-items: flex-start;
-      padding-top: 32px;
-      overflow: hidden;
-    }
-
-    .sb-addon-text {
-      padding-left: 24px;
-    }
-
-    .sb-addon-img {
-      right: 0;
-      left: 0;
-      top: 130px;
-      bottom: 0;
-      overflow: hidden;
-      height: auto;
-      width: 124%;
-    }
-
-    .sb-addon-img img {
-      width: 1200px;
-      transform: rotate(-12deg);
-      margin-left: 0;
-      margin-top: 48px;
-      margin-bottom: -40px;
-      margin-left: -24px;
-    }
-  }
-  `}
-&lt;/style&gt;
-</code></pre>
-          </div>
-        </div>
-  </div>
-</article>
+  ),
+}
+</code></pre></div>
     </div>
+        </div>
+    
+        <div class="panel panel-info">
+          
+    <div class="note info">
+      <div class="note-title">Info</div>
+      <div class="note-body">No description found. Write a jsdoc comment such as /** Component description */.</div>
+    </div>
+        </div>
+    
+    
+        <div class="panel panel-stories">
+          
+          
+          
+          <div class="note ok">
+                <div class="row">
+                  <span class="ex-name">Imports</span>
+                </div>
+                <pre><code>import { DsButton, Toaster } from "027apps";</code></pre>
+              </div>
+          
+          
+            <div class="note ok">
+              <div class="row">
+                <span class="ex-name">Variants</span>
+                <span class="badge ok">story ok</span>
+              </div>
+              
+              
+              <pre><code>const Variants = () =&gt; (
+  &lt;div style={{ display: &#39;flex&#39;, gap: 8, flexWrap: &#39;wrap&#39; }}&gt;
+    &lt;DsButton onClick={() =&gt; dsToast.success(&#39;Operación completada&#39;)}&gt;Success&lt;/DsButton&gt;
+    &lt;DsButton onClick={() =&gt; dsToast.error(&#39;Algo salió mal&#39;)}&gt;Error&lt;/DsButton&gt;
+    &lt;DsButton onClick={() =&gt; dsToast.info(&#39;Información importante&#39;)}&gt;Info&lt;/DsButton&gt;
+    &lt;DsButton onClick={() =&gt; dsToast.warning(&#39;Cuidado&#39;)}&gt;Warning&lt;/DsButton&gt;
+  &lt;/div&gt;
+);</code></pre>
+            </div>
+        </div>
+    
+    
+  </div>
+</article></div>
+        </section>
+      </div>
+    
     
   </div>
 </main>

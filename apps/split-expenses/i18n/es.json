@@ -1,0 +1,275 @@
+{
+  "description": "Divide movimientos en grupo con optimización de deudas.",
+  "group": {
+    "list": {
+      "title": "Grupos de movimientos",
+      "empty": "Aún no hay grupos de movimientos",
+      "createFirst": "Crea tu primer grupo de movimientos",
+      "youOwe": "Debes",
+      "youAreOwed": "Te deben",
+      "settled": "Todo liquidado",
+      "totalBalance": "Balance total",
+      "memberCount": "{count, plural, one {# miembro} other {# miembros}}"
+    },
+    "create": {
+      "title": "Nuevo grupo",
+      "editTitle": "Editar grupo",
+      "name": "Nombre del grupo",
+      "emoji": "Icono",
+      "currency": "Moneda",
+      "members": "Miembros",
+      "create": "Crear grupo",
+      "save": "Guardar cambios",
+      "cancel": "Cancelar",
+      "success": "Grupo de movimientos creado",
+      "updated": "Grupo de movimientos actualizado"
+    },
+    "detail": {
+      "tabs": {
+        "expenses": "Movimientos",
+        "balances": "Balances",
+        "members": "Miembros",
+        "stats": "Estadísticas",
+        "import": "Importar",
+        "tags": "Etiquetas",
+        "settings": "Ajustes"
+      },
+      "noGroup": "Grupo de movimientos no encontrado",
+      "memberCount": "{count, plural, one {# miembro} other {# miembros}}"
+    }
+  },
+  "expense": {
+    "list": {
+      "title": "Movimientos",
+      "empty": "Aún no hay movimientos",
+      "addFirst": "Añade tu primer movimiento",
+      "noResults": "No hay movimientos que coincidan con tus filtros",
+      "filters": "Filtros",
+      "allTags": "Todas las etiquetas",
+      "allUsers": "Todos los usuarios",
+      "my": "Mis movimientos",
+      "all": "Todos",
+      "clearFilters": "Limpiar filtros",
+      "settled": "Mostrar liquidados",
+      "typeExpenses": "Gastos",
+      "typeTransfers": "Transferencias",
+      "typeAll": "Todo"
+    },
+    "create": {
+      "title": "Nuevo movimiento",
+      "editTitle": "Editar movimiento",
+      "concept": "Concepto",
+      "amount": "Importe",
+      "paidBy": "Pagado por",
+      "participants": "Participantes",
+      "tag": "Etiqueta (opcional)",
+      "noTag": "Sin etiqueta",
+      "equalSplit": "Reparto igual ({amount} cada uno)",
+      "create": "Añadir movimiento",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "success": "Movimiento añadido",
+      "updated": "Movimiento actualizado",
+      "deleted": "Movimiento eliminado",
+      "cantEditSettled": "No se puede editar un movimiento liquidado",
+      "needParticipants": "Selecciona al menos un participante"
+    },
+    "item": {
+      "paidBy": "pagado",
+      "you": "Tú",
+      "settled": "Liquidado",
+      "lent": "Presté",
+      "owe": "Debo",
+      "total": "total"
+    },
+    "delete": {
+      "title": "Eliminar movimiento",
+      "confirm": "¿Eliminar \"{title}\"?",
+      "deleting": "Eliminando..."
+    }
+  },
+  "balance": {
+    "title": "Balances",
+    "noExpenses": "Añade movimientos para ver los balances",
+    "summary": "Resumen",
+    "transfers": "Transferencias propuestas",
+    "noTransfers": "¡Todo liquidado!",
+    "settle": "Liquidar",
+    "settleAll": "Liquidar todo",
+    "selectExpenses": "Selecciona los gastos a liquidar",
+    "confirmTitle": "Confirmar liquidación",
+    "confirmMessage": "Esto marcará {count} gasto(s) como liquidado(s) y creará las siguientes transferencias:",
+    "confirm": "Confirmar liquidación",
+    "cancelled": "Liquidación cancelada",
+    "success": "Gastos liquidados correctamente",
+    "youOwe": "Debes",
+    "youAreOwed": "Te deben",
+    "perPerson": "Por persona",
+    "pays": "paga",
+    "owe": "Debes",
+    "isOwed": "Te deben",
+    "history": "Historial de liquidaciones",
+    "settledOn": "Liquidado el",
+    "by": "por",
+    "noSettlements": "No hay liquidaciones aún",
+    "expenseCount": "{count, plural, one {# gasto} other {# gastos}}",
+    "transferCount": "{count, plural, one {# transferencia} other {# transferencias}}",
+    "recordPayment": "Registrar como pagado",
+    "paymentRecorded": "Pago registrado",
+    "settleSuccess": "Se han creado {count} transferencias."
+  },
+  "member": {
+    "list": {
+      "title": "Miembros",
+      "add": "Añadir miembro",
+      "remove": "Eliminar",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "makeActive": "Activar",
+      "makeInactive": "Desactivar",
+      "owes": "debe",
+      "isOwed": "le deben",
+      "settled": "Liquidado"
+    },
+    "addModal": {
+      "title": "Añadir miembro",
+      "placeholder": "Selecciona un miembro del grupo",
+      "noMembers": "Todos los miembros del grupo ya están añadidos",
+      "confirm": "Añadir",
+      "success": "Miembro añadido"
+    }
+  },
+  "tag": {
+    "list": {
+      "title": "Gestionar etiquetas",
+      "empty": "No hay etiquetas",
+      "createFirst": "Crea tu primera etiqueta"
+    },
+    "create": {
+      "title": "Nueva etiqueta",
+      "editTitle": "Editar etiqueta",
+      "name": "Nombre de la etiqueta",
+      "color": "Color",
+      "confirm": "Guardar etiqueta",
+      "delete": "Eliminar etiqueta",
+      "success": "Etiqueta creada",
+      "updated": "Etiqueta actualizada",
+      "deleted": "Etiqueta eliminada",
+      "confirmDelete": "¿Estás seguro de que quieres eliminar esta etiqueta?",
+      "save": "Guardar etiqueta"
+    }
+  },
+  "stats": {
+    "title": "Estadísticas",
+    "byPeriod": "Por periodo",
+    "cumulative": "Acumulado",
+    "period": "Periodo",
+    "day": "Día",
+    "week": "Semana",
+    "month": "Mes",
+    "year": "Año",
+    "total": "Total",
+    "noData": "No hay datos para el periodo seleccionado",
+    "filterTag": "Filtrar por etiqueta"
+  },
+  "currency": {
+    "AED": "AED - Dirham de los EAU",
+    "ARS": "ARS - Peso argentino",
+    "AUD": "AUD - Dólar australiano",
+    "BRL": "BRL - Real brasileño",
+    "CAD": "CAD - Dólar canadiense",
+    "CHF": "CHF - Franco suizo",
+    "CLP": "CLP - Peso chileno",
+    "CNY": "CNY - Yuan chino",
+    "COP": "COP - Peso colombiano",
+    "CRC": "CRC - Colón costarricense",
+    "EUR": "EUR - Euro",
+    "GBP": "GBP - Libra esterlina",
+    "HKD": "HKD - Dólar de Hong Kong",
+    "ILS": "ILS - Séquel israelí",
+    "INR": "INR - Rupia india",
+    "JPY": "JPY - Yen japonés",
+    "KRW": "KRW - Won surcoreano",
+    "KZT": "KZT - Tenge kazajo",
+    "MXN": "MXN - Peso mexicano",
+    "MYR": "MYR - Ringgit malasio",
+    "NOK": "NOK - Corona noruega",
+    "NZD": "NZD - Dólar neozelandés",
+    "PEN": "PEN - Sol peruano",
+    "PHP": "PHP - Peso filipino",
+    "PKR": "PKR - Rupia pakistaní",
+    "PLN": "PLN - Zloty polaco",
+    "RUB": "RUB - Rublo ruso",
+    "SEK": "SEK - Corona sueca",
+    "SGD": "SGD - Dólar de Singapur",
+    "THB": "THB - Baht tailandés",
+    "TRY": "TRY - Lira turca",
+    "TWD": "TWD - Dólar taiwanés",
+    "UAH": "UAH - Grivna ucraniana",
+    "USD": "USD - Dólar estadounidense",
+    "UYU": "UYU - Peso uruguayo",
+    "VND": "VND - Dong vietnamita",
+    "ZAR": "ZAR - Rand sudafricano"
+  },
+  "import": {
+    "title": "Importar desde Splitwise",
+    "step1": "Clave de API",
+    "step2": "Seleccionar grupo",
+    "step3": "Mapeo de usuarios",
+    "step4": "Vista previa",
+    "step5": "Confirmar",
+    "apiKeyLabel": "Clave de API de Splitwise",
+    "apiKeyPlaceholder": "Pega tu clave de API de Splitwise",
+    "verify": "Verificar conexión",
+    "verified": "Conectado como {name}",
+    "selectGroup": "Selecciona un grupo de Splitwise para importar",
+    "userMapping": "Asocia los usuarios de Splitwise con los usuarios de 027apps",
+    "autoMatched": "Asociados automáticamente por email",
+    "manualMapping": "Asociación manual",
+    "mustMapAll": "Todos los usuarios deben estar asociados para continuar",
+    "previewTitle": "Vista previa de la importación",
+    "totalExpenses": "Total de movimientos",
+    "totalAmount": "Importe total",
+    "dateRange": "Rango de fechas",
+    "membersToAdd": "Miembros a añadir",
+    "tagsToCreate": "Etiquetas a crear",
+    "transfersToCreate": "Transferencias a crear",
+    "warnings": "Avisos",
+    "confirmImport": "Importar {count} movimientos",
+    "importing": "Importando...",
+    "success": "Importación completada correctamente",
+    "expensesCreated": "Movimientos creados",
+    "expensesSkipped": "Duplicados omitidos",
+    "errors": "Errores"
+  },
+  "common": {
+    "back": "Volver",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "confirm": "Confirmar",
+    "unknown": "Desconocido",
+    "members": "miembros",
+    "loadMore": "Cargar más"
+  },
+  "widget": {
+    "error": "No se pudo cargar",
+    "allSettled": "¡Todo liquidado!",
+    "viewDetails": "Ver detalle"
+  },
+  "transfer": {
+    "item": {
+      "manual": "Manual"
+    },
+    "delete": {
+      "title": "Eliminar transferencia",
+      "confirm": "¿Eliminar esta transferencia?",
+      "deleting": "Eliminando..."
+    },
+    "edit": {
+      "title": "Editar transferencia",
+      "amount": "Importe",
+      "note": "Nota (opcional)",
+      "save": "Guardar"
+    }
+  }
+}
