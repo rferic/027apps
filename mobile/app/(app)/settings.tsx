@@ -7,16 +7,32 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Switch,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import * as Constants from 'expo-constants'
+import { useTranslation } from '@/hooks/useTranslation'
 import { useAuth } from '@/hooks/useAuth'
 import { getServerUrl, setServerUrl, getDefaultUrl } from '@/lib/server-url'
 import { getActiveGroupSlug } from '@/lib/group-store'
+import { setStoredLanguage } from '@/lib/i18n'
+import { useNotifications } from '@/hooks/useNotifications'
+import { requestNotificationPermissions } from '@/lib/notifications'
+
+const LANGUAGES = [
+  { code: 'en', key: 'mobile.locales.en' as const },
+  { code: 'es', key: 'mobile.locales.es' as const },
+  { code: 'it', key: 'mobile.locales.it' as const },
+  { code: 'ca', key: 'mobile.locales.ca' as const },
+  { code: 'fr', key: 'mobile.locales.fr' as const },
+  { code: 'de', key: 'mobile.locales.de' as const },
+] as const
 
 export default function SettingsScreen() {
+  const { t, i18n } = useTranslation()
   const router = useRouter()
   const { user, signOut } = useAuth()
+  const { permissionGranted, pushToken } = useNotifications()
 
   const [serverUrl, setServerUrlState] = useState('')
   const [editingUrl, setEditingUrl] = useState(false)
@@ -38,14 +54,14 @@ export default function SettingsScreen() {
     setServerUrlState(urlInput.trim())
     setEditingUrl(false)
     setSavingUrl(false)
-    Alert.alert('Server URL updated', 'Restart the app for changes to take effect.')
+    Alert.alert(t('mobile.settings.serverUpdated'), t('mobile.settings.restartMessage'))
   }
 
   const handleSignOut = async () => {
-    Alert.alert('Sign Out', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('mobile.settings.signOut'), t('mobile.settings.signOutConfirm'), [
+      { text: t('mobile.settings.signOutCancel'), style: 'cancel' },
       {
-        text: 'Sign Out',
+        text: t('mobile.settings.signOutAction'),
         style: 'destructive',
         onPress: async () => {
           await signOut()
@@ -53,6 +69,10 @@ export default function SettingsScreen() {
         },
       },
     ])
+  }
+
+  const handleLanguageChange = (lang: string) => {
+    setStoredLanguage(lang)
   }
 
   const appVersion = Constants.default?.expoConfig?.version ?? '1.0.0'
@@ -66,10 +86,10 @@ export default function SettingsScreen() {
       {/* Account */}
       <View className="px-6 pt-6">
         <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          Account
+          {t('mobile.settings.accountSection')}
         </Text>
         <View className="bg-slate-50 rounded-xl p-4">
-          <Text className="text-sm text-slate-400">Email</Text>
+          <Text className="text-sm text-slate-400">{t('mobile.settings.email')}</Text>
           <Text className="text-base text-[#1E293B] mt-0.5">{user?.email ?? '—'}</Text>
         </View>
       </View>
@@ -77,7 +97,7 @@ export default function SettingsScreen() {
       {/* Server */}
       <View className="px-6 pt-6">
         <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          Server
+          {t('mobile.settings.serverSection')}
         </Text>
         <View className="bg-slate-50 rounded-xl p-4">
           {editingUrl ? (
@@ -101,7 +121,7 @@ export default function SettingsScreen() {
                   {savingUrl ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text className="text-white text-sm font-semibold">Save</Text>
+                    <Text className="text-white text-sm font-semibold">{t('mobile.settings.save')}</Text>
                   )}
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -109,7 +129,7 @@ export default function SettingsScreen() {
                   onPress={() => setEditingUrl(false)}
                   activeOpacity={0.8}
                 >
-                  <Text className="text-slate-600 text-sm font-semibold">Cancel</Text>
+                  <Text className="text-slate-600 text-sm font-semibold">{t('mobile.settings.cancel')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -121,9 +141,9 @@ export default function SettingsScreen() {
               }}
               activeOpacity={0.7}
             >
-              <Text className="text-sm text-slate-400">Server URL</Text>
+              <Text className="text-sm text-slate-400">{t('mobile.settings.serverUrl')}</Text>
               <Text className="text-base text-[#1E293B] mt-0.5">{serverUrl}</Text>
-              <Text className="text-xs text-[#9B1C1C] mt-1">Tap to change</Text>
+              <Text className="text-xs text-[#9B1C1C] mt-1">{t('mobile.settings.tapToChange')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -132,27 +152,96 @@ export default function SettingsScreen() {
       {/* Active group */}
       <View className="px-6 pt-6">
         <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          Active Group
+          {t('mobile.settings.activeGroup')}
         </Text>
         <View className="bg-slate-50 rounded-xl p-4">
-          <Text className="text-sm text-slate-400">Current group</Text>
-          <Text className="text-base text-[#1E293B] mt-0.5">{activeGroup || 'Not selected'}</Text>
+          <Text className="text-sm text-slate-400">{t('mobile.settings.currentGroup')}</Text>
+          <Text className="text-base text-[#1E293B] mt-0.5">{activeGroup || t('mobile.settings.notSelected')}</Text>
         </View>
       </View>
 
-      {/* Theme placeholder */}
+      {/* Notifications */}
       <View className="px-6 pt-6">
         <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          Appearance
+          {t('mobile.settings.notifications')}
         </Text>
         <View className="bg-slate-50 rounded-xl p-4">
           <View className="flex-row justify-between items-center">
-            <Text className="text-base text-[#1E293B]">Theme</Text>
-            <Text className="text-sm text-slate-400">Light</Text>
+            <View className="flex-1 mr-3">
+              <Text className="text-base text-[#1E293B]">{t('mobile.settings.pushNotifications')}</Text>
+              <Text className="text-xs text-slate-400 mt-0.5">
+                {permissionGranted
+                  ? t('mobile.settings.notificationsEnabled')
+                  : t('mobile.settings.notificationsDisabled')}
+              </Text>
+            </View>
+            {permissionGranted ? (
+              <Text className="text-sm font-medium text-green-600">{t('mobile.settings.active')}</Text>
+            ) : (
+              <TouchableOpacity
+                className="bg-[#9B1C1C] rounded-lg px-4 py-2"
+                onPress={async () => {
+                  const granted = await requestNotificationPermissions()
+                  if (granted) {
+                    Alert.alert(t('mobile.settings.success'), t('mobile.settings.notificationsEnabledMsg'))
+                  } else {
+                    Alert.alert(
+                      t('mobile.settings.permissionDenied'),
+                      t('mobile.settings.notificationsEnableHint'),
+                    )
+                  }
+                }}
+                activeOpacity={0.8}
+              >
+                <Text className="text-white text-sm font-semibold">{t('mobile.settings.enable')}</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          <View className="flex-row justify-between items-center mt-3">
-            <Text className="text-base text-[#1E293B]">Language</Text>
-            <Text className="text-sm text-slate-400">English</Text>
+          {pushToken && (
+            <View className="mt-3 pt-3 border-t border-slate-200">
+              <Text className="text-xs text-slate-400">Push Token</Text>
+              <Text className="text-xs text-slate-500 mt-0.5" numberOfLines={1}>
+                {pushToken.slice(0, 24)}...
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Appearance & Language */}
+      <View className="px-6 pt-6">
+        <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+          {t('mobile.settings.appearance')}
+        </Text>
+        <View className="bg-slate-50 rounded-xl p-4">
+          <View className="flex-row justify-between items-center">
+            <Text className="text-base text-[#1E293B]">{t('mobile.settings.theme')}</Text>
+            <Text className="text-sm text-slate-400">{t('mobile.settings.light')}</Text>
+          </View>
+          <View className="mt-3">
+            <Text className="text-base text-[#1E293B] mb-2">{t('mobile.settings.languageLabel')}</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {LANGUAGES.map(({ code, key }) => (
+                <TouchableOpacity
+                  key={code}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    i18n.language === code
+                      ? 'bg-[#9B1C1C]'
+                      : 'bg-slate-200'
+                  }`}
+                  onPress={() => handleLanguageChange(code)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    className={`text-sm font-medium ${
+                      i18n.language === code ? 'text-white' : 'text-slate-600'
+                    }`}
+                  >
+                    {t(key)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </View>
       </View>
@@ -160,18 +249,18 @@ export default function SettingsScreen() {
       {/* About */}
       <View className="px-6 pt-6">
         <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          About
+          {t('mobile.settings.about')}
         </Text>
         <View className="bg-slate-50 rounded-xl p-4">
           <View className="flex-row justify-between items-center">
-            <Text className="text-base text-[#1E293B]">Version</Text>
+            <Text className="text-base text-[#1E293B]">{t('mobile.settings.version')}</Text>
             <Text className="text-sm text-slate-400">
               {appVersion} ({buildNumber})
             </Text>
           </View>
         </View>
         <Text className="text-xs text-slate-400 text-center mt-4">
-          027apps — Family Hub Platform
+          {t('mobile.settings.footer')}
         </Text>
       </View>
 
@@ -182,7 +271,7 @@ export default function SettingsScreen() {
           onPress={handleSignOut}
           activeOpacity={0.8}
         >
-          <Text className="text-red-600 text-base font-semibold">Sign Out</Text>
+          <Text className="text-red-600 text-base font-semibold">{t('mobile.settings.signOut')}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

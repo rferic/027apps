@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { Link, useRouter } from 'expo-router'
+import { useTranslation } from '@/hooks/useTranslation'
 import { useAuth } from '@/hooks/useAuth'
 import { isBiometricsAvailable, authenticateWithBiometrics } from '@/lib/biometrics'
 
 export default function LoginScreen() {
+  const { t } = useTranslation()
   const router = useRouter()
   const { signIn, signInWithBiometrics } = useAuth()
 
@@ -23,9 +25,9 @@ export default function LoginScreen() {
     setError('')
     setIsSubmitting(true)
 
-    const { error } = await signIn(email.trim(), password)
-    if (error) {
-      setError(error)
+    const { error: signInError } = await signIn(email.trim(), password)
+    if (signInError) {
+      setError(signInError)
       setIsSubmitting(false)
       return
     }
@@ -37,14 +39,14 @@ export default function LoginScreen() {
     setError('')
     const success = await authenticateWithBiometrics()
     if (!success) {
-      setError('Biometric authentication failed')
+      setError(t('mobile.common.biometricFailed'))
       return
     }
 
     setIsSubmitting(true)
-    const { error } = await signInWithBiometrics()
-    if (error) {
-      setError(error)
+    const { error: biometricSignInError } = await signInWithBiometrics()
+    if (biometricSignInError) {
+      setError(biometricSignInError)
       setIsSubmitting(false)
       return
     }
@@ -63,7 +65,7 @@ export default function LoginScreen() {
       >
         <View className="items-center mb-8">
           <Text className="text-3xl font-bold text-[#9B1C1C]">027Apps</Text>
-          <Text className="text-base text-slate-500 mt-2">Sign in to your account</Text>
+          <Text className="text-base text-slate-500 mt-2">{t('auth.subtitle')}</Text>
         </View>
 
         {error ? (
@@ -73,7 +75,7 @@ export default function LoginScreen() {
         ) : null}
 
         <View className="mb-4">
-          <Text className="text-sm font-medium text-slate-700 mb-1">Email</Text>
+          <Text className="text-sm font-medium text-slate-700 mb-1">{t('auth.email')}</Text>
           <TextInput
             className="border border-gray-300 rounded-lg px-4 py-3 text-base bg-white"
             placeholder="your@email.com"
@@ -89,7 +91,7 @@ export default function LoginScreen() {
         </View>
 
         <View className="mb-6">
-          <Text className="text-sm font-medium text-slate-700 mb-1">Password</Text>
+          <Text className="text-sm font-medium text-slate-700 mb-1">{t('auth.password')}</Text>
           <TextInput
             className="border border-gray-300 rounded-lg px-4 py-3 text-base bg-white"
             placeholder="Your password"
@@ -111,7 +113,7 @@ export default function LoginScreen() {
           {isSubmitting ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-white text-base font-semibold">Sign In</Text>
+            <Text className="text-white text-base font-semibold">{t('auth.login')}</Text>
           )}
         </TouchableOpacity>
 
@@ -123,17 +125,17 @@ export default function LoginScreen() {
             activeOpacity={0.8}
           >
             <Text className="text-slate-700 text-base font-semibold">
-              Sign In with Biometrics
+              {t('mobile.auth.signInWithBiometrics')}
             </Text>
           </TouchableOpacity>
         )}
 
         <View className="flex-row justify-between">
           <Link href="/reset-password" className="py-2">
-            <Text className="text-red-800 text-sm font-medium">Forgot password?</Text>
+            <Text className="text-red-800 text-sm font-medium">{t('auth.forgot_password')}</Text>
           </Link>
           <Link href="/register" className="py-2">
-            <Text className="text-red-800 text-sm font-medium">Create account</Text>
+            <Text className="text-red-800 text-sm font-medium">{t('mobile.auth.createAccount')}</Text>
           </Link>
         </View>
       </ScrollView>

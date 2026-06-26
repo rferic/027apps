@@ -84,6 +84,24 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       group_app_access: {
         Row: {
           app_slug: string
@@ -207,9 +225,119 @@ export type Database = {
         }
         Relationships: []
       }
+      inspiration_comments: {
+        Row: {
+          body: string
+          created_at: string
+          github_comment_id: number | null
+          id: string
+          request_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          github_comment_id?: number | null
+          id?: string
+          request_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          github_comment_id?: number | null
+          id?: string
+          request_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspiration_comments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "inspiration_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspiration_requests: {
+        Row: {
+          app_slug: string | null
+          created_at: string
+          description: string
+          github_issue_number: number | null
+          github_issue_url: string | null
+          id: string
+          status: Database["public"]["Enums"]["inspiration_status"]
+          title: string
+          type: Database["public"]["Enums"]["inspiration_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app_slug?: string | null
+          created_at?: string
+          description?: string
+          github_issue_number?: number | null
+          github_issue_url?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["inspiration_status"]
+          title: string
+          type: Database["public"]["Enums"]["inspiration_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_slug?: string | null
+          created_at?: string
+          description?: string
+          github_issue_number?: number | null
+          github_issue_url?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["inspiration_status"]
+          title?: string
+          type?: Database["public"]["Enums"]["inspiration_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      inspiration_votes: {
+        Row: {
+          created_at: string
+          id: string
+          request_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          request_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspiration_votes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "inspiration_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       installed_apps: {
         Row: {
           config: Json
+          display_order: number
           error: string | null
           id: string
           installed_at: string
@@ -222,6 +350,7 @@ export type Database = {
         }
         Insert: {
           config?: Json
+          display_order?: number
           error?: string | null
           id?: string
           installed_at?: string
@@ -234,6 +363,7 @@ export type Database = {
         }
         Update: {
           config?: Json
+          display_order?: number
           error?: string | null
           id?: string
           installed_at?: string
@@ -324,38 +454,423 @@ export type Database = {
         }
         Relationships: []
       }
-      todo_items: {
+      push_tokens: {
         Row: {
-          assigned_to: string | null
-          completed: boolean
           created_at: string
           group_id: string
           id: string
-          title: string
+          platform: string
+          token: string
+          updated_at: string
           user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          platform?: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          platform?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_expenses_expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          expense_group_id: string
+          id: string
+          paid_by: string
+          tag_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by: string
+          expense_group_id: string
+          id?: string
+          paid_by: string
+          tag_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          expense_group_id?: string
+          id?: string
+          paid_by?: string
+          tag_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_expenses_expenses_expense_group_id_fkey"
+            columns: ["expense_group_id"]
+            isOneToOne: false
+            referencedRelation: "split_expenses_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "split_expenses_expenses_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "split_expenses_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_expenses_groups: {
+        Row: {
+          created_at: string
+          created_by: string
+          currency: string
+          emoji: string
+          group_id: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          currency?: string
+          emoji?: string
+          group_id: string
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          currency?: string
+          emoji?: string
+          group_id?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_expenses_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_expenses_members: {
+        Row: {
+          active: boolean
+          created_at: string
+          expense_group_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          expense_group_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          expense_group_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_expenses_members_expense_group_id_fkey"
+            columns: ["expense_group_id"]
+            isOneToOne: false
+            referencedRelation: "split_expenses_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_expenses_settlements: {
+        Row: {
+          created_at: string
+          expense_group_id: string
+          id: string
+          note: string | null
+          settled_by: string
+        }
+        Insert: {
+          created_at?: string
+          expense_group_id: string
+          id?: string
+          note?: string | null
+          settled_by: string
+        }
+        Update: {
+          created_at?: string
+          expense_group_id?: string
+          id?: string
+          note?: string | null
+          settled_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_expenses_settlements_expense_group_id_fkey"
+            columns: ["expense_group_id"]
+            isOneToOne: false
+            referencedRelation: "split_expenses_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_expenses_shares: {
+        Row: {
+          amount: number
+          created_at: string
+          expense_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expense_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expense_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_expenses_shares_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "split_expenses_expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_expenses_tags: {
+        Row: {
+          color: string
+          created_at: string
+          expense_group_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          expense_group_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          expense_group_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_expenses_tags_expense_group_id_fkey"
+            columns: ["expense_group_id"]
+            isOneToOne: false
+            referencedRelation: "split_expenses_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_expenses_transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          expense_group_id: string
+          from_user: string
+          id: string
+          is_manual: boolean
+          note: string | null
+          settlement_id: string | null
+          status: string
+          to_user: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expense_group_id: string
+          from_user: string
+          id?: string
+          is_manual?: boolean
+          note?: string | null
+          settlement_id?: string | null
+          status?: string
+          to_user: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expense_group_id?: string
+          from_user?: string
+          id?: string
+          is_manual?: boolean
+          note?: string | null
+          settlement_id?: string | null
+          status?: string
+          to_user?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_expenses_transfers_expense_group_id_fkey"
+            columns: ["expense_group_id"]
+            isOneToOne: false
+            referencedRelation: "split_expenses_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "split_expenses_transfers_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "split_expenses_settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      todo_categories: {
+        Row: {
+          color: string
+          created_at: string
+          display_order: number
+          emoji: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          emoji?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          emoji?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      todo_items: {
+        Row: {
+          assigned_to: string | null
+          category_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          group_id: string
+          id: string
+          priority: string
+          repeat_end_date: string | null
+          repeat_interval: string | null
+          status: string
+          title: string
+          updated_at: string
           visibility: string
         }
         Insert: {
           assigned_to?: string | null
-          completed?: boolean
+          category_id?: string | null
+          completed_at?: string | null
           created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
           group_id: string
           id?: string
+          priority?: string
+          repeat_end_date?: string | null
+          repeat_interval?: string | null
+          status?: string
           title: string
-          user_id: string
+          updated_at?: string
           visibility?: string
         }
         Update: {
           assigned_to?: string | null
-          completed?: boolean
+          category_id?: string | null
+          completed_at?: string | null
           created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
           group_id?: string
           id?: string
+          priority?: string
+          repeat_end_date?: string | null
+          repeat_interval?: string | null
+          status?: string
           title?: string
-          user_id?: string
+          updated_at?: string
           visibility?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "todo_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "todo_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "todo_items_group_id_fkey"
             columns: ["group_id"]
@@ -365,15 +880,82 @@ export type Database = {
           },
         ]
       }
+      todo_notification_prefs: {
+        Row: {
+          on_assigned: boolean
+          on_status_change: boolean
+          on_updated: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          on_assigned?: boolean
+          on_status_change?: boolean
+          on_updated?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          on_assigned?: boolean
+          on_status_change?: boolean
+          on_updated?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      delete_app_setting: { Args: { p_key: string }; Returns: undefined }
       exec_sql: { Args: { sql: string }; Returns: undefined }
+      get_app_setting: { Args: { p_key: string }; Returns: Json }
+      get_inspiration_requests_aggregate: {
+        Args: {
+          app_slug?: string
+          limit_val?: number
+          my_user_id?: string
+          offset_val?: number
+          search?: string
+          sort_type: string
+          statuses?: string[]
+          types?: string[]
+        }
+        Returns: Json
+      }
+      set_app_setting: {
+        Args: { p_key: string; p_value: Json }
+        Returns: undefined
+      }
+      split_expenses_is_creator_or_admin: {
+        Args: { expense_group_id: string }
+        Returns: boolean
+      }
+      split_expenses_is_group_member: {
+        Args: { expense_group_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       group_role: "admin" | "member"
+      inspiration_status:
+        | "pending"
+        | "reviewing"
+        | "approved"
+        | "in_progress"
+        | "completed"
+        | "rejected"
+        | "on_hold"
+        | "duplicate"
+      inspiration_type:
+        | "bug"
+        | "improvement"
+        | "new_app"
+        | "new_app_feature"
+        | "new_general_functionality"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -505,7 +1087,24 @@ export const Constants = {
   public: {
     Enums: {
       group_role: ["admin", "member"],
+      inspiration_status: [
+        "pending",
+        "reviewing",
+        "approved",
+        "in_progress",
+        "completed",
+        "rejected",
+        "on_hold",
+        "duplicate",
+      ],
+      inspiration_type: [
+        "bug",
+        "improvement",
+        "new_app",
+        "new_app_feature",
+        "new_general_functionality",
+        "other",
+      ],
     },
   },
 } as const
-

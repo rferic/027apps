@@ -10,9 +10,11 @@ import {
   ScrollView,
 } from 'react-native'
 import { useRouter } from 'expo-router'
+import { useTranslation } from '@/hooks/useTranslation'
 import { setServerUrl, getDefaultUrl } from '@/lib/server-url'
 
 export default function WelcomeScreen() {
+  const { t } = useTranslation()
   const router = useRouter()
 
   const [showCustomUrl, setShowCustomUrl] = useState(false)
@@ -34,11 +36,11 @@ export default function WelcomeScreen() {
   const handleCustomSave = () => {
     const trimmed = customUrl.trim()
     if (!trimmed) {
-      setError('Please enter a server URL')
+      setError(t('mobile.welcome.invalidUrl'))
       return
     }
     if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-      setError('URL must start with http:// or https://')
+      setError(t('mobile.welcome.invalidProtocol'))
       return
     }
     saveAndRedirect(trimmed)
@@ -61,9 +63,9 @@ export default function WelcomeScreen() {
       >
         {/* Logo & Tagline */}
         <View className="items-center mb-10">
-          <Text className="text-4xl font-bold text-[#9B1C1C] mb-3">027Apps</Text>
+          <Text className="text-4xl font-bold text-[#9B1C1C] mb-3">{t('mobile.welcome.title')}</Text>
           <Text className="text-lg text-slate-500 text-center">
-            Tu plataforma de apps en grupo
+            {t('mobile.welcome.subtitle')}
           </Text>
         </View>
 
@@ -80,7 +82,7 @@ export default function WelcomeScreen() {
                 <ActivityIndicator color="white" />
               ) : (
                 <Text className="text-white text-base font-semibold">
-                  Usar 027apps.com
+                  {t('mobile.welcome.useDefault')}
                 </Text>
               )}
             </TouchableOpacity>
@@ -92,7 +94,7 @@ export default function WelcomeScreen() {
               activeOpacity={0.8}
             >
               <Text className="text-slate-700 text-base font-semibold">
-                Mi propio servidor
+                {t('mobile.welcome.customServer')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -107,7 +109,7 @@ export default function WelcomeScreen() {
 
             <View className="mb-4">
               <Text className="text-sm font-medium text-slate-700 mb-1">
-                Server URL
+                {t('mobile.welcome.serverUrl')}
               </Text>
               <TextInput
                 className="border border-gray-300 rounded-lg px-4 py-3 text-base bg-white"
@@ -132,7 +134,7 @@ export default function WelcomeScreen() {
               {isSaving ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text className="text-white text-base font-semibold">Conectar</Text>
+                <Text className="text-white text-base font-semibold">{t('mobile.welcome.connect')}</Text>
               )}
             </TouchableOpacity>
 
@@ -141,7 +143,7 @@ export default function WelcomeScreen() {
               onPress={handleCancelCustom}
               disabled={isSaving}
             >
-              <Text className="text-red-800 text-sm font-medium">Volver</Text>
+              <Text className="text-red-800 text-sm font-medium">{t('mobile.welcome.back')}</Text>
             </TouchableOpacity>
           </View>
         )}
