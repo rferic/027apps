@@ -1,21 +1,36 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { View, Text, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useAuth } from '@/hooks/useAuth'
+import { hasServerUrl } from '@/lib/server-url'
 
 export default function IndexScreen() {
   const router = useRouter()
-  const { isLoading, isAuthenticated } = useAuth()
+  const { isLoading: isAuthLoading, isAuthenticated } = useAuth()
+
+  const [checkingUrl, setCheckingUrl] = useState(true)
+  const [hasUrl, setHasUrl] = useState(false)
 
   useEffect(() => {
-    if (isLoading) return
+    hasServerUrl().then((result) => {
+      setHasUrl(result)
+      setCheckingUrl(false)
+    })
+  }, [])
 
-    if (!isAuthenticated) {
+  useEffect(() => {
+    if (checkingUrl || isAuthLoading) return
+
+    if (!hasUrl) {
+      router.replace('/welcome')
+    } else if (!isAuthenticated) {
       router.replace('/login')
     } else {
       router.replace('/(app)/dashboard')
     }
-  }, [isLoading, isAuthenticated, router])
+  }, [checkingUrl, isAuthLoading, hasUrl, isAuthenticated, router])
+
+  const isLoading = checkingUrl || isAuthLoading
 
   return (
     <View className="flex-1 items-center justify-center bg-white">
