@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@027apps/contracts": ["./packages/contracts/src"],
+      "@027apps/contracts/*": ["./packages/contracts/src/*"]
     }
   },
   "include": [

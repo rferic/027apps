@@ -8,7 +8,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./tests/unit/setup.ts'],
-    exclude: ['tests/e2e/**', 'node_modules/**', '.opencode/**'],
+    exclude: ['tests/e2e/**', 'node_modules/**', '.opencode/**', 'packages/**'],
   },
   resolve: {
     alias: { '@': resolve(__dirname, './src') },
