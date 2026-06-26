@@ -94,18 +94,18 @@ export default function NewGroupWizardPage() {
     })
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white'
-  const labelCls = 'block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5'
+  const inputCls = 'w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white'
+  const labelCls = 'block text-xs font-semibold text-foreground uppercase tracking-wide mb-1.5'
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-muted">
       {/* Steps indicator */}
-      <div className="bg-white border-b border-slate-100 px-6 py-4">
+      <div className="bg-card border-b border-border px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           {[1, 2, 3].map(s => (
             <div key={s} className="flex items-center gap-2">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                s <= step ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'
+                s <= step ? 'bg-foreground text-white' : 'bg-muted text-slate-400'
               }`}>
                 {s}
               </div>
@@ -120,10 +120,10 @@ export default function NewGroupWizardPage() {
 
       <div className="max-w-lg mx-auto p-6">
         {step === 1 && (
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-5">
+          <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{tWizard('wizard_create_title')}</h2>
-              <p className="text-sm text-slate-500 mt-1">{tWizard('wizard_create_subtitle')}</p>
+              <p className="text-sm text-muted-foreground mt-1">{tWizard('wizard_create_subtitle')}</p>
             </div>
 
             <div>
@@ -150,17 +150,17 @@ export default function NewGroupWizardPage() {
                 pattern="^[a-z0-9-]+$"
                 className={inputCls}
               />
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {tWizard('wizard_slug_hint', { locale, slug: slug || generateSlug(name) })}
               </p>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
+            <div className="pt-3 border-t border-border flex justify-end">
               <button
                 type="button"
                 onClick={() => { if (name && slug) setStep(2) }}
                 disabled={!name.trim() || !slug.trim()}
-                className="px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium bg-foreground hover:bg-foreground disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
               >
                 {tWizard('wizard_next_members')}
               </button>
@@ -169,38 +169,38 @@ export default function NewGroupWizardPage() {
         )}
 
         {step === 2 && (
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-5">
+          <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{tWizard('wizard_select_members_title')}</h2>
-              <p className="text-sm text-slate-500 mt-1">{tWizard('wizard_select_members_subtitle')}</p>
+              <p className="text-sm text-muted-foreground mt-1">{tWizard('wizard_select_members_subtitle')}</p>
             </div>
 
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 value={userFilter}
                 onChange={e => setUserFilter(e.target.value)}
                 placeholder={tWizard('wizard_filter_users_placeholder')}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 bg-card"
               />
             </div>
 
             {users.length === 0 ? (
-              <p className="text-sm text-slate-400">{t('common.loading')}</p>
+              <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
             ) : filteredUsers.length === 0 ? (
-              <p className="text-sm text-slate-400">{tWizard('wizard_no_members')}</p>
+              <p className="text-sm text-muted-foreground">{tWizard('wizard_no_members')}</p>
             ) : (
-              <div className="max-h-64 overflow-y-auto space-y-1 border border-slate-100 rounded-lg p-1">
+              <div className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-lg p-1">
                 {filteredUsers.map(user => (
                   <label
                     key={user.id}
-                    className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-50 cursor-pointer transition-colors"
+                    className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted cursor-pointer transition-colors"
                   >
                     <DsCheckbox checked={selectedUserIds.includes(user.id)} onChange={() => toggleUser(user.id)} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-slate-700 truncate">{user.displayName}</div>
-                      <div className="text-xs text-slate-400 truncate">{user.email}</div>
+                      <div className="text-sm font-medium text-foreground truncate">{user.displayName}</div>
+                      <div className="text-xs text-muted-foreground truncate">{user.email}</div>
                     </div>
                   </label>
                 ))}
@@ -208,16 +208,16 @@ export default function NewGroupWizardPage() {
             )}
 
             {selectedUserIds.length > 0 && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {tWizard('wizard_selected_count', { count: selectedUserIds.length })}
               </p>
             )}
 
-            <div className="pt-3 border-t border-slate-100 flex justify-between">
+            <div className="pt-3 border-t border-border flex justify-between">
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {tWizard('wizard_back')}
               </button>
@@ -225,14 +225,14 @@ export default function NewGroupWizardPage() {
                 <button
                   type="button"
                   onClick={() => setStep(3)}
-                  className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-600 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-muted-foreground transition-colors"
                 >
                   {tWizard('wizard_skip')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setStep(3)}
-                  className="px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-medium bg-foreground hover:bg-foreground text-white rounded-lg transition-colors"
                 >
                   {tWizard('wizard_next_review')}
                 </button>
@@ -242,38 +242,38 @@ export default function NewGroupWizardPage() {
         )}
 
         {step === 3 && (
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-5">
+          <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{tWizard('wizard_review_title')}</h2>
-              <p className="text-sm text-slate-500 mt-1">{tWizard('wizard_review_subtitle')}</p>
+              <p className="text-sm text-muted-foreground mt-1">{tWizard('wizard_review_subtitle')}</p>
             </div>
 
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-slate-50">
-                <span className="text-slate-500">{tWizard('wizard_field_name')}</span>
-                <span className="font-medium text-slate-900">{name}</span>
+                <span className="text-muted-foreground">{tWizard('wizard_field_name')}</span>
+                <span className="font-medium text-foreground">{name}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-50">
-                <span className="text-slate-500">{tWizard('wizard_field_slug')}</span>
-                <span className="font-medium text-slate-900 font-mono">{slug}</span>
+                <span className="text-muted-foreground">{tWizard('wizard_field_slug')}</span>
+                <span className="font-medium text-foreground font-mono">{slug}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-50">
-                <span className="text-slate-500">{tWizard('wizard_field_url')}</span>
-                <span className="font-medium text-slate-900 font-mono text-xs">/{locale}/{slug}/dashboard</span>
+                <span className="text-muted-foreground">{tWizard('wizard_field_url')}</span>
+                <span className="font-medium text-foreground font-mono text-xs">/{locale}/{slug}/dashboard</span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-50">
-                <span className="text-slate-500">{tWizard('wizard_field_members')}</span>
-                <span className="font-medium text-slate-900">
+                <span className="text-muted-foreground">{tWizard('wizard_field_members')}</span>
+                <span className="font-medium text-foreground">
                   {selectedUserIds.length}
                 </span>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex justify-between">
+            <div className="pt-3 border-t border-border flex justify-between">
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {tWizard('wizard_back')}
               </button>
@@ -281,7 +281,7 @@ export default function NewGroupWizardPage() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={pending}
-                className="px-6 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                className="px-6 py-2 text-sm font-medium bg-foreground hover:bg-foreground disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
               >
                 {pending ? tWizard('wizard_creating') : tWizard('wizard_create')}
               </button>

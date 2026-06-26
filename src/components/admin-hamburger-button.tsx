@@ -10,7 +10,7 @@ export function HamburgerButton() {
     <button
       type="button"
       onClick={() => setMobileOpen(true)}
-      className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+      className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
       aria-label="Open menu"
     >
       <Menu size={18} />

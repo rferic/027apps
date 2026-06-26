@@ -111,7 +111,7 @@ export default async function AdminAppViewPage({ params, searchParams }: Props) 
         />
         <div className="min-w-0">
           <h1 className="text-xl font-bold text-gray-900">{manifest.name}</h1>
-          <p className="text-sm text-gray-500">{appDescription}</p>
+          <p className="text-sm text-muted-foreground">{appDescription}</p>
         </div>
       </div>
 
@@ -124,7 +124,7 @@ export default async function AdminAppViewPage({ params, searchParams }: Props) 
             <AdminComponent />
           ) : (
             <div className="bg-white rounded-xl border border-slate-100 p-8 text-center">
-              <p className="text-sm text-gray-500">{t('noAdminView')}</p>
+              <p className="text-sm text-muted-foreground">{t('noAdminView')}</p>
             </div>
           )
         }

@@ -92,14 +92,14 @@ export function UserGroupsSection({ userId, currentGroups: initialGroups, availa
   return (
     <div className="space-y-3">
       {currentGroups.length === 0 ? (
-        <p className="text-sm text-slate-500">{t('users.no_groups_warning')}</p>
+        <p className="text-sm text-muted-foreground">{t('users.no_groups_warning')}</p>
       ) : (
         <div className="space-y-1">
           {currentGroups.map(g => (
             <div key={g.groupId} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50">
               <div>
-                <div className="text-sm font-medium text-slate-700">{g.groupName}</div>
-                <div className="text-xs text-slate-400">{g.groupSlug} · {g.role}</div>
+                <div className="text-sm font-medium text-foreground">{g.groupName}</div>
+                <div className="text-xs text-muted-foreground">{g.groupSlug} · {g.role}</div>
               </div>
               <button
                 type="button"
@@ -115,7 +115,7 @@ export function UserGroupsSection({ userId, currentGroups: initialGroups, availa
       )}
 
       {showAdd ? (
-        <div className="flex gap-2 pt-3 border-t border-slate-100">
+        <div className="flex gap-2 pt-3 border-t border-border">
           {/* Dropdown personalizado simulando un select estilizado */}
           <div ref={dropdownRef} className="relative flex-1">
             <button
@@ -143,11 +143,11 @@ export function UserGroupsSection({ userId, currentGroups: initialGroups, availa
                       g.id === selectedGroupId ? 'bg-slate-50 text-slate-900 font-medium' : 'text-slate-600'
                     }`}
                   >
-                    {g.name} <span className="text-xs text-slate-400">({g.slug})</span>
+                    {g.name} <span className="text-xs text-muted-foreground">({g.slug})</span>
                   </button>
                 ))}
                 {availableGroups.length === 0 && (
-                  <p className="px-3 py-2 text-sm text-slate-400">{t('users.no_available_groups')}</p>
+                  <p className="px-3 py-2 text-sm text-muted-foreground">{t('users.no_available_groups')}</p>
                 )}
               </div>
             )}

@@ -59,13 +59,13 @@ export default async function AdminGroupsPage({ params }: Props) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{t('groups.title')}</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {t('groups.subtitle', { count: groupCount })}
           </p>
         </div>
         <Link
           href={`/${locale}/admin/groups/new`}
-          className="inline-flex items-center px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-700 text-white rounded-lg transition-colors"
+          className="inline-flex items-center px-4 py-2 text-sm font-medium bg-foreground hover:bg-slate-700 text-white rounded-lg transition-colors"
         >
           {t('groups.new_group')}
         </Link>

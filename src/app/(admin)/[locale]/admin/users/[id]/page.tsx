@@ -54,16 +54,16 @@ export default async function AdminUserDetailPage({ params }: Props) {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-xl border border-slate-100 p-5">
+      <div className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
-            <span className="text-sm font-bold text-slate-600">
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+            <span className="text-sm font-bold text-muted-foreground">
               {displayName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)}
             </span>
           </div>
           <div>
             <h1 className="text-lg font-bold text-gray-900">{displayName}</h1>
-            <p className="text-sm text-gray-500">{user.email}</p>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
           <div className="ml-auto">
             <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
@@ -77,25 +77,25 @@ export default async function AdminUserDetailPage({ params }: Props) {
         </div>
         <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
           <div>
-            <span className="text-slate-400">{t('users.joined')}</span>
-            <p className="font-medium text-slate-700">{new Date(user.created_at).toLocaleDateString(locale)}</p>
+            <span className="text-muted-foreground">{t('users.joined')}</span>
+            <p className="font-medium text-foreground">{new Date(user.created_at).toLocaleDateString(locale)}</p>
           </div>
           <div>
-            <span className="text-slate-400">{t('users.last_sign_in')}</span>
-            <p className="font-medium text-slate-700">
+            <span className="text-muted-foreground">{t('users.last_sign_in')}</span>
+            <p className="font-medium text-foreground">
               {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString(locale) : t('users.never')}
             </p>
           </div>
           <div>
-            <span className="text-slate-400">{t('users.groups_section')}</span>
-            <p className="font-medium text-slate-700">{userGroups.length}</p>
+            <span className="text-muted-foreground">{t('users.groups_section')}</span>
+            <p className="font-medium text-foreground">{userGroups.length}</p>
           </div>
         </div>
       </div>
 
       {/* Groups section */}
-      <div className="bg-white rounded-xl border border-slate-100 p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">{t('users.groups_section')}</h2>
+      <div className="bg-card rounded-xl border border-border p-5">
+        <h2 className="text-sm font-semibold text-foreground mb-4">{t('users.groups_section')}</h2>
         <UserGroupsSection 
           userId={id}
           currentGroups={userGroups}

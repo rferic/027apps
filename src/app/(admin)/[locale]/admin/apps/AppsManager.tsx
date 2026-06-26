@@ -87,7 +87,7 @@ function AppCard({ app }: { app: CombinedApp }) {
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-gray-900 text-sm">{app.manifest?.name ?? app.slug}</span>
-              {app.manifest && <span className="text-xs text-gray-400">v{app.manifest.version}</span>}
+              {app.manifest && <span className="text-xs text-muted-foreground">v{app.manifest.version}</span>}
               {app.manifest && (
                 <button
                   type="button"
@@ -162,7 +162,7 @@ function AppCard({ app }: { app: CombinedApp }) {
           )}
 
           {isBusy && (
-            <span className="flex items-center gap-1.5 text-xs text-gray-400">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Loader2 size={12} className="animate-spin" />
               {t('processing')}
             </span>
@@ -186,7 +186,7 @@ function AppCard({ app }: { app: CombinedApp }) {
 
       {isActive && (
         <div className="mt-3 pt-3 border-t border-slate-50 flex items-center gap-2">
-          <span className="text-xs text-gray-500">{t('visibility.label')}</span>
+          <span className="text-xs text-muted-foreground">{t('visibility.label')}</span>
           <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-medium">
             {(['public', 'private'] as const).map((v) => (
               <button
@@ -230,7 +230,7 @@ export function AppsManager({ initialApps }: Props) {
     return (
       <div className="bg-white rounded-xl border border-slate-100 p-10 text-center">
         <Package size={32} className="mx-auto text-gray-300 mb-3" />
-        <p className="text-sm text-gray-500">{t('empty')}</p>
+        <p className="text-sm text-muted-foreground">{t('empty')}</p>
       </div>
     )
   }

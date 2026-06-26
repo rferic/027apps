@@ -54,7 +54,7 @@ export function AdminUserActions({ user, currentUserId, onEdit }: Props) {
   return (
     <>
       <Menu.Root>
-        <Menu.Trigger className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer">
+        <Menu.Trigger className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:bg-accent hover:text-muted-foreground transition-colors cursor-pointer">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <circle cx="8" cy="3" r="1.5" />
             <circle cx="8" cy="8" r="1.5" />
@@ -63,11 +63,11 @@ export function AdminUserActions({ user, currentUserId, onEdit }: Props) {
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner side="bottom" align="end" sideOffset={4}>
-            <Menu.Popup className="bg-white border border-slate-200 rounded-xl shadow-lg py-1 min-w-[160px] z-50 outline-none">
+            <Menu.Popup className="bg-card border border-border rounded-xl shadow-lg py-1 min-w-[160px] z-50 outline-none">
               <Menu.Item
                 closeOnClick
                 onClick={onEdit}
-                className="block w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer outline-none"
+                className="block w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted cursor-pointer outline-none"
               >
                 {t('edit')}
               </Menu.Item>
@@ -84,7 +84,7 @@ export function AdminUserActions({ user, currentUserId, onEdit }: Props) {
                 <Menu.Item
                   closeOnClick
                   onClick={() => startTransition(() => { changeRoleAction(user.id, 'admin') })}
-                  className="block w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer outline-none"
+                  className="block w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted cursor-pointer outline-none"
                 >
                   {t('makeAdmin')}
                 </Menu.Item>

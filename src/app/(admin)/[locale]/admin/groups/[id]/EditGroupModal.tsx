@@ -99,7 +99,7 @@ export function EditGroupModal({ isOpen, onClose, groupId, currentName, currentS
       <div className="relative z-10 bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-full max-w-lg mx-4">
         {/* Header con X */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Editar grupo</h2>
+          <h2 className="text-lg font-semibold text-foreground">Editar grupo</h2>
           <button
             type="button"
             onClick={onClose}

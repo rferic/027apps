@@ -20,7 +20,7 @@ export function InvitationsManager({ invitations, baseUrl, availableGroups }: Pr
     <main className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">{t('title')}</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
           <p className="text-sm text-slate-400 mt-1">
             {invitations.length === 1
               ? t('subtitle', { count: invitations.length })

@@ -129,14 +129,14 @@ export function GroupMembersSection({ groupId, members: initialMembers, onRefres
   return (
     <div className="space-y-3">
       {members.length === 0 ? (
-        <p className="text-sm text-slate-500">{t('groups.members_empty')}</p>
+        <p className="text-sm text-muted-foreground">{t('groups.members_empty')}</p>
       ) : (
         <div className="space-y-1">
           {members.map(m => (
             <div key={m.userId} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50">
               <div>
-                <div className="text-sm font-medium text-slate-700">{m.displayName}</div>
-                <div className="text-xs text-slate-400">{m.email} · {m.role}</div>
+                <div className="text-sm font-medium text-foreground">{m.displayName}</div>
+                <div className="text-xs text-muted-foreground">{m.email} · {m.role}</div>
               </div>
               <button
                 type="button"
@@ -153,20 +153,20 @@ export function GroupMembersSection({ groupId, members: initialMembers, onRefres
       {showAdd && (
         <div className="pt-3 border-t border-slate-100 space-y-3">
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={filter}
               onChange={e => setFilter(e.target.value)}
               placeholder={t('groups.search_users')}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 bg-card"
             />
           </div>
 
           {loading ? (
-            <p className="text-sm text-slate-400">{t('common.loading')}</p>
+            <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
           ) : filteredUsers.length === 0 ? (
-            <p className="text-sm text-slate-400">{t('groups.no_users_available')}</p>
+            <p className="text-sm text-muted-foreground">{t('groups.no_users_available')}</p>
           ) : (
             <div className="max-h-56 overflow-y-auto space-y-1 border border-slate-100 rounded-lg p-1">
               {filteredUsers.map(user => (
@@ -185,7 +185,7 @@ export function GroupMembersSection({ groupId, members: initialMembers, onRefres
           )}
 
           {selected.length > 0 && (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               {t('groups.users_selected', { count: selected.length })}
             </p>
           )}
