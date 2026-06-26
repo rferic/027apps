@@ -1,29 +1,27 @@
-import { View, Text, StyleSheet } from 'react-native'
+import { useEffect } from 'react'
+import { View, Text, ActivityIndicator } from 'react-native'
+import { useRouter } from 'expo-router'
+import { useAuth } from '@/hooks/useAuth'
 
-export default function HomeScreen() {
+export default function IndexScreen() {
+  const router = useRouter()
+  const { isLoading, isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    if (isLoading) return
+
+    if (!isAuthenticated) {
+      router.replace('/login')
+    } else {
+      router.replace('/(app)/dashboard')
+    }
+  }, [isLoading, isAuthenticated, router])
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>027Apps</Text>
-      <Text style={styles.subtitle}>Mobile App</Text>
+    <View className="flex-1 items-center justify-center bg-white">
+      <Text className="text-3xl font-bold text-[#9B1C1C] mb-3">027Apps</Text>
+      <Text className="text-base text-slate-500 mb-6">Mobile App</Text>
+      <ActivityIndicator size="large" color="#9B1C1C" />
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#9B1C1C',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#64748B',
-    marginTop: 8,
-  },
-})
