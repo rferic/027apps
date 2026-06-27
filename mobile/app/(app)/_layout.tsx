@@ -1,15 +1,31 @@
-import { Tabs } from 'expo-router'
-import { Text, type ColorValue } from 'react-native'
+import { useEffect } from 'react'
+import { Tabs, useRouter } from 'expo-router'
+import { Text, type ColorValue, useColorScheme } from 'react-native'
+import { useAuth } from '@/hooks/useAuth'
 
 function TabIcon({ label, color }: { label: string; color: ColorValue }) {
   return <Text style={{ color: color as string, fontSize: 22 }}>{label}</Text>
 }
 
 export default function AppLayout() {
+  const { isAuthenticated, isLoading } = useAuth()
+  const router = useRouter()
+  const colorScheme = useColorScheme()
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/login')
+    }
+  }, [isLoading, isAuthenticated, router])
+
+  if (isLoading || !isAuthenticated) {
+    return <Text style={{ flex: 1, textAlign: 'center', marginTop: 100 }}>...</Text>
+  }
+
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: '#9B1C1C' },
+        headerStyle: { backgroundColor: colorScheme === 'dark' ? '#1A1A2E' : '#9B1C1C' },
         headerTintColor: '#fff',
         tabBarActiveTintColor: '#9B1C1C',
         tabBarInactiveTintColor: '#94A3B8',

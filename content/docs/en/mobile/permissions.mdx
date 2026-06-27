@@ -1,0 +1,100 @@
+---
+title: Permissions & Notifications
+description: Mobile app permissions, notification types, user preferences, and admin token management.
+---
+
+# Permissions & Notifications
+
+## Runtime Permissions
+
+The app requests the following permissions at runtime:
+
+| Permission | When | iOS | Android |
+|---|---|---|---|
+| **Push Notifications** | On login or from Settings | System dialog | System dialog |
+| **Biometrics (Face ID / Fingerprint)** | On login (optional button tap) | System dialog | System dialog |
+| **SecureStore (Keychain)** | On login (automatic) | Keychain (no prompt) | EncryptedSharedPreferences |
+
+All permissions use the OS-native dialog. If the user denies push permissions, the app degrades gracefully — notifications simply won't be delivered.
+
+---
+
+## Notification Types
+
+The server can send push notifications for these events:
+
+### Inspiration
+
+| Event | Push Title | Sent to |
+|---|---|---|
+| New idea submitted | "New idea submitted" | Group admins |
+| New comment on your idea | "New comment on `{title}`" | Author + voters |
+| Status change | "Status updated: `{title}`" | Author + voters |
+| Vote received | "Your idea got a vote" | Idea author |
+
+### TODO
+
+| Event | Push Title | Sent to |
+|---|---|---|
+| Task assigned | "Task assigned" | Assigned user |
+| Status change | "Task status updated" | Assigned user |
+
+### Split Expenses
+
+| Event | Push Title | Sent to |
+|---|---|---|
+| New expense added | "New expense in `{group}`" | All group members |
+| You are owed | "You are owed in `{group}`" | The payer |
+| Payment received | "Payment received in `{group}`" | The receiver |
+| Group settled | "`{group}` is settled!" | All members |
+
+---
+
+## User Preferences
+
+The Settings screen in the mobile app provides a **global toggle** to disable all notifications and **per-type toggles** for fine-grained control.
+
+The `global_enabled` switch acts as a master — when off, no push notifications are sent regardless of per-type settings.
+
+---
+
+## Admin — Push Token Management
+
+Admins can view and revoke push tokens from the admin panel:
+
+1. **User list** (`/admin/users`, `/admin/admins`): Each row shows a `Push` badge (✅ Active / —) and a **Push** button in the actions column.
+2. **Push Tokens Modal**: Clicking **Push** opens a modal listing all registered tokens for that user (platform, truncated token, last update date).
+3. **Revoke**: Each token has a **Revoke** button. There is also a **Revoke all** button.
+4. **Force re-login**: When a token is revoked, the user's Supabase auth sessions are also deleted — the user is logged out on all devices and must sign in again on next app launch.
+
+### API
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/v1/admin/users/{id}/push-tokens` | GET | List push tokens |
+| `/api/v1/admin/users/{id}/push-tokens` | DELETE | Revoke all tokens for user |
+| `/api/v1/admin/users/{id}/push-tokens/{tokenId}` | DELETE | Revoke specific token |
+
+### User Detail Page
+
+The user detail page includes a **Push Tokens** section showing the same information as the modal, for in-context review.
+
+### Automatic Cleanup
+
+Push tokens are automatically cleaned up by database migration:
+- Tokens for deleted users are removed.
+- Tokens not updated in 90 days are removed.
+
+---
+
+## Session vs Push Token
+
+It is important to distinguish between:
+
+| Concept | Purpose | Revoked when |
+|---|---|---|
+| **Auth session** | Keeps the user logged in (JWT) | Admin revokes push token(s) |
+| **Push token** | Receives notifications | Revoke any push token |
+| **Session blocking** | Prevents login | Admin blocks user |
+
+Revoking push tokens always triggers auth session invalidation — the user is logged out on all devices and must re-authenticate.

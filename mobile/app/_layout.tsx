@@ -23,12 +23,22 @@ function DeepLinkHandler({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
+    // Handle deep links that opened the app from cold start
+    Linking.getInitialURL().then((url) => {
+      if (!url) return
+      const parsed = parseDeepLink(url)
+      if (!parsed) return
+      const route = parsed.route === 'update-password' ? 'reset-password' : parsed.route
+      const params = new URLSearchParams(parsed.params).toString()
+      const path = params ? `/${route}?${params}` : `/${route}`
+      router.push(path as any)
+    })
+
     // Handle incoming deep links when app is already running
     const sub = Linking.addEventListener('url', (event) => {
       const parsed = parseDeepLink(event.url)
       if (!parsed) return
 
-      // Map update-password to reset-password for compatibility
       const route =
         parsed.route === 'update-password' ? 'reset-password' : parsed.route
 
@@ -58,6 +68,7 @@ export default function RootLayout() {
                 <Stack.Screen name="login" />
                 <Stack.Screen name="register" />
                 <Stack.Screen name="reset-password" />
+                <Stack.Screen name="pair-qr" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
                 <Stack.Screen name="(app)" />
               </Stack>
             </DeepLinkHandler>

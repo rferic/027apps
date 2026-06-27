@@ -3,6 +3,7 @@ import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import type { HandlerContext } from '@/lib/apps/router-types'
 import { calculateBalances, optimizeTransfers } from '../../../debt-optimizer'
 import type { Expense } from '../../../debt-optimizer'
+import { notifySettled } from '../../../notifications'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
   const url = new URL(req.url)
@@ -117,6 +118,10 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   if (transferError) {
     return new Response(JSON.stringify({ error: 'Failed to create transfers' }), { status: 500, headers: { 'Content-Type': 'application/json' } })
   }
+
+  // Send push notification (fire-and-forget)
+  notifySettled(expenseGroupId!, ctx.userId)
+    .catch((err) => console.error('[SplitExpenses] Failed to send push:', err))
 
   return apiOk({
     settlement,

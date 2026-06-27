@@ -1,93 +1,79 @@
-import nodemailer from 'nodemailer'
 import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
+import { isEmailEnabled, getNotificationsConfig } from '@/lib/settings/notifications'
 
-type SendParams = {
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null
+
+let cachedTransporter: any = null // eslint-disable-line @typescript-eslint/no-explicit-any
+
+export function invalidateEmailTransporter(): void {
+  if (cachedTransporter) {
+    try { cachedTransporter.close() } catch { /* ignore */ }
+    cachedTransporter = null
+  }
+}
+
+interface SendEmailParams {
   to: string
   subject: string
   html: string
 }
 
-type SendResult = { error: string | null }
-
-function getTransporter() {
-  return nodemailer.createTransport({
-    host: '127.0.0.1',
-    port: 54325,
-    ignoreTLS: true,
-  })
-}
-
-let resendClient: Resend | null = null
-function getResend(): Resend {
-  if (!resendClient) {
-    const key = process.env.RESEND_API_KEY
-    if (!key) throw new Error('Missing RESEND_API_KEY')
-    resendClient = new Resend(key)
+export async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> {
+  const enabled = await isEmailEnabled()
+  if (!enabled) {
+    console.log(`[Email] Disabled globally — skipping: "${subject}"`)
+    return
   }
-  return resendClient
-}
 
-function getSmtpTransporter() {
-  const host = process.env.SMTP_HOST
-  const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : undefined
-  const user = process.env.SMTP_USER
-  const pass = process.env.SMTP_PASS
-  if (!host || !port || !user || !pass) return null
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  })
-}
+  const config = await getNotificationsConfig()
 
-export async function sendEmail({ to, subject, html }: SendParams): Promise<SendResult> {
-  const isDev = process.env.NODE_ENV === 'development'
-
-  // 1. Local SMTP (Supabase Inbucket en desarrollo)
-  if (isDev) {
+  // Use custom SMTP if configured
+  if (config.smtp) {
     try {
-      const transporter = getTransporter()
-      await transporter.sendMail({
-        from: '"027Apps" <noreply@027apps.local>',
+      if (!cachedTransporter) {
+        cachedTransporter = nodemailer.createTransport({
+          host: config.smtp.host,
+          port: config.smtp.port,
+          secure: config.smtp.port === 465,
+          auth: { user: config.smtp.user, pass: config.smtp.pass },
+          tls: { rejectUnauthorized: false },
+          pool: true,
+        })
+      }
+
+      await cachedTransporter!.sendMail({
+        from: config.smtp.from_name
+          ? `"${config.smtp.from_name}" <${config.smtp.from_email}>`
+          : config.smtp.from_email,
         to,
         subject,
         html,
       })
-      return { error: null }
-    } catch {
-      return { error: 'Could not send email. Please try again later.' }
-    }
-  }
-
-  // 2. Resend (si está configurado)
-  const key = process.env.RESEND_API_KEY
-  if (key && process.env.SENDER_EMAIL) {
-    try {
-      const resend = getResend()
-      const from = process.env.SENDER_EMAIL
-      console.log(`[email] Sending via Resend to ${to} from ${from} subject="${subject}"`)
-      const result = await resend.emails.send({ from, to, subject, html })
-      console.log(`[email] Sent ok:`, JSON.stringify(result))
-      return { error: null }
+      return
     } catch (err) {
-      console.error(`[email] Resend failed:`, err)
-      // Fall through to SMTP
+      console.error('[Email] SMTP send failed, falling back to Resend:', err)
+      // Fall through to Resend
     }
   }
 
-  // 3. SMTP genérico (Gmail, etc.)
-  const smtp = getSmtpTransporter()
-  if (smtp) {
-    try {
-      const from = process.env.SMTP_FROM ?? process.env.SMTP_USER ?? 'noreply@027apps.com'
-      await smtp.sendMail({ from: `"027Apps" <${from}>`, to, subject, html })
-      return { error: null }
-    } catch (err) {
-      console.error(`[email] SMTP failed:`, err)
-      return { error: 'Could not send email. Please try again later.' }
-    }
+  // Fallback to Resend
+  if (!resend) {
+    console.warn('[Email] No email provider configured (no SMTP, no RESEND_API_KEY)')
+    return
   }
 
-  return { error: 'No email service configured. Set RESEND_API_KEY+SENDER_EMAIL or SMTP_* variables.' }
+  try {
+    const { error } = await resend.emails.send({
+      from: '027Apps <notifications@027apps.com>',
+      to,
+      subject,
+      html,
+    })
+    if (error) console.error('[Email] Resend send failed:', error)
+  } catch (err) {
+    console.error('[Email] Resend error:', err)
+  }
 }

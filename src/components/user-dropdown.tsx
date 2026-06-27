@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { signOut, updateLocale } from '@/lib/auth/actions'
 import { useTheme } from '@/components/theme-provider'
+import { PairLoginDialog } from '@/components/PairLoginDialog'
 
 interface Props {
   locale: string
@@ -29,6 +30,7 @@ export function UserDropdown({ locale, displayName, profileHref, isAdmin, active
   const [open, setOpen] = useState(false)
   const [localePending, startLocaleTransition] = useTransition()
   const [pending, startTransition] = useTransition()
+  const [showPairing, setShowPairing] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { theme, toggle: toggleTheme } = useTheme()
 
@@ -92,6 +94,16 @@ export function UserDropdown({ locale, displayName, profileHref, isAdmin, active
           )}
           <hr className="my-1 border-border" />
           <button
+            onClick={() => { setShowPairing(true); setOpen(false) }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+          >
+            <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Pair with mobile
+          </button>
+          <hr className="my-1 border-border" />
+          <button
             onClick={() => { toggleTheme(); setOpen(false) }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
           >
@@ -139,6 +151,7 @@ export function UserDropdown({ locale, displayName, profileHref, isAdmin, active
           </button>
         </div>
       )}
+      {showPairing && <PairLoginDialog onClose={() => setShowPairing(false)} />}
     </div>
   )
 }

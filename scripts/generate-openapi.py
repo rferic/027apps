@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate public/openapi.json with all endpoint docs."""
 import json
+import os
 
 def schema_obj(props, required=None):
     return {"type": "object", "properties": props, "required": required or list(props.keys())}
@@ -593,6 +594,230 @@ paths = {
             "security": bearer_auth,
         },
     },
+    # ── Notifications ───────────────────────────────────────
+    "/api/v1/notifications/prefs": {
+        "get": {
+            "summary": "Get notification preferences",
+            "description": "Returns the authenticated user's notification preferences (global toggle + per-type toggles).",
+            "tags": ["Notifications"],
+            "responses": {
+                "200": resp(schema_obj({
+                    "global_enabled": {"type": "boolean", "description": "Master toggle for all notifications"},
+                    "types": {"type": "object", "description": "Per-type enabled flags"},
+                    "all_types": {"type": "array", "items": {"type": "string"}, "description": "All available notification types"},
+                })),
+                "401": error_resp("Unauthorized"),
+            },
+            "security": bearer_auth,
+        },
+        "put": {
+            "summary": "Update notification preferences",
+            "description": "Updates the authenticated user's notification preferences.",
+            "tags": ["Notifications"],
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
+                "global_enabled": {"type": "boolean", "description": "Master toggle"},
+                "types": {"type": "object", "description": "Per-type enabled flags"},
+            })}}},
+            "responses": {
+                "200": resp(schema_obj({"success": {"type": "boolean", "description": "Whether the update succeeded"}})),
+                "401": error_resp("Unauthorized"),
+            },
+            "security": bearer_auth,
+        },
+    },
+
+    # ── Mobile ──────────────────────────────────────────────
+    "/api/v1/mobile/push-token": {
+        "post": {
+            "summary": "Register push notification token",
+            "description": "Registers an Expo push token for the authenticated user. Returns 204 on success.",
+            "tags": ["Mobile"],
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
+                "token": {"type": "string", "description": "Expo push token (required)"},
+                "platform": {"type": "string", "description": "Device platform (ios/android)"},
+            }, ["token"]), "example": {"token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]", "platform": "ios"}}}},
+            "responses": {
+                "204": {"description": "No Content — token registered successfully"},
+                "401": error_resp("Unauthorized"),
+                "422": error_resp("Validation error"),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/mobile/version": {
+        "get": {
+            "summary": "Check mobile app version",
+            "description": "Returns the latest version info for the mobile app. Query param variant selects beta or production.",
+            "tags": ["Mobile"],
+            "parameters": [
+                {"name": "variant", "in": "query", "schema": {"type": "string", "enum": ["production", "beta"], "default": "production"}, "description": "App variant"},
+            ],
+            "responses": {
+                "200": resp(schema_obj({
+                    "latest_version": {"type": "string", "description": "Latest available version"},
+                    "min_version": {"type": "string", "description": "Minimum required version"},
+                    "download_url": {"type": "string", "description": "URL to download the latest APK"},
+                    "release_notes": {"type": "string", "description": "Release notes for the latest version"},
+                }), {"latest_version": "1.0.0", "min_version": "1.0.0", "download_url": "https://...", "release_notes": "Bug fixes"}),
+            },
+            "security": bearer_auth,
+        },
+    },
+
+    # ── Split Expenses ──────────────────────────────────────
+    "/api/v1/{group}/apps/split-expenses": {
+        "get": {
+            "summary": "List expense groups",
+            "description": "Returns expense groups for the authenticated group.",
+            "tags": ["App - Split Expenses"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Group slug"},
+                {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1}},
+                {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20, "maximum": 500}},
+            ],
+            "responses": {
+                "200": {"description": "Paginated list of expense groups"},
+                "401": error_resp("Unauthorized"),
+            },
+            "security": bearer_auth,
+        },
+        "post": {
+            "summary": "Create expense group",
+            "description": "Creates a new expense group within the group.",
+            "tags": ["App - Split Expenses"],
+            "parameters": [{"name": "group", "in": "path", "required": True, "schema": {"type": "string"}}],
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
+                "title": {"type": "string", "description": "Group title"},
+                "emoji": {"type": "string", "description": "Emoji icon"},
+                "currency": {"type": "string", "description": "Currency code (EUR, USD, etc.)"},
+            }, ["title", "currency"]), "example": {"title": "Viaje a Par\u00eds", "emoji": "\u2708\ufe0f", "currency": "EUR"}}}},
+            "responses": {
+                "201": {"description": "Expense group created"},
+                "401": error_resp("Unauthorized"),
+                "422": error_resp("Validation error"),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/{group}/apps/split-expenses/{id}": {
+        "get": {
+            "summary": "Get expense group details",
+            "tags": ["App - Split Expenses"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}},
+            ],
+            "responses": {
+                "200": {"description": "Expense group details"},
+                "401": error_resp("Unauthorized"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+        "put": {
+            "summary": "Update expense group",
+            "tags": ["App - Split Expenses"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}},
+            ],
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
+                "title": {"type": "string"}, "emoji": {"type": "string"}, "currency": {"type": "string"},
+            })}}},
+            "responses": {
+                "200": {"description": "Expense group updated"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+        "delete": {
+            "summary": "Delete expense group",
+            "description": "Deletes an expense group and all its data. Returns 204.",
+            "tags": ["App - Split Expenses"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}},
+            ],
+            "responses": {
+                "204": {"description": "No Content \u2014 deleted successfully"},
+                "401": error_resp("Unauthorized"),
+                "403": error_resp("Forbidden"),
+                "404": error_resp("Not found"),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/{group}/apps/split-expenses/{id}/expenses": {
+        "get": {
+            "summary": "List expenses",
+            "description": "Returns paginated expenses for a group. Supports filters: tag, paid_by, my_only, date range.",
+            "tags": ["App - Split Expenses"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}},
+                {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1}},
+                {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20, "maximum": 500}},
+            ],
+            "responses": {
+                "200": {"description": "Paginated expenses with transfers"},
+                "401": error_resp("Unauthorized"),
+            },
+            "security": bearer_auth,
+        },
+        "post": {
+            "summary": "Create expense",
+            "description": "Creates a new expense with auto-split among participants.",
+            "tags": ["App - Split Expenses"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}},
+            ],
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
+                "title": {"type": "string"}, "amount": {"type": "number"},
+                "paid_by": {"type": "string"}, "participant_ids": {"type": "array", "items": {"type": "string"}},
+                "tag_id": {"type": "string"},
+            }, ["title", "amount", "paid_by", "participant_ids"])}}},
+            "responses": {
+                "201": {"description": "Expense created"},
+                "401": error_resp("Unauthorized"),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/{group}/apps/split-expenses/{id}/balances": {
+        "get": {
+            "summary": "Get balances and suggested transfers",
+            "tags": ["App - Split Expenses"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}},
+            ],
+            "responses": {
+                "200": {"description": "Balances and optimized transfers"},
+                "401": error_resp("Unauthorized"),
+            },
+            "security": bearer_auth,
+        },
+    },
+    "/api/v1/{group}/apps/split-expenses/{id}/settlements": {
+        "post": {
+            "summary": "Settle all debts",
+            "description": "Creates optimized transfers to settle all debts in the group.",
+            "tags": ["App - Split Expenses"],
+            "parameters": [
+                {"name": "group", "in": "path", "required": True, "schema": {"type": "string"}},
+                {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}},
+            ],
+            "responses": {
+                "201": {"description": "Settlement created with transfers"},
+                "401": error_resp("Unauthorized"),
+            },
+            "security": bearer_auth,
+        },
+    },
+
     # ── Locales ─────────────────────────────────────────────
     "/api/v1/locales": {
         "get": {
@@ -796,17 +1021,20 @@ spec = {
         {"name": "App - Inspiration - Ideas", "description": "Idea management within the Inspiration app"},
         {"name": "App - Inspiration - Comments", "description": "Comments on inspiration ideas"},
         {"name": "App - Inspiration - Votes", "description": "Voting on inspiration ideas"},
+        {"name": "App - Split Expenses", "description": "Split expenses between group members with optimized debt settlement"},
         {"name": "App - Todo - Items", "description": "Todo item management within the Todo app"},
         {"name": "Apps", "description": "Installed applications and app discovery"},
         {"name": "Health", "description": "Health check and API status"},
         {"name": "Locales", "description": "Locale and language configuration"},
+        {"name": "Mobile", "description": "Mobile app endpoints (push tokens, version check)"},
+        {"name": "Notifications", "description": "Notification preferences and push token management"},
         {"name": "Profile", "description": "Current user profile"},
         {"name": "Shared", "description": "Endpoints available to all authenticated group members"},
     ], key=lambda t: t["name"]),
     "paths": dict(sorted(paths.items())),
     "servers": [
         {"url": "http://localhost:3000", "description": "Local development"},
-        {"url": "https://027apps-eric-rf.vercel.app", "description": "Production"},
+        {"url": "https://027apps.vercel.app", "description": "Production"},
     ],
     "components": {
         "securitySchemes": {
@@ -822,7 +1050,6 @@ spec = {
     },
 }
 
-import os
 output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'public', 'openapi.json')
 with open(output_path, 'w') as f:
     json.dump(spec, f, indent=2, ensure_ascii=False)

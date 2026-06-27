@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation'
 import { setRequestLocale, getTranslations } from 'next-intl/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, createAdminClientUntyped } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/helpers'
 import { UserGroupsSection } from './UserGroupsSection'
+import { PushTokensSection } from './PushTokensSection'
 
 interface Props {
   params: Promise<{ locale: string; id: string }>
@@ -44,6 +45,11 @@ export default async function AdminUserDetailPage({ params }: Props) {
     .from('groups')
     .select('id, name, slug')
     .order('name')
+
+  const { data: pushTokensData } = await createAdminClientUntyped()
+    .from('push_tokens')
+    .select('id, token, platform, updated_at')
+    .eq('user_id', id)
 
   const availableGroups = (allGroups ?? []).filter(
     g => !userGroups.some(ug => ug.groupId === g.id)
@@ -102,6 +108,17 @@ export default async function AdminUserDetailPage({ params }: Props) {
           availableGroups={availableGroups}
         />
       </div>
+
+      {/* Push tokens section */}
+      <PushTokensSection
+        tokens={(pushTokensData ?? []).map((t) => ({
+          id: (t as { id: string }).id,
+          token: (t as { token: string }).token,
+          platform: (t as { platform: string }).platform,
+          updated_at: (t as { updated_at: string }).updated_at,
+        }))}
+        userId={id}
+      />
     </div>
   )
 }

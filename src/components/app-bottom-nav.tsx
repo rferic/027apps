@@ -40,13 +40,15 @@ interface Props {
 function NavLink({ href, label, icon: Icon, active, onClick, color }: { href: string; label: string; icon: React.ElementType; active: boolean; onClick?: () => void; color?: string }) {
   const activeStyle = color
     ? { color, backgroundColor: `${color}14` }
-    : {}
+    : active
+      ? { color: 'var(--color-brand)', backgroundColor: 'color-mix(in srgb, var(--color-brand) 10%, transparent)' }
+      : {}
   return (
     <Link
       href={href}
       onClick={onClick}
       className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-        active ? (color ? '' : 'text-emerald-600 bg-emerald-50') : 'text-slate-500 hover:text-slate-700'
+        !active ? 'text-slate-500 hover:text-slate-700' : ''
       }`}
       style={active ? activeStyle : undefined}
     >
@@ -100,14 +102,18 @@ export function AppBottomNav({ navItems, locale, currentGroupSlug }: Props) {
           <div className="flex flex-wrap gap-2">
             {overflowItems.map(({ slug, label, href, primaryColor }) => {
               const active = pathname.startsWith(href)
-              const activeStyle = primaryColor ? { color: primaryColor, backgroundColor: `${primaryColor}14` } : undefined
+              const activeStyle = primaryColor
+                ? { color: primaryColor, backgroundColor: `${primaryColor}14` }
+                : active
+                  ? { color: 'var(--color-brand)', backgroundColor: 'color-mix(in srgb, var(--color-brand) 10%, transparent)' }
+                  : undefined
               return (
                 <Link
                   key={slug}
                   href={href}
                   onClick={() => setOverflowOpen(false)}
                   className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    active ? (primaryColor ? '' : 'text-emerald-600 bg-emerald-50') : 'text-slate-500 hover:text-slate-700'
+                    !active ? 'text-slate-500 hover:text-slate-700' : ''
                   }`}
                   style={active ? activeStyle : undefined}
                 >
@@ -123,10 +129,14 @@ export function AppBottomNav({ navItems, locale, currentGroupSlug }: Props) {
         <NavLink href={homeHref} label={t('nav.home')} icon={Home} active={pathname === homeHref} />
         {visibleDynamic.map(({ slug, label, href, primaryColor }) => {
           const active = pathname.startsWith(href)
-          const activeStyle = primaryColor ? { color: primaryColor, backgroundColor: `${primaryColor}14` } : undefined
+          const activeStyle = primaryColor
+            ? { color: primaryColor, backgroundColor: `${primaryColor}14` }
+            : active
+              ? { color: 'var(--color-brand)', backgroundColor: 'color-mix(in srgb, var(--color-brand) 10%, transparent)' }
+              : undefined
           return (
             <Link key={slug} href={href} className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              active ? (primaryColor ? '' : 'text-emerald-600 bg-emerald-50') : 'text-slate-500 hover:text-slate-700'
+              !active ? 'text-slate-500 hover:text-slate-700' : ''
             }`} style={active ? activeStyle : undefined}>
               <AppIcon slug={slug} label={label} />
               <span>{label}</span>
@@ -137,8 +147,9 @@ export function AppBottomNav({ navItems, locale, currentGroupSlug }: Props) {
           <button
             onClick={() => setOverflowOpen(prev => !prev)}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              overflowOpen ? 'text-emerald-600 bg-emerald-50' : 'text-slate-500 hover:text-slate-700'
+              overflowOpen ? '' : 'text-slate-500 hover:text-slate-700'
             }`}
+            style={overflowOpen ? { color: 'var(--color-brand)', backgroundColor: 'color-mix(in srgb, var(--color-brand) 10%, transparent)' } : undefined}
           >
             <LayoutGrid className="w-5 h-5" />
             <span>{t('nav.more')}</span>

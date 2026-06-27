@@ -1,6 +1,7 @@
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import type { HandlerContext } from '@/lib/apps/router-types'
+import { notifyPayment } from '../../../notifications'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
   const url = new URL(req.url)
@@ -41,6 +42,10 @@ export default async function handler(req: Request, ctx: HandlerContext) {
   }).select().single()
 
   if (insertErr) return apiError('CREATE_FAILED', insertErr.message, 500)
+
+  // Send push notification (fire-and-forget)
+  notifyPayment(expenseGroupId!, fromUser, toUser, amount)
+    .catch((err) => console.error('[SplitExpenses] Failed to send push:', err))
 
   return apiOk({ payment }, 201)
 }

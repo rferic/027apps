@@ -16,6 +16,7 @@
     "@supabase/supabase-js": "^2.105.3",
     "@ts-rest/core": "^3.52.1",
     "expo": "~56.0.12",
+    "expo-camera": "^56.0.8",
     "expo-constants": "^56.0.18",
     "expo-device": "^56.0.4",
     "expo-linking": "^56.0.14",

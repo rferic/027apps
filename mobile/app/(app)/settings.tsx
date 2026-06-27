@@ -235,10 +235,12 @@ export default function SettingsScreen() {
               <Switch
                 value={notificationPrefs.global_enabled}
                 onValueChange={async (val) => {
-                  await updateNotificationPrefs({ global_enabled: val })
-                  setNotificationPrefs((prev) =>
-                    prev ? { ...prev, global_enabled: val } : prev
-                  )
+                  const ok = await updateNotificationPrefs({ global_enabled: val })
+                  if (ok) {
+                    setNotificationPrefs((prev) =>
+                      prev ? { ...prev, global_enabled: val } : prev
+                    )
+                  }
                 }}
                 trackColor={{ false: '#CBD5E1', true: '#9B1C1C' }}
                 thumbColor="#fff"
@@ -265,10 +267,12 @@ export default function SettingsScreen() {
                         ...notificationPrefs.types,
                         [type]: val,
                       }
-                      await updateNotificationPrefs({ types: newTypes })
-                      setNotificationPrefs((prev) =>
-                        prev ? { ...prev, types: newTypes } : prev
-                      )
+                      const ok = await updateNotificationPrefs({ types: newTypes })
+                      if (ok) {
+                        setNotificationPrefs((prev) =>
+                          prev ? { ...prev, types: newTypes } : prev
+                        )
+                      }
                     }}
                     trackColor={{ false: '#CBD5E1', true: '#9B1C1C' }}
                     thumbColor="#fff"

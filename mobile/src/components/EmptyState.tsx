@@ -13,7 +13,7 @@ export function EmptyState({ title, message, icon, action }: EmptyStateProps) {
       {icon ? (
         <Text className="text-5xl mb-4">{icon}</Text>
       ) : null}
-      <Text className="text-lg font-semibold text-secondary dark:text-gray-100 text-center mb-2">
+      <Text className="text-lg font-semibold text-slate-900 dark:text-white text-center mb-2">
         {title}
       </Text>
       {message ? (

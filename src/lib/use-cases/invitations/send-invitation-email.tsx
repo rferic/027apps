@@ -43,9 +43,11 @@ export async function sendInvitationEmail(
 
   if (!invitation.email) return { error: 'Invitation has no email' }
 
-  return sendEmail({
+  await sendEmail({
     to: invitation.email,
     subject,
     html,
   })
+
+  return { error: null }
 }

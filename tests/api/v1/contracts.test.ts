@@ -88,10 +88,11 @@ describe('auth header vs security scheme sync', () => {
     for (const path of pathsWithAuth) {
       const methods = committed.paths[path] as Record<string, unknown> | undefined
       expect(methods, `Path ${path} not found in openapi.json`).toBeDefined()
-      const getMethod = methods?.get as Record<string, unknown> | undefined
-      const security = getMethod?.security as Record<string, string[]>[]
+      // Check any HTTP method (get, post, put, delete) — not just get
+      const method = methods?.get ?? methods?.post ?? methods?.put ?? methods?.delete
+      const security = method && ((method as Record<string, unknown>).security as unknown as Record<string, string[]>[] | undefined)
       expect(security, `Path ${path} has no security scheme`).toBeDefined()
-      expect(security!.length > 0, `Path ${path} has empty security schemes`).toBe(true)
+      expect((security as Record<string, string[]>[]).length > 0, `Path ${path} has empty security schemes`).toBe(true)
     }
   })
 })

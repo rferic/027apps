@@ -32,7 +32,7 @@ The 027Apps mobile application brings the platform to iOS and Android devices. I
 
 **Module System** — Each app (To-Do, Inspiration, etc.) provides a `native.tsx` file that defines the React Native screen. The mobile app imports these views through its module registry, keeping app logic within each app's directory while the mobile shell handles navigation and composition.
 
-**Push Notifications** — Expo push tokens are registered with the server on sign-in. Notifications are delivered via Expo's push service, with channel configuration for Android importance levels.
+**Push Notifications** — Push notifications are sent via `expo-server-sdk` from the backend. Users control global and per-type preferences from Settings. See [Permissions & Notifications](/doc/mobile/permissions) for the full list of notification types.
 
 **Theme Support** — Light/dark/system mode selection persisted to SecureStore, rendering via NativeWind's dark mode class toggling.
 
@@ -76,11 +76,14 @@ mobile/
 │   │   ├── error-handler.ts    # Global error boundary logic
 │   │   └── modules/
 │   │       └── registry.ts     # Module registration API
+│   │   ├── prefs.ts            # Notification preference API client
+│   │   └── modules/
+│   │       └── index.ts        # Module auto-registration
 │   ├── components/             # Shared UI components
 │   ├── hooks/                  # Custom hooks (useAuth, useTranslation, useNotifications)
 │   └── i18n/                   # Translations shared with web platform
 ├── tests/                      # Vitest unit + component tests
-├── app.json                    # Expo config (schemes, plugins, updates)
+├── app.config.ts               # Dynamic Expo config (variant-aware)
 ├── eas.json                    # EAS Build profiles
 ├── metro.config.js             # Metro bundler config
 ├── tailwind.config.js          # NativeWind v4 config
@@ -122,6 +125,11 @@ cd mobile && npx vitest run
     description="Deep dive into auth flow, API client, module system, theming, and i18n."
   />
   <Card
+    title="Permissions & Notifications"
+    href="/doc/mobile/permissions"
+    description="All notification types, user preferences, permissions, and admin token management."
+  />
+  <Card
     title="Module Guide"
     href="/doc/mobile/module-guide"
     description="Step-by-step guide for adding a new app module to the mobile shell."
@@ -129,6 +137,6 @@ cd mobile && npx vitest run
   <Card
     title="Distribution"
     href="/doc/mobile/distribution"
-    description="EAS Build, OTA updates, version constraints, and self-hosting."
+    description="EAS Build, dual-app variants, versioning, OTA updates, and CI/CD."
   />
 </Cards>

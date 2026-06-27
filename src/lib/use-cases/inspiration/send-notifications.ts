@@ -27,6 +27,27 @@ async function getRequest(requestId: string): Promise<RequestInfo | null> {
   return data as RequestInfo | null
 }
 
+async function getAdminIds(groupId: string): Promise<string[]> {
+  const client = createAdminClientUntyped()
+  const { data: admins } = await client
+    .from('group_members')
+    .select('user_id')
+    .eq('group_id', groupId)
+    .eq('role', 'admin')
+  return (admins ?? []).map((a: { user_id: string }) => a.user_id)
+}
+
+/**
+ * Admins + creator, no duplicates.
+ * Excludes commentAuthorId so comment author doesn't get notified about their own comment.
+ */
+async function getAdminsAndCreator(request: RequestInfo, excludeUserId?: string): Promise<string[]> {
+  const adminIds = await getAdminIds(request.group_id)
+  const ids = new Set([...adminIds, request.user_id])
+  if (excludeUserId) ids.delete(excludeUserId)
+  return Array.from(ids)
+}
+
 async function getRecipients(requestId: string, excludeUserId?: string): Promise<string[]> {
   const client = createAdminClientUntyped()
 
@@ -49,18 +70,26 @@ async function getUserEmailMap(userIds: string[]): Promise<Map<string, string>> 
   if (userIds.length === 0) return new Map()
 
   const client = createAdminClientUntyped()
-  const results = await Promise.all(
-    userIds.map((id) =>
-      client.auth.admin.getUserById(id).catch(() => null)
-    )
-  )
-
   const map = new Map<string, string>()
-  for (const result of results) {
-    if (result?.data?.user?.email) {
-      map.set(result.data.user.id, result.data.user.email)
+  const targetSet = new Set(userIds)
+
+  // Fetch all users via listUsers (paginated) and build the map
+  let page = 1
+  const perPage = 500
+  while (targetSet.size > 0) {
+    const { data } = await client.auth.admin.listUsers({ page, perPage })
+    if (!data?.users?.length) break
+
+    for (const user of data.users) {
+      if (targetSet.has(user.id) && user.email) {
+        map.set(user.id, user.email)
+        targetSet.delete(user.id)
+      }
     }
+    if (data.users.length < perPage) break
+    page++
   }
+
   return map
 }
 
@@ -173,7 +202,7 @@ export async function notifyNewIdea(
       type: NOTIFICATION_TYPES.INSPIRATION_NEW_IDEA,
       title: 'New idea submitted',
       body: `${authorName} submitted "${request.title}"`,
-      data: { requestId, groupId: request.group_id },
+      data: { screen: 'inspiration/[id]', params: { id: requestId }, requestId, groupId: request.group_id },
     }).catch((err) => console.error('[Inspiration] Failed to send push:', err))
   } catch (err) {
     console.error('[Inspiration] notifyNewIdea failed:', err)
@@ -190,7 +219,7 @@ export async function notifyNewComment(
     const request = await getRequest(requestId)
     if (!request) return
 
-    const recipients = await getRecipients(requestId, commentAuthorId)
+    const recipients = await getAdminsAndCreator(request, commentAuthorId)
     if (recipients.length === 0) return
 
     const [emailMap, commentAuthorName] = await Promise.all([
@@ -227,12 +256,12 @@ export async function notifyNewComment(
       )
     )
 
-    // Send push to author + voters (fire-and-forget)
+    // Send push to admins + creator (fire-and-forget)
     sendPushNotifications(recipients, {
       type: NOTIFICATION_TYPES.INSPIRATION_NEW_COMMENT,
       title: `New comment on "${request.title}"`,
       body: `${commentAuthorName}: ${commentSnippet}`,
-      data: { requestId, groupId: request.group_id },
+      data: { screen: 'inspiration/[id]', params: { id: requestId }, requestId, groupId: request.group_id },
     }).catch((err) => console.error('[Inspiration] Failed to send push:', err))
   } catch (err) {
     console.error('[Inspiration] notifyNewComment failed:', err)
@@ -313,13 +342,13 @@ export async function notifyStatusChange(
       )
     )
 
-    // Send push to author + voters (fire-and-forget)
+    // Send push only to the creator
     const statusLabel = isClosure ? newStatus : `${oldStatus} → ${newStatus}`
-    sendPushNotifications(recipients, {
+    sendPushNotifications([request.user_id], {
       type: NOTIFICATION_TYPES.INSPIRATION_STATUS_CHANGE,
       title: `Status updated: "${request.title}"`,
       body: `Changed to ${statusLabel}${message ? ` — ${message}` : ''}`,
-      data: { requestId, groupId: request.group_id, oldStatus, newStatus },
+      data: { screen: 'inspiration/[id]', params: { id: requestId }, requestId, groupId: request.group_id, oldStatus, newStatus },
     }).catch((err) => console.error('[Inspiration] Failed to send push:', err))
   } catch (err) {
     console.error('[Inspiration] notifyStatusChange failed:', err)

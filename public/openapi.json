@@ -43,6 +43,10 @@
       "description": "Voting on inspiration ideas"
     },
     {
+      "name": "App - Split Expenses",
+      "description": "Split expenses between group members with optimized debt settlement"
+    },
+    {
       "name": "App - Todo - Items",
       "description": "Todo item management within the Todo app"
     },
@@ -57,6 +61,14 @@
     {
       "name": "Locales",
       "description": "Locale and language configuration"
+    },
+    {
+      "name": "Mobile",
+      "description": "Mobile app endpoints (push tokens, version check)"
+    },
+    {
+      "name": "Notifications",
+      "description": "Notification preferences and push token management"
     },
     {
       "name": "Profile",
@@ -2488,6 +2500,324 @@
         ]
       }
     },
+    "/api/v1/mobile/push-token": {
+      "post": {
+        "summary": "Register push notification token",
+        "description": "Registers an Expo push token for the authenticated user. Returns 204 on success.",
+        "tags": [
+          "Mobile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "Expo push token (required)"
+                  },
+                  "platform": {
+                    "type": "string",
+                    "description": "Device platform (ios/android)"
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              },
+              "example": {
+                "token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+                "platform": "ios"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content — token registered successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "validation_error",
+                  "message": "Validation error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/mobile/version": {
+      "get": {
+        "summary": "Check mobile app version",
+        "description": "Returns the latest version info for the mobile app. Query param variant selects beta or production.",
+        "tags": [
+          "Mobile"
+        ],
+        "parameters": [
+          {
+            "name": "variant",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "production",
+                "beta"
+              ],
+              "default": "production"
+            },
+            "description": "App variant"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "latest_version": {
+                      "type": "string",
+                      "description": "Latest available version"
+                    },
+                    "min_version": {
+                      "type": "string",
+                      "description": "Minimum required version"
+                    },
+                    "download_url": {
+                      "type": "string",
+                      "description": "URL to download the latest APK"
+                    },
+                    "release_notes": {
+                      "type": "string",
+                      "description": "Release notes for the latest version"
+                    }
+                  },
+                  "required": [
+                    "latest_version",
+                    "min_version",
+                    "download_url",
+                    "release_notes"
+                  ]
+                },
+                "example": {
+                  "latest_version": "1.0.0",
+                  "min_version": "1.0.0",
+                  "download_url": "https://...",
+                  "release_notes": "Bug fixes"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications/prefs": {
+      "get": {
+        "summary": "Get notification preferences",
+        "description": "Returns the authenticated user's notification preferences (global toggle + per-type toggles).",
+        "tags": [
+          "Notifications"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "global_enabled": {
+                      "type": "boolean",
+                      "description": "Master toggle for all notifications"
+                    },
+                    "types": {
+                      "type": "object",
+                      "description": "Per-type enabled flags"
+                    },
+                    "all_types": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "All available notification types"
+                    }
+                  },
+                  "required": [
+                    "global_enabled",
+                    "types",
+                    "all_types"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update notification preferences",
+        "description": "Updates the authenticated user's notification preferences.",
+        "tags": [
+          "Notifications"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "global_enabled": {
+                    "type": "boolean",
+                    "description": "Master toggle"
+                  },
+                  "types": {
+                    "type": "object",
+                    "description": "Per-type enabled flags"
+                  }
+                },
+                "required": [
+                  "global_enabled",
+                  "types"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the update succeeded"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/shared/config": {
       "get": {
         "tags": [
@@ -3915,6 +4245,802 @@
                 "example": {
                   "error": "not_found",
                   "message": "Not found"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/{group}/apps/split-expenses": {
+      "get": {
+        "summary": "List expense groups",
+        "description": "Returns expense groups for the authenticated group.",
+        "tags": [
+          "App - Split Expenses"
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Group slug"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of expense groups"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create expense group",
+        "description": "Creates a new expense group within the group.",
+        "tags": [
+          "App - Split Expenses"
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Group title"
+                  },
+                  "emoji": {
+                    "type": "string",
+                    "description": "Emoji icon"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "description": "Currency code (EUR, USD, etc.)"
+                  }
+                },
+                "required": [
+                  "title",
+                  "currency"
+                ]
+              },
+              "example": {
+                "title": "Viaje a París",
+                "emoji": "✈️",
+                "currency": "EUR"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Expense group created"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "validation_error",
+                  "message": "Validation error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/{group}/apps/split-expenses/{id}": {
+      "get": {
+        "summary": "Get expense group details",
+        "tags": [
+          "App - Split Expenses"
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense group details"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "not_found",
+                  "message": "Not found"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update expense group",
+        "tags": [
+          "App - Split Expenses"
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "emoji": {
+                    "type": "string"
+                  },
+                  "currency": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title",
+                  "emoji",
+                  "currency"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Expense group updated"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "forbidden",
+                  "message": "Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "not_found",
+                  "message": "Not found"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete expense group",
+        "description": "Deletes an expense group and all its data. Returns 204.",
+        "tags": [
+          "App - Split Expenses"
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content — deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "forbidden",
+                  "message": "Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "not_found",
+                  "message": "Not found"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/{group}/apps/split-expenses/{id}/balances": {
+      "get": {
+        "summary": "Get balances and suggested transfers",
+        "tags": [
+          "App - Split Expenses"
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balances and optimized transfers"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/{group}/apps/split-expenses/{id}/expenses": {
+      "get": {
+        "summary": "List expenses",
+        "description": "Returns paginated expenses for a group. Supports filters: tag, paid_by, my_only, date range.",
+        "tags": [
+          "App - Split Expenses"
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated expenses with transfers"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create expense",
+        "description": "Creates a new expense with auto-split among participants.",
+        "tags": [
+          "App - Split Expenses"
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "paid_by": {
+                    "type": "string"
+                  },
+                  "participant_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "tag_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title",
+                  "amount",
+                  "paid_by",
+                  "participant_ids"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Expense created"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/{group}/apps/split-expenses/{id}/settlements": {
+      "post": {
+        "summary": "Settle all debts",
+        "description": "Creates optimized transfers to settle all debts in the group.",
+        "tags": [
+          "App - Split Expenses"
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Settlement created with transfers"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Machine-readable error code"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Human-readable error description"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Unauthorized"
                 }
               }
             }

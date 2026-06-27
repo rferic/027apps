@@ -3,12 +3,11 @@ import { sendEmail } from '@/lib/email/send'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import { TodoAssignedEmail } from '@/emails/todo-assigned'
 import { TodoStatusChangeEmail } from '@/emails/todo-status-change'
-import { sendPushToUser } from '@/lib/push'
+import { sendPushToUser, sendPushNotifications } from '@/lib/push'
 import { NOTIFICATION_TYPES } from '@/lib/push'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
-// Load email translations for a given locale
 async function getEmailTranslations(locale: string, ns: string): Promise<Record<string, string>> {
   try {
     const msgs = await import(`@/i18n/messages/${locale}.json`)
@@ -53,19 +52,30 @@ export async function notifyAssigned(todoId: string, todoTitle: string, assigned
 
   await sendEmail({
     to: user.email,
-    subject: (t.subject || '[027Apps] Task assigned: {title}').replace('{title}', todoTitle),
+    subject: t.subject
+      ? t.subject.replace('{title}', todoTitle)
+      : `[027Apps] Task assigned: ${todoTitle}`,
     html,
   })
 
-  // Send push (fire-and-forget)
   sendPushToUser(assignedToUserId, {
     type: NOTIFICATION_TYPES.TODO_ASSIGNED,
     title: 'Task assigned',
     body: `${assignedByName} assigned you: "${todoTitle}" in ${groupName}`,
-    data: { todoId, groupSlug },
+    data: { screen: 'todo/[id]', params: { id: todoId }, todoId, groupSlug },
   }).catch((err) => console.error('[TODO] Failed to send push:', err))
 }
 
+export async function notifyUnassigned(todoId: string, todoTitle: string, removedUserId: string, removedByName: string, groupSlug: string, groupName: string) {
+  sendPushToUser(removedUserId, {
+    type: NOTIFICATION_TYPES.TODO_ASSIGNED,
+    title: 'Task unassigned',
+    body: `${removedByName} removed you from: "${todoTitle}" in ${groupName}`,
+    data: { screen: 'todo/[id]', params: { id: todoId }, todoId, groupSlug },
+  }).catch((err) => console.error('[TODO] Failed to send push:', err))
+}
+
+/** Individual task status change — no push (as per spec). Email stays for data tracking. */
 export async function notifyStatusChange(todoId: string, todoTitle: string, assignedToUserId: string, oldStatus: string, newStatus: string, groupSlug: string, groupName: string) {
   const user = await getUserEmail(assignedToUserId)
   if (!user?.email) return
@@ -95,27 +105,78 @@ export async function notifyStatusChange(todoId: string, todoTitle: string, assi
 
   await sendEmail({
     to: user.email,
-    subject: (t.subject || '[027Apps] Task status changed: {title}').replace('{title}', todoTitle),
+    subject: t.subject
+      ? t.subject.replace('{title}', todoTitle)
+      : `[027Apps] Task status changed: ${todoTitle}`,
     html,
   })
-
-  // Send push (fire-and-forget)
-  sendPushToUser(assignedToUserId, {
-    type: NOTIFICATION_TYPES.TODO_STATUS_CHANGE,
-    title: 'Task status updated',
-    body: `"${todoTitle}" in ${groupName} changed from ${translateStatus(oldStatus, 'en')} to ${translateStatus(newStatus, 'en')}`,
-    data: { todoId, groupSlug, oldStatus, newStatus },
-  }).catch((err) => console.error('[TODO] Failed to send push:', err))
+  // No push for individual task status changes
 }
 
+/** Group task status change — push to all members. */
 export async function notifyGroupStatusChange(todoId: string, todoTitle: string, groupId: string, oldStatus: string, newStatus: string, groupSlug: string, groupName: string, excludeUserId?: string) {
   const db = createAdminClientUntyped()
   const { data: members } = await db.from('group_members').select('user_id').eq('group_id', groupId)
   if (!members || members.length === 0) return
   const targets = excludeUserId ? members.filter(m => m.user_id !== excludeUserId) : members
+
+  const memberIds = targets.map(m => m.user_id)
+
+  // Send push to all members
+  const statusLabel = `${translateStatus(oldStatus, 'en')} → ${translateStatus(newStatus, 'en')}`
+  sendPushNotifications(memberIds, {
+    type: NOTIFICATION_TYPES.TODO_STATUS_CHANGE,
+    title: 'Task status updated',
+    body: `"${todoTitle}" in ${groupName}: ${statusLabel}`,
+    data: { screen: 'todo/[id]', params: { id: todoId }, todoId, groupSlug, oldStatus, newStatus },
+  }).catch((err) => console.error('[TODO] Failed to send push:', err))
+
+  // Batch fetch emails + prefs + locales once
+  const [emailMap] = await Promise.all([
+    getUserEmailMap(memberIds),
+  ])
+
+  // Email each member individually (batched email fetch, individual prefs/locales)
   for (const m of targets) {
-    void notifyStatusChange(todoId, todoTitle, m.user_id, oldStatus, newStatus, groupSlug, groupName)
+    const email = emailMap.get(m.user_id)
+    if (!email) continue
+    notifyStatusChangeWithEmail(todoId, todoTitle, m.user_id, email, oldStatus, newStatus, groupSlug, groupName).catch(
+      (err) => console.error('[TODO] Failed to notify status change:', err)
+    )
   }
+}
+
+async function notifyStatusChangeWithEmail(todoId: string, todoTitle: string, assignedToUserId: string, email: string, oldStatus: string, newStatus: string, groupSlug: string, groupName: string) {
+  const prefs = await getPrefs(assignedToUserId)
+  if (!prefs?.on_status_change) return
+
+  const locale = await getUserLocale(assignedToUserId)
+  const t = await getEmailTranslations(locale, 'status_change')
+  const todoUrl = `${SITE_URL}/${locale}/${groupSlug}/apps/todo`
+
+  const html = await render(
+    <TodoStatusChangeEmail
+      taskTitle={todoTitle}
+      groupName={groupName}
+      oldStatus={translateStatus(oldStatus, locale)}
+      newStatus={translateStatus(newStatus, locale)}
+      todoUrl={todoUrl}
+      previewText={t.preview || `Task status changed: ${todoTitle}`}
+      headingText={t.heading || 'Task status updated'}
+      bodyText={t.body || 'A task in {groupName} has changed status:'}
+      viewTaskText={t.view_task || 'View task'}
+      sentFromText={t.sent_from || 'Sent from {appName}'}
+      rightsText={t.rights || '© {year} {appName}. All rights reserved.'}
+    />
+  )
+
+  await sendEmail({
+    to: email,
+    subject: t.subject
+      ? t.subject.replace('{title}', todoTitle)
+      : `[027Apps] Task status changed: ${todoTitle}`,
+    html,
+  })
 }
 
 function translateStatus(status: string, locale: string): string {
@@ -131,9 +192,35 @@ function translateStatus(status: string, locale: string): string {
 }
 
 async function getUserEmail(userId: string): Promise<{ email: string } | null> {
+  const map = await getUserEmailMap([userId])
+  const email = map.get(userId)
+  return email ? { email } : null
+}
+
+async function getUserEmailMap(userIds: string[]): Promise<Map<string, string>> {
+  if (userIds.length === 0) return new Map()
+
   const supabase = createAdminClientUntyped()
-  const { data } = await supabase.auth.admin.getUserById(userId)
-  return data?.user ? { email: data.user.email ?? '' } : null
+  const map = new Map<string, string>()
+  const targetSet = new Set(userIds)
+
+  let page = 1
+  const perPage = 500
+  while (targetSet.size > 0) {
+    const { data } = await supabase.auth.admin.listUsers({ page, perPage })
+    if (!data?.users?.length) break
+
+    for (const user of data.users) {
+      if (targetSet.has(user.id) && user.email) {
+        map.set(user.id, user.email)
+        targetSet.delete(user.id)
+      }
+    }
+    if (data.users.length < perPage) break
+    page++
+  }
+
+  return map
 }
 
 async function getPrefs(userId: string): Promise<{ on_assigned: boolean; on_status_change: boolean } | null> {

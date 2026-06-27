@@ -59,6 +59,16 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
     setMobileOpen(false)
   }, [pathname, setMobileOpen])
 
+  // Close mobile drawer on Escape key
+  useEffect(() => {
+    if (!mobileOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [mobileOpen, setMobileOpen])
+
   function toggleCollapsed() {
     setCollapsed((prev) => {
       const next = !prev
@@ -119,6 +129,7 @@ export function AdminSidebar({ locale, initialCollapsed, apps }: Props) {
     { href: `${base}/settings/api-keys`, label: t('api_keys'), icon: Key },
     { href: `${base}/settings/apps`, label: t('apps_order'), icon: ListOrdered },
     { href: `${base}/settings/general`, label: t('general'), icon: SlidersHorizontal },
+    { href: `${base}/settings/notifications`, label: 'Notifications', icon: Mail },
     { href: `${base}/mobile`, label: t('mobile_app'), icon: Smartphone },
   ]
 

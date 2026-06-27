@@ -33,7 +33,7 @@ export function AppShell({ children, navItems, locale, currentGroupSlug }: Props
   const reduced = usePrefersReducedMotion()
 
   return (
-    <div className="flex flex-col flex-1 pb-16 md:pb-0">
+    <div className={`flex flex-col flex-1 ${navItems.length > 0 ? 'pb-16 md:pb-0' : ''}`}>
       <motion.div
         key={pathname}
         initial={reduced ? false : { opacity: 0, y: 8 }}

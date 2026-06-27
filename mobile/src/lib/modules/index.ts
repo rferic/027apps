@@ -25,6 +25,13 @@ const manifests: Manifest[] = [
     primaryColor: '#8B5CF6',
     beta: false,
   },
+  {
+    slug: 'split-expenses',
+    name: 'Split Expenses',
+    description: 'Split group expenses',
+    primaryColor: '#10B981',
+    beta: false,
+  },
 ]
 
 const moduleCache = new Map<string, MobileModule>()

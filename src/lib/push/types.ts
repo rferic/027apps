@@ -19,5 +19,12 @@ export interface PushPayload {
   type: NotificationType
   title: string
   body: string
-  data?: Record<string, unknown>
+  data?: {
+    /** Mobile screen route to navigate to on tap, e.g. 'split-expenses/[id]' */
+    screen?: string
+    /** Route params — placeholders in screen are replaced, e.g. { id: 'abc-123' } */
+    params?: Record<string, string>
+    /** Legacy / extra data */
+    [key: string]: unknown
+  }
 }

@@ -20,7 +20,7 @@ export default async function ApiKeysPage({ params }: Props) {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">{t('title')}</h1>
+        <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{t('subtitle')}</p>
       </div>
       <ApiKeysManager initialKeys={keys} />

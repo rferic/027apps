@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
-import { apiOk } from '@/lib/api/response'
+import { apiOk, withTiming } from '@/lib/api/response'
 import { createApiAdminClient } from '@/lib/supabase/api'
 
 export const GET = withTiming(async function GET(req: NextRequest) {

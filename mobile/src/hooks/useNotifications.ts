@@ -57,6 +57,39 @@ export function useNotifications() {
     const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as Record<string, unknown> | undefined
       if (!data) return
+      handlePushNavigation(data)
+    })
+
+    // Cold start: app was killed and opened via notification tap
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (!response) return
+      const data = response.notification.request.content.data as Record<string, unknown> | undefined
+      if (!data) return
+      handlePushNavigation(data)
+    })
+
+    return () => {
+      receivedSubscription.remove()
+      responseSubscription.remove()
+    }
+
+    function handlePushNavigation(data: Record<string, unknown>) {
+      const screen = data.screen as string | undefined
+
+      // New screen-based navigation (preferred)
+      if (screen) {
+        const params = (data.params && typeof data.params === 'object'
+          ? data.params as Record<string, string>
+          : {})
+        let path = screen
+        for (const [key, value] of Object.entries(params)) {
+          path = path.replace(`[${key}]`, encodeURIComponent(value))
+        }
+        router.push(`/(app)/modules/${path}`)
+        return
+      }
+
+      // Legacy fallback — remove after all notification call sites are updated
       const type = data.type as string | undefined
       const requestId = data.requestId as string | undefined
       const todoId = data.todoId as string | undefined
@@ -69,11 +102,6 @@ export function useNotifications() {
       } else if (expenseGroupId && type?.startsWith('expenses')) {
         router.push(`/(app)/modules/split-expenses/${expenseGroupId}`)
       }
-    })
-
-    return () => {
-      receivedSubscription.remove()
-      responseSubscription.remove()
     }
   }, [router])
 

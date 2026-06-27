@@ -20,7 +20,7 @@
   },
   "api": true,
   "dependencies": [],
-  "notifications": false,
+  "notifications": true,
   "i18n": true,
   "config": []
 }

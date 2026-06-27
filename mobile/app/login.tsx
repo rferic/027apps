@@ -1,26 +1,19 @@
 import { useState, useEffect } from 'react'
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert, Linking as RNLinking } from 'react-native'
-import { Link, useRouter } from 'expo-router'
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native'
+import { Link, useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useAuth } from '@/hooks/useAuth'
-import { isBiometricsAvailable, authenticateWithBiometrics } from '@/lib/biometrics'
-import { getServerUrl, getDefaultUrl } from '@/lib/server-url'
 
 export default function LoginScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { signIn, signInWithBiometrics } = useAuth()
+  const { paired, email: pairedEmail } = useLocalSearchParams<{ paired?: string; email?: string }>()
+  const { signIn, resetPassword } = useAuth()
 
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(pairedEmail ?? '')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [biometricsReady, setBiometricsReady] = useState(false)
-
-  // Check biometrics availability on mount
-  useEffect(() => {
-    isBiometricsAvailable().then(setBiometricsReady)
-  }, [])
 
   const handleSignIn = async () => {
     setError('')
@@ -36,40 +29,18 @@ export default function LoginScreen() {
     router.replace('/(app)/dashboard')
   }
 
-  const handleBiometricSignIn = async () => {
-    setError('')
-    const success = await authenticateWithBiometrics()
-    if (!success) {
-      setError(t('mobile.common.biometricFailed'))
-      return
-    }
-
-    setIsSubmitting(true)
-    const { error: biometricSignInError } = await signInWithBiometrics()
-    if (biometricSignInError) {
-      setError(biometricSignInError)
-      setIsSubmitting(false)
-      return
-    }
-
-    router.replace('/(app)/dashboard')
-  }
-
   const handleForgotPassword = async () => {
-    const baseUrl = (await getServerUrl()) || getDefaultUrl()
-    Alert.alert(
-      'Reset Password',
-      'Password reset is handled via the web app. Open your browser to continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Open in Browser',
-          onPress: () => {
-            RNLinking.openURL(`${baseUrl}/reset-password`)
-          },
-        },
-      ]
-    )
+    if (!email.trim()) {
+      setError('Enter your email first')
+      return
+    }
+    setError('')
+    const { error: resetErr } = await resetPassword(email.trim())
+    if (resetErr) {
+      setError(resetErr)
+    } else {
+      Alert.alert('Check your email', 'A password reset link has been sent.')
+    }
   }
 
   return (
@@ -85,6 +56,14 @@ export default function LoginScreen() {
           <Text className="text-3xl font-bold text-[#9B1C1C]">027Apps</Text>
           <Text className="text-base text-slate-500 mt-2">{t('auth.subtitle')}</Text>
         </View>
+
+        {paired === 'true' && (
+          <View className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 mb-4">
+            <Text className="text-emerald-800 text-sm text-center">
+              QR scanned successfully! Enter your password to complete login.
+            </Text>
+          </View>
+        )}
 
         {error ? (
           <View className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
@@ -135,18 +114,13 @@ export default function LoginScreen() {
           )}
         </TouchableOpacity>
 
-        {biometricsReady && (
-          <TouchableOpacity
-            className="bg-slate-100 rounded-lg py-3 items-center mb-4"
-            onPress={handleBiometricSignIn}
-            disabled={isSubmitting}
-            activeOpacity={0.8}
-          >
-            <Text className="text-slate-700 text-base font-semibold">
-              {t('mobile.auth.signInWithBiometrics')}
-            </Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          className="border border-slate-200 rounded-lg py-3 items-center mb-4"
+          onPress={() => router.push('/pair-qr')}
+          activeOpacity={0.8}
+        >
+          <Text className="text-slate-700 text-base font-semibold">Scan QR to login</Text>
+        </TouchableOpacity>
 
         <View className="flex-row justify-between">
           <TouchableOpacity onPress={handleForgotPassword} className="py-2">

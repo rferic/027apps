@@ -388,7 +388,67 @@ When adding a new module, create or modify these files:
 
 ---
 
-## Conventions
+## Adding Push Notifications to a Module
+
+If your module needs to send push notifications, follow these steps:
+
+### 1. Define the Notification Type
+
+Add the type to `src/lib/push/types.ts`:
+
+```ts
+export const NOTIFICATION_TYPES = {
+  // ... existing types
+  YOUR_MODULE_EVENT: 'your-module:event_name',
+} as const
+```
+
+### 2. Send Push from Route Handlers
+
+In your app's route handler, import the push service and send notifications fire-and-forget:
+
+```ts
+import { sendPushNotifications, sendPushToUser } from '@/lib/push'
+import { NOTIFICATION_TYPES } from '@/lib/push'
+
+// In your handler, after the main operation:
+sendPushNotifications(recipientUserIds, {
+  type: NOTIFICATION_TYPES.YOUR_MODULE_EVENT,
+  title: 'Notification title',
+  body: 'Notification body with dynamic content',
+  data: { relevantId: '...', groupId: '...' },
+}).catch((err) => console.error('[YourModule] Push failed:', err))
+```
+
+### 3. Add Preference Label
+
+Add the type label in `mobile/src/lib/prefs.ts` so it appears in the Settings UI:
+
+```ts
+const NOTIFICATION_LABELS: Record<string, { title: string; description: string }> = {
+  // ... existing labels
+  'your-module:event_name': {
+    title: 'Your event',
+    description: 'When this event happens',
+  },
+}
+```
+
+### 4. Update Manifest
+
+Set `notifications: true` in your module's `manifest.json`.
+
+### 5. Handle Deep Links
+
+Update the push notification response handler in `mobile/src/hooks/useNotifications.ts` to navigate to the correct screen when the user taps the notification:
+
+```ts
+if (data.someModuleId && type?.startsWith('your-module')) {
+  router.push(`/(app)/modules/your-module/${data.someModuleId}`)
+}
+```
+
+---
 
 - **Props-driven UI:** The native view in `apps/<slug>/native.tsx` must be a pure component — no data fetching, no navigation calls.
 - **Data fetching in wrappers:** Screen files in `mobile/app/(app)/modules/<slug>/` own data fetching, state, and navigation logic.

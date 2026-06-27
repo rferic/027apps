@@ -14,6 +14,11 @@ export default function ModulesLayout() {
       <Stack.Screen name="inspiration/index" options={{ title: 'Inspiration' }} />
       <Stack.Screen name="inspiration/[id]" options={{ title: 'Idea Detail' }} />
       <Stack.Screen name="inspiration/create" options={{ title: 'New Idea', presentation: 'modal' }} />
+      <Stack.Screen name="split-expenses/index" options={{ title: 'Split Expenses' }} />
+      <Stack.Screen name="split-expenses/[id]" options={{ title: 'Expenses', headerShown: false }} />
+      <Stack.Screen name="split-expenses/[id]/expense/new" options={{ title: 'New Expense', presentation: 'modal' }} />
+      <Stack.Screen name="split-expenses/[id]/expense/[expenseId]" options={{ title: 'Expense Detail', presentation: 'modal' }} />
+      <Stack.Screen name="split-expenses/[id]/transfer" options={{ title: 'Transfer', presentation: 'modal' }} />
     </Stack>
   )
 }

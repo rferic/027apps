@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, createAdminClientUntyped } from '@/lib/supabase/admin'
 import { scanApps } from '@/lib/apps/scanner'
 import { cachedQuery } from '@/lib/cache'
 
@@ -11,6 +11,7 @@ export type AdminUser = {
   joinedAt: string
   lastLoginAt: string | null
   isBlocked: boolean
+  hasPushToken: boolean
 }
 
 export type AdminStats = {
@@ -25,16 +26,30 @@ export type AdminStats = {
 
 const getAdminUserListImpl = async (): Promise<AdminUser[]> => {
   const supabase = createAdminClient()
+  const untyped = createAdminClientUntyped()
 
-  const [authResult, membersResult, profilesResult] = await Promise.all([
+  const [authResult, membersResult, profilesResult, pushTokensResult] = await Promise.all([
     supabase.auth.admin.listUsers({ perPage: 100 }),
     supabase.from('group_members').select('user_id, role, joined_at'),
     supabase.from('profiles').select('id, display_name, locale'),
+    untyped.from('push_tokens').select('user_id'),
   ])
 
-  const users = authResult.data?.users ?? []
+  // Handle pagination: fetch all pages
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const users: any[] = [...(authResult.data?.users ?? [])]
+  let nextPage = (authResult.data as any)?.nextPage as number | undefined // eslint-disable-line @typescript-eslint/no-explicit-any
+  while (nextPage) {
+    const result = await supabase.auth.admin.listUsers({ perPage: 100, page: nextPage })
+    if (result.error) { console.error('[AdminUsers] Pagination error:', result.error); break }
+    const nextUsers = (result as any).data?.users as any[] | undefined // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!nextUsers?.length) { console.error('[AdminUsers] Pagination: empty page at', nextPage); break }
+    users.push(...nextUsers)
+    nextPage = (result as any).data?.nextPage as number | undefined // eslint-disable-line @typescript-eslint/no-explicit-any
+  }
   const members = membersResult.data ?? []
   const profiles = profilesResult.data ?? []
+  const pushUserIds = new Set((pushTokensResult.data ?? []).map((r) => (r as { user_id: string }).user_id))
 
   return users.map((user) => {
     const profile = profiles.find((p) => p.id === user.id)
@@ -48,6 +63,7 @@ const getAdminUserListImpl = async (): Promise<AdminUser[]> => {
       joinedAt: member?.joined_at ?? user.created_at,
       lastLoginAt: user.last_sign_in_at ?? null,
       isBlocked: !!user.banned_until && new Date(user.banned_until) > new Date(),
+      hasPushToken: pushUserIds.has(user.id),
     }
   })
 }
@@ -123,6 +139,9 @@ export async function getAdminUser(userId: string): Promise<AdminUser | null> {
   const user = authResult.data?.user
   if (!user) return null
 
+  const untyped = createAdminClientUntyped()
+  const { data: pushData } = await untyped.from('push_tokens').select('id').eq('user_id', userId).limit(1)
+
   return {
     id: user.id,
     email: user.email ?? '',
@@ -132,6 +151,7 @@ export async function getAdminUser(userId: string): Promise<AdminUser | null> {
     joinedAt: memberResult.data?.joined_at ?? user.created_at,
     lastLoginAt: user.last_sign_in_at ?? null,
     isBlocked: !!user.banned_until && new Date(user.banned_until) > new Date(),
+    hasPushToken: (pushData ?? []).length > 0,
   }
 }
 
@@ -154,12 +174,19 @@ export async function unblockUser(userId: string): Promise<{ error: string | nul
 export async function deleteAdminUser(userId: string): Promise<{ error: string | null }> {
   const supabase = createAdminClient()
 
-  // Clean up invitations referencing this user (prevents FK violations)
-  await supabase.from('invitations').delete().eq('invited_by', userId)
-  await supabase.from('invitations').update({ accepted_by: null }).eq('accepted_by', userId)
-
+  // Delete user first (cascade will handle most FK references)
   const { error } = await supabase.auth.admin.deleteUser(userId)
-  return { error: error?.message ?? null }
+  if (error) return { error: error.message }
+
+  // Best-effort cleanup of remaining references (no FK cascade for some tables)
+  try {
+    await supabase.from('invitations').delete().eq('invited_by', userId)
+    await supabase.from('invitations').update({ accepted_by: null }).eq('accepted_by', userId)
+  } catch {
+    // Non-critical: if cleanup fails, invitations just have stale references
+  }
+
+  return { error: null }
 }
 
 export async function updateUserProfile(

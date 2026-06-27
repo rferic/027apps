@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import type { AdminUser } from '@/lib/use-cases/admin/users'
 import { AdminUserActions } from './admin-user-actions'
 import { EditUserModal } from '@/app/(admin)/[locale]/admin/users/EditUserModal'
+import { PushTokensModal } from './push-tokens-modal'
 
 interface Props {
   users: AdminUser[]
@@ -46,6 +47,7 @@ function initials(name: string): string {
 export function AdminUserTable({ users, currentUserId, locale, availableLocales, groupCounts }: Props) {
   const t = useTranslations('admin.table')
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
+  const [pushTokenUser, setPushTokenUser] = useState<AdminUser | null>(null)
 
   if (users.length === 0) {
     return (
@@ -74,6 +76,9 @@ export function AdminUserTable({ users, currentUserId, locale, availableLocales,
             </th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               {t('groups')}
+            </th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">
+              Push
             </th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide hidden lg:table-cell">
               {t('lastLogin')}
@@ -122,11 +127,24 @@ export function AdminUserTable({ users, currentUserId, locale, availableLocales,
               <td className="px-4 py-3 text-muted-foreground text-sm font-medium">
                 {groupCounts?.get(user.id) ?? 0}
               </td>
+              <td className="px-4 py-3 text-xs hidden lg:table-cell">
+                <span className={`inline-flex items-center gap-1 font-medium ${
+                  user.hasPushToken ? 'text-emerald-600' : 'text-slate-300'
+                }`}>
+                  {user.hasPushToken ? '✅ Active' : '—'}
+                </span>
+              </td>
               <td className="px-4 py-3 text-muted-foreground text-xs hidden lg:table-cell">
                 {user.lastLoginAt ? formatRelative(user.lastLoginAt) : formatDate(user.joinedAt)}
               </td>
               <td className="px-4 py-3">
-                <div className="flex items-center justify-end">
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => setPushTokenUser(user)}
+                    className="text-[11px] font-medium text-slate-400 hover:text-slate-600"
+                  >
+                    Push
+                  </button>
                   <AdminUserActions user={user} locale={locale} currentUserId={currentUserId} onEdit={() => setEditingUser(user)} />
                 </div>
               </td>
@@ -139,6 +157,13 @@ export function AdminUserTable({ users, currentUserId, locale, availableLocales,
           user={editingUser}
           availableLocales={availableLocales}
           onClose={() => setEditingUser(null)}
+        />
+      )}
+      {pushTokenUser && (
+        <PushTokensModal
+          userId={pushTokenUser.id}
+          userName={pushTokenUser.displayName}
+          onClose={() => setPushTokenUser(null)}
         />
       )}
     </div>

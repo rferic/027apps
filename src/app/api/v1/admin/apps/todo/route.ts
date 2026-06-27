@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server'
 import { authenticate } from '@/lib/api/auth'
 import { apiOk, apiError, withTiming } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
-import { notifyAssigned, notifyStatusChange, notifyGroupStatusChange } from '@/lib/use-cases/todo/notifications'
+import { notifyAssigned, notifyUnassigned, notifyStatusChange, notifyGroupStatusChange } from '@/lib/use-cases/todo/notifications'
 
 export const GET = withTiming(async function GET(req: NextRequest) {
   const auth = await authenticate(req, 'jwt')
@@ -48,8 +48,15 @@ export const PUT = withTiming(async function PUT(req: NextRequest) {
 
   // Fire notifications
   const reqUserId = auth.userId
-  if (update.assigned_to && update.assigned_to !== existing.assigned_to && update.assigned_to !== reqUserId) {
-    void notifyAssigned(id, data.title as string, update.assigned_to as string, 'Admin', 'admin', 'Admin')
+  if (update.assigned_to !== undefined && update.assigned_to !== existing.assigned_to) {
+    // Notify previous assignee they were removed
+    if (existing.assigned_to && existing.assigned_to !== reqUserId) {
+      void notifyUnassigned(id, data.title as string, existing.assigned_to as string, 'Admin', 'admin', 'Admin')
+    }
+    // Notify new assignee
+    if (update.assigned_to && update.assigned_to !== reqUserId) {
+      void notifyAssigned(id, data.title as string, update.assigned_to as string, 'Admin', 'admin', 'Admin')
+    }
   }
   if (update.status && update.status !== existing.status) {
     if (existing.visibility === 'public') {

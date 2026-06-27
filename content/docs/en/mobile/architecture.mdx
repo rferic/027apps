@@ -82,6 +82,16 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
 })
 ```
 
+### Session Persistence
+
+The session is persisted in SecureStore and auto-refreshed indefinitely. There is no forced expiry — the user stays logged in until explicit logout.
+
+Supabase Auth is configured with:
+- `autoRefreshToken: true` — refreshes the JWT before it expires.
+- `persistSession: true` — restores session from SecureStore on app launch.
+
+When the server needs to force a logout (e.g., admin revokes push tokens), it calls the Supabase Admin API to delete all auth sessions for that user. On the next API request, the mobile app detects the invalid session and redirects to the login screen.
+
 ### Biometric Unlock
 
 The app supports biometric authentication (Face ID / fingerprint) as an additional convenience. `signInWithBiometrics` checks for an existing stored session; if present, the user is authenticated without re-entering credentials:
@@ -346,7 +356,11 @@ Supported URLs:
 
 ## Push Notifications
 
-On sign-in, the app registers for push notifications and sends the Expo push token to the server:
+The push notification system has three layers: registration (mobile), server dispatch, and user preferences.
+
+### Registration
+
+On sign-in, the app registers the device for push notifications via `expo-notifications`. The Expo push token is sent to the server and stored in the `push_tokens` table:
 
 ```tsx
 // src/lib/notifications.ts
@@ -372,17 +386,79 @@ export async function registerPushToken(token: string, apiBaseUrl: string): Prom
 }
 ```
 
+### Server Dispatch
+
+The server sends push notifications via `expo-server-sdk` (`src/lib/push/send.ts`). The `sendPushNotifications(userIds, payload)` function:
+
+1. Queries `push_tokens` for the target users.
+2. Checks each user's notification preferences (`notification_prefs` table).
+3. Sends the notification via Expo's push API.
+
+Push notifications are fire-and-forget alongside existing email notifications:
+
+```tsx
+// Example: notify on new comment
+sendPushNotifications(recipients, {
+  type: NOTIFICATION_TYPES.INSPIRATION_NEW_COMMENT,
+  title: `New comment on "${request.title}"`,
+  body: `${authorName}: ${commentSnippet}`,
+  data: { requestId, groupId: request.group_id },
+})
+```
+
+### Notification Types
+
+| Module | Types | Implemented |
+|---|---|---|
+| Inspiration | `new_idea`, `new_comment`, `status_change`, `vote` | ✅ |
+| TODO | `assigned`, `status_change` | ✅ |
+| Split Expenses | `new_expense`, `owed`, `paid`, `settled` | ✅ |
+| General | `invitation`, `invitation_accepted` | Structure ready |
+
+### Notification Preferences
+
+Users control notifications via the Settings screen in the mobile app. Preferences are stored in the `notification_prefs` table and exposed through the API:
+
+- `GET /api/v1/notifications/prefs` — Get current preferences + list of all types.
+- `PUT /api/v1/notifications/prefs` — Update global toggle or per-type toggles.
+
+```json
+{
+  "global_enabled": true,
+  "types": {
+    "inspiration:new_comment": false,
+    "todo:assigned": true
+  },
+  "all_types": ["inspiration:new_idea", "inspiration:new_comment", ...]
+}
+```
+
+The `sendPushNotifications` function checks `shouldNotify(userId, type)` before sending, which respects the global switch and per-type overrides.
+
+### Deep Link Handling
+
+When a user taps a push notification, the app navigates to the relevant screen via `useNotifications.ts`:
+
+| Notification type | Navigates to |
+|---|---|
+| `inspiration:*` | `/(app)/modules/inspiration/{requestId}` |
+| `todo:*` | `/(app)/modules/todo/{todoId}` |
+| `expenses:*` | `/(app)/modules/split-expenses/{expenseGroupId}` |
+
 ---
 
 ## Version Enforcement
 
-The app checks the server's minimum required version on startup. If the installed version is below the minimum, the user sees `UpdateRequiredScreen` with a download link:
+The app checks the server's minimum required version on startup. The request includes the app variant (`production` or `beta`) so each variant has its own version track:
 
 ```tsx
 // src/lib/version-check.ts
 export async function checkAppVersion(): Promise<VersionInfo | null> {
   const client = await getApiClient()
-  const response = await client.version.getVersion({})
+  const variant = getVariant() // 'production' | 'beta' from Constants.expoConfig
+  const response = await client.version.getVersion({
+    query: { variant },
+  })
   if (response.status === 200) return response.body
   return null
 }
@@ -391,6 +467,12 @@ export function isUpdateRequired(current: string, min: string): boolean {
   return compareVersions(current, min) < 0
 }
 ```
+
+The server uses separate `app_settings` keys per variant:
+- `mobile_version` → production
+- `mobile_version_beta` → beta
+
+This allows different version tracks for beta testers and production users.
 
 ---
 

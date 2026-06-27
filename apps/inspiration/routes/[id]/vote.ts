@@ -1,7 +1,7 @@
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import type { HandlerContext } from '@/lib/apps/router-types'
-import { sendPushToUser } from '@/lib/push'
+import { sendPushToUser, sendPushNotifications } from '@/lib/push'
 import { NOTIFICATION_TYPES } from '@/lib/push'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
@@ -17,10 +17,10 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const adminClient = createAdminClientUntyped()
 
-  // Verify request exists
+  // Verify request exists and fetch needed fields for notifications
   const { data: request } = await adminClient
     .from('inspiration_requests')
-    .select('id')
+    .select('id, user_id, title, group_id')
     .eq('id', requestId)
     .maybeSingle()
 
@@ -64,27 +64,38 @@ export default async function handler(req: Request, ctx: HandlerContext) {
     } else {
       voted = true
 
-      // Notify idea author about the vote (fire-and-forget)
-      const { data: idea } = await adminClient
-        .from('inspiration_requests')
-        .select('user_id, title')
-        .eq('id', requestId)
-        .maybeSingle()
+      // Notify admins + creator about the vote (fire-and-forget)
+      const ideaRow = request as { user_id: string; title: string; group_id: string }
 
-      if (idea && idea.user_id !== auth.userId) {
-        const { data: voter } = await adminClient
+      if (ideaRow) {
+        const { data: voterData } = await adminClient
           .from('profiles')
           .select('display_name')
-          .eq('id', auth.userId)
+          .eq('id', ctx.userId)
           .maybeSingle()
 
-        const voterName = (voter as { display_name?: string } | null)?.display_name ?? 'Someone'
-        sendPushToUser(idea.user_id, {
-          type: NOTIFICATION_TYPES.INSPIRATION_VOTE,
-          title: 'Your idea got a vote',
-          body: `${voterName} voted for "${idea.title}"`,
-          data: { requestId },
-        }).catch((err) => console.error('[Inspiration] Failed to send vote push:', err))
+        const voterName = (voterData as { display_name?: string } | null)?.display_name ?? 'Someone'
+
+        // Get admins of this group
+        const { data: admins } = await adminClient
+          .from('group_members')
+          .select('user_id')
+          .eq('group_id', ideaRow.group_id)
+          .eq('role', 'admin')
+
+        const adminIds = (admins ?? []).map((a: { user_id: string }) => a.user_id)
+        const recipients = Array.from(new Set([...adminIds, ideaRow.user_id])).filter(
+          (id) => id !== ctx.userId,
+        )
+
+        if (recipients.length > 0) {
+          sendPushNotifications(recipients, {
+            type: NOTIFICATION_TYPES.INSPIRATION_VOTE,
+            title: 'Your idea got a vote',
+            body: `${voterName} voted for "${ideaRow.title}"`,
+            data: { screen: 'inspiration/[id]', params: { id: requestId }, requestId },
+          }).catch((err) => console.error('[Inspiration] Failed to send vote push:', err))
+        }
       }
     }
   }

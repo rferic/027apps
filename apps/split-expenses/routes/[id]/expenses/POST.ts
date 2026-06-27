@@ -1,6 +1,7 @@
 import { apiOk, apiError } from '@/lib/api/response'
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
 import type { HandlerContext } from '@/lib/apps/router-types'
+import { notifyNewExpense } from '../../../notifications'
 
 export default async function handler(req: Request, ctx: HandlerContext) {
   const url = new URL(req.url)
@@ -58,6 +59,10 @@ export default async function handler(req: Request, ctx: HandlerContext) {
 
   const { error: sharesErr } = await db.from('split_expenses_shares').insert(shares)
   if (sharesErr) return apiError('CREATE_FAILED', sharesErr.message, 500)
+
+  // Send push notifications (fire-and-forget)
+  notifyNewExpense(expenseGroupId!, paidBy, title.trim(), amount, participantIds)
+    .catch((err) => console.error('[SplitExpenses] Failed to send push:', err))
 
   return apiOk({ ...expense, shares }, 201)
 }
