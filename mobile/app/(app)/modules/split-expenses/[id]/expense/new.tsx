@@ -10,12 +10,14 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router'
+import { useTranslation } from '@/hooks/useTranslation'
 import { useSplitExpenses } from '@/hooks/useSplitExpenses'
 import { DsInput } from '@/components/ds/DsInput'
 import { DsAvatar } from '@/components/ds/DsAvatar'
 import type { Member, Tag, Expense } from '@/lib/api-helpers-types'
 
 export default function CreateExpenseScreen() {
+  const { t } = useTranslation()
   const { id: groupId, expenseId } = useLocalSearchParams<{
     id: string
     expenseId?: string
@@ -160,7 +162,7 @@ export default function CreateExpenseScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Stack.Screen
-        options={{ title: isEditing ? 'Edit Expense' : 'New Expense' }}
+        options={{ title: isEditing ? t('mobile.splitExpenses.edit') : t('mobile.splitExpenses.addExpense') }}
       />
       <ScrollView
         className="flex-1"
@@ -169,7 +171,7 @@ export default function CreateExpenseScreen() {
       >
         {/* Title */}
         <DsInput
-          label="Title"
+          label={t('mobile.splitExpenses.expenseTitle')}
           value={title}
           onChangeText={setTitle}
           placeholder="Dinner at Mario's"
@@ -178,7 +180,7 @@ export default function CreateExpenseScreen() {
         {/* Amount */}
         <View className="mt-4 gap-1.5">
           <Text className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            Amount
+            {t('mobile.splitExpenses.expenseAmount')}
           </Text>
           <TextInput
             className="border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-base text-slate-900 dark:text-white bg-white dark:bg-gray-900"
@@ -193,7 +195,7 @@ export default function CreateExpenseScreen() {
         {/* Paid by */}
         <View className="mt-4">
           <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            Paid by
+            {t('mobile.splitExpenses.expensePaidBy')}
           </Text>
           <TouchableOpacity
             className="border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 bg-white dark:bg-gray-900"
@@ -248,7 +250,7 @@ export default function CreateExpenseScreen() {
         {/* Participants */}
         <View className="mt-4">
           <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            Participants ({participantIds.length})
+            {t('mobile.splitExpenses.expenseParticipants')} ({participantIds.length})
           </Text>
           <View className="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
             {activeMembers.map((m) => (
@@ -283,7 +285,7 @@ export default function CreateExpenseScreen() {
         {/* Tag */}
         <View className="mt-4">
           <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            Tag (optional)
+            {t('mobile.splitExpenses.expenseTag')}
           </Text>
           <TouchableOpacity
             className="border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 bg-white dark:bg-gray-900"
@@ -368,7 +370,7 @@ export default function CreateExpenseScreen() {
                     splitType === 'equal' ? 'text-white' : 'text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  Equal
+                  {t('mobile.splitExpenses.expenseSplitEqual')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -385,7 +387,7 @@ export default function CreateExpenseScreen() {
                     splitType === 'custom' ? 'text-white' : 'text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  Custom
+                  {t('mobile.splitExpenses.expenseSplitCustom')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -459,7 +461,7 @@ export default function CreateExpenseScreen() {
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Text className="text-white text-base font-semibold">
-              {isEditing ? 'Save Changes' : 'Create Expense'}
+              {isEditing ? t('mobile.splitExpenses.save') : t('mobile.splitExpenses.addExpense')}
             </Text>
           )}
         </TouchableOpacity>

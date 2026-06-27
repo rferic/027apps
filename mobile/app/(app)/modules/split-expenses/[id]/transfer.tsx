@@ -10,11 +10,13 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router'
+import { useTranslation } from '@/hooks/useTranslation'
 import { useSplitExpenses } from '@/hooks/useSplitExpenses'
 import { DsInput } from '@/components/ds/DsInput'
 import { DsAvatar } from '@/components/ds/DsAvatar'
 
 export default function CreateTransferScreen() {
+  const { t } = useTranslation()
   const { id: groupId, transferId } = useLocalSearchParams<{
     id: string
     transferId?: string
@@ -147,7 +149,7 @@ export default function CreateTransferScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Stack.Screen
-        options={{ title: isEditing ? 'Edit Transfer' : 'New Transfer' }}
+        options={{ title: isEditing ? t('mobile.splitExpenses.transferEdit') : t('mobile.splitExpenses.transferCreate') }}
       />
       <ScrollView
         className="flex-1"
@@ -157,7 +159,7 @@ export default function CreateTransferScreen() {
         {/* From */}
         <View>
           <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            From
+            {t('mobile.splitExpenses.transferFrom')}
           </Text>
           <TouchableOpacity
             className="border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 bg-white dark:bg-gray-900"
@@ -216,7 +218,7 @@ export default function CreateTransferScreen() {
         {/* To */}
         <View>
           <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            To
+            {t('mobile.splitExpenses.transferTo')}
           </Text>
           <TouchableOpacity
             className="border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 bg-white dark:bg-gray-900"
@@ -269,7 +271,7 @@ export default function CreateTransferScreen() {
         {/* Amount */}
         <View className="mt-4 gap-1.5">
           <Text className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            Amount
+            {t('mobile.splitExpenses.transferAmount')}
           </Text>
           <TextInput
             className="border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-base text-slate-900 dark:text-white bg-white dark:bg-gray-900"
@@ -284,7 +286,7 @@ export default function CreateTransferScreen() {
         {/* Note */}
         <View className="mt-4">
           <DsInput
-            label="Note (optional)"
+            label={t('mobile.splitExpenses.transferNote')}
             value={note}
             onChangeText={setNote}
             placeholder="For dinner last night"
@@ -294,7 +296,7 @@ export default function CreateTransferScreen() {
         {/* Date */}
         <View className="mt-4 gap-1.5">
           <Text className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            Date (optional)
+            {t('mobile.splitExpenses.transferDate')}
           </Text>
           <TextInput
             className="border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-base text-slate-900 dark:text-white bg-white dark:bg-gray-900"
@@ -343,7 +345,7 @@ export default function CreateTransferScreen() {
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Text className="text-white text-base font-semibold">
-              {isEditing ? 'Save Changes' : 'Create Transfer'}
+              {isEditing ? t('mobile.splitExpenses.save') : t('mobile.splitExpenses.transferCreate')}
             </Text>
           )}
         </TouchableOpacity>

@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { useRouter } from 'expo-router'
+import { useTranslation } from '@/hooks/useTranslation'
 import { useSplitExpenses } from '@/hooks/useSplitExpenses'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { EmptyState } from '@/components/EmptyState'
@@ -21,6 +22,7 @@ const EMOJIS = ['🏠', '🍕', '🚗', '✈️', '🎉', '🍺', '🏖️', '�
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'MXN']
 
 export default function SplitExpensesListScreen() {
+  const { t } = useTranslation()
   const router = useRouter()
   const {
     groups,
@@ -74,9 +76,9 @@ export default function SplitExpensesListScreen() {
       setNewCurrency('EUR')
       router.push(`/(app)/modules/split-expenses/${group.id}`)
     } else {
-      setFormError('Failed to create group')
+      setFormError(t('mobile.splitExpenses.createError'))
     }
-  }, [newTitle, newEmoji, newCurrency, createGroup, router])
+  }, [newTitle, newEmoji, newCurrency, createGroup, router, t])
 
   const handleGroupPress = useCallback(
     (groupId: string) => {
@@ -131,7 +133,7 @@ export default function SplitExpensesListScreen() {
                 </Text>
               </View>
               <Text className="text-xs text-slate-400 mt-0.5">
-                {item.member_count ?? 0} members
+                {t('mobile.splitExpenses.members', { count: item.member_count ?? 0 })}
               </Text>
               {balance !== 0 && (
                 <Text
@@ -144,7 +146,7 @@ export default function SplitExpensesListScreen() {
                 </Text>
               )}
               {balance === 0 && (
-                <Text className="text-sm text-slate-400 mt-1">Settled up</Text>
+                <Text className="text-sm text-slate-400 mt-1">{t('mobile.splitExpenses.balanceEven')}</Text>
               )}
               {total > 0 && (
                 <View className="mt-2">
@@ -159,7 +161,7 @@ export default function SplitExpensesListScreen() {
                   </View>
                   <View className="flex-row justify-between mt-1">
                     <Text className="text-[10px] text-slate-400">
-                      {formatAmount(total - pending, item.currency)} settled
+                      {formatAmount(total - pending, item.currency)} {t('mobile.splitExpenses.settled')}
                     </Text>
                     <Text
                       className="text-[10px] font-semibold"
@@ -178,21 +180,20 @@ export default function SplitExpensesListScreen() {
         </TouchableOpacity>
       )
     },
-    [handleGroupPress, formatAmount],
+    [handleGroupPress, formatAmount, t],
   )
 
   const renderEmpty = useCallback(
     () => (
       <EmptyState
         icon="💰"
-        title="No groups yet"
-        message="Create a group to start splitting expenses with friends, family, or coworkers."
-        action={{ label: 'Create Group', onPress: () => setShowCreate(true) }}
+        title={t('mobile.splitExpenses.noExpenseGroups')}
+        message={t('mobile.splitExpenses.noExpenseGroupsDesc')}
+        action={{ label: t('mobile.splitExpenses.createGroup'), onPress: () => setShowCreate(true) }}
       />
     ),
-    [],
+    [t],
   )
-
   if (groupsLoading && groups.length === 0) {
     return (
       <View className="flex-1 bg-slate-50 dark:bg-slate-950 px-4 pt-4">
@@ -206,9 +207,9 @@ export default function SplitExpensesListScreen() {
       <View className="flex-1 bg-slate-50 dark:bg-slate-950">
         <EmptyState
           icon="⚠️"
-          title="Something went wrong"
+          title={t('mobile.splitExpenses.loadError')}
           message={groupsError}
-          action={{ label: 'Retry', onPress: () => loadGroups() }}
+          action={{ label: t('mobile.splitExpenses.retry'), onPress: () => loadGroups() }}
         />
       </View>
     )
@@ -220,10 +221,10 @@ export default function SplitExpensesListScreen() {
       <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
         <View>
           <Text className="text-xl font-bold text-slate-900 dark:text-white">
-            Split Expenses
+            {t('mobile.splitExpenses.expenses')}
           </Text>
           <Text className="text-xs text-slate-400">
-            {groups.length} {groups.length === 1 ? 'group' : 'groups'}
+            {groups.length} {t('mobile.splitExpenses.members', { count: groups.length })}
           </Text>
         </View>
         <TouchableOpacity
@@ -231,7 +232,7 @@ export default function SplitExpensesListScreen() {
           onPress={() => setShowCreate(true)}
           activeOpacity={0.8}
         >
-          <Text className="text-white text-sm font-semibold">Create Group</Text>
+          <Text className="text-white text-sm font-semibold">{t('mobile.splitExpenses.createGroup')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -285,7 +286,7 @@ export default function SplitExpensesListScreen() {
               showsVerticalScrollIndicator={false}
             >
               <Text className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-                Create Group
+                {t('mobile.splitExpenses.createGroup')}
               </Text>
 
               {/* Title */}
@@ -387,7 +388,7 @@ export default function SplitExpensesListScreen() {
                   activeOpacity={0.7}
                 >
                   <Text className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Cancel
+                    {t('mobile.splitExpenses.cancel')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -399,7 +400,7 @@ export default function SplitExpensesListScreen() {
                   activeOpacity={0.8}
                 >
                   <Text className="text-white text-sm font-semibold">
-                    {saving ? 'Creating...' : 'Create'}
+                    {saving ? t('mobile.splitExpenses.creating') : t('mobile.splitExpenses.create')}
                   </Text>
                 </TouchableOpacity>
               </View>

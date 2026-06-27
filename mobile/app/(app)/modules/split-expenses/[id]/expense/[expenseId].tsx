@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router'
+import { useTranslation } from '@/hooks/useTranslation'
 import { useSplitExpenses } from '@/hooks/useSplitExpenses'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { EmptyState } from '@/components/EmptyState'
@@ -16,6 +17,7 @@ import { DsConfirmModal } from '@/components/ds/DsConfirmModal'
 import type { Expense, Tag } from '@/lib/api-helpers-types'
 
 export default function ExpenseDetailScreen() {
+  const { t } = useTranslation()
   const { id: groupId, expenseId } = useLocalSearchParams<{
     id: string
     expenseId: string
@@ -80,7 +82,7 @@ export default function ExpenseDetailScreen() {
   if (expensesLoading && !expense) {
     return (
       <View className="flex-1 bg-slate-50 dark:bg-slate-950 px-4 pt-4">
-        <Stack.Screen options={{ title: 'Expense' }} />
+        <Stack.Screen options={{ title: t('mobile.splitExpenses.expenses') }} />
         <LoadingSkeleton type="detail" />
       </View>
     )
@@ -89,12 +91,12 @@ export default function ExpenseDetailScreen() {
   if (!expense) {
     return (
       <View className="flex-1 bg-slate-50 dark:bg-slate-950">
-        <Stack.Screen options={{ title: 'Expense' }} />
+        <Stack.Screen options={{ title: t('mobile.splitExpenses.expenses') }} />
         <EmptyState
           icon="🔍"
-          title="Expense not found"
+          title={t('mobile.splitExpenses.loadError')}
           message="This expense may have been deleted."
-          action={{ label: 'Go Back', onPress: () => router.back() }}
+          action={{ label: t('mobile.splitExpenses.goBack'), onPress: () => router.back() }}
         />
       </View>
     )
@@ -105,7 +107,7 @@ export default function ExpenseDetailScreen() {
       className="flex-1 bg-slate-50 dark:bg-slate-950"
       contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
     >
-      <Stack.Screen options={{ title: 'Expense Detail' }} />
+      <Stack.Screen options={{ title: t('mobile.splitExpenses.expenses') }} />
 
       {/* Header */}
       <View className="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5 mb-4">
@@ -118,7 +120,7 @@ export default function ExpenseDetailScreen() {
 
         {/* Paid by */}
         <View className="flex-row items-center gap-2 mb-2">
-          <Text className="text-xs text-slate-400">Paid by</Text>
+          <Text className="text-xs text-slate-400">{t('mobile.splitExpenses.expensePaidBy')}</Text>
           <DsAvatar
             name={expense.paid_by_profile?.display_name || '?'}
             size="sm"
@@ -177,12 +179,12 @@ export default function ExpenseDetailScreen() {
                     {isPayer && (
                       <Text className="text-xs text-emerald-500 font-normal">
                         {' '}
-                        (paid)
+                        ({t('mobile.splitExpenses.settled')})
                       </Text>
                     )}
                   </Text>
                   <Text className="text-xs text-slate-400">
-                    {isPayer ? 'Paid' : 'Owes'}{' '}
+                    {isPayer ? t('mobile.splitExpenses.settled') : t('mobile.splitExpenses.balanceOwe')}{' '}
                     {formatAmount(share.amount, currency)}
                   </Text>
                 </View>
@@ -200,7 +202,7 @@ export default function ExpenseDetailScreen() {
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <Text className="text-white text-xs font-semibold">
-                      Settle
+                      {t('mobile.splitExpenses.settleAll')}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -218,7 +220,7 @@ export default function ExpenseDetailScreen() {
           activeOpacity={0.7}
         >
           <Text className="text-slate-700 dark:text-slate-300 text-sm font-semibold">
-            Edit
+            {t('mobile.splitExpenses.edit')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -226,7 +228,7 @@ export default function ExpenseDetailScreen() {
           onPress={() => setShowDeleteConfirm(true)}
           activeOpacity={0.8}
         >
-          <Text className="text-white text-sm font-semibold">Delete</Text>
+          <Text className="text-white text-sm font-semibold">{t('mobile.splitExpenses.delete')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -234,9 +236,9 @@ export default function ExpenseDetailScreen() {
       <DsConfirmModal
         open={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
-        title="Delete Expense"
-        message={`Are you sure you want to delete "${expense.title}"? This cannot be undone.`}
-        confirmLabel="Delete"
+        title={t('mobile.splitExpenses.expenseDelete')}
+        message={t('mobile.splitExpenses.expenseDeleteConfirm')}
+        confirmLabel={t('mobile.splitExpenses.delete')}
         variant="danger"
         onConfirm={handleDelete}
       />

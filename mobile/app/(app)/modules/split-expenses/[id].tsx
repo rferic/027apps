@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router'
+import { useTranslation } from '@/hooks/useTranslation'
 import { useSplitExpenses } from '@/hooks/useSplitExpenses'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { EmptyState } from '@/components/EmptyState'
@@ -24,20 +25,6 @@ import { DsModal } from '@/components/ds/DsModal'
 import { DsInput } from '@/components/ds/DsInput'
 import type { Expense, Transfer, Balance, SuggestedTransfer, Tag, Member, StatEntry } from '@/lib/api-helpers-types'
 
-const TABS = [
-  { key: 'expenses', label: 'Expenses' },
-  { key: 'balances', label: 'Balances' },
-  { key: 'stats', label: 'Stats' },
-  { key: 'settings', label: 'Settings' },
-]
-
-const STATS_PERIODS = [
-  { key: 'day', label: 'Day' },
-  { key: 'week', label: 'Week' },
-  { key: 'month', label: 'Month' },
-  { key: 'year', label: 'Year' },
-] as const
-
 const TAG_COLORS = [
   '#EF4444', '#F97316', '#F59E0B', '#84CC16',
   '#10B981', '#06B6D4', '#3B82F6', '#8B5CF6',
@@ -45,9 +32,24 @@ const TAG_COLORS = [
 ]
 
 export default function SplitExpensesGroupScreen() {
+  const { t } = useTranslation()
   const { id: groupId } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const hook = useSplitExpenses(groupId)
+
+  const TABS = [
+    { key: 'expenses', label: t('mobile.splitExpenses.expenses') },
+    { key: 'balances', label: t('mobile.splitExpenses.balances') },
+    { key: 'stats', label: t('mobile.splitExpenses.stats') },
+    { key: 'settings', label: t('mobile.splitExpenses.settings') },
+  ]
+
+  const STATS_PERIODS = [
+    { key: 'day', label: t('mobile.splitExpenses.day') },
+    { key: 'week', label: t('mobile.splitExpenses.week') },
+    { key: 'month', label: t('mobile.splitExpenses.month') },
+    { key: 'year', label: t('mobile.splitExpenses.year') },
+  ] as const
 
   const {
     currentGroup,
@@ -292,12 +294,12 @@ export default function SplitExpensesGroupScreen() {
   if (!currentGroup && !currentGroupLoading) {
     return (
       <View className="flex-1 bg-slate-50 dark:bg-slate-950">
-        <Stack.Screen options={{ title: 'Group' }} />
+        <Stack.Screen options={{ title: t('mobile.splitExpenses.groupTitle') }} />
         <EmptyState
           icon="🔍"
-          title="Group not found"
+          title={t('mobile.splitExpenses.loadError')}
           message="This expense group may have been deleted or you don't have access."
-          action={{ label: 'Go Back', onPress: () => router.back() }}
+          action={{ label: t('mobile.splitExpenses.goBack'), onPress: () => router.back() }}
         />
       </View>
     )
@@ -310,7 +312,7 @@ export default function SplitExpensesGroupScreen() {
 
   return (
     <View className="flex-1 bg-slate-50 dark:bg-slate-950">
-      <Stack.Screen options={{ title: group.title, headerBackTitle: 'Groups' }} />
+      <Stack.Screen options={{ title: group.title, headerBackTitle: t('mobile.splitExpenses.groupsBack') }} />
 
       {/* Header */}
       <View className="bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-slate-700 px-4 py-4">
@@ -321,7 +323,7 @@ export default function SplitExpensesGroupScreen() {
               {group.title}
             </Text>
             <Text className="text-xs text-slate-400">
-              {members.length} members · {currency}
+              {t('mobile.splitExpenses.members', { count: members.length })} · {currency}
             </Text>
           </View>
         </View>
@@ -446,9 +448,9 @@ export default function SplitExpensesGroupScreen() {
       <DsConfirmModal
         open={showSettleConfirm}
         onClose={() => setShowSettleConfirm(false)}
-        title="Settle All"
-        message="This will create transfers to settle all outstanding balances. Continue?"
-        confirmLabel="Settle"
+        title={t('mobile.splitExpenses.settleAll')}
+        message={t('mobile.splitExpenses.settleConfirmDesc')}
+        confirmLabel={t('mobile.splitExpenses.settleAll')}
         variant="success"
         onConfirm={handleSettleUp}
       />
@@ -460,7 +462,7 @@ export default function SplitExpensesGroupScreen() {
           setShowPaymentConfirm(false)
           setPaymentTarget(null)
         }}
-        title="Record Payment"
+        title={t('mobile.splitExpenses.payConfirm')}
         message={
           paymentTarget
             ? `Confirm payment of ${formatAmount(paymentTarget.amount, currency)} from ${paymentTarget.from_name || 'user'} to ${paymentTarget.to_name || 'user'}?`
@@ -475,9 +477,9 @@ export default function SplitExpensesGroupScreen() {
       <DsConfirmModal
         open={deleteConfirm !== null}
         onClose={() => setDeleteConfirm(null)}
-        title={`Delete ${deleteConfirm?.type || ''}`}
+        title={`${t('mobile.splitExpenses.delete')} ${deleteConfirm?.type || ''}`}
         message={`Are you sure you want to delete "${deleteConfirm?.name || ''}"? This cannot be undone.`}
-        confirmLabel="Delete"
+        confirmLabel={t('mobile.splitExpenses.delete')}
         variant="danger"
         onConfirm={handleDeleteConfirm}
       />
@@ -550,6 +552,7 @@ function ExpensesTab({
   onDeleteExpense: (id: string, name: string) => void
   onTransferPress: (transfer: Transfer) => void
 }) {
+  const { t } = useTranslation()
   const activeFilters =
     (filterTagId ? 1 : 0) +
     (filterPaidBy ? 1 : 0) +
@@ -699,7 +702,7 @@ function ExpensesTab({
           >
             <ScrollView className="p-5" keyboardShouldPersistTaps="handled">
               <Text className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-                Filters
+                {t('mobile.splitExpenses.filterTitle')}
               </Text>
 
               {/* Type */}
@@ -707,23 +710,27 @@ function ExpensesTab({
                 Type
               </Text>
               <View className="flex-row gap-2 mb-4">
-                {(['all', 'expenses', 'transfers'] as const).map((t) => (
+                {([
+                  { key: 'all', label: t('mobile.splitExpenses.filterAll') },
+                  { key: 'expenses', label: t('mobile.splitExpenses.filterExpenses') },
+                  { key: 'transfers', label: t('mobile.splitExpenses.filterTransfers') },
+                ] as const).map((opt) => (
                   <TouchableOpacity
-                    key={t}
+                    key={opt.key}
                     className={`px-4 py-2 rounded-xl ${
-                      filterType === t
+                      filterType === opt.key
                         ? 'bg-primary'
                         : 'bg-slate-100 dark:bg-slate-800'
                     }`}
-                    onPress={() => setFilterType(t)}
+                    onPress={() => setFilterType(opt.key)}
                     activeOpacity={0.7}
                   >
                     <Text
-                      className={`text-sm font-semibold capitalize ${
-                        filterType === t ? 'text-white' : 'text-slate-600 dark:text-slate-400'
+                      className={`text-sm font-semibold ${
+                        filterType === opt.key ? 'text-white' : 'text-slate-600 dark:text-slate-400'
                       }`}
                     >
-                      {t}
+                      {opt.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -749,7 +756,7 @@ function ExpensesTab({
                         filterTagId === '' ? 'text-white' : 'text-slate-600 dark:text-slate-400'
                       }`}
                     >
-                      All
+                      {t('mobile.splitExpenses.filterAll')}
                     </Text>
                   </TouchableOpacity>
                   {tags.map((t) => (
@@ -777,7 +784,7 @@ function ExpensesTab({
 
               {/* Paid by */}
               <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Paid by
+                {t('mobile.splitExpenses.expensePaidBy')}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
                 <View className="flex-row gap-2">
@@ -824,7 +831,7 @@ function ExpensesTab({
               {/* My expenses only */}
               <View className="flex-row items-center justify-between mb-4">
                 <Text className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  My expenses only
+                  {t('mobile.splitExpenses.myExpensesOnly')}
                 </Text>
                 <Switch
                   value={filterMyExpenses}
@@ -880,7 +887,7 @@ function ExpensesTab({
           title="No expenses yet"
           message="Add your first expense to start tracking who owes what."
           action={{
-            label: 'Add Expense',
+            label: t('mobile.splitExpenses.addExpense'),
             onPress: () => router.push(`/(app)/modules/split-expenses/${groupId}/expense/new`),
           }}
         />
@@ -941,6 +948,7 @@ function BalancesTab({
   groupId: string
   router: ReturnType<typeof useRouter>
 }) {
+  const { t } = useTranslation()
   if (balancesLoading && balances.length === 0) {
     return (
       <View className="flex-1 px-4 pt-4">
@@ -963,7 +971,7 @@ function BalancesTab({
           Current Balances
         </Text>
         {balances.length === 0 ? (
-          <Text className="text-sm text-slate-400 py-4">Everyone is settled up! 🎉</Text>
+          <Text className="text-sm text-slate-400 py-4">{t('mobile.splitExpenses.balanceEven')}</Text>
         ) : (
           balances.map((b) => (
             <View
@@ -1044,7 +1052,7 @@ function BalancesTab({
             activeOpacity={0.8}
           >
             <Text className="text-white text-sm font-bold">
-              {settlingUp ? 'Settling...' : 'Settle All'}
+              {settlingUp ? t('mobile.splitExpenses.settling') : t('mobile.splitExpenses.settleAll')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1097,7 +1105,15 @@ function StatsTab({
   formatAmount: (amount: number, currency?: string) => string
   currency: string
 }) {
+  const { t } = useTranslation()
   const maxValue = stats.length > 0 ? Math.max(...stats.map((s) => s.total)) : 0
+
+  const STATS_PERIODS = [
+    { key: 'day', label: t('mobile.splitExpenses.day') },
+    { key: 'week', label: t('mobile.splitExpenses.week') },
+    { key: 'month', label: t('mobile.splitExpenses.month') },
+    { key: 'year', label: t('mobile.splitExpenses.year') },
+  ] as const
 
   return (
     <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
@@ -1148,7 +1164,7 @@ function StatsTab({
                 statsTagId === '' ? 'text-white' : 'text-slate-600 dark:text-slate-400'
               }`}
             >
-              All
+              {t('mobile.splitExpenses.filterAll')}
             </Text>
           </TouchableOpacity>
           {tags.map((t) => (
@@ -1210,7 +1226,7 @@ function StatsTab({
           </Text>
           {/* Total */}
           <View className="bg-white dark:bg-gray-900 rounded-xl border border-slate-100 dark:border-slate-800 p-3 mb-3">
-            <Text className="text-xs text-slate-400">Total spent</Text>
+            <Text className="text-xs text-slate-400">{t('mobile.splitExpenses.totalSpent')}</Text>
             <Text className="text-lg font-bold text-slate-900 dark:text-white">
               {formatAmount(
                 stats.reduce((s, e) => s + e.total, 0),
@@ -1283,11 +1299,12 @@ function SettingsTab({
   savingTag: boolean
   handleAddTag: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       {/* Members */}
       <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-        Members ({members.length})
+        {t('mobile.splitExpenses.membersTitle')} ({members.length})
       </Text>
       {membersLoading ? (
         <LoadingSkeleton type="list" count={3} />
@@ -1306,7 +1323,7 @@ function SettingsTab({
                   {m.display_name || 'User'}
                 </Text>
                 <Text className="text-xs text-slate-400">
-                  {m.active ? 'Active' : 'Inactive'}
+                  {m.active ? t('mobile.splitExpenses.active') : t('mobile.splitExpenses.inactive')}
                 </Text>
               </View>
             </View>
@@ -1320,7 +1337,7 @@ function SettingsTab({
               onPress={() => onRemoveMember(m.id, m.display_name || 'User')}
               activeOpacity={0.7}
             >
-              <Text className="text-red-500 text-xs font-semibold">Remove</Text>
+              <Text className="text-red-500 text-xs font-semibold">{t('mobile.splitExpenses.removeMember')}</Text>
             </TouchableOpacity>
           </View>
         ))
@@ -1328,32 +1345,32 @@ function SettingsTab({
 
       {/* Tags */}
       <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-        Tags ({tags.length})
+        {t('mobile.splitExpenses.tagsTitle')} ({tags.length})
       </Text>
       {tagsLoading ? (
         <LoadingSkeleton type="list" count={2} />
       ) : tags.length === 0 ? (
         <Text className="text-sm text-slate-400 mb-4">No tags yet</Text>
       ) : (
-        tags.map((t) => (
+        tags.map((tag) => (
           <View
-            key={t.id}
+            key={tag.id}
             className="flex-row items-center justify-between py-3 border-b border-slate-100 dark:border-slate-800"
           >
             <View className="flex-row items-center gap-2">
               <View
                 className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: t.color }}
+                style={{ backgroundColor: tag.color }}
               />
               <Text className="text-sm font-medium text-slate-900 dark:text-white">
-                {t.name}
+                {tag.name}
               </Text>
             </View>
             <TouchableOpacity
-              onPress={() => onDeleteTag(t.id, t.name)}
+              onPress={() => onDeleteTag(tag.id, tag.name)}
               activeOpacity={0.7}
             >
-              <Text className="text-red-500 text-xs font-semibold">Delete</Text>
+              <Text className="text-red-500 text-xs font-semibold">{t('mobile.splitExpenses.delete')}</Text>
             </TouchableOpacity>
           </View>
         ))
@@ -1365,25 +1382,25 @@ function SettingsTab({
         onPress={() => setShowAddTag(true)}
         activeOpacity={0.7}
       >
-        <Text className="text-primary text-sm font-semibold">+ Add Tag</Text>
+        <Text className="text-primary text-sm font-semibold">+ {t('mobile.splitExpenses.addTag')}</Text>
       </TouchableOpacity>
 
       {/* Add Tag Modal */}
       <DsModal
         open={showAddTag}
         onClose={() => setShowAddTag(false)}
-        title="Add Tag"
+        title={t('mobile.splitExpenses.addTag')}
       >
         <View className="gap-4">
           <DsInput
-            label="Tag name"
+            label={t('mobile.splitExpenses.tagName')}
             value={newTagName}
             onChangeText={setNewTagName}
             placeholder="e.g. Food"
           />
           <View>
             <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Color
+              {t('mobile.splitExpenses.tagColor')}
             </Text>
             <View className="flex-row flex-wrap gap-3">
               {TAG_COLORS.map((c) => (
@@ -1409,7 +1426,7 @@ function SettingsTab({
               activeOpacity={0.7}
             >
               <Text className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Cancel
+                {t('mobile.splitExpenses.cancel')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -1423,7 +1440,7 @@ function SettingsTab({
               activeOpacity={0.8}
             >
               <Text className="text-white text-sm font-semibold">
-                {savingTag ? 'Saving...' : 'Add'}
+                {savingTag ? t('mobile.splitExpenses.saving') : t('mobile.splitExpenses.add')}
               </Text>
             </TouchableOpacity>
           </View>
