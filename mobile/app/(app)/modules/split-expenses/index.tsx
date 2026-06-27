@@ -58,7 +58,7 @@ export default function SplitExpensesListScreen() {
   const handleCreate = useCallback(async () => {
     const trimmed = newTitle.trim()
     if (!trimmed) {
-      setFormError('Group name is required')
+      setFormError(t('mobile.splitExpenses.validation.groupNameRequired'))
       return
     }
     setFormError('')
@@ -298,7 +298,7 @@ export default function SplitExpensesListScreen() {
                   className="border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-base text-slate-900 dark:text-white bg-white dark:bg-gray-900"
                   value={newTitle}
                   onChangeText={setNewTitle}
-                  placeholder="Trip to Barcelona"
+                   placeholder={t('mobile.splitExpenses.placeholder.tripName')}
                   placeholderTextColor="#94A3B8"
                   maxLength={100}
                   autoFocus
@@ -308,7 +308,7 @@ export default function SplitExpensesListScreen() {
               {/* Emoji Picker */}
               <View className="mb-4">
                 <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Emoji
+                  {t('mobile.splitExpenses.labels.emoji')}
                 </Text>
                 <View className="flex-row flex-wrap gap-2 mb-2">
                   {EMOJIS.slice(0, 8).map((emoji) => (
@@ -347,7 +347,7 @@ export default function SplitExpensesListScreen() {
               {/* Currency Picker */}
               <View className="mb-4">
                 <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Currency
+                  {t('mobile.splitExpenses.labels.currency')}
                 </Text>
                 <View className="flex-row flex-wrap gap-2">
                   {CURRENCIES.map((cur) => (

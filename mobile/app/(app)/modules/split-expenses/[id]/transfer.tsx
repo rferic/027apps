@@ -74,19 +74,19 @@ export default function CreateTransferScreen() {
     const numAmount = parseFloat(amount)
 
     if (!fromUser) {
-      setFormError('Select who is paying')
+      setFormError(t('mobile.splitExpenses.validation.selectPayer'))
       return
     }
     if (!toUser) {
-      setFormError('Select who receives')
+      setFormError(t('mobile.splitExpenses.validation.selectReceiver'))
       return
     }
     if (fromUser === toUser) {
-      setFormError('Sender and receiver must be different')
+      setFormError(t('mobile.splitExpenses.validation.senderReceiverDifferent'))
       return
     }
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setFormError('Valid amount is required')
+      setFormError(t('mobile.splitExpenses.validation.validAmountRequired'))
       return
     }
 
@@ -107,7 +107,7 @@ export default function CreateTransferScreen() {
       }
       router.back()
     } catch {
-      setFormError('Failed to save transfer')
+      setFormError(t('mobile.splitExpenses.validation.transferSaveFailed'))
     } finally {
       setSaving(false)
     }
@@ -176,11 +176,11 @@ export default function CreateTransferScreen() {
                   size="sm"
                 />
                 <Text className="text-slate-900 dark:text-white">
-                  {fromMember.display_name || 'User'}
+                  {fromMember.display_name || t('mobile.splitExpenses.labels.user')}
                 </Text>
               </View>
             ) : (
-              <Text className="text-slate-400">Who pays</Text>
+              <Text className="text-slate-400">{t('mobile.splitExpenses.validation.selectPayer')}</Text>
             )}
           </TouchableOpacity>
           {showFromPicker && (
@@ -199,7 +199,7 @@ export default function CreateTransferScreen() {
                 >
                   <DsAvatar name={m.display_name || '?'} size="sm" />
                   <Text className="text-sm text-slate-900 dark:text-white flex-1">
-                    {m.display_name || 'User'}
+                    {m.display_name || t('mobile.splitExpenses.labels.user')}
                   </Text>
                   {fromUser === m.user_id && (
                     <Text className="text-primary font-bold">✓</Text>
@@ -232,11 +232,11 @@ export default function CreateTransferScreen() {
               <View className="flex-row items-center gap-2">
                 <DsAvatar name={toMember.display_name || '?'} size="sm" />
                 <Text className="text-slate-900 dark:text-white">
-                  {toMember.display_name || 'User'}
+                  {toMember.display_name || t('mobile.splitExpenses.labels.user')}
                 </Text>
               </View>
             ) : (
-              <Text className="text-slate-400">Who receives</Text>
+              <Text className="text-slate-400">{t('mobile.splitExpenses.validation.selectReceiver')}</Text>
             )}
           </TouchableOpacity>
           {showToPicker && (
@@ -256,10 +256,10 @@ export default function CreateTransferScreen() {
                     activeOpacity={0.7}
                   >
                     <DsAvatar name={m.display_name || '?'} size="sm" />
-                    <Text className="text-sm text-slate-900 dark:text-white flex-1">
-                      {m.display_name || 'User'}
-                    </Text>
-                    {toUser === m.user_id && (
+                  <Text className="text-sm text-slate-900 dark:text-white flex-1">
+                    {m.display_name || t('mobile.splitExpenses.labels.user')}
+                  </Text>
+                  {toUser === m.user_id && (
                       <Text className="text-primary font-bold">✓</Text>
                     )}
                   </TouchableOpacity>
@@ -310,10 +310,10 @@ export default function CreateTransferScreen() {
         {/* Preview */}
         {fromMember && toMember && amount && !isNaN(parseFloat(amount)) && (
           <View className="mt-4 bg-slate-100 dark:bg-slate-800 rounded-xl p-4">
-            <Text className="text-xs text-slate-400 mb-1">Transfer preview</Text>
+            <Text className="text-xs text-slate-400 mb-1">{t('mobile.splitExpenses.labels.transferPreview')}</Text>
             <View className="flex-row items-center gap-2">
               <Text className="text-sm font-semibold text-slate-900 dark:text-white">
-                {fromMember.display_name || 'User'}
+                {fromMember.display_name || t('mobile.splitExpenses.labels.user')}
               </Text>
               <Text className="text-slate-400">pays</Text>
               <Text className="text-sm font-bold text-emerald-600">
@@ -321,7 +321,7 @@ export default function CreateTransferScreen() {
               </Text>
               <Text className="text-slate-400">to</Text>
               <Text className="text-sm font-semibold text-slate-900 dark:text-white">
-                {toMember.display_name || 'User'}
+                {toMember.display_name || t('mobile.splitExpenses.labels.user')}
               </Text>
             </View>
           </View>

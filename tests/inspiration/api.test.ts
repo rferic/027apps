@@ -14,6 +14,14 @@ vi.mock('@/lib/apps/manifest', () => ({
   readManifest: vi.fn(),
 }))
 
+vi.mock('@/lib/push', () => ({
+  sendPushNotifications: vi.fn().mockResolvedValue(undefined),
+  sendPushToUser: vi.fn().mockResolvedValue(undefined),
+  NOTIFICATION_TYPES: {
+    INSPIRATION_VOTE: 'inspiration:vote',
+  },
+}))
+
 // Shared mock client — reset in beforeEach
 const mockFrom = vi.fn()
 
@@ -329,6 +337,10 @@ describe('POST /api/v1/:groupSlug/apps/inspiration/:id/vote', () => {
     mockFrom.mockReturnValueOnce(makeChain(null))
     // Insert succeeds
     mockFrom.mockReturnValueOnce(makeChain(null))
+    // Profiles query (voter display_name)
+    mockFrom.mockReturnValueOnce(makeChain(null))
+    // Group members query (admins)
+    mockFrom.mockReturnValueOnce(makeChain([]))
     // Count votes
     mockFrom.mockReturnValueOnce(makeChain(null, null, 3))
 

@@ -7,11 +7,12 @@ vi.mock('@/lib/email/send', () => ({
 
 const mockFrom = vi.fn()
 const mockGetUserById = vi.fn().mockResolvedValue({ data: { user: { email: 'test@test.com' } } })
+const mockListUsers = vi.fn()
 
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClientUntyped: vi.fn(() => ({
     from: mockFrom,
-    auth: { admin: { getUserById: mockGetUserById } },
+    auth: { admin: { getUserById: mockGetUserById, listUsers: mockListUsers } },
   })),
 }))
 
@@ -40,6 +41,9 @@ function makeAwaitableChain(data: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockListUsers.mockResolvedValue({
+    data: { users: [{ id: 'user-2', email: 'test@test.com' }] },
+  })
 })
 
 describe('notifyAssigned', () => {
@@ -108,7 +112,7 @@ describe('notifyStatusChange', () => {
     mockFrom.mockReturnValue(makeChain({
       maybeSingle: { data: { locale: 'en', on_status_change: true }, error: null },
     }))
-    mockGetUserById.mockResolvedValue({ data: { user: null } })
+    mockListUsers.mockResolvedValue({ data: { users: [] } })
 
     await notifyStatusChange('todo-1', 'Test task', 'user-2', 'pending', 'done', 'my-group', 'My Group')
 

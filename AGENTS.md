@@ -375,6 +375,88 @@ Syntax segura: busca el key en en.json con grep/read antes de usarlo.
 
 ## 5. `toLocaleDateString()` siempre con locale
 Usar `toLocaleDateString(locale)` (no sin argumentos) para evitar hydration mismatch.
+
+## 6. Mobile i18n (`mobile/src/i18n/missing-keys.ts`) — OBLIGATORIO antes de escribir cualquier string en pantalla
+
+La app mobile usa **i18next + react-i18next** (NO next-intl). Las traducciones mobile viven en:
+```
+mobile/src/i18n/missing-keys.ts → export const mobileKeys = { en: { mobile: { ... } }, es: { ... }, ... }
+```
+
+### REGLA ABSOLUTA: NUNCA hardcodear texto en inglés en las pantallas mobile
+
+Todo string visible en la UI DEBE ser una clave de traducción. **No hay excepciones.**
+
+### Flujo completo para añadir texto nuevo a mobile:
+
+**Paso 1: Añadir la clave en `mobile/src/i18n/missing-keys.ts`**
+
+Formato:
+```typescript
+export const mobileKeys = {
+  en: {
+    mobile: {
+      nuevaSeccion: {
+        titulo: 'My Title',
+        descripcion: 'This is a description',
+        conVariable: 'Hello {{name}}, you have {{count}} items',
+      },
+    },
+  },
+  es: {
+    mobile: {
+      nuevaSeccion: {
+        titulo: 'Mi Título',
+        descripcion: 'Esta es una descripción',
+        conVariable: 'Hola {{name}}, tienes {{count}} elementos',
+      },
+    },
+  },
+  it: { mobile: { nuevaSeccion: { /* italiano */ } } },
+  ca: { mobile: { nuevaSeccion: { /* catalán */ } } },
+  fr: { mobile: { nuevaSeccion: { /* francés */ } } },
+  de: { mobile: { nuevaSeccion: { /* alemán */ } } },
+}
+```
+
+**Paso 2: Traducir a los 6 idiomas — TODOS**
+
+NUNCA dejar un idioma con texto en inglés como fallback. Si no sabes la traducción exacta, usa tu mejor conocimiento del idioma. Idiomas: en, es, it, ca, fr, de.
+
+**Paso 3: Usar en componentes**
+
+```typescript
+import { useTranslation } from 'react-i18next'
+
+function MyScreen() {
+  const { t } = useTranslation()
+  return <Text>{t('mobile.nuevaSeccion.titulo')}</Text>
+}
+```
+
+Para claves con variables:
+```typescript
+t('mobile.nuevaSeccion.conVariable', { name: 'Eric', count: 5 })
+```
+
+### Verificación
+
+Antes de commitear, verifica que NO haya strings hardcodeados:
+```bash
+grep -rn "'[A-Z]" mobile/app/ | grep -v "import\|className\|require\|// \|keyboardType\|autoCapitalize"
+```
+
+Si el grep devuelve algo que no sea import/config, ES UN BUG.
+
+### Diferencia con web
+
+| | Web (`next-intl`) | Mobile (`i18next`) |
+|---|---|---|
+| Ubicación | `src/i18n/messages/{lang}.json` | `mobile/src/i18n/missing-keys.ts` |
+| Hook | `useTranslations('namespace')` | `useTranslation()` |
+| Llamada | `t('clave')` | `t('mobile.seccion.clave')` |
+| Variables | `{name}` | `{{name}}` |
+| Reinicio | Requiere restart dev server | i18next detecta cambios en caliente |
 <!-- END:i18n-rules -->
 
 <!-- BEGIN:pagination-convention -->

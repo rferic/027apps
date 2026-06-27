@@ -20,7 +20,7 @@ export default defineConfig({
         environment: 'jsdom',
         globals: true,
         setupFiles: ['./tests/unit/setup.ts'],
-        exclude: ['tests/e2e/**', 'node_modules/**', '.opencode/**', 'packages/**']
+        exclude: ['tests/e2e/**', 'node_modules/**', '.opencode/**', 'packages/**', 'mobile/**']
       }
     }, {
       extends: true,

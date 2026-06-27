@@ -126,7 +126,7 @@ export default function ExpenseDetailScreen() {
             size="sm"
           />
           <Text className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            {expense.paid_by_profile?.display_name || 'Unknown'}
+            {expense.paid_by_profile?.display_name || t('mobile.splitExpenses.labels.unknown')}
           </Text>
         </View>
 
@@ -175,7 +175,7 @@ export default function ExpenseDetailScreen() {
                 />
                 <View className="flex-1">
                   <Text className="text-sm font-medium text-slate-900 dark:text-white">
-                    {share.user_profile?.display_name || 'User'}
+                    {share.user_profile?.display_name || t('mobile.splitExpenses.labels.user')}
                     {isPayer && (
                       <Text className="text-xs text-emerald-500 font-normal">
                         {' '}

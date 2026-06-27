@@ -91,19 +91,19 @@ export default function CreateExpenseScreen() {
     const numAmount = parseFloat(amount)
 
     if (!trimmedTitle) {
-      setFormError('Title is required')
+      setFormError(t('mobile.splitExpenses.validation.titleRequired'))
       return
     }
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setFormError('Valid amount is required')
+      setFormError(t('mobile.splitExpenses.validation.validAmountRequired'))
       return
     }
     if (!paidBy) {
-      setFormError('Select who paid')
+      setFormError(t('mobile.splitExpenses.validation.selectWhoPaid'))
       return
     }
     if (participantIds.length === 0) {
-      setFormError('Select at least one participant')
+      setFormError(t('mobile.splitExpenses.validation.selectAtLeastOneParticipant'))
       return
     }
 
@@ -128,7 +128,7 @@ export default function CreateExpenseScreen() {
       }
       router.back()
     } catch {
-      setFormError('Failed to save expense')
+      setFormError(t('mobile.splitExpenses.validation.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -174,7 +174,7 @@ export default function CreateExpenseScreen() {
           label={t('mobile.splitExpenses.expenseTitle')}
           value={title}
           onChangeText={setTitle}
-          placeholder="Dinner at Mario's"
+          placeholder={t('mobile.splitExpenses.placeholder.expenseConcept')}
         />
 
         {/* Amount */}
@@ -213,11 +213,11 @@ export default function CreateExpenseScreen() {
                 />
                 <Text className="text-slate-900 dark:text-white">
                   {activeMembers.find((m) => m.user_id === paidBy)
-                    ?.display_name || 'Unknown'}
+                    ?.display_name || t('mobile.splitExpenses.labels.unknown')}
                 </Text>
               </View>
             ) : (
-              <Text className="text-slate-400">Select who paid</Text>
+              <Text className="text-slate-400">{t('mobile.splitExpenses.validation.selectWhoPaid')}</Text>
             )}
           </TouchableOpacity>
           {showPaidByPicker && (
@@ -236,7 +236,7 @@ export default function CreateExpenseScreen() {
                 >
                   <DsAvatar name={m.display_name || '?'} size="sm" />
                   <Text className="text-sm text-slate-900 dark:text-white flex-1">
-                    {m.display_name || 'User'}
+                    {m.display_name || t('mobile.splitExpenses.labels.user')}
                   </Text>
                   {paidBy === m.user_id && (
                     <Text className="text-primary font-bold">✓</Text>
@@ -263,7 +263,7 @@ export default function CreateExpenseScreen() {
                 <View className="flex-row items-center gap-2">
                   <DsAvatar name={m.display_name || '?'} size="sm" />
                   <Text className="text-sm text-slate-900 dark:text-white">
-                    {m.display_name || 'User'}
+                    {m.display_name || t('mobile.splitExpenses.labels.user')}
                   </Text>
                 </View>
                 <View
@@ -302,7 +302,7 @@ export default function CreateExpenseScreen() {
                   }}
                 />
                 <Text className="text-slate-900 dark:text-white">
-                  {tags.find((t: Tag) => t.id === tagId)?.name || 'Unknown'}
+                  {tags.find((t: Tag) => t.id === tagId)?.name || t('mobile.splitExpenses.labels.unknown')}
                 </Text>
               </View>
             ) : (
@@ -353,7 +353,7 @@ export default function CreateExpenseScreen() {
         {participantIds.length > 1 && (
           <View className="mt-4">
             <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Split type
+              {t('mobile.splitExpenses.labels.splitType')}
             </Text>
             <View className="flex-row gap-2">
               <TouchableOpacity
@@ -407,7 +407,7 @@ export default function CreateExpenseScreen() {
                   <View className="flex-row items-center gap-2 flex-1">
                     <DsAvatar name={m.display_name || '?'} size="sm" />
                     <Text className="text-sm text-slate-700 dark:text-slate-300">
-                      {m.display_name || 'User'}
+                      {m.display_name || t('mobile.splitExpenses.labels.user')}
                     </Text>
                   </View>
                   <TextInput
@@ -432,7 +432,7 @@ export default function CreateExpenseScreen() {
         {splitType === 'equal' && participantIds.length > 0 && numAmount > 0 && (
           <View className="mt-4 bg-slate-100 dark:bg-slate-800 rounded-xl p-3">
             <Text className="text-xs text-slate-500 mb-1">
-              Each person pays
+              {t('mobile.splitExpenses.labels.eachPersonPays')}
             </Text>
             <Text className="text-base font-bold text-slate-900 dark:text-white">
               {equalShare} {activeMembers[0]?.display_name ? '' : ''}

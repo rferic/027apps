@@ -606,7 +606,7 @@ function ExpensesTab({
                 </View>
                 <View className="flex-row items-center gap-2 mt-0.5">
                   <Text className="text-xs text-slate-400">
-                    {exp.paid_by_profile?.display_name || 'Someone'}
+                    {exp.paid_by_profile?.display_name || t('mobile.splitExpenses.labels.someone')}
                   </Text>
                   {tag && (
                     <DsBadge label={tag.name} variant="primary" />
@@ -631,11 +631,11 @@ function ExpensesTab({
             <View className="flex-1">
               <View className="flex-row items-center gap-1">
                 <Text className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {tf.from_name || 'User'}
+                  {tf.from_name || t('mobile.splitExpenses.labels.user')}
                 </Text>
                 <Text className="text-slate-400">→</Text>
                 <Text className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {tf.to_name || 'User'}
+                  {tf.to_name || t('mobile.splitExpenses.labels.user')}
                 </Text>
               </View>
               {tf.note ? (
@@ -681,7 +681,7 @@ function ExpensesTab({
           onPress={onRefresh}
           activeOpacity={0.7}
         >
-          <Text className="text-sm text-slate-500">Refresh</Text>
+          <Text className="text-sm text-slate-500">{t('mobile.splitExpenses.labels.refresh')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -707,7 +707,7 @@ function ExpensesTab({
 
               {/* Type */}
               <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Type
+                {t('mobile.splitExpenses.labels.type')}
               </Text>
               <View className="flex-row gap-2 mb-4">
                 {([
@@ -802,7 +802,7 @@ function ExpensesTab({
                         filterPaidBy === '' ? 'text-white' : 'text-slate-600 dark:text-slate-400'
                       }`}
                     >
-                      Anyone
+                      {t('mobile.splitExpenses.labels.anyone')}
                     </Text>
                   </TouchableOpacity>
                   {members.map((m) => (
@@ -821,7 +821,7 @@ function ExpensesTab({
                           filterPaidBy === m.user_id ? 'text-white' : 'text-slate-600 dark:text-slate-400'
                         }`}
                       >
-                        {m.display_name || 'User'}
+                        {m.display_name || t('mobile.splitExpenses.labels.user')}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -968,7 +968,7 @@ function BalancesTab({
       {/* Balances */}
       <View className="p-4">
         <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          Current Balances
+          {t('mobile.splitExpenses.labels.currentBalances')}
         </Text>
         {balances.length === 0 ? (
           <Text className="text-sm text-slate-400 py-4">{t('mobile.splitExpenses.balanceEven')}</Text>
@@ -981,7 +981,7 @@ function BalancesTab({
               <View className="flex-row items-center gap-2">
                 <DsAvatar name={b.display_name || '?'} size="sm" />
                 <Text className="text-sm font-medium text-slate-900 dark:text-white">
-                  {b.display_name || 'User'}
+                  {b.display_name || t('mobile.splitExpenses.labels.user')}
                 </Text>
               </View>
               <Text
@@ -1007,30 +1007,30 @@ function BalancesTab({
       {suggestedTransfers.length > 0 && (
         <View className="px-4 pb-4">
           <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-            Suggested Transfers
+            {t('mobile.splitExpenses.labels.suggestedTransfers')}
           </Text>
-          {suggestedTransfers.map((t, i) => (
+          {suggestedTransfers.map((st, i) => (
             <View
-              key={`${t.from_user}-${t.to_user}-${i}`}
+              key={`${st.from_user}-${st.to_user}-${i}`}
               className="flex-row items-center gap-3 bg-white dark:bg-gray-900 rounded-xl border border-slate-100 dark:border-slate-800 p-3 mb-2"
             >
               <View className="flex-1">
                 <View className="flex-row items-center gap-1">
                   <Text className="text-sm font-medium text-slate-900 dark:text-white">
-                    {t.from_name || 'User'}
+                    {st.from_name || t('mobile.splitExpenses.labels.user')}
                   </Text>
                   <Text className="text-slate-400">→</Text>
                   <Text className="text-sm font-medium text-slate-900 dark:text-white">
-                    {t.to_name || 'User'}
+                    {st.to_name || t('mobile.splitExpenses.labels.user')}
                   </Text>
                 </View>
                 <Text className="text-xs text-slate-400 mt-0.5">
-                  {formatAmount(t.amount, currency)}
+                  {formatAmount(st.amount, currency)}
                 </Text>
               </View>
               <TouchableOpacity
                 className="bg-emerald-500 rounded-lg px-3 py-2"
-                onPress={() => onRecordPayment(t)}
+                onPress={() => onRecordPayment(st)}
                 activeOpacity={0.7}
               >
                 <Text className="text-white text-xs font-semibold">Paid</Text>
@@ -1066,7 +1066,7 @@ function BalancesTab({
           activeOpacity={0.7}
         >
           <Text className="text-slate-600 dark:text-slate-400 text-sm font-semibold">
-            Manual Transfer
+            {t('mobile.splitExpenses.labels.manualTransfer')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -1119,7 +1119,7 @@ function StatsTab({
     <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       {/* Period selector */}
       <Text className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-        Period
+        {t('mobile.splitExpenses.labels.period')}
       </Text>
       <View className="flex-row gap-2 mb-4">
         {STATS_PERIODS.map((p) => (
@@ -1320,7 +1320,7 @@ function SettingsTab({
               <DsAvatar name={m.display_name || '?'} size="sm" />
               <View className="flex-1">
                 <Text className="text-sm font-medium text-slate-900 dark:text-white">
-                  {m.display_name || 'User'}
+                  {m.display_name || t('mobile.splitExpenses.labels.user')}
                 </Text>
                 <Text className="text-xs text-slate-400">
                   {m.active ? t('mobile.splitExpenses.active') : t('mobile.splitExpenses.inactive')}
@@ -1334,7 +1334,7 @@ function SettingsTab({
             />
             <TouchableOpacity
               className="ml-2 px-2 py-1"
-              onPress={() => onRemoveMember(m.id, m.display_name || 'User')}
+              onPress={() => onRemoveMember(m.id, m.display_name || t('mobile.splitExpenses.labels.user'))}
               activeOpacity={0.7}
             >
               <Text className="text-red-500 text-xs font-semibold">{t('mobile.splitExpenses.removeMember')}</Text>
@@ -1396,7 +1396,7 @@ function SettingsTab({
             label={t('mobile.splitExpenses.tagName')}
             value={newTagName}
             onChangeText={setNewTagName}
-            placeholder="e.g. Food"
+            placeholder={t('mobile.splitExpenses.placeholder.tagExample')}
           />
           <View>
             <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">

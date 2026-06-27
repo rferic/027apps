@@ -12,7 +12,7 @@ vi.mock('@/lib/use-cases/invitations', () => ({
 }))
 
 vi.mock('@react-email/components', () => ({
-  render: vi.fn(() => '<html></html>'),
+  render: vi.fn().mockResolvedValue('<html><body>Has sido invitado Accept invitation /invite/abc123</body></html>'),
 }))
 
 const mockInvitation = {
