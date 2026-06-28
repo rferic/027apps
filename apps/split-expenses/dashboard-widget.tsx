@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
-import { ArrowLeftRight, Users, Wallet, TrendingUp } from 'lucide-react'
+import { DollarSign, Users, Wallet, TrendingUp } from 'lucide-react'
 import { DsSkeleton } from '@/components/ds/skeleton'
 import { DsCard } from '@/components/ds/card'
 
@@ -40,25 +40,25 @@ export default function SplitExpensesDashboardWidget() {
     <DsCard padding="md" hover={false}>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <ArrowLeftRight size={18} className="text-emerald-500" />
-          <h3 className="text-sm font-semibold text-foreground">Split Expenses</h3>
+          <DollarSign size={18} className="text-emerald-500" />
+          <h3 className="text-sm font-semibold text-foreground">{t('dashboard.title')}</h3>
         </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
-            <p className="text-xs text-muted-foreground">Grupos</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.groups')}</p>
             <p className="text-lg font-bold text-foreground">{stats.totalGroups}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Gastos</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.expenses')}</p>
             <p className="text-lg font-bold text-foreground">{stats.totalExpenses}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Miembros</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.members')}</p>
             <p className="text-lg font-bold text-foreground">{stats.totalMembers}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Transferencias</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.transfers')}</p>
             <p className="text-lg font-bold text-foreground">{stats.totalTransfers}</p>
           </div>
         </div>
@@ -66,7 +66,7 @@ export default function SplitExpensesDashboardWidget() {
         <Link href={`/${locale}/admin/apps/split-expenses`}
           className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium"
         >
-          Gestionar grupos de gastos →
+          {t('dashboard.manage')} →
         </Link>
       </div>
     </DsCard>

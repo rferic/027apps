@@ -65,8 +65,11 @@ export function cachedQuery<Args extends unknown[], Result>(
   let cachedFn: ((...args: Args) => Promise<Result>) | null = null
 
   return async (...args: Args): Promise<Result> => {
-    // In vitest, skip caching entirely.
     if (typeof process !== 'undefined' && process.env?.VITEST) {
+      return fn(...args)
+    }
+
+    if (process.env.NODE_ENV === 'development') {
       return fn(...args)
     }
 

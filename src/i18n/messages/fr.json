@@ -26,7 +26,17 @@
     "invalid_reset_link": "Lien invalide ou expiré. Demandez-en un nouveau.",
     "password_min_length": "Le mot de passe doit contenir au moins 8 caractères",
     "password_mismatch": "Les mots de passe ne correspondent pas",
-    "updating": "Mise à jour du mot de passe…"
+    "updating": "Mise à jour du mot de passe…",
+    "pair": {
+      "title": "Associer mobile",
+      "creatingSession": "Création de la session...",
+      "failedToCreate": "Échec de création de la session",
+      "connectionError": "Erreur de connexion",
+      "retry": "Réessayer",
+      "scanQr": "Scannez ce QR depuis l'écran de connexion de l'app mobile",
+      "pairingCode": "Code d'association",
+      "codeRefreshes": "Le code s'actualise chaque minute"
+    }
   },
   "home": {
     "noApps": "Aucune app disponible pour l'instant.",
@@ -643,7 +653,8 @@
   },
   "user": {
     "editProfile": "Modifier le profil",
-    "signOut": "Se déconnecter"
+    "signOut": "Se déconnecter",
+    "pairMobile": "Associer mobile"
   },
   "apps": {
     "title": "Applications",

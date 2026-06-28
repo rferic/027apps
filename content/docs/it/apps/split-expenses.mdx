@@ -1,0 +1,60 @@
+---
+title: Split Expenses
+description: Gestore spese di gruppo — dividi conti, monitora bilanci e salda debiti.
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card'
+
+<div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+  <img src="/api/apps/split-expenses/logo" alt="Split Expenses" width={48} height={48} style={{ borderRadius: 12 }} />
+  <div>
+    <h1 style={{ margin: 0 }}>Split Expenses</h1>
+    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 15 }}>Gestore spese di gruppo — dividi conti, monitora bilanci e salda debiti.</p>
+  </div>
+</div>
+
+<div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 20, backgroundColor: '#ECFDF5', color: '#059669', fontSize: 13, fontWeight: 500, marginBottom: 20 }}>
+  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#059669' }} />
+  Primary: #059669
+  <span style={{ width: 1, height: 14, backgroundColor: '#A7F3D0', margin: '0 4px' }} />
+  Slug: <code>split-expenses</code>
+</div>
+
+Split Expenses tiene traccia delle spese condivise all'interno di un gruppo. Crea gruppi di spesa (casa, viaggio, club della cena), aggiungi membri e registra chi ha pagato cosa. Supporta divisioni eque e personalizzate, bilanci in tempo reale e la liquidazione ottimale dei debiti.
+
+## Funzionalità
+
+- **Gruppi di spesa**: Crea gruppi con membri, valuta ed emoji
+- **Divisione equa e personalizzata**: Dividi le fatture equamente o imposta importi personalizzati per persona
+- **Trasferimenti**: Registra pagamenti diretti tra membri
+- **Bilanci in tempo reale**: Vedi chi deve a chi a colpo d'occhio
+- **Liquidazioni**: L'algoritmo suggerisce i trasferimenti minimi per saldare tutti i debiti
+- **Tag**: Categorizza le spese per statistiche migliori
+- **Statistiche**: Ripartizione delle spese per persona, categoria e periodo
+- **App mobile**: Esperienza mobile nativa completa con notifiche push
+- **Notifiche**: Notifiche push ed email per nuove spese e liquidazioni
+
+## Endpoint API
+
+<Cards>
+  <Card
+    title="Guida utente"
+    href="/doc/apps/split-expenses/user-guide"
+    description="Come usare Split Expenses — crea gruppi, aggiungi spese, salda i debiti."
+  />
+  <Card
+    title="API pubblica"
+    href="/doc/api/endpoints"
+    description="Crea e gestisci le spese all'interno di un gruppo."
+  />
+  <Card
+    title="API admin"
+    href="/doc/api/endpoints/admin-split-expenses"
+    description="Visualizza tutti i gruppi di spesa e le statistiche globali."
+  />
+  <Card
+    title="Riferimento interattivo"
+    href="/api-docs"
+    description="Testa gli endpoint in diretta dal browser."
+  />
+</Cards>

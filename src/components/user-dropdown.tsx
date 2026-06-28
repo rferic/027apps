@@ -100,7 +100,7 @@ export function UserDropdown({ locale, displayName, profileHref, isAdmin, active
             <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Pair with mobile
+            {t('pairMobile')}
           </button>
           <hr className="my-1 border-border" />
           <button

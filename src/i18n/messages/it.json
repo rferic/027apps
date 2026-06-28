@@ -26,7 +26,17 @@
     "invalid_reset_link": "Link non valido o scaduto. Richiedine uno nuovo.",
     "password_min_length": "La password deve contenere almeno 8 caratteri",
     "password_mismatch": "Le password non corrispondono",
-    "updating": "Aggiornamento password…"
+    "updating": "Aggiornamento password…",
+    "pair": {
+      "title": "Collega mobile",
+      "creatingSession": "Creazione sessione...",
+      "failedToCreate": "Impossibile creare la sessione",
+      "connectionError": "Errore di connessione",
+      "retry": "Riprova",
+      "scanQr": "Scansiona questo QR dalla schermata di login dell'app mobile",
+      "pairingCode": "Codice di collegamento",
+      "codeRefreshes": "Il codice si aggiorna ogni minuto"
+    }
   },
   "home": {
     "noApps": "Nessuna app disponibile ancora.",
@@ -643,7 +653,8 @@
   },
   "user": {
     "editProfile": "Modifica profilo",
-    "signOut": "Disconnetti"
+    "signOut": "Disconnetti",
+    "pairMobile": "Collega mobile"
   },
   "apps": {
     "title": "Applicazioni",

@@ -1,0 +1,60 @@
+---
+title: Split Expenses
+description: Gruppen-Ausgabenmanager — teile Rechnungen, verfolge Bilanzen und begleiche Schulden.
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card'
+
+<div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+  <img src="/api/apps/split-expenses/logo" alt="Split Expenses" width={48} height={48} style={{ borderRadius: 12 }} />
+  <div>
+    <h1 style={{ margin: 0 }}>Split Expenses</h1>
+    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 15 }}>Gruppen-Ausgabenmanager — teile Rechnungen, verfolge Bilanzen und begleiche Schulden.</p>
+  </div>
+</div>
+
+<div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 20, backgroundColor: '#ECFDF5', color: '#059669', fontSize: 13, fontWeight: 500, marginBottom: 20 }}>
+  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#059669' }} />
+  Primary: #059669
+  <span style={{ width: 1, height: 14, backgroundColor: '#A7F3D0', margin: '0 4px' }} />
+  Slug: <code>split-expenses</code>
+</div>
+
+Split Expenses verfolgt geteilte Ausgaben innerhalb einer Gruppe. Erstelle Ausgabengruppen (Zuhause, Reise, Essensclub), füge Mitglieder hinzu und erfasse, wer was bezahlt hat. Unterstützt gleiche und benutzerdefinierte Aufteilungen, Echtzeit-Bilanzen und optimale Schuldenbegleichung.
+
+## Funktionen
+
+- **Ausgabengruppen**: Erstelle Gruppen mit Mitgliedern, Währung und Emoji
+- **Gleiche & benutzerdefinierte Aufteilung**: Teile Rechnungen gleichmäßig oder lege individuelle Beträge pro Person fest
+- **Überweisungen**: Erfasse direkte Zahlungen zwischen Mitgliedern
+- **Echtzeit-Bilanzen**: Sieh auf einen Blick, wer wem was schuldet
+- **Begleichungen**: Der Algorithmus schlägt minimale Überweisungen vor, um alle Schulden zu tilgen
+- **Tags**: Kategorisiere Ausgaben für bessere Statistiken
+- **Statistiken**: Ausgabenaufschlüsselung nach Person, Kategorie und Zeitraum
+- **Mobile App**: Vollständige native mobile Erfahrung mit Push-Benachrichtigungen
+- **Benachrichtigungen**: Push- und E-Mail-Benachrichtigungen für neue Ausgaben und Begleichungen
+
+## API-Endpunkte
+
+<Cards>
+  <Card
+    title="Benutzerhandbuch"
+    href="/doc/apps/split-expenses/user-guide"
+    description="So verwendest du Split Expenses — Gruppen erstellen, Ausgaben hinzufügen, Schulden begleichen."
+  />
+  <Card
+    title="Öffentliche API"
+    href="/doc/api/endpoints"
+    description="Erstelle und verwalte Ausgaben innerhalb einer Gruppe."
+  />
+  <Card
+    title="Admin-API"
+    href="/doc/api/endpoints/admin-split-expenses"
+    description="Alle Ausgabengruppen und globalen Statistiken anzeigen."
+  />
+  <Card
+    title="Interaktive Referenz"
+    href="/api-docs"
+    description="Teste die Endpoints live im Browser."
+  />
+</Cards>

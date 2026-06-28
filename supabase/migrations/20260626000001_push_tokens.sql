@@ -11,10 +11,12 @@ create table if not exists public.push_tokens (
 
 alter table public.push_tokens enable row level security;
 
+drop policy if exists "Users can manage own push tokens" on public.push_tokens;
+
 create policy "Users can manage own push tokens"
   on public.push_tokens
   for all
   using (auth.uid() = user_id);
 
-create index idx_push_tokens_user_id on public.push_tokens(user_id);
-create index idx_push_tokens_group_id on public.push_tokens(group_id);
+create index if not exists idx_push_tokens_user_id on public.push_tokens(user_id);
+create index if not exists idx_push_tokens_group_id on public.push_tokens(group_id);

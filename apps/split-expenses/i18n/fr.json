@@ -1,10 +1,10 @@
 {
-  "description": "Divisez les mouvements en groupe avec optimisation des dettes.",
+  "description": "Divisez les dépenses de groupe avec optimisation des dettes.",
   "group": {
     "list": {
-      "title": "Groupes de mouvements",
-      "empty": "Pas encore de groupes de mouvements",
-      "createFirst": "Crée ton premier groupe de mouvements",
+      "title": "Groupes de dépenses",
+      "empty": "Pas encore de groupe de dépenses",
+      "createFirst": "Créez votre premier groupe de dépenses",
       "youOwe": "Tu dois",
       "youAreOwed": "On te doit",
       "settled": "Tout soldé",
@@ -12,8 +12,8 @@
       "memberCount": "{count, plural, one {# membre} other {# membres}}"
     },
     "create": {
-      "title": "Nouveau groupe",
-      "editTitle": "Modifier le groupe",
+      "title": "Nouveau groupe de dépenses",
+      "editTitle": "Modifier le groupe de dépenses",
       "name": "Nom du groupe",
       "emoji": "Icône",
       "currency": "Devise",
@@ -21,8 +21,8 @@
       "create": "Créer le groupe",
       "save": "Enregistrer les modifications",
       "cancel": "Annuler",
-      "success": "Groupe de mouvements créé",
-      "updated": "Groupe de mouvements mis à jour"
+      "success": "Groupe de dépenses créé",
+      "updated": "Groupe de dépenses mis à jour"
     },
     "detail": {
       "tabs": {
@@ -34,7 +34,7 @@
         "tags": "Étiquettes",
         "settings": "Paramètres"
       },
-      "noGroup": "Groupe de mouvements introuvable",
+      "noGroup": "Groupe de dépenses introuvable",
       "memberCount": "{count, plural, one {# membre} other {# membres}}"
     }
   },
@@ -271,5 +271,13 @@
       "note": "Note (optionnelle)",
       "save": "Enregistrer"
     }
+  },
+  "dashboard": {
+    "title": "Split Expenses",
+    "groups": "Groupes",
+    "expenses": "Dépenses",
+    "members": "Membres",
+    "transfers": "Transferts",
+    "manage": "Gérer les groupes"
   }
 }

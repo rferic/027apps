@@ -1,10 +1,10 @@
 {
-  "description": "Divideix moviments en grup amb optimització de deutes.",
+  "description": "Divideix despeses en grup amb optimització de deutes.",
   "group": {
     "list": {
-      "title": "Grups de moviment",
-      "empty": "Encara no hi ha grups de moviments",
-      "createFirst": "Crea el teu primer grup de moviments",
+      "title": "Grups de despeses",
+      "empty": "Encara no hi ha grups de despeses",
+      "createFirst": "Crea el teu primer grup de despeses",
       "youOwe": "Deus",
       "youAreOwed": "Et deuen",
       "settled": "Tot liquidat",
@@ -12,8 +12,8 @@
       "memberCount": "{count, plural, one {# membre} other {# membres}}"
     },
     "create": {
-      "title": "Nou grup",
-      "editTitle": "Edita grup",
+      "title": "Nou grup de despeses",
+      "editTitle": "Edita grup de despeses",
       "name": "Nom del grup",
       "emoji": "Icona",
       "currency": "Moneda",
@@ -21,8 +21,8 @@
       "create": "Crea el grup",
       "save": "Desa els canvis",
       "cancel": "Cancel·la",
-      "success": "Grup de moviments creat",
-      "updated": "Grup de moviments actualitzat"
+      "success": "Grup de despeses creat",
+      "updated": "Grup de despeses actualitzat"
     },
     "detail": {
       "tabs": {
@@ -34,7 +34,7 @@
         "tags": "Etiquetes",
         "settings": "Configuració"
       },
-      "noGroup": "No s'ha trobat el grup de moviments",
+      "noGroup": "Grup de despeses no trobat",
       "memberCount": "{count, plural, one {# membre} other {# membres}}"
     }
   },
@@ -271,5 +271,13 @@
       "note": "Nota (opcional)",
       "save": "Desa"
     }
+  },
+  "dashboard": {
+    "title": "Split Expenses",
+    "groups": "Grups",
+    "expenses": "Despeses",
+    "members": "Membres",
+    "transfers": "Transferències",
+    "manage": "Gestionar grups"
   }
 }

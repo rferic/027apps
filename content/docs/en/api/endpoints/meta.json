@@ -1,4 +1,4 @@
 {
   "title": "Endpoints",
-  "pages": ["index", "me", "apps", "locales", "admin-todo", "admin-inspiration"]
+  "pages": ["index", "me", "apps", "locales", "admin-todo", "admin-inspiration", "admin-split-expenses"]
 }

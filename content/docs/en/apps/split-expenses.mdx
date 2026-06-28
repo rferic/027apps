@@ -1,0 +1,60 @@
+---
+title: Split Expenses
+description: Group expense tracker — split bills, track balances, and settle debts.
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card'
+
+<div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+  <img src="/api/apps/split-expenses/logo" alt="Split Expenses" width={48} height={48} style={{ borderRadius: 12 }} />
+  <div>
+    <h1 style={{ margin: 0 }}>Split Expenses</h1>
+    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 15 }}>Group expense tracker — split bills, track balances, and settle debts.</p>
+  </div>
+</div>
+
+<div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 20, backgroundColor: '#ECFDF5', color: '#059669', fontSize: 13, fontWeight: 500, marginBottom: 20 }}>
+  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#059669' }} />
+  Primary: #059669
+  <span style={{ width: 1, height: 14, backgroundColor: '#A7F3D0', margin: '0 4px' }} />
+  Slug: <code>split-expenses</code>
+</div>
+
+Split Expenses tracks shared spending within a group. Create expense groups (home, trip, dinner club), add members, and record who paid what. Supports equal and custom splits, real-time balances, and optimal debt settlement.
+
+## Features
+
+- **Expense Groups**: Create groups with members, currency, and emoji
+- **Equal & Custom Splits**: Split bills equally or set custom amounts per person
+- **Transfers**: Record direct payments between members
+- **Real-time Balances**: See who owes whom at a glance
+- **Settlements**: Algorithm suggests minimum transfers to clear all debts
+- **Tags**: Categorize expenses for better stats
+- **Stats**: Spending breakdown by person, category, and time period
+- **Mobile App**: Full native mobile experience with push notifications
+- **Notifications**: Push + email notifications for new expenses and settlements
+
+## API Endpoints
+
+<Cards>
+  <Card
+    title="User Guide"
+    href="/doc/apps/split-expenses/user-guide"
+    description="How to use Split Expenses — create groups, add expenses, settle debts."
+  />
+  <Card
+    title="Public API"
+    href="/doc/api/endpoints"
+    description="Create and manage expenses within a group."
+  />
+  <Card
+    title="Admin API"
+    href="/doc/api/endpoints/admin-split-expenses"
+    description="View all expense groups and global statistics."
+  />
+  <Card
+    title="Interactive Reference"
+    href="/api-docs"
+    description="Test endpoints live in the browser."
+  />
+</Cards>

@@ -1,10 +1,10 @@
 {
-  "description": "Dividi le movimenti di gruppo con ottimizzazione dei debiti.",
+  "description": "Dividi le spese di gruppo con ottimizzazione dei debiti.",
   "group": {
     "list": {
-      "title": "Gruppi di movimento",
-      "empty": "Nessun gruppo di movimento ancora",
-      "createFirst": "Crea il tuo primo gruppo di movimento",
+      "title": "Gruppi spese",
+      "empty": "Ancora nessun gruppo spese",
+      "createFirst": "Crea il tuo primo gruppo spese",
       "youOwe": "Devi",
       "youAreOwed": "Ti devono",
       "settled": "Tutto saldato",
@@ -12,8 +12,8 @@
       "memberCount": "{count, plural, one {# membro} other {# membri}}"
     },
     "create": {
-      "title": "Nuovo gruppo",
-      "editTitle": "Modifica gruppo",
+      "title": "Nuovo gruppo spese",
+      "editTitle": "Modifica gruppo spese",
       "name": "Nome del gruppo",
       "emoji": "Icona",
       "currency": "Valuta",
@@ -21,8 +21,8 @@
       "create": "Crea gruppo",
       "save": "Salva modifiche",
       "cancel": "Annulla",
-      "success": "Gruppo di movimento creato",
-      "updated": "Gruppo di movimento aggiornato"
+      "success": "Gruppo spese creato",
+      "updated": "Gruppo spese aggiornato"
     },
     "detail": {
       "tabs": {
@@ -34,7 +34,7 @@
         "tags": "Etichette",
         "settings": "Impostazioni"
       },
-      "noGroup": "Gruppo di movimento non trovato",
+      "noGroup": "Gruppo spese non trovato",
       "memberCount": "{count, plural, one {# membro} other {# membri}}"
     }
   },
@@ -271,5 +271,13 @@
       "note": "Nota (opzionale)",
       "save": "Salva"
     }
+  },
+  "dashboard": {
+    "title": "Split Expenses",
+    "groups": "Gruppi",
+    "expenses": "Spese",
+    "members": "Membri",
+    "transfers": "Trasferimenti",
+    "manage": "Gestisci gruppi"
   }
 }

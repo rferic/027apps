@@ -1,0 +1,57 @@
+---
+title: Admin - Split Expenses
+description: Endpoints de administración de la app Split Expenses.
+---
+
+# Admin — Split Expenses
+
+## Listar todos los grupos de gastos
+
+```bash
+GET /api/v1/admin/apps/split-expenses
+```
+
+Devuelve todos los grupos de gastos de todos los grupos con el número de miembros e importes totales. Requiere rol `admin`.
+
+**Auth:** JWT (`admin` role)
+
+**Respuesta 200:**
+```json
+[
+  {
+    "id": "uuid",
+    "group_id": "uuid",
+    "title": "Home Expenses",
+    "emoji": "🏠",
+    "currency": "EUR",
+    "created_by": "uuid",
+    "created_at": "2026-01-15T10:30:00Z",
+    "member_count": 4,
+    "total_amount": 1250.50
+  }
+]
+```
+
+## Estadísticas globales
+
+```bash
+GET /api/v1/admin/apps/split-expenses/stats
+```
+
+Devuelve estadísticas agregadas de todos los grupos. Requiere rol `admin`.
+
+**Auth:** JWT (`admin` role)
+
+**Respuesta 200:**
+```json
+{
+  "total_groups": 3,
+  "total_expenses": 156,
+  "total_amount": 4520.75,
+  "total_members": 12,
+  "by_currency": {
+    "EUR": { "groups": 2, "total": 3200.00 },
+    "USD": { "groups": 1, "total": 1320.75 }
+  }
+}
+```

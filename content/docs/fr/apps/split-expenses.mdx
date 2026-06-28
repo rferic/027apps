@@ -1,0 +1,60 @@
+---
+title: Split Expenses
+description: Gestionnaire de dépenses de groupe — divisez les factures, suivez les soldes et réglez les dettes.
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card'
+
+<div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+  <img src="/api/apps/split-expenses/logo" alt="Split Expenses" width={48} height={48} style={{ borderRadius: 12 }} />
+  <div>
+    <h1 style={{ margin: 0 }}>Split Expenses</h1>
+    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 15 }}>Gestionnaire de dépenses de groupe — divisez les factures, suivez les soldes et réglez les dettes.</p>
+  </div>
+</div>
+
+<div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 20, backgroundColor: '#ECFDF5', color: '#059669', fontSize: 13, fontWeight: 500, marginBottom: 20 }}>
+  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#059669' }} />
+  Primary: #059669
+  <span style={{ width: 1, height: 14, backgroundColor: '#A7F3D0', margin: '0 4px' }} />
+  Slug: <code>split-expenses</code>
+</div>
+
+Split Expenses suit les dépenses partagées au sein d'un groupe. Créez des groupes de dépenses (maison, voyage, club de dîners), ajoutez des membres et enregistrez qui a payé quoi. Prend en charge les divisions égales et personnalisées, les soldes en temps réel et le règlement optimal des dettes.
+
+## Fonctionnalités
+
+- **Groupes de dépenses** : Créez des groupes avec membres, devise et emoji
+- **Division égale et personnalisée** : Divisez les factures équitablement ou définissez des montants personnalisés par personne
+- **Transferts** : Enregistrez les paiements directs entre membres
+- **Soldes en temps réel** : Voyez qui doit à qui en un coup d'œil
+- **Règlements** : L'algorithme suggère les transferts minimaux pour apurer toutes les dettes
+- **Étiquettes** : Catégorisez les dépenses pour de meilleures statistiques
+- **Statistiques** : Répartition des dépenses par personne, catégorie et période
+- **App mobile** : Expérience mobile native complète avec notifications push
+- **Notifications** : Notifications push et par email pour les nouvelles dépenses et règlements
+
+## Endpoints API
+
+<Cards>
+  <Card
+    title="Guide utilisateur"
+    href="/doc/apps/split-expenses/user-guide"
+    description="Comment utiliser Split Expenses — créez des groupes, ajoutez des dépenses, réglez les dettes."
+  />
+  <Card
+    title="API publique"
+    href="/doc/api/endpoints"
+    description="Créez et gérez les dépenses au sein d'un groupe."
+  />
+  <Card
+    title="API admin"
+    href="/doc/api/endpoints/admin-split-expenses"
+    description="Voir tous les groupes de dépenses et les statistiques globales."
+  />
+  <Card
+    title="Référence interactive"
+    href="/api-docs"
+    description="Testez les endpoints en direct depuis le navigateur."
+  />
+</Cards>

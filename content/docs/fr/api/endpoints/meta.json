@@ -6,6 +6,6 @@
     "apps",
     "locales",
     "admin-todo",
-    "admin-inspiration"
+    "admin-inspiration", "admin-split-expenses"
   ]
 }

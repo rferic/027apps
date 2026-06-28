@@ -1,5 +1,5 @@
 {
-  "description": "Split movements in groups with debt optimization.",
+  "description": "Split group expenses with debt optimization.",
   "common": {
     "back": "Back",
     "cancel": "Cancel",
@@ -11,9 +11,9 @@
   },
   "group": {
     "list": {
-      "title": "Movement Groups",
-      "empty": "No movement groups yet",
-      "createFirst": "Create your first movement group",
+      "title": "Expense Groups",
+      "empty": "No expense groups yet",
+      "createFirst": "Create your first expense group",
       "memberCount": "{count} members",
       "youOwe": "You owe",
       "youAreOwed": "You are owed",
@@ -21,8 +21,8 @@
       "totalBalance": "Total balance"
     },
     "create": {
-      "title": "New group",
-      "editTitle": "Edit group",
+      "title": "New expense group",
+      "editTitle": "Edit expense group",
       "name": "Group name",
       "emoji": "Icon",
       "currency": "Currency",
@@ -30,8 +30,8 @@
       "create": "Create group",
       "save": "Save changes",
       "cancel": "Cancel",
-      "success": "Movement group created",
-      "updated": "Movement group updated"
+      "success": "Expense group created",
+      "updated": "Expense group updated"
     },
     "detail": {
       "tabs": {
@@ -43,7 +43,7 @@
         "tags": "Tags",
         "settings": "Settings"
       },
-      "noGroup": "Movement group not found",
+      "noGroup": "Expense group not found",
       "memberCount": "{count, plural, one {# member} other {# members}}"
     }
   },
@@ -264,5 +264,13 @@
     "movementsCreated": "Movements created",
     "movementsSkipped": "Duplicates skipped",
     "errors": "Errors"
+  },
+  "dashboard": {
+    "title": "Split Expenses",
+    "groups": "Groups",
+    "expenses": "Expenses",
+    "members": "Members",
+    "transfers": "Transfers",
+    "manage": "Manage expense groups"
   }
 }

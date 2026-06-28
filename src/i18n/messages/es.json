@@ -26,7 +26,17 @@
     "invalid_reset_link": "Enlace inválido o expirado. Solicita uno nuevo.",
     "password_min_length": "La contraseña debe tener al menos 8 caracteres",
     "password_mismatch": "Las contraseñas no coinciden",
-    "updating": "Actualizando contraseña…"
+    "updating": "Actualizando contraseña…",
+    "pair": {
+      "title": "Vincular móvil",
+      "creatingSession": "Creando sesión...",
+      "failedToCreate": "Error al crear la sesión",
+      "connectionError": "Error de conexión",
+      "retry": "Reintentar",
+      "scanQr": "Escanea este QR desde la pantalla de login de la app móvil",
+      "pairingCode": "Código de vinculación",
+      "codeRefreshes": "El código se actualiza cada minuto"
+    }
   },
   "home": {
     "noApps": "Aún no tienes apps disponibles.",
@@ -645,7 +655,8 @@
   },
   "user": {
     "editProfile": "Editar perfil",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "pairMobile": "Vincular móvil"
   },
   "apps": {
     "title": "Aplicaciones",

@@ -26,7 +26,17 @@
     "invalid_reset_link": "Enllaç no vàlid o expirat. Sol·licita'n un de nou.",
     "password_min_length": "La contrasenya ha de tenir almenys 8 caràcters",
     "password_mismatch": "Les contrasenyes no coincideixen",
-    "updating": "Actualitzant contrasenya…"
+    "updating": "Actualitzant contrasenya…",
+    "pair": {
+      "title": "Vincula mòbil",
+      "creatingSession": "Creant sessió...",
+      "failedToCreate": "Error en crear la sessió",
+      "connectionError": "Error de connexió",
+      "retry": "Reintenta",
+      "scanQr": "Escaneja aquest QR des de la pantalla d'inici de l'app mòbil",
+      "pairingCode": "Codi de vinculació",
+      "codeRefreshes": "El codi s'actualitza cada minut"
+    }
   },
   "home": {
     "noApps": "Encara no hi ha apps disponibles.",
@@ -643,7 +653,8 @@
   },
   "user": {
     "editProfile": "Editar perfil",
-    "signOut": "Tancar sessió"
+    "signOut": "Tancar sessió",
+    "pairMobile": "Vincula mòbil"
   },
   "apps": {
     "title": "Aplicacions",

@@ -1,10 +1,10 @@
 {
-  "description": "Teilen Sie Bewegungen in der Gruppe mit Schuldenoptimierung.",
+  "description": "Teile Gruppenausgaben mit Schuldenoptimierung.",
   "group": {
     "list": {
-      "title": "Bewegungsgruppen",
-      "empty": "Noch keine Bewegungsgruppen",
-      "createFirst": "Erstelle deine erste Bewegungsgruppe",
+      "title": "Ausgabengruppen",
+      "empty": "Noch keine Ausgabengruppen",
+      "createFirst": "Erstelle deine erste Ausgabengruppe",
       "youOwe": "Du schuldest",
       "youAreOwed": "Dir wird geschuldet",
       "settled": "Alles beglichen",
@@ -12,8 +12,8 @@
       "memberCount": "{count, plural, one {# Mitglied} other {# Mitglieder}}"
     },
     "create": {
-      "title": "Neue Gruppe",
-      "editTitle": "Gruppe bearbeiten",
+      "title": "Neue Ausgabengruppe",
+      "editTitle": "Ausgabengruppe bearbeiten",
       "name": "Gruppenname",
       "emoji": "Symbol",
       "currency": "Währung",
@@ -21,8 +21,8 @@
       "create": "Gruppe erstellen",
       "save": "Änderungen speichern",
       "cancel": "Abbrechen",
-      "success": "Bewegungsgruppe erstellt",
-      "updated": "Bewegungsgruppe aktualisiert"
+      "success": "Ausgabengruppe erstellt",
+      "updated": "Ausgabengruppe aktualisiert"
     },
     "detail": {
       "tabs": {
@@ -34,7 +34,7 @@
         "tags": "Etiketten",
         "settings": "Einstellungen"
       },
-      "noGroup": "Bewegungsgruppe nicht gefunden",
+      "noGroup": "Ausgabengruppe nicht gefunden",
       "memberCount": "{count, plural, one {# Mitglied} other {# Mitglieder}}"
     }
   },
@@ -271,5 +271,13 @@
       "note": "Notiz (optional)",
       "save": "Speichern"
     }
+  },
+  "dashboard": {
+    "title": "Split Expenses",
+    "groups": "Gruppen",
+    "expenses": "Ausgaben",
+    "members": "Mitglieder",
+    "transfers": "Überweisungen",
+    "manage": "Gruppen verwalten"
   }
 }
