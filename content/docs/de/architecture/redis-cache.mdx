@@ -1,0 +1,58 @@
+---
+title: Redis Cache-Schicht
+description: Redis Cache-Schicht für E-Mail-Suchen und Benachrichtigungskonfiguration mit Upstash
+---
+
+Die Redis Cache-Schicht reduziert die Datenbanklast, indem sie teure Leseoperationen — **E-Mail-Suchen** und **Benachrichtigungskonfiguration** — in einem persistenten Redis-Speicher zwischenspeichert. Ohne sie löst jede Push-Benachrichtigung und E-Mail doppelte DB-Abfragen aus.
+
+## Architektur
+
+```
+API Request
+  → getNotificationsConfig()
+    → Redis? ✅ → gibt gecachte Konfiguration zurück (0ms)
+    → Redis? ❌ → DB-Abfrage → Ergebnis cachen → zurückgeben
+  → getUserEmailMap([userA, userB, userC])
+    → Redis `email:userA` ✅ → überspringen
+    → Redis `email:userB` ❌ → zum Batch hinzufügen
+    → Redis `email:userC` ✅ → überspringen
+    → DB `listUsers` für [userB] → `email:userB` cachen → Map zurückgeben
+```
+
+## Quelldateien
+
+| Datei | Zweck |
+|---|---|
+| `src/lib/redis.ts` | Typisierter Cache-Wrapper mit graceful degradation |
+| `src/lib/use-cases/user-emails.ts` | `getUserEmailMap` mit Benutzer-Cache |
+| `src/lib/settings/notifications.ts` | `getNotificationsConfig` mit 5-Minuten-TTL |
+
+## Was gecached wird
+
+| Schlüssel | TTL | Wert | Verwendet von |
+|---|---|---|---|
+| `email:{userId}` | 1 Stunde | E-Mail des Benutzers | Alle Push- + E-Mail-Benachrichtigungen |
+| `setting:notifications_config` | 5 Minuten | `NotificationsConfig`-Objekt | `sendEmail`, `sendPushNotifications` |
+
+## Invalidierung
+
+- **`updateNotificationsConfig`** → löscht `setting:notifications_config` sofort aus Redis
+- **E-Mail-Cache** → läuft automatisch nach 1h ab. Keine manuelle Invalidierung nötig
+
+## Graceful Degradation
+
+Wenn Redis nicht konfiguriert ist, gibt der Wrapper bei jedem Lesevorgang `null` zurück. Der Code fährt mit direkten DB-Abfragen fort — **identisch mit dem Verhalten vor Redis**.
+
+## Einrichtung
+
+1. Erstelle eine kostenlose Redis-Datenbank auf [upstash.com](https://upstash.com)
+2. Füge diese Umgebungsvariablen in Vercel hinzu:
+
+```
+UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_token
+```
+
+3. Deployen. Der Cache aktiviert sich automatisch.
+
+**Kosten:** 0€ (Upstash free tier: 10K Befehle/Tag, 256MB).

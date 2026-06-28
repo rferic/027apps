@@ -11,7 +11,7 @@
 
 ## Mejoras incrementales
 
-### Nivel 1 — Mínimo viable (0€/mes extra)
+### Nivel 1 — Mínimo viable (0€/mes extra) ✅ IMPLEMENTADO
 
 Cache en Redis gratuito (Upstash/Vercel KV) para `getUserEmailMap` y `getNotificationsConfig`.
 

@@ -1,0 +1,58 @@
+---
+title: Capa Cache Redis
+description: Capa cache Redis per ricerche email e configurazione notifiche usando Upstash
+---
+
+La capa cache Redis riduce il carico del database memorizzando le operazioni di lettura costose — **ricerche email** e **configurazione notifiche** — in un archivio Redis persistente. Senza di essa, ogni notifica push ed email attiva query DB duplicate.
+
+## Architettura
+
+```
+API Request
+  → getNotificationsConfig()
+    → Redis? ✅ → restituisce config cacheata (0ms)
+    → Redis? ❌ → query DB → cache risultato → restituisce
+  → getUserEmailMap([userA, userB, userC])
+    → Redis `email:userA` ✅ → salta
+    → Redis `email:userB` ❌ → aggiungi al batch
+    → Redis `email:userC` ✅ → salta
+    → DB `listUsers` per [userB] → cache `email:userB` → restituisce mappa
+```
+
+## File sorgente
+
+| File | Scopo |
+|---|---|
+| `src/lib/redis.ts` | Wrapper cache tipizzato con degradazione graceful |
+| `src/lib/use-cases/user-emails.ts` | `getUserEmailMap` con cache per utente |
+| `src/lib/settings/notifications.ts` | `getNotificationsConfig` con TTL di 5 minuti |
+
+## Cosa viene cacheato
+
+| Chiave | TTL | Valore | Usato da |
+|---|---|---|---|
+| `email:{userId}` | 1 ora | Email dell'utente | Tutte le notifiche push + email |
+| `setting:notifications_config` | 5 minuti | Oggetto `NotificationsConfig` | `sendEmail`, `sendPushNotifications` |
+
+## Invalidazione
+
+- **`updateNotificationsConfig`** → elimina `setting:notifications_config` da Redis immediatamente
+- **Cache email** → auto-scade in 1h. Nessuna invalidazione manuale necessaria
+
+## Degradazione graceful
+
+Se Redis non è configurato, il wrapper restituisce `null` ad ogni lettura. Il codice prosegue con query DB dirette — **identico al comportamento pre-Redis**.
+
+## Configurazione
+
+1. Crea un database Redis gratuito su [upstash.com](https://upstash.com)
+2. Aggiungi queste variabili d'ambiente in Vercel:
+
+```
+UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_token
+```
+
+3. Fai il deploy. La cache si attiva automaticamente.
+
+**Costo:** 0€ (Upstash free tier: 10K comandi/giorno, 256MB).

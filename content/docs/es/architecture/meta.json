@@ -1,4 +1,4 @@
 {
-  "title": "Architecture",
+  "title": "Arquitectura",
   "pages": ["design-system", "caching", "redis-cache"]
 }

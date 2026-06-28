@@ -1,0 +1,77 @@
+---
+title: Redis Cache Layer
+description: Redis cache layer for email lookups and notification config using Upstash
+---
+
+The Redis cache layer reduces database load by caching expensive read operations — **email lookups** and **notification configuration** — in a persistent Redis store. Without it, every push notification and email triggers duplicate DB queries.
+
+## Architecture
+
+```
+API Request
+  → getNotificationsConfig()
+    → Redis? ✅ → return cached config (0ms)
+    → Redis? ❌ → DB query → cache result → return
+  → getUserEmailMap([userA, userB, userC])
+    → Redis `email:userA` ✅ → skip
+    → Redis `email:userB` ❌ → add to batch fetch
+    → Redis `email:userC` ✅ → skip
+    → DB `listUsers` for [userB] → cache `email:userB` → return map
+```
+
+## Source Files
+
+| File | Purpose |
+|---|---|
+| `src/lib/redis.ts` | Typed cache wrapper with graceful degradation |
+| `src/lib/use-cases/user-emails.ts` | `getUserEmailMap` with per-user email caching |
+| `src/lib/settings/notifications.ts` | `getNotificationsConfig` with 5-minute TTL cache |
+
+## What's Cached
+
+| Cache Key | TTL | Value | Used By |
+|---|---|---|---|
+| `email:{userId}` | 1 hour | User email string | All push + email notifications |
+| `setting:notifications_config` | 5 minutes | `NotificationsConfig` object | `sendEmail`, `sendPushNotifications` |
+
+## Cache Invalidation
+
+- **`updateNotificationsConfig`** (admin settings) → deletes `setting:notifications_config` from Redis immediately
+- **Email cache** → self-expiring (1h TTL). No manual invalidation needed — emails rarely change
+
+## Graceful Degradation
+
+If Redis is not configured (no `UPSTASH_REDIS_REST_URL` env var), the cache wrapper returns `null` on every read. The code paths fall through to direct DB queries — **identical to the pre-Redis behavior**. No feature flags, no conditional logic in callers.
+
+```typescript
+// src/lib/redis.ts — excerpt
+export const cache = {
+  async get<T>(key: string): Promise<T | null> {
+    const redis = getRedis()
+    if (!redis) return null  // ← no Redis? skip cache entirely
+    // ...
+  },
+}
+```
+
+## Setup
+
+1. Create a free Upstash Redis database at [upstash.com](https://upstash.com)
+2. Add these environment variables in Vercel:
+
+```
+UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_token
+```
+
+3. Deploy. The cache activates automatically.
+
+**Cost:** 0€ (Upstash free tier: 10K commands/day, 256MB). More than enough for a family app.
+
+## Migration from In-Memory Cache
+
+The previous `pushEnabledCache` (30s TTL, memory-only) in `src/lib/push/send.ts` still exists as a fast-path for `shouldSendPush`. It works alongside Redis without conflict — the memory cache is hit first (sub-ms), Redis serves as the shared persistent layer for DB-expensive lookups.
+
+## Testing
+
+No changes to existing tests. The Redis cache is transparent to callers — `getUserEmailMap` and `getNotificationsConfig` have the same signatures and return types as before. Vitest tests run without Redis configured, so they fall through to the DB mock path as if Redis were absent.

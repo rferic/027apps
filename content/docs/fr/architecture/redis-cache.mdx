@@ -1,0 +1,58 @@
+---
+title: Couche Cache Redis
+description: Couche cache Redis pour les recherches d'email et la configuration des notifications avec Upstash
+---
+
+La couche cache Redis réduit la charge de la base de données en mettant en cache les opérations de lecture coûteuses — **recherches d'email** et **configuration des notifications** — dans un stockage Redis persistant. Sans elle, chaque notification push et email déclenche des requêtes DB dupliquées.
+
+## Architecture
+
+```
+API Request
+  → getNotificationsConfig()
+    → Redis? ✅ → retourne la config en cache (0ms)
+    → Redis? ❌ → requête DB → met en cache → retourne
+  → getUserEmailMap([userA, userB, userC])
+    → Redis `email:userA` ✅ → sauter
+    → Redis `email:userB` ❌ → ajouter au lot
+    → Redis `email:userC` ✅ → sauter
+    → DB `listUsers` pour [userB] → cache `email:userB` → retourne la map
+```
+
+## Fichiers source
+
+| Fichier | But |
+|---|---|
+| `src/lib/redis.ts` | Wrapper de cache typé avec dégradation graceful |
+| `src/lib/use-cases/user-emails.ts` | `getUserEmailMap` avec cache par utilisateur |
+| `src/lib/settings/notifications.ts` | `getNotificationsConfig` avec TTL de 5 minutes |
+
+## Ce qui est mis en cache
+
+| Clé | TTL | Valeur | Utilisé par |
+|---|---|---|---|
+| `email:{userId}` | 1 heure | Email de l'utilisateur | Toutes les notifications push + email |
+| `setting:notifications_config` | 5 minutes | Objet `NotificationsConfig` | `sendEmail`, `sendPushNotifications` |
+
+## Invalidation
+
+- **`updateNotificationsConfig`** → supprime `setting:notifications_config` de Redis immédiatement
+- **Cache des emails** → expire automatiquement en 1h. Aucune invalidation manuelle nécessaire
+
+## Dégradation graceful
+
+Si Redis n'est pas configuré, le wrapper retourne `null` à chaque lecture. Le code continue avec des requêtes DB directes — **identique au comportement pré-Redis**.
+
+## Configuration
+
+1. Créez une base de données Redis gratuite sur [upstash.com](https://upstash.com)
+2. Ajoutez ces variables d'environnement dans Vercel :
+
+```
+UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_token
+```
+
+3. Déployez. Le cache s'active automatiquement.
+
+**Coût :** 0€ (Upstash free tier : 10K commandes/jour, 256MB).

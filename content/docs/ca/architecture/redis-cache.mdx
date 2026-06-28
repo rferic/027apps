@@ -1,0 +1,58 @@
+---
+title: Capa de Cache Redis
+description: Capa de cache Redis per a cerques de correu i configuració de notificacions amb Upstash
+---
+
+La capa de cache Redis redueix la càrrega de base de dades cachejant operacions de lectura costoses — **cerques de correu** i **configuració de notificacions** — en un emmagatzematge Redis persistent. Sense ella, cada notificació push i correu dispara consultes DB duplicades.
+
+## Arquitectura
+
+```
+API Request
+  → getNotificationsConfig()
+    → Redis? ✅ → retorna config cachejada (0ms)
+    → Redis? ❌ → consulta DB → cacheja resultat → retorna
+  → getUserEmailMap([userA, userB, userC])
+    → Redis `email:userA` ✅ → saltar
+    → Redis `email:userB` ❌ → afegir al batch
+    → Redis `email:userC` ✅ → saltar
+    → DB `listUsers` per [userB] → cacheja `email:userB` → retorna mapa
+```
+
+## Fitxers font
+
+| Fitxer | Propòsit |
+|---|---|
+| `src/lib/redis.ts` | Wrapper de cache tipat amb degradació graceful |
+| `src/lib/use-cases/user-emails.ts` | `getUserEmailMap` amb cache per usuari |
+| `src/lib/settings/notifications.ts` | `getNotificationsConfig` amb TTL de 5 minuts |
+
+## Què es cacheja
+
+| Clau | TTL | Valor | Usat per |
+|---|---|---|---|
+| `email:{userId}` | 1 hora | Correu de l'usuari | Totes les notificacions push + correu |
+| `setting:notifications_config` | 5 minuts | Objecte `NotificationsConfig` | `sendEmail`, `sendPushNotifications` |
+
+## Invalidació
+
+- **`updateNotificationsConfig`** → elimina `setting:notifications_config` de Redis immediatament
+- **Cache de correus** → auto-expira en 1h. Sense invalidació manual necessària
+
+## Degradació graceful
+
+Si Redis no està configurat, el wrapper retorna `null` a cada lectura. El codi continua amb consultes DB directes — **idèntic al comportament pre-Redis**.
+
+## Configuració
+
+1. Crea una base de dades Redis gratuïta a [upstash.com](https://upstash.com)
+2. Afegeix aquestes variables d'entorn a Vercel:
+
+```
+UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_token
+```
+
+3. Desplega. La cache s'activa automàticament.
+
+**Cost:** 0€ (Upstash free tier: 10K comandes/dia, 256MB).
