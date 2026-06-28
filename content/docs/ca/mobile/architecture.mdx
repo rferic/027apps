@@ -1,0 +1,481 @@
+---
+title: Arquitectura Mòbil
+description: Arquitectura de l'app mòbil — estructura de fitxers, autenticació, client API, mòduls, temes i i18n.
+---
+
+# Arquitectura Mòbil
+
+Aquesta pàgina cobreix l'arquitectura interna de l'aplicació mòbil de 027Apps: com funciona el flux d'autenticació, com es construeix el client API, com es registren i componen els mòduls, com s'integren la tematització i la internacionalització, i com s'integren els deep links i les notificacions push.
+
+---
+
+## Flux d'Autenticació
+
+El sistema d'autenticació utilitza Supabase Auth amb un adaptador SecureStore personalitzat per a la persistència de sessió en dispositius mòbils.
+
+### Inicialització
+
+Quan l'app es munta, `RootLayout` (`app/_layout.tsx`) envolta tot l'arbre en `AuthProvider`. El provider:
+
+1. Crida `supabase.auth.getSession()` per restaurar qualsevol sessió existent des de SecureStore.
+2. Se subscriu a `onAuthStateChange` per reaccionar a esdeveniments d'inici de sessió, tancament de sessió i refresc de token.
+
+```tsx
+// src/lib/auth.tsx — AuthProvider
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setIsLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setIsLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // ... signIn, signUp, signOut, resetPassword, signInWithBiometrics
+}
+```
+
+### Integració amb SecureStore
+
+L'emmagatzematge per defecte de Supabase Auth (AsyncStorage) es reemplaça amb un adaptador SecureStore (`src/lib/supabase.ts`). Això garanteix que els tokens JWT s'emmagatzemin al clauer xifrat de la plataforma (iOS Keychain / Android Keystore):
+
+```tsx
+// src/lib/supabase.ts — Adaptador SecureStore
+const secureStoreAdapter = {
+  getItem: async (key: string) => SecureStore.getItemAsync(key),
+  setItem: async (key: string, value: string) => SecureStore.setItemAsync(key, value),
+  removeItem: async (key: string) => SecureStore.deleteItemAsync(key),
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: secureStoreAdapter,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+})
+```
+
+### Sincronització de Tokens
+
+Quan l'estat d'autenticació canvia, els tokens també es repliquen a un `token-store` separat que llegeix el client API:
+
+```tsx
+// src/lib/supabase.ts — listener onAuthStateChange
+supabase.auth.onAuthStateChange(async (_event, session) => {
+  if (session) {
+    await setTokens(session.access_token, session.refresh_token || '')
+  } else {
+    await clearTokens()
+  }
+  invalidateApiClient()
+})
+```
+
+### Persistència de Sessió
+
+La sessió es persisteix a SecureStore i s'auto-refresca indefinidament. No hi ha caducitat forçada — l'usuari roman connectat fins al tancament de sessió explícit.
+
+Supabase Auth està configurat amb:
+- `autoRefreshToken: true` — refresca el JWT abans que expiri.
+- `persistSession: true` — restaura la sessió des de SecureStore en iniciar l'app.
+
+Quan el servidor necessita forçar un tancament de sessió (ex. un admin revoca tokens push), crida l'API d'Admin de Supabase per eliminar totes les sessions d'autenticació d'aquell usuari. A la següent petició API, l'app mòbil detecta la sessió invàlida i redirigeix a la pantalla de login.
+
+### Desbloqueig Biomètric
+
+L'app suporta autenticació biomètrica (Face ID / empremta dactilar) com a comoditat addicional. `signInWithBiometrics` verifica si existeix una sessió emmagatzemada; si és present, l'usuari s'autentica sense tornar a introduir credencials:
+
+```tsx
+// src/lib/biometrics.ts
+export async function authenticateWithBiometrics(): Promise<boolean> {
+  const result = await LocalAuthentication.authenticateAsync({
+    promptMessage: 'Inicia sessió a 027Apps',
+    fallbackLabel: 'Utilitza codi',
+  })
+  return result.success
+}
+```
+
+---
+
+## Client API (ts-rest)
+
+L'app mòbil utilitza `@ts-rest/core` per consumir l'API REST de 027Apps. El contracte es comparteix a través del paquet `@027apps/contracts`, garantint un maneig tipat de peticions i respostes tant a web com a mòbil.
+
+### Fàbrica del Client
+
+El client API s'inicialitza de forma diferida amb l'URL del servidor configurat i el token JWT:
+
+```tsx
+// src/lib/api.ts
+export async function createApiClient() {
+  const baseUrl = (await getServerUrl()) || getDefaultUrl()
+  const token = await getAccessToken()
+
+  return initClient(apiContract, {
+    baseUrl,
+    baseHeaders: token
+      ? { Authorization: `Bearer ${token}` }
+      : {},
+  })
+}
+```
+
+El client es cacheja en memòria i s'invalida quan:
+- L'estat d'autenticació canvia (inici/tancament de sessió, refresc de token).
+- Es modifica l'URL del servidor a Configuració.
+
+### Ús en Components
+
+Els components obtenen dades a través del client:
+
+```tsx
+import { getApiClient } from '@/lib/api'
+
+async function fetchTodos() {
+  const client = await getApiClient()
+  const response = await client.todo.list({ params: { groupSlug } })
+  if (response.status === 200) return response.body
+  throw new Error('Error en obtenir dades')
+}
+```
+
+---
+
+## Sistema de Mòduls
+
+Cada app és un espai de treball autocontingut sota `apps/` que proporciona un fitxer `native.tsx` exportant la vista React Native. El shell mòbil importa aquestes vistes i les compon a l'arbre de navegació.
+
+### Registre de Mòduls
+
+El registre (`src/lib/modules/registry.ts`) proporciona una API simple basada en Map:
+
+```tsx
+// src/lib/modules/registry.ts
+export interface MobileModule {
+  slug: string
+  name: string
+  description: string
+  icon?: string
+  primaryColor?: string
+  View: ComponentType<Record<string, never>>
+}
+
+export function registerModule(module: MobileModule): void
+export function getModule(slug: string): MobileModule | undefined
+export function getAllModules(): MobileModule[]
+```
+
+### native.tsx proporcionat per l'app
+
+Cada app exporta un component per defecte des de `apps/<app>/native.tsx`. El component accepta props tipades:
+
+```tsx
+// apps/inspiration/native.tsx — interfície simplificada
+export interface InspirationRequest {
+  id: string
+  title: string
+  type: RequestType
+  status: RequestStatus
+  vote_count: number
+  // ...
+}
+
+interface Props {
+  requests: InspirationRequest[]
+  onRefresh: () => void
+  onVote: (id: string) => void
+  onPressRequest: (id: string) => void
+  onFilterChange: (filters: Filters) => void
+  loading: boolean
+  refreshing: boolean
+  // ...
+}
+
+export default function InspirationNativeView(props: Props) {
+  // UI pura: gestiona renderitzat, modals, UI de filtratge
+}
+```
+
+### Composició de Pantalles
+
+La pantalla de l'app mòbil (`app/(app)/modules/inspiration/index.tsx`) importa la vista nativa, gestiona l'obtenció de dades i l'estat, i els passa com a props:
+
+```tsx
+// app/(app)/modules/inspiration/index.tsx
+import InspirationNativeView from '../../../../../apps/inspiration/native'
+
+export default function InspirationListScreen() {
+  const [requests, setRequests] = useState<InspirationRequest[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Obtenció de dades, handlers de vots, lògica de filtres...
+
+  return (
+    <InspirationNativeView
+      requests={requests}
+      loading={loading}
+      onRefresh={handleRefresh}
+      onVote={handleVote}
+      // ...
+    />
+  )
+}
+```
+
+Aquest patró manté la lògica d'UI de l'app dins del directori de cada app mentre que el shell mòbil s'encarrega de l'obtenció de dades, la navegació i la integració amb la plataforma.
+
+### Navegació a Mòduls
+
+El layout de l'app proporciona una barra de pestanyes amb tres pestanyes: Dashboard, Apps i Configuració. La pestanya "Apps" renderitza el stack navigator de mòduls, que defineix pantalles per a cada mòdul instal·lat:
+
+```tsx
+// app/(app)/modules/_layout.tsx
+<Stack>
+  <Stack.Screen name="todo/index" options={{ title: 'TODO' }} />
+  <Stack.Screen name="todo/[id]" options={{ title: 'Detall TODO' }} />
+  <Stack.Screen name="todo/create" options={{ title: 'Nou TODO', presentation: 'modal' }} />
+  <Stack.Screen name="inspiration/index" options={{ title: 'Inspiration' }} />
+  <Stack.Screen name="inspiration/[id]" options={{ title: 'Detall d\'Idea' }} />
+  <Stack.Screen name="inspiration/create" options={{ title: 'Nova Idea', presentation: 'modal' }} />
+</Stack>
+```
+
+---
+
+## Sistema de Temes
+
+El provider de temes (`src/lib/theme.tsx`) suporta tres modes: clar, fosc i sistema. La preferència s'emmagatzema a SecureStore i persisteix entre reinicis de l'app.
+
+```tsx
+// src/lib/theme.tsx
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const systemColorScheme = useColorScheme()
+  const [theme, setThemeState] = useState<Theme>('system')
+
+  useEffect(() => {
+    SecureStore.getItemAsync(THEME_KEY).then((stored) => {
+      if (stored === 'light' || stored === 'dark' || stored === 'system') {
+        setThemeState(stored)
+      }
+    })
+  }, [])
+
+  const resolvedTheme = theme === 'system'
+    ? (systemColorScheme === 'dark' ? 'dark' : 'light')
+    : theme
+
+  return (
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, isDark }}>
+      <View className={isDark ? 'dark flex-1' : 'flex-1'}>
+        {children}
+      </View>
+    </ThemeContext.Provider>
+  )
+}
+```
+
+La `View` arrel alterna la classe `dark` a tot l'arbre, habilitant les variants de mode fosc de NativeWind (`dark:bg-gray-950`, `dark:text-gray-100`, etc.).
+
+---
+
+## Internacionalització (i18n)
+
+L'app mòbil comparteix el mateix framework d'i18n que la plataforma web: `i18next` amb `react-i18next`, utilitzant les mateixes claus de traducció de `@027apps/i18n`.
+
+### Detecció d'Idioma
+
+En iniciar, l'app detecta l'idioma del dispositiu mitjançant `expo-localization`:
+
+```tsx
+// src/lib/i18n.ts
+function detectLanguage(): string {
+  const deviceLang = Localization.getLocales()[0]?.languageCode
+  if (deviceLang && SUPPORTED_LNGS.includes(deviceLang as SupportedLng)) {
+    return deviceLang
+  }
+  return 'en'
+}
+```
+
+### Idiomes Suportats
+
+Sis idiomes estan suportats: anglès, espanyol, italià, català, francès i alemany.
+
+### Canvi d'Idioma
+
+Els usuaris poden canviar l'idioma a la pantalla de Configuració. La preferència es persisteix a SecureStore i s'aplica immediatament:
+
+```tsx
+export async function setStoredLanguage(lang: string): Promise<void> {
+  await SecureStore.setItemAsync(STORAGE_KEY, lang)
+  await i18n.changeLanguage(lang)
+}
+```
+
+### Claus de Traducció
+
+Les claus de traducció es comparteixen entre web i mòbil. Les claus específiques de mòbil es defineixen a `src/i18n/missing-keys.ts` i es fusionen a la inicialització.
+
+---
+
+## Deep Links
+
+L'app gestiona l'esquema d'URL personalitzat `027apps://` per a fluxos de restabliment de contrasenya i navegació directa a contingut de l'app:
+
+```tsx
+// src/lib/deep-links.ts
+export function parseDeepLink(url: string): {
+  route: string
+  params: Record<string, string>
+} | null {
+  const parsed = new URL(url)
+  const path = parsed.pathname.replace(/^\//, '')
+  const params: Record<string, string> = {}
+  parsed.searchParams.forEach((value, key) => { params[key] = value })
+  return { route: path, params }
+}
+```
+
+URLs suportades:
+- `027apps://reset-password?code=xxx` — pantalla de restabliment de contrasenya
+- `027apps://(app)/modules/inspiration/:id` — detall d'idea
+
+---
+
+## Notificacions Push
+
+El sistema de notificacions push té tres capes: registre (mòbil), enviament des del servidor i preferències d'usuari.
+
+### Registre
+
+En iniciar sessió, l'app registra el dispositiu per a notificacions push mitjançant `expo-notifications`. El token push d'Expo s'envia al servidor i s'emmagatzema a la taula `push_tokens`:
+
+```tsx
+// src/lib/notifications.ts
+export async function getExpoPushToken(): Promise<string | null> {
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId
+  const token = await Notifications.getExpoPushTokenAsync({ projectId })
+  return token.data
+}
+
+export async function registerPushToken(token: string, apiBaseUrl: string): Promise<boolean> {
+  const accessToken = await getAccessToken()
+  if (!accessToken) return false
+
+  const res = await fetch(`${apiBaseUrl}/api/v1/mobile/push-token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ token, platform: Platform.OS }),
+  })
+  return res.status === 204
+}
+```
+
+### Enviament des del Servidor
+
+El servidor envia notificacions push mitjançant `expo-server-sdk` (`src/lib/push/send.ts`). La funció `sendPushNotifications(userIds, payload)`:
+
+1. Consulta `push_tokens` per als usuaris destinataris.
+2. Verifica les preferències de notificació de cada usuari (taula `notification_prefs`).
+3. Envia la notificació a través de l'API push d'Expo.
+
+Les notificacions push s'envien en mode fire-and-forget juntament amb les notificacions per correu existents:
+
+```tsx
+// Exemple: notificar sobre nou comentari
+sendPushNotifications(recipients, {
+  type: NOTIFICATION_TYPES.INSPIRATION_NEW_COMMENT,
+  title: `Nou comentari a "${request.title}"`,
+  body: `${authorName}: ${commentSnippet}`,
+  data: { requestId, groupId: request.group_id },
+})
+```
+
+### Tipus de Notificació
+
+| Mòdul | Tipus | Implementat |
+|---|---|---|
+| Inspiration | `new_idea`, `new_comment`, `status_change`, `vote` | ✅ |
+| TODO | `assigned`, `status_change` | ✅ |
+| Split Expenses | `new_expense`, `owed`, `paid`, `settled` | ✅ |
+| General | `invitation`, `invitation_accepted` | Estructura preparada |
+
+### Preferències de Notificació
+
+Els usuaris controlen les notificacions des de la pantalla de Configuració a l'app mòbil. Les preferències s'emmagatzemen a la taula `notification_prefs` i s'exposen a través de l'API:
+
+- `GET /api/v1/notifications/prefs` — Obtenir preferències actuals + llista de tots els tipus.
+- `PUT /api/v1/notifications/prefs` — Actualitzar interruptor global o interruptors per tipus.
+
+```json
+{
+  "global_enabled": true,
+  "types": {
+    "inspiration:new_comment": false,
+    "todo:assigned": true
+  },
+  "all_types": ["inspiration:new_idea", "inspiration:new_comment", ...]
+}
+```
+
+La funció `sendPushNotifications` verifica `shouldNotify(userId, type)` abans d'enviar, respectant l'interruptor global i les anul·lacions per tipus.
+
+### Maneig de Deep Links
+
+Quan un usuari toca una notificació push, l'app navega a la pantalla corresponent mitjançant `useNotifications.ts`:
+
+| Tipus de notificació | Navega a |
+|---|---|
+| `inspiration:*` | `/(app)/modules/inspiration/{requestId}` |
+| `todo:*` | `/(app)/modules/todo/{todoId}` |
+| `expenses:*` | `/(app)/modules/split-expenses/{expenseGroupId}` |
+
+---
+
+## Control de Versió
+
+L'app verifica la versió mínima requerida pel servidor en iniciar-se. La petició inclou la variant de l'app (`production` o `beta`) perquè cada variant tingui el seu propi track de versions:
+
+```tsx
+// src/lib/version-check.ts
+export async function checkAppVersion(): Promise<VersionInfo | null> {
+  const client = await getApiClient()
+  const variant = getVariant() // 'production' | 'beta' des de Constants.expoConfig
+  const response = await client.version.getVersion({
+    query: { variant },
+  })
+  if (response.status === 200) return response.body
+  return null
+}
+
+export function isUpdateRequired(current: string, min: string): boolean {
+  return compareVersions(current, min) < 0
+}
+```
+
+El servidor utilitza claus `app_settings` separades per variant:
+- `mobile_version` → producció
+- `mobile_version_beta` → beta
+
+Això permet tracks de versió diferents per a testers beta i usuaris de producció.
+
+---
+
+## Maneig d'Errors
+
+Un error boundary global (`src/components/ErrorBoundary.tsx`) captura errors de renderitzat, mostra una UI de reserva i registra l'error. Les pantalles individuals gestionen errors d'API localment mitjançant blocs try/catch que mostren missatges d'error contextuals.

@@ -1,0 +1,93 @@
+---
+title: Estratègia de Memòria Cau
+description: Com funciona la memòria cau de consultes a 027Apps
+---
+
+## Visió General
+
+027Apps utilitza `unstable_cache` de Next.js per emmagatzemar en memòria cau operacions de lectura costoses.
+La capa de memòria cau es construeix sobre tres principis:
+
+1. **Cachejar lectures, mai escriptures** — només les operacions de lectura es cachegen
+2. **Expiració basada en TTL** — cada memòria cau té un temps de vida
+3. **Invalidació basada en etiquetes** — les memòries cau s'invaliden per etiqueta quan les dades canvien
+
+## La Utilitat `cachedQuery`
+
+Totes les funcions cachejades utilitzen l'envoltori `cachedQuery` de `@/lib/cache`:
+
+```typescript
+import { cachedQuery } from '@/lib/cache'
+
+export const getAdminStats = cachedQuery(
+  async (): Promise<AdminStats> => {
+    // ... la teva lògica de consulta ...
+  },
+  ['admin-stats'],                    // clau de memòria cau
+  { revalidate: 3600, tags: ['admin-stats'] }  // TTL + etiquetes
+)
+```
+
+L'envoltori:
+- Utilitza `unstable_cache` de `next/cache` internament
+- Auto-detecta entorns de test (`VITEST`) i omet la memòria cau
+- Importa de forma diferida `next/cache` per evitar problemes de resolució de mòduls
+
+## Funcions Actualment Cachejades
+
+| Funció | TTL | Etiquetes de Cau | Utilitzada a |
+|---|---|---|---|
+| `getAdminStats` | 1 hora | `admin-stats` | Dashboard d'admin |
+| `getAdminUserList` | 5 minuts | `admin-users` | Llista d'usuaris de l'admin |
+| `readManifest(slug)` | 7 dies | `manifest` | Tots els layouts (metadades d'apps) |
+| `getUserGroups(userId)` | 1 hora | `user-groups` | Layout públic |
+
+## Invalidació de la Memòria Cau
+
+Les memòries cau s'invaliden des de Server Actions utilitzant `revalidateTag`:
+
+```typescript
+revalidateTag('admin-stats', 'default')
+revalidateTag('manifest', 'default')
+```
+
+> **Nota de Next.js 16:** `revalidateTag` requereix un segon argument (`'default'`).
+> A Next.js 15 això era opcional.
+
+### Punts d'invalidació
+
+| Acció | Etiquetes Invalidades |
+|---|---|
+| `installAppAction(slug)` | `apps-list`, `admin-stats`, `manifest` |
+| `uninstallAppAction(slug)` | `apps-list`, `admin-stats`, `manifest` |
+
+## Per què no `"use cache"`?
+
+Next.js 16 introdueix la directiva `"use cache"`, però requereix
+que PPR (Partial Prerendering) estigui habilitat, la qual cosa és incompatible amb
+Fumadocs (el nostre framework de documentació) en la seva versió actual.
+
+Fins que es resolgui la compatibilitat amb PPR, utilitzem `unstable_cache` mitjançant
+l'envoltori `cachedQuery`, que proporciona la mateixa funcionalitat amb
+control explícit.
+
+## Estratègia de Tests
+
+A vitest, `cachedQuery` detecta `process.env.VITEST` i retorna la
+funció crua sense memòria cau. Això significa:
+
+- No es necessita mock de `next/cache`
+- Els tests sempre veuen dades fresques
+- Sense resultats de test obsolets per estat cachejat
+
+Es proporciona un mock per a `next/cache` a `tests/mocks/next-cache.js` per a
+mòduls que l'importen directament (fora de `cachedQuery`).
+
+## PPR (Partial Prerendering)
+
+PPR permet que les pàgines siguin parcialment estàtiques (shell) i parcialment dinàmiques
+(contingut). Beneficiaria pàgines com el dashboard d'admin on el
+layout és estàtic però les estadístiques són dinàmiques.
+
+**Estat:** Pendent — bloquejat per compatibilitat amb Fumadocs.
+**Alternativa:** Els límits manuals de `Suspense` ja proporcionen una bona UX.

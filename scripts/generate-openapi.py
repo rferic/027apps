@@ -36,7 +36,7 @@ def resp(content_schema=None, example=None):
 
 def error_resp(desc, example=None):
     d = {"description": desc}
-    d["content"] = {"application/json": {"schema": error_schema(), "example": example or {"error": desc.lower().replace(" ", "_"), "message": desc}}}
+    d["content"] = {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}, "example": example or {"error": desc.lower().replace(" ", "_"), "message": desc}}}
     return d
 
 inspiration_request_props = {
@@ -116,7 +116,7 @@ paths = {
             "tags": ["Admin - API Keys"],
             "summary": "Create API key",
             "description": "Creates a new API key. The full key is returned only once in the response. Requires admin role.",
-            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({"name": {"type": "string", "description": "Label for the API key"}}, ["name"])}}},
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({"name": {"type": "string", "description": "Label for the API key"}}, ["name"]), "example": {"name": "CI/CD Pipeline"}}}},
             "responses": {
                 "201": {"description": "API key created (full key returned once)"},
                 "401": error_resp("Unauthorized"),
@@ -241,6 +241,7 @@ paths = {
             "tags": ["Admin - Invitations"],
             "summary": "Create invitation",
             "description": "Creates a new invitation link/code. Requires admin role.",
+            "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({"locale": {"type": "string", "description": "Invitation locale (e.g. en, es)"}}, ["locale"]), "example": {"locale": "en"}}}},
             "responses": {
                 "201": {"description": "Invitation created"},
                 "401": error_resp("Unauthorized"),
@@ -286,7 +287,7 @@ paths = {
             "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
                 "group_name": {"type": "string", "description": "Group display name"},
                 "default_locale": {"type": "string", "description": "Default locale for the group (e.g. en, es)"},
-            })}}},
+            }), "example": {"group_name": "My Family", "default_locale": "en"}}}},
             "responses": {
                 "200": {"description": "Settings updated"},
                 "401": error_resp("Unauthorized"),
@@ -366,7 +367,7 @@ paths = {
                 "display_name": {"type": "string", "description": "Display name"},
                 "locale": {"type": "string", "description": "Preferred locale (e.g. en, es)"},
                 "blocked": {"type": "boolean", "description": "Whether the user is blocked"},
-            })}}},
+            }), "example": {"role": "member", "display_name": "John", "locale": "en", "blocked": False}}}},
             "responses": {
                 "200": {"description": "User updated"},
                 "401": error_resp("Unauthorized"),
@@ -617,7 +618,7 @@ paths = {
             "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
                 "global_enabled": {"type": "boolean", "description": "Master toggle"},
                 "types": {"type": "object", "description": "Per-type enabled flags"},
-            })}}},
+            }), "example": {"global_enabled": True, "types": {"new_idea": True, "comment": True}}}}},
             "responses": {
                 "200": resp(schema_obj({"success": {"type": "boolean", "description": "Whether the update succeeded"}})),
                 "401": error_resp("Unauthorized"),
@@ -723,7 +724,7 @@ paths = {
             ],
             "requestBody": {"required": True, "content": {"application/json": {"schema": schema_obj({
                 "title": {"type": "string"}, "emoji": {"type": "string"}, "currency": {"type": "string"},
-            })}}},
+            }), "example": {"title": "Updated Trip", "emoji": "\u2708\ufe0f", "currency": "USD"}}}},
             "responses": {
                 "200": {"description": "Expense group updated"},
                 "401": error_resp("Unauthorized"),
@@ -778,7 +779,7 @@ paths = {
                 "title": {"type": "string"}, "amount": {"type": "number"},
                 "paid_by": {"type": "string"}, "participant_ids": {"type": "array", "items": {"type": "string"}},
                 "tag_id": {"type": "string"},
-            }, ["title", "amount", "paid_by", "participant_ids"])}}},
+            }, ["title", "amount", "paid_by", "participant_ids"]), "example": {"title": "Dinner", "amount": 45.50, "paid_by": "uuid-1", "participant_ids": ["uuid-1", "uuid-2"], "tag_id": "food"}}}},
             "responses": {
                 "201": {"description": "Expense created"},
                 "401": error_resp("Unauthorized"),
@@ -902,7 +903,7 @@ paths = {
                 "display_name": {"type": "string", "description": "Display name"},
                 "locale": {"type": "string", "description": "Preferred locale (e.g. en, es)"},
                 "avatar_url": {"type": "string", "description": "Avatar image URL"},
-            })}}},
+            }), "example": {"display_name": "Alice", "locale": "es"}}}},
             "responses": {
                 "200": {"description": "Profile updated"},
                 "401": error_resp("Unauthorized"),
@@ -1037,6 +1038,87 @@ spec = {
         {"url": "https://027apps.vercel.app", "description": "Production"},
     ],
     "components": {
+        "schemas": {
+            "Error": error_schema(),
+            "Pagination": {
+                "type": "object",
+                "properties": {
+                    "page": {"type": "integer", "description": "Current page number (starts at 1)"},
+                    "limit": {"type": "integer", "description": "Items per page"},
+                    "total": {"type": "integer", "description": "Total items matching the query"},
+                    "total_pages": {"type": "integer", "description": "Total number of pages"},
+                },
+                "required": ["page", "limit", "total", "total_pages"],
+            },
+            "Profile": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "display_name": {"type": "string"},
+                    "avatar_url": {"type": "string", "nullable": True},
+                    "locale": {"type": "string"},
+                },
+            },
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "email": {"type": "string", "format": "email"},
+                    "display_name": {"type": "string"},
+                    "role": {"type": "string"},
+                    "locale": {"type": "string"},
+                    "avatar_url": {"type": "string", "nullable": True},
+                    "created_at": {"type": "string", "format": "date-time"},
+                },
+            },
+            "Group": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "name": {"type": "string"},
+                    "slug": {"type": "string"},
+                    "created_at": {"type": "string", "format": "date-time"},
+                },
+            },
+            "ApiKey": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "name": {"type": "string"},
+                    "key_prefix": {"type": "string"},
+                    "created_at": {"type": "string", "format": "date-time"},
+                    "last_used_at": {"type": "string", "format": "date-time", "nullable": True},
+                    "revoked_at": {"type": "string", "format": "date-time", "nullable": True},
+                },
+            },
+            "Invitation": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "token": {"type": "string"},
+                    "locale": {"type": "string"},
+                    "created_at": {"type": "string", "format": "date-time"},
+                    "accepted_at": {"type": "string", "format": "date-time", "nullable": True},
+                    "expires_at": {"type": "string", "format": "date-time"},
+                },
+            },
+            "HealthResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {"type": "string"},
+                    "version": {"type": "string"},
+                },
+            },
+            "Config": {
+                "type": "object",
+                "properties": {
+                    "active_locales": {"type": "array", "items": {"type": "string"}},
+                    "default_locale": {"type": "string"},
+                    "site_name": {"type": "string"},
+                    "site_url": {"type": "string"},
+                },
+            },
+        },
         "securitySchemes": {
             "bearerAuth": {
                 "type": "http", "scheme": "bearer", "bearerFormat": "JWT",

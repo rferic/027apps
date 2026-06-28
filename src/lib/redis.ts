@@ -13,7 +13,19 @@ function getRedis(): Redis | null {
   return _redis
 }
 
+/**
+ * Redis cache layer backed by Upstash Redis.
+ *
+ * Gracefully degrades if Redis is not configured (no UPSTASH_REDIS_REST_URL env var).
+ * All methods return null/skip on failure — callers fall through to direct DB queries.
+ *
+ * Rate limit (free tier): 10K commands/day on Upstash.
+ */
 export const cache = {
+  /**
+   * Reads a cached value by key.
+   * @returns The cached value, or null if not found / Redis unavailable / error.
+   */
   async get<T = string>(key: string): Promise<T | null> {
     const redis = getRedis()
     if (!redis) return null
@@ -26,6 +38,7 @@ export const cache = {
     }
   },
 
+  /** Writes a value to cache with TTL. Fails silently if Redis unavailable. */
   async set<T = string>(key: string, value: T, ttlSeconds: number): Promise<void> {
     const redis = getRedis()
     if (!redis) return
@@ -36,6 +49,7 @@ export const cache = {
     }
   },
 
+  /** Deletes a cache entry. Fails silently if Redis unavailable. */
   async del(key: string): Promise<void> {
     const redis = getRedis()
     if (!redis) return
@@ -46,6 +60,7 @@ export const cache = {
     }
   },
 
+  /** Returns true if Redis is configured and reachable. */
   available(): boolean {
     return getRedis() !== null
   },

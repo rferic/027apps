@@ -1,0 +1,100 @@
+---
+title: Berechtigungen & Benachrichtigungen
+description: Mobile-App-Berechtigungen, Benachrichtigungstypen, Benutzereinstellungen und Admin-Token-Verwaltung.
+---
+
+# Berechtigungen & Benachrichtigungen
+
+## Laufzeitberechtigungen
+
+Die App fordert die folgenden Berechtigungen zur Laufzeit an:
+
+| Berechtigung | Wann | iOS | Android |
+|---|---|---|---|
+| **Push-Benachrichtigungen** | Bei Anmeldung oder aus Einstellungen | Systemdialog | Systemdialog |
+| **Biometrie (Face ID / Fingerabdruck)** | Bei Anmeldung (optionaler Tastendruck) | Systemdialog | Systemdialog |
+| **SecureStore (Keychain)** | Bei Anmeldung (automatisch) | Keychain (keine Eingabeaufforderung) | EncryptedSharedPreferences |
+
+Alle Berechtigungen verwenden den systemeigenen Dialog des Betriebssystems. Wenn der Benutzer Push-Berechtigungen ablehnt, wird die App ordnungsgemäß herabgestuft — Benachrichtigungen werden einfach nicht zugestellt.
+
+---
+
+## Benachrichtigungstypen
+
+Der Server kann Push-Benachrichtigungen für diese Ereignisse senden:
+
+### Inspiration
+
+| Ereignis | Push-Titel | Gesendet an |
+|---|---|---|
+| Neue Idee eingereicht | "Neue Idee eingereicht" | Gruppen-Admins |
+| Neuer Kommentar zu Ihrer Idee | "Neuer Kommentar zu `{title}`" | Autor + Abstimmende |
+| Statusänderung | "Status aktualisiert: `{title}`" | Autor + Abstimmende |
+| Abstimmung erhalten | "Ihre Idee hat eine Stimme erhalten" | Ideenautor |
+
+### TODO
+
+| Ereignis | Push-Titel | Gesendet an |
+|---|---|---|
+| Aufgabe zugewiesen | "Aufgabe zugewiesen" | Zugewiesener Benutzer |
+| Statusänderung | "Aufgabenstatus aktualisiert" | Zugewiesener Benutzer |
+
+### Split Expenses
+
+| Ereignis | Push-Titel | Gesendet an |
+|---|---|---|
+| Neue Ausgabe hinzugefügt | "Neue Ausgabe in `{group}`" | Alle Gruppenmitglieder |
+| Ihnen wird Geld geschuldet | "Ihnen wird Geld geschuldet in `{group}`" | Der Zahler |
+| Zahlung erhalten | "Zahlung erhalten in `{group}`" | Der Empfänger |
+| Gruppe ausgeglichen | "`{group}` ist ausgeglichen!" | Alle Mitglieder |
+
+---
+
+## Benutzereinstellungen
+
+Der Einstellungsbildschirm in der mobilen App bietet einen **globalen Schalter**, um alle Benachrichtigungen zu deaktivieren, und **typspezifische Schalter** für granulare Steuerung.
+
+Der `global_enabled`-Schalter fungiert als Master — wenn er deaktiviert ist, werden unabhängig von den typspezifischen Einstellungen keine Push-Benachrichtigungen gesendet.
+
+---
+
+## Admin — Push-Token-Verwaltung
+
+Admins können Push-Token über das Admin-Panel anzeigen und widerrufen:
+
+1. **Benutzerliste** (`/admin/users`, `/admin/admins`): Jede Zeile zeigt ein `Push`-Badge (✅ Aktiv / —) und eine **Push**-Schaltfläche in der Aktionsspalte.
+2. **Push-Token-Modal**: Ein Klick auf **Push** öffnet ein Modal, das alle registrierten Token für diesen Benutzer auflistet (Plattform, gekürztes Token, letztes Aktualisierungsdatum).
+3. **Widerrufen**: Jedes Token hat eine **Widerrufen**-Schaltfläche. Es gibt auch eine **Alle widerrufen**-Schaltfläche.
+4. **Erneute Anmeldung erzwingen**: Wenn ein Token widerrufen wird, werden auch die Supabase-Auth-Sitzungen des Benutzers gelöscht — der Benutzer wird auf allen Geräten abgemeldet und muss sich beim nächsten App-Start erneut anmelden.
+
+### API
+
+| Endpunkt | Methode | Beschreibung |
+|---|---|---|
+| `/api/v1/admin/users/{id}/push-tokens` | GET | Push-Token auflisten |
+| `/api/v1/admin/users/{id}/push-tokens` | DELETE | Alle Token des Benutzers widerrufen |
+| `/api/v1/admin/users/{id}/push-tokens/{tokenId}` | DELETE | Bestimmtes Token widerrufen |
+
+### Benutzerdetailseite
+
+Die Benutzerdetailseite enthält einen Abschnitt **Push-Token**, der die gleichen Informationen wie das Modal anzeigt, zur kontextbezogenen Überprüfung.
+
+### Automatische Bereinigung
+
+Push-Token werden automatisch durch Datenbankmigration bereinigt:
+- Token für gelöschte Benutzer werden entfernt.
+- Token, die seit 90 Tagen nicht aktualisiert wurden, werden entfernt.
+
+---
+
+## Sitzung vs Push-Token
+
+Es ist wichtig, zwischen folgenden Konzepten zu unterscheiden:
+
+| Konzept | Zweck | Widerrufen wenn |
+|---|---|---|
+| **Auth-Sitzung** | Hält den Benutzer angemeldet (JWT) | Admin widerruft Push-Token |
+| **Push-Token** | Empfängt Benachrichtigungen | Widerruf eines beliebigen Push-Tokens |
+| **Sitzungsblockierung** | Verhindert Anmeldung | Admin blockiert Benutzer |
+
+Das Widerrufen von Push-Token löst immer die Invalidierung der Auth-Sitzung aus — der Benutzer wird auf allen Geräten abgemeldet und muss sich erneut authentifizieren.

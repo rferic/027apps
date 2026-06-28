@@ -1,0 +1,141 @@
+---
+title: App Mobile
+description: Applicazione mobile 027Apps — Expo SDK 56, React Native e NativeWind.
+---
+
+# 027Apps Mobile
+
+L'applicazione mobile 027Apps porta la piattaforma sui dispositivi iOS e Android. Fornisce autenticazione nativa, accesso alla dashboard, schermate native per app, notifiche push, accesso biometrico e connessioni server personalizzabili — il tutto condividendo lo stesso contratto API ts-rest e le stesse traduzioni i18n della piattaforma web.
+
+---
+
+## Architettura a Colpo d'Occhio
+
+| Livello | Tecnologia |
+|---|---|
+| Runtime | Expo SDK 56 + React Native 0.85 |
+| Routing | expo-router (basato su file) |
+| Stili | NativeWind v4 (Tailwind CSS per React Native) |
+| Client API | ts-rest (`@027apps/contracts`) con auth JWT Bearer |
+| Auth | Supabase Auth + persistenza sessione SecureStore |
+| i18n | i18next + react-i18next (6 lingue) |
+| Stato | React Context (auth, theme) |
+| Test | Vitest + React Native Testing Library |
+
+---
+
+## Caratteristiche Principali
+
+**Autenticazione** — Accesso email/password tramite Supabase Auth, persistenza della sessione in SecureStore, sblocco biometrico di riserva e gestione dei deep link per i flussi di reset password.
+
+**URL del Server** — L'app mobile si connette a qualsiasi server 027Apps. Gli utenti configurano l'URL base dell'API nelle Impostazioni, archiviato in SecureStore. Il valore predefinito è `https://027apps.com`, ma le istanze self-hosted sono completamente supportate.
+
+**Sistema di Moduli** — Ogni app (To-Do, Inspiration, ecc.) fornisce un file `native.tsx` che definisce la schermata React Native. L'app mobile importa queste viste attraverso il suo registro moduli, mantenendo la logica dell'app all'interno della directory di ciascuna app mentre il shell mobile gestisce navigazione e composizione.
+
+**Notifiche Push** — Le notifiche push sono inviate tramite `expo-server-sdk` dal backend. Gli utenti controllano le preferenze globali e per tipo dalle Impostazioni. Vedi [Permessi e Notifiche](/doc/mobile/permissions) per l'elenco completo dei tipi di notifica.
+
+**Supporto Temi** — Selezione modalità chiaro/scuro/sistema persistita in SecureStore, rendering tramite attivazione/disattivazione della classe modalità scura di NativeWind.
+
+**Banner Offline** — Monitoraggio dello stato della rete tramite `expo-network` che mostra un banner non bloccante quando si perde la connettività.
+
+---
+
+## Struttura del Progetto
+
+```
+mobile/
+├── app/                        # Route basate su file di expo-router
+│   ├── _layout.tsx             # Layout radice (provider, deep link)
+│   ├── index.tsx               # Schermata controllo auth / reindirizzamento
+│   ├── welcome.tsx             # Schermata di benvenuto/onboarding
+│   ├── login.tsx               # Login email/password
+│   ├── register.tsx            # Schermata di registrazione
+│   ├── reset-password.tsx      # Reset password (destinazione deep link)
+│   └── (app)/                  # Gruppo schede autenticate
+│       ├── _layout.tsx         # Barra schede (Dashboard, App, Impostazioni)
+│       ├── dashboard.tsx       # Schede moduli + intestazione benvenuto
+│       ├── modules/            # Schermate per app
+│       │   ├── _layout.tsx     # Stack navigator per schermate app
+│       │   ├── todo/           # Lista TODO, dettaglio, crea
+│       │   └── inspiration/    # Lista idee, dettaglio, crea
+│       └── settings.tsx        # URL server, lingua, notifiche, logout
+├── src/
+│   ├── lib/
+│   │   ├── api.ts              # Factory client ts-rest
+│   │   ├── auth.tsx            # AuthProvider (React Context)
+│   │   ├── supabase.ts         # Client Supabase (adattatore SecureStore)
+│   │   ├── token-store.ts      # Persistenza token JWT access/refresh
+│   │   ├── server-url.ts       # Archiviazione URL server
+│   │   ├── group-store.ts      # Archiviazione slug gruppo attivo
+│   │   ├── theme.tsx           # ThemeProvider (chiaro/scuro/sistema)
+│   │   ├── i18n.ts             # Inizializzazione i18next (6 lingue)
+│   │   ├── notifications.ts    # Registrazione token push
+│   │   ├── biometrics.ts       # Autenticazione locale
+│   │   ├── deep-links.ts       # Parsing schema URL
+│   │   ├── version-check.ts    # Controllo versione minima
+│   │   ├── error-handler.ts    # Logica error boundary globale
+│   │   ├── prefs.ts            # Client API preferenze notifica
+│   │   └── modules/
+│   │       ├── registry.ts     # API registrazione moduli
+│   │       └── index.ts        # Auto-registrazione moduli
+│   ├── components/             # Componenti UI condivisi
+│   ├── hooks/                  # Hook personalizzati (useAuth, useTranslation, useNotifications)
+│   └── i18n/                   # Traduzioni condivise con piattaforma web
+├── tests/                      # Test unitari e di componente Vitest
+├── app.config.ts               # Configurazione dinamica Expo (per variante)
+├── eas.json                    # Profili EAS Build
+├── metro.config.js             # Configurazione bundler Metro
+├── tailwind.config.js          # Configurazione NativeWind v4
+└── vitest.config.ts            # Configurazione test runner
+```
+
+---
+
+## Avvio Rapido
+
+```bash
+# Installa dipendenze dalla radice del monorepo
+pnpm install
+
+# Avvia server di sviluppo Expo
+cd mobile && npx expo start
+
+# Esegui su emulatore Android
+cd mobile && npx expo start --android
+
+# Esegui su simulatore iOS
+cd mobile && npx expo start --ios
+
+# Esegui type check
+cd mobile && npx tsc --noEmit
+
+# Esegui test
+cd mobile && npx vitest run
+```
+
+---
+
+## Pagine Correlate
+
+<Cards>
+  <Card
+    title="Architettura"
+    href="/doc/mobile/architecture"
+    description="Approfondimento su flusso auth, client API, sistema moduli, temi e i18n."
+  />
+  <Card
+    title="Permessi e Notifiche"
+    href="/doc/mobile/permissions"
+    description="Tutti i tipi di notifica, preferenze utente, permessi e gestione token admin."
+  />
+  <Card
+    title="Guida Moduli"
+    href="/doc/mobile/module-guide"
+    description="Guida passo-passo per aggiungere un nuovo modulo app al shell mobile."
+  />
+  <Card
+    title="Distribuzione"
+    href="/doc/mobile/distribution"
+    description="EAS Build, varianti dual-app, versionamento, aggiornamenti OTA e CI/CD."
+  />
+</Cards>

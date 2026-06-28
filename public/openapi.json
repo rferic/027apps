@@ -161,17 +161,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -185,17 +175,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -232,6 +212,9 @@
                 "required": [
                   "name"
                 ]
+              },
+              "example": {
+                "name": "CI/CD Pipeline"
               }
             }
           }
@@ -245,17 +228,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -269,17 +242,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -293,17 +256,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "validation_error",
@@ -348,17 +301,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -372,17 +315,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -396,17 +329,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -669,17 +592,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -693,17 +606,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -831,17 +734,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -855,17 +748,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -879,17 +762,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -976,17 +849,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -1000,17 +863,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -1024,17 +877,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -1077,17 +920,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -1101,17 +934,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -1125,17 +948,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -1232,17 +1045,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -1256,17 +1059,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -1318,17 +1111,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -1342,17 +1125,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -1374,6 +1147,28 @@
         ],
         "summary": "Create invitation",
         "description": "Creates a new invitation link/code. Requires admin role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "locale": {
+                    "type": "string",
+                    "description": "Invitation locale (e.g. en, es)"
+                  }
+                },
+                "required": [
+                  "locale"
+                ]
+              },
+              "example": {
+                "locale": "en"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Invitation created"
@@ -1383,17 +1178,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -1407,17 +1192,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -1431,17 +1206,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "validation_error",
@@ -1486,17 +1251,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -1510,17 +1265,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -1534,17 +1279,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -1577,17 +1312,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -1601,17 +1326,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -1653,6 +1368,10 @@
                   "group_name",
                   "default_locale"
                 ]
+              },
+              "example": {
+                "group_name": "My Family",
+                "default_locale": "en"
               }
             }
           }
@@ -1666,17 +1385,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -1690,17 +1399,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -1760,17 +1459,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -1784,17 +1473,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -1839,17 +1518,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -1863,17 +1532,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -1887,17 +1546,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -1965,6 +1614,12 @@
                   "locale",
                   "blocked"
                 ]
+              },
+              "example": {
+                "role": "member",
+                "display_name": "John",
+                "locale": "en",
+                "blocked": false
               }
             }
           }
@@ -1978,17 +1633,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -2002,17 +1647,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -2026,17 +1661,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -2079,17 +1704,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -2103,17 +1718,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -2127,17 +1732,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -2225,17 +1820,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -2296,17 +1881,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -2449,17 +2024,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -2473,17 +2038,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -2543,17 +2098,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -2567,17 +2112,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "validation_error",
@@ -2710,17 +2245,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -2762,6 +2287,13 @@
                   "global_enabled",
                   "types"
                 ]
+              },
+              "example": {
+                "global_enabled": true,
+                "types": {
+                  "new_idea": true,
+                  "comment": true
+                }
               }
             }
           }
@@ -2791,17 +2323,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -2834,17 +2356,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -2877,17 +2389,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -2934,6 +2436,10 @@
                   "locale",
                   "avatar_url"
                 ]
+              },
+              "example": {
+                "display_name": "Alice",
+                "locale": "es"
               }
             }
           }
@@ -2947,17 +2453,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -3227,17 +2723,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -3369,17 +2855,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -3393,17 +2869,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "validation_failed",
@@ -3480,17 +2946,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -3597,17 +3053,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -3621,17 +3067,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -3645,17 +3081,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -3707,17 +3133,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -3731,17 +3147,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -3755,17 +3161,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -3955,17 +3351,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -4093,17 +3479,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -4117,17 +3493,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -4206,17 +3572,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -4230,17 +3586,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -4301,17 +3647,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -4385,17 +3721,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -4409,17 +3735,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "validation_error",
@@ -4469,17 +3785,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -4493,17 +3799,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -4564,6 +3860,11 @@
                   "emoji",
                   "currency"
                 ]
+              },
+              "example": {
+                "title": "Updated Trip",
+                "emoji": "✈️",
+                "currency": "USD"
               }
             }
           }
@@ -4577,17 +3878,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -4601,17 +3892,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -4625,17 +3906,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -4684,17 +3955,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -4708,17 +3969,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "forbidden",
@@ -4732,17 +3983,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -4792,17 +4033,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -4870,17 +4101,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -4952,6 +4173,16 @@
                   "paid_by",
                   "participant_ids"
                 ]
+              },
+              "example": {
+                "title": "Dinner",
+                "amount": 45.5,
+                "paid_by": "uuid-1",
+                "participant_ids": [
+                  "uuid-1",
+                  "uuid-2"
+                ],
+                "tag_id": "food"
               }
             }
           }
@@ -4965,17 +4196,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -5026,17 +4247,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -5123,17 +4334,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -5232,17 +4433,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -5348,17 +4539,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -5372,17 +4553,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -5433,17 +4604,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "unauthorized",
@@ -5457,17 +4618,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Machine-readable error code"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Human-readable error description"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Error"
                 },
                 "example": {
                   "error": "not_found",
@@ -5491,11 +4642,209 @@
       "description": "Local development"
     },
     {
-      "url": "https://027apps-eric-rf.vercel.app",
+      "url": "https://027apps.vercel.app",
       "description": "Production"
     }
   ],
   "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Machine-readable error code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error description"
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Current page number (starts at 1)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Items per page"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total items matching the query"
+          },
+          "total_pages": {
+            "type": "integer",
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "page",
+          "limit",
+          "total",
+          "total_pages"
+        ]
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "avatar_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "locale": {
+            "type": "string"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "avatar_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Group": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "key_prefix": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_used_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "revoked_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "Invitation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "Config": {
+        "type": "object",
+        "properties": {
+          "active_locales": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default_locale": {
+            "type": "string"
+          },
+          "site_name": {
+            "type": "string"
+          },
+          "site_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",

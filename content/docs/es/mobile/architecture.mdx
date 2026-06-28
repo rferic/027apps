@@ -1,0 +1,481 @@
+---
+title: Arquitectura Mobile
+description: Arquitectura de la app mobile — estructura de archivos, autenticación, cliente API, módulos, temas e i18n.
+---
+
+# Arquitectura Mobile
+
+Esta página cubre la arquitectura interna de la aplicación mobile de 027Apps: cómo funciona el flujo de autenticación, cómo se construye el cliente API, cómo se registran y componen los módulos, cómo se integran la tematización y la internacionalización, y cómo se integran los deep links y las notificaciones push.
+
+---
+
+## Flujo de Autenticación
+
+El sistema de autenticación usa Supabase Auth con un adaptador SecureStore personalizado para la persistencia de sesión en dispositivos móviles.
+
+### Inicialización
+
+Cuando la app se monta, `RootLayout` (`app/_layout.tsx`) envuelve todo el árbol en `AuthProvider`. El provider:
+
+1. Llama a `supabase.auth.getSession()` para restaurar cualquier sesión existente desde SecureStore.
+2. Se suscribe a `onAuthStateChange` para reaccionar a eventos de inicio de sesión, cierre de sesión y refresco de token.
+
+```tsx
+// src/lib/auth.tsx — AuthProvider
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setIsLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setIsLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // ... signIn, signUp, signOut, resetPassword, signInWithBiometrics
+}
+```
+
+### Integración con SecureStore
+
+El almacenamiento por defecto de Supabase Auth (AsyncStorage) se reemplaza con un adaptador SecureStore (`src/lib/supabase.ts`). Esto garantiza que los tokens JWT se almacenen en el llavero cifrado de la plataforma (iOS Keychain / Android Keystore):
+
+```tsx
+// src/lib/supabase.ts — Adaptador SecureStore
+const secureStoreAdapter = {
+  getItem: async (key: string) => SecureStore.getItemAsync(key),
+  setItem: async (key: string, value: string) => SecureStore.setItemAsync(key, value),
+  removeItem: async (key: string) => SecureStore.deleteItemAsync(key),
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: secureStoreAdapter,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+})
+```
+
+### Sincronización de Tokens
+
+Cuando cambia el estado de autenticación, los tokens también se replican en un `token-store` separado que lee el cliente API:
+
+```tsx
+// src/lib/supabase.ts — listener onAuthStateChange
+supabase.auth.onAuthStateChange(async (_event, session) => {
+  if (session) {
+    await setTokens(session.access_token, session.refresh_token || '')
+  } else {
+    await clearTokens()
+  }
+  invalidateApiClient()
+})
+```
+
+### Persistencia de Sesión
+
+La sesión se persiste en SecureStore y se auto-refresca indefinidamente. No hay caducidad forzada — el usuario permanece conectado hasta que cierra sesión explícitamente.
+
+Supabase Auth está configurado con:
+- `autoRefreshToken: true` — refresca el JWT antes de que expire.
+- `persistSession: true` — restaura la sesión desde SecureStore al iniciar la app.
+
+Cuando el servidor necesita forzar un cierre de sesión (ej. un admin revoca tokens push), llama a la API de Admin de Supabase para eliminar todas las sesiones de autenticación de ese usuario. En la siguiente petición API, la app mobile detecta la sesión inválida y redirige a la pantalla de login.
+
+### Desbloqueo Biométrico
+
+La app soporta autenticación biométrica (Face ID / huella dactilar) como comodidad adicional. `signInWithBiometrics` verifica si existe una sesión almacenada; si está presente, el usuario se autentica sin volver a introducir credenciales:
+
+```tsx
+// src/lib/biometrics.ts
+export async function authenticateWithBiometrics(): Promise<boolean> {
+  const result = await LocalAuthentication.authenticateAsync({
+    promptMessage: 'Iniciar sesión en 027Apps',
+    fallbackLabel: 'Usar código',
+  })
+  return result.success
+}
+```
+
+---
+
+## Cliente API (ts-rest)
+
+La app mobile usa `@ts-rest/core` para consumir la API REST de 027Apps. El contrato se comparte a través del paquete `@027apps/contracts`, garantizando manejo tipado de peticiones y respuestas tanto en web como en mobile.
+
+### Fábrica del Cliente
+
+El cliente API se inicializa de forma diferida con la URL del servidor configurada y el token JWT:
+
+```tsx
+// src/lib/api.ts
+export async function createApiClient() {
+  const baseUrl = (await getServerUrl()) || getDefaultUrl()
+  const token = await getAccessToken()
+
+  return initClient(apiContract, {
+    baseUrl,
+    baseHeaders: token
+      ? { Authorization: `Bearer ${token}` }
+      : {},
+  })
+}
+```
+
+El cliente se cachea en memoria y se invalida cuando:
+- Cambia el estado de autenticación (inicio/cierre de sesión, refresco de token).
+- Se modifica la URL del servidor en Ajustes.
+
+### Uso en Componentes
+
+Los componentes obtienen datos a través del cliente:
+
+```tsx
+import { getApiClient } from '@/lib/api'
+
+async function fetchTodos() {
+  const client = await getApiClient()
+  const response = await client.todo.list({ params: { groupSlug } })
+  if (response.status === 200) return response.body
+  throw new Error('Error al obtener datos')
+}
+```
+
+---
+
+## Sistema de Módulos
+
+Cada app es un espacio de trabajo autocontenido bajo `apps/` que proporciona un archivo `native.tsx` exportando la vista React Native. El shell mobile importa estas vistas y las compone en el árbol de navegación.
+
+### Registro de Módulos
+
+El registro (`src/lib/modules/registry.ts`) proporciona una API simple basada en Map:
+
+```tsx
+// src/lib/modules/registry.ts
+export interface MobileModule {
+  slug: string
+  name: string
+  description: string
+  icon?: string
+  primaryColor?: string
+  View: ComponentType<Record<string, never>>
+}
+
+export function registerModule(module: MobileModule): void
+export function getModule(slug: string): MobileModule | undefined
+export function getAllModules(): MobileModule[]
+```
+
+### native.tsx proporcionado por la app
+
+Cada app exporta un componente por defecto desde `apps/<app>/native.tsx`. El componente acepta props tipadas:
+
+```tsx
+// apps/inspiration/native.tsx — interfaz simplificada
+export interface InspirationRequest {
+  id: string
+  title: string
+  type: RequestType
+  status: RequestStatus
+  vote_count: number
+  // ...
+}
+
+interface Props {
+  requests: InspirationRequest[]
+  onRefresh: () => void
+  onVote: (id: string) => void
+  onPressRequest: (id: string) => void
+  onFilterChange: (filters: Filters) => void
+  loading: boolean
+  refreshing: boolean
+  // ...
+}
+
+export default function InspirationNativeView(props: Props) {
+  // UI pura: maneja renderizado, modales, UI de filtrado
+}
+```
+
+### Composición de Pantallas
+
+La pantalla de la app mobile (`app/(app)/modules/inspiration/index.tsx`) importa la vista nativa, gestiona la obtención de datos y el estado, y los pasa como props:
+
+```tsx
+// app/(app)/modules/inspiration/index.tsx
+import InspirationNativeView from '../../../../../apps/inspiration/native'
+
+export default function InspirationListScreen() {
+  const [requests, setRequests] = useState<InspirationRequest[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Obtención de datos, handlers de votos, lógica de filtros...
+
+  return (
+    <InspirationNativeView
+      requests={requests}
+      loading={loading}
+      onRefresh={handleRefresh}
+      onVote={handleVote}
+      // ...
+    />
+  )
+}
+```
+
+Este patrón mantiene la lógica de UI de la app dentro del directorio de cada app mientras que el shell mobile se encarga de la obtención de datos, la navegación y la integración con la plataforma.
+
+### Navegación a Módulos
+
+El layout de la app proporciona una barra de pestañas con tres pestañas: Dashboard, Apps y Ajustes. La pestaña "Apps" renderiza el stack navigator de módulos, que define pantallas para cada módulo instalado:
+
+```tsx
+// app/(app)/modules/_layout.tsx
+<Stack>
+  <Stack.Screen name="todo/index" options={{ title: 'TODO' }} />
+  <Stack.Screen name="todo/[id]" options={{ title: 'Detalle TODO' }} />
+  <Stack.Screen name="todo/create" options={{ title: 'Nuevo TODO', presentation: 'modal' }} />
+  <Stack.Screen name="inspiration/index" options={{ title: 'Inspiration' }} />
+  <Stack.Screen name="inspiration/[id]" options={{ title: 'Detalle de Idea' }} />
+  <Stack.Screen name="inspiration/create" options={{ title: 'Nueva Idea', presentation: 'modal' }} />
+</Stack>
+```
+
+---
+
+## Sistema de Temas
+
+El provider de temas (`src/lib/theme.tsx`) soporta tres modos: claro, oscuro y sistema. La preferencia se almacena en SecureStore y persiste entre reinicios de la app.
+
+```tsx
+// src/lib/theme.tsx
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const systemColorScheme = useColorScheme()
+  const [theme, setThemeState] = useState<Theme>('system')
+
+  useEffect(() => {
+    SecureStore.getItemAsync(THEME_KEY).then((stored) => {
+      if (stored === 'light' || stored === 'dark' || stored === 'system') {
+        setThemeState(stored)
+      }
+    })
+  }, [])
+
+  const resolvedTheme = theme === 'system'
+    ? (systemColorScheme === 'dark' ? 'dark' : 'light')
+    : theme
+
+  return (
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, isDark }}>
+      <View className={isDark ? 'dark flex-1' : 'flex-1'}>
+        {children}
+      </View>
+    </ThemeContext.Provider>
+  )
+}
+```
+
+La `View` raíz alterna la clase `dark` en todo el árbol, habilitando las variantes de modo oscuro de NativeWind (`dark:bg-gray-950`, `dark:text-gray-100`, etc.).
+
+---
+
+## Internacionalización (i18n)
+
+La app mobile comparte el mismo framework de i18n que la plataforma web: `i18next` con `react-i18next`, usando las mismas claves de traducción de `@027apps/i18n`.
+
+### Detección de Idioma
+
+Al iniciar, la app detecta el idioma del dispositivo mediante `expo-localization`:
+
+```tsx
+// src/lib/i18n.ts
+function detectLanguage(): string {
+  const deviceLang = Localization.getLocales()[0]?.languageCode
+  if (deviceLang && SUPPORTED_LNGS.includes(deviceLang as SupportedLng)) {
+    return deviceLang
+  }
+  return 'en'
+}
+```
+
+### Idiomas Soportados
+
+Seis idiomas están soportados: inglés, español, italiano, catalán, francés y alemán.
+
+### Cambio de Idioma
+
+Los usuarios pueden cambiar el idioma en la pantalla de Ajustes. La preferencia se persiste en SecureStore y se aplica inmediatamente:
+
+```tsx
+export async function setStoredLanguage(lang: string): Promise<void> {
+  await SecureStore.setItemAsync(STORAGE_KEY, lang)
+  await i18n.changeLanguage(lang)
+}
+```
+
+### Claves de Traducción
+
+Las claves de traducción se comparten entre web y mobile. Las claves específicas de mobile se definen en `src/i18n/missing-keys.ts` y se fusionan en la inicialización.
+
+---
+
+## Deep Links
+
+La app maneja el esquema de URL personalizado `027apps://` para flujos de restablecimiento de contraseña y navegación directa a contenido de la app:
+
+```tsx
+// src/lib/deep-links.ts
+export function parseDeepLink(url: string): {
+  route: string
+  params: Record<string, string>
+} | null {
+  const parsed = new URL(url)
+  const path = parsed.pathname.replace(/^\//, '')
+  const params: Record<string, string> = {}
+  parsed.searchParams.forEach((value, key) => { params[key] = value })
+  return { route: path, params }
+}
+```
+
+URLs soportadas:
+- `027apps://reset-password?code=xxx` — pantalla de restablecimiento de contraseña
+- `027apps://(app)/modules/inspiration/:id` — detalle de idea
+
+---
+
+## Notificaciones Push
+
+El sistema de notificaciones push tiene tres capas: registro (mobile), envío desde el servidor y preferencias de usuario.
+
+### Registro
+
+Al iniciar sesión, la app registra el dispositivo para notificaciones push mediante `expo-notifications`. El token push de Expo se envía al servidor y se almacena en la tabla `push_tokens`:
+
+```tsx
+// src/lib/notifications.ts
+export async function getExpoPushToken(): Promise<string | null> {
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId
+  const token = await Notifications.getExpoPushTokenAsync({ projectId })
+  return token.data
+}
+
+export async function registerPushToken(token: string, apiBaseUrl: string): Promise<boolean> {
+  const accessToken = await getAccessToken()
+  if (!accessToken) return false
+
+  const res = await fetch(`${apiBaseUrl}/api/v1/mobile/push-token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ token, platform: Platform.OS }),
+  })
+  return res.status === 204
+}
+```
+
+### Envío desde el Servidor
+
+El servidor envía notificaciones push mediante `expo-server-sdk` (`src/lib/push/send.ts`). La función `sendPushNotifications(userIds, payload)`:
+
+1. Consulta `push_tokens` para los usuarios destinatarios.
+2. Verifica las preferencias de notificación de cada usuario (tabla `notification_prefs`).
+3. Envía la notificación a través de la API push de Expo.
+
+Las notificaciones push se envían en modo fire-and-forget junto con las notificaciones por correo existentes:
+
+```tsx
+// Ejemplo: notificar sobre nuevo comentario
+sendPushNotifications(recipients, {
+  type: NOTIFICATION_TYPES.INSPIRATION_NEW_COMMENT,
+  title: `Nuevo comentario en "${request.title}"`,
+  body: `${authorName}: ${commentSnippet}`,
+  data: { requestId, groupId: request.group_id },
+})
+```
+
+### Tipos de Notificación
+
+| Módulo | Tipos | Implementado |
+|---|---|---|
+| Inspiration | `new_idea`, `new_comment`, `status_change`, `vote` | ✅ |
+| TODO | `assigned`, `status_change` | ✅ |
+| Split Expenses | `new_expense`, `owed`, `paid`, `settled` | ✅ |
+| General | `invitation`, `invitation_accepted` | Estructura lista |
+
+### Preferencias de Notificación
+
+Los usuarios controlan las notificaciones desde la pantalla de Ajustes en la app mobile. Las preferencias se almacenan en la tabla `notification_prefs` y se exponen a través de la API:
+
+- `GET /api/v1/notifications/prefs` — Obtener preferencias actuales + lista de todos los tipos.
+- `PUT /api/v1/notifications/prefs` — Actualizar interruptor global o interruptores por tipo.
+
+```json
+{
+  "global_enabled": true,
+  "types": {
+    "inspiration:new_comment": false,
+    "todo:assigned": true
+  },
+  "all_types": ["inspiration:new_idea", "inspiration:new_comment", ...]
+}
+```
+
+La función `sendPushNotifications` verifica `shouldNotify(userId, type)` antes de enviar, lo que respeta el interruptor global y las anulaciones por tipo.
+
+### Manejo de Deep Links
+
+Cuando un usuario toca una notificación push, la app navega a la pantalla correspondiente mediante `useNotifications.ts`:
+
+| Tipo de notificación | Navega a |
+|---|---|
+| `inspiration:*` | `/(app)/modules/inspiration/{requestId}` |
+| `todo:*` | `/(app)/modules/todo/{todoId}` |
+| `expenses:*` | `/(app)/modules/split-expenses/{expenseGroupId}` |
+
+---
+
+## Control de Versión
+
+La app verifica la versión mínima requerida por el servidor al iniciar. La petición incluye la variante de la app (`production` o `beta`) para que cada variante tenga su propio track de versiones:
+
+```tsx
+// src/lib/version-check.ts
+export async function checkAppVersion(): Promise<VersionInfo | null> {
+  const client = await getApiClient()
+  const variant = getVariant() // 'production' | 'beta' desde Constants.expoConfig
+  const response = await client.version.getVersion({
+    query: { variant },
+  })
+  if (response.status === 200) return response.body
+  return null
+}
+
+export function isUpdateRequired(current: string, min: string): boolean {
+  return compareVersions(current, min) < 0
+}
+```
+
+El servidor usa claves `app_settings` separadas por variante:
+- `mobile_version` → producción
+- `mobile_version_beta` → beta
+
+Esto permite tracks de versión diferentes para testers beta y usuarios de producción.
+
+---
+
+## Manejo de Errores
+
+Un error boundary global (`src/components/ErrorBoundary.tsx`) captura errores de renderizado, muestra una UI de respaldo y registra el error. Las pantallas individuales manejan errores de API localmente mediante bloques try/catch que muestran mensajes de error contextuales.

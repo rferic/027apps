@@ -1,0 +1,100 @@
+---
+title: Permissions et Notifications
+description: Permissions de l'app mobile, types de notification, préférences utilisateur et gestion des tokens admin.
+---
+
+# Permissions et Notifications
+
+## Permissions d'Exécution
+
+L'application demande les permissions suivantes à l'exécution :
+
+| Permission | Quand | iOS | Android |
+|---|---|---|---|
+| **Notifications Push** | À la connexion ou depuis Paramètres | Dialogue système | Dialogue système |
+| **Biométrie (Face ID / Empreinte)** | À la connexion (appui bouton optionnel) | Dialogue système | Dialogue système |
+| **SecureStore (Trousseau)** | À la connexion (automatique) | Trousseau (sans invite) | EncryptedSharedPreferences |
+
+Toutes les permissions utilisent le dialogue natif du système d'exploitation. Si l'utilisateur refuse les permissions push, l'application se dégrade gracieusement — les notifications ne seront tout simplement pas délivrées.
+
+---
+
+## Types de Notification
+
+Le serveur peut envoyer des notifications push pour ces événements :
+
+### Inspiration
+
+| Événement | Titre Push | Envoyé à |
+|---|---|---|
+| Nouvelle idée soumise | "Nouvelle idée soumise" | Admins du groupe |
+| Nouveau commentaire sur votre idée | "Nouveau commentaire sur `{title}`" | Auteur + votants |
+| Changement de statut | "Statut mis à jour : `{title}`" | Auteur + votants |
+| Vote reçu | "Votre idée a reçu un vote" | Auteur de l'idée |
+
+### TODO
+
+| Événement | Titre Push | Envoyé à |
+|---|---|---|
+| Tâche assignée | "Tâche assignée" | Utilisateur assigné |
+| Changement de statut | "Statut de la tâche mis à jour" | Utilisateur assigné |
+
+### Split Expenses
+
+| Événement | Titre Push | Envoyé à |
+|---|---|---|
+| Nouvelle dépense ajoutée | "Nouvelle dépense dans `{group}`" | Tous les membres du groupe |
+| On vous doit de l'argent | "On vous doit de l'argent dans `{group}`" | Le payeur |
+| Paiement reçu | "Paiement reçu dans `{group}`" | Le destinataire |
+| Groupe soldé | "`{group}` est soldé !" | Tous les membres |
+
+---
+
+## Préférences Utilisateur
+
+L'écran Paramètres de l'application mobile fournit un **interrupteur global** pour désactiver toutes les notifications et des **interrupteurs par type** pour un contrôle précis.
+
+L'interrupteur `global_enabled` agit comme un maître — lorsqu'il est désactivé, aucune notification push n'est envoyée, quels que soient les paramètres par type.
+
+---
+
+## Admin — Gestion des Tokens Push
+
+Les administrateurs peuvent voir et révoquer les tokens push depuis le panneau d'administration :
+
+1. **Liste des utilisateurs** (`/admin/users`, `/admin/admins`) : Chaque ligne affiche un badge `Push` (✅ Actif / —) et un bouton **Push** dans la colonne d'actions.
+2. **Fenêtre modale Tokens Push** : Cliquer sur **Push** ouvre une fenêtre listant tous les tokens enregistrés pour cet utilisateur (plateforme, token tronqué, date de dernière mise à jour).
+3. **Révoquer** : Chaque token a un bouton **Révoquer**. Il y a aussi un bouton **Tout révoquer**.
+4. **Forcer la reconnexion** : Lorsqu'un token est révoqué, les sessions d'authentification Supabase de l'utilisateur sont également supprimées — l'utilisateur est déconnecté sur tous les appareils et doit se reconnecter au prochain lancement de l'application.
+
+### API
+
+| Endpoint | Méthode | Description |
+|---|---|---|
+| `/api/v1/admin/users/{id}/push-tokens` | GET | Lister les tokens push |
+| `/api/v1/admin/users/{id}/push-tokens` | DELETE | Révoquer tous les tokens de l'utilisateur |
+| `/api/v1/admin/users/{id}/push-tokens/{tokenId}` | DELETE | Révoquer un token spécifique |
+
+### Page de Détail Utilisateur
+
+La page de détail utilisateur inclut une section **Tokens Push** affichant les mêmes informations que la fenêtre modale, pour une révision en contexte.
+
+### Nettoyage Automatique
+
+Les tokens push sont nettoyés automatiquement par migration de base de données :
+- Les tokens des utilisateurs supprimés sont retirés.
+- Les tokens non mis à jour depuis 90 jours sont retirés.
+
+---
+
+## Session vs Token Push
+
+Il est important de distinguer entre :
+
+| Concept | Objectif | Révoqué quand |
+|---|---|---|
+| **Session d'auth** | Maintient l'utilisateur connecté (JWT) | L'admin révoque le(s) token(s) push |
+| **Token push** | Reçoit les notifications | Révocation de tout token push |
+| **Blocage de session** | Empêche la connexion | L'admin bloque l'utilisateur |
+
+La révocation des tokens push déclenche toujours l'invalidation de la session d'authentification — l'utilisateur est déconnecté sur tous les appareils et doit se réauthentifier.

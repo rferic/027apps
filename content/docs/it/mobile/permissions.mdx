@@ -1,0 +1,100 @@
+---
+title: Permessi e Notifiche
+description: Permessi app mobile, tipi di notifica, preferenze utente e gestione token admin.
+---
+
+# Permessi e Notifiche
+
+## Permessi a Runtime
+
+L'app richiede i seguenti permessi a runtime:
+
+| Permesso | Quando | iOS | Android |
+|---|---|---|---|
+| **Notifiche Push** | All'accesso o da Impostazioni | Dialogo di sistema | Dialogo di sistema |
+| **Biometrici (Face ID / Impronta)** | All'accesso (tap pulsante opzionale) | Dialogo di sistema | Dialogo di sistema |
+| **SecureStore (Keychain)** | All'accesso (automatico) | Keychain (nessun prompt) | EncryptedSharedPreferences |
+
+Tutti i permessi utilizzano il dialogo nativo del sistema operativo. Se l'utente nega i permessi push, l'app si degrada correttamente — le notifiche semplicemente non verranno consegnate.
+
+---
+
+## Tipi di Notifica
+
+Il server può inviare notifiche push per questi eventi:
+
+### Inspiration
+
+| Evento | Titolo Push | Inviato a |
+|---|---|---|
+| Nuova idea inviata | "Nuova idea inviata" | Admin del gruppo |
+| Nuovo commento sulla tua idea | "Nuovo commento su `{title}`" | Autore + votanti |
+| Cambio stato | "Stato aggiornato: `{title}`" | Autore + votanti |
+| Voto ricevuto | "La tua idea ha ricevuto un voto" | Autore dell'idea |
+
+### TODO
+
+| Evento | Titolo Push | Inviato a |
+|---|---|---|
+| Attività assegnata | "Attività assegnata" | Utente assegnato |
+| Cambio stato | "Stato attività aggiornato" | Utente assegnato |
+
+### Split Expenses
+
+| Evento | Titolo Push | Inviato a |
+|---|---|---|
+| Nuova spesa aggiunta | "Nuova spesa in `{group}`" | Tutti i membri del gruppo |
+| Ti devono dei soldi | "Ti devono dei soldi in `{group}`" | Il pagatore |
+| Pagamento ricevuto | "Pagamento ricevuto in `{group}`" | Il ricevente |
+| Gruppo saldato | "`{group}` è saldato!" | Tutti i membri |
+
+---
+
+## Preferenze Utente
+
+La schermata Impostazioni nell'app mobile fornisce un **interruttore globale** per disabilitare tutte le notifiche e **interruttori per tipo** per un controllo granulare.
+
+L'interruttore `global_enabled` funge da master — quando è spento, nessuna notifica push viene inviata indipendentemente dalle impostazioni per tipo.
+
+---
+
+## Admin — Gestione Token Push
+
+Gli amministratori possono visualizzare e revocare i token push dal pannello di amministrazione:
+
+1. **Elenco utenti** (`/admin/users`, `/admin/admins`): Ogni riga mostra un badge `Push` (✅ Attivo / —) e un pulsante **Push** nella colonna azioni.
+2. **Modale Token Push**: Cliccando **Push** si apre un modale che elenca tutti i token registrati per quell'utente (piattaforma, token troncato, data ultimo aggiornamento).
+3. **Revoca**: Ogni token ha un pulsante **Revoca**. C'è anche un pulsante **Revoca tutto**.
+4. **Forza re-login**: Quando un token viene revocato, anche le sessioni di autenticazione Supabase dell'utente vengono eliminate — l'utente viene disconnesso su tutti i dispositivi e deve effettuare nuovamente l'accesso al prossimo avvio dell'app.
+
+### API
+
+| Endpoint | Metodo | Descrizione |
+|---|---|---|
+| `/api/v1/admin/users/{id}/push-tokens` | GET | Elenca token push |
+| `/api/v1/admin/users/{id}/push-tokens` | DELETE | Revoca tutti i token dell'utente |
+| `/api/v1/admin/users/{id}/push-tokens/{tokenId}` | DELETE | Revoca token specifico |
+
+### Pagina Dettaglio Utente
+
+La pagina di dettaglio utente include una sezione **Token Push** che mostra le stesse informazioni del modale, per una revisione contestuale.
+
+### Pulizia Automatica
+
+I token push vengono puliti automaticamente tramite migrazione del database:
+- I token per utenti eliminati vengono rimossi.
+- I token non aggiornati da 90 giorni vengono rimossi.
+
+---
+
+## Sessione vs Token Push
+
+È importante distinguere tra:
+
+| Concetto | Scopo | Revocato quando |
+|---|---|---|
+| **Sessione auth** | Mantiene l'utente connesso (JWT) | L'admin revoca token push |
+| **Token push** | Riceve notifiche | Revoca qualsiasi token push |
+| **Blocco sessione** | Impedisce l'accesso | L'admin blocca l'utente |
+
+La revoca dei token push innesca sempre l'invalidazione della sessione di autenticazione — l'utente viene disconnesso su tutti i dispositivi e deve riautenticarsi.

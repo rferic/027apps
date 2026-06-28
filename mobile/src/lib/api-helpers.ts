@@ -67,6 +67,11 @@ async function fetchWithAuth<T>(
 
 // ── Groups ──
 
+/**
+ * Fetches all split expense groups for the current user.
+ * @param params - Pagination and sort options
+ * @returns Paginated list of expense groups
+ */
 export async function fetchExpenseGroups(
   params?: { page?: number; limit?: number; sort?: 'newest' | 'oldest' | 'alpha' },
 ): Promise<PaginatedResponse<ExpenseGroup>> {
@@ -79,10 +84,20 @@ export async function fetchExpenseGroups(
   })
 }
 
+/**
+ * Fetches details for a single expense group.
+ * @param id - Group ID
+ * @returns Expense group with members, balances, and stats
+ */
 export async function fetchExpenseGroup(id: string): Promise<ExpenseGroupDetail> {
   return fetchWithAuth<ExpenseGroupDetail>(id)
 }
 
+/**
+ * Creates a new expense group.
+ * @param data - Group name, currency, and optional metadata
+ * @returns The created expense group, or null on error
+ */
 export async function createExpenseGroup(data: CreateGroupInput): Promise<ExpenseGroup | null> {
   try {
     return await fetchWithAuth<ExpenseGroup>('', { method: 'POST', body: data })
@@ -92,6 +107,12 @@ export async function createExpenseGroup(data: CreateGroupInput): Promise<Expens
   }
 }
 
+/**
+ * Updates an existing expense group.
+ * @param id - Group ID
+ * @param data - Fields to update (name, currency, etc.)
+ * @returns The updated expense group, or null on error
+ */
 export async function updateExpenseGroup(
   id: string,
   data: Partial<CreateGroupInput>,
@@ -104,6 +125,11 @@ export async function updateExpenseGroup(
   }
 }
 
+/**
+ * Deletes an expense group and all its data.
+ * @param id - Group ID
+ * @returns True if deleted successfully, false on error
+ */
 export async function deleteExpenseGroup(id: string): Promise<boolean> {
   try {
     await fetchWithAuth<true>(id, { method: 'DELETE' })
@@ -116,6 +142,12 @@ export async function deleteExpenseGroup(id: string): Promise<boolean> {
 
 // ── Expenses ──
 
+/**
+ * Fetches expenses for a group with pagination and filters.
+ * @param groupId - Group ID
+ * @param params - Pagination, tag, payer, date range, and sort options
+ * @returns Paginated list of expenses
+ */
 export async function fetchExpenses(
   groupId: string,
   params?: {
@@ -143,10 +175,22 @@ export async function fetchExpenses(
   })
 }
 
+/**
+ * Fetches a single expense by ID.
+ * @param groupId - Group ID
+ * @param expenseId - Expense ID
+ * @returns Expense with splits and payer details
+ */
 export async function fetchExpense(groupId: string, expenseId: string): Promise<Expense> {
   return fetchWithAuth<Expense>(`${groupId}/expenses/${expenseId}`)
 }
 
+/**
+ * Creates a new expense with splits.
+ * @param groupId - Group ID
+ * @param data - Expense amount, description, splits, payer, and tags
+ * @returns The created expense, or null on error
+ */
 export async function createExpense(
   groupId: string,
   data: CreateExpenseInput,
@@ -159,6 +203,13 @@ export async function createExpense(
   }
 }
 
+/**
+ * Updates an existing expense.
+ * @param groupId - Group ID
+ * @param expenseId - Expense ID
+ * @param data - Fields to update (amount, description, splits, etc.)
+ * @returns The updated expense, or null on error
+ */
 export async function updateExpense(
   groupId: string,
   expenseId: string,
@@ -175,6 +226,12 @@ export async function updateExpense(
   }
 }
 
+/**
+ * Deletes an expense.
+ * @param groupId - Group ID
+ * @param expenseId - Expense ID
+ * @returns True if deleted successfully, false on error
+ */
 export async function deleteExpense(groupId: string, expenseId: string): Promise<boolean> {
   try {
     await fetchWithAuth<true>(`${groupId}/expenses/${expenseId}`, { method: 'DELETE' })
@@ -187,10 +244,21 @@ export async function deleteExpense(groupId: string, expenseId: string): Promise
 
 // ── Members ──
 
+/**
+ * Fetches all members of a split expense group.
+ * @param groupId - Group ID
+ * @returns Array of members with user info and balances
+ */
 export async function fetchMembers(groupId: string): Promise<Member[]> {
   return fetchWithAuth<Member[]>(`${groupId}/members`)
 }
 
+/**
+ * Adds a user to a split expense group.
+ * @param groupId - Group ID
+ * @param userId - User ID to add
+ * @returns The new member record, or null on error
+ */
 export async function addMember(groupId: string, userId: string): Promise<Member | null> {
   try {
     return await fetchWithAuth<Member>(`${groupId}/members`, {
@@ -203,6 +271,13 @@ export async function addMember(groupId: string, userId: string): Promise<Member
   }
 }
 
+/**
+ * Toggles a member's active status in a group.
+ * @param groupId - Group ID
+ * @param memberId - Member ID
+ * @param active - New active state
+ * @returns The updated member record, or null on error
+ */
 export async function toggleMember(
   groupId: string,
   memberId: string,
@@ -219,6 +294,12 @@ export async function toggleMember(
   }
 }
 
+/**
+ * Removes a member from a split expense group.
+ * @param groupId - Group ID
+ * @param memberId - Member ID
+ * @returns True if removed successfully, false on error
+ */
 export async function removeMember(groupId: string, memberId: string): Promise<boolean> {
   try {
     await fetchWithAuth<true>(`${groupId}/members/${memberId}`, { method: 'DELETE' })
@@ -231,10 +312,21 @@ export async function removeMember(groupId: string, memberId: string): Promise<b
 
 // ── Tags ──
 
+/**
+ * Fetches all tags for a group.
+ * @param groupId - Group ID
+ * @returns Array of tags with name and color
+ */
 export async function fetchTags(groupId: string): Promise<Tag[]> {
   return fetchWithAuth<Tag[]>(`${groupId}/tags`)
 }
 
+/**
+ * Creates a new expense tag.
+ * @param groupId - Group ID
+ * @param data - Tag name and color
+ * @returns The created tag, or null on error
+ */
 export async function createTag(
   groupId: string,
   data: { name: string; color: string },
@@ -247,6 +339,13 @@ export async function createTag(
   }
 }
 
+/**
+ * Updates a tag's name or color.
+ * @param groupId - Group ID
+ * @param tagId - Tag ID
+ * @param data - Fields to update (name, color)
+ * @returns The updated tag, or null on error
+ */
 export async function updateTag(
   groupId: string,
   tagId: string,
@@ -260,6 +359,12 @@ export async function updateTag(
   }
 }
 
+/**
+ * Deletes a tag from a group.
+ * @param groupId - Group ID
+ * @param tagId - Tag ID
+ * @returns True if deleted successfully, false on error
+ */
 export async function deleteTag(groupId: string, tagId: string): Promise<boolean> {
   try {
     await fetchWithAuth<true>(`${groupId}/tags/${tagId}`, { method: 'DELETE' })
@@ -272,10 +377,22 @@ export async function deleteTag(groupId: string, tagId: string): Promise<boolean
 
 // ── Balances & Settlements ──
 
+/**
+ * Fetches current balances for all members in a group.
+ * Shows who owes whom and net balances.
+ * @param groupId - Group ID
+ * @returns Balances with per-member and pairwise data
+ */
 export async function fetchBalances(groupId: string): Promise<BalancesResponse> {
   return fetchWithAuth<BalancesResponse>(`${groupId}/balances`)
 }
 
+/**
+ * Fetches transfer/payment history for a group.
+ * @param groupId - Group ID
+ * @param params - Pagination and date range filters
+ * @returns Paginated list of transfers
+ */
 export async function fetchTransfers(
   groupId: string,
   params?: { page?: number; limit?: number; date_from?: string; date_to?: string },
@@ -290,6 +407,12 @@ export async function fetchTransfers(
   })
 }
 
+/**
+ * Triggers the settle-up algorithm to calculate optimal debt settlements.
+ * Minimizes the number of transfers needed to zero out balances.
+ * @param groupId - Group ID
+ * @returns Settlement plan with suggested transfers, or null on error
+ */
 export async function settleUp(groupId: string): Promise<SettleUpResponse | null> {
   try {
     return await fetchWithAuth<SettleUpResponse>(`${groupId}/settlements`, { method: 'POST', body: {} })
@@ -299,6 +422,12 @@ export async function settleUp(groupId: string): Promise<SettleUpResponse | null
   }
 }
 
+/**
+ * Records a direct payment (transfer) between two group members.
+ * @param groupId - Group ID
+ * @param data - Payment details: from_user, to_user, amount, and optional note
+ * @returns True if recorded successfully, false on error
+ */
 export async function recordPayment(
   groupId: string,
   data: { from_user: string; to_user: string; amount: number; note?: string },
@@ -314,6 +443,12 @@ export async function recordPayment(
 
 // ── Stats ──
 
+/**
+ * Fetches statistics for a group with optional date range and tag filter.
+ * @param groupId - Group ID
+ * @param params - Period, tag, and date range filters
+ * @returns Statistics including total spent, per-person breakdown, and category distribution
+ */
 export async function fetchStats(
   groupId: string,
   params?: {
@@ -335,6 +470,12 @@ export async function fetchStats(
 
 // ── Transfers (manual CRUD) ──
 
+/**
+ * Creates a manual transfer (payment) between two members.
+ * @param groupId - Group ID
+ * @param data - Transfer details: from_user, to_user, amount, and optional note
+ * @returns The created transfer, or null on error
+ */
 export async function createTransfer(
   groupId: string,
   data: CreateTransferInput,
@@ -352,6 +493,13 @@ export async function createTransfer(
   }
 }
 
+/**
+ * Updates an existing transfer.
+ * @param groupId - Group ID
+ * @param transferId - Transfer ID
+ * @param data - Fields to update (amount, note, etc.)
+ * @returns The updated transfer, or null on error
+ */
 export async function updateTransfer(
   groupId: string,
   transferId: string,
@@ -368,6 +516,12 @@ export async function updateTransfer(
   }
 }
 
+/**
+ * Deletes a transfer.
+ * @param groupId - Group ID
+ * @param transferId - Transfer ID
+ * @returns True if deleted successfully, false on error
+ */
 export async function deleteTransfer(groupId: string, transferId: string): Promise<boolean> {
   try {
     await fetchWithAuth<true>(`${groupId}/transfers/${transferId}`, { method: 'DELETE' })
@@ -380,6 +534,7 @@ export async function deleteTransfer(groupId: string, transferId: string): Promi
 
 // ── Pagination helper ──
 
+/** Returns default pagination state (page 1, limit 20, empty). */
 export function defaultPagination(): Pagination {
   return { page: 1, limit: 20, total: 0, total_pages: 0 }
 }

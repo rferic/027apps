@@ -1,0 +1,93 @@
+---
+title: Stratégie de Cache
+description: Comment fonctionne la mise en cache des requêtes dans 027Apps
+---
+
+## Aperçu
+
+027Apps utilise `unstable_cache` de Next.js pour mettre en cache les opérations de lecture coûteuses.
+La couche de cache repose sur trois principes :
+
+1. **Mettre en cache les lectures, jamais les écritures** — seules les opérations de lecture sont mises en cache
+2. **Expiration basée sur le TTL** — chaque cache a une durée de vie
+3. **Invalidation basée sur les tags** — les caches sont invalidés par tag lorsque les données changent
+
+## L'Utilitaire `cachedQuery`
+
+Toutes les fonctions mises en cache utilisent le wrapper `cachedQuery` de `@/lib/cache` :
+
+```typescript
+import { cachedQuery } from '@/lib/cache'
+
+export const getAdminStats = cachedQuery(
+  async (): Promise<AdminStats> => {
+    // ... votre logique de requête ...
+  },
+  ['admin-stats'],                    // clé de cache
+  { revalidate: 3600, tags: ['admin-stats'] }  // TTL + tags
+)
+```
+
+Le wrapper :
+- Utilise `unstable_cache` de `next/cache` en interne
+- Détecte automatiquement les environnements de test (`VITEST`) et ignore la mise en cache
+- Importe de manière paresseuse `next/cache` pour éviter les problèmes de résolution de modules
+
+## Fonctions Actuellement Mises en Cache
+
+| Fonction | TTL | Tags de Cache | Utilisée Dans |
+|---|---|---|---|
+| `getAdminStats` | 1 heure | `admin-stats` | Tableau de bord admin |
+| `getAdminUserList` | 5 minutes | `admin-users` | Liste des utilisateurs admin |
+| `readManifest(slug)` | 7 jours | `manifest` | Toutes les mises en page (métadonnées d'apps) |
+| `getUserGroups(userId)` | 1 heure | `user-groups` | Mise en page publique |
+
+## Invalidation du Cache
+
+Les caches sont invalidés depuis les Server Actions en utilisant `revalidateTag` :
+
+```typescript
+revalidateTag('admin-stats', 'default')
+revalidateTag('manifest', 'default')
+```
+
+> **Note Next.js 16 :** `revalidateTag` nécessite un second argument (`'default'`).
+> Dans Next.js 15, cela était optionnel.
+
+### Points d'invalidation
+
+| Action | Tags Invalidés |
+|---|---|
+| `installAppAction(slug)` | `apps-list`, `admin-stats`, `manifest` |
+| `uninstallAppAction(slug)` | `apps-list`, `admin-stats`, `manifest` |
+
+## Pourquoi pas `"use cache"` ?
+
+Next.js 16 introduit la directive `"use cache"`, mais elle nécessite
+que PPR (Partial Prerendering) soit activé, ce qui est incompatible avec
+Fumadocs (notre framework de documentation) dans sa version actuelle.
+
+Jusqu'à ce que la compatibilité PPR soit résolue, nous utilisons `unstable_cache` via le
+wrapper `cachedQuery`, qui fournit la même fonctionnalité avec
+un contrôle explicite.
+
+## Stratégie de Test
+
+Dans vitest, `cachedQuery` détecte `process.env.VITEST` et renvoie la
+fonction brute sans mise en cache. Cela signifie :
+
+- Aucun mock de `next/cache` nécessaire
+- Les tests voient toujours des données fraîches
+- Aucun résultat de test obsolète dû à un état mis en cache
+
+Un mock pour `next/cache` est fourni dans `tests/mocks/next-cache.js` pour
+les modules qui l'importent directement (en dehors de `cachedQuery`).
+
+## PPR (Partial Prerendering)
+
+PPR permet aux pages d'être partiellement statiques (shell) et partiellement dynamiques
+(contenu). Cela bénéficierait aux pages comme le tableau de bord admin où la
+mise en page est statique mais les statistiques sont dynamiques.
+
+**Statut :** En attente — bloqué par la compatibilité avec Fumadocs.
+**Alternative :** Les limites manuelles de `Suspense` offrent déjà une bonne UX.

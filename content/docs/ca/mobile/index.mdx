@@ -1,0 +1,141 @@
+---
+title: App Mòbil
+description: Aplicació mòbil de 027Apps — Expo SDK 56, React Native i NativeWind.
+---
+
+# 027Apps Mòbil
+
+L'aplicació mòbil de 027Apps porta la plataforma a dispositius iOS i Android. Proporciona autenticació nativa, accés al dashboard, pantalles natives per app, notificacions push, inici de sessió biomètric i connexions de servidor personalitzables — tot compartint el mateix contracte API ts-rest i les mateixes traduccions i18n que la plataforma web.
+
+---
+
+## Arquitectura d'un Cop d'Ull
+
+| Capa | Tecnologia |
+|---|---|
+| Runtime | Expo SDK 56 + React Native 0.85 |
+| Enrutament | expo-router (basat en fitxers) |
+| Estils | NativeWind v4 (Tailwind CSS per a React Native) |
+| Client API | ts-rest (`@027apps/contracts`) amb auth JWT Bearer |
+| Auth | Supabase Auth + persistència de sessió a SecureStore |
+| i18n | i18next + react-i18next (6 idiomes) |
+| Estat | React Context (auth, theme) |
+| Testing | Vitest + React Native Testing Library |
+
+---
+
+## Característiques Principals
+
+**Autenticació** — Inici de sessió per email/contrasenya mitjançant Supabase Auth, persistència de sessió a SecureStore, desbloqueig biomètric com a alternativa, i maneig de deep links per a fluxos de restabliment de contrasenya.
+
+**URL del Servidor** — L'app mòbil es connecta a qualsevol servidor 027Apps. Els usuaris configuren l'URL base de l'API a Configuració, emmagatzemada a SecureStore. L'URL per defecte és `https://027apps.com`, però les instàncies self-hosted estan totalment suportades.
+
+**Sistema de Mòduls** — Cada app (To-Do, Inspiration, etc.) proporciona un fitxer `native.tsx` que defineix la pantalla React Native. L'app mòbil importa aquestes vistes a través del seu registre de mòduls, mantenint la lògica de l'app dins del directori de cada app mentre el shell mòbil s'encarrega de la navegació i composició.
+
+**Notificacions Push** — Les notificacions push s'envien mitjançant `expo-server-sdk` des del backend. Els usuaris controlen les preferències globals i per tipus des de Configuració. Consulta [Permisos i Notificacions](/doc/mobile/permissions) per a la llista completa de tipus de notificació.
+
+**Suport de Temes** — Selecció de mode clar/fosc/sistema persistida a SecureStore, renderitzat mitjançant alternança de classe de mode fosc de NativeWind.
+
+**Banner Sense Connexió** — Monitoratge de l'estat de xarxa mitjançant `expo-network` que mostra un banner no bloquejant quan es perd la connectivitat.
+
+---
+
+## Estructura del Projecte
+
+```
+mobile/
+├── app/                        # Rutes basades en fitxers d'expo-router
+│   ├── _layout.tsx             # Layout arrel (providers, deep links)
+│   ├── index.tsx               # Pantalla de verificació d'auth / redirecció
+│   ├── welcome.tsx             # Pantalla de benvinguda/onboarding
+│   ├── login.tsx               # Login per email/contrasenya
+│   ├── register.tsx            # Pantalla de registre
+│   ├── reset-password.tsx      # Restabliment de contrasenya (destí de deep link)
+│   └── (app)/                  # Grup de pestanyes autenticades
+│       ├── _layout.tsx         # Barra de pestanyes (Dashboard, Apps, Configuració)
+│       ├── dashboard.tsx       # Targetes de mòduls + capçalera de benvinguda
+│       ├── modules/            # Pantalles per app
+│       │   ├── _layout.tsx     # Stack navigator per a pantalles d'apps
+│       │   ├── todo/           # Llista TODO, detall, crear
+│       │   └── inspiration/    # Llista d'idees, detall, crear
+│       └── settings.tsx        # URL del servidor, idioma, notificacions, tancar sessió
+├── src/
+│   ├── lib/
+│   │   ├── api.ts              # Fàbrica del client ts-rest
+│   │   ├── auth.tsx            # AuthProvider (React Context)
+│   │   ├── supabase.ts         # Client Supabase (adaptador SecureStore)
+│   │   ├── token-store.ts      # Persistència de tokens JWT access/refresh
+│   │   ├── server-url.ts       # Emmagatzematge d'URL del servidor
+│   │   ├── group-store.ts      # Emmagatzematge del slug del grup actiu
+│   │   ├── theme.tsx           # ThemeProvider (clar/fosc/sistema)
+│   │   ├── i18n.ts             # Inicialització d'i18next (6 idiomes)
+│   │   ├── notifications.ts    # Registre de tokens push
+│   │   ├── biometrics.ts       # Autenticació local
+│   │   ├── deep-links.ts       # Parseig d'esquemes URL
+│   │   ├── version-check.ts    # Control de versió mínima
+│   │   ├── error-handler.ts    # Lògica de l'error boundary global
+│   │   ├── prefs.ts            # Client API de preferències de notificació
+│   │   └── modules/
+│   │       ├── registry.ts     # API de registre de mòduls
+│   │       └── index.ts        # Auto-registre de mòduls
+│   ├── components/             # Components UI compartits
+│   ├── hooks/                  # Hooks personalitzats (useAuth, useTranslation, useNotifications)
+│   └── i18n/                   # Traduccions compartides amb la plataforma web
+├── tests/                      # Tests unitaris i de components amb Vitest
+├── app.config.ts               # Configuració dinàmica d'Expo (segons variant)
+├── eas.json                    # Perfils d'EAS Build
+├── metro.config.js             # Configuració del bundler Metro
+├── tailwind.config.js          # Configuració de NativeWind v4
+└── vitest.config.ts            # Configuració del test runner
+```
+
+---
+
+## Inici Ràpid
+
+```bash
+# Instal·lar dependències des de l'arrel del monorepo
+pnpm install
+
+# Iniciar el servidor de desenvolupament d'Expo
+cd mobile && npx expo start
+
+# Executar en emulador Android
+cd mobile && npx expo start --android
+
+# Executar en simulador iOS
+cd mobile && npx expo start --ios
+
+# Executar type check
+cd mobile && npx tsc --noEmit
+
+# Executar tests
+cd mobile && npx vitest run
+```
+
+---
+
+## Pàgines Relacionades
+
+<Cards>
+  <Card
+    title="Arquitectura"
+    href="/doc/mobile/architecture"
+    description="Immersió profunda en el flux d'auth, client API, sistema de mòduls, temes i i18n."
+  />
+  <Card
+    title="Permisos i Notificacions"
+    href="/doc/mobile/permissions"
+    description="Tots els tipus de notificació, preferències d'usuari, permisos i gestió de tokens de l'admin."
+  />
+  <Card
+    title="Guia de Mòduls"
+    href="/doc/mobile/module-guide"
+    description="Guia pas a pas per afegir un nou mòdul d'app al shell mòbil."
+  />
+  <Card
+    title="Distribució"
+    href="/doc/mobile/distribution"
+    description="EAS Build, variants duals, versionat, actualitzacions OTA i CI/CD."
+  />
+</Cards>

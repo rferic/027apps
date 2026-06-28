@@ -1,0 +1,100 @@
+---
+title: Permisos i Notificacions
+description: Permisos de l'app mòbil, tipus de notificació, preferències d'usuari i gestió de tokens de l'admin.
+---
+
+# Permisos i Notificacions
+
+## Permisos en Temps d'Execució
+
+L'app sol·licita els següents permisos en temps d'execució:
+
+| Permís | Quan | iOS | Android |
+|---|---|---|---|
+| **Notificacions Push** | En iniciar sessió o des de Configuració | Diàleg del sistema | Diàleg del sistema |
+| **Biomètrics (Face ID / Empremta)** | En iniciar sessió (toc de botó opcional) | Diàleg del sistema | Diàleg del sistema |
+| **SecureStore (Keychain)** | En iniciar sessió (automàtic) | Keychain (sense avís) | EncryptedSharedPreferences |
+
+Tots els permisos utilitzen el diàleg natiu del sistema operatiu. Si l'usuari denega els permisos de push, l'app es degrada correctament — simplement no es lliuraran notificacions.
+
+---
+
+## Tipus de Notificació
+
+El servidor pot enviar notificacions push per a aquests esdeveniments:
+
+### Inspiration
+
+| Esdeveniment | Títol Push | Enviat a |
+|---|---|---|
+| Nova idea enviada | "Nova idea enviada" | Admins del grup |
+| Nou comentari a la teva idea | "Nou comentari a `{title}`" | Autor + votants |
+| Canvi d'estat | "Estat actualitzat: `{title}`" | Autor + votants |
+| Vot rebut | "La teva idea ha rebut un vot" | Autor de la idea |
+
+### TODO
+
+| Esdeveniment | Títol Push | Enviat a |
+|---|---|---|
+| Tasca assignada | "Tasca assignada" | Usuari assignat |
+| Canvi d'estat | "Estat de la tasca actualitzat" | Usuari assignat |
+
+### Split Expenses
+
+| Esdeveniment | Títol Push | Enviat a |
+|---|---|---|
+| Nova despesa afegida | "Nova despesa a `{group}`" | Tots els membres del grup |
+| Et deuen diners | "Et deuen diners a `{group}`" | El pagador |
+| Pagament rebut | "Pagament rebut a `{group}`" | El receptor |
+| Grup saldat | "¡`{group}` està saldat!" | Tots els membres |
+
+---
+
+## Preferències d'Usuari
+
+La pantalla de Configuració a l'app mòbil proporciona un **interruptor global** per desactivar totes les notificacions i **interruptors per tipus** per a un control detallat.
+
+L'interruptor `global_enabled` actua com a mestre — quan està apagat, no s'envien notificacions push independentment de la configuració per tipus.
+
+---
+
+## Admin — Gestió de Tokens Push
+
+Els admins poden veure i revocar tokens push des del panell d'administració:
+
+1. **Llista d'usuaris** (`/admin/users`, `/admin/admins`): Cada fila mostra un badge `Push` (✅ Actiu / —) i un botó **Push** a la columna d'accions.
+2. **Modal de Tokens Push**: En fer clic a **Push** s'obre un modal que llista tots els tokens registrats per a aquell usuari (plataforma, token truncat, data d'última actualització).
+3. **Revocar**: Cada token té un botó **Revocar**. També hi ha un botó **Revocar tot**.
+4. **Forçar re-login**: Quan es revoca un token, les sessions d'autenticació de Supabase de l'usuari també s'eliminen — l'usuari tanca sessió a tots els dispositius i ha de tornar a iniciar sessió al pròxim llançament de l'app.
+
+### API
+
+| Endpoint | Mètode | Descripció |
+|---|---|---|
+| `/api/v1/admin/users/{id}/push-tokens` | GET | Llistar tokens push |
+| `/api/v1/admin/users/{id}/push-tokens` | DELETE | Revocar tots els tokens de l'usuari |
+| `/api/v1/admin/users/{id}/push-tokens/{tokenId}` | DELETE | Revocar un token específic |
+
+### Pàgina de Detall d'Usuari
+
+La pàgina de detall d'usuari inclou una secció de **Tokens Push** que mostra la mateixa informació que el modal, per a revisió en context.
+
+### Neteja Automàtica
+
+Els tokens push es netegen automàticament mitjançant migració de base de dades:
+- Els tokens d'usuaris eliminats s'eliminen.
+- Els tokens no actualitzats en 90 dies s'eliminen.
+
+---
+
+## Sessió vs Token Push
+
+És important distingir entre:
+
+| Concepte | Propòsit | Revocat quan |
+|---|---|---|
+| **Sessió d'auth** | Manté l'usuari connectat (JWT) | L'admin revoca token(s) push |
+| **Token push** | Rep notificacions | Revocar qualsevol token push |
+| **Bloqueig de sessió** | Impedeix l'inici de sessió | L'admin bloqueja l'usuari |
+
+Revocar tokens push sempre provoca la invalidació de la sessió d'autenticació — l'usuari tanca sessió a tots els dispositius i ha de tornar a autenticar-se.

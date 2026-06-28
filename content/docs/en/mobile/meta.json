@@ -1,4 +1,4 @@
 {
   "title": "Mobile App",
-  "pages": ["index", "architecture", "permissions", "module-guide", "distribution"]
+  "pages": ["index", "architecture", "permissions", "module-guide", "distribution", "dark-mode"]
 }

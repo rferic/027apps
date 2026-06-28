@@ -19,3 +19,26 @@ const defaultTabs = [
 export const Default: Story = {
   args: { tabs: defaultTabs },
 }
+
+export const ThreeTabs: Story = {
+  args: {
+    tabs: [
+      { id: 'tab1', label: 'First' },
+      { id: 'tab2', label: 'Second' },
+      { id: 'tab3', label: 'Third' },
+    ],
+    defaultTab: 'tab1',
+  },
+}
+
+export const ManyTabs: Story = {
+  args: {
+    tabs: [
+      { id: 'expenses', label: 'Expenses' },
+      { id: 'balances', label: 'Balances' },
+      { id: 'stats', label: 'Stats' },
+      { id: 'settings', label: 'Settings' },
+    ],
+    defaultTab: 'expenses',
+  },
+}

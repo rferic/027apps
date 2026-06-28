@@ -12,6 +12,18 @@ const meta: Meta<typeof DsModal> = {
 export default meta
 type Story = StoryObj<typeof DsModal>
 
+const DsModalContent = () => (
+  <div>
+    <p style={{ color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+      This is the modal content. Click the backdrop or press Escape to close.
+    </p>
+    <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
+      <DsButton>Confirm</DsButton>
+      <DsButton variant="secondary">Cancel</DsButton>
+    </div>
+  </div>
+)
+
 export const Default: Story = {
   render: () => {
     const [open, setOpen] = useState(false)
@@ -28,6 +40,39 @@ export const Default: Story = {
           </div>
         </DsModal>
       </>
+    )
+  },
+}
+
+export const Small: Story = {
+  render: () => {
+    const [open, setOpen] = useState(true)
+    return (
+      <DsModal open={open} onClose={() => setOpen(false)} title="Small Modal" maxWidth={400}>
+        <DsModalContent />
+      </DsModal>
+    )
+  },
+}
+
+export const Large: Story = {
+  render: () => {
+    const [open, setOpen] = useState(true)
+    return (
+      <DsModal open={open} onClose={() => setOpen(false)} title="Large Modal" maxWidth={700}>
+        <DsModalContent />
+      </DsModal>
+    )
+  },
+}
+
+export const WithoutTitle: Story = {
+  render: () => {
+    const [open, setOpen] = useState(true)
+    return (
+      <DsModal open={open} onClose={() => setOpen(false)}>
+        <DsModalContent />
+      </DsModal>
     )
   },
 }

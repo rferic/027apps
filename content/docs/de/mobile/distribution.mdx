@@ -1,0 +1,192 @@
+---
+title: Verteilung
+description: Mobile-App-Build, Versionsverwaltung, EAS Update, Dual-App-Varianten und Verteilungsworkflows.
+---
+
+# Verteilung
+
+Die mobile 027Apps-App verwendet Expo Application Services (EAS) zum Erstellen, Aktualisieren und Verteilen der Anwendung.
+
+---
+
+## Dual-App-Varianten
+
+Die App verwendet `app.config.ts` (dynamische Konfiguration), um je nach Umgebungsvariable `EXPO_PUBLIC_APP_VARIANT` zwei verschiedene Anwendungen zu erzeugen:
+
+| | Beta | Produktion |
+|---|---|---|
+| App-Name | 027Apps Beta | 027Apps |
+| Paket | `com.rferic.apps027.beta` | `com.rferic.apps027` |
+| Schema | `027apps-beta://` | `027apps://` |
+| Standard-API-URL | Vercel Preview-URL | `https://027apps.com` |
+| OTA-Kanal | `beta` | `production` |
+| Modulsichtbarkeit | Alle (inkl. Beta-Module) | Nur stabile Module |
+
+### Wie es funktioniert
+
+```ts
+// app.config.ts (vereinfacht)
+const VARIANT = process.env.EXPO_PUBLIC_APP_VARIANT ?? 'production'
+const isBeta = VARIANT === 'beta'
+
+export default { expo: {
+  name: isBeta ? '027Apps Beta' : '027Apps',
+  ios: { bundleIdentifier: isBeta ? 'com.rferic.apps027.beta' : 'com.rferic.apps027' },
+  android: { package: isBeta ? 'com.rferic.apps027.beta' : 'com.rferic.apps027' },
+  extra: {
+    appVariant: isBeta ? 'beta' : 'production',
+    defaultApiUrl: isBeta ? 'https://027apps.vercel.app' : 'https://027apps.com',
+  },
+}}
+```
+
+Beide Varianten können gleichzeitig auf demselben Gerät installiert werden.
+
+---
+
+## Build-Profile
+
+Vier Build-Profile sind in `eas.json` definiert:
+
+| Profil | Variante | Dev Client | Verteilung | Kanal |
+|---|---|---|---|---|
+| `development` | beta | Ja | Internal | — |
+| `beta` | beta | Nein | Internal | `beta` |
+| `preview` | beta | Nein | Internal | `beta` |
+| `production` | production | Nein | — | `production` |
+
+### eas.json
+
+```json
+{
+  "build": {
+    "beta": {
+      "channel": "beta",
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_APP_VARIANT": "beta",
+        "EXPO_PUBLIC_BETA_API_URL": "https://027apps.vercel.app",
+        "EXPO_PUBLIC_EAS_PROJECT_ID_BETA": "${EXPO_PUBLIC_EAS_PROJECT_ID_BETA}",
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "${EXPO_PUBLIC_EAS_PROJECT_ID}"
+      }
+    },
+    "production": {
+      "channel": "production",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_APP_VARIANT": "production",
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "${EXPO_PUBLIC_EAS_PROJECT_ID}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Versionsverwaltung
+
+Die App-Version wird in `app.config.ts` unter `expo.version` definiert.
+
+### Versionsbeschränkungen
+
+Jede Variante hat ihre eigene Versionsschiene auf dem Server:
+
+| Variante | Server-Schlüssel | Endpunkt |
+|---|---|---|
+| Produktion | `app_settings.mobile_version` | `GET /api/v1/mobile/version` |
+| Beta | `app_settings.mobile_version_beta` | `GET /api/v1/mobile/version?variant=beta` |
+
+Beim Start ruft die App den variantenabhängigen Endpunkt auf. Wenn `current_version < min_version`, blockiert `UpdateRequiredScreen` die UI.
+
+### Eine Version veröffentlichen (über CI)
+
+1. Gehe zu GitHub Actions → **Mobile Build (APK)**
+2. Wähle das Profil: `beta` oder `production`
+3. Gib den Versions-Tag ein (z. B. `1.0.1`)
+4. Führe den Workflow aus
+
+Der CI-Workflow automatisch:
+1. Erstellt die APK über EAS Build
+2. Lädt das Artefakt herunter
+3. Lädt es in Supabase Storage hoch (`apk-releases/` für Produktion, `apk-releases/beta/` für Beta)
+4. Aktualisiert `app_settings` mit dem neuen Versionsdatensatz
+
+Keine manuellen Uploads erforderlich.
+
+---
+
+## EAS Update (OTA)
+
+Over-the-Air-Updates senden JavaScript-/Asset-Änderungen ohne einen neuen nativen Build.
+
+### Kanäle
+
+Jede Variante abonniert ihren eigenen OTA-Kanal (definiert in `eas.json` über die Eigenschaft `channel`):
+
+- `production`-Kanal → Produktions-Builds erhalten OTA-Updates.
+- `beta`-Kanal → Beta-Builds erhalten OTA-Updates.
+
+### Veröffentlichung
+
+Updates werden über `mobile-ota.yml` beim Push auf `main` mit Änderungen in `mobile/` veröffentlicht. Der Workflow veröffentlicht auf **beiden** Kanälen und stellt sicher, dass beide Varianten die gleichen JS-Updates erhalten:
+
+```yaml
+# mobile-ota.yml (vereinfacht)
+strategy:
+  matrix:
+    channel: [production, beta]
+steps:
+  - run: npx eas update --channel ${{ matrix.channel }}
+```
+
+### Manuelles OTA
+
+```bash
+cd mobile
+npx eas update --channel beta --message "Fix: Anmeldebildschirm"
+npx eas update --channel production --message "Fix: Anmeldebildschirm"
+```
+
+---
+
+## CI/CD-Pipelines
+
+| Workflow | Auslöser | Aktionen |
+|---|---|---|
+| `mobile-ci.yml` | PR, der `mobile/` oder `packages/contracts/` betrifft | Typprüfung + Tests |
+| `mobile-ota.yml` | Push auf `main` mit `mobile/`-Änderungen | Typprüfung + OTA auf beide Kanäle |
+| `mobile-build.yml` | Manuell `workflow_dispatch` | EAS Build + automatischer Upload in Storage + Versionsupdate |
+
+### Erforderliche Secrets
+
+- `EXPO_TOKEN` — Persönliches Expo-Zugriffstoken
+- `SUPABASE_SERVICE_ROLE_KEY` — Für Storage-Uploads
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase-Projekt-URL
+- `API_BASE_URL` — Für den Admin-Upload-Endpunkt
+
+---
+
+## Automatische Bereinigung
+
+Push-Token werden automatisch bereinigt:
+- Verwaiste Token (Benutzer gelöscht) werden entfernt.
+- Token, die seit 90 Tagen nicht aktualisiert wurden, werden entfernt.
+
+---
+
+## Umgebungsvariablen
+
+| Variable | Zweck | Wo |
+|---|---|---|
+| `EXPO_PUBLIC_APP_VARIANT` | Bestimmt Beta- vs Produktions-Build | `app.config.ts` |
+| `EXPO_PUBLIC_BETA_API_URL` | Standard-API-URL für Beta-Builds | `app.config.ts` |
+| `EXPO_PUBLIC_SUPABASE_URL` | Supabase-Projekt-URL | `supabase.ts` |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Anonymer Supabase-Schlüssel | `supabase.ts` |
+| `EXPO_PUBLIC_EAS_PROJECT_ID` | Produktions-EAS-Projekt | `app.config.ts` |
+| `EXPO_PUBLIC_EAS_PROJECT_ID_BETA` | Beta-EAS-Projekt | `app.config.ts` |
+
+## Self-Hosting
+
+Benutzer konfigurieren die Server-URL im Willkommens-/Onboarding-Bildschirm oder in den Einstellungen. Die App wird mit der Standard-Produktions-URL ausgeliefert. Selbst gehostete Instanzen werden vollständig unterstützt — geben Sie einfach die benutzerdefinierte URL während des Onboardings ein.

@@ -116,3 +116,55 @@ cd mobile && npx vitest          # Watch mode
 | URL default | Preview Vercel | `027apps.com` |
 | Módulos beta | ✅ visibles | ❌ ocultos |
 | OTA channel | `beta` | `production` |
+
+## Module Auto-Discovery
+
+Mobile modules are auto-discovered via the app registry. Each app (Todo, Inspiration, Split Expenses) exports a module config:
+
+```typescript
+// apps/split-expenses/mobile.ts
+export default {
+  slug: 'split-expenses',
+  name: 'Split Expenses',
+  icon: 'DollarSign',
+  screen: 'modules/split-expenses',
+}
+```
+
+The `ModuleRegistry` in `mobile/src/lib/modules/registry.ts` scans installed apps and makes them available in the bottom tab navigator.
+
+## API Client Layer
+
+Mobile uses a custom API client (`mobile/src/lib/api-helpers.ts`) that:
+- Automatically resolves the server URL (configured in Welcome screen)
+- Attaches the Supabase JWT token to every request
+- Handles group slug routing automatically
+- Provides typed response helpers
+
+To use it:
+```typescript
+import { listGroups } from '@/lib/api-helpers'
+const groups = await listGroups()
+```
+
+## i18n Integration
+
+Mobile uses `i18next` + `react-i18next` (different from web's `next-intl`). Keys live in `mobile/src/i18n/missing-keys.ts` and support 6 languages.
+
+Usage:
+```typescript
+import { useTranslation } from 'react-i18next'
+const { t } = useTranslation()
+<Text>{t('mobile.splitExpenses.groups.title')}</Text>
+```
+
+Variables use double curly braces: `'Hello {{name}}'`
+
+## Custom Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `useAuth` | Sign in, sign up, sign out, session management |
+| `useTranslation` | i18n with current language |
+| `useNotifications` | Push notification handling + deep linking |
+| `useSplitExpenses` | Full CRUD + state management for split expenses |

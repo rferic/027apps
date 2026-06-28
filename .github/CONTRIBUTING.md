@@ -39,3 +39,28 @@ For one-off commits outside a sprint, `type(scope): message` (without the `Sprin
 
 ## Getting Started
 See [README.md](../README.md) for local setup instructions.
+
+## Development Workflow
+
+1. Find or create a GitHub issue
+2. Create a feature/fix branch from `main`
+3. Implement + add tests
+4. Run pre-check: `pnpm install --frozen-lockfile && pnpm lint && pnpm tsc --noEmit && pnpm test --run && pnpm build`
+5. Push and create a PR
+6. After review + preview verification, squash merge to `main`
+
+## Code Style
+
+- TypeScript strict mode
+- Use the Design System (`src/components/ds/`) — never duplicate components
+- Follow i18n rules (see `AGENTS.md`)
+- Use named exports (`export function`), not default exports
+- Prefer `async/await` over raw promises
+
+## Finding Issues
+
+Issues are tagged with `type:` (bug/feature/new_app), `status:` (pending/reviewing/approved), and `sprint:` labels. Good first issues have the `sprint:` label.
+
+## Review Expectations
+
+PRs require: lint passes, tsc passes, tests pass, build succeeds, preview deploy verified. Use the pre-push hook which runs all checks automatically.

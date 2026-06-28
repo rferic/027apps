@@ -26,6 +26,18 @@ interface PushTokenRow {
   token: string
 }
 
+/**
+ * Sends push notifications to multiple users via Expo Push API.
+ *
+ * Fetches push tokens from the database for the given user IDs,
+ * checks per-user notification preferences, validates Expo tokens,
+ * chunks messages (max 100 per chunk), and sends via Expo SDK.
+ *
+ * Fire-and-forget pattern — callers should use .catch() rather than await.
+ *
+ * @param userIds - Array of user IDs to notify
+ * @param payload - Push notification content (title, body, type, data)
+ */
 export async function sendPushNotifications(
   userIds: string[],
   payload: PushPayload,
@@ -96,6 +108,10 @@ export async function sendPushNotifications(
   }
 }
 
+/**
+ * Convenience wrapper that sends a push notification to a single user.
+ * Equivalent to `sendPushNotifications([userId], payload)`.
+ */
 export async function sendPushToUser(
   userId: string,
   payload: PushPayload,

@@ -8,6 +8,7 @@ const resend = process.env.RESEND_API_KEY
 
 let cachedTransporter: any = null // eslint-disable-line @typescript-eslint/no-explicit-any
 
+/** Invalidates the cached SMTP transporter. Call after SMTP config changes. */
 export function invalidateEmailTransporter(): void {
   if (cachedTransporter) {
     try { cachedTransporter.close() } catch { /* ignore */ }
@@ -15,12 +16,28 @@ export function invalidateEmailTransporter(): void {
   }
 }
 
+/** Parameters for sending an email notification. */
 interface SendEmailParams {
+  /** Recipient email address */
   to: string
+  /** Email subject line */
   subject: string
+  /** HTML body content */
   html: string
 }
 
+/**
+ * Sends an email notification using the configured provider.
+ *
+ * Provider selection order:
+ * 1. Custom SMTP (if configured in admin notification settings)
+ * 2. Resend (if RESEND_API_KEY is set)
+ *
+ * Falls back silently if no provider is configured.
+ * Reuses a pooled SMTP transporter for efficiency.
+ *
+ * @param params - Email content and recipient
+ */
 export async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> {
   const enabled = await isEmailEnabled()
   if (!enabled) {

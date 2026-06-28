@@ -35,3 +35,52 @@ const columns = [
 export const Default: Story = {
   args: { columns, data },
 }
+
+interface EmptyRow { name: string; role: string }
+
+export const Empty: Story = {
+  args: {
+    columns: [
+      { header: 'Name', accessor: (r: EmptyRow) => r.name },
+      { header: 'Role', accessor: (r: EmptyRow) => r.role },
+    ],
+    data: [] as EmptyRow[],
+  },
+}
+
+interface ManyRow { id: number; name: string; email: string; role: string }
+
+export const ManyRows: Story = {
+  args: {
+    columns: [
+      { header: 'ID', accessor: (r: ManyRow) => r.id },
+      { header: 'Name', accessor: (r: ManyRow) => r.name },
+      { header: 'Email', accessor: (r: ManyRow) => r.email },
+      { header: 'Role', accessor: (r: ManyRow) => r.role },
+    ],
+    data: [
+      { id: 1, name: 'Alice', email: 'alice@example.com', role: 'Admin' },
+      { id: 2, name: 'Bob', email: 'bob@example.com', role: 'Member' },
+      { id: 3, name: 'Charlie', email: 'charlie@example.com', role: 'Member' },
+      { id: 4, name: 'Diana', email: 'diana@example.com', role: 'Member' },
+      { id: 5, name: 'Eve', email: 'eve@example.com', role: 'Member' },
+      { id: 6, name: 'Frank', email: 'frank@example.com', role: 'Admin' },
+    ] as ManyRow[],
+  },
+}
+
+interface ClickableRow { name: string; role: string }
+
+export const Clickable: Story = {
+  args: {
+    columns: [
+      { header: 'Name', accessor: (r: ClickableRow) => r.name },
+      { header: 'Role', accessor: (r: ClickableRow) => r.role },
+    ],
+    data: [
+      { name: 'Alice', role: 'Admin' },
+      { name: 'Bob', role: 'Member' },
+    ] as ClickableRow[],
+    onRowClick: (row: ClickableRow) => alert(`Clicked ${row.name}`),
+  },
+}
