@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, Linking } from 'react-native'
+import { APP_NAME, BRAND_COLOR } from '@/lib/beta'
 
 interface Props {
   downloadUrl: string
@@ -16,7 +17,7 @@ export function UpdateRequiredScreen({ downloadUrl, latestVersion }: Props) {
 
   return (
     <View className="flex-1 items-center justify-center bg-white px-6">
-      <Text className="text-3xl font-bold text-[#9B1C1C] mb-2">027Apps</Text>
+      <Text className="text-3xl font-bold mb-2" style={{ color: BRAND_COLOR }}>{APP_NAME}</Text>
       <Text className="text-base text-slate-500 mb-10 text-center">
         Update Required
       </Text>
@@ -35,7 +36,8 @@ export function UpdateRequiredScreen({ downloadUrl, latestVersion }: Props) {
 
       <TouchableOpacity
         onPress={handleDownload}
-        className="bg-[#9B1C1C] rounded-xl px-8 py-4 mb-4 w-full max-w-sm items-center"
+        className="rounded-xl px-8 py-4 mb-4 w-full max-w-sm items-center"
+        style={{ backgroundColor: BRAND_COLOR }}
       >
         <Text className="text-white font-semibold text-base">Download Update</Text>
       </TouchableOpacity>

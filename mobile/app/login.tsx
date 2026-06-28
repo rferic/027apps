@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvo
 import { Link, useRouter, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useAuth } from '@/hooks/useAuth'
+import { APP_NAME, BRAND_COLOR } from '@/lib/beta'
 
 export default function LoginScreen() {
   const { t } = useTranslation()
@@ -53,7 +54,7 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View className="items-center mb-8">
-          <Text className="text-3xl font-bold text-[#9B1C1C]">027Apps</Text>
+          <Text className="text-3xl font-bold" style={{ color: BRAND_COLOR }}>{APP_NAME}</Text>
           <Text className="text-base text-slate-500 mt-2">{t('auth.subtitle')}</Text>
         </View>
 

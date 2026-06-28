@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router'
 import { useTranslation } from '@/hooks/useTranslation'
 import { setServerUrl, getDefaultUrl } from '@/lib/server-url'
+import { APP_NAME, BRAND_COLOR } from '@/lib/beta'
 
 export default function WelcomeScreen() {
   const { t } = useTranslation()
@@ -63,7 +64,7 @@ export default function WelcomeScreen() {
       >
         {/* Logo & Tagline */}
         <View className="items-center mb-10">
-          <Text className="text-4xl font-bold text-[#9B1C1C] mb-3">{t('mobile.welcome.title')}</Text>
+          <Text className="text-4xl font-bold mb-3" style={{ color: BRAND_COLOR }}>{APP_NAME}</Text>
           <Text className="text-lg text-slate-500 text-center">
             {t('mobile.welcome.subtitle')}
           </Text>

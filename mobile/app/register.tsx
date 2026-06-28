@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { Link, useRouter } from 'expo-router'
 import { useAuth } from '@/hooks/useAuth'
+import { APP_NAME, BRAND_COLOR } from '@/lib/beta'
 
 export default function RegisterScreen() {
   const router = useRouter()
@@ -62,7 +63,7 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View className="items-center mb-8">
-          <Text className="text-3xl font-bold text-[#9B1C1C]">027Apps</Text>
+          <Text className="text-3xl font-bold" style={{ color: BRAND_COLOR }}>{APP_NAME}</Text>
           <Text className="text-base text-slate-500 mt-2">Create your account</Text>
         </View>
 

@@ -8,7 +8,7 @@ export default {
     slug: isBeta ? '027apps-beta' : '027apps',
     version: '1.0.0',
     orientation: 'portrait',
-    icon: './assets/icon.png',
+    icon: isBeta ? './assets/icon-beta.png' : './assets/icon.png',
     scheme: isBeta ? '027apps-beta' : '027apps',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
@@ -24,7 +24,7 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: './assets/adaptive-icon.png',
+        foregroundImage: isBeta ? './assets/android-icon-foreground-beta.png' : './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
       package: isBeta ? 'com.rferic.apps027.beta' : 'com.rferic.apps027',

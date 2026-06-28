@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { Link, useRouter, useLocalSearchParams } from 'expo-router'
 import { supabase } from '@/lib/supabase'
+import { APP_NAME, BRAND_COLOR } from '@/lib/beta'
 
 export default function ResetPasswordScreen() {
   const router = useRouter()
@@ -54,7 +55,7 @@ export default function ResetPasswordScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View className="items-center mb-8">
-          <Text className="text-3xl font-bold text-[#9B1C1C]">027Apps</Text>
+          <Text className="text-3xl font-bold" style={{ color: BRAND_COLOR }}>{APP_NAME}</Text>
           <Text className="text-base text-slate-500 mt-2">Set new password</Text>
         </View>
 

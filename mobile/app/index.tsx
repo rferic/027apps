@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { hasServerUrl } from '@/lib/server-url'
 import { checkAppVersion, isUpdateRequired } from '@/lib/version-check'
 import { UpdateRequiredScreen } from '@/components/UpdateRequiredScreen'
+import { APP_NAME, BRAND_COLOR } from '@/lib/beta'
 
 interface VersionInfo {
   latest_version: string
@@ -69,9 +70,9 @@ export default function IndexScreen() {
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
-        <Text className="text-3xl font-bold text-[#9B1C1C] mb-3">027Apps</Text>
+        <Text className="text-3xl font-bold mb-3" style={{ color: BRAND_COLOR }}>{APP_NAME}</Text>
         <Text className="text-base text-slate-500 mb-6">Mobile App</Text>
-        <ActivityIndicator size="large" color="#9B1C1C" />
+        <ActivityIndicator size="large" color={BRAND_COLOR} />
       </View>
     )
   }
