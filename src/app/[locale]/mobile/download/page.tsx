@@ -59,7 +59,7 @@ export default async function MobileDownloadPage({ params }: Props) {
 
       <p className="mt-10 text-xs text-slate-400 text-center max-w-sm">
         APKs are signed and distributed directly. No Play Store required.
-        Enable "Install from unknown sources" in your device settings.
+        Enable &ldquo;Install from unknown sources&rdquo; in your device settings.
       </p>
     </div>
   )

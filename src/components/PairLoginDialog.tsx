@@ -53,7 +53,8 @@ export function PairLoginDialog({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(timer)
   }, [session])
 
-  useEffect(() => { initSession() }, [initSession])
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+  useEffect(() => { initSession() }, [])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
