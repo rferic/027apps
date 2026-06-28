@@ -5,6 +5,7 @@ import { TodoAssignedEmail } from '@/emails/todo-assigned'
 import { TodoStatusChangeEmail } from '@/emails/todo-status-change'
 import { sendPushToUser, sendPushNotifications } from '@/lib/push'
 import { NOTIFICATION_TYPES } from '@/lib/push'
+import { getUserEmailMap } from '@/lib/use-cases/user-emails'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -195,32 +196,6 @@ async function getUserEmail(userId: string): Promise<{ email: string } | null> {
   const map = await getUserEmailMap([userId])
   const email = map.get(userId)
   return email ? { email } : null
-}
-
-async function getUserEmailMap(userIds: string[]): Promise<Map<string, string>> {
-  if (userIds.length === 0) return new Map()
-
-  const supabase = createAdminClientUntyped()
-  const map = new Map<string, string>()
-  const targetSet = new Set(userIds)
-
-  let page = 1
-  const perPage = 500
-  while (targetSet.size > 0) {
-    const { data } = await supabase.auth.admin.listUsers({ page, perPage })
-    if (!data?.users?.length) break
-
-    for (const user of data.users) {
-      if (targetSet.has(user.id) && user.email) {
-        map.set(user.id, user.email)
-        targetSet.delete(user.id)
-      }
-    }
-    if (data.users.length < perPage) break
-    page++
-  }
-
-  return map
 }
 
 async function getPrefs(userId: string): Promise<{ on_assigned: boolean; on_status_change: boolean } | null> {

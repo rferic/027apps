@@ -7,6 +7,7 @@ import InspirationClosureEmail, { CLOSURE_SUBJECT } from '@/emails/inspiration-c
 import InspirationNewIdeaEmail, { NEW_IDEA_SUBJECT } from '@/emails/inspiration-new-idea'
 import { sendPushNotifications } from '@/lib/push'
 import { NOTIFICATION_TYPES } from '@/lib/push'
+import { getUserEmailMap } from '@/lib/use-cases/user-emails'
 
 type RequestInfo = {
   id: string
@@ -64,33 +65,6 @@ async function getRecipients(requestId: string, excludeUserId?: string): Promise
 
   if (excludeUserId) return unique.filter((id) => id !== excludeUserId)
   return unique
-}
-
-async function getUserEmailMap(userIds: string[]): Promise<Map<string, string>> {
-  if (userIds.length === 0) return new Map()
-
-  const client = createAdminClientUntyped()
-  const map = new Map<string, string>()
-  const targetSet = new Set(userIds)
-
-  // Fetch all users via listUsers (paginated) and build the map
-  let page = 1
-  const perPage = 500
-  while (targetSet.size > 0) {
-    const { data } = await client.auth.admin.listUsers({ page, perPage })
-    if (!data?.users?.length) break
-
-    for (const user of data.users) {
-      if (targetSet.has(user.id) && user.email) {
-        map.set(user.id, user.email)
-        targetSet.delete(user.id)
-      }
-    }
-    if (data.users.length < perPage) break
-    page++
-  }
-
-  return map
 }
 
 async function getUserDisplayName(userId: string): Promise<string> {

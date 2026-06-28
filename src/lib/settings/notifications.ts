@@ -1,6 +1,9 @@
 import { createAdminClientUntyped } from '@/lib/supabase/admin'
+import { cache } from '@/lib/redis'
 
 const SETTINGS_KEY = 'notifications_config'
+const CACHE_KEY = 'setting:notifications_config'
+const CACHE_TTL = 300
 
 export interface SmtpConfig {
   host: string
@@ -24,6 +27,9 @@ const DEFAULTS: NotificationsConfig = {
 }
 
 export async function getNotificationsConfig(): Promise<NotificationsConfig> {
+  const cached = await cache.get<NotificationsConfig>(CACHE_KEY)
+  if (cached) return cached
+
   const db = createAdminClientUntyped()
   const { data } = await db
     .from('app_settings')
@@ -31,6 +37,12 @@ export async function getNotificationsConfig(): Promise<NotificationsConfig> {
     .eq('key', SETTINGS_KEY)
     .maybeSingle()
 
+  const parsed = parseConfig(data)
+  await cache.set(CACHE_KEY, parsed, CACHE_TTL)
+  return parsed
+}
+
+function parseConfig(data: { value: unknown } | null | undefined): NotificationsConfig {
   if (!data?.value || typeof data.value !== 'object') return DEFAULTS
 
   const v = data.value as Record<string, unknown>
@@ -86,5 +98,6 @@ export async function updateNotificationsConfig(
     )
 
   if (error) return { error: error.message }
+  await cache.del(CACHE_KEY)
   return {}
 }
