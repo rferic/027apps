@@ -3,7 +3,13 @@ node_modules/
 !.env.example
 !.env*.example
 apps/android/.gradle/
-apps/android/build/
+apps/android/**/build/
+apps/android/local.properties
+apps/android/.idea/
+*.jks
+*.keystore
+apps/android/keystore/*
+!apps/android/keystore/README.md
 .next/
 coverage/
 .DS_Store
