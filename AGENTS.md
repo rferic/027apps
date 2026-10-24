@@ -4,7 +4,7 @@ Este fichero se carga en cada sesión. Es obligatorio, no orientativo. Si algo a
 
 ## Misión
 
-027Apps: plataforma familiar modular y autoalojable. Panel web (`apps/admin`, Next.js + Supabase) y app Android (`apps/android`, Kotlin). Docs y producto en español; código, commits y títulos de PR en inglés.
+027Apps: plataforma familiar modular y autoalojable. Panel web (`apps/admin`, Next.js + Supabase) y app Android (`apps/android`, Kotlin). El README de raíz se escribe en inglés; documentación interna y specs en español; código, commits y títulos de PR en inglés. El producto se localiza según sus idiomas soportados.
 Todo cambio sigue spec → plan → implementación con TDD → revisión → auditoría de seguridad. Nada se implementa sin spec aprobada.
 
 ## Mapa de docs (leer en este orden)
