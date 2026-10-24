@@ -2,7 +2,7 @@
 id: sprint01-task-08
 titulo: Tokens de diseño base en el admin (según identidad elegida)
 area: fundaciones
-estado: pendiente
+estado: test
 plan: docs/superpowers/plans/2026-10-24-sprint-01-fundaciones.md
 ---
 
