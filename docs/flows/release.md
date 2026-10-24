@@ -7,13 +7,14 @@ Cómo se versiona y publica una versión de la app Android. **La mecánica (jobs
 - Versiones `MAJOR.MINOR.PATCH` ([semver](https://semver.org/lang/es/)): `fix` → PATCH, `feat` → MINOR, cambio incompatible (`!` / `BREAKING CHANGE`) → MAJOR. El tipo sale de los commits convencionales mergeados desde la versión anterior.
 - `versionName` = `X.Y.Z`; `versionCode` es un entero que **siempre sube** (Android no permite bajar). Ambos en `apps/android/app/build.gradle.kts`.
 - Tag `vX.Y.Z`. Un tag con `-` (p. ej. `v0.1.0-sprint1`) se publica como pre-release.
+- **TODO:** automatizar el versionado (calcular el semver desde los commits y subir `versionName`/`versionCode`). Hoy es manual: lo propone el orquestador (paso 1) y lo aplica el implementador (paso 2).
 
 ## Pasos
 
 | # | Paso | Ejecuta | Revisa / verifica | Decide el usuario |
 |---|---|---|---|---|
 | 1 | **Proponer versión**: resumen de cambios desde el último tag y número semver resultante | Orquestador | Commits convencionales desde el último tag | **Puerta: aprueba publicar y la versión** |
-| 2 | **Subir `versionCode` y `versionName`** en una rama `chore/*`, PR con título `chore(release): vX.Y.Z`, flujo de [`feature.md`](feature.md) (tipo infra/config) | Implementador | CI (`admin`, `android`, `guard-secrets`, `commitlint`); QA y auditoría según DoD | **Puerta: orden de merge** |
+| 2 | **Subir `versionCode` y `versionName`** en una rama `chore/*`, PR con título `chore(release): vX.Y.Z`, flujo de [`feature.md`](feature.md) (tipo infra/config); **la puerta del paso 1 sustituye a la de spec/plan** en los bumps de versión | Implementador | CI (`admin`, `android`, `guard-secrets`, `commitlint`); QA y auditoría según DoD | **Puerta: orden de merge** |
 | 3 | **Crear y empujar el tag** sobre el commit de `main` mergeado: `git tag vX.Y.Z && git push origin vX.Y.Z` | Orquestador | — | **Puerta: orden explícita** (el tag publica un binario instalable) |
 | 4 | **Job `release`**: espera los gates, comprueba secrets, compila `assembleRelease` firmado, `apksigner verify`, crea el GitHub Release con la APK y notas autogeneradas | GitHub Actions | Falla si falta un secret, si la firma no verifica o si no hay APK ([cicd.md](cicd.md#flujo-nueva-versión)) | — |
 | 5 | **Verificación extremo a extremo**: descargar la APK del Release, comprobar el certificado propio, instalar y abrir la app ([cicd.md](cicd.md#verificación-de-extremo-a-extremo-tag--instalación)) | Orquestador (o el usuario en dispositivo) | `apksigner verify --print-certs` | **Puerta: acepta la APK instalada** |
@@ -32,7 +33,7 @@ Hasta que el usuario cree el keystore y suba los secrets ([cicd.md, sección A](
 
 ## Flujo de git (pendiente de decisión)
 
-**Sin decidir:** el modelo de ramas — rama por sprint (con commits por tarea y un PR único, patrón del sprint 01) frente a rama por tarea —, además de protección de `main` y relación de tags con `main`. Es el elemento «Flujo de git» del backlog de la [spec de diseño §11](../superpowers/specs/2026-10-24-027apps-design.md) y debe documentarse en `docs/flows/git.md` antes del Core. Hasta entonces rigen las reglas de [`AGENTS.md`](../../AGENTS.md#git): rama de trabajo (no `main`), un PR por cambio, squash merge, sin merge ni force push sin orden del usuario. Estos flujos no asumen el modelo: donde dicen «PR» y «merge», valen para ambos.
+**Sin decidir:** el modelo de ramas — rama por sprint (con commits por tarea y un PR único, patrón del sprint 01) frente a rama por tarea —, además de protección de `main` y relación de tags con `main`. Es el elemento «Flujo de git» del backlog de la [spec de diseño §11](../superpowers/specs/2026-10-24-027apps-design.md) y debe documentarse en `docs/flows/git.md` antes del Core. Hasta entonces rigen las reglas de [`AGENTS.md`](../../AGENTS.md#git): rama de trabajo (no `main`), un PR por cambio, squash merge, sin merge ni force push sin orden del usuario. Mientras tanto, con rama de sprint (patrón vigente), `finalizada` se fija al cumplir el DoD completo (incluida la auditoría) mientras el trabajo vive en la rama de sprint; el merge del PR del sprint a `main` cierra el sprint. El modelo definitivo se fija en `docs/flows/git.md` (pendiente de decisión — **TODO**). Misma nota en [`feature.md`](feature.md#pasos).
 
 ## Criterio de cierre
 
