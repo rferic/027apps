@@ -1,0 +1,10 @@
+node_modules/
+.env*
+!.env.example
+!.env*.example
+apps/android/.gradle/
+apps/android/build/
+.next/
+coverage/
+.DS_Store
+.superpowers/
