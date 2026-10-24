@@ -59,13 +59,18 @@ jobs:
           # Only file names are printed, never the matched content.
           fail=0
 
-          tracked=$(git ls-files | grep -E '(^|/)\.env($|\.)|\.(jks|keystore|p12)$' | grep -vE '\.env(\.[^/]+)?\.example$|(^|/)\.env\.example$' || true)
+          tracked=$(git ls-files | grep -E '(^|/)\.env($|\.)|\.(jks|keystore|p12|pem|key|p8)$' | grep -vE '\.env(\.[^/]+)?\.example$|(^|/)\.env\.example$' || true)
           if [ -n "$tracked" ]; then
             echo "::error::Tracked env/keystore files:"; echo "$tracked"; fail=1
           fi
 
-          # Supabase personal access tokens, any JWT (anon/service keys), non-empty service-role assignments
+          # Supabase personal access tokens and sb_secret_ keys, any JWT (anon/service keys),
+          # non-empty service-role assignments, PEM private key blocks.
+          # The patterns below do not match their own source text (the bracket
+          # classes break the literal), so ci.yml needs no exclusion.
           hits=$(git grep -I -l -i -E -e 'sbp_[A-Za-z0-9]{20,}' \
+            -e 'sb_secret_[A-Za-z0-9_-]{20,}' \
+            -e '-----BEGIN [A-Z ]*PRIVATE KEY-----' \
             -e 'eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}' \
             -e 'SERVICE_ROLE_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9._-]{20,}' || true)
           if [ -n "$hits" ]; then
@@ -98,6 +103,7 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: [admin, android, guard-secrets]
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
     defaults:
@@ -107,6 +113,16 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      # Only commits reachable from main may be released, whoever pushed the tag.
+      - name: Tagged commit is on main
+        working-directory: .
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tagged commit is not an ancestor of main: release refused."
+            exit 1
+          fi
 
       # Secrets are exposed only to the steps that need them, never echoed.
       - name: Check signing secrets

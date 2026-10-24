@@ -20,13 +20,13 @@ keytool -genkeypair -v \
 
 Adjunta `027apps-release.jks` y las dos contraseñas + el alias (`027apps`) en tu gestor de contraseñas.
 
-## 3. Subir a GitHub Secrets
+## 3. Subir a GitHub Secrets (Environment `release`, solo tras proteger `main` y los tags `v*`; ver docs/flows/cicd.md)
 
 ```bash
-gh secret set ANDROID_KEYSTORE_BASE64 --repo rferic/027apps < <(base64 < 027apps-release.jks)
-gh secret set ANDROID_KEYSTORE_PASSWORD --repo rferic/027apps
-gh secret set ANDROID_KEY_ALIAS --repo rferic/027apps --body 027apps
-gh secret set ANDROID_KEY_PASSWORD --repo rferic/027apps
+gh secret set ANDROID_KEYSTORE_BASE64 --env release --repo rferic/027apps < <(base64 < 027apps-release.jks)
+gh secret set ANDROID_KEYSTORE_PASSWORD --env release --repo rferic/027apps
+gh secret set ANDROID_KEY_ALIAS --env release --repo rferic/027apps --body 027apps
+gh secret set ANDROID_KEY_PASSWORD --env release --repo rferic/027apps
 ```
 
 Los comandos sin `--body` ni redirección piden el valor por stdin (no queda en el historial del shell).

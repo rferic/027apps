@@ -8,6 +8,10 @@ apps/android/local.properties
 apps/android/.idea/
 *.jks
 *.keystore
+*.pem
+*.p12
+*.p8
+*.key
 apps/android/keystore/*
 !apps/android/keystore/README.md
 .next/

@@ -40,9 +40,9 @@ Todos corren en `ubuntu-latest` con permisos `contents: read` (solo `release` su
 |---|---|---|---|
 | `admin` | checkout → pnpm (versión de `packageManager`) → Node 22 con caché → `pnpm install --frozen-lockfile` → `lint` → `tsc` → `test` → `build` | GitHub Actions | El lockfile está sincronizado; ESLint, tipos (`next typegen && tsc --noEmit`), vitest y `next build` pasan. Sin env vars de Supabase: `/api/health` responde 503 `degraded`, es lo esperado y el job **no** debe tener secrets para "arreglarlo". |
 | `android` | checkout → JDK 17 (temurin) → Android SDK con licencias aceptadas (`android-actions/setup-android`; AGP descarga la plataforma 37) → `gradle/actions/setup-gradle` (caché; `apps/android/gradle.properties` sube el heap del daemon a 3 GB porque D8 se quedaba sin memoria con el valor por defecto en los runners) → `./gradlew :app:testDebugUnitTest :app:assembleDebug` → sube el artifact `apk-debug` | GitHub Actions | Tests unitarios pasan, el APK debug se genera y queda descargable 90 días (retención por defecto) para probar el PR en un dispositivo. |
-| `guard-secrets` | checkout → script que falla si git rastrea `.env*` (salvo `*.example`), `*.jks`/`*.keystore`/`*.p12`, o si el árbol contiene valores con forma de secreto (`sbp_…`, cualquier JWT —las claves anon/service de Supabase lo son—, `SERVICE_ROLE_KEY=<valor>`) | GitHub Actions | Ningún secreto ni keystore se ha colado en git. Solo imprime **nombres de archivo**, nunca el contenido que coincide. |
+| `guard-secrets` | checkout → script que falla si git rastrea `.env*` (salvo `*.example`), `*.jks`/`*.keystore`/`*.p12`/`*.pem`/`*.key`/`*.p8`, o si el árbol contiene valores con forma de secreto (`sbp_…`, `sb_secret_…`, cualquier JWT —las claves anon/service de Supabase lo son—, `SERVICE_ROLE_KEY=<valor>`, bloques `-----BEGIN … PRIVATE KEY-----`) | GitHub Actions | Ningún secreto ni keystore se ha colado en git. Solo imprime **nombres de archivo**, nunca el contenido que coincide. Los patrones usan clases de caracteres que impiden que coincidan con su propio texto en `ci.yml`, así que no hace falta excluir el directorio de workflows. |
 | `commitlint` | checkout → Node 22 → `commitlint` (versiones fijadas, vía `npx`) sobre el título del PR, pasado por variable de entorno | GitHub Actions | El título del PR cumple Conventional Commits (`feat`, `fix`, `docs`, `chore`, `ci`, `refactor`, `test`, `perf`, `build`). Solo corre en `pull_request`; en push/tag se omite. Como el squash merge usa el título como mensaje del commit en `main`, validar el título es validar el commit. Renombrar el PR (`edited`) relanza el CI y el `concurrency` cancela la ejecución anterior. |
-| `release` | solo en tag `v*`; ver [Distribución Android](#distribución-android-y-actualizaciones) | GitHub Actions | APK firmado y publicado. |
+| `release` | solo en tag `v*`, y solo si el commit etiquetado es ancestro de `origin/main` (`git merge-base --is-ancestor "$GITHUB_SHA" origin/main`, con `fetch-depth: 0`; si no, el job falla antes de tocar secrets); corre en el Environment `release`; ver [Distribución Android](#distribución-android-y-actualizaciones) | GitHub Actions | APK firmado y publicado. |
 
 Los checks `admin`, `android`, `guard-secrets` y `commitlint` son los que se marcarán como requeridos en la protección de `main`.
 
@@ -50,7 +50,7 @@ Los checks `admin`, `android`, `guard-secrets` y `commitlint` son los que se mar
 
 | Secret | Dónde | Uso | Si falta |
 |---|---|---|---|
-| `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | GitHub Secrets | Firma del APK de release (solo job `release`) | En un fork el release se omite con aviso; en el repo original el job `release` **falla** (un tag sin firmar no debe pasar desapercibido) |
+| `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | GitHub Secrets (Environment `release`) | Firma del APK de release (solo job `release`) | En un fork el release se omite con aviso; en el repo original el job `release` **falla** (un tag sin firmar no debe pasar desapercibido) |
 | `PROD_URL` | GitHub Secrets | URL base de producción para el keep-alive | El ping se omite (paso con `if`, job en verde) |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Vercel (Preview y Production) | Runtime de `apps/admin` | `/api/health` devuelve 503 `degraded` |
 | Credenciales de migraciones (token/ DB password de Supabase) | GitHub Secrets (futuro) | Job de migraciones | El job de migraciones se omite |
@@ -119,7 +119,7 @@ La distribución familiar es **un enlace de descarga**: la página de GitHub Rel
 | 1 | Subir `versionCode` (obligatorio, debe ser mayor que el anterior) y `versionName` en `apps/android/app/build.gradle.kts`, mergear a `main` | Desarrollador, vía PR | Gates de CI |
 | 2 | Crear y empujar el tag: `git tag vX.Y.Z && git push origin vX.Y.Z` (un tag con `-`, p. ej. `v0.1.0-sprint1`, se publica como pre-release) | Desarrollador | — |
 | 3 | `ci.yml` corre `admin`, `android` y `guard-secrets` sobre el tag; `release` espera a los tres (`needs`) | GitHub Actions | Checks en verde |
-| 4 | `release`: comprueba que están los 4 secrets → `./gradlew :app:assembleRelease` firmado → `apksigner verify --print-certs` → `gh release create` con el APK `027apps-<tag>.apk` y notas autogeneradas | GitHub Actions | El job falla si falta un secret, si la firma no verifica o si no se genera el APK |
+| 4 | `release`: comprueba que el commit del tag es ancestro de `main` (falla si no) → comprueba que están los 4 secrets → `./gradlew :app:assembleRelease` firmado → `apksigner verify --print-certs` → `gh release create` con el APK `027apps-<tag>.apk` y notas autogeneradas | GitHub Actions | El job falla si el commit no está en `main`, si falta un secret, si la firma no verifica o si no se genera el APK |
 | 5 | Los usuarios abren el enlace de Releases en su móvil, descargan la APK e instalan (la primera vez habilitan "instalar apps de orígenes desconocidos" para su navegador) | Usuarios | Android instala la actualización sobre la versión anterior solo si la clave de firma y el `applicationId` coinciden y `versionCode` es mayor |
 
 La app **no** se actualiza sola: cada usuario instala la nueva APK manualmente desde el enlace. (Un aviso in-app de nueva versión queda fuera de esta definición.)
@@ -135,26 +135,32 @@ La app **no** se actualiza sola: cada usuario instala la nueva APK manualmente d
 
 Estos pasos requieren al usuario y **no se han ejecutado**; el código que los consume ya está implementado y se omite o falla de forma controlada hasta que se hagan.
 
-### A. Keystore de release y secrets de GitHub
+### A. Protecciones del repo y, solo después, keystore y secrets de GitHub
 
-Detalle y comandos exactos en [`apps/android/keystore/README.md`](../../apps/android/keystore/README.md). Resumen:
+**Orden obligatorio: las protecciones (1–2) van ANTES de subir cualquier secret de firma (4+).** Hasta que existan, cualquier colaborador con permiso de escritura podría empujar un tag `v*` sobre un commit arbitrario y exfiltrar el keystore a través del job `release`. La guarda de CI (ancestro de `main`) funciona sin ellas pero no las sustituye.
 
-1. Generar el keystore en local:
+1. **Proteger `main`** (*Settings → Branches* o un ruleset): exigir PR y los cuatro checks `admin`, `android`, `guard-secrets`, `commitlint` (y el check de Vercel cuando esté conectado); sin force-push ni borrado. Acción de administrador: no se puede hacer con `gh` sin acceso admin a la API.
+2. **Ruleset para tags** (*Settings → Rules → Rulesets*): target *Tags*, patrón `v*`, restringir creación (y actualización/borrado) a administradores del repo.
+3. **Environment `release`** (*Settings → Environments*): con *Required reviewers* (el propietario) y, opcionalmente, *Deployment branches and tags* limitado a `v*`. El job `release` ya declara `environment: release`; los secrets de firma deben guardarse **en ese Environment** (no a nivel de repositorio) para que solo ese job, tras aprobación, pueda leerlos.
+
+Detalle y comandos exactos del keystore en [`apps/android/keystore/README.md`](../../apps/android/keystore/README.md). Resumen:
+
+4. Generar el keystore en local:
    ```bash
    keytool -genkeypair -v -keystore 027apps-release.jks -alias 027apps \
      -keyalg RSA -keysize 4096 -validity 10000
    ```
-2. Guardar el `.jks`, el alias y las dos contraseñas en el gestor de contraseñas (**si se pierde, no habrá actualizaciones firmadas**).
-3. Subir los secrets:
+5. Guardar el `.jks`, el alias y las dos contraseñas en el gestor de contraseñas (**si se pierde, no habrá actualizaciones firmadas**).
+6. Subir los secrets al Environment `release` (solo cuando 1–3 estén hechos):
    ```bash
-   gh secret set ANDROID_KEYSTORE_BASE64 --repo rferic/027apps < <(base64 < 027apps-release.jks)
-   gh secret set ANDROID_KEYSTORE_PASSWORD --repo rferic/027apps
-   gh secret set ANDROID_KEY_ALIAS --repo rferic/027apps --body 027apps
-   gh secret set ANDROID_KEY_PASSWORD --repo rferic/027apps
+   gh secret set ANDROID_KEYSTORE_BASE64 --env release --repo rferic/027apps < <(base64 < 027apps-release.jks)
+   gh secret set ANDROID_KEYSTORE_PASSWORD --env release --repo rferic/027apps
+   gh secret set ANDROID_KEY_ALIAS --env release --repo rferic/027apps --body 027apps
+   gh secret set ANDROID_KEY_PASSWORD --env release --repo rferic/027apps
    ```
-4. Borrar el `.jks` local.
-5. Opcional: `gh secret set PROD_URL --repo rferic/027apps --body https://<dominio-de-produccion>` para activar el keep-alive.
-6. Verificación (Step 6 de la Task 4): crear el tag `v0.1.0-sprint1`, comprobar el Release con el APK firmado, instalarlo y ver "027Apps".
+7. Borrar el `.jks` local.
+8. Opcional: `gh secret set PROD_URL --repo rferic/027apps --body https://<dominio-de-produccion>` para activar el keep-alive.
+9. Verificación (Step 6 de la Task 4): crear el tag `v0.1.0-sprint1`, comprobar el Release con el APK firmado, instalarlo y ver "027Apps".
 
 ### B. Conectar Vercel
 
@@ -163,4 +169,4 @@ Detalle y comandos exactos en [`apps/android/keystore/README.md`](../../apps/and
 3. Añadir env vars (Preview **y** Production) del proyecto Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (esta última nunca con prefijo `NEXT_PUBLIC_`). Usar un proyecto Supabase distinto para Preview si es posible.
 4. *Production Branch:* `main`.
 5. Verificación: abrir un PR de prueba → aparece el preview de Vercel y `/api/health` responde `{"status":"ok"}`; mergear → producción.
-6. En GitHub *Settings → Branches*, proteger `main` exigiendo `admin`, `android`, `guard-secrets`, `commitlint` (y el check de Vercel).
+6. La protección de `main` se hace en el paso A (antes del keystore); añade aquí el check de Vercel a los checks requeridos.
