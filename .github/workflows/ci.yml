@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -40,8 +40,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v4
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
       - run: ./gradlew :app:testDebugUnitTest :app:assembleDebug
       - uses: actions/upload-artifact@v7
         with:
@@ -94,6 +94,8 @@ jobs:
         working-directory: apps/android
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # Secrets are exposed only to the steps that need them, never echoed.
       - name: Check signing secrets
@@ -123,9 +125,9 @@ jobs:
           distribution: temurin
           java-version: 17
       - if: steps.keys.outputs.signed == 'true'
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
       - if: steps.keys.outputs.signed == 'true'
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
 
       - name: Assemble signed release APK
         if: steps.keys.outputs.signed == 'true'
