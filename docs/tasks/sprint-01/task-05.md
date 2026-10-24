@@ -2,7 +2,7 @@
 id: sprint01-task-05
 titulo: Convenciones ejecutables — AGENTS.md, clean code y enforcement
 area: fundaciones
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-10-24-sprint-01-fundaciones.md
 ---
 
