@@ -9,7 +9,7 @@ Todo cambio sigue spec → plan → implementación con TDD → revisión → au
 
 ## Mapa de docs (leer en este orden)
 
-1. `docs/tasks/sprint-*/task-NN.md` — tu tarea: estado y enlace al plan. Actualiza `estado` (`pendiente` → `en curso` → `finalizada`) al empezar y al terminar.
+1. `docs/tasks/sprint-*/task-NN.md` — tu tarea: estado y enlace al plan. Actualiza `estado` (`pendiente` → `en curso` → `test` → `finalizada`): `en curso` al empezar, `test` cuando la implementación está lista y pasa a revisión/QA/auditoría, `finalizada` solo al cumplir la definición de terminado.
 2. `docs/superpowers/plans/` — el plan de la tarea (pasos exactos).
 3. `docs/superpowers/specs/2026-10-24-027apps-design.md` — spec de diseño (arquitectura, stack, modelo de datos).
 4. `docs/conventions/code-style.md` — estilo y qué hace cumplir cada herramienta.
@@ -30,9 +30,12 @@ Todo cambio sigue spec → plan → implementación con TDD → revisión → au
 | Tipo | Obligatorio |
 |---|---|
 | **feature** | Spec/plan aprobados. Test primero (TDD: rojo → verde → refactor). Validación con zod en los bordes de API. Colores solo vía tokens semánticos. Docs/flujo actualizados si cambia el comportamiento. Auditoría de seguridad antes de `finalizada`. |
-| **bugfix** | Test de regresión que falla antes del fix y pasa después. Causa raíz identificada, no solo el síntoma. Auditoría de seguridad si toca auth, datos, input externo o config. |
+| **bugfix** | Test de regresión que falla antes del fix y pasa después. Causa raíz identificada, no solo el síntoma. Auditoría de seguridad siempre antes de `finalizada` (incondicional, como en feature y refactor). |
+| **refactor** | Tests existentes en verde sin modificarlos para que pasen; test nuevo si cambia el comportamiento observable. Auditoría de seguridad siempre antes de `finalizada`. |
 | **docs** | Sin contradecir spec ni flujos existentes. Revisión de un segundo agente. Rutas y comandos citados verificados contra el repo. |
-| **infra** (CI, deploy, config, dependencias) | Actualizar `docs/flows/`. Permisos mínimos, acciones de terceros fijadas, secretos solo por `env` en el paso que los usa. Evidencia real de que el check pasa/falla como se espera. Auditoría de seguridad antes de `finalizada`. |
+| **infra** (CI, deploy, config, dependencias) | Actualizar `docs/flows/`. Permisos mínimos, acciones de terceros fijadas por SHA de commit (las `actions/*` de GitHub pueden ir en tag mayor), secretos solo por `env` en el paso que los usa. Evidencia real de que el check pasa/falla como se espera. Auditoría de seguridad antes de `finalizada`. |
+
+La auditoría de seguridad es **incondicional**: toda implementación (código, infra) la requiere antes de `finalizada`, sin excepción por tamaño o ámbito.
 
 Definición completa de "terminado" por tipo: `docs/conventions/definition-of-done.md`.
 

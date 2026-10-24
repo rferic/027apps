@@ -28,6 +28,8 @@ La UI solo usa **tokens semánticos** (`bg-background`, `text-foreground`...), d
 - Valores arbitrarios de color: `bg-[#fff]`, `text-[rgb(0,0,0)]`, `border-[oklch(...)]` (`#`, `rgb(a)`, `hsl(a)`, `oklch`, `oklab`, `lab`, `lch`).
 - Un string que **es** un color completo: `"#fff"`, `"rgb(0 0 0)"`.
 
+**Falso positivo conocido (raro)**: el patrón hexadecimal también casa con strings que parecen un color sin serlo (p. ej. `href="#cafe"`, `"#bad"`). Si ocurre, se resuelve por revisión (reformular el valor o justificarlo en el PR); no se añade un `eslint-disable` sin motivo escrito.
+
 **No lo detecta el lint** (queda a revisión): colores dentro de un string más largo que no sean clases Tailwind (p. ej. `"border: 1px solid #fff"`), objetos `style={{ color: ... }}` con nombres de color (`"red"`), clases construidas por concatenación (`"bg-" + color`), colores en ficheros `.css`/`.svg` distintos de `globals.css`, y colores en Kotlin.
 
 Excepción: nada. Para un color nuevo, define el token en `globals.css` (claro y oscuro) y úsalo por nombre.
@@ -61,7 +63,7 @@ Excepción: nada. Para un color nuevo, define el token en `globals.css` (claro y
 - `any` y `@ts-ignore` (los rechaza el lint; si es inevitable, `@ts-expect-error` con el motivo en un comentario).
 - Acceso a la BD desde clientes externos: móvil y terceros usan `/api/v1`.
 - Código muerto, código comentado, `console.log` de depuración.
-- Dependencias nuevas sin necesidad demostrada; fijar versiones de acciones de terceros en CI.
+- Dependencias nuevas sin necesidad demostrada; acciones de terceros en CI fijadas por SHA de commit (las `actions/*` propias de GitHub pueden ir en tag mayor, p. ej. `actions/checkout@v4`).
 
 ## Comentarios
 
