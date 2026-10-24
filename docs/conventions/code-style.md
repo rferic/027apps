@@ -66,3 +66,4 @@ Excepción: nada. Para un color nuevo, define el token en `globals.css` (claro y
 ## Comentarios
 
 Solo donde el código no se explica solo (el porqué, no el qué). Sin comentarios que repitan el código.
+
