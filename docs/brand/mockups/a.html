@@ -61,6 +61,7 @@ td.num{font-weight:600}
 .payer{display:inline-flex;align-items:center;gap:8px}
 .payer i{font-style:normal;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;background:var(--muted);color:var(--foreground);border:1px solid var(--border)}
 .date{color:var(--muted-foreground)}
+.mode-note{position:fixed;right:12px;bottom:12px;z-index:6;padding:4px 10px;font-size:12px;line-height:1.4;font-family:var(--font);color:var(--muted-foreground);background:var(--surface);border:1px solid var(--border);border-radius:999px}
 @media(max-width:800px){
   .shell{grid-template-columns:1fr}
   .sidebar{border-right:0;border-bottom:1px solid var(--border);padding:8px 12px}
@@ -73,8 +74,8 @@ td.num{font-weight:600}
 
 
 :root{--font:'Nunito',ui-rounded,'Segoe UI',system-ui,sans-serif;--fs:15.5px;--radius:20px;--radius-sm:14px;--btn-radius:999px;--btn-h:44px;--btn-px:24px;--topbar-h:68px;--sidebar-w:240px;--side-pad:20px 16px;--nav-pad:12px 16px;--main-pad:32px;--gap:20px;--h1:30px;--kpi-pad:22px 24px;--kpi-fs:30px;--kpi-fw:800;--row-pad:16px;--cell-px:24px}
-[data-theme=light]{--shadow:0 2px 14px rgba(120,80,50,.09)}
-[data-theme=dark]{--shadow:none}
+[data-theme=light]{--shadow:0 2px 14px rgba(120,80,50,.09);--tint:8%}
+[data-theme=dark]{--shadow:none;--tint:14%}
 .topbar{border-bottom:0;box-shadow:0 2px 14px rgba(120,80,50,.07)}
 [data-theme=dark] .topbar{box-shadow:none;border-bottom:1px solid var(--border)}
 .brand{font-weight:800;font-size:24px;letter-spacing:-.01em}
@@ -84,22 +85,19 @@ td.num{font-weight:600}
 .avatar{width:42px;height:42px;font-size:15px}
 .sidebar{border-right:0}
 .nav-item{border-radius:999px;font-weight:600}
-.nav-item.active{background:color-mix(in srgb,var(--primary) 14%,var(--surface));color:var(--primary);font-weight:800}
+.nav-item.active{background:color-mix(in srgb,var(--primary) var(--tint),var(--surface));color:var(--primary);font-weight:800}
 h1{font-weight:800;letter-spacing:-.01em}
 .eyebrow{font-size:14px;font-weight:600}
 .card{border:0}
 [data-theme=dark] .card{border:1px solid var(--border)}
 .kpi{position:relative;padding-left:84px}
-.kpi::before{content:"";position:absolute;left:24px;top:50%;translate:0 -50%;width:44px;height:44px;border-radius:50%;background:color-mix(in srgb,var(--primary) 16%,var(--surface))}
-.kpi.in::before{background:color-mix(in srgb,var(--success) 18%,var(--surface))}
-.kpi.out::before{background:color-mix(in srgb,var(--destructive) 16%,var(--surface))}
-.kpi::before{content:"€";display:grid;place-items:center;font-weight:800;font-size:20px;color:var(--primary)}
-.kpi.in::before{content:"↓";color:var(--success)}
-.kpi.out::before{content:"↑";color:var(--destructive)}
+.kpi::before{content:"€";position:absolute;left:24px;top:50%;translate:0 -50%;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:20px;color:var(--primary);background:color-mix(in srgb,var(--primary) var(--tint),var(--surface))}
+.kpi.in::before{content:"↓";color:var(--success);background:color-mix(in srgb,var(--success) var(--tint),var(--surface))}
+.kpi.out::before{content:"↑";color:var(--destructive);background:color-mix(in srgb,var(--destructive) var(--tint),var(--surface))}
 .table-card{overflow:hidden}
 th{border-bottom:0;background:var(--muted);padding-top:12px;padding-bottom:12px}
 td{border-bottom:1px dashed var(--border)}
-.payer i{width:28px;height:28px;font-size:12px;background:color-mix(in srgb,var(--primary) 16%,var(--surface));color:var(--primary);border:0}
+.payer i{width:28px;height:28px;font-size:12px;background:color-mix(in srgb,var(--primary) var(--tint),var(--surface));color:var(--primary)}
 .btn{font-weight:800}
 .btn-danger{background:transparent;color:var(--destructive);border-color:color-mix(in srgb,var(--destructive) 45%,transparent)}
 .btn-danger:hover{background:color-mix(in srgb,var(--destructive) 10%,transparent);filter:none}
@@ -152,6 +150,7 @@ td{border-bottom:1px dashed var(--border)}
     </section>
   </main>
 </div>
+<p class="mode-note">Dirección A · modo inicial: claro</p>
 <script>
 (function(){
   var root=document.documentElement,btn=document.getElementById('theme-toggle');

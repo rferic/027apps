@@ -27,18 +27,31 @@ Una identidad pensada para el salón de casa. Superficies suaves color crema, es
 Roles extra sobre el mínimo (justificación):
 
 - `muted-foreground` — Extra: el texto secundario necesita su propio color con contraste AA; reutilizar `muted` o `foreground` con opacidad no lo garantiza.
-- `destructive-foreground` — Extra: el botón destructivo relleno necesita texto con contraste AA en ambos modos (en oscuro el texto es oscuro, no blanco).
+- `destructive-foreground` — Extra: en A el botón destructivo de la barra de acciones es una variante *outline* (texto `destructive` sobre fondo transparente, más suave y acorde a la calidez de A), así que este rol solo se usa en la variante rellena: diálogos de confirmación de borrado. En oscuro el texto es oscuro, no blanco, para mantener AA.
 
-Contraste WCAG calculado sobre estos hex (mínimo 4,5:1 para texto, todas las parejas lo cumplen):
+Nota: `highlight` y `highlight-foreground` son roles exclusivos de la dirección C; A y B no los definen.
+
+Contraste WCAG 2.x calculado sobre estos hex. Todas las parejas listadas cumplen WCAG AA para texto (≥ 4,5:1); el mínimo es 4,68:1.
 
 | Pareja | Claro | Oscuro |
 |---|---|---|
-| `foreground` / `background` | 12,4 | 15,2 |
-| `muted-foreground` / `surface` | 5,9 | 7,3 |
-| `primary-foreground` / `primary` | 5,3 | 7,7 |
-| `destructive-foreground` / `destructive` | 6,5 | 8,9 |
-| `success` / `surface` | 5,3 | 8,9 |
-| `destructive` / `surface` | 6,5 | 7,2 |
+| `foreground` / `background` | 12,43 | 15,18 |
+| `foreground` / `surface` | 13,09 | 13,53 |
+| `muted-foreground` / `background` | 5,61 | 8,21 |
+| `muted-foreground` / `surface` | 5,90 | 7,32 |
+| `muted-foreground` / `muted` | 5,02 | 6,36 |
+| `primary-foreground` / `primary` | 5,25 | 7,73 |
+| `primary` / `surface` (enlaces, texto de acento) | 5,25 | 6,85 |
+| `destructive-foreground` / `destructive` | 6,54 | 8,88 |
+| `destructive` / `surface` | 6,54 | 7,15 |
+| `success` / `surface` | 5,26 | 8,86 |
+| `destructive` / `background` (botón destructivo *outline* de A) | 6,21 | 8,02 |
+| `destructive` / hover del botón *outline* (10 % de `destructive` sobre `background`) | 5,28 | 6,75 |
+| `primary` / tinte de acento (ítem de nav activo, chip de pagador, glifo €) | 4,68 | 5,27 |
+| `success` / tinte de `success` (glifo ↓ de KPI) | 4,72 | 6,53 |
+| `destructive` / tinte de `destructive` (glifo ↑ de KPI) | 5,75 | 5,50 |
+
+**Tinte de acento en A**: `--tint` = **8 %** en claro y **14 %** en oscuro. Con más tinte en claro (14–16 %) el texto `primary` cae a 4,30–4,19:1; por eso el tinte claro es más ligero.
 
 ## Tipografía
 

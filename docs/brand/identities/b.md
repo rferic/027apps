@@ -29,16 +29,22 @@ Roles extra sobre el mínimo (justificación):
 - `muted-foreground` — Extra: el texto secundario necesita su propio color con contraste AA; reutilizar `muted` o `foreground` con opacidad no lo garantiza.
 - `destructive-foreground` — Extra: el botón destructivo relleno necesita texto con contraste AA en ambos modos (en oscuro el texto es oscuro, no blanco).
 
-Contraste WCAG calculado sobre estos hex (mínimo 4,5:1 para texto, todas las parejas lo cumplen):
+Nota: `highlight` y `highlight-foreground` son roles exclusivos de la dirección C; A y B no los definen.
+
+Contraste WCAG 2.x calculado sobre estos hex. Todas las parejas listadas cumplen WCAG AA para texto (≥ 4,5:1); el mínimo es 5,52:1.
 
 | Pareja | Claro | Oscuro |
 |---|---|---|
-| `foreground` / `background` | 16,9 | 15,7 |
-| `muted-foreground` / `surface` | 6,3 | 7,1 |
-| `primary-foreground` / `primary` | 6,7 | 7,2 |
-| `destructive-foreground` / `destructive` | 5,6 | 7,8 |
-| `success` / `surface` | 6,1 | 8,0 |
-| `destructive` / `surface` | 5,6 | 7,0 |
+| `foreground` / `background` | 16,88 | 15,66 |
+| `foreground` / `surface` | 18,10 | 14,61 |
+| `muted-foreground` / `background` | 5,92 | 7,59 |
+| `muted-foreground` / `surface` | 6,35 | 7,08 |
+| `muted-foreground` / `muted` | 5,52 | 6,50 |
+| `primary-foreground` / `primary` | 6,70 | 7,17 |
+| `primary` / `surface` (enlaces, texto de acento) | 6,70 | 6,81 |
+| `destructive-foreground` / `destructive` | 5,62 | 7,76 |
+| `destructive` / `surface` | 5,62 | 7,04 |
+| `success` / `surface` | 6,05 | 8,01 |
 
 ## Tipografía
 

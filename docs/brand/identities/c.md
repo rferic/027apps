@@ -33,16 +33,20 @@ Roles extra sobre el mínimo (justificación):
 - `highlight` — Extra (solo C): segundo acento de la marca (lima). Idéntico en claro y oscuro porque siempre lleva texto oscuro encima.
 - `highlight-foreground` — Extra (solo C): pareja de `highlight`.
 
-Contraste WCAG calculado sobre estos hex (mínimo 4,5:1 para texto, todas las parejas lo cumplen):
+Contraste WCAG 2.x calculado sobre estos hex. Todas las parejas listadas cumplen WCAG AA para texto (≥ 4,5:1); el mínimo es 4,93:1.
 
 | Pareja | Claro | Oscuro |
 |---|---|---|
-| `foreground` / `background` | 17,0 | 18,1 |
-| `muted-foreground` / `surface` | 7,0 | 7,8 |
-| `primary-foreground` / `primary` | 7,1 | 5,3 |
-| `destructive-foreground` / `destructive` | 5,9 | 6,6 |
-| `success` / `surface` | 5,0 | 11,4 |
-| `destructive` / `surface` | 5,9 | 6,2 |
+| `foreground` / `background` | 17,03 | 18,14 |
+| `foreground` / `surface` | 18,68 | 16,83 |
+| `muted-foreground` / `background` | 6,42 | 8,39 |
+| `muted-foreground` / `surface` | 7,04 | 7,79 |
+| `muted-foreground` / `muted` | 5,77 | 7,01 |
+| `primary-foreground` / `primary` | 7,10 | 5,30 |
+| `primary` / `surface` (enlaces, texto de acento) | 7,10 | 4,93 |
+| `destructive-foreground` / `destructive` | 5,88 | 6,59 |
+| `destructive` / `surface` | 5,88 | 6,20 |
+| `success` / `surface` | 5,00 | 11,39 |
 
 ## Tipografía
 
