@@ -2,7 +2,7 @@
 id: sprint01-task-06
 titulo: Flujos de trabajo y responsabilidades de agentes
 area: fundaciones
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-10-24-sprint-01-fundaciones.md
 ---
 
