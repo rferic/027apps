@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
     tags: ['v*']
@@ -73,15 +74,25 @@ jobs:
 
           exit $fail
 
-  # TODO(task-5): enable once commitlint config lands.
+  # Squash merge: el título del PR es el mensaje del commit en main.
   commitlint:
-    if: false
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
-      - run: echo "Enabled in Task 5"
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: PR title follows Conventional Commits
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$PR_TITLE" | npx --yes \
+            -p @commitlint/cli@21.2.4 \
+            -p @commitlint/config-conventional@21.2.4 \
+            commitlint
 
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')

@@ -7,7 +7,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | Gates de CI (`admin`, `android`, `guard-secrets`) | Implementado (`.github/workflows/ci.yml`) |
 | Release firmado de Android en tag `v*` | Implementado, pendiente de keystore (ver [Pendiente de ejecución](#pendiente-de-ejecución-puerta-de-usuario)) |
 | Keep-alive diario | Implementado (`.github/workflows/keep-alive.yml`), inactivo hasta que exista el secret `PROD_URL` |
-| `commitlint` | Job creado y **deshabilitado** (`if: false`); la Task 5 lo habilita |
+| `commitlint` | Implementado (`.github/workflows/ci.yml`, config `.commitlintrc.json`); valida el título del PR |
 | Deploy Vercel (preview/prod) | Definido; pendiente de conexión por el usuario |
 | Migraciones Supabase | Definido; se implementa cuando exista la primera migración |
 
@@ -24,7 +24,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 
 | Workflow | Trigger | Qué ejecuta |
 |---|---|---|
-| `ci.yml` | `pull_request` (cualquier rama destino) | `admin`, `android`, `guard-secrets` |
+| `ci.yml` | `pull_request` (`opened`, `synchronize`, `reopened`, `edited`; cualquier rama destino) | `admin`, `android`, `guard-secrets`, `commitlint` |
 | `ci.yml` | `push` a `main` | los mismos checks sobre el commit mergeado |
 | `ci.yml` | `push` de tag `v*` | los mismos checks + job `release` |
 | `keep-alive.yml` | `schedule` diario (06:17 UTC) y `workflow_dispatch` | ping a producción si existe `PROD_URL` |
@@ -41,10 +41,10 @@ Todos corren en `ubuntu-latest` con permisos `contents: read` (solo `release` su
 | `admin` | checkout → pnpm (versión de `packageManager`) → Node 22 con caché → `pnpm install --frozen-lockfile` → `lint` → `tsc` → `test` → `build` | GitHub Actions | El lockfile está sincronizado; ESLint, tipos (`next typegen && tsc --noEmit`), vitest y `next build` pasan. Sin env vars de Supabase: `/api/health` responde 503 `degraded`, es lo esperado y el job **no** debe tener secrets para "arreglarlo". |
 | `android` | checkout → JDK 17 (temurin) → Android SDK con licencias aceptadas (`android-actions/setup-android`; AGP descarga la plataforma 37) → `gradle/actions/setup-gradle` (caché; `apps/android/gradle.properties` sube el heap del daemon a 3 GB porque D8 se quedaba sin memoria con el valor por defecto en los runners) → `./gradlew :app:testDebugUnitTest :app:assembleDebug` → sube el artifact `apk-debug` | GitHub Actions | Tests unitarios pasan, el APK debug se genera y queda descargable 90 días (retención por defecto) para probar el PR en un dispositivo. |
 | `guard-secrets` | checkout → script que falla si git rastrea `.env*` (salvo `*.example`), `*.jks`/`*.keystore`/`*.p12`, o si el árbol contiene valores con forma de secreto (`sbp_…`, cualquier JWT —las claves anon/service de Supabase lo son—, `SERVICE_ROLE_KEY=<valor>`) | GitHub Actions | Ningún secreto ni keystore se ha colado en git. Solo imprime **nombres de archivo**, nunca el contenido que coincide. |
-| `commitlint` | (deshabilitado, `if: false`) | — | La Task 5 lo habilita para validar Conventional Commits. |
+| `commitlint` | checkout → Node 22 → `commitlint` (versiones fijadas, vía `npx`) sobre el título del PR, pasado por variable de entorno | GitHub Actions | El título del PR cumple Conventional Commits (`feat`, `fix`, `docs`, `chore`, `ci`, `refactor`, `test`, `perf`, `build`). Solo corre en `pull_request`; en push/tag se omite. Como el squash merge usa el título como mensaje del commit en `main`, validar el título es validar el commit. Renombrar el PR (`edited`) relanza el CI y el `concurrency` cancela la ejecución anterior. |
 | `release` | solo en tag `v*`; ver [Distribución Android](#distribución-android-y-actualizaciones) | GitHub Actions | APK firmado y publicado. |
 
-Los checks `admin`, `android` y `guard-secrets` son los que se marcarán como requeridos en la protección de `main`.
+Los checks `admin`, `android`, `guard-secrets` y `commitlint` son los que se marcarán como requeridos en la protección de `main`.
 
 ## Secretos
 
@@ -163,4 +163,4 @@ Detalle y comandos exactos en [`apps/android/keystore/README.md`](../../apps/and
 3. Añadir env vars (Preview **y** Production) del proyecto Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (esta última nunca con prefijo `NEXT_PUBLIC_`). Usar un proyecto Supabase distinto para Preview si es posible.
 4. *Production Branch:* `main`.
 5. Verificación: abrir un PR de prueba → aparece el preview de Vercel y `/api/health` responde `{"status":"ok"}`; mergear → producción.
-6. En GitHub *Settings → Branches*, proteger `main` exigiendo `admin`, `android`, `guard-secrets` (y el check de Vercel).
+6. En GitHub *Settings → Branches*, proteger `main` exigiendo `admin`, `android`, `guard-secrets`, `commitlint` (y el check de Vercel).
