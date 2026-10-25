@@ -2,7 +2,7 @@
 id: sprint02-task-02
 titulo: Design System v1 — componentes y pantallas base
 area: marca
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-10-25-sprint-02-design-system.md
 ---
 
