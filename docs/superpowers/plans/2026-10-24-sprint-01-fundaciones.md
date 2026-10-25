@@ -38,7 +38,7 @@
 - Create: `docs/tasks/sprint-01/*.md` (un fichero por tarea de este sprint, con metadatos de estado)
 
 **Interfaces:**
-- Produces: repo git inicializado en `~/Sites/rferic` con remote `origin` → `github.com/rferic/027apps`; estructura `apps/`, `docs/`, `packages/` vacías pero creadas; scripts raíz `pnpm lint` / `pnpm tsc` / `pnpm test` que delegan en workspaces.
+- Produces: repo git inicializado en `~/Sites/027apps` con remote `origin` → `github.com/rferic/027apps`; estructura `apps/`, `docs/`, `packages/` vacías pero creadas; scripts raíz `pnpm lint` / `pnpm tsc` / `pnpm test` que delegan en workspaces.
 
 - [ ] **Step 1: Verificar prerrequisitos locales**
 
