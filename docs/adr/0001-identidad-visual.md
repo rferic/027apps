@@ -1,7 +1,7 @@
 # ADR 0001 — Identidad visual: Dirección A (cercana y cálida)
 
 **Fecha:** 2026-10-24
-**Estado:** Aceptada
+**Estado:** Sustituida por ADR 0002 (2026-10-25)
 **Decisora:** usuario (rferic), tras puerta de elección con mockups
 
 ## Contexto
