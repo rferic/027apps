@@ -8,7 +8,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | Release firmado de Android en tag `v*` | Implementado, pendiente de keystore (ver [Pendiente de ejecución](#pendiente-de-ejecución-puerta-de-usuario)) |
 | Keep-alive diario | Implementado (`.github/workflows/keep-alive.yml`), inactivo hasta que exista el secret `PROD_URL` |
 | `commitlint` | Implementado (`.github/workflows/ci.yml`, config `.commitlintrc.json`); valida el título del PR |
-| Deploy Vercel (preview/prod) | Definido; pendiente de conexión por el usuario |
+| Deploy Vercel (preview/prod) | Definido; **en pausa** (decisión del usuario 2026-10-25) hasta que exista un core funcional — ver paso B |
 | Migraciones Supabase | Definido; se implementa cuando exista la primera migración |
 
 ## Principios
@@ -66,6 +66,8 @@ Reglas de manejo de secretos:
 ## Despliegues
 
 **Quién despliega:** Vercel (integración Git), no GitHub Actions. **Qué lo verifica:** el check de Vercel en el PR y, en producción, el keep-alive.
+
+> **Alcance actual:** el deploy a producción **no procede hasta que exista un core funcional** (datos, API de producto, pantallas con lógica real). Hoy el repo es solo fundaciones (tooling, identidad, design system base); desplegar ahora no aporta nada. El paso B de [Pendiente de ejecución](#pendiente-de-ejecución-puerta-de-usuario) (conectar Vercel) queda **en pausa hasta entonces**, por decisión del usuario (2026-10-25).
 
 1. PR abierto/actualizado → Vercel despliega un **preview** de `apps/admin` y comenta la URL en el PR.
 2. Merge a `main` (solo posible con los checks requeridos en verde) → Vercel despliega **producción**.
@@ -163,6 +165,8 @@ Detalle y comandos exactos del keystore en [`apps/android/keystore/README.md`](.
 9. Verificación (Step 6 de la Task 4): crear el tag `v0.1.0-sprint1`, comprobar el Release con el APK firmado, instalarlo y ver "027Apps".
 
 ### B. Conectar Vercel
+
+> **En pausa por decisión del usuario (2026-10-25):** no se conecta hasta que exista un core funcional que desplegar. Este paso solo se ejecuta cuando se cumpla esa condición.
 
 1. En Vercel: *Add New → Project → Import Git Repository* → `rferic/027apps`.
 2. **Root Directory:** `apps/admin`. Framework: Next.js (autodetectado). Con la raíz en `apps/admin`, Vercel instala con el `pnpm-lock.yaml` del monorepo (activar "Include source files outside of the Root Directory").
