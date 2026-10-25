@@ -18,7 +18,7 @@ Definir cómo se autentica cada consumidor de la API de 027Apps y qué puede toc
 **Ningún token "nunca caduca" sin revocación.** Todo token es una fila en la BD: opaco, con prefijo identificador, guardado **solo hasheado**, mostrado **una única vez** al crearse. La revocación es instantánea (borrar/desactivar la fila). Los permisos se miran **en vivo en la BD** en cada petición (con caché), de modo que los cambios de acceso aplican al instante sin re-emparejar.
 
 **Decisiones clave (usuario, 2026-10-25):**
-- Mecanismo de autorización: **tokens opacos + lookup en BD** (no JWT). Revocación instantánea, control fino natural por endpoint, sin gestión de firma.
+- Mecanismo de autorización: **tokens opacos + lookup en BD** (no JWT) **para instancia y delegado**; la autenticación del **móvil** es **sesión de Supabase Auth** (revisión 2026-10-25, ver §3.1 y spec de auth).
 - **Contraseña obligatoria** en el primer emparejamiento (wizard de invitación) como credencial de recuperación.
 - Acceso **fino por endpoint** desde el día uno (no solo módulo + lectura/escritura).
 
@@ -26,21 +26,20 @@ Definir cómo se autentica cada consumidor de la API de 027Apps y qué puede toc
 
 | Tipo | Para qué | Vinculado a | Revocación | Prefijo |
 |---|---|---|---|---|
-| **Dispositivo** | App móvil, "login una vez" | dispositivo (no usuario) | por dispositivo, desde admin | `027_dev_…` |
+| ~~Dispositivo~~ (*sesión Supabase*, ver §3.1 y spec de auth) | Autenticación del móvil (email + contraseña, refresh que rota) | sesión de Supabase Auth | revocable por dispositivo; expulsión corta al instante en peticiones nuevas | — (JWT de Supabase) |
 | **Instancia** (service) | Herramientas del admin conectadas a la API, **sin** actuar como usuario | instancia | al instante, por admin | `027_svc_…` |
 | **Delegado** | Herramientas de terceros que actúan **como un usuario** | usuario + scopes concedidos | al instante, por el propio usuario | `027_usr_…` |
 
-### 3.1 Token de dispositivo (app móvil)
+### 3.1 Autenticación del móvil: sesión de Supabase Auth (revisión 2026-10-25)
 
-- **Emparejamiento por invitación** (ver §4): al completarla se crea la cuenta (si no existe), la afiliación al grupo/módulos, y el token de dispositivo de larga vida.
-- **Acceso:** *refresh token* de larga vida **que rota en cada uso** (el antiguo queda inválido) + *access tokens* cortos (15–60 min) pedidos en segundo plano por la app. El usuario no vuelve a interactuar.
-- **Qué es el access token:** también **opaco, fila en BD** (coherente con el principio rector: sin JWT ni firma). Una tabla de access cortos que se crea en cada refresh y muere al expirar. A escala familiar el volumen de escritura es irrelevante; el lookup se cachea.
-- **Rotación con concurrencia y detección de robo:** si se presenta un *refresh ya rotado* (señal de robo/replay), se **revoca toda la familia** del dispositivo (patrón RFC 6819) — no solo el token presentado. Esto evita que un atacante con un refresh robado bloquee al legítimo o se quede con el acceso.
+> **Revisión (spec de auth `2026-10-25-auth.md`):** el "token de dispositivo" opaco de esta sección queda **sustituido por la sesión de Supabase Auth**. El móvil de la familia se autentica en Supabase (email + contraseña, refresh que rota); para los datos llama a `/api/v1` con su JWT, que nuestra API verifica y el guard autoriza. Los tokens opacos de esta spec quedan para **instancia y delegado** (§3.2 y §3.3). Lo que sigue (la motivación: "login una vez", revocación, almacenamiento seguro) se mantiene como comportamiento deseado, ahora provisto por Supabase.
+
+- **Emparejamiento por invitación** (ver §4): al completarla se crea el usuario en Supabase Auth (vía Admin API) y la app guarda la sesión en el almacén seguro del dispositivo.
+- **Acceso:** sesión de Supabase con access + refresh **que rota**; la app pide access nuevos en segundo plano. El usuario no vuelve a interactuar.
 - **Almacenamiento:** solo en el almacén seguro del dispositivo (Android Keystore / EncryptedSharedPreferences). Nunca en logs, backups sin cifrar ni en git.
-- **Revocación:** por dispositivo desde el panel del admin (móvil perdido, miembro que sale del grupo). Es instantánea.
-- **El token de dispositivo está ligado al usuario, no al grupo:** los grupos/módulos a los que accede se resuelven por petición (vivo en BD). Si un usuario ya emparejado recibe una invitación a otro grupo, **no re-empareja**: su token existente gana el acceso nuevo al activarse la invitación. Esto evita fricción y mantiene "login una vez".
-- **Transferencia móvil → móvil:** el diseño lo deja **posible** (código emitido por el original; al completarse, el original pierde la sesión). **Implementación aplazada** tras auth v1 — se registra como requisito de diseño, no se implementa en este corte.
-- **Recuperación (móvil perdido):** el admin revoca el dispositivo y el usuario entra con **email + contraseña** en el dispositivo nuevo (login de recuperación) → se crea un token de dispositivo nuevo. Alternativamente, re-invitación. Detalle de flujos en la spec de auth.
+- **Revocación:** sesión revocable por dispositivo (admin desde el panel); la expulsión de un miembro corta el acceso de datos al instante en cada petición nueva (RLS + guard). La revocación de una conexión realtime abierta queda acotada a la vida del token (~15 min).
+- **Transferencia móvil → móvil:** el diseño lo deja **posible** (código emitido por el original; al completarse, el original pierde la sesión). **Implementación aplazada** tras auth v1.
+- **Recuperación (móvil perdido):** login con **email + contraseña** en el dispositivo nuevo → sesión nueva. Reset de contraseña gestionado por Supabase (SMTP propio). Detalle en la spec de auth.
 
 ### 3.2 Token de instancia (service)
 
@@ -66,14 +65,14 @@ Al abrir la URL sale un **wizard**:
 2. **Emparejar con la app ya instalada**: camino principal **deep link** ("Abrir en la aplicación"); **QR + código** como alternativa (emparejamiento cruzado desde otra pantalla, o si el deep link no abre).
 3. **Confirmar email + fijar contraseña (obligatorio).** El email mostrado es el de la invitación (se confirma); la contraseña es la credencial de recuperación (ver §3.1).
 
-Al completar el wizard: se crea/verifica la cuenta, se activa la afiliación (grupo + módulos de la invitación) y se emite el token de dispositivo. Los flujos exactos del wizard (pantallas, qué pasa si el email no coincide, reenvío) son de la spec de auth; esta spec fija el resultado: **cuenta con email + contraseña + token de dispositivo**.
+Al completar el wizard: se crea/verifica la cuenta en Supabase Auth, se activa la afiliación (grupo + módulos de la invitación) y se establece la **sesión de Supabase** en el dispositivo. Los flujos exactos del wizard (pantallas, qué pasa si el email no coincide, reenvío) son de la spec de auth; esta spec fija el resultado: **cuenta con email + contraseña + sesión de dispositivo**.
 
 ## 5. Acceso por scopes (por acción expuesta)
 
 **Precisión del ADR 0004** (`docs/adr/0004-bordes-y-capa-de-aplicacion.md`): los scopes se declaran **por acción expuesta en cada puerta de entrada** — una ruta de `/api/v1`, una tool de MCP o un comando. Una acción puede exigir **varios scopes** (ej. "registrar usuario" → `users:create` + `permissions:assign`); la puerta declara la lista y el guard compartido la comprueba. La redacción "por endpoint" de esta spec queda absorbida: cada ruta de la API declara los scopes de la acción que expone (ej. `expenses:read`, `expenses:write`, `groups:admin`).
 
 - El guard autentica el token (lookup en BD, con caché), resuelve su scope y su usuario (si aplica), y comprueba la acción solicitada.
-- Para tokens delegados el acceso efectivo es `min(scopes del token, permisos del usuario)`; para instancia, los scopes del token; para dispositivo, los permisos del usuario.
+- Para tokens delegados el acceso efectivo es `min(scopes del token, permisos del usuario)`; para instancia, los scopes del token; para el móvil (sesión Supabase), los permisos del usuario.
 - **Permisos en vivo, no cacheados con TTL de permisos:** el lookup del *token* en sí se cachea (la fila del token apenas cambia), pero la **resolución de permisos del usuario** (grupos, roles, módulos activos) se lee de la BD **por petición**, o con una caché invalidada explícitamente al cambiar la membresía/rol. Así un miembro removido o degradado pierde el acceso **de inmediato** (criterio de aceptación 1), sin depender de un TTL que la contradiga.
 - RLS en BD como segunda barrera (el nivel de fila no depende solo del guard).
 
@@ -82,30 +81,30 @@ Al completar el wizard: se crea/verifica la cuenta, se activa la afiliación (gr
 - **Hashing:** solo SHA-256 del token en BD. El prefijo (`027_dev_…`) permite identificarlo sin revelar el secreto; el secreto completo solo se muestra una vez al crear.
 - **Nunca en logs**, ni en respuestas, ni en git. `guard-secrets` del CI ya rechaza valores con forma de JWT/secreto.
 - **Rate limiting** por token y por IP en superficies públicas.
-- **Expiración opcional** para instancia/delegado; los refresh de dispositivo no expiran en uso normal (la rotación y la revocación cubren el riesgo).
+- **Expiración opcional** para instancia/delegado; las sesiones del móvil no expiran en uso normal (la rotación de refresh y la revocación cubren el riesgo).
 - **Auditoría de uso:** `last_used_at` en el token + **contadores agregados por token y por endpoint** (no un log por petición: evita volumen de escritura en free tier; la agregación da la traza de uso sin el ruido). Sin guardar el token.
 
 ## 7. Modelo de datos (evolución del borrador §8)
 
 Sobre el esquema de `2026-10-24-027apps-design.md` §8, la taxonomía requiere:
 
-- `device_tokens` → añade el token de dispositivo real: hash del refresh, `family_id` (para detección de robo: revocar toda la familia), `refresh_rotated_at`, `revoked_at`, `device_platform`, además de `expo_push_token`.
-- `access_tokens` (nueva) → filas opacas de corta vida, con `expires_at` y `user_id`; expiración por TTL/limpieza.
-- `api_keys` → generalizar a los tres tipos (o tabla `tokens` con `kind: device|service|delegated`), con `scopes text[]`, `created_by`, `expires_at nullable`, `revoked_at`, `last_used_at`, y para delegado el `user_id` al que actúa.
+- ~~`device_tokens` con refresh propio~~ → **la sesión del móvil la gestiona Supabase Auth** (no tablas nuestras); queda la información de dispositivos de la app (`expo_push_token`, plataforma, `last_seen_at`) si se necesita para push/panel.
+- ~~`access_tokens`~~ → **no se implementa**: el access del móvil es el JWT de Supabase; para instancia/delegado el token opaco es la credencial (sin access separado).
+- `api_keys` (o `tokens`) → para los **dos** tipos restantes: `kind: service|delegated`, con `scopes text[]`, `created_by`, `expires_at nullable`, `revoked_at`, `last_used_at`, y para delegado el `user_id` al que actúa.
 - `audit` (nueva) → **contadores agregados** por token × endpoint (`token_id`, `endpoint`, `count`, `window_start`), sin guardar el token.
 - `invitations` → token de un solo uso + email + módulos (ya existe el esqueleto).
-- El login de recuperación (email + contraseña) y el reset de contraseña usan el esquema de auth (spec de auth).
+- El login/recuperación del móvil y el reset de contraseña usan el esquema de auth de Supabase (spec de auth).
 
 > El esquema SQL exacto lo define el plan de implementación; esta spec fija las entidades y sus invariantes.
 
 ## 8. Decisiones tomadas (usuario, 2026-10-25)
 
-1. Tokens **opacos + lookup en BD** (no JWT), revocación instantánea.
+1. Tokens **opacos + lookup en BD** (no JWT) **para instancia y delegado**, revocación instantánea; el móvil usa **sesión de Supabase Auth** (revisión 2026-10-25, spec de auth).
 2. **Contraseña obligatoria** al emparejar (wizard de invitación) como credencial de recuperación.
 3. Acceso **fino por endpoint** desde el día uno.
 4. Accesos de terceros (delegado) actúan **como el usuario**, limitados por `min(scopes, permisos del usuario)`.
 5. Tokens de instancia: **de instancia completa**, creados/revocados solo por `super_admin`.
-6. Detección de robo en rotación de refresh (RFC 6819): presentar un refresh ya rotado revoca **toda la familia** del dispositivo.
+6. ~~Detección de robo en rotación de refresh (RFC 6819)~~ → pasa a Supabase Auth: la **rotación de sesión** la gestiona Supabase. (Marca el riesgo que el proveedor cubre; sin tabla propia `family_id`.)
 7. Permisos resueltos **en vivo por petición** (o caché invalidada por cambio de membresía), nunca con TTL que contradiga la revocación instantánea.
 8. Auditoría por **contadores agregados** por token × endpoint (no log por petición).
 9. Dispositivo ligado al usuario, no al grupo: nueva invitación a otro grupo **no re-empareja**.
@@ -120,7 +119,7 @@ Sobre el esquema de `2026-10-24-027apps-design.md` §8, la taxonomía requiere:
 
 ## 10. Criterios de aceptación
 
-- Un dispositivo se empareja una sola vez y no vuelve a pedir credenciales en uso normal; la revocación de ese dispositivo es instantánea y efectiva.
+- Un dispositivo se empareja una sola vez y no vuelve a pedir credenciales en uso normal; la revocación de ese dispositivo (sesión Supabase) es efectiva al instante en peticiones nuevas.
 - Una clave de instancia no puede actuar como usuario y solo llega a los scopes concedidos (módulo + E/S + endpoint).
 - Una clave delegada actúa como su usuario y está limitada por `min(scopes, permisos del usuario)`; el usuario puede revocarla al instante.
 - Ningún token aparece en claro en la BD, en logs ni en respuestas; el CI `guard-secrets` sigue en verde.
