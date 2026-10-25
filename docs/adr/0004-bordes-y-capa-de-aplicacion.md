@@ -1,7 +1,7 @@
 # ADR 0004 — Bordes y capa de aplicación: casos de uso, puertas, autorización y representación
 
 **Fecha:** 2026-10-25
-**Estado:** Borrador para aprobación del usuario
+**Estado:** Aceptada
 **Decisora:** usuario (rferic), en conversación de diseño
 **Resuelve:** el ítem «Patrones arquitectónicos por ADR: server actions vs API routes» del backlog de la [spec de diseño §11](../superpowers/specs/2026-10-24-027apps-design.md)
 

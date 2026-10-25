@@ -1,7 +1,7 @@
 # ADR 0005 — Estado y fetching del admin (patrón híbrido con dato inicial del servidor)
 
 **Fecha:** 2026-10-25
-**Estado:** Borrador para aprobación del usuario
+**Estado:** Aceptada
 **Decisora:** usuario (rferic), en conversación de diseño
 **Base:** [ADR 0004](0004-bordes-y-capa-de-aplicacion.md) — el admin muta vía API routes (`/api/v1`), sin server actions; representación compartida
 **Resuelve:** el ítem «estado y fetching» del backlog de la [spec de diseño §11](../superpowers/specs/2026-10-24-027apps-design.md)
