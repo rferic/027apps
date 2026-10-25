@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme: shared by all API levels; v31 only adds splash attributes. -->
+    <style name="Theme.Zero27Apps.Base" parent="@android:style/Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Zero27Apps" parent="Theme.Zero27Apps.Base" />
+</resources>
