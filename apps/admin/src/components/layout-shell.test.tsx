@@ -15,18 +15,19 @@ describe("LayoutShell", () => {
         contenido
       </LayoutShell>,
     );
-    expect(html).toContain('aria-label="Navegación principal"');
+    expect(html).toContain('aria-label="Principal"');
     expect(html).toContain("Dashboard Familia");
     expect(html).toContain("bg-background");
     expect(html).toContain("bg-muted");
   });
 
-  it("marca el nav activo con el token primario sólido", () => {
+  it("marca el nav activo con el token primario sólido y aria-current", () => {
     const html = renderToStaticMarkup(<LayoutShell title="T" nav={nav}>x</LayoutShell>);
     expect(html).toContain(">Dashboard</a>");
     expect(html).toContain("bg-primary");
     expect(html).toContain("text-primary-foreground");
     expect(html).toContain("text-muted-foreground");
+    expect(html).toContain('aria-current="page"');
   });
 
   it("renderiza el contenido y las acciones del topbar", () => {

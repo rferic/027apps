@@ -25,7 +25,7 @@ describe("KpiCard", () => {
     expect(withDelta).toContain("text-accent");
 
     const withoutDelta = renderToStaticMarkup(<KpiCard label="Miembros" value="14" />);
-    expect(withoutDelta).not.toContain("delta");
+    expect(withoutDelta).not.toContain(">+1 esta semana<");
   });
 
   it("aplica el tono del valor con tokens", () => {

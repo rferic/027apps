@@ -18,10 +18,16 @@ const statusBadge = (variant: "success" | "neutral", label: string) => (
   <Badge variant={variant}>{label}</Badge>
 );
 
+const balanceCell = (amount: string, tone: "success" | "destructive" | "default") => (
+  <span className={{ success: "text-success", destructive: "text-destructive", default: "" }[tone]}>
+    {amount}
+  </span>
+);
+
 const MEMBERS_ROWS = [
-  ["Eric (Admin)", "Super Admin", statusBadge("success", "Activo"), "0,00 €"],
-  ["Sara", "Member", statusBadge("success", "Activo"), "+120,50 €"],
-  ["Carlos", "Member", statusBadge("neutral", "Invitado"), "-340,00 €"],
+  ["Eric (Admin)", "Super Admin", statusBadge("success", "Activo"), balanceCell("+120,50 €", "success")],
+  ["Sara", "Member", statusBadge("success", "Activo"), balanceCell("0,00 €", "default")],
+  ["Carlos", "Member", statusBadge("neutral", "Invitado"), balanceCell("-340,00 €", "destructive")],
 ];
 
 const MEMBERS_TABLE = {
@@ -36,18 +42,19 @@ const MEMBERS_TABLE = {
 
 const KPIS = [
   { label: "Miembros", value: "14", delta: "+1 esta semana" },
-  { label: "Gasto Total", value: "2.458,20 €" },
+  { label: "Gasto Total", value: "2.458,20 €", delta: "Octubre" },
   { label: "Pendiente", value: "340,00 €", tone: "destructive" as const },
   { label: "Módulos", value: "3/10" },
 ];
 
 const ADD_EXPENSE = "Añadir gasto";
 const SEARCH_PLACEHOLDER = "Buscar...";
+const DASHBOARD_TITLE = "Dashboard Familia";
 
 export default function Home() {
   return (
     <LayoutShell
-      title="Dashboard Familia"
+      title={DASHBOARD_TITLE}
       nav={NAV_ITEMS}
       actions={
         <input
@@ -68,7 +75,11 @@ export default function Home() {
           <h2 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {MEMBERS_TABLE_TITLE}
           </h2>
-          <DataTable columns={MEMBERS_TABLE.columns} rows={MEMBERS_TABLE.rows} />
+          <DataTable
+            columns={MEMBERS_TABLE.columns}
+            rows={MEMBERS_TABLE.rows}
+            label={MEMBERS_TABLE_TITLE}
+          />
         </div>
         <div className="mt-6">
           <Button>{ADD_EXPENSE}</Button>

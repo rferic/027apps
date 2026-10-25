@@ -61,3 +61,27 @@ describe("tokens.json refleja design-tokens.css", () => {
     expect(lightVars["control-radius"]).toBe(normalize(mirror.radii.control));
   });
 });
+
+describe("globals.css mapea todos los roles a utilidades Tailwind", () => {
+  const globals = readFileSync(
+    join(fileURLToPath(new URL(".", import.meta.url)), "../src/app/globals.css"),
+    "utf8",
+  );
+
+  const mappedVars = globals.match(/@theme\s*inline\s*\{([^}]*)\}/)?.[1] ?? "";
+  const mapped = new Set(
+    [...mappedVars.matchAll(/--color-([\w-]+)\s*:/g)].map(([, name]) => name),
+  );
+
+  it("mapea cada rol de color del espejo a una utilidad --color-*", () => {
+    for (const role of colorRoles) {
+      expect(mapped, `falta mapear rol ${role} en @theme`).toContain(role);
+    }
+  });
+
+  it("no mapea roles que el espejo no define (evita derivas por copia)", () => {
+    for (const name of mapped) {
+      expect(colorRoles, `rol extra mapeado: ${name}`).toContain(name);
+    }
+  });
+});

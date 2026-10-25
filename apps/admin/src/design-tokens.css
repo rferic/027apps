@@ -14,6 +14,7 @@
   --destructive: #be123c;
   --destructive-foreground: #ffffff;
   --success: #15803d;
+  --success-subtle: rgba(34, 197, 94, 0.12);
 
   --card-radius: 12px;
   --control-radius: 8px;
@@ -33,5 +34,6 @@
     --destructive: #fb7185;
     --destructive-foreground: #2a0a10;
     --success: #4ade80;
+    --success-subtle: rgba(74, 222, 128, 0.12);
   }
 }

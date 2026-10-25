@@ -40,3 +40,14 @@ Integración: `app/page.tsx` (o ruta nueva si la estructura lo exige) reproducie
 - Badges con fondo translúcido del color al ~10–12%: **preferir `bg-success/10`, `bg-destructive/10`…** (modificador de opacidad sobre color semántico, sin paleta cruda). Si Tailwind v4 no lo genera, definir tokens nuevos en `design-tokens.css` **(claro y oscuro)** + `tokens.json` + test de paridad; nunca valores crudos en el componente.
 - Cualquier componente/layout de Next: leer antes el doc relevante en `apps/admin/node_modules/next/dist/docs/` (el `AGENTS.md` de `apps/admin` lo exige; Next 16 difiere de versiones previas).
 - Contraste AA de badges de color clara: si falla con el token puro, ajustar el fondo translúcido, no el componente.
+
+## Decisiones de revisión (QA `ingeniero`, ver informe)
+
+Hallazgos ALTO y MEDIO del QA corregidos: conflicto de bordes de botón (variantes sin `border-transparent` + test de regresión), badge success claro con token nuevo `--success-subtle` (AA 4.5:1 verificada por test WCAG puro, claro y oscuro), semántica de nav (`<nav>` + `aria-current`), `scope="col"` y caption accesible en DataTable, overflow-x-auto, tests reforzados (borde con fila real, delta marcador), paridad `globals.css` añadida a `design-tokens.test.ts`, `whitespace-nowrap`, estados `disabled`/`focus-visible` en botón, `text-[11px]`/`text-[13px]` por mockup, portabilidad de vitest (`fileURLToPath`), títulos en constantes. Datos de la pantalla alineados al mockup (balances, delta "Octubre", tonos de balance).
+
+Hallazgos rechazados/documentados como decisión (no bloquean):
+- **Enlaces placeholder (`#miembros`…) y botón sin handler**: pantalla estática de design system; se cablea en su tarea de módulo. La spec no pide navegación real en v1.
+- **Layout grid 200px fijo sin breakpoint**: admin desktop-first (decisión de diseño, alineado al mockup); se añade overflow-x-auto para mitigar desbordes en contenido. El responsive móvil del admin es tarea aparte.
+- **`tailwind-merge`/conflictos de `className`**: la API documentada de los componentes es que `className` es aditivo (layout) y el cambio de variante se hace por prop `variant`; no se añade dependencia sin necesidad.
+- **`key` por índice en filas**: aceptable para datos estáticos del dashboard; se introduce `rowKey`/claves estables cuando haya filas dinámicas.
+- **Spacing del brand y marco `.admin` exterior**: se mantiene la composición a pantalla completa (adaptación del mockup); el marco-caja interior (sección surface) conserva borde+radio.

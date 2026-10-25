@@ -9,6 +9,14 @@ describe("Button", () => {
     expect(html).toContain("text-primary-foreground");
   });
 
+  it("no mezcla un color de borde con border-transparent en secondary y destructive", () => {
+    const variants = ["secondary", "destructive"] as const;
+    for (const variant of variants) {
+      const html = renderToStaticMarkup(<Button variant={variant}>Acción</Button>);
+      expect(html, `variante ${variant}`).not.toContain("border-transparent");
+    }
+  });
+
   it("aplica cada variante con sus tokens", () => {
     const cases = [
       ["secondary", "bg-muted"],

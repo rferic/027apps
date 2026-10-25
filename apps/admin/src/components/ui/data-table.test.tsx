@@ -28,7 +28,7 @@ describe("DataTable", () => {
       />,
     );
     expect(html).toContain(">Eric (Admin)</td>");
-    expect(html).toContain("bg-success/10");
+    expect(html).toContain("bg-success-subtle");
     expect(html).toContain(">5</td>");
   });
 
@@ -41,8 +41,25 @@ describe("DataTable", () => {
   });
 
   it("separa filas con borde hairline", () => {
-    const html = renderToStaticMarkup(<DataTable columns={columns} rows={[]} />);
+    const html = renderToStaticMarkup(
+      <DataTable columns={columns} rows={[["Sara", "Activo", "0,00 €"]]} />,
+    );
     expect(html).toContain("border-b");
     expect(html).toContain("border-border");
+  });
+
+  it("declara scope=col en las cabeceras", () => {
+    const html = renderToStaticMarkup(<DataTable columns={columns} rows={[]} />);
+    expect(html).toContain('scope="col"');
+  });
+
+  it("incluye un caption accesible cuando se pasa label", () => {
+    const withLabel = renderToStaticMarkup(
+      <DataTable columns={columns} rows={[]} label="Miembros" />,
+    );
+    expect(withLabel).toContain("<caption");
+
+    const withoutLabel = renderToStaticMarkup(<DataTable columns={columns} rows={[]} />);
+    expect(withoutLabel).not.toContain("<caption");
   });
 });

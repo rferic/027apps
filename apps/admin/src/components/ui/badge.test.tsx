@@ -5,7 +5,7 @@ import { Badge } from "./badge";
 describe("Badge", () => {
   it("aplica cada variante con su fondo translúcido y color de texto", () => {
     const cases = [
-      ["success", "bg-success/10", "text-success"],
+      ["success", "bg-success-subtle", "text-success"],
       ["destructive", "bg-destructive/10", "text-destructive"],
       ["neutral", "bg-muted", "text-muted-foreground"],
     ] as const;
