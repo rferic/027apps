@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ splash: system draws the launcher icon over this background. -->
+<resources>
+    <style name="Theme.Zero27Apps" parent="Theme.Zero27Apps.Base">
+        <item name="android:windowSplashScreenBackground">@color/splash_background</item>
+    </style>
+</resources>

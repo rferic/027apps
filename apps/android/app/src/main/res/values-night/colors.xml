@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark-mode brand colors (identity D, docs/brand/brand.md). -->
+<resources>
+    <color name="splash_background">#08090A</color>
+</resources>

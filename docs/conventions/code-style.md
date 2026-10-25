@@ -19,7 +19,7 @@ Si una regla de revisión falla de forma repetida, conviértela en regla de ESLi
 
 ## Colores
 
-La UI solo usa **tokens semánticos** (`bg-background`, `text-foreground`...), definidos en `apps/admin/src/app/globals.css` (único sitio con valores de color crudos; el modo claro/oscuro vive ahí).
+La UI solo usa **tokens semánticos** (`bg-background`, `text-foreground`...), definidos en `apps/admin/src/design-tokens.css` (único sitio con valores de color crudos; ahí viven los valores claro/oscuro) y mapeados a utilidades de Tailwind en `apps/admin/src/app/globals.css`. El espejo `apps/admin/tokens.json` lo mantiene un test de paridad (`src/design-tokens.test.ts`).
 
 **Mecánico** (error de lint en `apps/admin/src/**/*.{ts,tsx}`, sobre cualquier string o plantilla literal, así que cubre `className`, `cn(...)`, `clsx(...)`, constantes):
 

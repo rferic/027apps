@@ -1,33 +1,37 @@
-/* Tokens semánticos — identidad A (docs/brand/identities/a.md). Espejo: tokens.json */
+/* Tokens semánticos — identidad D (docs/brand/identities/d.md · ADR 0002). Espejo: tokens.json */
 :root {
-  --background: #fff8f0;
-  --surface: #ffffff;
-  --muted: #f6ebdd;
-  --muted-foreground: #76604f;
-  --foreground: #3a2e2a;
-  --primary: #b9472b;
-  --primary-foreground: #ffffff;
-  --border: #e9dbcb;
-  --destructive: #b3261e;
-  --destructive-foreground: #ffffff;
-  --success: #2f7a45;
+  color-scheme: light dark;
 
-  --card-radius: 20px;
-  --control-radius: 14px;
+  --background: #f6f7f8;
+  --surface: #ffffff;
+  --muted: #eceef0;
+  --muted-foreground: #5b6472;
+  --foreground: #17191c;
+  --primary: #17191c;
+  --primary-foreground: #ffffff;
+  --accent: #09795f;
+  --border: #e3e5e8;
+  --destructive: #be123c;
+  --destructive-foreground: #ffffff;
+  --success: #15803d;
+
+  --card-radius: 12px;
+  --control-radius: 8px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1e1713;
-    --surface: #2a211b;
-    --muted: #372b23;
-    --muted-foreground: #c2ad9b;
-    --foreground: #f7ecdf;
-    --primary: #f2926f;
-    --primary-foreground: #2b1006;
-    --border: #4b3b2f;
-    --destructive: #ff8f86;
-    --destructive-foreground: #1a0606;
-    --success: #86d39a;
+    --background: #08090a;
+    --surface: #0e0f11;
+    --muted: #1a1b1e;
+    --muted-foreground: #8a8f98;
+    --foreground: #f7f8f8;
+    --primary: #f7f8f8;
+    --primary-foreground: #08090a;
+    --accent: #1cc29f;
+    --border: rgba(255, 255, 255, 0.09);
+    --destructive: #fb7185;
+    --destructive-foreground: #2a0a10;
+    --success: #4ade80;
   }
 }

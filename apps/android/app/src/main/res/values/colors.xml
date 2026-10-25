@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brand colors for launcher and splash (identity D, docs/brand/brand.md). -->
+<resources>
+    <color name="ic_launcher_background">#0E0F11</color>
+    <color name="splash_background">#FFFFFF</color>
+</resources>

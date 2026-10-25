@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>027Apps — assets de marca L4 «Latido»</title>
+<style>
+body{margin:0;padding:36px;font-family:system-ui,-apple-system,sans-serif;background:#F6F7F8;color:#17191C;display:grid;gap:22px;max-width:1100px;margin-inline:auto}
+h1{font-size:20px;margin:0 0 4px}
+p.sub{color:#5B6472;font-size:13px;margin:0 0 6px}
+section{background:#fff;border:1px solid #E3E5E8;border-radius:14px;padding:22px}
+h2{margin:0 0 14px;font-size:13px;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;color:#5B6472;text-transform:uppercase}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.tile{padding:20px;border-radius:12px;display:grid;place-items:center}
+.on-light{background:#F6F7F8;border:1px solid #E3E5E8}
+.on-dark{background:#0E0F11;border:1px solid rgba(255,255,255,.09)}
+img,svg{display:block}
+.cap{font-size:11px;color:#5B6472;text-align:center;margin-top:8px}
+figure{margin:0}
+</style>
+</head>
+<body>
+<div><h1>027Apps — L4 «Latido»</h1><p class="sub">Assets finales generados por <code>scripts/brand/build-assets.py</code> · ADR 0003 · identidad D</p></div>
+
+<section><h2>Wordmark completo · con tagline</h2>
+<div class="row">
+  <div class="tile on-light"><img src="wordmark-light.svg" width="320"></div>
+  <div class="tile on-dark"><img src="wordmark-dark.svg" width="320"></div>
+</div>
+</section>
+
+<section><h2>Wordmark bare · sin tagline (headers)</h2>
+<div class="row">
+  <div class="tile on-light"><img src="wordmark-bare-light.svg" width="190"></div>
+  <div class="tile on-dark"><img src="wordmark-bare-dark.svg" width="190"></div>
+  <div class="tile on-dark" style="color:#F7F8F8"><img src="wordmark-mono.svg" width="190"></div>
+  <div class="tile on-light" style="color:#09795F"><img src="wordmark-mono.svg" width="190"></div>
+</div>
+<p class="cap" style="text-align:left">La versión mono usa <code>currentColor</code>: se tiñe con CSS <code>color</code> (aquí en blanco sobre oscuro y teal sobre claro).</p>
+</section>
+
+<section><h2>Icono de app · squircle + electro + 027</h2>
+<div class="row">
+  <div class="tile on-dark"><img src="icon-dark.svg" width="96"></div>
+  <div class="tile on-light"><img src="icon-light.svg" width="96"></div>
+  <figure><div class="tile on-dark" style="padding:12px"><img src="icon-dark.svg" width="48"></div><figcaption class="cap">48</figcaption></figure>
+  <figure><div class="tile on-dark" style="padding:10px"><img src="icon-dark.svg" width="32"></div><figcaption class="cap">32</figcaption></figure>
+  <figure><div class="tile on-dark" style="padding:8px"><img src="icon-dark.svg" width="24"></div><figcaption class="cap">24</figcaption></figure>
+  <figure><div class="tile on-dark" style="padding:6px"><img src="icon-dark.svg" width="16"></div><figcaption class="cap">16 · favicon</figcaption></figure>
+</div>
+</section>
+
+<section><h2>Marca suelta · solo latido (currentColor)</h2>
+<div class="row">
+  <div class="tile on-dark" style="color:#1CC29F"><img src="mark.svg" width="130"></div>
+  <div class="tile on-light" style="color:#09795F"><img src="mark.svg" width="130"></div>
+</div>
+</section>
+
+<section><h2>Renders PNG (ImageMagick, 8-bit)</h2>
+<div class="row">
+  <figure><div class="tile on-light"><img src="playstore-512.png" width="110"></div><figcaption class="cap">playstore-512</figcaption></figure>
+  <figure><div class="tile on-light"><img src="../../../apps/admin/src/app/apple-icon.png" width="90"></div><figcaption class="cap">apple-icon 180</figcaption></figure>
+  <figure><div class="tile on-light"><img src="../../../apps/admin/src/app/favicon.ico" width="32"></div><figcaption class="cap">favicon.ico</figcaption></figure>
+</div>
+</section>
+</body>
+</html>
