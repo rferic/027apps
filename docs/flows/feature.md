@@ -10,7 +10,7 @@ Cómo entra una funcionalidad nueva (spec-driven development, ver spec §9). Las
 |---|---|---|---|---|
 | 1 | **Spec**: brainstorming y spec en `docs/superpowers/specs/`. Las tareas grandes llevan spec propia antes de `en curso`; los lotes pequeños pueden compartir el plan del sprint | Orquestador | Auto-revisión de la spec; coherencia con la spec de diseño | **Puerta: aprueba la spec.** Nada se implementa sin spec aprobada |
 | 2 | **Plan** en `docs/superpowers/plans/` (pasos exactos, ficheros, comandos, criterios de aceptación) | Orquestador | Cubre todos los requisitos de la spec | **Puerta: aprueba el plan** |
-| 3 | **Arranque**: rama de trabajo (`feature/*` o la rama de sprint; nunca `main`; ver [git](release.md#flujo-de-git-pendiente-de-decisión) — **TODO:** apuntar a `docs/flows/git.md` cuando exista) y fichero de tarea a `estado: en curso` | Implementador (marca `en curso`) | — | — |
+| 3 | **Arranque**: rama de trabajo (`feature/*` o la rama de sprint; nunca `main`; ver [git](git.md)) y fichero de tarea a `estado: en curso` | Implementador (marca `en curso`) | — | — |
 | 4 | **Implementación con TDD**: test primero (rojo → verde → refactor), un solo agente para todo el bucle. Recibe el contexto inyectado (spec + convenciones + criterios + rutas) | Implementador | Verificación mecánica local: la checklist de `AGENTS.md` (lint, tsc, test, build si aplica) con la salida leída | — |
 | 5 | **Autorevisión** del implementador contra spec, plan y [`code-style.md`](../conventions/code-style.md); informa de dudas y desviaciones (no las oculta) | Implementador | — | — |
 | 6 | **PR**: título en Conventional Commits; docs y flujos actualizados si cambia el comportamiento. El orquestador pasa el fichero de tarea a `estado: test` | Implementador (PR) / Orquestador (`test`) | CI: `admin`, `android`, `guard-secrets`, `commitlint` en verde; Vercel crea el preview ([cicd.md](cicd.md)) | — |
@@ -24,7 +24,7 @@ Pasos 7 y 8 se repiten tras cada corrección hasta que no queden hallazgos abier
 
 **Estados (quién los marca):** el implementador marca `en curso` al arrancar; el orquestador marca `test` y `finalizada`.
 
-**Con rama de sprint (provisional):** con rama de sprint (patrón vigente), `finalizada` se fija al cumplir el DoD completo (incluida la auditoría) mientras el trabajo vive en la rama de sprint; el merge del PR del sprint a `main` (y la verificación del despliegue) cierra el sprint. El modelo definitivo se fija en `docs/flows/git.md` (pendiente de decisión — **TODO**). Mismo criterio en [`bugfix.md`](bugfix.md), [`hotfix.md`](hotfix.md) y [`release.md`](release.md).
+**Con rama de sprint:** el modelo de ramas se define en [`git.md`](git.md): un sprint es un concepto, una rama por sprint con commits por tarea, un PR por sprint, squash merge; `finalizada` se fija al cumplir el DoD completo (incluida la auditoría) mientras el trabajo vive en la rama de sprint; el merge del PR del sprint a `main` (y la verificación del despliegue) cierra el sprint. Mismo criterio en [`bugfix.md`](bugfix.md), [`hotfix.md`](hotfix.md) y [`release.md`](release.md).
 
 ## Variantes por tipo de cambio
 

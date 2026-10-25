@@ -29,11 +29,11 @@ Release malo: se corrige con un tag nuevo de `versionCode` mayor, no se reescrib
 
 ## Puerta previa (una sola vez)
 
-Hasta que el usuario cree el keystore y suba los secrets ([cicd.md, sección A](cicd.md#a-keystore-de-release-y-secrets-de-github)) el job `release` falla en el repo original: ningún tag real se publica antes.
+Hasta que el usuario cree el keystore y suba los secrets ([cicd.md, sección A](cicd.md#a-protecciones-del-repo-y-solo-después-keystore-y-secrets-de-github)) el job `release` falla en el repo original: ningún tag real se publica antes.
 
-## Flujo de git (pendiente de decisión)
+## Flujo de git
 
-**Sin decidir:** el modelo de ramas — rama por sprint (con commits por tarea y un PR único, patrón del sprint 01) frente a rama por tarea —, además de protección de `main` y relación de tags con `main`. Es el elemento «Flujo de git» del backlog de la [spec de diseño §11](../superpowers/specs/2026-10-24-027apps-design.md) y debe documentarse en `docs/flows/git.md` antes del Core. Hasta entonces rigen las reglas de [`AGENTS.md`](../../AGENTS.md#git): rama de trabajo (no `main`), un PR por cambio, squash merge, sin merge ni force push sin orden del usuario. Mientras tanto, con rama de sprint (patrón vigente), `finalizada` se fija al cumplir el DoD completo (incluida la auditoría) mientras el trabajo vive en la rama de sprint; el merge del PR del sprint a `main` cierra el sprint. El modelo definitivo se fija en `docs/flows/git.md` (pendiente de decisión — **TODO**). Misma nota en [`feature.md`](feature.md#pasos).
+El modelo de ramas, la integración a `main`, la protección y los tags se definen en [`git.md`](git.md): un sprint es un concepto (rama `sprint/NN-<concepto>`, commits por tarea, un PR por sprint, squash merge); `main` siempre desplegable y protegido con los checks de [`cicd.md`](cicd.md#pendiente-de-ejecución-puerta-de-usuario); tags siempre sobre commits de `main`. Este flujo (release) solo ordena las decisiones de versionado; la mecánica (jobs, secrets, firma, verificación extremo a extremo, rollback) vive en [`cicd.md`](cicd.md#distribución-android-y-actualizaciones). El admin web no tiene releases versionadas: cada merge a `main` despliega producción (ver [`cicd.md`](cicd.md#despliegues)).
 
 ## Criterio de cierre
 
