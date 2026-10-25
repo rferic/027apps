@@ -1,7 +1,7 @@
 # ADR 0006 — Realtime: Supabase Realtime con eventos de dominio publicados por la API
 
 **Fecha:** 2026-10-25
-**Estado:** Borrador para aprobación del usuario
+**Estado:** Aceptada
 **Decisora:** usuario (rferic), en conversación de diseño
 **Base:** [spec de auth](../superpowers/specs/2026-10-25-auth.md) (Supabase = identidad + transporte) · [ADR 0004](0004-bordes-y-capa-de-aplicacion.md) (eventos tras el commit, representación compartida) · [ADR 0005](0005-estado-y-fetching-del-admin.md)
 **Resuelve:** el ítem «Realtime» de la [spec de diseño §4](../superpowers/specs/2026-10-24-027apps-design.md), fijado como pendiente de la spec de auth en la task-03
