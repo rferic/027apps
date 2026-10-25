@@ -1,9 +1,9 @@
 # ADR 0007 — Manejo de errores: un modelo de error estable, sin fuga de internos
 
 **Fecha:** 2026-10-25
-**Estado:** Borrador para aprobación del usuario
+**Estado:** Aceptada
 **Decisora:** usuario (rferic), en conversación de diseño
-**Base:** [ADR 0004](0004-bordes-y-capa-de-aplicacion.md) (puertas delgadas, zod en el borde, invariantes en el caso de uso, efectos externos tras el commit, representación compartida) · [ADR 0005](0005-estado-y-fetching-del-admin.md) (estados de error en el admin) · [DoD](../conventions/definition-of-done.md) (errores sin detalles internos, fallos explícitos)
+**Base:** [ADR 0004](0004-bordes-y-capa-de-aplicacion.md) (puertas delgadas, zod en el borde, invariantes en el caso de uso, efectos externos tras el commit, representación compartida) · [ADR 0005](0005-estado-y-fetching-del-admin.md) (estados de error en el admin) · [ADR 0008](0008-fechas-y-moneda.md) (locales activos de la instancia) · [DoD](../conventions/definition-of-done.md) (errores sin detalles internos, fallos explícitos)
 **Resuelve:** el ítem «manejo de errores» del backlog de la [spec de diseño §11](../superpowers/specs/2026-10-24-027apps-design.md)
 
 ## Contexto
@@ -16,12 +16,13 @@ Sin una decisión, cada puerta formatearía los fallos a su manera (strings suel
 
 Se adopta un **modelo de error único y estable en el borde**, con un **código máquina-legible** como contrato y un **message** de texto por defecto que los clientes traducen. El código es la fuente de verdad para la lógica del cliente (retry, i18n, tests); el texto es solo presentación.
 
-1. **Envelope de error en toda puerta.** Toda respuesta de error usa la misma forma:
+1. **Envelope de error en toda puerta con forma de red HTTP.** Toda respuesta de error de la **API `/api/v1`** usa la misma forma:
 
    ```json
    { "error": { "code": "validation_failed", "message": "…", "request_id": "…", "details": [ … ] } }
    ```
 
+   - El envelope es la forma de la **representación compartida** (ADR 0004 §7) en el transporte HTTP/JSON. Las otras puertas mantienen su formato nativo y **mapean el mismo `code`**: **MCP** expone el `code` de dominio en su `error` JSON-RPC (y `details` de validación en su `data`); los **comandos** devuelven el `code` en su salida (exit code ≠ 0 para fallo). El `code` y su `message` por defecto son el mismo en todas las puertas; lo que cambia es el transporte del envelope, no el modelo de error.
    - `code`: identificador estable, versionado, en `snake_case` (p. ej. `validation_failed`, `unauthorized`, `insufficient_scope`, `not_found`, `conflict`, `rate_limited`, `internal`). Cambiar un `code` es un breaking change del contrato.
    - `message`: texto por defecto, en inglés (la lingua franca técnica del código). **El servidor no localiza**: el cliente mapea `code` → texto por locale (flujo i18n, clave `error.<code>`).
    - `details`: **solo** errores de validación (lista de campos/reglas) o información no sensible que el cliente necesita; nunca internos.
@@ -31,7 +32,7 @@ Se adopta un **modelo de error único y estable en el borde**, con un **código 
    - **Validación de forma (zod, en el borde)** → `validation_failed`, con `details` de campos (el cliente los pinta en el formulario).
    - **Invariante de dominio (dentro del caso de uso)** → código específico (`invitation_expired`, `not_a_member`, `transfer_imbalance`, …), con su `message` por defecto. El caso de uso **no confía en que el borde validó** (ADR 0004 §3): un invariante que falle siempre tiene su código propio.
 
-3. **Errores de autorización distintos y sin enumeración.** 401 (no autenticado) ≠ 403 (autenticado sin scope). Un 403 **no revela si el recurso existe** (no permite enumerar por el mensaje de error): mismo `message` genérico tenga o no el llamador permiso de verlo.
+3. **Errores de autorización distintos y sin enumeración.** 401 (no autenticado) ≠ 403 (autenticado sin scope). Un 403 **no revela si el recurso existe**: mismo `message` genérico tenga o no el llamador permiso de verlo. **Matiz deliberado sobre el status**: al distinguir `403`/`404` como códigos HTTP, el status en sí puede indicar "existe pero sin permiso" frente a "no existe" — un oráculo de existencia por status. Se acepta porque los IDs de recursos son UUID (spec §8), lo que hace inviable la enumeración práctica; la **spec de API v1** puede unificar `404` si un caso de seguridad lo exige. El mensaje nunca distingue, el status puede, y la superficie queda cubierta por UUIDs.
 
 4. **Mapeo HTTP mínimo.** `400` (validación de forma), `401`, `403`, `404`, `409` (conflicto de estado), `429` (rate limit), `500` (inesperado). No se añaden códigos salvo que un caso lo justifique en la spec de API v1.
 
@@ -54,7 +55,7 @@ Se adopta un **modelo de error único y estable en el borde**, con un **código 
 ## Consecuencias
 
 - El Core tendrá un paquete compartido con la **jerarquía de errores de dominio** y el **mapeo a envelope** (el formato HTTP exacto de la respuesta lo fija la spec de API v1, que referencia este ADR).
-- Los **tests de puerta** (ADR 0004 §46) verifican: envelope correcto por error, mapeo HTTP, y **ausencia de fuga de internos** (no contener SQL/stack/rutas en la respuesta).
+- Los **tests de puerta** (ADR 0004, sección «Consecuencias») verifican: envelope correcto por error, mapeo HTTP, y **ausencia de fuga de internos** (no contener SQL/stack/rutas en la respuesta).
 - El `request_id` entra como requisito en logs y respuestas de error.
-- El microcopy de errores se gestiona por el **flujo i18n** (claves `error.<code>`, locales es/ca/en/it).
+- El microcopy de errores se gestiona por el **flujo i18n** (claves `error.<code>`, según los locales activos de la instancia — ADR 0008).
 - Los clientes (móvil, admin) implementan el mapeo `code` → texto/acción como patrón fijo, con su tarea de patrones UX del backlog.

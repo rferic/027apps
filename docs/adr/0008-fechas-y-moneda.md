@@ -1,10 +1,10 @@
 # ADR 0008 — Fechas y moneda: instantes UTC, fechas de calendario explícitas y dinero en enteros de céntimos
 
 **Fecha:** 2026-10-25
-**Estado:** Borrador para aprobación del usuario
+**Estado:** Aceptada
 **Decisora:** usuario (rferic), en conversación de diseño
-**Base:** [spec de diseño §8](../superpowers/specs/2026-10-24-027apps-design.md) (`currency` y `exchange_rate` por transacción, `instance_settings`) · [§3 límites v1](../superpowers/specs/2026-10-24-027apps-design.md) (UI monomoneda por grupo, divisa original de cada transacción) · [§12](../superpowers/specs/2026-10-24-027apps-design.md) (modelo contable puro, gastos inmutables + transfers) · [ADR 0004](0004-bordes-y-capa-de-aplicacion.md) (representación compartida, recurso con forma explícita)
-**Resuelve:** el ítem «fechas y moneda» del backlog de la [spec de diseño §11](../superpowers/specs/2026-10-24-027apps-design.md). **Actualiza** el set de idiomas de la spec (§3 «4 locales», §11 «es/ca/en/it») al set activable de 9 idiomas fijado aquí.
+**Base:** [spec de diseño §8](../superpowers/specs/2026-10-24-027apps-design.md) (`currency` y `exchange_rate` por transacción, `instance_settings`) · [§3 límites v1](../superpowers/specs/2026-10-24-027apps-design.md) (UI monomoneda por grupo, divisa original de cada transacción) · [§4 i18n](../superpowers/specs/2026-10-24-027apps-design.md) (claves en locales, check de CI) · [§12](../superpowers/specs/2026-10-24-027apps-design.md) (modelo contable puro, gastos inmutables + transfers) · [ADR 0004](0004-bordes-y-capa-de-aplicacion.md) (representación compartida, recurso con forma explícita) · [ADR 0007](0007-manejo-de-errores.md) (envelope de errores)
+**Resuelve:** el ítem «fechas y moneda» del backlog de la [spec de diseño §11](../superpowers/specs/2026-10-24-027apps-design.md). **Actualiza** el set de idiomas de la spec (§2 idiomas al lanzamiento, §4 «4 locales», §5 no-objetivo «6 idiomas al lanzamiento», §11 «es/ca/en/it») al set activable de 9 idiomas fijado aquí.
 
 ## Contexto
 
@@ -20,17 +20,17 @@ Además, la instalación de una instancia es el momento natural de fijar sus **p
 
 ### Configuración general de la instancia (fijada en el instalador)
 
-0. El **wizard de instalación** pide y guarda como **configuración general de la instancia** (tabla `instance_settings`; los secretos cifrados, el resto en claro — el detalle de columnas lo fija el sprint de infra):
+0. El **wizard de instalación** pide y guarda como **configuración general de la instancia** (tabla `instance_settings`; el detalle de columnas lo fija el sprint de infra — **delta deliberada sobre §8**, que la define para secrets cifrados: aquí además guarda configuración no sensible en claro, compatible con su naturaleza clave-valor):
    - **Zona horaria** por defecto de la instancia.
    - **Moneda por defecto** de la plataforma (fallback para grupos que no definan la suya).
    - **Idiomas activos** (los que se sirven/verifican), elegidos de un set disponible fijo.
    - El set de idiomas disponible es: **`en, es, ca, it, fr, de, pt, gl, eu`** (9). Quien instala **habilita/deshabilita** sobre ese set; `en` no se puede deshabilitar (idioma base del código y de fallback). Los no activos simplemente no se sirven ni se exigen en el check de i18n.
-   - Esto **actualiza** la lista «es/ca/en/it» de la spec §3/§11: el set pasa a los 9 anteriores, con activación por instancia.
+   - Esto **actualiza** la lista «es/ca/en/it» de la spec §4/§11 (y los «4»/«6 idiomas» de §2/§5): el set pasa a los 9 anteriores, con activación por instancia.
 
 ### Fechas
 
 1. **Instantes, en UTC, ISO 8601 con `Z`.** Todo momento en el tiempo (cuándo se creó, cuándo ocurrió) se serializa como `2026-10-25T15:04:05Z` y se almacena como `timestamptz`. El servidor **no opera instantes en otra zona**: los instantes canónicos son UTC.
-2. **La zona horaria de la instancia (config general) es la zona por defecto para presentación e interpretación.** La usa el **cliente** (y los reportes) como zona de referencia cuando no hay una zona explícita del usuario; el valor por defecto en `profiles.locale`/zona arranca de ahí. Un perfil de usuario puede tener su propia zona para presentación personal; la de la instancia es el default.
+2. **La zona horaria de la instancia (config general) es la zona por defecto para presentación e interpretación.** La usa el **cliente** (y los reportes) como zona de referencia cuando no hay una zona explícita del usuario; el valor por defecto arranca de ahí. Un perfil de usuario puede tener su propia zona para presentación personal (**delta deliberada sobre §8**, cuyo `profiles` solo tiene `locale`: se añade `timezone` al perfil, default = zona de la instancia); la de la instancia es el default.
 3. **Las fechas de calendario que el dominio necesita se modelan como `date` explícito (sin hora, sin zona).** Cuando un dato es "el día X" y no "el instante X" — cumpleaños, aniversarios, y la **fecha del gasto** que el usuario fija en el formulario — se guarda `YYYY-MM-DD` como fecha de calendario, **no** derivada de un instante en una zona concreta. Así un cumpleaños no se desplaza con la zona horaria de quien lo ve.
    - La fecha del gasto la pone quien registra (su día local, como lo entiende la UI); es un `date` del formulario, no el `created_at`.
    - El instante de creación (`created_at`) se guarda aparte, en UTC.
@@ -51,9 +51,9 @@ Además, la instalación de una instancia es el momento natural de fijar sus **p
 
 La lección §12 del proyecto (anti-patrón "convenciones en la cabeza") se aplica aquí con un mecanismo de **tres niveles**; el detalle operativo se fija en la estrategia de testing y el [DoD](../conventions/definition-of-done.md):
 
-- **Nivel 1 — Determinista (la herramienta falla):** schemas zod + tipos compartidos (`AmountMinor`, `Currency`, `DateString`, `Timestamp`) que toda puerta debe importar; reglas ESLint propias (p. ej. `no-money-float`, `no-server-tz`); check de i18n en CI que falla si los **locales activos** de `instance_settings` no tienen exactamente las mismas claves; helpers únicos testeados de redondeo determinista y conversión (con test "las sumas cuadran siempre").
+- **Nivel 1 — Determinista (la herramienta falla):** schemas zod + tipos compartidos (`AmountMinor`, `Currency`, `DateString`, `Timestamp`) que toda puerta debe importar; reglas ESLint propias (p. ej. `no-money-float`, `no-server-tz`); **check de i18n en CI determinista**: como el CI corre sobre el repo sin una instancia viva, el set de locales verificado no sale de `instance_settings` en runtime — se fija un **set commiteado en el repo** (config/seed que refleja los locales servidos por la instancia) y el check falla si los locales de ese set no tienen exactamente las mismas claves; los locales deshabilitados en una instancia concreta no se sirven (decisión runtime), pero el check de CI valida el set completo que el código es capaz de servir; helpers únicos testeados de redondeo determinista y conversión (con test "las sumas cuadran siempre").
 - **Nivel 2 — Proceso (lo verifica un agente distinto):** cada tarea de código declara en su frontmatter `adrs: [0008, …]`; el DoD exige "cumplimiento de ADRs aplicables"; la revisión QA/seguridad incluye esos ADRs en su checklist.
-- **Nivel 3 — Contexto (el agente lo sabe al empezar):** la skill de proyecto `new-module`/`core-patterns` inyecta los ADRs aplicables y los ejemplos de uso correcto al crear un módulo.
+- **Nivel 3 — Contexto (el agente lo sabe al empezar):** la skill de proyecto `new-module` (ya prevista en spec §9/§11) inyecta los ADRs aplicables y los ejemplos de uso correcto al crear un módulo; si en el futuro se crea una skill `core-patterns`, se hace sobre la misma base.
 
 ## Alternativas consideradas
 
@@ -69,7 +69,7 @@ La lección §12 del proyecto (anti-patrón "convenciones en la cabeza") se apli
 - Schemas zod y recursos de la API v1: `amount_minor` (entero) + `currency`, y `date`/`timestamp` con formatos fijos ISO 8601 — validados en el borde (ADR 0004 §3).
 - El Core define helpers compartidos de **redondeo determinista** y de **conversión con tipo de cambio** (con su test: las sumas cuadran siempre), usados por los casos de uso de Split Expenses.
 - El **wizard de instalación** (spec de auth §3bis) incorpora los pasos de zona horaria, moneda por defecto e idiomas activos, guardándolos en `instance_settings`; la spec del sprint de infra los detalla.
-- La **config general de idiomas** alimenta el check de i18n: los locales activos se sincronizan y verifican; los deshabilitados no se sirven.
+- La **config general de idiomas** alimenta el check de i18n: los locales activos se sincronizan y verifican (set commiteado en el repo, ver Nivel 1); los deshabilitados en una instancia no se sirven.
 - La spec del módulo Split Expenses detalla la regla de reparto (quién recibe el residuo) sobre esta base.
 - Los clientes formatean con el locale del usuario; `profiles.locale` arranca del default de la instancia.
 - La regla de importación (Splitwise) conserva divisa original + tipo de cambio por transacción (spec §8), listo para multi-divisa futura.
