@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>027Apps — Logo: L1 anillo · L2 punto · L3 mesa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+[data-theme=light]{--background:#F6F7F8;--surface:#FFFFFF;--muted:#ECEEF0;--muted-foreground:#5B6472;--foreground:#17191C;--border:#E3E5E8;--accent:#09795F;--shadow:0 1px 2px rgba(23,25,28,.05),0 4px 14px rgba(23,25,28,.05);color-scheme:light}
+[data-theme=dark]{--background:#08090A;--surface:#0E0F11;--muted:#1A1B1E;--muted-foreground:#8A8F98;--foreground:#F7F8F8;--border:rgba(255,255,255,.09);--accent:#1CC29F;--shadow:none;color-scheme:dark}
+
+*{box-sizing:border-box;margin:0}
+body{background:var(--background);color:var(--foreground);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.45;min-height:100vh;-webkit-font-smoothing:antialiased;padding:28px 20px 60px}
+button{font:inherit;color:inherit}
+.top{max-width:1240px;margin:0 auto 22px;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.top p{color:var(--muted-foreground);font-size:13px}
+.theme-toggle{margin-left:auto;height:44px;padding:0 16px;background:var(--surface);border:1.5px solid var(--foreground);border-radius:10px;font-weight:600;cursor:pointer}
+.grid{max-width:1240px;margin:0 auto;display:grid;gap:18px}
+.opt{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:20px;display:grid;grid-template-columns:230px 1fr;gap:20px}
+.info h2{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.info .tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--accent);margin-bottom:6px}
+.info p{color:var(--muted-foreground);font-size:13px;margin-top:6px}
+.info b{color:var(--foreground);font-weight:600}
+.showcase{display:grid;gap:12px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch}
+.chip{border-radius:12px;padding:22px 26px;display:flex;align-items:center;gap:12px;min-height:96px;flex:1;min-width:280px}
+.on-light{background:#F6F7F8;color:#17191C;border:1px solid #E3E5E8}
+.on-dark{background:#0E0F11;color:#F7F8F8;border:1px solid rgba(255,255,255,.09)}
+.caption{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;color:var(--muted-foreground);text-transform:uppercase;margin-bottom:5px}
+
+/* wordmarks comunes */
+.wm{display:flex;align-items:flex-end;line-height:1}
+.wm .num{font-weight:800;letter-spacing:-.045em;font-size:46px}
+.wm .suf{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px;letter-spacing:.24em;color:#5B6472;margin:0 0 9px 10px}
+.on-dark .suf{color:#8A8F98}
+.wm .dot{width:9px;height:9px;border-radius:50%;background:#1CC29F;margin:0 0 7px 5px}
+.wm .apps{font-weight:700;font-size:30px;letter-spacing:-.02em;color:#5B6472;margin:0 0 2px 8px}
+.on-dark .apps{color:#8A8F98}
+
+/* icono */
+.ico{width:76px;height:76px;border-radius:24%;background:#0E0F11;display:grid;place-items:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09);flex-shrink:0}
+.ico.light{background:#FFFFFF;box-shadow:inset 0 0 0 1px #E3E5E8}
+
+/* strip de tamaños */
+.strip{display:flex;align-items:flex-end;gap:14px;padding:14px 18px;border-radius:12px;background:#0E0F11;flex:1}
+.strip .cap{font-family:'JetBrains Mono',monospace;font-size:9px;color:#8A8F98;margin-top:4px;text-align:center}
+.strip figure{display:flex;flex-direction:column;align-items:center}
+
+/* splash */
+.splash{border-radius:18px;height:130px;display:grid;place-items:center;flex:1;min-width:200px;position:relative}
+.splash::after{content:"splash · Android 12+";position:absolute;bottom:8px;left:12px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.08em;color:#8A8F98}
+.splash.on-light::after{color:#9aa1a9}
+.splash .name{font-weight:800;font-size:15px;letter-spacing:-.02em;margin-top:9px;display:flex;align-items:center;gap:3px}
+.splash .name i{width:4px;height:4px;border-radius:50%;background:#1CC29F;display:inline-block}
+.stack{display:grid;justify-items:center}
+
+@media(max-width:900px){.opt{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div><h1>027Apps — dirección de logo</h1><p>Tres direcciones sobre la identidad D. Cada una en claro, oscuro, icono, favicon y splash.</p></div>
+  <button class="theme-toggle" id="toggle">Modo claro</button>
+</div>
+
+<div class="grid">
+  <!-- L1 -->
+  <section class="opt">
+    <div class="info">
+      <div class="tag">L1 · ANILLO</div>
+      <h2>El 0 es un anillo de progreso</h2>
+      <p><b>Idea:</b> el «0» se traza como anillo teal abierto (guiño a gráficos de valor); «27» en Inter 800 y «APPS» en mono espaciada. <b>Técnico y de seguimiento</b>, coherente con el dashboard.</p>
+      <p><b>Riesgo:</b> el anillo abierto puede leerse como «carga en curso» a primera vista.</p>
+    </div>
+    <div class="showcase">
+      <div class="row">
+        <div class="chip on-light">
+          <div class="wm">
+            <svg width="40" height="40" viewBox="0 0 48 48" style="margin-bottom:7px" aria-hidden="true"><circle cx="24" cy="24" r="16.5" fill="none" stroke="#1CC29F" stroke-width="9.5" stroke-linecap="round" stroke-dasharray="87 103.7" transform="rotate(-16 24 24)"/></svg>
+            <span class="num">27</span><span class="suf">APPS</span>
+          </div>
+        </div>
+        <div class="chip on-dark">
+          <div class="wm">
+            <svg width="40" height="40" viewBox="0 0 48 48" style="margin-bottom:7px" aria-hidden="true"><circle cx="24" cy="24" r="16.5" fill="none" stroke="#1CC29F" stroke-width="9.5" stroke-linecap="round" stroke-dasharray="87 103.7" transform="rotate(-16 24 24)"/></svg>
+            <span class="num">27</span><span class="suf">APPS</span>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="ico"><svg width="46" height="46" viewBox="0 0 48 48"><circle cx="24" cy="24" r="16.5" fill="none" stroke="#1CC29F" stroke-width="9.5" stroke-linecap="round" stroke-dasharray="87 103.7" transform="rotate(-16 24 24)"/></svg></div>
+        <div class="ico light"><svg width="46" height="46" viewBox="0 0 48 48"><circle cx="24" cy="24" r="16.5" fill="none" stroke="#0C8A6E" stroke-width="9.5" stroke-linecap="round" stroke-dasharray="87 103.7" transform="rotate(-16 24 24)"/></svg></div>
+        <div class="strip">
+          <figure><svg width="32" height="32" viewBox="0 0 48 48"><circle cx="24" cy="24" r="16.5" fill="none" stroke="#1CC29F" stroke-width="9.5" stroke-linecap="round" stroke-dasharray="87 103.7" transform="rotate(-16 24 24)"/></svg><figcaption class="cap">32</figcaption></figure>
+          <figure><svg width="24" height="24" viewBox="0 0 48 48"><circle cx="24" cy="24" r="16.5" fill="none" stroke="#1CC29F" stroke-width="9.5" stroke-linecap="round" stroke-dasharray="87 103.7" transform="rotate(-16 24 24)"/></svg><figcaption class="cap">24</figcaption></figure>
+          <figure><svg width="16" height="16" viewBox="0 0 48 48"><circle cx="24" cy="24" r="16.5" fill="none" stroke="#1CC29F" stroke-width="10.5" stroke-linecap="round" stroke-dasharray="87 103.7" transform="rotate(-16 24 24)"/></svg><figcaption class="cap">16</figcaption></figure>
+        </div>
+      </div>
+      <div class="row">
+        <div class="splash" style="background:#FFFFFF;border:1px solid #E3E5E8"><div class="stack"><svg width="64" height="64" viewBox="0 0 48 48"><circle cx="24" cy="24" r="16.5" fill="none" stroke="#0C8A6E" stroke-width="9.5" stroke-linecap="round" stroke-dasharray="87 103.7" transform="rotate(-16 24 24)"/></svg><span class="name" style="color:#17191C">027Apps<i></i></span></div></div>
+        <div class="splash" style="background:#08090A;border:1px solid rgba(255,255,255,.09)"><div class="stack"><svg width="64" height="64" viewBox="0 0 48 48"><circle cx="24" cy="24" r="16.5" fill="none" stroke="#1CC29F" stroke-width="9.5" stroke-linecap="round" stroke-dasharray="87 103.7" transform="rotate(-16 24 24)"/></svg><span class="name" style="color:#F7F8F8">027Apps<i></i></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- L2 -->
+  <section class="opt">
+    <div class="info">
+      <div class="tag">L2 · PUNTO TERMINAL</div>
+      <h2>Monocromo con punto teal</h2>
+      <p><b>Idea:</b> «027Apps» entero en Inter 800 rematado por un punto teal, como una sentencia cerrada. Lo más sobrio y técnico; el icono es el wordmark dentro del squircle oscuro.</p>
+      <p><b>Riesgo:</b> a 16 px el texto desaparece; el favicon necesita versión simplificada (solo punto). Menos memorable como símbolo.</p>
+    </div>
+    <div class="showcase">
+      <div class="row">
+        <div class="chip on-light"><div class="wm"><span class="num" style="font-size:40px">027Apps</span><span class="dot"></span></div></div>
+        <div class="chip on-dark"><div class="wm"><span class="num" style="font-size:40px">027Apps</span><span class="dot"></span></div></div>
+      </div>
+      <div class="row">
+        <div class="ico"><span style="font-weight:800;font-size:26px;letter-spacing:-.04em;color:#F7F8F8">27<i style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#1CC29F;margin-left:2px"></i></span></div>
+        <div class="ico light"><span style="font-weight:800;font-size:26px;letter-spacing:-.04em;color:#17191C">27<i style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#0C8A6E;margin-left:2px"></i></span></div>
+        <div class="strip">
+          <figure><span style="font-weight:800;font-size:15px;letter-spacing:-.04em;color:#F7F8F8">27<i style="display:inline-block;width:4px;height:4px;border-radius:50%;background:#1CC29F"></i></span><figcaption class="cap">32</figcaption></figure>
+          <figure><svg width="24" height="24" viewBox="0 0 48 48"><circle cx="24" cy="24" r="13" fill="#1CC29F"/></svg><figcaption class="cap">24</figcaption></figure>
+          <figure><svg width="16" height="16" viewBox="0 0 48 48"><circle cx="24" cy="24" r="13" fill="#1CC29F"/></svg><figcaption class="cap">16</figcaption></figure>
+        </div>
+      </div>
+      <div class="row">
+        <div class="splash" style="background:#FFFFFF;border:1px solid #E3E5E8"><div class="stack"><span style="font-weight:800;font-size:30px;letter-spacing:-.04em;color:#17191C">027Apps<i style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#0C8A6E"></i></span></div></div>
+        <div class="splash" style="background:#08090A;border:1px solid rgba(255,255,255,.09)"><div class="stack"><span style="font-weight:800;font-size:30px;letter-spacing:-.04em;color:#F7F8F8">027Apps<i style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#1CC29F"></i></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- L3 -->
+  <section class="opt">
+    <div class="info">
+      <div class="tag">L3 · MESA</div>
+      <h2>El 0 es la mesa, los puntos son la familia</h2>
+      <p><b>Idea:</b> anillo teal cerrado (la mesa) con tres puntos dentro (la familia), uno en teal como «tú». «27» en Inter 800 y «Apps» en Inter 700 atenuado. El más familiar y cálido de los tres.</p>
+      <p><b>Riesgo:</b> los puntos se funden a tamaños pequeños (necesita simplificación a anillo); menos «técnico» que L1/L2.</p>
+    </div>
+    <div class="showcase">
+      <div class="row">
+        <div class="chip on-light">
+          <div class="wm">
+            <svg width="40" height="40" viewBox="0 0 48 48" style="margin-bottom:7px"><circle cx="24" cy="24" r="19" fill="none" stroke="#1CC29F" stroke-width="6.5"/><circle cx="24" cy="17" r="3.4" fill="#0C3C32"/><circle cx="18" cy="29.5" r="3.4" fill="#0C3C32"/><circle cx="30" cy="29.5" r="3.4" fill="#1CC29F"/></svg>
+            <span class="num">27</span><span class="apps">Apps</span>
+          </div>
+        </div>
+        <div class="chip on-dark">
+          <div class="wm">
+            <svg width="40" height="40" viewBox="0 0 48 48" style="margin-bottom:7px"><circle cx="24" cy="24" r="19" fill="none" stroke="#1CC29F" stroke-width="6.5"/><circle cx="24" cy="17" r="3.4" fill="#F7F8F8"/><circle cx="18" cy="29.5" r="3.4" fill="#F7F8F8"/><circle cx="30" cy="29.5" r="3.4" fill="#1CC29F"/></svg>
+            <span class="num">27</span><span class="apps">Apps</span>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="ico"><svg width="52" height="52" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#1CC29F" stroke-width="6.5"/><circle cx="24" cy="17" r="3.4" fill="#F7F8F8"/><circle cx="18" cy="29.5" r="3.4" fill="#F7F8F8"/><circle cx="30" cy="29.5" r="3.4" fill="#1CC29F"/></svg></div>
+        <div class="ico light"><svg width="52" height="52" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#0C8A6E" stroke-width="6.5"/><circle cx="24" cy="17" r="3.4" fill="#0C3C32"/><circle cx="18" cy="29.5" r="3.4" fill="#0C3C32"/><circle cx="30" cy="29.5" r="3.4" fill="#0C8A6E"/></svg></div>
+        <div class="strip">
+          <figure><svg width="32" height="32" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#1CC29F" stroke-width="6.5"/><circle cx="24" cy="24" r="7" fill="#F7F8F8" fill-opacity=".92"/></svg><figcaption class="cap">32</figcaption></figure>
+          <figure><svg width="24" height="24" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#1CC29F" stroke-width="6.5"/><circle cx="24" cy="24" r="7" fill="#F7F8F8" fill-opacity=".92"/></svg><figcaption class="cap">24</figcaption></figure>
+          <figure><svg width="16" height="16" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#1CC29F" stroke-width="6.5"/></svg><figcaption class="cap">16</figcaption></figure>
+        </div>
+      </div>
+      <div class="row">
+        <div class="splash" style="background:#FFFFFF;border:1px solid #E3E5E8"><div class="stack"><svg width="64" height="64" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#0C8A6E" stroke-width="6.5"/><circle cx="24" cy="17" r="3.4" fill="#0C3C32"/><circle cx="18" cy="29.5" r="3.4" fill="#0C3C32"/><circle cx="30" cy="29.5" r="3.4" fill="#0C8A6E"/></svg><span class="name" style="color:#17191C">027Apps<i></i></span></div></div>
+        <div class="splash" style="background:#08090A;border:1px solid rgba(255,255,255,.09)"><div class="stack"><svg width="64" height="64" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#1CC29F" stroke-width="6.5"/><circle cx="24" cy="17" r="3.4" fill="#F7F8F8"/><circle cx="18" cy="29.5" r="3.4" fill="#F7F8F8"/><circle cx="30" cy="29.5" r="3.4" fill="#1CC29F"/></svg><span class="name" style="color:#F7F8F8">027Apps<i></i></span></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+const b=document.getElementById('toggle');
+b.addEventListener('click',()=>{
+  const r=document.documentElement;
+  const dark=r.dataset.theme==='dark';
+  r.dataset.theme=dark?'light':'dark';
+  b.textContent=dark?'Modo oscuro':'Modo claro';
+});
+</script>
+</body>
+</html>

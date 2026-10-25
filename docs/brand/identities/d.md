@@ -100,9 +100,9 @@ Calculado sobre los hex de arriba. Todas las parejas de texto cumplen AA (≥ 4,
 
 Sin cambios respecto a A: cercano y tranquilo, tuteo y frases cortas — «¿Añadimos el gasto de la luz?», «Todo al día, bien hecho». El tono lo lleva el texto, no la paleta.
 
-## Dirección de logo (solo insumo; sin assets todavía)
+## Dirección de logo
 
-Wordmark «027» en Inter 800 con el «0» trazado como anillo teal (guiño a un gráfico de anillo/valor), o «027» monocromo con punto teal terminal. Icono de app: squircle oscuro `#0E0F11` con el anillo teal y una hairline blanca alfa — coherente con el cromo monocromo del admin. El gradiente azul→violeta puede aparecer como brillo secundario en la landing, no en el icono.
+Resuelta en el sprint 02: dirección **L4 «Latido»** (ADR 0003) — el latido del proyecto anterior vestido con esta identidad. Assets y guía en `docs/brand/brand.md`.
 
 ## Cuándo elegirla
 
