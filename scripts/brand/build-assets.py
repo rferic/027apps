@@ -132,23 +132,38 @@ def wordmark_svg(shaper_i, shaper_m, variant, bare):
     _, _, (_, head_top, _, _) = shaper_i.run("027", size, -0.04, 0)
     cap_h = -head_top
     base_y = pad + cap_h
-    head, head_w, (_, _, head_xmax, _) = shaper_i.run("027", size, -0.04, base_y, dx=pad)
-    tail, tail_w, (tail_xmin, _, _, _) = shaper_i.run("Apps", size, -0.04, base_y, dx=pad + head_w)
+    head, head_w, head_b = shaper_i.run("027", size, -0.04, base_y, dx=pad)
+    tail, tail_w, tail_b = shaper_i.run("Apps", size, -0.04, base_y, dx=pad + head_w)
     # Regression guard: without the dx offset the runs overlap ("Apps" over "027").
-    if tail_xmin < head_xmax - 1.0:
+    if tail_b[0] < head_b[2] - 1.0:
         raise RuntimeError("wordmark runs overlap; check the dx offsets")
     parts = [f'<g fill="{fg}">{merge(head)}</g>', f'<g fill="{brand}">{merge(tail)}</g>']
     width = pad * 2 + head_w + tail_w
+    runs = [head_b, tail_b]
     if bare:
-        height = cap_h + pad * 2
+        # The descenders of "Apps" reach below the baseline: size to them, not to cap height.
+        height = tail_b[3] + pad
     else:
         tag_size = 23.0
-        _, _, (_, tag_top, _, _) = shaper_m.run(TAGLINE, tag_size, 0.3, 0)
+        _, tag_w, (_, tag_top, _, _) = shaper_m.run(TAGLINE, tag_size, 0.3, 0)
+        # The tagline never outgrows the wordmark: shrink it to fit if needed.
+        avail = head_w + tail_w
+        if tag_w > avail:
+            tag_size = tag_size * avail / tag_w
+            _, _, (_, tag_top, _, _) = shaper_m.run(TAGLINE, tag_size, 0.3, 0)
         tag_cap = -tag_top
-        tag_base = base_y + 16.0 + tag_cap
-        tag, _, (_, _, _, tag_bottom) = shaper_m.run(TAGLINE, tag_size, 0.3, tag_base, dx=pad)
+        # Start the tagline below the "Apps" descenders, never on top of them.
+        tag_base = tail_b[3] + 6.0 + tag_cap
+        tag, _, tag_b = shaper_m.run(TAGLINE, tag_size, 0.3, tag_base, dx=pad)
         parts.append(f'<g fill="{muted}">{merge(tag)}</g>')
-        height = tag_bottom + pad
+        runs.append(tag_b)
+        height = tag_b[3] + pad
+    for name, (xmin, ymin, xmax, ymax) in zip(("head", "tail", "tagline"), runs):
+        if xmin < 0 or ymin < 0 or xmax > width or ymax > height:
+            raise RuntimeError(
+                f"wordmark content clipped by viewBox: {name} bounds "
+                f"({xmin:.1f}, {ymin:.1f}, {xmax:.1f}, {ymax:.1f}) vs {width:.1f}x{height:.1f}"
+            )
     inner = "".join(parts)
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.1f} {height:.1f}" '
