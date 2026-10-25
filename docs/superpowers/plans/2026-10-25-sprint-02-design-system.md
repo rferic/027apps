@@ -47,7 +47,7 @@ Hallazgos ALTO y MEDIO del QA corregidos: conflicto de bordes de botón (variant
 
 Hallazgos rechazados/documentados como decisión (no bloquean):
 - **Enlaces placeholder (`#miembros`…) y botón sin handler**: pantalla estática de design system; se cablea en su tarea de módulo. La spec no pide navegación real en v1.
-- **Layout grid 200px fijo sin breakpoint**: admin desktop-first (decisión de diseño, alineado al mockup); se añade overflow-x-auto para mitigar desbordes en contenido. El responsive móvil del admin es tarea aparte.
+- **Layout responsivo**: sustituye la decisión anterior de grid fijo tras la prueba del usuario en móvil (26-10, commit `ee37ed0`): `grid-cols-1` por defecto, `lg:grid-cols-[200px_1fr]`, nav horizontal con `overflow-x-auto` por debajo de `lg`, tabla con overflow y KPIs responsivos (ya existentes). Sin drawer: el nav horizontal con scroll cubre el caso móvil del admin v1.
 - **`tailwind-merge`/conflictos de `className`**: la API documentada de los componentes es que `className` es aditivo (layout) y el cambio de variante se hace por prop `variant`; no se añade dependencia sin necesidad.
 - **`key` por índice en filas**: aceptable para datos estáticos del dashboard; se introduce `rowKey`/claves estables cuando haya filas dinámicas.
 - **Spacing del brand y marco `.admin` exterior**: se mantiene la composición a pantalla completa (adaptación del mockup); el marco-caja interior (sección surface) conserva borde+radio.
