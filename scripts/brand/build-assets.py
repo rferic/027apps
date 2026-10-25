@@ -82,19 +82,22 @@ class Shaper:
         self.glyphset[gname].draw(tpen)
         return spen.getCommands()
 
-    def run(self, text, font_size, tracking_em, baseline_y):
-        """Shapes text at baseline_y. Returns (paths, advance, y_top, y_bottom)."""
+    def run(self, text, font_size, tracking_em, baseline_y, dx=0.0):
+        """Shapes text at baseline_y, offset dx.
+
+        Returns (paths, advance, (xmin, ymin, xmax, ymax)) in SVG coords.
+        """
         placed, advance = self.shape(text, tracking_em)
         scale = font_size / self.upem
         paths = []
         for gname, gx, gy in placed:
-            d = self.glyph_path(gname, scale, gx * scale, baseline_y - gy * scale)
+            d = self.glyph_path(gname, scale, dx + gx * scale, baseline_y - gy * scale)
             if d:
                 paths.append(d)
-        bounds = self.bounds(placed, scale, baseline_y)
-        return paths, advance * scale, bounds[1], bounds[3]
+        bounds = self.bounds(placed, scale, baseline_y, dx)
+        return paths, advance * scale, bounds
 
-    def bounds(self, placed, scale, baseline_y):
+    def bounds(self, placed, scale, baseline_y, dx=0.0):
         """Tight bounds (SVG coords, Y-down) for placed glyphs at baseline_y."""
         xmin = ymin = 1e9
         xmax = ymax = -1e9
@@ -104,8 +107,8 @@ class Shaper:
             if bp.bounds is None:
                 continue
             x0, y0, x1, y1 = bp.bounds
-            xmin = min(xmin, gx * scale + x0 * scale)
-            xmax = max(xmax, gx * scale + x1 * scale)
+            xmin = min(xmin, dx + gx * scale + x0 * scale)
+            xmax = max(xmax, dx + gx * scale + x1 * scale)
             ymin = min(ymin, baseline_y - gy * scale - y1 * scale)
             ymax = max(ymax, baseline_y - gy * scale - y0 * scale)
         return xmin, ymin, xmax, ymax
@@ -126,22 +129,24 @@ def wordmark_svg(shaper_i, shaper_m, variant, bare):
         muted = MUTED_DARK if dark else MUTED_LIGHT
     size = 100.0
     pad = 2.0
-    head, head_w, head_top, _ = shaper_i.run("027", size, -0.04, 0)
+    _, _, (_, head_top, _, _) = shaper_i.run("027", size, -0.04, 0)
     cap_h = -head_top
-    tail, tail_w, _, _ = shaper_i.run("Apps", size, -0.04, 0)
     base_y = pad + cap_h
-    head, head_w, _, _ = shaper_i.run("027", size, -0.04, base_y)
-    tail, tail_w, _, _ = shaper_i.run("Apps", size, -0.04, base_y)
+    head, head_w, (_, _, head_xmax, _) = shaper_i.run("027", size, -0.04, base_y, dx=pad)
+    tail, tail_w, (tail_xmin, _, _, _) = shaper_i.run("Apps", size, -0.04, base_y, dx=pad + head_w)
+    # Regression guard: without the dx offset the runs overlap ("Apps" over "027").
+    if tail_xmin < head_xmax - 1.0:
+        raise RuntimeError("wordmark runs overlap; check the dx offsets")
     parts = [f'<g fill="{fg}">{merge(head)}</g>', f'<g fill="{brand}">{merge(tail)}</g>']
-    width = head_w + tail_w + pad * 2
+    width = pad * 2 + head_w + tail_w
     if bare:
         height = cap_h + pad * 2
     else:
         tag_size = 23.0
-        _, _, tag_top, tag_bottom = shaper_m.run(TAGLINE, tag_size, 0.3, 0)
+        _, _, (_, tag_top, _, _) = shaper_m.run(TAGLINE, tag_size, 0.3, 0)
         tag_cap = -tag_top
         tag_base = base_y + 16.0 + tag_cap
-        tag, tag_w, _, tag_bottom = shaper_m.run(TAGLINE, tag_size, 0.3, tag_base)
+        tag, _, (_, _, _, tag_bottom) = shaper_m.run(TAGLINE, tag_size, 0.3, tag_base, dx=pad)
         parts.append(f'<g fill="{muted}">{merge(tag)}</g>')
         height = tag_bottom + pad
     inner = "".join(parts)
