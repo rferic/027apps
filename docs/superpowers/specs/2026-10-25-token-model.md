@@ -68,13 +68,14 @@ Al abrir la URL sale un **wizard**:
 
 Al completar el wizard: se crea/verifica la cuenta, se activa la afiliación (grupo + módulos de la invitación) y se emite el token de dispositivo. Los flujos exactos del wizard (pantallas, qué pasa si el email no coincide, reenvío) son de la spec de auth; esta spec fija el resultado: **cuenta con email + contraseña + token de dispositivo**.
 
-## 5. Acceso por endpoint (scopes)
+## 5. Acceso por scopes (por acción expuesta)
 
-- Cada ruta de la API declara los **scopes que exige** (ej. `expenses:read`, `expenses:write`, `groups:admin`).
-- El middleware autentica el token (lookup en BD, con caché), resuelve su scope y su usuario (si aplica), y comprueba la ruta.
+**Precisión del ADR 0004** (`docs/adr/0004-bordes-y-capa-de-aplicacion.md`): los scopes se declaran **por acción expuesta en cada puerta de entrada** — una ruta de `/api/v1`, una tool de MCP o un comando. Una acción puede exigir **varios scopes** (ej. "registrar usuario" → `users:create` + `permissions:assign`); la puerta declara la lista y el guard compartido la comprueba. La redacción "por endpoint" de esta spec queda absorbida: cada ruta de la API declara los scopes de la acción que expone (ej. `expenses:read`, `expenses:write`, `groups:admin`).
+
+- El guard autentica el token (lookup en BD, con caché), resuelve su scope y su usuario (si aplica), y comprueba la acción solicitada.
 - Para tokens delegados el acceso efectivo es `min(scopes del token, permisos del usuario)`; para instancia, los scopes del token; para dispositivo, los permisos del usuario.
 - **Permisos en vivo, no cacheados con TTL de permisos:** el lookup del *token* en sí se cachea (la fila del token apenas cambia), pero la **resolución de permisos del usuario** (grupos, roles, módulos activos) se lee de la BD **por petición**, o con una caché invalidada explícitamente al cambiar la membresía/rol. Así un miembro removido o degradado pierde el acceso **de inmediato** (criterio de aceptación 1), sin depender de un TTL que la contradiga.
-- RLS en BD como segunda barrera (el nivel de fila no depende solo del middleware).
+- RLS en BD como segunda barrera (el nivel de fila no depende solo del guard).
 
 ## 6. Transversal (todos los tipos)
 
