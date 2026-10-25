@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>027Apps — Dirección A — Cercano y cálido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+[data-theme=light]{--background:#FFF8F0;--surface:#FFFFFF;--muted:#F6EBDD;--muted-foreground:#76604F;--foreground:#3A2E2A;--primary:#B9472B;--primary-foreground:#FFFFFF;--border:#E9DBCB;--destructive:#B3261E;--destructive-foreground:#FFFFFF;--success:#2F7A45;color-scheme:light}
+[data-theme=dark]{--background:#1E1713;--surface:#2A211B;--muted:#372B23;--muted-foreground:#C2AD9B;--foreground:#F7ECDF;--primary:#F2926F;--primary-foreground:#2B1006;--border:#4B3B2F;--destructive:#FF8F86;--destructive-foreground:#1A0606;--success:#86D39A;color-scheme:dark}
+
+*{box-sizing:border-box;margin:0}
+body{background:var(--background);color:var(--foreground);font-family:var(--font);font-size:var(--fs);line-height:1.45;min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit;color:inherit}
+.topbar{display:flex;align-items:center;gap:16px;height:var(--topbar-h);padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+.brand{font-size:20px;display:flex;align-items:baseline;min-width:200px}
+.search{flex:1;max-width:460px}
+.search input{width:100%;height:38px;padding:0 14px;background:var(--muted);border:1px solid transparent;border-radius:var(--radius-sm);outline:none}
+.search input::placeholder{color:var(--muted-foreground)}
+.search input:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 25%,transparent)}
+.spacer{flex:1}
+.theme-toggle{height:34px;padding:0 12px;background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted-foreground);cursor:pointer}
+.theme-toggle:hover{color:var(--foreground);background:var(--muted)}
+.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--primary);color:var(--primary-foreground)}
+.shell{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:calc(100vh - var(--topbar-h))}
+.sidebar{padding:var(--side-pad);border-right:1px solid var(--border)}
+.sidebar nav{display:flex;flex-direction:column;gap:4px}
+.nav-item{display:block;padding:var(--nav-pad);color:var(--muted-foreground);font-weight:500;border-radius:var(--radius-sm)}
+.nav-item:hover{background:var(--muted);color:var(--foreground)}
+.nav-item.active{color:var(--foreground);font-weight:600}
+main{padding:var(--main-pad);max-width:1100px;width:100%}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:var(--gap)}
+.eyebrow{color:var(--muted-foreground);font-size:12px;margin-bottom:4px}
+h1{font-size:var(--h1);line-height:1.15}
+.actions{display:flex;gap:10px}
+.btn{height:var(--btn-h);padding:0 var(--btn-px);border:1px solid transparent;border-radius:var(--btn-radius);font-weight:600;cursor:pointer;transition:filter .15s,transform .05s}
+.btn:hover{filter:brightness(1.07)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:3px solid color-mix(in srgb,var(--primary) 40%,transparent);outline-offset:2px}
+.btn-primary{background:var(--primary);color:var(--primary-foreground)}
+.btn-danger{background:var(--destructive);color:var(--destructive-foreground)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);margin-bottom:var(--gap)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.kpi{padding:var(--kpi-pad)}
+.kpi-label{color:var(--muted-foreground);font-size:13px}
+.kpi-value{font-size:var(--kpi-fs);font-weight:var(--kpi-fw);margin:6px 0 2px;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi-hint{font-size:12px;color:var(--muted-foreground)}
+.kpi.in .kpi-value{color:var(--success)}
+.kpi.out .kpi-value{color:var(--destructive)}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:var(--row-pad) var(--cell-px)}
+th{font-size:12px;font-weight:600;color:var(--muted-foreground);border-bottom:1px solid var(--border)}
+td{border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--muted)}
+th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.num{font-weight:600}
+.payer{display:inline-flex;align-items:center;gap:8px}
+.payer i{font-style:normal;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;background:var(--muted);color:var(--foreground);border:1px solid var(--border)}
+.date{color:var(--muted-foreground)}
+.mode-note{position:fixed;right:12px;bottom:12px;z-index:6;padding:4px 10px;font-size:12px;line-height:1.4;font-family:var(--font);color:var(--muted-foreground);background:var(--surface);border:1px solid var(--border);border-radius:999px}
+@media(max-width:800px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{border-right:0;border-bottom:1px solid var(--border);padding:8px 12px}
+  .sidebar nav{flex-direction:row;overflow-x:auto}
+  .brand{min-width:0}
+  .kpis{grid-template-columns:1fr}
+  main{padding:20px 16px}
+  th:nth-child(2),td:nth-child(2){display:none}
+}
+
+
+:root{--font:'Nunito',ui-rounded,'Segoe UI',system-ui,sans-serif;--fs:15.5px;--radius:20px;--radius-sm:14px;--btn-radius:999px;--btn-h:44px;--btn-px:24px;--topbar-h:68px;--sidebar-w:240px;--side-pad:20px 16px;--nav-pad:12px 16px;--main-pad:32px;--gap:20px;--h1:30px;--kpi-pad:22px 24px;--kpi-fs:30px;--kpi-fw:800;--row-pad:16px;--cell-px:24px}
+[data-theme=light]{--shadow:0 2px 14px rgba(120,80,50,.09);--tint:8%}
+[data-theme=dark]{--shadow:none;--tint:14%}
+.topbar{border-bottom:0;box-shadow:0 2px 14px rgba(120,80,50,.07)}
+[data-theme=dark] .topbar{box-shadow:none;border-bottom:1px solid var(--border)}
+.brand{font-weight:800;font-size:24px;letter-spacing:-.01em}
+.w-num{color:var(--primary)}
+.search input{height:44px;padding:0 20px;border-radius:999px}
+.theme-toggle{border-radius:999px;padding:0 16px}
+.avatar{width:42px;height:42px;font-size:15px}
+.sidebar{border-right:0}
+.nav-item{border-radius:999px;font-weight:600}
+.nav-item.active{background:color-mix(in srgb,var(--primary) var(--tint),var(--surface));color:var(--primary);font-weight:800}
+h1{font-weight:800;letter-spacing:-.01em}
+.eyebrow{font-size:14px;font-weight:600}
+.card{border:0}
+[data-theme=dark] .card{border:1px solid var(--border)}
+.kpi{position:relative;padding-left:84px}
+.kpi::before{content:"€";position:absolute;left:24px;top:50%;translate:0 -50%;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:20px;color:var(--primary);background:color-mix(in srgb,var(--primary) var(--tint),var(--surface))}
+.kpi.in::before{content:"↓";color:var(--success);background:color-mix(in srgb,var(--success) var(--tint),var(--surface))}
+.kpi.out::before{content:"↑";color:var(--destructive);background:color-mix(in srgb,var(--destructive) var(--tint),var(--surface))}
+.table-card{overflow:hidden}
+th{border-bottom:0;background:var(--muted);padding-top:12px;padding-bottom:12px}
+td{border-bottom:1px dashed var(--border)}
+.payer i{width:28px;height:28px;font-size:12px;background:color-mix(in srgb,var(--primary) var(--tint),var(--surface));color:var(--primary)}
+.btn{font-weight:800}
+.btn-danger{background:transparent;color:var(--destructive);border-color:color-mix(in srgb,var(--destructive) 45%,transparent)}
+.btn-danger:hover{background:color-mix(in srgb,var(--destructive) 10%,transparent);filter:none}
+
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="w-num">027</span><span class="w-apps">Apps</span></div>
+  <label class="search"><input type="search" placeholder="Buscar gastos, tareas, eventos…" aria-label="Buscar"></label>
+  <div class="spacer"></div>
+  <button class="theme-toggle" id="theme-toggle" type="button"></button>
+  <div class="avatar" title="Eric">ER</div>
+</header>
+<div class="shell">
+  <aside class="sidebar">
+    <nav aria-label="Principal">
+      <a class="nav-item" href="#">Inicio</a>
+      <a class="nav-item active" href="#" aria-current="page">Gastos</a>
+      <a class="nav-item" href="#">Tareas</a>
+      <a class="nav-item" href="#">Eventos</a>
+    </nav>
+  </aside>
+  <main>
+    <div class="page-head">
+      <div>
+        <p class="eyebrow">Familia Ruiz · octubre 2026</p>
+        <h1>Gastos compartidos</h1>
+      </div>
+      <div class="actions">
+        <button class="btn btn-danger" type="button">Eliminar grupo</button>
+        <button class="btn btn-primary" type="button">Añadir gasto</button>
+      </div>
+    </div>
+    <section class="kpis" aria-label="Resumen">
+      <article class="card kpi"><div class="kpi-label">Total gasto</div><div class="kpi-value">229,65 €</div><div class="kpi-hint">4 gastos este mes</div></article>
+      <article class="card kpi in"><div class="kpi-label">Por cobrar</div><div class="kpi-value">71,20 €</div><div class="kpi-hint">2 personas te deben</div></article>
+      <article class="card kpi out"><div class="kpi-label">Por pagar</div><div class="kpi-value">38,50 €</div><div class="kpi-hint">1 pendiente con Marta</div></article>
+    </section>
+    <section class="card table-card">
+      <table>
+        <thead><tr><th>Concepto</th><th>Fecha</th><th>Pagó</th><th class="num">Importe</th></tr></thead>
+        <tbody>
+          <tr><td>Supermercado</td><td class="date">18 oct 2026</td><td><span class="payer"><i>M</i>Marta</span></td><td class="num">84,30 €</td></tr>
+          <tr><td>Factura de la luz</td><td class="date">15 oct 2026</td><td><span class="payer"><i>E</i>Eric</span></td><td class="num">62,15 €</td></tr>
+          <tr><td>Cena en familia</td><td class="date">12 oct 2026</td><td><span class="payer"><i>L</i>Lucía</span></td><td class="num">47,80 €</td></tr>
+          <tr><td>Material escolar</td><td class="date">9 oct 2026</td><td><span class="payer"><i>E</i>Eric</span></td><td class="num">35,40 €</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>
+<p class="mode-note">Dirección A · modo inicial: claro</p>
+<script>
+(function(){
+  var root=document.documentElement,btn=document.getElementById('theme-toggle');
+  function paint(){btn.textContent=root.getAttribute('data-theme')==='dark'?'☀ Modo claro':'☾ Modo oscuro';}
+  btn.addEventListener('click',function(){
+    root.setAttribute('data-theme',root.getAttribute('data-theme')==='dark'?'light':'dark');paint();
+  });
+  paint();
+})();
+</script>
+</body>
+</html>

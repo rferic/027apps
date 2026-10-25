@@ -1,0 +1,183 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+    tags: ['v*']
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter admin lint
+      - run: pnpm --filter admin tsc
+      - run: pnpm --filter admin test
+      - run: pnpm --filter admin build
+
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - run: ./gradlew :app:testDebugUnitTest :app:assembleDebug
+      - uses: actions/upload-artifact@v7
+        with:
+          name: apk-debug
+          path: apps/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  guard-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: No secrets or keystores tracked in git
+        run: |
+          # Only file names are printed, never the matched content.
+          fail=0
+
+          tracked=$(git ls-files | grep -E '(^|/)\.env($|\.)|\.(jks|keystore|p12|pem|key|p8)$' | grep -vE '\.env(\.[^/]+)?\.example$|(^|/)\.env\.example$' || true)
+          if [ -n "$tracked" ]; then
+            echo "::error::Tracked env/keystore files:"; echo "$tracked"; fail=1
+          fi
+
+          # Supabase personal access tokens and sb_secret_ keys, any JWT (anon/service keys),
+          # non-empty service-role assignments, PEM private key blocks.
+          # The patterns below do not match their own source text (the bracket
+          # classes break the literal), so ci.yml needs no exclusion.
+          hits=$(git grep -I -l -i -E -e 'sbp_[A-Za-z0-9]{20,}' \
+            -e 'sb_secret_[A-Za-z0-9_-]{20,}' \
+            -e '-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+            -e 'eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}' \
+            -e 'SERVICE_ROLE_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9._-]{20,}' || true)
+          if [ -n "$hits" ]; then
+            echo "::error::Secret-like values found in:"; echo "$hits"; fail=1
+          fi
+
+          exit $fail
+
+  # Squash merge: el título del PR es el mensaje del commit en main.
+  commitlint:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: PR title follows Conventional Commits
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$PR_TITLE" | npx --yes \
+            -p @commitlint/cli@21.2.4 \
+            -p @commitlint/config-conventional@21.2.4 \
+            commitlint
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [admin, android, guard-secrets]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      # Only commits reachable from main may be released, whoever pushed the tag.
+      - name: Tagged commit is on main
+        working-directory: .
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tagged commit is not an ancestor of main: release refused."
+            exit 1
+          fi
+
+      # Secrets are exposed only to the steps that need them, never echoed.
+      - name: Check signing secrets
+        id: keys
+        working-directory: .
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          IS_FORK: ${{ github.event.repository.fork }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] \
+             && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          elif [ "$IS_FORK" = "true" ]; then
+            echo "::notice::Signing secrets not available (fork): release skipped."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Signing secrets missing: see docs/flows/cicd.md (Pendiente de ejecución)."
+            exit 1
+          fi
+
+      - if: steps.keys.outputs.signed == 'true'
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - if: steps.keys.outputs.signed == 'true'
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+      - if: steps.keys.outputs.signed == 'true'
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+
+      - name: Assemble signed release APK
+        if: steps.keys.outputs.signed == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease
+
+      - name: Verify APK signature
+        if: steps.keys.outputs.signed == 'true'
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk
+
+      - name: Publish GitHub Release
+        if: steps.keys.outputs.signed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk "027apps-$TAG.apk"
+          prerelease=""
+          case "$TAG" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$TAG" "027apps-$TAG.apk" --title "$TAG" --generate-notes $prerelease

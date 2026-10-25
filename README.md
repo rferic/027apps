@@ -1,14 +1,14 @@
 # 027Apps
 
-Plataforma familiar modular y autoalojable: un panel de administración web (`apps/admin`, Next.js) y una app Android (`apps/android`, Kotlin).
+A self-hostable modular platform for families, with a web administration panel (`apps/admin`, Next.js) and an Android app (`apps/android`, Kotlin).
 
-## Estructura
+## Repository structure
 
-- `apps/` — aplicaciones (admin, android)
-- `packages/` — paquetes compartidos
-- `docs/` — especificaciones, planes y tareas
+- `apps/` — applications (admin, Android)
+- `packages/` — shared packages
+- `docs/` — specifications, plans, and tasks
 
-## Comandos
+## Commands
 
 ```bash
 pnpm lint
@@ -16,6 +16,6 @@ pnpm tsc
 pnpm test
 ```
 
-## Licencia
+## License
 
 [MIT](LICENSE)

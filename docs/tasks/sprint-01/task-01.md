@@ -2,7 +2,7 @@
 id: sprint01-task-01
 titulo: Repositorio, monorepo base y ficheros de tarea
 area: fundaciones
-estado: en curso
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-24-sprint-01-fundaciones.md
 ---
 
