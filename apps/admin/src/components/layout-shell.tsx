@@ -18,19 +18,19 @@ export interface LayoutShellProps {
 
 export function LayoutShell({ title, nav, actions, children }: LayoutShellProps) {
   return (
-    <div className="grid min-h-screen grid-cols-[200px_1fr] bg-background">
-      <aside className="flex flex-col gap-0.5 border-r border-border bg-muted p-3">
+    <div className="grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[200px_1fr]">
+      <aside className="flex flex-col gap-0.5 border-b border-border bg-muted p-3 lg:border-b-0 lg:border-r">
         <div className="mb-4 px-2.5 py-1.5 text-base font-extrabold tracking-tight">
           027<span className="text-accent">Apps</span>
         </div>
-        <nav aria-label="Principal" className="flex flex-col gap-0.5">
+        <nav aria-label="Principal" className="flex gap-0.5 overflow-x-auto lg:flex-col">
           {nav.map((item) => (
             <a
               key={item.label}
               href={item.href ?? "#"}
               aria-current={item.active ? "page" : undefined}
               className={cn(
-                "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px]",
+                "shrink-0 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[13px]",
                 item.active
                   ? "bg-primary font-semibold text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground",
@@ -43,7 +43,7 @@ export function LayoutShell({ title, nav, actions, children }: LayoutShellProps)
       </aside>
       <div className="flex flex-col p-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
-          <h1 className="text-base font-bold">{title}</h1>
+          <h1 className="min-w-0 truncate text-base font-bold">{title}</h1>
           {actions}
         </div>
         <main className="flex flex-col gap-4 pt-4">{children}</main>

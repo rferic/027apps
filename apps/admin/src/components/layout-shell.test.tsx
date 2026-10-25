@@ -21,6 +21,14 @@ describe("LayoutShell", () => {
     expect(html).toContain("bg-muted");
   });
 
+  it("adapta el layout a móvil: grid apilado y nav horizontal por debajo de lg", () => {
+    const html = renderToStaticMarkup(<LayoutShell title="T" nav={nav}>x</LayoutShell>);
+    expect(html).toContain("grid-cols-1");
+    expect(html).toContain("lg:grid-cols-[200px_1fr]");
+    expect(html).toContain("lg:flex-col");
+    expect(html).toContain("overflow-x-auto");
+  });
+
   it("marca el nav activo con el token primario sólido y aria-current", () => {
     const html = renderToStaticMarkup(<LayoutShell title="T" nav={nav}>x</LayoutShell>);
     expect(html).toContain(">Dashboard</a>");

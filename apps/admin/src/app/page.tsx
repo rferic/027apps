@@ -61,7 +61,7 @@ export default function Home() {
           type="search"
           aria-label={SEARCH_PLACEHOLDER}
           placeholder={SEARCH_PLACEHOLDER}
-          className="rounded-control border border-border bg-background px-2.5 py-1.5 text-sm"
+          className="w-52 shrink-0 rounded-control border border-border bg-surface px-2.5 py-1.5 text-sm"
         />
       }
     >
