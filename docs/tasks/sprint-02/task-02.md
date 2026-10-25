@@ -3,7 +3,7 @@ id: sprint02-task-02
 titulo: Design System v1 — componentes y pantallas base
 area: marca
 estado: en curso
-plan: docs/superpowers/specs/2026-10-25-design-system.md
+plan: docs/superpowers/plans/2026-10-25-sprint-02-design-system.md
 ---
 
 Task 2 del sprint 02. Propuesta de componentes (web admin + app móvil) basada en identidad D y referencias (OpenRouter, Splitwise).
