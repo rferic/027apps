@@ -21,6 +21,6 @@ ADR 0003 registra la elección. La variante simplificada para tamaños pequeños
 
 `pnpm lint && pnpm tsc && pnpm test` y `pnpm --filter admin build` en verde con salida leída; `./gradlew :app:assembleDebug` y `:app:testDebugUnitTest` en verde. Revisión de estilo (enfermero) y auditoría de seguridad (ingeniero) por agentes distintos del autor: hallazgos corregidos (teal claro alineado a `#09795F`, PNG a 8-bit, tema base Android, docs) o documentados (F-04/F-05 a backlog).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Commits separados: `docs(brand): ...` para elección/ADR/brand.md, `feat(admin): ...` para el set web, `feat(android): ...` para icono y splash.
