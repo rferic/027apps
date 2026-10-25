@@ -42,3 +42,8 @@ Formalizar los componentes y patrones de UI (v1) en base a la identidad D. El si
 - El mockup HTML debe ser replicable en el código real con 1:1 fidelidad de tokens.
 - Storybook (o preview en el futuro) debe listar estos componentes como base.
 - La accesibilidad (AA) del contraste de badges y botones debe ser validada.
+
+## 5bis. Contrato de los componentes base (de la auditoría de seguridad, sprint 02)
+
+- **`href` de `NavItem`/enlaces**: solo rutas relativas o absolutas `http(s)`. Nunca `javascript:`/`data:` ni valores derivados de input de usuario sin validar el esquema en el punto donde se construyan desde datos dinámicos. En v1 son constantes; al cablear navegación real se valida en la capa de datos.
+- **`children` de Button/Badge**: texto o `ReactNode` confiado (React lo escapa). No inyectar HTML crudo ni `dangerouslySetInnerHTML` en estos primitives.
