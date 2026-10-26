@@ -130,9 +130,11 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `response` | jsonb NULL | respuesta **no sensible** cacheada (nunca tokens/secretos) |
 | `expires_at` | timestamptz NOT NULL | TTL (24 h por defecto) |
 | `created_at` | timestamptz | |
-| — | UNIQUE `(api_key_id, user_id, endpoint, tool, key)` · CHECK `num_nonnulls(api_key_id, user_id) = 1` | |
+| — | CHECK `num_nonnulls(api_key_id, user_id) = 1` · **dos índices únicos parciales** (H5): `(api_key_id, endpoint, tool, key) WHERE api_key_id IS NOT NULL` y `(user_id, endpoint, tool, key) WHERE user_id IS NOT NULL` | como una columna siempre es NULL, un `UNIQUE` simple **no** garantiza unicidad (`NULL = NULL` no colisiona) |
 
 > **Reglas**: se escribe en la **misma transacción** que la mutación; mismo `request_hash` → replay del resultado; hash distinto → `conflict`; `pending` concurrente → `conflict` con `retry_after`; purga por job (task-07).
+>
+> **Normalización del hash (H6)**: JSON canónico — claves en orden lexicográfico, números normalizados, `null` explícito ≠ campo ausente, sin espacios; el mismo algoritmo en REST y MCP (helper compartido con test). El replay es **el resultado de aquella mutación**, no el estado actual del recurso (H11).
 
 **`user_modules`** — la **concesión real**: el usuario tiene acceso a este módulo. **El permiso va con el usuario.**
 
@@ -253,7 +255,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `name` | text NOT NULL | etiqueta visible en el panel |
 | `scopes` | text[] NOT NULL | scopes por acción (ADR 0004 §2) |
 | `user_id` | uuid NULL → `profiles.id` | NOT NULL si `delegated`; NULL si `service` |
-| `role_cap` | text NULL CHECK (`admin`\|`super_admin`) | solo para `service` (NULL en delegadas): techo de permisos; el permiso efectivo es `min(scopes, role_cap)`. Default `admin`; crear una clave con `super_admin` exige ser `super_admin` (task-05 decisión D) |
+| `role_cap` | text NULL CHECK (`admin`\|`super_admin`) | solo para `service`; **CHECK `(kind = 'service') = (role_cap IS NOT NULL)`** (una delegada nunca lleva cap). Techo de permisos: `min(scopes, role_cap)`. Default `admin`; crear una clave con `super_admin` exige ser `super_admin` (task-05 D) |
 | `created_by` | uuid NOT NULL → `profiles.id` | |
 | `expires_at` | timestamptz NULL | opcional (spec §6) |
 | `revoked_at` | timestamptz NULL | revocación instantánea |

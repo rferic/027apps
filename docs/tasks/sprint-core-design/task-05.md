@@ -35,6 +35,16 @@ Tarea 5 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 - **Nombres únicos por endpoint** (`instance_get` solo en `/mcp`, `my_modules_list` ≠ `modules_list`); auditoría `(endpoint, tool)`.
 - **Detalles corregidos**: `instance:read` eliminado (el endpoint `/instance` es público), `categories_assign_module` = upsert que limpia `revoked_at` y `unassign` no revoca, `ListResult`/`MutationResult`/`Instance` para `outputSchema`, rate limiting en capas, OAuth es OPTIONAL en la spec y CIMD sustituye a DCR.
 
+**Auditoría de seguridad OWASP (2026-10-26)** — veredicto `APROBADA CON OBSERVACIONES` (sin críticos ni altos). Resueltas en la spec:
+- **H1** revocación: `revoked_at`/`expires_at` en BD por petición o invalidación de caché (token-model §5) + test.
+- **H2** invariantes en MCP: root no se demota/desactiva y siempre ≥1 `super_admin` activo, con tests.
+- **H3** `invitations_create` **no** devuelve el token/enlace de canje.
+- **H4** rate limiting de escritura y superficies sin identidad con **almacén compartido con TTL** (core-api §4).
+- **H5** índices únicos **parciales** en `idempotency_keys` (NULL no colisiona).
+- **H6** normalización del `request_hash` (JSON canónico) con test de payload equivalente.
+- **H7** CHECK `(kind='service') = (role_cap IS NOT NULL)`.
+- **H8–H11** documentadas: `q` por email como trade-off, `confirm` no es prueba de HITL, `.strict()` + pin del SDK, replay = resultado de aquella mutación.
+
 **Decisiones tomadas** (conversación de diseño, 2026-10-26): MCP por módulo + generales, catálogo con acciones, `role_cap` para claves service, idempotencia por id de cliente, API keys en v1 con OAuth en backlog, `mcp_exposed` en 3 niveles.
 
 **Criterios de aceptación**: tres familias de endpoints con la clave correcta cada una y módulo no disponible → 404; catálogo con acciones y `tools/list` filtrado; tools de módulo solo con `active` + `mcp_exposed` + acceso + scope; `outputSchema`/`structuredContent` compartidos validados por el SDK; escrituras idempotentes; errores con `data.code` sin internos; rate limit y auditoría por tool.

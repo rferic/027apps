@@ -75,6 +75,7 @@ Al completar el wizard: se crea/verifica la cuenta en Supabase Auth, se activa l
 - El guard autentica el token (lookup en BD, con caché), resuelve su scope y su usuario (si aplica), y comprueba la acción solicitada.
 - Para tokens delegados el acceso efectivo es `min(scopes del token, permisos del usuario)`; para instancia, los scopes del token; para el móvil (sesión Supabase), los permisos del usuario.
 - **Permisos en vivo, no cacheados con TTL de permisos:** el lookup del *token* en sí se cachea (la fila del token apenas cambia), pero la **resolución de permisos del usuario** (grupos, roles, módulos activos) se lee de la BD **por petición**, o con una caché invalidada explícitamente al cambiar la membresía/rol. Así un miembro removido o degradado pierde el acceso **de inmediato** (criterio de aceptación 1), sin depender de un TTL que la contradiga.
+- **Revocación y expiración no dependen de la caché** (auditoría OWASP 2026-10-26): `revoked_at` y `expires_at` se **comprueban en BD en cada petición**, o la caché del token se **invalida al revocar/expirar**. Cachear «el token" sin ese control retrasaría la revocación hasta el TTL y rompería el criterio "revocación instantánea". Test obligatorio: revocar entre dos llamadas → la siguiente es 401.
 - RLS en BD como segunda barrera (el nivel de fila no depende solo del guard).
 
 ## 6. Transversal (todos los tipos)
