@@ -11,7 +11,7 @@ Tarea 7 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 **Entregable**: spec `docs/superpowers/specs/2026-10-26-jobs-mantenimiento.md` — qué se ejecuta de forma programada en el Core y dónde corre.
 
 **Alcance** (trabajo interno del Core, distinto del keep-alive de servicios que ya vive en infra):
-- **Jobs de dominio**: expiración de invitaciones (`invitations.expires_at`, token de un solo uso), rotación/limpieza de tokens revocados o expirados (`api_keys`), cierre de **ventanas de auditoría agregada** (`audit` con `window_start` — spec de tokens §6), actualización/agregación de `last_used_at`, y cualquier mantenimiento que el esquema de la task-01 revele.
+- **Jobs de dominio**: **despacho/reintento y purga de `event_outbox`** (entrega at-least-once y hooks idempotentes — task-04, decisión E), expiración de invitaciones (`invitations.expires_at`, token de un solo uso), rotación/limpieza de tokens revocados o expirados (`api_keys`), cierre de **ventanas de auditoría agregada** (`audit` con `window_start` — spec de tokens §6), actualización/agregación de `last_used_at`, y cualquier mantenimiento que el esquema de la task-01 revele.
 - **Dónde corren en free tier**: candidatos a evaluar — `pg_cron` dentro de Supabase (Postgres), GitHub Actions (workflow schedule, ya usado para keep-alive), Vercel cron, o trigger desde la API. Sin máquina propia (spec §2): la decisión es de este sprint.
 - **Superficie de mantenimiento autenticada**: si un job toca la API (p. ej. cierre de ventanas), cómo se autentica (clave de instancia, endpoint de mantenimiento con su scope — ADR 0004) sin exponer secrets.
 

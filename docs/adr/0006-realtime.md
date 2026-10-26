@@ -1,5 +1,7 @@
 # ADR 0006 — Realtime: Supabase Realtime con eventos de dominio publicados por la API
 
+> **Revisión 2026-10-26 — parcialmente sustituido por [ADR 0009](0009-topologia-de-canales-realtime.md).** El **reframe del Core** (las categorías son etiquetas de usuarios; los grupos son tablas de cada módulo) dejó sin sentido la topología "topic por grupo" de §1/§4, y el panel web pasa a suscribirse al canal `admins` (§6). Sigue **vigente**: Broadcast como transporte, publicación desde la API tras el commit, RLS sobre `realtime.messages` como mecanismo de aislamiento, `JWT_EXPIRY = 900 s`, claves `sb_secret_*` y límites del Free. La topología concreta (canales `admins`/`all`/`user`/módulo) vive en el ADR 0009 y en la [spec de realtime del Core](../superpowers/specs/2026-10-26-realtime-notificaciones.md).
+
 **Fecha:** 2026-10-25
 **Estado:** Aceptada
 **Decisora:** usuario (rferic), en conversación de diseño

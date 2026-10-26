@@ -2,189 +2,216 @@
 
 **Fecha:** 2026-10-26
 **Estado:** Borrador para aprobación del usuario
-**Base:** [ADR 0006](../../adr/0006-realtime.md) (Supabase Realtime Broadcast, publicación desde la API tras el commit, aislamiento por RLS) · [spec de auth §7](2026-10-25-auth.md) (frontera Supabase, `JWT_EXPIRY = 900 s`) · [spec de API v1 §3.9](2026-10-25-api-v1.md) (envelope `{ type, resource, payload }`, payloads por módulo) · [spec de datos](2026-10-26-core-data-model.md) (task-01: `devices`, `settings`, `module_registry`) · [spec de API](2026-10-26-core-api.md) (task-02: `/devices`, `user.deactivated`) · [spec de módulos](2026-10-26-modulo-system.md) (task-03: manifest, `eventos`, `hooks`) · [ADR 0004](../../adr/0004-bordes-y-capa-de-aplicacion.md) (efectos externos tras el commit, representación compartida) · [ADR 0007](../../adr/0007-manejo-de-errores.md) (ni datos internos en respuestas ni en logs)
-**Decide el usuario:** arquitectura de canales, catálogo de eventos, FCM opcional, sin email de negocio en v1 (2026-10-26)
+**Base:** [ADR 0009](../../adr/0009-topologia-de-canales-realtime.md) (topología de canales; **sustituye la topología del [ADR 0006](../../adr/0006-realtime.md)**) · [spec de auth §4/§7](2026-10-25-auth.md) (frontera Supabase, `JWT_EXPIRY = 900 s`) · [spec de API v1 §3.9](2026-10-25-api-v1.md) (envelope de eventos; **delta 2026-10-26**) · [spec de datos](2026-10-26-core-data-model.md) (task-01: `devices`, `module_channels`, `event_outbox`, `settings`) · [spec de API del Core](2026-10-26-core-api.md) (task-02) · [spec de módulos](2026-10-26-modulo-system.md) (task-03: manifest `channels`/`eventos`/`hooks`) · [ADR 0004](../../adr/0004-bordes-y-capa-de-aplicacion.md) (efectos externos tras el commit) · [ADR 0007](../../adr/0007-manejo-de-errores.md) (ni internos en respuestas ni en logs)
+**Decide el usuario:** canales con destinatario explícito, catálogo de eventos, FCM opcional-no-silencioso, outbox (at-least-once), sin email de negocio (2026-10-26)
 
 ## 1. Objetivo
 
-Definir **cómo se publican y entregan los eventos de dominio** (realtime) y **cómo se notifican** (push), partiendo de la decisión del usuario: **el realtime tiene destinatarios explícitos** — eventos **para admins**, eventos **para todos**, eventos **para un usuario concreto** y eventos **cuyo canal lo decide el módulo** (por el canal del usuario o por un canal propio de una entidad suya, p. ej. un grupo de gastos).
+Definir **cómo se publican y entregan los eventos de dominio** (realtime) y **cómo se notifican** (push), con **destinatario explícito**: eventos **para admins**, **para todos**, **para un usuario concreto** y eventos **cuyo canal lo decide el módulo** (por el canal del usuario o por un canal propio de una entidad suya, p. ej. un grupo de gastos).
 
-**Límite de alcance:** esta spec fija el contrato de canales, el envelope, el catálogo de eventos **del Core** y el mecanismo de push. Los **eventos de negocio de cada módulo** (su nombre, su `target` y su payload) los declara la spec del módulo en su manifest (task-03); aquí se define **cómo** se enrutan, no qué eventos de negocio existen.
+**Límite de alcance:** esta spec fija el contrato de canales, el envelope, el mecanismo de entrega (outbox), el despacho de `hooks`, el catálogo de eventos **del Core** y el envío de push. Los **eventos de negocio de cada módulo** los declara su manifest y su spec (task-03 + spec del módulo).
 
 ## 2. Canales y destinatarios
 
 ### 2.1 Canales fijos del Core
 
-| Canal | Topic | Quién puede unirse (RLS) | Uso |
+| Canal | Topic | Quién puede unirse (RLS) | Consumidor |
 |---|---|---|---|
-| **`admins`** | `admins` | `is_admin()` (task-01 §5) | eventos de administración de la instancia |
-| **`all`** | `all` | cualquier `profiles` autenticado | avisos generales de instancia |
-| **`user`** | `user-<uuid>` | `auth.uid() = <uuid>` | eventos dirigidos a una persona |
+| **`admins`** | `admins` | `core_is_admin()` | **panel web** (ADR 0009 §5) y admins en el móvil |
+| **`all`** | `all` | `auth.uid() IS NOT NULL` | reservado: avisos generales de instancia |
+| **`user`** | `user-<uuid>` | `auth.uid() = <uuid>` | el móvil de esa persona |
 
-Los tres son **privados** (`private: true`): el cliente se suscribe con su sesión de Supabase y Supabase evalúa la política RLS antes de dejarle entrar.
+Todos **privados** (`private: true`): el cliente se suscribe con su sesión de Supabase y la política RLS decide antes de dejarle entrar.
 
-### 2.2 Canales de módulo (el módulo decide)
+> **`all` es la excepción, no la regla** (ADR 0009 §3): un módulo no puede emitir a `all`/`admins` salvo que lo declare expresamente en su manifest.
 
-El manifest del módulo (task-03 §3) declara sus canales:
+### 2.2 Canales de módulo
+
+El manifest (task-03 §3) declara:
 
 ```jsonc
 "channels": [
-  {
-    "pattern": "group-{id}",                    // topic del módulo: "group-<uuid>"
-    "members_fn": "split_expenses_channel_members"  // función SQL del módulo
-  }
+  { "pattern": "expense-group-{id}", "members_fn": "split_expenses_expense_group_members" }
 ]
 ```
 
-- `members_fn(topic text) returns setof uuid` — **función security definer** que el módulo aporta en sus migraciones y devuelve **quién puede recibir/escuchar** ese topic.
-- **Un solo contrato para dos usos**: la política RLS de `realtime.messages` la usa para decidir si `auth.uid()` puede unirse, y el Core la usa para resolver **destinatarios de push**. Una única fuente de verdad, sin duplicar criterios.
-- La función se registra al instalar el módulo y se elimina al desinstalarlo (task-03). Si el módulo se desinstala, sus canales dejan de existir.
-- Un módulo puede **no declarar canales propios** y enrutar todo por `user` (decisión suya).
+- `{id}` = uuid. `pattern` es único en la instancia.
+- `members_fn(topic text) returns setof uuid` — **una sola función para dos usos**: la RLS de `realtime.messages` (¿puede entrar?) y la resolución de **destinatarios de push** (¿a quién notifico?). Una única fuente de verdad.
+- **Persistencia**: el Core la guarda en **`module_channels`** (task-01) al instalar el módulo y la borra al desinstalarlo (task-03 §4.3). La **política RLS la crea el Core una sola vez**; los módulos nunca tocan `realtime.*` (decisión C de task-03).
+- **Endurecimiento obligatorio de `members_fn`**: `SECURITY DEFINER`, `SET search_path = ''`, `STABLE`, `REVOKE EXECUTE FROM PUBLIC` (nadie puede invocarla por RPC para enumerar miembros), nombre validado por `^[a-z][a-z0-9_]{0,62}$`. **Fallo cerrado**: si lanza, la suscripción se deniega y se loguea.
+- **Módulo `disabled`/desinstalado**: sus canales no aceptan suscripciones ni publican; una suscripción abierta deja de recibir (la autorización se re-evalúa con la conexión y `JWT_EXPIRY = 900 s`).
 
 ### 2.3 `target` de un evento
 
-Cada evento declara su destinatario:
-
 | `target` | Se publica en | Destinatarios de push |
 |---|---|---|
-| `admins` | `admins` | todos los `is_admin()` |
+| `admins` | `admins` | todos los `core_is_admin()` |
 | `all` | `all` | todos los `profiles` |
-| `user` | `user-<uuid>` del sujeto del evento | ese usuario |
-| `channel:<pattern>` (con `{id}` resuelto) | topic del módulo (p. ej. `group-<uuid>`) | resultado de `members_fn(topic)` |
+| `user` | `user-<subject>` | el usuario **sujeto** del evento |
+| `channel:<pattern>` (con `{id}` resuelto) | topic del módulo | resultado de `members_fn(topic)` |
+
+**Resolución del sujeto para `target: user`**: el evento declara **de dónde sale el uuid** (`"subject": "resource.user_id"` en el manifest, ruta **obligatoria** cuando el target es `user`), validado por el esquema zod del evento al instalar. Sin sujeto resoluble → el evento se rechaza en `publish()` (`validation_failed`), nunca se publica "a nadie".
 
 ## 3. Envelope del evento
 
-Contrato de api-v1 §3.9, sin cambios:
-
-```json
-{
-  "type": "expense.created",        // snake_case del evento de dominio
-  "target": "channel:group-3f2a…",  // canal (no viaja como dato de negocio al cliente; lo usa el servidor para enrutar)
-  "resource": { … },                // representación compartida del recurso (ADR 0004 §7)
-  "payload": { … }                  // datos adicionales NO sensibles
-}
-```
-
-- **`resource`** = la **misma representación** que devuelve el endpoint REST de ese recurso (una sola forma para REST, MCP y eventos).
+- **Interno (servidor)**: `{ type, target, subject?, resource, payload }` — `target`/`subject` son **metadato de enrutado**.
+- **Wire (lo que recibe el cliente)**: `{ type, resource, payload }` — **`target` no viaja** (api-v1 §3.9 se mantiene).
+- **`resource`** = la **misma representación** que devuelve el endpoint REST del recurso (ADR 0004 §7).
 - **`payload`** = solo datos no sensibles y no duplicados de `resource`.
 - **Nunca** secrets, tokens, contraseñas ni datos internos (ADR 0007 §5).
 
+> **Delta a api-v1 §3.9/§7/F (2026-10-26):** el envelope del **wire** no cambia (`{ type, resource, payload }`); el servidor añade `target`/`subject` como metadato interno para enrutar a los canales del ADR 0009. Registrada aquí y en el ADR 0009.
+
 ## 4. Catálogo de eventos del Core (v1)
 
-| Evento | `target` | `notify` | Cuándo |
-|---|---|---|---|
-| `user.deactivated` | `user` (el afectado) | — | al desactivar un usuario (task-02 §3.2); los módulos reaccionan por `hooks` (task-03) |
-| `module.installed` | `admins` | — | tras commit del install (task-03 §4.1) |
-| `module.activated` | `admins` | — | tras commit del activate |
-| `module.deactivated` | `admins` | — | tras commit del deactivate |
-| `module.uninstalled` | `admins` | — | tras commit del uninstall (task-03 §4.3) |
-| `invitation.created` | `admins` | — | al crear una invitación (panel en vivo) |
-| `invitation.redeemed` | `admins` | — | al canjearla (se ve el nuevo miembro sin recargar) |
-| `settings.updated` | `admins` | — | al cambiar settings de instancia |
+| Evento | `target` | `resource` | `payload` | `notify` |
+|---|---|---|---|---|
+| `user.deactivated` | `admins` (el panel ve la baja) + **hooks** de módulos | `User` (sin email) | `{ reason? }` | — |
+| `module.installed` | `admins` | `Module` | `{ version }` | — |
+| `module.activated` | `admins` | `Module` | — | — |
+| `module.deactivated` | `admins` | `Module` | — | — |
+| `module.uninstalled` | `admins` | `{ key }` | — | — |
+| `invitation.created` | `admins` | `Invitation` (sin `token`) | — | — |
+| `invitation.redeemed` | `admins` | `Invitation` | `{ user_id }` | — |
+| `settings.updated` | `admins` | — | `{ category_key, key }` (**nunca el valor**) | — |
 
-**Regla**: los eventos de **negocio** (p. ej. `expense.created`, `balance.updated`) los declara **cada módulo** en su manifest con su `target` y su `notify`; el Core no los conoce.
+**Reglas**:
+- `user.deactivated` se dirige a `admins` (no a `user`): la desactivación **revoca las sesiones del afectado al instante**, así que su canal sería inalcanzable; los **hooks** de los módulos son server-side y no necesitan realtime.
+- Los eventos de **negocio** los declara cada módulo en su manifest (tipo, target, subject, notify) — el Core no los conoce.
+- Un evento cuyo consumidor no exista en v1 no entra en el catálogo.
 
-## 5. Publicación (servidor → Realtime)
+## 5. Publicación: outbox transaccional (at-least-once)
 
-- **Desde la API, tras el commit** (ADR 0004 §6): el caso de uso orquestador publica **después** de confirmar la transacción. Si la publicación falla, **no se revierte el dato**: se loguea con el `request_id` y queda para reintento (ADR 0007 §7). Nunca dentro de la transacción.
-- **API única de publicación**: `publish(events: DomainEvent[])` en el paquete compartido del Core, usada por las puertas (casos de uso orquestadores). Una puerta no publica por su cuenta.
-- **Mecanismo**: Supabase Realtime **Broadcast** sobre canales **privados** (`private: true`). **Se valida contra la documentación vigente** antes de implementar: Supabase **depreca `service_role`/`anon` a favor de `sb_secret_*`** (fin de 2026) — el plan aterriza en las claves nuevas (ADR 0006 §3). La publicación servidor→canal usa credenciales de servidor de confianza, nunca claves en cliente.
-- **Sin `postgres_changes`**: el payload es un recurso con representación compartida, no una fila cruda (ADR 0006 §1).
-- **`JWT_EXPIRY = 900 s`**: requisito de instalación (lo fija el wizard de `/setup`, task-06), **no** un setting editable en el panel — es un parámetro de seguridad que acota el lag de revocación de conexiones abiertas (auth §4, ADR 0006 §5). Se guarda en `settings` como valor de configuración y se documenta el trade-off.
+**Decisión del usuario (C2):** la entrega es **at-least-once** con **outbox transaccional** — no "publicar y esperar que salga".
 
-### 5.1 RLS sobre `realtime.messages`
+1. El caso de uso, **dentro de su transacción**, inserta el evento en **`event_outbox`** (task-01): `event_id` (uuid, idempotencia), `type`, `target`, `subject`, `resource`, `payload`, `state = pending`, `attempts = 0`, `next_attempt_at`. Es una **fila de BD**, no un efecto externo (ADR 0004 §6 se respeta: el efecto externo ocurre después).
+2. **Tras el commit**, el despachador (`publish()`) toma los `pending` y:
+   - **valida el `target`** contra la lista cerrada y los `channels`/`eventos` **declarados por el módulo emisor** (la clave `sb_secret_*` **se salta la RLS**, así que este es el único gate);
+   - publica al topic con **Broadcast privado**;
+   - **despacha los `hooks`** de los módulos suscritos (§5bis);
+   - envía **push** si el evento declara `notify` (§6.3);
+   - marca `state = published`.
+3. **Fallo**: `state = pending` con `attempts++` y `next_attempt_at` con **backoff exponencial** (tope configurable); tras N intentos → `state = failed` (visible en el panel y en `admin_actions`). **Nunca** se pierde en silencio ni se revierte el dato.
+4. **Reintento y purga**: job programado (task-07) reintenta los `pending`/`failed` y purga los `published` antiguos (retención configurable).
 
-Una política por topic, evaluada en la suscripción:
+**Mecanismo Supabase**: Broadcast sobre canales privados. La publicación servidor→canal se hace con **claves nuevas `sb_secret_*`** (Supabase depreca `service_role`/`anon` a finales de 2026 — ADR 0006 §3) mediante el endpoint REST de broadcast o `realtime.send()`, **validado contra la doc vigente antes de implementar** (la decisión de mecanismo exacto queda al sprint de implementación; aquí se fija el requisito y la clave).
+
+**`JWT_EXPIRY = 900 s`**: se configura en el **proyecto Supabase** (dashboard/Management API) desde el wizard de `/setup` (task-06). En `settings` queda solo como **valor informativo/verificable** de instalación — **no** es un setting editable en el panel (es parámetro de seguridad que acota el lag de revocación de conexiones abiertas).
+
+### 5.1 RLS de `realtime.messages` — una sola política
+
+**Corrección crítica (revisión 2026-10-26):** las políticas **permisivas** de Postgres se combinan con **OR**; una política por canal ("`all` → `auth.uid() IS NOT NULL`") autorizaría **todos** los topics. Por eso hay **una única política**:
+
+```
+SELECT sobre realtime.messages: core_can_subscribe(realtime.topic())
+```
+
+`core_can_subscribe(topic text)` — `SECURITY DEFINER`, `STABLE`, `SET search_path = ''`, `EXECUTE` revocado de `PUBLIC`, **fallo cerrado** — despacha:
 
 | Topic | Condición |
 |---|---|
-| `admins` | `is_admin()` |
-| `all` | `auth.uid() IS NOT NULL` (perfil existente) |
-| `user-<uuid>` | `auth.uid() = <uuid>` |
-| topic de módulo (`pattern`) | `auth.uid() = ANY(members_fn(topic))` de ese módulo |
+| `admins` | `core_is_admin()` |
+| `all` | `auth.uid() IS NOT NULL` |
+| `user-<uuid>` | `auth.uid()::text = substring(topic from 6)` |
+| resto | `module_channels.pattern` casa (con `{id}`=uuid) **y** el módulo está `active` **y** `auth.uid() = ANY(members_fn(topic))` |
 
-- **Nunca** se emite a "todos" sin política; un topic sin política → suscripción rechazada.
-- Las políticas de realtime viven **junto a** las RLS de datos (mismo PR, mismo patrón, task-10).
-- Conexión abierta: la autorización se cachea durante la conexión; con `JWT_EXPIRY = 900 s` la revocación es efectiva en ≤15 min (revocación de **datos** sigue siendo instantánea en cada petición, task-01 §5).
+- La crea **el Core** (rol `postgres`), una vez; los módulos no tocan `realtime.*`.
+- **Nunca** se emite ni se acepta un topic sin política explícita (`all` **es** un topic con destinatario declarado, no un comodín).
+- Las políticas de realtime se escriben **junto a** las RLS de datos (task-10), con su test de aislamiento.
 
-## 6. Notificaciones push (FCM, opcional por instancia)
+### 5bis. Despacho de `hooks` (reacciones de módulos)
+
+- **Quién**: el despachador de `publish()`, **en proceso, tras el commit**.
+- **Cuándo/orden**: después de publicar el evento realtime; los hooks no bloquean la respuesta al cliente.
+- **Aislamiento**: cada hook corre aislado (un módulo que falla no afecta a otros ni al evento).
+- **Idempotencia**: clave `(event_id, module_key)`; un reintento del outbox **no** re-ejecuta un hook ya aplicado (tabla de aplicación de hooks, o marca en el mismo `event_outbox` por módulo).
+- **Fallo**: se reintenta con el backoff del outbox; agotados los intentos → `failed` + alerta en el panel (la conversión de participantes a ficticios de Split Expenses no puede perderse en silencio).
+
+## 6. Notificaciones push (FCM)
 
 ### 6.1 Registro del dispositivo
 
-- La app registra su token de push en `devices` (task-01 §3.6: `platform`, `push_token`, `last_seen_at`).
-- **Delta a task-02**: se añade `POST /api/v1/devices` (el propietario registra/actualiza su `push_token` y `platform`; idempotente por `(user_id, platform)`), necesario para que el móvil se suscriba a push. `GET`/`DELETE` ya estaban definidos.
+- La app registra su token: **`POST /api/v1/devices`** (`platform`, `push_token`), **idempotente por `push_token`** — si el mismo token se registra para otro usuario (móvil reasignado), se reasigna `user_id`. Escribe `last_seen_at`.
+- **Al cerrar sesión**, la app llama **`DELETE /api/v1/devices/{id}`**; si la sesión se revoca desde el panel, el `device` se marca `revoked_at` y deja de recibir push (task-01 §3.6).
+- Varios dispositivos por usuario **permitidos** (delta a task-01: `devices.push_token` UNIQUE; no UNIQUE por `(user_id, platform)`).
 
-### 6.2 Configuración por instancia (puerta de setup del usuario)
+### 6.2 Configuración por instancia
 
-- **FCM es opcional en el wizard, pero nunca silencioso**:
-  - El wizard de `/setup` incluye el paso **"Notificaciones (Firebase)"** junto a Supabase y SMTP, y la guía de instalación lo presenta como **paso recomendado**.
-  - Se puede **omitir**, pero con **aviso explícito**: *"Sin Firebase no recibirás notificaciones con la app cerrada. Podrás configurarlo más tarde en Ajustes → Notificaciones."*
-  - Mientras no esté configurado, el **panel muestra un aviso persistente** ("Push no configurado") con enlace al paso. El estado "sin push" es **visible, no silencioso**.
-  - **Degradación elegante**: sin FCM configurado, realtime y bandeja de novedades al abrir siguen funcionando; el resto de la app no se ve afectado.
-- **Un APK único para todas las instancias**: la configuración de Firebase **no se hornea** en el build (ataría el APK a un proyecto). La app inicializa Firebase **en runtime** con los valores públicos de la instancia.
-- Settings (`settings`, categoría `notifications`, task-06):
-  - **públicos** (`is_public: true`, los lee el móvil vía `/instance`): `fcm_project_id`, `fcm_app_id`, `fcm_api_key`, `fcm_sender_id`.
-  - **secreto** (`is_secret: true`, `value_encrypted`): el **service account JSON** de envío.
-- **Instancia del autor**: se configura en el **sprint de infra** (tarea `sprint-infra` de Firebase/FCM, puerta de setup del usuario).
+- **FCM opcional en el wizard, pero nunca silencioso**: paso **"Notificaciones (Firebase)"** junto a Supabase y SMTP (task-06, 4 pasos); se puede omitir con **aviso explícito** (*"sin Firebase no recibirás notificaciones con la app cerrada"*), y mientras no esté configurado el panel muestra un **banner persistente** con enlace al paso.
+- **Un APK único**: la configuración de Firebase **no se hornea**; la app inicializa Firebase **en runtime** con los valores públicos de la instancia.
+- Settings (`notifications`, task-06): `fcm_project_id`, `fcm_app_id`, `fcm_api_key`, `fcm_sender_id` (**públicos**, `is_public: true`) + **service account JSON** (`is_secret: true`, cifrado).
+- **La app obtiene esos valores públicos por `GET /api/v1/instance`**, que incluye un bloque **`settings_public`** (delta a task-02 §3.8: solo claves `is_public` del Core, nunca secretos, nunca settings de módulo).
+- **Instancia del autor**: se configura en el **sprint de infra** (`sprint-infra` task-08).
 
 ### 6.3 Envío
 
-- Cuando un evento declara `notify: ["push"]` (campo opcional del manifest, task-03), el Core resuelve los **destinatarios** (tabla §2.3), obtiene sus `devices` con `push_token` y envía vía **FCM HTTP v1** con el service account de la instancia.
-- **El texto del push nunca lleva datos sensibles**: solo una pista genérica ("Nuevo gasto en Familia"). El detalle se pide a la API con la sesión del usuario al abrir la notificación. Evita filtrar negocio por la infraestructura de Google.
-- **Fallo de push**: se loguea y se reintenta/descarta; **no revierte ni bloquea** la operación (efecto externo, ADR 0007 §7).
-- **Tokens inválidos** (FCM responde `UNREGISTERED`): se marca el `device` como revocado (`revoked_at`, task-01 §3.6) y se deja de enviar a él.
-- **Sin push a la web**: el admin no se suscribe ni recibe push (ADR 0005).
-- **Sin email de notificación en v1** (decisión del usuario): los emails de auth los manda Supabase Auth (auth §5bis); el email propio de negocio queda reservado en `settings`.
+- Disparo: evento con `notify: ["push"]` (manifest, task-03).
+- **Destinatarios**: los de la tabla §2.3, filtrando `push_token IS NOT NULL AND revoked_at IS NULL` y usuarios activos; **deduplicados por token**.
+- **Envío**: FCM HTTP v1, **batches ≤500 tokens**; resultado **por token**:
+  - `UNREGISTERED` / `INVALID_ARGUMENT` → `device.revoked_at` (deja de enviarse).
+  - `UNAVAILABLE` / `INTERNAL` / `429` → reintento con el backoff del outbox (el push forma parte del mismo despacho).
+- **Texto: data-only, sin composición en servidor.** El servidor **no localiza** (ADR 0007 §1) y el i18n usa el inglés como clave (task-01 §3.3): el push lleva `{ "key": "push.expense_created", "args": { "group": "Familia" } }` y **la app construye la notificación** con su locale. **Sin datos sensibles** (nada de importes): el detalle se pide a la API al abrir.
+- **Sin push a la web**; el panel recibe realtime (ADR 0009 §5), no push.
+- **Sin email de notificación de negocio en v1** (los de auth los manda Supabase Auth, auth §5bis).
+- **Fallo de push**: no revierte ni bloquea; se reintenta por el outbox y se loguea con `request_id` (ADR 0007 §7).
 
-## 7. Contratos testables (testing-strategy §5)
+## 7. Contratos testables
 
-- **RLS de `realtime.messages`**: un usuario que no pertenece al canal no puede unirse (caso explícito: un miembro de un grupo de gastos no recibe los eventos de otro grupo, vía `members_fn`).
-- **Publicación tras el commit**: el evento se publica **después** de confirmar; si el efecto falla, el dato persiste y el fallo se loguea (no hay rollback del dato).
-- **Representación compartida**: el `resource` del evento coincide con la respuesta REST del mismo recurso.
-- **Push**: un evento con `notify: ["push"]` envía a los dispositivos de los destinatarios del canal; sin push configurado, la operación **no falla** (degradación).
-- **`JWT_EXPIRY = 900 s`**: configuración de instalación verificada por el wizard (no editable en el panel).
+- **Aislamiento de canales** (crítico): un usuario normal **no** puede suscribirse a `admins` ni a `user-<otro>`; un miembro del grupo A **no** recibe el canal del grupo B; un topic sin política → rechazado. (Test negativo obligatorio: la política única no autoriza de más.)
+- **`members_fn`**: no invocable por RPC desde un cliente (`EXECUTE` revocado); fallo → suscripción denegada (fallo cerrado).
+- **Outbox**: el evento se inserta en la transacción del caso de uso; si la transacción aborta, **no** queda evento; si la publicación falla, el evento queda `pending` con `attempts` y se reintenta; el dato **nunca** se revierte por un fallo de entrega.
+- **Idempotencia de hooks**: reprocesar el mismo `event_id` no aplica el hook dos veces.
+- **Representación compartida**: el `resource` del evento coincide con la respuesta REST del recurso.
+- **Push**: evento con `notify` → envío a los dispositivos de los destinatarios del canal; sin FCM configurado la operación **no falla** (degradación); token `UNREGISTERED` → `revoked_at`.
+- **`publish()` valida**: rechaza `target` no declarado por el emisor, topic fuera de patrón y emisión desde un módulo no `active`.
 
 ## 8. Decisiones tomadas (conversación de diseño, 2026-10-26)
 
 | # | Decisión |
 |---|---|
-| A | **Canales con destinatario explícito**: 3 fijos del Core (`admins`, `all`, `user-<uuid>`) + canales de módulo declarados en el manifest con `members_fn` (una función para RLS **y** para resolver destinatarios de push) |
-| B | **El módulo decide su canal**: puede enrutar por `user`, por `admins`/`all` del Core, o por un canal propio por entidad (`group-{id}`…). El Core no conoce los modelos de los módulos |
-| C | **Catálogo de eventos del Core v1**: `user.deactivated`, `module.*`, `invitation.created|redeemed`, `settings.updated`. Los de negocio los declara cada módulo |
-| D | **Push = FCM**, **opcional en el wizard pero nunca silencioso** (paso recomendado + aviso explícito al omitir + banner persistente en el panel mientras no esté configurado), configurado **en runtime** desde settings (valores públicos + service account cifrado), porque el APK es único. **Para la instancia del autor se configura en el sprint de infra** (`sprint-infra` task-08) |
-| E | **El texto del push no lleva datos sensibles**; el detalle se consulta a la API con la sesión |
-| F | **Sin email de notificación de negocio en v1** (solo auth por Supabase SMTP) |
-| G | **`JWT_EXPIRY = 900 s`** como requisito de instalación (wizard), no editable en el panel |
-| H | Publicación **desde la API tras el commit** con `publish()`, mecanismo Supabase Broadcast privado validado contra doc vigente (`sb_secret_*`) |
+| A | **Canales con destinatario explícito** (ADR 0009): fijos (`admins`, `all`, `user-<uuid>`) + canales de módulo persistidos en `module_channels` con `members_fn` (una función para RLS **y** push) |
+| B | **El módulo decide su canal**: `user`, `admins`/`all` (si lo declara) o canal propio por entidad |
+| C | **El panel web sí se suscribe a `admins`** (revisa ADR 0006 §6; el ADR 0005 sigue siendo el mecanismo de lectura, realtime es señal de invalidación). Canal `panel` separado descartado: misma RLS, sin ganancia |
+| D | **Catálogo Core v1** con `resource`/`payload` cerrados; `user.deactivated` → `admins` + hooks (su canal de usuario sería inalcanzable) |
+| E | **Entrega at-least-once con outbox transaccional** (`event_outbox`), reintentos con backoff, purga por job (task-07); consumidores idempotentes por `event_id` |
+| F | **`publish()` valida el `target`** (la clave de servidor se salta la RLS): lista cerrada + canales declarados por el emisor + módulo `active` |
+| G | **Una sola política RLS** (`core_can_subscribe`), nunca una por canal (las permisivas se combinan con OR) |
+| H | **Hooks**: despacho en proceso tras el commit, aislado, idempotente por `(event_id, module_key)` |
+| I | **Push = FCM**, opcional en el wizard pero **nunca silencioso** (paso recomendado + aviso al omitir + banner); runtime config; **data-only con clave i18n** (el servidor no localiza); batches ≤500; sin datos sensibles. Instancia del autor → `sprint-infra` task-08 |
+| J | **Sin email de negocio en v1** |
+| K | **`JWT_EXPIRY = 900 s`** se escribe en el **proyecto Supabase** desde el wizard; en `settings` solo informativo, no editable en el panel |
 
 ## 9. Fuera de alcance
 
-- **Eventos de negocio de cada módulo** (nombres, `target`, payload) → manifest y spec de cada módulo.
-- **Contrato de `members_fn` concreto de Split Expenses** (su pertenencia a grupos de gastos) → spec del módulo.
-- **Configuración concreta de Firebase y del wizard** (catálogo de settings, pasos) → task-06.
-- **Publicación de eventos de módulos** (implementación del `publish` y del SDK) → sprint de implementación del Core.
-- **Presence / chat / typing** → fuera de alcance (ADR 0006 §48).
-- **Email propio de negocio** (invitaciones por email, avisos) → futuro (auth §5bis reserva el sitio).
+- **Eventos de negocio de cada módulo** (tipo, target, subject, payload) → manifest y spec de cada módulo.
+- **`members_fn` concreto de Split Expenses** → spec del módulo.
+- **Catálogo de settings y pasos del wizard** → task-06.
+- **Job de reintento/purga del outbox** → task-07.
+- **Mecanismo exacto de publicación (REST broadcast vs `realtime.send()`)** → sprint de implementación del Core, validado contra doc vigente.
+- **Presence / chat / typing** → fuera de alcance.
+- **Bandeja de novedades in-app** (lista de eventos al abrir sin push) → futuro; si se implementa, tendrá su propio contrato (no se promete aquí).
+- **Email propio de negocio** → futuro (auth §5bis reserva el sitio).
 
 ## 10. Criterios de aceptación
 
-- Los canales (`admins`, `all`, `user-<uuid>`, módulo) están definidos con su política RLS y su resolución de destinatarios; **un suscriptor sin permiso no puede unirse**.
-- Cada evento declara su `target` y el envelope es `{ type, target, resource, payload }` con la representación compartida.
-- El catálogo de eventos del Core está cerrado y los módulos declaran los suyos en el manifest.
-- La publicación ocurre **tras el commit** por una única `publish()`; un fallo no revierte el dato.
-- Push FCM es opcional, configurado en runtime, sin datos sensibles en el texto, con degradación elegante y limpieza de tokens inválidos.
-- `JWT_EXPIRY = 900 s` queda como requisito de instalación.
-- Coherente con ADR 0006, ADR 0004/0007, spec de auth §7, api-v1 §3.9, task-01/02/03.
+- Canales definidos con **una única política RLS** (`core_can_subscribe`), probada con tests negativos: no se entra en `admins`, `user-<otro>` ni canal de otro módulo.
+- Canales de módulo **persistidos** (`module_channels`) con `members_fn` endurecida; desinstalación limpia filas y rechaza suscripciones.
+- Envelope interno con `target`/`subject`; **wire sin `target`** (delta a api-v1 registrada).
+- Catálogo Core cerrado con `resource`/`payload`; `user.deactivated` → `admins` + hooks.
+- **Outbox transaccional** con reintentos, idempotencia y purga; el dato nunca se revierte por fallo de entrega.
+- `publish()` valida `target`, patrón y estado del módulo emisor.
+- Push FCM data-only con clave i18n, batches, limpieza de tokens inválidos, degradación sin FCM, `POST`/`DELETE /devices` en el ciclo del dispositivo.
+- Coherente con ADR 0009/0006 (parcialmente sustituido), ADR 0004/0007, auth §4/§7, api-v1 §3.9 (delta), task-01/02/03.
 - Aprobada por el usuario y revisada por segundo agente (DoD de Docs).
 
 ## 11. Referencias
 
-- ADR: `docs/adr/0006-realtime.md`, `0004-bordes-y-capa-de-aplicacion.md`, `0007-manejo-de-errores.md`
+- ADRs: `docs/adr/0009-topologia-de-canales-realtime.md`, `0006-realtime.md` (vigente salvo topología), `0004-bordes-y-capa-de-aplicacion.md`, `0007-manejo-de-errores.md`
 - Spec de auth: `docs/superpowers/specs/2026-10-25-auth.md` §4/§5bis/§7
-- Spec de API v1: `docs/superpowers/specs/2026-10-25-api-v1.md` §3.9 (eventos) y §4
-- Spec de datos: `docs/superpowers/specs/2026-10-26-core-data-model.md` (task-01: `devices`, `settings`)
-- Spec de API del Core: `docs/superpowers/specs/2026-10-26-core-api.md` (task-02: `/devices`, `user.deactivated`)
-- Spec de módulos: `docs/superpowers/specs/2026-10-26-modulo-system.md` (task-03: manifest, `eventos`, `hooks`)
-- Testing: `docs/conventions/testing-strategy.md` §5 (ADR 0006 testable)
+- Spec de API v1: `docs/superpowers/specs/2026-10-25-api-v1.md` §3.9 (eventos) — con delta 2026-10-26
+- Spec de datos: `docs/superpowers/specs/2026-10-26-core-data-model.md` (task-01)
+- Spec de API del Core: `docs/superpowers/specs/2026-10-26-core-api.md` (task-02)
+- Spec de módulos: `docs/superpowers/specs/2026-10-26-modulo-system.md` (task-03)
+- Testing: `docs/conventions/testing-strategy.md` §5
 - Plan del sprint: `docs/superpowers/plans/2026-10-26-sprint-core-design.md`
 - Task: `docs/tasks/sprint-core-design/task-04.md`

@@ -86,7 +86,34 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `applied_at` | timestamptz | |
 | — | PK `(module_key, version, direction)` | |
 
+**`module_channels`** — canales realtime que declara cada módulo (task-04, ADR 0009). El Core los persiste al instalar y los borra al desinstalar; **la política RLS de `realtime.messages` la crea el Core una sola vez** y lee de aquí.
+| Columna | Tipo | Notas |
+|---|---|---|
+| `module_key` | text NOT NULL → `module_registry.key` | |
+| `pattern` | text UNIQUE NOT NULL | topic del módulo con `{id}` = uuid (p. ej. `expense-group-{id}`) |
+| `members_fn` | text NOT NULL | nombre de la función SQL del módulo (validado por `^[a-z][a-z0-9_]{0,62}$`); `security definer`, `search_path=''`, `STABLE`, `EXECUTE` revocado de PUBLIC |
+| `created_at` | timestamptz | |
+| — | PK `(module_key, pattern)` | |
+
+**`event_outbox`** — outbox transaccional de eventos de dominio (task-04, decisión E: entrega **at-least-once**).
+| Columna | Tipo | Notas |
+|---|---|---|
+| `event_id` | uuid PK | idempotencia (`(event_id, module_key)` para hooks) |
+| `module_key` | text NULL → `module_registry.key` | NULL = evento del Core |
+| `type` | text NOT NULL | `expense.created`, `user.deactivated`, … |
+| `target` | text NOT NULL | `admins`\|`all`\|`user`\|`channel:<topic resuelto>` (metadato interno, **no** viaja al cliente) |
+| `subject_id` | uuid NULL | sujeto del evento cuando `target = user` |
+| `resource` | jsonb NOT NULL | representación compartida |
+| `payload` | jsonb | datos no sensibles |
+| `notify` | text[] NULL | p. ej. `{push}` |
+| `state` | text NOT NULL CHECK (`pending`\|`published`\|`failed`) | |
+| `attempts` | int NOT NULL DEFAULT 0 | |
+| `next_attempt_at` | timestamptz NULL | backoff exponencial |
+| `hook_applied` | text[] NULL | módulos cuyo hook ya se aplicó (idempotencia) |
+| `created_at`, `published_at` | timestamptz | purga por retención (job, task-07) |
+
 **`user_modules`** — la **concesión real**: el usuario tiene acceso a este módulo. **El permiso va con el usuario.**
+
 | Columna | Tipo | Notas |
 |---|---|---|
 | `user_id` | uuid NOT NULL → `profiles.id` | |
@@ -214,7 +241,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `id` | uuid PK | |
 | `user_id` | uuid NOT NULL → `profiles.id` | |
 | `platform` | text NOT NULL | `android`; `ios` futuro (spec §2) |
-| `push_token` | text NULL | token de push (FCM/Expo) para notificaciones (task-04) |
+| `push_token` | text **UNIQUE** NULL | token de push (FCM) para notificaciones (task-04); UNIQUE permite reasignar el token si el móvil cambia de usuario; **varios dispositivos por usuario** permitidos |
 | `last_seen_at` | timestamptz | |
 | `revoked_at` | timestamptz NULL | revocado en el panel (soft); la sesión se revoca además vía Admin API de Supabase |
 | `created_at` | timestamptz | |
@@ -341,6 +368,7 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 | N | **Módulos público/privado**: `module_registry.is_public` (default del manifest, override super_admin). **Público** = todos los usuarios lo usan sin `user_modules`; **privado** = solo admins + usuarios con concesión. `has_module_access` = `is_admin() OR is_public OR user_modules` |
 | O | **Settings con visibilidad** (`settings.is_public`): distinta de `is_secret` (cifrado). `is_public` declarada **solo en el manifest del módulo** (task-03) o en el catálogo del Core (task-06); el **usuario nunca edita settings** |
 | P | **Contraseñas fuera del Core**: identidad y hashes de contraseña en Supabase Auth (auth §2/§4); el Core nunca almacena contraseñas ni credenciales en BD (verificación `guard-secrets` + auditoría task-10) |
+| Q | **Realtime por canales con destinatario** (ADR 0009, task-04): `module_channels` (canales de módulo con `members_fn`) y `event_outbox` (entrega at-least-once con reintentos e idempotencia); `devices.push_token` UNIQUE (varios dispositivos por usuario) |
 
 ## 9. Fuera de alcance
 
