@@ -31,7 +31,7 @@ Las 12 tareas comparten **un solo plan** (lote, según `spec §11` reglas). Cada
 | 03 | Sistema de módulos + instalador en runtime | `docs/superpowers/specs/2026-10-26-modulo-system.md` | 01, 02, fundaciones ✅, api-v1 ✅ |
 | 04 | Realtime y notificaciones del Core | `docs/superpowers/specs/2026-10-26-realtime-notificaciones.md` | 01, 02, ADR 0006 ✅, auth ✅ |
 | 05 | MCP del Core | `docs/superpowers/specs/2026-10-26-mcp.md` | 02, api-v1 ✅, tokens ✅, ADR 0004 |
-| 06 | Configuración de instancia y setup (`instance_settings` + wizard) | `docs/superpowers/specs/2026-10-26-instance-config.md` | 01, ADR 0008, ADR 0006, auth ✅ (wizard §3bis), api-v1 ✅ (C2/`/instance`) |
+| 06 | Configuración de instancia y setup (`settings`/`settings_categories` + wizard) | `docs/superpowers/specs/2026-10-26-instance-config.md` | 01, ADR 0008, ADR 0006, auth ✅ (wizard §3bis), api-v1 ✅ (C2/`/instance`) |
 | 07 | Trabajos programados y mantenimiento del Core | `docs/superpowers/specs/2026-10-26-jobs-mantenimiento.md` | 01, 06, tokens ✅ (§6 auditoría), api-v1 ✅ (`/health`) |
 | 08 | Observabilidad (Sentry, logs, `request_id`, guía) | `docs/superpowers/specs/2026-10-26-observabilidad.md` | 02, ADR 0007, spec §7 (Sentry), cicd.md |
 | 09 | i18n operativa (check CI, sync, flujo traductor) | `docs/superpowers/specs/2026-10-26-i18n-operativa.md` | 01, ADR 0008, spec §11, testing ✅ |

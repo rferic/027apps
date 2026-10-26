@@ -13,7 +13,7 @@ Tarea 2 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 **Alcance**: sobre el contrato estable (`2026-10-25-api-v1.md`) y el esquema de la task-01, definir los endpoints transversales del Core más allá del mínimo de arranque:
 - Grupos y membresías (`/groups`, `/groups/{id}/members`, roles admin/member), invitaciones (`/invitations`), participantes (`/participants`, ficticios + claiming), API keys (`/api-keys`, instancia/delegado), device tokens (`/device-tokens`), configuración de instancia (`/instance`), módulos (`/modules`, `/groups/{id}/modules`).
 - Para cada recurso: **forma de la representación compartida** (ADR 0004 §7), **scopes por acción expuesta** (spec tokens §5, ADR 0004 §2), errores (envelope ADR 0007), paginación offset/cursor (api-v1 D2) si aplica.
-- **Rate limiting C1** (decisión delegada por api-v1 §3.3): umbrales y ventanas por tipo de llamador (móvil alto / terceros bajo), almacén del contador, respuesta `429` con envelope. CORS C2 ya decidido → su configuración vive en `instance_settings` (task-06).
+- **Rate limiting C1** (decisión delegada por api-v1 §3.3): umbrales y ventanas por tipo de llamador (móvil alto / terceros bajo), almacén del contador, respuesta `429` con envelope. CORS C2 ya decidido → su configuración vive en `settings` (`connectivity.cors_allowlist`, task-06, modelo de la task-01).
 
 **Decisiones a fijar**: inventario exacto de endpoints y verbos, umbrales concretos de rate limiting, scopes por acción, forma canónica de cada recurso.
 

@@ -19,4 +19,4 @@ Tarea 7 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 
 **Criterios de aceptación**: cada job tiene disparador, periodicidad y lugar de ejecución decididos y justificados en free tier; los jobs son idempotentes; nada de secrets en el mecanismo; coherente con la auditoría de uso (spec de tokens §6) y con `cicd.md`.
 
-**Referencias**: spec de tokens §6/§7 (`2026-10-25-token-model.md`), `docs/flows/cicd.md` (keep-alive, job `release`), spec API v1 §4 (`/health`), task-01 (esquema), task-06 (`instance_settings`).
+**Referencias**: spec de tokens §6/§7 (`2026-10-25-token-model.md`), `docs/flows/cicd.md` (keep-alive, job `release`), spec API v1 §4 (`/health`), task-01 (esquema), task-06 (`settings`).

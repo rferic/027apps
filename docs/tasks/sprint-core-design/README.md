@@ -21,7 +21,7 @@ Sprint de **definición** (sin código de producto): diseñar la superficie inic
 | 03 | Sistema de módulos + instalador en runtime | spec `2026-10-26-modulo-system.md` |
 | 04 | Realtime y notificaciones del Core | spec `2026-10-26-realtime-notificaciones.md` |
 | 05 | MCP del Core | spec `2026-10-26-mcp.md` |
-| 06 | Configuración de instancia y setup (`instance_settings` + wizard) | spec `2026-10-26-instance-config.md` |
+| 06 | Configuración de instancia y setup (`settings`/`settings_categories` + wizard) | spec `2026-10-26-instance-config.md` |
 | 07 | Trabajos programados y mantenimiento | spec `2026-10-26-jobs-mantenimiento.md` |
 | 08 | Observabilidad | spec `2026-10-26-observabilidad.md` |
 | 09 | i18n operativa | spec `2026-10-26-i18n-operativa.md` |

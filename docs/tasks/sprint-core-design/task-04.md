@@ -13,9 +13,9 @@ Tarea 4 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 **Alcance**:
 - **Realtime** (ADR 0006): concretar el mecanismo que el ADR deja «a validar contra la doc vigente» — publicación servidor→Supabase Realtime (broadcast tras el commit, `{ type, resource, payload }` con representación compartida, api-v1 F), validando el mecanismo nuevo `sb_secret_*` (Supabase depreca `service_role` finales 2026), topic por grupo + RLS sobre `realtime.messages`, `JWT_EXPIRY = 900 s`.
 - **Contrato de eventos del Core**: nombres y payloads de los eventos de los recursos del Core (pendiente de la decisión F de api-v1 §3.9), con la representación compartida.
-- **Notificaciones** (spec §4): push nativo Android (FCM u otro, con credenciales **por instancia** — cada instalación auto-hospedada tiene las suyas) + email (SMTP propio en `instance_settings`, spec de auth §5bis); dispositivo ligado al usuario (`device_tokens` con `expo_push_token` — spec de tokens §7).
+- **Notificaciones** (spec §4): push nativo Android (FCM u otro, con credenciales **por instancia** — cada instalación auto-hospedada tiene las suyas) + email (SMTP propio en `settings` — clave `notifications.smtp.*`, spec de auth §5bis); dispositivo ligado al usuario (`devices` con `push_token` — spec de tokens §7, modelo de la task-01).
 
-**Decisiones a fijar**: mecanismo exacto de publicación (validado contra doc de Supabase), catálogo de eventos del Core, proveedor/mecanismo de push por instancia, umbrales y config en `instance_settings`, qué se publica tras el commit y cómo se loguea un push fallido (ADR 0007 §7: efecto externo, no revierte el dato).
+**Decisiones a fijar**: mecanismo exacto de publicación (validado contra doc de Supabase), catálogo de eventos del Core, proveedor/mecanismo de push por instancia, umbrales y config en `settings` (`notifications.*`), qué se publica tras el commit y cómo se loguea un push fallido (ADR 0007 §7: efecto externo, no revierte el dato).
 
 **Criterios de aceptación**: el mecanismo de publicación usa el SDK/API vigente de Supabase (no `service_role` deprecado); los eventos del Core quedan catalogados con su representación; push/email diseñados con credenciales por instancia (nunca secrets en el repo); el aislamiento por grupo queda en RLS (como los datos).
 

@@ -9,7 +9,7 @@
 
 Definir el **modelo de datos del Core** — la superficie transversal que comparten todos los módulos — y su **modelo de permisos + RLS**, tras el reframe acordado: **en el Core no hay "grupos de datos"; las categorías son etiquetas de usuarios y los grupos reales pertenecen a cada módulo.** Esta spec es la fuente del esquema; la implementación (TDD, migraciones, checks de determinismo) es tarea posterior del backlog del Core.
 
-**Límite de alcance:** aquí se fija el **esquema lógico** (tablas, columnas, invariantes, RLS, contrato de aislamiento). El catálogo concreto de claves de `instance_settings` (task-06), la mecánica del instalador de módulos (task-03), el inventario de endpoints (task-02) y el contrato de eventos (task-04) se especifican en sus propias tareas sobre esta base.
+**Límite de alcance:** aquí se fija el **esquema lógico** (tablas, columnas, invariantes, RLS, contrato de aislamiento). El catálogo concreto de claves de `settings` (task-06), la mecánica del instalador de módulos (task-03), el inventario de endpoints (task-02) y el contrato de eventos (task-04) se especifican en sus propias tareas sobre esta base.
 
 ## 2. Reframe rector (decisión del usuario, 2026-10-26)
 
@@ -104,27 +104,60 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 
 **Semántica (decisión A):** asignar un módulo a una categoría = **materializar** `user_modules` para los miembros **actuales** de la categoría (transacción: insert `user_modules` por cada `category_members`, si no existe). Los que entren después **no** lo heredan automáticamente — la categoría es un lote inicial, no un vínculo vivo. Revocar en la categoría **no** revoca concesiones ya materializadas (se revoca por usuario cuando toque). La fila `category_modules` queda como trazabilidad del lote.
 
-### 3.3 Configuración
+### 3.3 Configuración, monedas y traducciones
 
-**`instance_settings`** — clave-valor **namespaced** con catálogo (no un cajón plano). Las categorías viven en el **catálogo tipado** (task-06); aquí solo valores.
+**`settings_categories`** — categoría de settings (decisión usuario, 2026-10-26): agrupa, ordena e iconiza los settings en el panel. Las categorías del Core nacen por seed/instalador; las de módulo las registra el **manifest** al instalarse (task-03).
 | Columna | Tipo | Notas |
 |---|---|---|
-| `key` | text PK | namespaced: `global.timezone`, `connectivity.cors_allowlist`, `notifications.smtp.*`, `security.jwt_expiry`, `module.split_expenses.*`… |
-| `value` | jsonb NULL | config **no sensible** en claro (ADR 0008): zona, moneda default, idiomas activos… |
+| `category_key` | text PK | `global`, `connectivity`, `notifications`, `security`, `split_expenses`, … (la key de cada setting lleva este prefijo) |
+| `label` | text NOT NULL | texto en inglés (la capa i18n lo traduce; **nunca** una clave i18n) — ver `translations` |
+| `help` | text NULL | descripción en inglés (idem) |
+| `icon` | text NULL | icono del DS o del paquete del módulo |
+| `sort_order` | int NOT NULL | orden en el panel |
+| `source` | text NOT NULL | `core` (seed/instalador) o `module:<key>` (manifest) |
+| `created_at`, `updated_at` | timestamptz | |
+
+**`settings`** — los valores de configuración, **categorizados** (decisión usuario, 2026-10-26; sustituye al `instance_settings` plano de la spec §8).
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `category_key` | text NOT NULL → `settings_categories.category_key` | |
+| `key` | text NOT NULL | única dentro de su categoría; **key completa = `{category_key}.{key}`** |
+| `label` | text NOT NULL | texto en inglés para el panel (traducido por la capa i18n) |
+| `help` | text NULL | ayuda en inglés (idem) |
+| `value` | jsonb NULL | config **no sensible** en claro (ADR 0008): zona, moneda default, idiomas activos, `connectivity.cors_allowlist`… |
 | `value_encrypted` | text NULL | **secrets cifrados** con clave maestra en env (spec §8): SMTP propio, LLM BYOK, secrets de clientes MCP |
+| `is_secret` | bool NOT NULL DEFAULT false | invariante: `value` **o** `value_encrypted`, nunca ambas; `is_secret` lo fuerza |
+| `sort_order` | int NOT NULL | orden dentro de la categoría |
 | `updated_by` | uuid NULL → `profiles.id` | solo `super_admin` escribe |
 | `updated_at` | timestamptz | |
+| — | `UNIQUE (category_key, key)` | |
 
-> Invariante: una clave es **o** `value` **o** `value_encrypted`, nunca ambas. El catálogo (quién puede leer/escriber cada clave, su tipo zod, si es secreto) se define en task-06.
+> Invariante: `UNIQUE (category_key, key)` garantiza el prefijo sin depender de la disciplina del que escribe. El catálogo de tipos zod / validaciones / quién lee cada clave se define en task-06; aquí solo la forma.
 
-**`currencies`** — listado de monedas disponibles en la instancia (decisión G).
+**`currencies`** — listado de monedas disponibles en la instancia (decisión del usuario: lista desactivable + default).
 | Columna | Tipo | Notas |
 |---|---|---|
 | `code` | text PK | ISO 4217 (`EUR`, `USD`,…) |
 | `enabled` | bool NOT NULL DEFAULT true | se pueden desactivar; la default no se desactiva |
 | `created_at` | timestamptz | |
 
-**Default de moneda**: `instance_settings['global.default_currency']` (una de las `enabled`). Los módulos toman el default de aquí y **sobreescriben por concepto** cuando lo necesitan (p. ej. un grupo de gastos con su propia moneda — config del módulo, no del Core).
+**Default de moneda**: `settings['global.default_currency']` (una de las `currencies.enabled`). Los módulos toman el default de aquí y **sobreescriben por concepto** cuando lo necesitan (p. ej. un grupo de gastos con su propia moneda — config del módulo, no del Core).
+
+**`translations`** — gestión de traducciones del Core (decisión usuario, 2026-10-26): el texto **en inglés es la clave legible**, estilo Laravel/gettext; la capa i18n resuelve `locale → fallback en`; el Core permite importar, detectar faltantes y medir cobertura.
+| Columna | Tipo | Notas |
+|---|---|---|
+| `locale` | text NOT NULL | de los locales activos (`settings['global.active_locales']`, ADR 0008) |
+| `text_hash` | text NOT NULL | SHA-256 del `text_en`; lookup/import estable (una edición del original crea entrada nueva, no rompe en silencio) |
+| `text_en` | text NOT NULL | **la clave**: el texto en inglés |
+| `translated_text` | text NOT NULL | el valor traducido |
+| `context` | text NULL | de dónde viene (p. ej. `settings.global.default_currency`, `modules.split_expenses.*`) |
+| `source` | text NOT NULL | `code` (set commiteado, ADR 0008), `module:<key>` (manifest), `import`, `manual` |
+| `updated_by` | uuid NULL → `profiles.id` | |
+| `created_at`, `updated_at` | timestamptz | |
+| — | `UNIQUE (locale, text_hash)`, índice por `text_en` | |
+
+> **Resolución en runtime** (kernel en task-02): `resolve(text_en, locale) = translations(locale, hash) ?? translations(en) ?? text_en` — **nunca** una clave sin traducir "seca"; el texto en inglés es siempre el último recurso. **Cobertura/detección** (task-09 + sprint-web): % traducido por locale y faltantes = consultas sobre esta tabla; la importación compara por `text_hash`. La **check de CI de ADR 0008 sigue igual** (set commiteado determinista) y alimenta esta tabla como `source: code`; el store runtime la extiende, no la sustituye.
 
 ### 3.4 Invitación
 
@@ -235,7 +268,8 @@ Patrón de **security definer functions** canónicas (task-10 lo formaliza):
 | `module_registry`, `module_migrations` | read: cualquier autenticado (para `/me/modules`/catálogo); write: **solo el instalador** (via service/API con scope, no RLS directo) |
 | `user_modules` | read/write: el propio usuario (sus concesiones) + `is_super_admin`; la concesión/revocación la ejecuta la API, no el cliente |
 | `category_modules` | read: `is_super_admin`; write: `is_super_admin` (materialización vía caso de uso) |
-| `instance_settings`, `currencies` | read: `is_super_admin` (config) / los no sensibles vía API `/instance` filter; write: `is_super_admin` |
+| `settings_categories`, `settings`, `currencies` | read: `is_super_admin` (config) / los no sensibles vía API `/instance` filter; write: `is_super_admin` |
+| `translations` | read: cualquier autenticado (resolución i18n en runtime); write: `is_super_admin` / pipeline de import (task-09) |
 | `invitations`, `invitation_modules` | read: `is_super_admin` (panel) + el registro de canjeo (flujo wizard); write: `is_super_admin` / caso de uso de canjeo |
 | `api_keys` | service: solo `is_super_admin`; delegado: el propietario (`user_id = auth.uid()`) + `is_super_admin` |
 | `devices` | read/write: el propio usuario; `is_super_admin` para el panel de revocar |
@@ -257,8 +291,8 @@ La suite de aislamiento es **parte del DoD de toda tabla nueva** (testing §8). 
 1. **Dos categorías**: un usuario de la categoría A no ve los datos que la categoría B otorgó a sus miembros (materialización aislada — la concesión es por fila `user_modules`, no por pertenencia viva).
 2. **Dos usuarios con distinto acceso**: el usuario con `split-expenses` ve sus recursos; el que no lo tiene recibe `insufficient_scope`/`not_found` (nunca filtra el dato del otro).
 3. **Revocación instantánea**: al revocar `user_modules` o expulsar (soft) de una categoría, la siguiente petición deniega — sin TTL de permisos (spec de tokens §5).
-4. **Aislamiento por tabla sensible**: `instance_settings` (no sensibles legibles vía API pública `/instance` filtrado; secrets jamás), `api_keys` (delegado no ve claves de otro usuario), `devices` (propietario), `audit`/`admin_actions` (solo super_admin).
-5. **Claves service con scope mínimo**: una clave con `expenses:read` no lee `instance_settings`, y su `audit` registra el uso con ventana.
+4. **Aislamiento por tabla sensible**: `settings` (no sensibles legibles vía API pública `/instance` filtrado; secrets/`value_encrypted` jamás), `api_keys` (delegado no ve claves de otro usuario), `devices` (propietario), `audit`/`admin_actions` (solo super_admin), `translations` (un usuario cualquiera lee traducciones, no escribe).
+5. **Claves service con scope mínimo**: una clave con `expenses:read` no lee `settings`, y su `audit` registra el uso con ventana.
 
 Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categorías con datos compartidos, verificación RLS y contrato API punta a punta. Job `supabase`/`rls` en CI → se añade en infra (task-07 de infra).
 
@@ -269,17 +303,18 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 | A | **Categoría ≠ Grupo de módulo**: el Core no modela grupos de datos; los módulos tienen los suyos. `participants`/`group_members` fuera del Core |
 | A2 | **Acceso a módulos por usuario** (`user_modules`), viaja con el usuario; `category_modules` es plantilla que **materializa** a los miembros actuales (los nuevos no heredan) |
 | B | **Invitación** = email (modificable) + nombre + categoría (solo clasificación) + módulos a conceder al aceptar; el permiso viene de la invitación, no del grupo |
-| C | **Monedas**: listado `currencies` desactivable + `default_currency` en `instance_settings`; los módulos sobreescriben por concepto |
+| C | **Monedas**: listado `currencies` desactivable + `default_currency` en `settings`; los módulos sobreescriben por concepto |
 | D | **Permisos sin tabla RBAC**; derivados por petición (rol + `user_modules` + scopes por acción) |
 | E | **`audit`** (uso agregado de tokens) + **`admin_actions`** (log de mutaciones sensibles) |
 | F | **Módulos = plugins con contrato estricto** (`module_registry` + `module_migrations`); doc pública de "cómo crear tu módulo" (task-03/11) |
-| G | **`instance_settings` con catálogo + categorías + namespacing** y secrets cifrados; `devices` en v1 |
+| G | **Settings categorizados**: `settings_categories` (key, label en inglés, icono, orden, source) + `settings` (categoría + key con `UNIQUE(category_key, key)` = prefijo garantizado, texto en inglés, `value`/`value_encrypted` con `is_secret`); los módulos registran su categoría por manifest (task-03) |
 | H | **Delta API v1 (2026-10-26)**: `groups`→`categories`, `/me/modules`, config de módulo fuera de lo transversal, MCP lee categorías/usuarios |
 | I | Claves service: **guard = barrera efectiva**; definer de servicio acotado; nunca `service_role` por omisión |
+| J | **Traducciones del Core** (`translations`): el **texto en inglés es la clave** (estilo Laravel/gettext), fallback `locale → en`; el Core gestiona import, faltantes y cobertura; el kernel de resolución va en task-02, la pipeline en task-09, los strings de módulo viajan en el manifest (task-03) |
 
 ## 9. Fuera de alcance
 
-- **Catálogo concreto de claves de `instance_settings`** (tipos zod, quién lee/escribe cada una, wizard `/setup`) → task-06.
+- **Catálogo concreto de claves de `settings`** (tipos zod, quién lee/escribe cada una, wizard `/setup`) → task-06.
 - **Mecánica del instalador de módulos** (contract del manifest, orden de migraciones, validación de DDL en runtime) → task-03.
 - **Inventario de endpoints del Core** (recursos, scopes por acción, `request_id`, rate limiting) → task-02.
 - **Contrato de eventos realtime y notificaciones** → task-04.
@@ -289,7 +324,7 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 
 ## 10. Criterios de aceptación
 
-- El esquema cubre identidad (`profiles`), categorización (`categories`, `category_members`), acceso (`user_modules` materializado, `category_modules`), plugins (`module_registry`, `module_migrations`), config (`instance_settings` namespaced, `currencies`+default), invitación (`invitations` + `invitation_modules`), tokens (`api_keys` sin `group_id`), `devices`, `audit` y `admin_actions`.
+- El esquema cubre identidad (`profiles`), categorización (`categories`, `category_members`), acceso (`user_modules` materializado, `category_modules`), plugins (`module_registry`, `module_migrations`), config (`settings_categories` + `settings` con prefijo garantizado, `currencies`+default, `translations`), invitación (`invitations` + `invitation_modules`), tokens (`api_keys` sin `group_id`), `devices`, `audit` y `admin_actions`.
 - **No** hay tablas de "grupos de datos de módulo" en el Core (eso vive en cada módulo).
 - El **acceso a módulos es por usuario y viaja con él**; la categoría es solo clasificación/plantilla (decisión A).
 - **RLS por tabla** con definers canónicos (`is_super_admin`, `has_module_access`) y contrato de aislamiento definido (D2 adaptado a categorías/usuarios).
