@@ -26,7 +26,7 @@ Las 12 tareas comparten **un solo plan** (lote, según `spec §11` reglas). Cada
 
 | # | Tarea (fichero) | Entregable (spec) | Dependencias |
 |---|---|---|---|
-| 01 | Esquema de BD del Core + RLS | `docs/superpowers/specs/2026-10-26-core-data-model.md` | api-v1 ✅, tokens ✅, ADR 0008 |
+| 01 | Modelo de datos del Core y RLS (**reframe: categorías ≠ grupos de módulo**) | `docs/superpowers/specs/2026-10-26-core-data-model.md` | api-v1 ✅ (delta 2026-10-26), tokens ✅, ADR 0008 |
 | 02 | Recursos y endpoints transversales del Core (+ rate limiting C1) | `docs/superpowers/specs/2026-10-26-core-api.md` | 01, api-v1 ✅ |
 | 03 | Sistema de módulos + instalador en runtime | `docs/superpowers/specs/2026-10-26-modulo-system.md` | 01, 02, fundaciones ✅, api-v1 ✅ |
 | 04 | Realtime y notificaciones del Core | `docs/superpowers/specs/2026-10-26-realtime-notificaciones.md` | 01, 02, ADR 0006 ✅, auth ✅ |

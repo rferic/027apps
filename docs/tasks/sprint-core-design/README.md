@@ -16,7 +16,7 @@ Sprint de **definición** (sin código de producto): diseñar la superficie inic
 
 | # | Tarea | Entregable |
 |---|---|---|
-| 01 | Esquema de BD del Core y RLS | spec `2026-10-26-core-data-model.md` |
+| 01 | Modelo de datos del Core y RLS (reframe: categorías ≠ grupos de módulo) | spec `2026-10-26-core-data-model.md` |
 | 02 | Recursos y endpoints transversales (+ rate limiting C1) | spec `2026-10-26-core-api.md` |
 | 03 | Sistema de módulos + instalador en runtime | spec `2026-10-26-modulo-system.md` |
 | 04 | Realtime y notificaciones del Core | spec `2026-10-26-realtime-notificaciones.md` |
