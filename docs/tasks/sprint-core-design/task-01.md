@@ -1,20 +1,22 @@
 ---
-id: sprint-core-design
-titulo: Diseño del Core (definición) — superficie transversal inicial
+id: sprint-core-design-task-01
+titulo: Esquema de BD del Core y RLS — spec de datos (definición)
 area: core
 estado: pendiente
+plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 
-Sprint de **definición** (sin código de producto): diseñar la superficie inicial del **Core** — todo lo transversal/compartido entre módulos (spec §4). Registrado como backlog pendiente, sin tareas numeradas aún; se planifica al cerrar la spec de API v1.
+Tarea 1 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una spec aprobada, sin código.
 
-**Por qué existe:** el Core es una capacidad que crece con el proyecto y no se puede catalogar completo hoy (decisión del usuario, 2026-10-25). Este sprint concreta **la base inicial** sobre el contrato estable de la spec de API v1.
+**Entregable**: spec `docs/superpowers/specs/2026-10-26-core-data-model.md` — el esquema de datos definitivo del Core.
 
-**Depende de:** ~~spec de API v1~~ (`docs/superpowers/specs/2026-10-25-api-v1.md`) **finalizada** ✅ (2026-10-25) — el contrato estable y el mecanismo de extensión están aprobados; la especificación de tokens, auth, ADRs 0001–0008 y testing strategy también `finalizada`. **Puerta de entrada cumplida: el sprint está desbloqueado para planificarse.**
+**Alcance**:
+- DDL final de `profiles`, `groups`, `group_members`, `invitations`, `participants`, `api_keys`, `device_tokens`, `instance_settings` (+ `audit` de contadores agregados, spec de tokens §6/§7), con columnas, constraints e índices.
+- Evolución del borrador de la spec de diseño §8 según: spec de tokens §7 (api_keys `kind: service|delegated`, `scopes text[]`, `expires_at`, `revoked_at`, `last_used_at`; sin `device_tokens` de refresh — sesión Supabase; `audit`), ADR 0008 (delta: `profiles.timezone`; `instance_settings` además de secrets guarda config no sensible en claro), ADR 0006 (RLS sobre `realtime.messages`).
+- **RLS por tabla** (scoped por grupo donde aplique) y el **contrato de la suite de aislamiento** (testing strategy D2: SQL por tabla + script de dos grupos; un miembro del grupo A nunca lee/escribe del B).
 
-**Alcance previsto (a detallar al planificar):**
-- Esquema de BD del Core: `profiles`, `groups`, `group_members`, `invitations`, `participants`, `api_keys`, `device_tokens`, `instance_settings` (spec §8) con RLS y tests de aislamiento.
-- Endpoints transversales del Core derivados de ese esquema (sobre el contrato de API v1; el inventario exacto se decide aquí).
-- Instalador de módulos en runtime (DDL y rollback), manifests de módulos, config de módulos por grupo.
-- Shell del admin + infra de realtime/notificaciones (partes de Core que no son de módulo).
+**Decisiones a fijar en conversación de diseño**: forma exacta de cada tabla (incl. índices para los listados del Core), qué va cifrado vs en claro en `instance_settings`, políticas RLS por tabla y su nomenclatura, formato del contrato de tests de aislamiento.
 
-**Puerta de entrada:** spec de API v1 `finalizada` (cumplida, 2026-10-25); sprint de infra (setup del usuario) puede ir en paralelo o después.
+**Criterios de aceptación**: el esquema cubre las 8 tablas + `audit` según las specs de base; cada tabla declara su RLS (o justifica por qué no aplica); la suite de aislamiento queda definida como parte del DoD de toda tabla nueva (testing §8); coherente con ADR 0004 (datos solo vía casos de uso / API), ADR 0008 (fechas/moneda) y ADR 0007 (sin fuga de internos).
+
+**Referencias**: spec diseño §8 (`2026-10-24-027apps-design.md`), spec tokens §7 (`2026-10-25-token-model.md`), ADR 0008, testing strategy D2/§8, ADR 0006 (RLS realtime).
