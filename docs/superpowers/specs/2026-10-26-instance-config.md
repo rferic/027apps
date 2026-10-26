@@ -18,6 +18,7 @@ Definir **qué es configurable en una instancia** (claves, tipos, validación, s
 |---|---|---|---|
 | URL y claves de Supabase | Env del hosting (Vercel) | Quien instala, antes del deploy | **Guía + verifica** (conexión, migraciones) |
 | `SETTINGS_ENCRYPTION_KEY` (32 bytes) | Env del hosting | Quien instala | **Guía + verifica** (presente y válida); provisión en `sprint-infra` task-09 |
+| `SENTRY_DSN` (opcional, **solo servidor**) | Env del hosting | Quien instala | **Guía + verifica** si existe; sin DSN no hay agregación de errores pero la instancia funciona (task-08 §4) |
 | SMTP del proyecto Supabase | Dashboard de Supabase | Quien instala | **Guía + verifica** (email de prueba al propio admin) |
 | `JWT_EXPIRY = 900 s` | Proyecto Supabase | Quien instala | **Guía + verifica** (decodifica el access token del admin tras el login) |
 | Preferencias y FCM | `settings` (nuestra BD) | **Admin ya autenticado** | **Escribe** (con actor real) |

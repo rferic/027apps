@@ -2,7 +2,7 @@
 id: sprint-core-design-task-09
 titulo: i18n operativa — pipeline de claves, check de CI, flujo de traducción (definición)
 area: core
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 

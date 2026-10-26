@@ -84,7 +84,7 @@ El manifest (task-03 §3) declara:
 
 **Decisión del usuario (C2):** la entrega es **at-least-once** con **outbox transaccional** — no "publicar y esperar que salga".
 
-1. El caso de uso, **dentro de su transacción**, inserta el evento en **`event_outbox`** (task-01): `event_id` (uuid, idempotencia), `type`, `target`, `subject`, `resource`, `payload`, `state = pending`, `attempts = 0`, `next_attempt_at`. Es una **fila de BD**, no un efecto externo (ADR 0004 §6 se respeta: el efecto externo ocurre después).
+1. El caso de uso, **dentro de su transacción**, inserta el evento en **`event_outbox`** (task-01): `event_id` (uuid, idempotencia), **`request_id`** (correlación de la petición que lo originó, task-08), `type`, `target`, `subject`, `resource`, `payload`, `state = pending`, `attempts = 0`, `next_attempt_at`. Es una **fila de BD**, no un efecto externo (ADR 0004 §6 se respeta: el efecto externo ocurre después).
 2. **Tras el commit**, el despachador (`publish()`) toma los `pending` y:
    - **valida el `target`** contra la lista cerrada y los `channels`/`eventos` **declarados por el módulo emisor** (la clave `sb_secret_*` **se salta la RLS**, así que este es el único gate);
    - publica al topic con **Broadcast privado**;
