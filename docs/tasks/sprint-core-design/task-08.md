@@ -2,7 +2,7 @@
 id: sprint-core-design-task-08
 titulo: Observabilidad — logging, Sentry, guía de depuración (definición)
 area: core
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 

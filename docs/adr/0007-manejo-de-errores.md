@@ -38,7 +38,7 @@ Se adopta un **modelo de error único y estable en el borde**, con un **código 
 
 5. **Sin fuga de internos (OWASP A02/A05).** **Nunca** stack traces, SQL, rutas internas, secrets ni tokens en el envelope — ni siquiera en dev (superficie uniforme). Todo lo inesperado cae en `internal` genérico. Los detalles técnicos van solo al **log del servidor**, no a la respuesta. El `guard-secrets` del CI y la auditoría OWASP de cada tarea vigilan esto.
 
-6. **Logging estructurado con correlación.** Cada error se loguea server-side con `request_id` (generado en la puerta), `code`, mensaje técnico (sin secrets) y stack. El cliente recibe el mismo `request_id` en el envelope para poder reportar. El `code` permite agrupar y medir (frecuencia por tipo de error).
+6. **Logging estructurado con correlación.** Cada error se loguea server-side con `request_id` (generado en la puerta), `code`, mensaje técnico (sin secrets) y stack. El cliente recibe el mismo `request_id` en el envelope para poder reportar. El `code` permite agrupar y medir (frecuencia por tipo de error). **Revisión 2026-10-26:** el `request_id` viaja además en la cabecera `X-Request-Id` de **todas** las respuestas (ver `2026-10-26-observabilidad.md` §2).
 
 7. **Efectos externos tras el commit (ADR 0004 §6).** Si un efecto externo (email, realtime) falla **después** del commit, **no** se revierte el dato ni se propaga como fallo de la mutación: el dato ya se salvó. Se loguea con severidad y queda para reintento/cola — el cliente recibe éxito, el operador ve el fallo en logs.
 

@@ -23,10 +23,14 @@ Sprint de **definición** (sin código de producto): diseñar la superficie inic
 | 05 | MCP del Core | spec `2026-10-26-mcp.md` | ✅ `finalizada` (2026-10-26) |
 | 06 | Configuración de instancia y setup (`settings`/`settings_categories` + wizard) | spec `2026-10-26-instance-config.md` | ✅ `finalizada` (2026-10-26) |
 | 07 | Trabajos programados y mantenimiento | spec `2026-10-26-jobs-mantenimiento.md` | ✅ `finalizada` (2026-10-26) |
-| 08 | Observabilidad | spec `2026-10-26-observabilidad.md` | 🔵 en curso |
+| 08 | Observabilidad | spec `2026-10-26-observabilidad.md` + `docs/guia-debugging.md` | 🟡 `test` |
 | 09 | i18n operativa | spec `2026-10-26-i18n-operativa.md` | ⏳ pendiente |
 | 10 | Seguridad de definición (OWASP, amenazas, secrets, RLS, dependabot) | spec `2026-10-26-seguridad.md` | ⏳ pendiente |
 | 11 | Documentación de la API pública | `docs/api/README.md` | ⏳ pendiente |
 | 12 | Shell del admin (definición) | spec `2026-10-26-admin-shell.md` | ⏳ pendiente |
 
 **Puerta de entrada:** spec de API v1 `finalizada` (cumplida, 2026-10-25); sprint de infra (setup del usuario) puede ir en paralelo o después.
+## Pendientes de integración (no olvidar)
+
+- **Backups de la BD**: diseñados e implementados en la rama **`sprint/infra-backups`** (el documento de infraestructura (rama `sprint/infra-backups`), `docs/superpowers/specs/2026-10-26-backups.md`, plan, y `.github/workflows/backup.yml`). **No** son de este sprint; la guía de depuración los referencia. Al mergear ambas ramas hay que **reconciliar la numeración de `sprint-infra`**: aquí se usaron `task-08` (Firebase/FCM) y `task-09` (`SETTINGS_ENCRYPTION_KEY`), mientras que en `sprint/infra-backups` **`task-09` es backups**.
+- **Custodia de `SETTINGS_ENCRYPTION_KEY`**: debe ir **separada del backup de la BD** (backup + clave = texto claro). Ver `sprint-infra` task-09 y `2026-10-26-instance-config.md` §5.
