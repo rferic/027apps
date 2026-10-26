@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-10-26 · **Revisión:** 2 (revisión de docs + auditoría OWASP)
 **Estado:** Borrador para aprobación del usuario
-**Base:** [ADR 0008](../../adr/0008-fechas-y-moneda.md) (9 locales, `en` obligatorio, check de CI) · [spec de datos](2026-10-26-core-data-model.md) (`translations`, decisión J) · [config](2026-10-26-instance-config.md) (`localization.enabled_locales`) · [módulos](2026-10-26-modulo-system.md) · [API del Core](2026-10-26-core-api.md) §3.9 · [ADR 0007](../../adr/0007-manejo-de-errores.md) · [testing §6](../conventions/testing-strategy.md)
+**Base:** [ADR 0008](../../adr/0008-fechas-y-moneda.md) (9 locales, `en` obligatorio, check de CI) · [spec de datos](2026-10-26-core-data-model.md) (`translations`, decisión J) · [config](2026-10-26-instance-config.md) (`localization.enabled_locales`) · [módulos](2026-10-26-modulo-system.md) · [API del Core](2026-10-26-core-api.md) §3.9 · [ADR 0007](../../adr/0007-manejo-de-errores.md) · [testing §6](../../conventions/testing-strategy.md)
 **Decide el usuario:** fuente de verdad en el repo, `scan`/`check` en CI, traductor solo por PR, entregables (2026-10-26)
 
 ## 1. Objetivo
