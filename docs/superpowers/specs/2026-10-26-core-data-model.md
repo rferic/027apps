@@ -116,6 +116,15 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `hook_applied` | text[] NULL | módulos cuyo hook ya se aplicó (idempotencia) |
 | `created_at`, `published_at` | timestamptz | purga por retención (job, task-07) |
 
+**`maintenance_runs`** — historial de ejecuciones de mantenimiento (task-07): alimenta `/maintenance/status` y el panel.
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | `run_id` de la respuesta |
+| `job` | text NOT NULL | `outbox.retry`, `outbox.purge`, … |
+| `status` | text NOT NULL CHECK (`ok`\|`failed`\|`skipped`) | |
+| `summary` | jsonb NULL | contadores (processed/failed), **sin datos sensibles** |
+| `started_at`, `finished_at` | timestamptz | retención 90 días (purga por job) |
+
 **`idempotency_keys`** — registro de idempotencia de escrituras (task-05 decisión F); el mismo patrón sirve a MCP y a REST.
 | Columna | Tipo | Notas |
 |---|---|---|
@@ -406,6 +415,7 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 | T | **Actores de máquina**: `created_by_key`/`assigned_by_key`/`granted_by_key` con CHECK de exactamente un actor; nunca perfiles sintéticos |
 | U | **`idempotency_keys`**: idempotencia de escrituras por `request_hash` (replay solo con payload idéntico), TTL 24 h, misma transacción |
 | V | **`profiles.deactivated_at`**: desactivación soft con revocación inmediata de sesiones, módulos y claves; el historial no se borra |
+| X | **Mantenimiento programado** (task-07): jobs híbridos (inline + lazy + `pg_cron` + Actions), `maintenance_runs` para estado, retenciones definidas y `/health` que degrada con outbox atascado |
 | W | **Settings con `mcp_access`** (`none`\|`read`\|`write`) y actor humano **o** clave (`updated_by_key` + CHECK) — deltas de task-05/06 |
 
 ## 9. Fuera de alcance
