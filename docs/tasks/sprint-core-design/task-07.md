@@ -25,6 +25,16 @@ Tarea 7 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 - **Salud**: `/health` degrada con pendientes > 1 h, fallos recientes o barrido atrasado con pendientes; sin detalles públicos.
 - **Deltas aplicadas**: task-01 (`maintenance_runs` + decisión X), task-02 (endpoints de mantenimiento y semántica de `/health`).
 
+**Correcciones de revisión + auditoría OWASP (2026-10-26)**: 2 Alta + ~10 Media.
+- **Exclusión mutua por lease** en `maintenance_runs` (`running`/`timeout`, `lease_until`, índice único parcial + RPC atómica): los advisory locks **no** son viables con `@supabase/supabase-js` sobre el pooler.
+- **Claim del outbox** con `claimed_until` y lote K=50, compartido por inline/lazy/endpoint (sin doble envío).
+- **Purga con atribución**: `api_keys` referenciada se **anonimiza** (nunca se borra), sin `CASCADE`; evidencia primero; `admin_actions` 365 d.
+- **`pg_cron` con rol `core_cron`** + funciones `SECURITY DEFINER` de grants mínimos (nunca `auth.*`).
+- **`failed` terminal** + `outbox.requeue`; `failed_at` en el outbox; `audit.window_end` generado; `rate_limit_counters` como almacén compartido; `devices.purge` y `cron.history.purge`.
+- **`/health` 503**, cacheado 30 s, delta a api-v1 §4; `maintenance:read` eliminado (estado por sesión de super_admin); allowlist de jobs + cooldown.
+- **Workflow**: minuto desplazado, `permissions: {}`, `concurrency`, secretos por `env`, acciones por SHA, 409 → exit 0, `guard-secrets` con prefijos `027_*`.
+- **`last_used_at`** inline con throttle 1/min por clave.
+
 **Criterios de aceptación**: cada job con mecanismo, frecuencia, idempotencia y retención; endpoint con clave + lock; outbox.retry sin duplicar eventos ni hooks; `/health` degradando con outbox atascado; `cicd.md` actualizado al implementar `maintenance.yml`.
 
 **Referencias**: `docs/superpowers/specs/2026-10-26-jobs-mantenimiento.md`, task-04 (`event_outbox`), task-05 (`idempotency_keys`), task-01 (`audit`), task-02 (`/health`), `docs/flows/cicd.md`.

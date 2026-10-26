@@ -110,20 +110,33 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `resource` | jsonb NOT NULL | representación compartida |
 | `payload` | jsonb | datos no sensibles |
 | `notify` | text[] NULL | p. ej. `{push}` |
-| `state` | text NOT NULL CHECK (`pending`\|`published`\|`failed`) | |
+| `state` | text NOT NULL CHECK (`pending`\|`published`\|`failed`) | `failed` es **terminal** (re-encolado explícito, task-07) |
+| `claimed_until` | timestamptz NULL | claim por lote (task-07 §3.5): impide doble despacho entre procesos |
+| `failed_at` | timestamptz NULL | marca del fallo (salud y purga de fallidos) |
 | `attempts` | int NOT NULL DEFAULT 0 | |
 | `next_attempt_at` | timestamptz NULL | backoff exponencial |
 | `hook_applied` | text[] NULL | módulos cuyo hook ya se aplicó (idempotencia) |
 | `created_at`, `published_at` | timestamptz | purga por retención (job, task-07) |
 
-**`maintenance_runs`** — historial de ejecuciones de mantenimiento (task-07): alimenta `/maintenance/status` y el panel.
+**`maintenance_runs`** — ejecuciones de mantenimiento (task-07): **lease** de exclusión mutua + historial para `/maintenance/status`.
 | Columna | Tipo | Notas |
 |---|---|---|
-| `id` | uuid PK | `run_id` de la respuesta |
-| `job` | text NOT NULL | `outbox.retry`, `outbox.purge`, … |
-| `status` | text NOT NULL CHECK (`ok`\|`failed`\|`skipped`) | |
+| `run_id` | uuid | ejecución |
+| `job` | text NOT NULL | `outbox.retry`, `api_keys.anonymize`, … |
+| `status` | text NOT NULL CHECK (`running`\|`ok`\|`failed`\|`skipped`\|`timeout`) | `running` mientras el lease está vivo |
+| `lease_until` | timestamptz NULL | TTL del reclamo; vencido ⇒ otro proceso marca `timeout` y reclama |
 | `summary` | jsonb NULL | contadores (processed/failed), **sin datos sensibles** |
-| `started_at`, `finished_at` | timestamptz | retención 90 días (purga por job) |
+| `started_at`, `finished_at` | timestamptz | retención 90 días |
+| — | PK `(run_id, job)` · **índice único parcial** `(job) WHERE status='running'` | un solo `running` por job; reclamo atómico (`ON CONFLICT DO NOTHING`) |
+
+**`rate_limit_counters`** — almacén **compartido** del rate limiting (task-02 §4, task-07 H).
+| Columna | Tipo | Notas |
+|---|---|---|
+| `key` | text NOT NULL | identidad + endpoint/bucket |
+| `window_start` | timestamptz NOT NULL | ventana deslizante |
+| `count` | int NOT NULL DEFAULT 0 | |
+| `expires_at` | timestamptz NOT NULL | TTL; purga diaria |
+| — | PK `(key, window_start)` | |
 
 **`idempotency_keys`** — registro de idempotencia de escrituras (task-05 decisión F); el mismo patrón sirve a MCP y a REST.
 | Columna | Tipo | Notas |
@@ -298,7 +311,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `endpoint` | text NOT NULL | |
 | `count` | int NOT NULL DEFAULT 0 | |
 | `window_start` | timestamptz NOT NULL | agregación por ventana |
-| `window_end` | timestamptz | |
+| `window_end` | timestamptz GENERATED ALWAYS AS (`window_start` + interval '1 hour') STORED | derivado: no hay "cierre de ventanas" (task-07) |
 | — | PK `(api_key_id, endpoint, window_start)` | |
 | Escritura | API (incremento/cierre de ventana, job task-07) | sin token en claro |
 
@@ -314,7 +327,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `details` | jsonb NULL | datos no sensibles; **nunca secrets/tokens en claro** |
 | `created_at` | timestamptz | inmutável (append-only) |
 
-> Es un log de seguridad, no un log por petición. No contiene el token, solo su `request_id`/referencia. La política de retención se fija en task-07/10 si procede.
+> Es un log de seguridad, no un log por petición. No contiene el token, solo su `request_id`/referencia. **Retención: 365 días** (task-07). Actor: humano (`actor_id`), clave (`api_key_id`) **o** sistema.
 
 ### 3.8 Semántica de borrado y desinstalación
 
@@ -415,7 +428,9 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 | T | **Actores de máquina**: `created_by_key`/`assigned_by_key`/`granted_by_key` con CHECK de exactamente un actor; nunca perfiles sintéticos |
 | U | **`idempotency_keys`**: idempotencia de escrituras por `request_hash` (replay solo con payload idéntico), TTL 24 h, misma transacción |
 | V | **`profiles.deactivated_at`**: desactivación soft con revocación inmediata de sesiones, módulos y claves; el historial no se borra |
-| X | **Mantenimiento programado** (task-07): jobs híbridos (inline + lazy + `pg_cron` + Actions), `maintenance_runs` para estado, retenciones definidas y `/health` que degrada con outbox atascado |
+| X | **Mantenimiento programado** (task-07): jobs híbridos (inline + lazy + `pg_cron` + Actions), `maintenance_runs` con **lease** (`running`/`timeout`, `lease_until`), retenciones y `/health` que degrada con outbox atascado |
+| Y | **Atribución inmutable**: `api_keys` referenciada se **anonimiza**, no se borra; FK de atribución `RESTRICT`; solo huérfanas se borran |
+| Z | **`audit.window_end` generado**, `rate_limit_counters` (almacén compartido) y `event_outbox.claimed_until`/`failed_at` |
 | W | **Settings con `mcp_access`** (`none`\|`read`\|`write`) y actor humano **o** clave (`updated_by_key` + CHECK) — deltas de task-05/06 |
 
 ## 9. Fuera de alcance

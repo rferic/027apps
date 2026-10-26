@@ -91,8 +91,8 @@ El manifest (task-03 §3) declara:
    - **despacha los `hooks`** de los módulos suscritos (§5bis);
    - envía **push** si el evento declara `notify` (§6.3);
    - marca `state = published`.
-3. **Fallo**: `state = pending` con `attempts++` y `next_attempt_at` con **backoff exponencial** (tope configurable); tras N intentos → `state = failed` (visible en el panel y en `admin_actions`). **Nunca** se pierde en silencio ni se revierte el dato.
-4. **Reintento y purga**: job programado (task-07) reintenta los `pending`/`failed` y purga los `published` antiguos (retención configurable).
+3. **Fallo**: `state = pending` con `attempts++`, `next_attempt_at` con **backoff exponencial** (tope constante del Core) y `failed_at` al agotar; tras **8 intentos** → `state = failed`. **`failed` es terminal** (task-07): se re-encola explícitamente con `outbox.requeue` desde el panel/endpoint. **Nunca** se pierde en silencio ni se revierte el dato.
+4. **Reintento y purga**: job programado (task-07) reintenta los `pending` vencidos (claim por lote con `claimed_until`), re-encola `failed` **solo** por acción explícita y purga los antiguos por retención.
 
 **Mecanismo Supabase**: Broadcast sobre canales privados. La publicación servidor→canal se hace con **claves nuevas `sb_secret_*`** (Supabase depreca `service_role`/`anon` a finales de 2026 — ADR 0006 §3) mediante el endpoint REST de broadcast o `realtime.send()`, **validado contra la doc vigente antes de implementar** (la decisión de mecanismo exacto queda al sprint de implementación; aquí se fija el requisito y la clave).
 
