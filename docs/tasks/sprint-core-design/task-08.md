@@ -8,7 +8,7 @@ plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 
 Tarea 8 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una spec aprobada, sin código.
 
-**Entregable**: spec `docs/superpowers/specs/2026-10-26-observabilidad.md` — cómo se observa la instancia (logs, errores, correlación) en free tier.
+**Entregables**: spec `docs/superpowers/specs/2026-10-26-observabilidad.md` (contrato) + **`docs/guia-debugging.md`** (guía operativa, parte del entregable por exigencia del backlog «guía de depuración»).
 
 **Alcance** (definición «Observabilidad: Sentry, logs, guía de depuración» del backlog spec §11 + ADR 0007):
 - **Logging estructurado**: formato y niveles; **`request_id` de correlación** generado en la puerta, en cada log de error y en el envelope de respuesta (ADR 0007 §6); sin secrets ni datos sensibles jamás en logs (OWASP A05).

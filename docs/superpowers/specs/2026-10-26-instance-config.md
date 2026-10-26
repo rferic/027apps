@@ -108,7 +108,7 @@ Sobre la task-01, sin reabrir el modelo:
 | `PATCH /api/v1/settings/{category}.{key}` | `is_admin()` + `settings:write`; **`security.*`/`public_url`/`cors_allowlist` exigen `is_super_admin()`**; cuerpo **solo valor** (schema estricto); valida con el tipo del catálogo; escribe `value` o `value_encrypted`; **audita** (`settings.update` con `category_key`+`key`, **nunca el valor**) y **emite `settings.updated` tras el commit** (task-04) |
 | `GET /api/v1/settings-categories` | `is_admin()`; agrupado por `sort_order` |
 | `GET /api/v1/currencies` · `PATCH /api/v1/currencies/{code}` | lectura autenticada / escritura `is_admin()`; la default no se deshabilita |
-| `GET /api/v1/instance` | **público**: `requires_setup`, `setup_incomplete` y **`settings_public`** = `instance.name`, `localization.default_locale/timezone/default_currency/enabled_locales`, `instance.public_url` y los 4 `fcm_*` públicos. **Nunca** CORS, rate limits, `security.*` ni secretos |
+| `GET /api/v1/instance` | **público**: **`version`** (versión del Core desplegado), `requires_setup`, `setup_incomplete` y **`settings_public`** = `instance.name`, `localization.default_locale/timezone/default_currency/enabled_locales`, `instance.public_url` y los 4 `fcm_*` públicos. **Nunca** CORS, rate limits, `security.*` ni secretos |
 
 - **Validación**: `validation_failed` con `details` por campo; coherencia → códigos específicos (`currency_not_enabled`, `locale_not_available`).
 - **Currencies**: seed inicial = **lista ISO 4217 completa** (`enabled = true`); el wizard, al fijar la moneda default, **garantiza en la misma transacción** que esa fila existe y está habilitada (H6).

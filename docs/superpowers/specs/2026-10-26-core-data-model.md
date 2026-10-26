@@ -103,6 +103,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | Columna | Tipo | Notas |
 |---|---|---|
 | `event_id` | uuid PK | idempotencia (`(event_id, module_key)` para hooks) |
+| `request_id` | uuid NULL | `request_id` de la petición que originó el evento (task-08): permite correlacionar fallos de entrega diferidos |
 | `module_key` | text NULL → `module_registry.key` | NULL = evento del Core |
 | `type` | text NOT NULL | `expense.created`, `user.deactivated`, … |
 | `target` | text NOT NULL | `admins`\|`all`\|`user`\|`channel:<topic resuelto>` (metadato interno, **no** viaja al cliente) |

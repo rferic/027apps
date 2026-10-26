@@ -30,7 +30,8 @@ Sprint de **definición** (sin código de producto): diseñar la superficie inic
 | 12 | Shell del admin (definición) | spec `2026-10-26-admin-shell.md` | ⏳ pendiente |
 
 **Puerta de entrada:** spec de API v1 `finalizada` (cumplida, 2026-10-25); sprint de infra (setup del usuario) puede ir en paralelo o después.
+
 ## Pendientes de integración (no olvidar)
 
-- **Backups de la BD**: diseñados e implementados en la rama **`sprint/infra-backups`** (el documento de infraestructura (rama `sprint/infra-backups`), `docs/superpowers/specs/2026-10-26-backups.md`, plan, y `.github/workflows/backup.yml`). **No** son de este sprint; la guía de depuración los referencia. Al mergear ambas ramas hay que **reconciliar la numeración de `sprint-infra`**: aquí se usaron `task-08` (Firebase/FCM) y `task-09` (`SETTINGS_ENCRYPTION_KEY`), mientras que en `sprint/infra-backups` **`task-09` es backups**.
+- **Backups de la BD**: diseñados e implementados en la rama **`sprint/infra-backups`** (spec de backup, plan y `.github/workflows/backup.yml` en esa rama). **No** son de este sprint; la guía de depuración los referencia. Al mergear ambas ramas hay que **reconciliar la numeración de `sprint-infra`**: aquí se usaron `task-08` (Firebase/FCM) y `task-09` (`SETTINGS_ENCRYPTION_KEY`), mientras que en `sprint/infra-backups` **`task-09` es backups**.
 - **Custodia de `SETTINGS_ENCRYPTION_KEY`**: debe ir **separada del backup de la BD** (backup + clave = texto claro). Ver `sprint-infra` task-09 y `2026-10-26-instance-config.md` §5.
