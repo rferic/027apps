@@ -56,8 +56,15 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
   ],
   "i18n": ["es", "ca", "en", "it", "fr", "de", "pt", "gl", "eu"],  // locales que siembra (source: module:<key>); el set activo lo filtra el check de CI (task-09)
   "scopes": ["expenses:read", "expenses:write", "balance:read"],   // acciones expuestas (ADR 0004 §2); viven en código, el manifest solo las declara para validación mecánica (CI) y el guard
-  "mcp_tools": [ { "name": "expense_list", "action": "expenses:read" } ],  // tools MCP del módulo (contrato en task-05)
-  "eventos": ["expense.created", "expense.deleted"],                // eventos de dominio que publica (contrato en task-04)
+  "mcp_tools": [ { "name": "expense_list", "scopes": ["expenses:read"] } ],  // tools MCP del módulo (contrato en task-05)
+  "channels": [                                                     // canales realtime propios del módulo (task-04)
+    { "pattern": "expense-group-{id}", "members_fn": "split_expenses_expense_group_members" }
+  ],
+  "eventos": [                                                      // eventos de dominio que publica (contrato en task-04)
+    { "type": "expense.created", "target": "channel:expense-group-{id}", "notify": ["push"] },
+    { "type": "expense.deleted", "target": "channel:expense-group-{id}" },
+    { "type": "expense.invited", "target": "user" }
+  ],
   "hooks": { "user.deactivated": "handleUserDeactivated" }          // reacciones a eventos del Core (task-02 §3.2: DELETE /users/{id})
 }
 ```
@@ -68,6 +75,8 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
 - `settings[].category` = **`snake_case(key)`** del módulo (coherente con el prefijo `{category_key}.{key}` de task-01 §3.3); `settings[].settings[].is_public` se respeta (decisión O).
 - `scopes` siguen la convención `recurso:acción` de task-02; **viven en código** (ADR 0004 §2, token-model §5), el manifest solo los declara para validación mecánica (CI) y el guard — no se "siembran" en BD (no existe tabla de scopes, decisión H6).
 - Las tools MCP referencian un scope declarado.
+- Cada **evento** declara `type`, `target` (`admins`|`all`|`user`|`channel:<pattern>`) y opcionalmente `notify` (task-04 §2.3/§6.3); un `target` de canal exige un `channels[].pattern` declarado.
+- Cada **canal** declara `pattern` y `members_fn` (función SQL security definer del módulo que devuelve los `user_id` con acceso; la usan la RLS de realtime y la resolución de push — task-04 §2.2).
 - Los `hooks` referencian **eventos del Core** o del propio módulo (task-04 define el catálogo).
 
 **Regla de negocio del manifest:** un manifest NO declara rutas HTTP de `/api/v1` propias del recurso (esos endpoints son de la spec del módulo, mecanismo de extensión de api-v1 §5); el manifest solo declara DDL, settings, tools/eventos/hooks y los scopes para validación mecánica (que viven en código, ADR 0004 §2). El contrato de API lo añade el módulo con sus schemas/casos de uso/recursos, sin tocar la mecánica (api-v1 §5).
