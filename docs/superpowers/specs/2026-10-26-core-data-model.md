@@ -41,6 +41,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `locale` | text NOT NULL | default = locale de la instancia (ADR 0008) |
 | `timezone` | text NOT NULL | default = zona de la instancia (ADR 0008) |
 | `role` | text NOT NULL DEFAULT `user` CHECK (`super_admin`\|`admin`\|`user`) | **jerarquía de 3 roles** (decisión usuario, 2026-10-26): `super_admin` (top, no borrable, root de `/setup`), `admin` (gestiona la instancia + crea/actualiza admins, no crea super_admins ni borra el root), `user` (acceso a sus módulos). `super_admin`/`admin` acceden a **todos los módulos** (públicos y privados). Escritura del rol solo vía `/setup` (primero) y API por un admin/super_admin (nunca el propietario sobre su propia fila — ver §5) |
+| `deactivated_at` | timestamptz NULL | **desactivación soft** (task-02 §3.2, task-05): revoca sesiones, `user_modules` y api-keys al instante; el perfil y su historial **no se borran**. Reactivación = limpiar el campo. Los listados excluyen desactivados salvo filtro explícito |
 | `created_at`, `updated_at` | timestamptz | |
 
 > **Contraseñas y credenciales (OWASP, decisión P):** el Core **nunca** almacena contraseñas, hashes de contraseña, tokens de sesión ni secretos de Supabase en tablas propias. La identidad y su autenticación viven íntegramente en **Supabase Auth** (hashes bcrypt server-side, reset, rate limiting del login — auth §2/§4); `profiles.id` es solo la referencia. Los secrets de la instancia (SMTP, LLM, clientes MCP) van cifrados en `settings.value_encrypted` con clave maestra en env (spec §8); nunca en claro ni en logs. Verificado por `guard-secrets` (CI) y auditoría OWASP (task-10).
@@ -51,8 +52,10 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `id` | uuid PK | |
 | `name` | text NOT NULL | "Familia", "Amigos", … |
 | `slug` | text UNIQUE NOT NULL | para URLs/identificación |
-| `created_by` | uuid NOT NULL → `profiles.id` | |
+| `created_by` | uuid NULL → `profiles.id` | actor humano |
+| `created_by_key` | uuid NULL → `api_keys.id` | actor clave de máquina (MCP/API); **exactamente uno** de `created_by`/`created_by_key` |
 | `created_at` | timestamptz | |
+| — | CHECK `num_nonnulls(created_by, created_by_key) = 1` | |
 
 **`user_category_members`** — M2M usuario ↔ categoría (un usuario puede estar en varias categorías).
 | Columna | Tipo | Notas |
@@ -73,7 +76,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `version` | text NOT NULL | versión instalada actual |
 | `state` | text NOT NULL CHECK (`installed`\|`active`\|`disabled`) | `installed`/`active` = disponible; `disabled` = no disponible pero DDL intacto; **uninstall** = `DELETE` de la fila + reversión de migraciones (`module_migrations` `down`) |
 | `is_public` | bool NOT NULL DEFAULT false | módulo **público** (todos los usuarios lo usan sin `user_modules`) vs **privado** (solo admins + usuarios con concesión). Default lo declara el manifest; override por super_admin en el panel |
-| `mcp_exposed` | bool NOT NULL DEFAULT true | **expone sus tools por MCP** (task-05, decisión E). El admin puede apagarlo por módulo sin desinstalar; afecta a `tools/list` y a la ejecución |
+| `mcp_exposed` | text NOT NULL DEFAULT `read` CHECK (`none`\|`read`\|`read_write`) | **exposición MCP** (task-05, decisión E): `none` = no expuesto; **`read` (default)** = solo tools de lectura; `read_write` = también escrituras. El admin lo cambia por módulo sin desinstalar; afecta a `tools/list` y a la ejecución |
 | `manifest_digest` | text NOT NULL | hash del manifest validado (contrato, task-03) |
 | `installed_at`, `updated_at` | timestamptz | secreto: no modificar fuera del instalador |
 
@@ -113,27 +116,47 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `hook_applied` | text[] NULL | módulos cuyo hook ya se aplicó (idempotencia) |
 | `created_at`, `published_at` | timestamptz | purga por retención (job, task-07) |
 
+**`idempotency_keys`** — registro de idempotencia de escrituras (task-05 decisión F); el mismo patrón sirve a MCP y a REST.
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | uuid PK | |
+| `api_key_id` | uuid NULL → `api_keys.id` | llamador por clave (MCP/API) |
+| `user_id` | uuid NULL → `profiles.id` | llamador por sesión (móvil/admin) |
+| `endpoint` | text NOT NULL | `mcp:admin`, `mcp:split-expenses`, `rest:/api/v1/…` |
+| `tool` | text NOT NULL | tool o acción |
+| `key` | text NOT NULL | `idempotency_key` del cliente (o el `id` del recurso creado) |
+| `request_hash` | text NOT NULL | hash del payload normalizado |
+| `state` | text NOT NULL CHECK (`pending`\|`done`) | `pending` = en vuelo |
+| `response` | jsonb NULL | respuesta **no sensible** cacheada (nunca tokens/secretos) |
+| `expires_at` | timestamptz NOT NULL | TTL (24 h por defecto) |
+| `created_at` | timestamptz | |
+| — | UNIQUE `(api_key_id, user_id, endpoint, tool, key)` · CHECK `num_nonnulls(api_key_id, user_id) = 1` | |
+
+> **Reglas**: se escribe en la **misma transacción** que la mutación; mismo `request_hash` → replay del resultado; hash distinto → `conflict`; `pending` concurrente → `conflict` con `retry_after`; purga por job (task-07).
+
 **`user_modules`** — la **concesión real**: el usuario tiene acceso a este módulo. **El permiso va con el usuario.**
 
 | Columna | Tipo | Notas |
 |---|---|---|
 | `user_id` | uuid NOT NULL → `profiles.id` | |
 | `module_key` | text NOT NULL → `module_registry.key` | |
-| `granted_by` | uuid NOT NULL → `profiles.id` | quién concedió: el `super_admin`/admin que concedió, o el definer del canjeo de invitación al materializar (ver nota) |
+| `granted_by` | uuid NULL → `profiles.id` | quién concedió (humano) |
+| `granted_by_key` | uuid NULL → `api_keys.id` | quién concedió (clave de máquina, MCP/API) |
 | `created_at` | timestamptz | |
 | `revoked_at` | timestamptz NULL | revocación individual (soft) |
 | — | PK `(user_id, module_key)` | |
 
-> **`granted_by` y re-grant** (hallazgo de revisión): al canjear una invitación, `granted_by` = el `super_admin`/admin que creó la invitación (o el definer del canjeo). Un **re-grant** tras una soft-revocación (`revoked_at` no nulo) es un **UPDATE que limpia `revoked_at`**, no un INSERT (la PK es `(user_id, module_key)`); la semántica "re-asignar = resucitar la concesión" queda fijada. Las concesiones mediadas por clave `service` (p. ej. tools MCP, task-05) no tienen `profiles.id` como `granted_by` → se permite `granted_by` NULL **solo** en ese caso (o un sentinel documentado), resuelto en task-02/05; el resto exige un actor humano.
+> **`granted_by` y re-grant** (hallazgo de revisión): al canjear una invitación, `granted_by` = el `super_admin`/admin que creó la invitación (o el definer del canjeo). Un **re-grant** tras una soft-revocación (`revoked_at` no nulo) es un **UPDATE que limpia `revoked_at`**, no un INSERT (la PK es `(user_id, module_key)`); la semántica "re-asignar = resucitar la concesión" queda fijada. Las concesiones mediadas por clave `service` (p. ej. tools MCP, task-05) no tienen `profiles.id` como `granted_by` → se permite `granted_by` NULL **solo** en ese caso (o un sentinel documentado), resuelto en task-02/05; el resto exige un actor humano. **CHECK `num_nonnulls(granted_by, granted_by_key) = 1`**: siempre hay un actor identificable, humano o clave — nunca un perfil sintético.
 
 **`user_category_modules`** — **plantilla de asignación masiva** (decisión A2: **materializa**).
 | Columna | Tipo | Notas |
 |---|---|---|
 | `user_category_id` | uuid NOT NULL → `user_categories.id` | |
 | `module_key` | text NOT NULL → `module_registry.key` | |
-| `assigned_by` | uuid NOT NULL → `profiles.id` | |
+| `assigned_by` | uuid NULL → `profiles.id` | actor humano |
+| `assigned_by_key` | uuid NULL → `api_keys.id` | actor clave de máquina |
 | `created_at` | timestamptz | |
-| — | PK `(user_category_id, module_key)` | |
+| — | PK `(user_category_id, module_key)` · CHECK `num_nonnulls(assigned_by, assigned_by_key) = 1` | |
 
 **Semántica (decisión A2):** asignar un módulo a una categoría = **materializar** `user_modules` para los miembros **actuales** de la categoría (transacción: insert `user_modules` por cada `user_category_members`, si no existe). Los que entren después **no** lo heredan automáticamente — la categoría es un lote inicial, no un vínculo vivo. Revocar en la categoría **no** revoca concesiones ya materializadas (se revoca por usuario cuando toque). La fila `user_category_modules` queda como trazabilidad del lote.
 
@@ -205,7 +228,9 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `token_hash` | text UNIQUE NOT NULL | token de un solo uso, **solo hash** (spec de tokens §6) |
 | `expires_at` | timestamptz NOT NULL | |
 | `used_at` | timestamptz NULL | single-use (se marca al canjear) |
-| `created_by` | uuid NOT NULL → `profiles.id` | solo `super_admin` o admin autorizado por scopes |
+| `created_by` | uuid NULL → `profiles.id` | actor humano (admin autorizado por scopes) |
+| `created_by_key` | uuid NULL → `api_keys.id` | actor clave de máquina (MCP) |
+| — | CHECK `num_nonnulls(created_by, created_by_key) = 1` | siempre hay actor |
 | `created_at` | timestamptz | |
 
 **`invitation_modules`** — módulos que el invitado tendrá acceso al aceptar (decisión B: el permiso viene de **aquí**, no del grupo).
@@ -228,6 +253,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `name` | text NOT NULL | etiqueta visible en el panel |
 | `scopes` | text[] NOT NULL | scopes por acción (ADR 0004 §2) |
 | `user_id` | uuid NULL → `profiles.id` | NOT NULL si `delegated`; NULL si `service` |
+| `role_cap` | text NULL CHECK (`admin`\|`super_admin`) | solo para `service` (NULL en delegadas): techo de permisos; el permiso efectivo es `min(scopes, role_cap)`. Default `admin`; crear una clave con `super_admin` exige ser `super_admin` (task-05 decisión D) |
 | `created_by` | uuid NOT NULL → `profiles.id` | |
 | `expires_at` | timestamptz NULL | opcional (spec §6) |
 | `revoked_at` | timestamptz NULL | revocación instantánea |
@@ -370,7 +396,11 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 | O | **Settings con visibilidad** (`settings.is_public`): distinta de `is_secret` (cifrado). `is_public` declarada **solo en el manifest del módulo** (task-03) o en el catálogo del Core (task-06); el **usuario nunca edita settings** |
 | P | **Contraseñas fuera del Core**: identidad y hashes de contraseña en Supabase Auth (auth §2/§4); el Core nunca almacena contraseñas ni credenciales en BD (verificación `guard-secrets` + auditoría task-10) |
 | Q | **Realtime y notificaciones** (task-04, ADR 0009): canales con destinatario, `module_channels`, `event_outbox` (at-least-once), `devices.push_token` UNIQUE |
-| R | **MCP con dos rutas** (task-05): `/mcp` (clave delegada) y `/mcp/admin` (clave de instancia); `module_registry.mcp_exposed` permite apagar las tools de un módulo sin desinstalarlo |
+| R | **MCP por módulo + generales** (task-05): `/mcp` (delegada), `/mcp/admin` (instancia con `role_cap`) y `/mcp/<module_key>` (módulo); `module_registry.mcp_exposed` (`none`\|`read`\|`read_write`, default `read`) regula la exposición |
+| S | **`api_keys.role_cap`** (`admin`\|`super_admin`, solo service): una clave de instancia tiene techo de rol; permiso efectivo `min(scopes, role_cap)` (task-05) |
+| T | **Actores de máquina**: `created_by_key`/`assigned_by_key`/`granted_by_key` con CHECK de exactamente un actor; nunca perfiles sintéticos |
+| U | **`idempotency_keys`**: idempotencia de escrituras por `request_hash` (replay solo con payload idéntico), TTL 24 h, misma transacción |
+| V | **`profiles.deactivated_at`**: desactivación soft con revocación inmediata de sesiones, módulos y claves; el historial no se borra |
 
 ## 9. Fuera de alcance
 

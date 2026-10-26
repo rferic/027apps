@@ -22,7 +22,20 @@ Tarea 5 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 - **Operación**: rate limiting por clave y endpoint, `audit` por tool, `admin_actions` en mutaciones sensibles; `module_registry.mcp_exposed` para apagar las tools de un módulo.
 - **OAuth 2.1 diferido** (desviación documentada) → backlog `docs/tasks/sprint-mcp-oauth/task-01.md`.
 
-**Decisiones tomadas** (conversación de diseño, 2026-10-26): MCP por módulo + generales, catálogo con acciones, `users_update` con `roles:assign`, idempotencia por id de cliente, Streamable HTTP, API keys en v1 con OAuth en backlog, `mcp_exposed`.
+**Correcciones de la revisión de segundo agente (2026-10-26)** — 7 Alta + 10 Media + 5 Baja:
+- **Protocolo `2026-07-28`** (no legacy): sin handshake, `_meta` por request, headers `MCP-Protocol-Version`/`Mcp-Method`/`Mcp-Name`, **`server/discover` obligatorio**, `legacy: 'reject'`, validación `Origin`/`Host`, `WWW-Authenticate`; SDK **v2** (`@modelcontextprotocol/server`, no `sdk` v1).
+- **Errores en dos canales**: protocolo (JSON-RPC, códigos estándar, sin `-32000`) vs ejecución (`isError: true` con `code` del ADR 0007 + `request_id`).
+- **`api_keys.role_cap`** (`admin`|`super_admin`): una clave service no hereda super_admin; `users_deactivate` exige cap super_admin; `users_update` (perfil) separado de `users_assign_role`.
+- **`mcp_exposed` en 3 niveles** (`none`|`read`|`read_write`, default `read`): instalar expone solo lectura; las escrituras las habilita el admin.
+- **Idempotencia real**: `idempotency_keys` con `request_hash` (payload distinto → `conflict`), TTL 24 h, misma transacción.
+- **Actores de máquina**: `created_by_key`/`assigned_by_key`/`granted_by_key` con CHECK de exactamente un actor (resuelve el NOT NULL roto con claves service).
+- **`profiles.deactivated_at`** (no existía): desactivación soft con revocación inmediata y reactivación.
+- **`settings` con `mcp_access`** (`none` por defecto en `security.*`/`connectivity.*`/`auth.*`): un agente no puede desactivar el rate limiting ni ampliar CORS.
+- **403** (no 401) para clave del tipo incorrecto; **404 uniforme** para módulo no disponible; gates reevaluados en cada `tools/call`; herramientas destructivas con `confirm: true`.
+- **Nombres únicos por endpoint** (`instance_get` solo en `/mcp`, `my_modules_list` ≠ `modules_list`); auditoría `(endpoint, tool)`.
+- **Detalles corregidos**: `instance:read` eliminado (el endpoint `/instance` es público), `categories_assign_module` = upsert que limpia `revoked_at` y `unassign` no revoca, `ListResult`/`MutationResult`/`Instance` para `outputSchema`, rate limiting en capas, OAuth es OPTIONAL en la spec y CIMD sustituye a DCR.
+
+**Decisiones tomadas** (conversación de diseño, 2026-10-26): MCP por módulo + generales, catálogo con acciones, `role_cap` para claves service, idempotencia por id de cliente, API keys en v1 con OAuth en backlog, `mcp_exposed` en 3 niveles.
 
 **Criterios de aceptación**: tres familias de endpoints con la clave correcta cada una y módulo no disponible → 404; catálogo con acciones y `tools/list` filtrado; tools de módulo solo con `active` + `mcp_exposed` + acceso + scope; `outputSchema`/`structuredContent` compartidos validados por el SDK; escrituras idempotentes; errores con `data.code` sin internos; rate limit y auditoría por tool.
 

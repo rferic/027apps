@@ -43,7 +43,8 @@ Definir cómo se autentica cada consumidor de la API de 027Apps y qué puede toc
 
 ### 3.2 Token de instancia (service)
 
-- Para conectar herramientas del admin (scripts, integraciones, **MCP/IA** con scopes por módulo) que actúan **sin identidad de usuario**, con permisos propios de la instancia.
+- Para conectar herramientas del admin (scripts, integraciones, **MCP de administración** con scopes por módulo) que actúan **sin identidad de usuario**, con permisos propios de la instancia.
+  - **Delta 2026-10-26 (task-05):** las claves de instancia llevan **`role_cap`** (`admin`|`super_admin`): su permiso efectivo es `min(scopes, role_cap)`. Y el **MCP de usuario/módulos** (`/mcp`, `/mcp/<module>`) usa **claves delegadas** `027_usr_` (actúan como su usuario), no claves de instancia.
 - **Alcance:** de **instancia completa** (no scoped a un grupo): la necesidad del usuario es conectar herramientas a *su* API, no a un grupo. Lo crea/revoca **solo `super_admin`** (el propietario de la instancia), desde el panel.
 - **Scopes:** módulo + lectura/escritura + **endpoints concretos**.
 - Expiración **opcional**, rate limiting por clave, auditoría de uso (`last_used_at`, qué endpoints toca).

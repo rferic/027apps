@@ -15,6 +15,8 @@ Tarea 6 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 - **Quién lee/escribe**: solo `is_admin()` (guard por rol); lectura pública solo de lo no sensible vía **`/instance`** (`requires_setup` y el bloque **`settings_public`** con las claves `is_public` del Core, nunca secretos ni settings de módulo — task-04).
 - **Wizard `/setup`** (spec de auth §3bis, estilo WordPress): 1) conexión Supabase (incluye `JWT_EXPIRY = 900 s`), 2) SMTP del proyecto, 3) **notificaciones (Firebase/FCM — opcional, con aviso explícito al omitir)**, 4) creación del `super_admin`; desaparece al existir el primer admin; aquí se detalla como flujo del Core/panel.
 
+**Catálogo con `mcp_access`** (task-05): cada clave del catálogo declara `mcp_access: none|read|write`; por defecto **`none`** para `security.*`, `connectivity.*` y `auth.*` (un agente no puede desactivar el rate limiting ni ampliar CORS). `settings_get`/`settings_update` por MCP solo operan sobre las claves con `read`/`write`.
+
 **Decisiones a fijar**: esquema/API de `settings` (claves tipadas + validación zod, sobre el modelo de la task-01), cómo se cifran los secrets (clave maestra en env, ver task-01), endpoints de configuración (`/instance` y los de escritura por super_admin), flujo completo del wizard y sus verificaciones, límites free (SMTP 100-300/día según proveedor).
 
 **Criterios de aceptación**: registro de claves v1 completo y tipado; secrets solo cifrados en BD con clave maestra en env; `/instance` expone lo previsto de api-v1 sin datos sensibles; el wizard queda diseñado y su desaparición tras el primer admin definida (auth §3bis).
