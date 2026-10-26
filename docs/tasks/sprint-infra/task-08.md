@@ -11,7 +11,7 @@ fuente: docs/superpowers/specs/2026-10-26-realtime-notificaciones.md §6
 **Pasos (puerta de setup del usuario — solo los puede hacer él)**:
 1. Crear un **proyecto Firebase gratuito** (cuenta Google).
 2. Registrar la app Android con el **package name del APK** de 027Apps.
-3. Copiar los valores **públicos** al panel/wizard (`settings`, categoría `notifications`, task-06): `fcm_project_id`, `fcm_app_id`, `fcm_api_key`, `fcm_sender_id`.
+3. Copiar los valores **públicos** al panel/wizard (`settings`, categoría `notifications.push`, task-06): `fcm_project_id`, `fcm_app_id`, `fcm_api_key`, `fcm_sender_id`.
 4. Generar una **cuenta de servicio** (service account JSON) y subirla para que el servidor pueda enviar por **FCM HTTP v1**; se guarda **cifrada** en `settings` (`value_encrypted`, clave maestra en env).
 5. Verificar de extremo a extremo: un evento con `notify: ["push"]` llega al dispositivo con la app cerrada.
 

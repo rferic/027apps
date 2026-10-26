@@ -49,8 +49,12 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
       "icon": "split-expenses",         // icono del DS o del paquete
       "sort_order": 10,
       "settings": [
-        { "key": "default_currency", "type": "currency", "default": "EUR", "is_public": true },
-        { "key": "reminder_threshold", "type": "int", "default": 3, "is_public": false }
+        { "key": "default_currency", "type": "currency", "default": "EUR",
+          "label": "Default currency", "help": "Currency used by default in this module",
+          "is_public": true, "is_secret": false, "mcp_access": "read", "sort_order": 10 },
+        { "key": "reminder_threshold", "type": "int", "default": 3,
+          "label": "Reminder threshold", "help": "Days before a reminder is shown",
+          "is_public": false, "is_secret": false, "mcp_access": "none", "sort_order": 20 }
       ]
     }
   ],
@@ -78,6 +82,7 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
 - `scopes` siguen la convención `recurso:acción` de task-02; **viven en código** (ADR 0004 §2, token-model §5), el manifest solo los declara para validación mecánica (CI) y el guard — no se "siembran" en BD (no existe tabla de scopes, decisión H6).
 - Las tools MCP referencian un scope declarado.
 - Cada **evento** declara `type`, `target` (`admins`|`all`|`user`|`channel:<pattern>`) y opcionalmente `notify` (task-04 §2.3/§6.3); un `target` de canal exige un `channels[].pattern` declarado.
+- Cada **setting** del manifest declara la forma completa de `settings` (task-06 §8): `key`, `type`, `default`, `label`/`help` en inglés, `is_public`, `is_secret` (⇒ `value_encrypted`), `mcp_access`, `sort_order`.
 - Cada **canal** declara `pattern` y `members_fn` (función SQL security definer del módulo que devuelve los `user_id` con acceso; la usan la RLS de realtime y la resolución de push — task-04 §2.2).
 - Los `hooks` referencian **eventos del Core** o del propio módulo (task-04 define el catálogo).
 

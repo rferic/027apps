@@ -139,7 +139,7 @@ SELECT sobre realtime.messages: core_can_subscribe(realtime.topic())
 
 - **FCM opcional en el wizard, pero nunca silencioso**: paso **"Notificaciones (Firebase)"** junto a Supabase y SMTP (task-06, 4 pasos); se puede omitir con **aviso explícito** (*"sin Firebase no recibirás notificaciones con la app cerrada"*), y mientras no esté configurado el panel muestra un **banner persistente** con enlace al paso.
 - **Un APK único**: la configuración de Firebase **no se hornea**; la app inicializa Firebase **en runtime** con los valores públicos de la instancia.
-- Settings (`notifications`, task-06): `fcm_project_id`, `fcm_app_id`, `fcm_api_key`, `fcm_sender_id` (**públicos**, `is_public: true`) + **service account JSON** (`is_secret: true`, cifrado).
+- Settings (`notifications.push.*`, task-06): `fcm_project_id`, `fcm_app_id`, `fcm_api_key`, `fcm_sender_id` (**públicos**, `is_public: true`) + **service account JSON** (`is_secret: true`, cifrado).
 - **La app obtiene esos valores públicos por `GET /api/v1/instance`**, que incluye un bloque **`settings_public`** (delta a task-02 §3.8: solo claves `is_public` del Core, nunca secretos, nunca settings de módulo).
 - **Instancia del autor**: se configura en el **sprint de infra** (`sprint-infra` task-08).
 

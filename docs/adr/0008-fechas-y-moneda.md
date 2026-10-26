@@ -1,5 +1,7 @@
 # ADR 0008 — Fechas y moneda: instantes UTC, fechas de calendario explícitas y dinero en enteros de céntimos
 
+> **Revisión 2026-10-26 — sustitución parcial de modelo.** Donde este ADR dice `instance_settings` (clave-valor plano), léase **`settings_categories` + `settings`** (categorizado, con `is_secret`/`is_public`/`mcp_access`, actores humano/clave y catálogo tipado) según la [spec de datos del Core](../superpowers/specs/2026-10-26-core-data-model.md) y la [spec de configuración](../superpowers/specs/2026-10-26-instance-config.md). La decisión de fondo (configuración general de instancia fijada en el instalador) **se mantiene**; cambia el soporte.
+
 **Fecha:** 2026-10-25
 **Estado:** Aceptada
 **Decisora:** usuario (rferic), en conversación de diseño
