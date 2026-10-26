@@ -72,7 +72,7 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
 ```
 
 **Invariantes del contrato (validados por el esquema zod del manifest):**
-- `key` único, kebab-case; `name`/`label` en inglés (nunca claves i18n); `version` semver.
+- `key` único, kebab-case; `name`/`label` en inglés (nunca claves i18n); `version` semver. **Palabras reservadas**: `admin`, `mcp`, `api`, `core` no pueden ser `key` de módulo (evita colisión con `/mcp/admin` y rutas del Core — task-05).
 - Cada migración declara `up` **y** `down` (reversibilidad obligatoria, decisión K) y sus `digest`/`down_digest`. **Cada `migraciones[].version` es única en el manifest** (la PK de `module_migrations` es `(module_key, version, direction)`, task-01 §3.2).
 - `settings[].category` = **`snake_case(key)`** del módulo (coherente con el prefijo `{category_key}.{key}` de task-01 §3.3); `settings[].settings[].is_public` se respeta (decisión O).
 - `scopes` siguen la convención `recurso:acción` de task-02; **viven en código** (ADR 0004 §2, token-model §5), el manifest solo los declara para validación mecánica (CI) y el guard — no se "siembran" en BD (no existe tabla de scopes, decisión H6).
