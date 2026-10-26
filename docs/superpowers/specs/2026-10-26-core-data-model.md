@@ -186,9 +186,12 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `value` | jsonb NULL | config **no sensible** en claro (ADR 0008): zona, moneda default, idiomas activos, `connectivity.cors_allowlist`… |
 | `value_encrypted` | text NULL | **secrets cifrados** con clave maestra en env (spec §8): SMTP propio, LLM BYOK, secrets de clientes MCP |
 | `is_secret` | bool NOT NULL DEFAULT false | invariante (CHECK en el esquema): `is_secret = true` ⇒ `value_encrypted` NOT NULL y `value` NULL; `is_secret = false` ⇒ `value_encrypted` NULL |
-| `is_public` | bool NOT NULL DEFAULT false | **visibilidad** (decisión usuario 2026-10-26, distinta de `is_secret`): `true` = el módulo declara en su manifest que este setting es legible por usuarios con acceso al módulo (p. ej. el móvil); `false` = solo admin/proyecto. El Core declara los suyos en su catálogo (task-06); **el usuario nunca edita settings** |
+| `is_public` | bool NOT NULL DEFAULT false | **visibilidad** (decisión usuario 2026-10-26, distinta de `is_secret`): `true` = legible por usuarios (bloque `settings_public` de `/instance` para claves del Core; para módulos, usuarios con acceso). `false` = solo admin. Catálogo en task-06; **el usuario nunca edita settings** |
+| `mcp_access` | text NOT NULL DEFAULT `none` CHECK (`none`\|`read`\|`write`) | **exposición por MCP** (task-05 §4.4, task-06 §4): `none` en `security.*`/`connectivity.*`/`auth.*`; `settings_get`/`settings_update` solo operan sobre `read`/`write` |
 | `sort_order` | int NOT NULL | orden dentro de la categoría |
-| `updated_by` | uuid NULL → `profiles.id` | solo `is_admin()` escribe (decisión B2; la RLS y la API concuerdan en `is_admin()`) |
+| `updated_by` | uuid NULL → `profiles.id` | actor humano (solo `is_admin()` escribe) |
+| `updated_by_key` | uuid NULL → `api_keys.id` | actor clave de máquina (MCP/API) |
+| — | CHECK `num_nonnulls(updated_by, updated_by_key) = 1` | siempre hay actor |
 | `updated_at` | timestamptz | |
 | — | `UNIQUE (category_key, key)` | |
 
@@ -403,6 +406,7 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 | T | **Actores de máquina**: `created_by_key`/`assigned_by_key`/`granted_by_key` con CHECK de exactamente un actor; nunca perfiles sintéticos |
 | U | **`idempotency_keys`**: idempotencia de escrituras por `request_hash` (replay solo con payload idéntico), TTL 24 h, misma transacción |
 | V | **`profiles.deactivated_at`**: desactivación soft con revocación inmediata de sesiones, módulos y claves; el historial no se borra |
+| W | **Settings con `mcp_access`** (`none`\|`read`\|`write`) y actor humano **o** clave (`updated_by_key` + CHECK) — deltas de task-05/06 |
 
 ## 9. Fuera de alcance
 

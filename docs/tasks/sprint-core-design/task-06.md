@@ -2,7 +2,7 @@
 id: sprint-core-design-task-06
 titulo: Configuración de instancia y setup — spec `settings`/`settings_categories` + wizard (definición)
 area: core
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 
@@ -19,6 +19,15 @@ Tarea 6 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 
 **Decisiones a fijar**: esquema/API de `settings` (claves tipadas + validación zod, sobre el modelo de la task-01), cómo se cifran los secrets (clave maestra en env, ver task-01), endpoints de configuración (`/instance` y los de escritura por super_admin), flujo completo del wizard y sus verificaciones, límites free (SMTP 100-300/día según proveedor).
 
-**Criterios de aceptación**: registro de claves v1 completo y tipado; secrets solo cifrados en BD con clave maestra en env; `/instance` expone lo previsto de api-v1 sin datos sensibles; el wizard queda diseñado y su desaparición tras el primer admin definida (auth §3bis).
+**Estado (2026-10-26):** spec `docs/superpowers/specs/2026-10-26-instance-config.md` redactada con las decisiones del usuario:
+- **Frontera del wizard**: Supabase (env), SMTP (dashboard Supabase) y `JWT_EXPIRY` (proyecto Supabase) se **guían y verifican**, no se escriben — es imposible por dependencia circular (los settings viven en la BD a la que esas credenciales dan acceso).
+- **Wizard de 5 pasos**: Supabase → SMTP → preferencias (`global.*`, `connectivity.public_url`) → notificaciones (FCM, opcional con aviso) → primer `super_admin`. Resumible: cada paso guarda su progreso y se audita; el wizard desaparece al crear el primer `super_admin`.
+- **Catálogo de 17 ajustes del Core** (`settings_categories` + `settings`): `global.*` (instance_name, default_timezone, default_currency, active_locales, jwt_expiry informativo), `connectivity.*` (public_url, cors_allowlist), `notifications.push.*` (provider + 4 valores FCM públicos + service account secreto) y `security.rate_limit.*` (4 umbrales); cada clave con `mcp_access`.
+- **Cifrado**: AES-256-GCM con `SETTINGS_ENCRYPTION_KEY` versionada, secreto por clave con `value_encrypted`; secretos **nunca** en `GET /settings` (enmascarados) ni en `/instance`.
+- **`settings_public`** en `/instance`: solo las claves `is_public` del Core (nombre, locales, moneda/zona y `fcm_*` públicos); nunca CORS, rate limits ni `security.*`.
+- **Validación** zod por tipo de clave y coherencia (locales ⊂ set de 9 con `en` obligatorio; moneda default habilitada; FCM completo si `provider=fcm`); escritura solo `is_admin()` y auditada sin valor.
+- **Deltas aplicadas** a task-01: `settings.mcp_access` (W) y `updated_by_key` (actor de máquina).
 
-**Referencias**: ADR 0008 (config general), ADR 0006 (`JWT_EXPIRY`), spec de auth §3bis/§5bis, spec API v1 §3.4/§4 (C2, `/instance`), spec diseño §8 (secrets), task-01 (RLS/esquema).
+**Criterios de aceptación**: catálogo v1 cerrado y validado; secretos cifrados y nunca expuestos (API, logs, eventos, `settings_public`); `settings_public` acotado; wizard de 5 pasos resumible y protegido que desaparece con el primer admin; coherente con ADR 0007/0008, auth §3bis/§5bis, api-v1 y task-01..05.
+
+**Referencias**: `docs/superpowers/specs/2026-10-26-instance-config.md`, ADR 0008, ADR 0007, auth §3bis/§5bis, task-01 (settings), task-04 (FCM), task-05 (`mcp_access`).
