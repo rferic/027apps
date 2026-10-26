@@ -19,8 +19,8 @@ Sprint de **definición** (sin código de producto): diseñar la superficie inic
 | 01 | Modelo de datos del Core y RLS (reframe: categorías ≠ grupos de módulo) | spec `2026-10-26-core-data-model.md` | ✅ `finalizada` (2026-10-26) |
 | 02 | Recursos y endpoints transversales (+ rate limiting C1) | spec `2026-10-26-core-api.md` | ✅ `finalizada` (2026-10-26) |
 | 03 | Sistema de módulos + instalador en runtime | spec `2026-10-26-modulo-system.md` | ✅ `finalizada` (2026-10-26) |
-| 04 | Realtime y notificaciones del Core | spec `2026-10-26-realtime-notificaciones.md` | 🟡 `test` |
-| 05 | MCP del Core | spec `2026-10-26-mcp.md` | ⏳ pendiente |
+| 04 | Realtime y notificaciones del Core | spec `2026-10-26-realtime-notificaciones.md` | ✅ `finalizada` (2026-10-26) |
+| 05 | MCP del Core | spec `2026-10-26-mcp.md` | 🔵 en curso |
 | 06 | Configuración de instancia y setup (`settings`/`settings_categories` + wizard) | spec `2026-10-26-instance-config.md` | ⏳ pendiente |
 | 07 | Trabajos programados y mantenimiento | spec `2026-10-26-jobs-mantenimiento.md` | ⏳ pendiente |
 | 08 | Observabilidad | spec `2026-10-26-observabilidad.md` | ⏳ pendiente |
