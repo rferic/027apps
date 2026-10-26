@@ -34,12 +34,13 @@ Definir **qué mantenimiento necesita la instancia**, **dónde y con qué frecue
 
 ## 2bis. Purga que respeta la atribución (regla firme)
 
-Las tablas de atribución (`audit`, `admin_actions`, `idempotency_keys`, `invitations`, `settings`, `user_modules`, `user_category_modules`, `user_categories`, `event_outbox`) referencian `api_keys.id` **y esa referencia es la prueba de quién hizo qué**. Por tanto:
+Las tablas de atribución (`audit`, `admin_actions`, `idempotency_keys`, `invitations`, `settings`, `user_modules`, `user_category_modules`, `user_categories`) referencian `api_keys.id` **y esa referencia es la prueba de quién hizo qué**. (`event_outbox` **no** es tabla de atribución: no tiene columna de actor.) Por tanto:
 
 1. **Se purga primero la evidencia por su propia retención** (p. ej. `audit` 90 d, `admin_actions` 365 d); después se evalúa la clave.
 2. Una clave **con referencias vivas** (dentro de retención) **no se borra**: se **anonimiza** (`name` → `[deleted]`, `key_hash` → sentinel aleatorio, `revoked_at` fijado, `scopes` → `{}`). Conserva su `id` como actor inmutable.
 3. Una clave **huérfana** (`NOT EXISTS` en todas las tablas de atribución) se **borra**.
 4. **Nunca** `ON DELETE CASCADE` desde `api_keys`; las FK de atribución son `RESTRICT` y el job hace el paso 1 antes del 2.
+6. **Coste asumido**: las tablas que **nunca** se purgan (`settings`, `user_modules`, `user_categories`, `user_category_modules`) hacen que sus claves referenciadas queden anonimizadas para siempre (filas `[deleted]`). Es el precio de conservar atribución.
 5. Las purgas sensibles emiten `admin_actions` (`maintenance.apikeys.anonymize`, `maintenance.invitations.purge`…) con actor de sistema y **conteo** en `details` (nunca contenido).
 
 ## 3. Modelo de ejecución
@@ -59,15 +60,17 @@ Tras el commit, el caso de uso despacha su evento (task-04). No depende de cron.
 ### 3.3 Rol de `pg_cron` (A2 de auditoría)
 
 - Los jobs SQL se definen como **funciones `SECURITY DEFINER`** con `SET search_path = ''`, `REVOKE EXECUTE FROM PUBLIC` y `GRANT EXECUTE` **solo al rol `core_cron`**.
-- `core_cron` tiene **solo** `USAGE` en el schema de funciones y `SELECT`/`DELETE` sobre **las tablas concretas** que purga. **Nunca** `auth.*`, ni `ALL`, ni superusuario.
+- **`OWNER` de las funciones = `core_cron`** (re-auditoría 2026-10-26): una `SECURITY DEFINER` corre con los privilegios de **su dueño**, no del invocador; si el dueño fuera `postgres`/rol de migración, los grants a `core_cron` serían irrelevantes y el cuerpo **saltaría RLS**. Las funciones se crean/alteran `OWNER TO core_cron`.
+- `core_cron` tiene **solo** `USAGE` en el schema de funciones, **`CREATE` revocado** en ese schema, y `SELECT`/`DELETE` sobre **las tablas concretas** que purga. **Nunca** `auth.*`, ni `ALL`, ni superusuario.
+- **Ruta de auditoría explícita**: las purgas sensibles insertan en `admin_actions` a través de una función `log_maintenance_action()` también `OWNER core_cron` con `INSERT` concedido **solo** sobre `admin_actions` (la RLS de `admin_actions` es "write solo API/service"; sin esta función, la afirmación de §2bis.5 sería inconsistente).
 - Cada retención se **testea en el borde** (fila justo dentro y justo fuera del límite: no se borra la de dentro).
 - Si el rol no existe (instancia sin `pg_cron`), el wizard/`/maintenance/status` lo reporta y el endpoint cubre los purges.
 
 ### 3.4 Exclusión mutua por **lease** (Alta de revisión)
 
 - Tabla `maintenance_runs` (delta task-01): `run_id` (uuid), `job`, `status` (`running`|`ok`|`failed`|`skipped`|`timeout`), `lease_until`, `summary`, `started_at`, `finished_at`; PK `(run_id, job)`; **índice único parcial** `(job) WHERE status = 'running'`.
-- **Reclamo atómico** en **una sola RPC** `claim_maintenance_runs(jobs text[], ttl_seconds int)`: inserta con `ON CONFLICT DO NOTHING` sobre el índice parcial y devuelve las filas reclamadas. Un job ya en `running` **no** se reclama.
-- **TTL**: si `lease_until` vence (proceso muerto), el siguiente reclamo marca `timeout` la anterior y toma el relevo. Nunca queda un job bloqueado para siempre.
+- **Reclamo atómico** en **una sola RPC** `claim_maintenance_runs(jobs text[], ttl_seconds int)`: inserta **siempre** con `status='running'` y `ON CONFLICT DO NOTHING` sobre el índice parcial, y devuelve **solo las filas insertadas** (`RETURNING`). Un job ya en `running` **no** se reclama; `DO NOTHING` no debe interpretarse como éxito (puede tragarse otra violación unique).
+- **TTL**: si `lease_until` vence (proceso muerto), el siguiente reclamo marca `timeout` la anterior y toma el relevo. Nunca queda un job bloqueado para siempre. **Suelo de TTL**: `lease_until ≥ 2×` el intervalo de heartbeat (30 s) → TTL mínimo 60 s, para que un job vivo nunca se declare muerto.
 - **Heartbeat**: el job extiende `lease_until` mientras trabaja (cada 30 s si dura más).
 - **Un solo camino**: el **lazy sweep** y el **endpoint** usan la misma RPC. Ninguno usa locks de sesión ni `hashtext`.
 - **Lotes acotados**: el despacho del outbox reclama como máximo **K eventos** por barrido (K=50) con `claimed_until`, para que un backlog grande no haga un barrido infinito.

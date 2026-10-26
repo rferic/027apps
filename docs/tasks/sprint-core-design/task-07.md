@@ -19,10 +19,10 @@ Tarea 7 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 
 **Estado (2026-10-26):** spec `docs/superpowers/specs/2026-10-26-jobs-mantenimiento.md` redactada.
 - **Modelo híbrido** (decisión del usuario): despacho **inline tras el commit** (primario, task-04) + **lazy sweep** al recibir tráfico (1 consulta cada ≥5 min por proceso, barrido en segundo plano) + **`pg_cron`** para SQL puro + **GitHub Actions horario** para lo que necesita HTTP. Vercel Cron descartado para reintentos (Hobby = 1/día).
-- **Inventario**: `outbox.retry`, `outbox.purge`, `idempotency.purge`, `audit.roll`, `invitations.purge`, `api_keys.purge`, `rate_limit.purge`, `maintenance.purge`, `health.evaluate` — todos idempotentes.
-- **Endpoint**: `POST /api/v1/maintenance/run` (clave de instancia + scope `maintenance:run`, advisory lock, 409 si concurre) y `GET /maintenance/status` (`is_super_admin()`). Sin acciones de negocio ni DDL.
-- **Retenciones**: outbox publicado 7 d / fallido 30 d · idempotencia 24 h · `audit` 90 d · invitaciones 30 d · claves 90 d · `maintenance_runs` 90 d.
-- **Salud**: `/health` degrada con pendientes > 1 h, fallos recientes o barrido atrasado con pendientes; sin detalles públicos.
+- **Inventario**: `outbox.retry`, `outbox.requeue`, `outbox.purge`, `idempotency.purge`, `audit.purge`, `invitations.purge`, **`api_keys.anonymize`**, `devices.purge`, `rate_limit.purge`, `maintenance.purge`, `admin_actions.purge`, `cron.history.purge`, `health.evaluate` — todos idempotentes.
+- **Endpoint**: `POST /api/v1/maintenance/run` (clave de instancia + scope `maintenance:run` + `role_cap=super_admin`, **lease** en `maintenance_runs`, allowlist cerrada, cooldown, 409 si concurre) y `GET /maintenance/status` (sesión `is_super_admin()`). Sin acciones de negocio ni DDL.
+- **Retenciones**: outbox 7 d / 30 d · idempotencia 24 h · `audit` 90 d · invitaciones 30 d · claves 90 d (anonimizadas) · `devices` 90 d · `maintenance_runs` 90 d · `admin_actions` 365 d · `cron.job_run_details` 14 d.
+- **Salud**: `/health` degrada con pendientes > 1 h, fallos recientes (`failed_at`) o job SQL atrasado; responde **503**, cachea 30 s y no expone detalles públicos.
 - **Deltas aplicadas**: task-01 (`maintenance_runs` + decisión X), task-02 (endpoints de mantenimiento y semántica de `/health`).
 
 **Correcciones de revisión + auditoría OWASP (2026-10-26)**: 2 Alta + ~10 Media.
