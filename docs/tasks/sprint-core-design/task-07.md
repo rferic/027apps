@@ -2,7 +2,7 @@
 id: sprint-core-design-task-07
 titulo: Trabajos programados y mantenimiento del Core — spec (definición)
 area: core
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 

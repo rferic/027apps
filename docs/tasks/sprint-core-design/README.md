@@ -22,8 +22,8 @@ Sprint de **definición** (sin código de producto): diseñar la superficie inic
 | 04 | Realtime y notificaciones del Core | spec `2026-10-26-realtime-notificaciones.md` | ✅ `finalizada` (2026-10-26) |
 | 05 | MCP del Core | spec `2026-10-26-mcp.md` | ✅ `finalizada` (2026-10-26) |
 | 06 | Configuración de instancia y setup (`settings`/`settings_categories` + wizard) | spec `2026-10-26-instance-config.md` | ✅ `finalizada` (2026-10-26) |
-| 07 | Trabajos programados y mantenimiento | spec `2026-10-26-jobs-mantenimiento.md` | 🟡 `test` |
-| 08 | Observabilidad | spec `2026-10-26-observabilidad.md` | ⏳ pendiente |
+| 07 | Trabajos programados y mantenimiento | spec `2026-10-26-jobs-mantenimiento.md` | ✅ `finalizada` (2026-10-26) |
+| 08 | Observabilidad | spec `2026-10-26-observabilidad.md` | 🔵 en curso |
 | 09 | i18n operativa | spec `2026-10-26-i18n-operativa.md` | ⏳ pendiente |
 | 10 | Seguridad de definición (OWASP, amenazas, secrets, RLS, dependabot) | spec `2026-10-26-seguridad.md` | ⏳ pendiente |
 | 11 | Documentación de la API pública | `docs/api/README.md` | ⏳ pendiente |
