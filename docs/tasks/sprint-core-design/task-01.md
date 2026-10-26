@@ -2,7 +2,7 @@
 id: sprint-core-design-task-01
 titulo: Modelo de datos del Core y RLS — spec de datos (definición)
 area: core
-estado: en curso
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 
@@ -26,6 +26,8 @@ Tarea 1 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega spe
 **Delta sobre la spec de API v1 (2026-10-26)**: con este reframe, la spec `2026-10-25-api-v1.md` queda corregida — `groups` → `categories`, `GET /api/v1/groups/{id}/modules` → `GET /api/v1/me/modules`, la config específica de módulo deja de ser transversal, y MCP lee "categorías/usuarios" (ver §4 y decisiones E/G de la spec).
 
 **Decisiones pendientes de redactar en la spec** (de la conversación de diseño, 2026-10-26): semántica de materialización de `category_modules` (A2), lista+default de monedas (C), contrato de módulos/plugins (F/K), invitación con email/nombre/categoría/módulos (B), traducciones (J), RLS sin auto-escalado (L).
+
+**Estado (2026-10-26):** spec `docs/superpowers/specs/2026-10-26-core-data-model.md` **finalizada** — revisada por segundo agente (DoD de Docs) con 11 hallazgos resueltos (1 Alta, 2 Media, 3 Media, 4 Media, 5 Media + 6 editoriales) e incorporadas las decisiones del usuario (reframe categorías, settings categorizados, traducciones, ciclo de vida de módulos, RLS sin auto-escalado); aprobada por el usuario (2026-10-26). Commiteada en `sprint/04-core-design` (`f642151` → `2deda67`).
 
 **Criterios de aceptación**: el modelo no contiene tablas de "grupos de datos de módulo" (eso vive en cada módulo); el acceso a módulos es por usuario y viaja con él; RLS por tabla con definers canónicos y contrato de aislamiento definido; coherente con api-v1 (tras el delta), tokens, ADR 0004/0007/0008 y testing D2; aprobada por el usuario y revisada por segundo agente (DoD de Docs).
 

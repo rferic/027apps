@@ -14,19 +14,19 @@ Sprint de **definición** (sin código de producto): diseñar la superficie inic
 
 ## Tareas del sprint (plan en `docs/superpowers/plans/2026-10-26-sprint-core-design.md`)
 
-| # | Tarea | Entregable |
-|---|---|---|
-| 01 | Modelo de datos del Core y RLS (reframe: categorías ≠ grupos de módulo) | spec `2026-10-26-core-data-model.md` |
-| 02 | Recursos y endpoints transversales (+ rate limiting C1) | spec `2026-10-26-core-api.md` |
-| 03 | Sistema de módulos + instalador en runtime | spec `2026-10-26-modulo-system.md` |
-| 04 | Realtime y notificaciones del Core | spec `2026-10-26-realtime-notificaciones.md` |
-| 05 | MCP del Core | spec `2026-10-26-mcp.md` |
-| 06 | Configuración de instancia y setup (`settings`/`settings_categories` + wizard) | spec `2026-10-26-instance-config.md` |
-| 07 | Trabajos programados y mantenimiento | spec `2026-10-26-jobs-mantenimiento.md` |
-| 08 | Observabilidad | spec `2026-10-26-observabilidad.md` |
-| 09 | i18n operativa | spec `2026-10-26-i18n-operativa.md` |
-| 10 | Seguridad de definición (OWASP, amenazas, secrets, RLS, dependabot) | spec `2026-10-26-seguridad.md` |
-| 11 | Documentación de la API pública | `docs/api/README.md` |
-| 12 | Shell del admin (definición) | spec `2026-10-26-admin-shell.md` |
+| # | Tarea | Entregable | Estado |
+|---|---|---|---|
+| 01 | Modelo de datos del Core y RLS (reframe: categorías ≠ grupos de módulo) | spec `2026-10-26-core-data-model.md` | ✅ `finalizada` (2026-10-26) |
+| 02 | Recursos y endpoints transversales (+ rate limiting C1) | spec `2026-10-26-core-api.md` | ⏳ pendiente |
+| 03 | Sistema de módulos + instalador en runtime | spec `2026-10-26-modulo-system.md` | ⏳ pendiente |
+| 04 | Realtime y notificaciones del Core | spec `2026-10-26-realtime-notificaciones.md` | ⏳ pendiente |
+| 05 | MCP del Core | spec `2026-10-26-mcp.md` | ⏳ pendiente |
+| 06 | Configuración de instancia y setup (`settings`/`settings_categories` + wizard) | spec `2026-10-26-instance-config.md` | ⏳ pendiente |
+| 07 | Trabajos programados y mantenimiento | spec `2026-10-26-jobs-mantenimiento.md` | ⏳ pendiente |
+| 08 | Observabilidad | spec `2026-10-26-observabilidad.md` | ⏳ pendiente |
+| 09 | i18n operativa | spec `2026-10-26-i18n-operativa.md` | ⏳ pendiente |
+| 10 | Seguridad de definición (OWASP, amenazas, secrets, RLS, dependabot) | spec `2026-10-26-seguridad.md` | ⏳ pendiente |
+| 11 | Documentación de la API pública | `docs/api/README.md` | ⏳ pendiente |
+| 12 | Shell del admin (definición) | spec `2026-10-26-admin-shell.md` | ⏳ pendiente |
 
 **Puerta de entrada:** spec de API v1 `finalizada` (cumplida, 2026-10-25); sprint de infra (setup del usuario) puede ir en paralelo o después.
