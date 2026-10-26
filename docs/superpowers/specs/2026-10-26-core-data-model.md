@@ -242,7 +242,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `created_at`, `updated_at` | timestamptz | |
 | — | `UNIQUE (locale, text_hash)`, índice por `text_en` | |
 
-> **Resolución en runtime** (kernel en task-02): `resolve(text_en, locale) = translations(locale, hash) ?? translations(en) ?? text_en` — **nunca** una clave sin traducir "seca"; el texto en inglés es siempre el último recurso. **Cobertura/detección** (task-09 + sprint-web): % traducido por locale y faltantes = consultas sobre esta tabla; la importación compara por `text_hash`. La **check de CI de ADR 0008 sigue igual** (set commiteado determinista) y alimenta esta tabla como `source: code`; el store runtime la extiende, no la sustituye.
+> **Resolución en runtime** (kernel en task-02): `resolve(text_en, locale) = translations(locale, hash) ?? text_en` — **nunca** una clave sin traducir "seca"; el texto en inglés es siempre el último recurso. **Cobertura/detección** (task-09 + sprint-web): % traducido por locale y faltantes = consultas sobre esta tabla; la importación compara por `text_hash`. La **check de CI de ADR 0008 sigue igual** (set commiteado determinista) y alimenta esta tabla como `source: code`; el store runtime la extiende, no la sustituye.
 
 ### 3.4 Invitación
 

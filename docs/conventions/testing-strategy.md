@@ -65,7 +65,7 @@ Cada ADR deja un "contrato testable"; la tarea los declara en su frontmatter `ad
 ## 6. Test de i18n (enlaza ADR 0008 y el flujo i18n)
 
 - El check de CI falla si los locales del **set commiteado en el repo** (los que el código es capaz de servir) no tienen exactamente las mismas claves — determinista en CI, sin depender de `instance_settings` runtime (ADR 0008, Nivel 1); los deshabilitados en una instancia concreta no se sirven.
-- Test unit de los textos de error mapeados a cada locale (`error.<code>`, ADR 0007).
+- Test unit de los textos de error: para cada `code`, su **mensaje por defecto en inglés** (que es la clave del catálogo) tiene traducción en los locales habilitados (ADR 0007; ver [`i18n.md`](../flows/i18n.md)).
 
 ## 7. Qué NO se testea (y por qué)
 
