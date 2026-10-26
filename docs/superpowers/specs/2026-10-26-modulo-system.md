@@ -56,7 +56,9 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
   ],
   "i18n": ["es", "ca", "en", "it", "fr", "de", "pt", "gl", "eu"],  // locales que siembra (source: module:<key>); el set activo lo filtra el check de CI (task-09)
   "scopes": ["expenses:read", "expenses:write", "balance:read"],   // acciones expuestas (ADR 0004 §2); viven en código, el manifest solo las declara para validación mecánica (CI) y el guard
-| `mcp_tools`: [ { "name": "expense_list", "scopes": ["expenses:read"] } ],  // tools MCP (formato definitivo en task-05)
+  "mcp_tools": [                                                    // tools MCP (nombre corto; el Core lo expone como <module_key>.<tool> — task-05)
+    { "name": "expenses_list", "description": "List group expenses", "scopes": ["expenses:read"] }
+  ],
   "channels": [                                                     // canales realtime propios del módulo (task-04)
     { "pattern": "expense-group-{id}", "members_fn": "split_expenses_expense_group_members" }
   ],

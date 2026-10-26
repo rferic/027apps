@@ -73,6 +73,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `version` | text NOT NULL | versión instalada actual |
 | `state` | text NOT NULL CHECK (`installed`\|`active`\|`disabled`) | `installed`/`active` = disponible; `disabled` = no disponible pero DDL intacto; **uninstall** = `DELETE` de la fila + reversión de migraciones (`module_migrations` `down`) |
 | `is_public` | bool NOT NULL DEFAULT false | módulo **público** (todos los usuarios lo usan sin `user_modules`) vs **privado** (solo admins + usuarios con concesión). Default lo declara el manifest; override por super_admin en el panel |
+| `mcp_exposed` | bool NOT NULL DEFAULT true | **expone sus tools por MCP** (task-05, decisión E). El admin puede apagarlo por módulo sin desinstalar; afecta a `tools/list` y a la ejecución |
 | `manifest_digest` | text NOT NULL | hash del manifest validado (contrato, task-03) |
 | `installed_at`, `updated_at` | timestamptz | secreto: no modificar fuera del instalador |
 
@@ -368,7 +369,8 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 | N | **Módulos público/privado**: `module_registry.is_public` (default del manifest, override super_admin). **Público** = todos los usuarios lo usan sin `user_modules`; **privado** = solo admins + usuarios con concesión. `has_module_access` = `is_admin() OR is_public OR user_modules` |
 | O | **Settings con visibilidad** (`settings.is_public`): distinta de `is_secret` (cifrado). `is_public` declarada **solo en el manifest del módulo** (task-03) o en el catálogo del Core (task-06); el **usuario nunca edita settings** |
 | P | **Contraseñas fuera del Core**: identidad y hashes de contraseña en Supabase Auth (auth §2/§4); el Core nunca almacena contraseñas ni credenciales en BD (verificación `guard-secrets` + auditoría task-10) |
-| Q | **Realtime por canales con destinatario** (ADR 0009, task-04): `module_channels` (canales de módulo con `members_fn`) y `event_outbox` (entrega at-least-once con reintentos e idempotencia); `devices.push_token` UNIQUE (varios dispositivos por usuario) |
+| Q | **Realtime y notificaciones** (task-04, ADR 0009): canales con destinatario, `module_channels`, `event_outbox` (at-least-once), `devices.push_token` UNIQUE |
+| R | **MCP con dos rutas** (task-05): `/mcp` (clave delegada) y `/mcp/admin` (clave de instancia); `module_registry.mcp_exposed` permite apagar las tools de un módulo sin desinstalarlo |
 
 ## 9. Fuera de alcance
 
