@@ -32,7 +32,7 @@ Pasos 7 y 8 se repiten tras cada corrección hasta que no queden hallazgos abier
 - **Infra (CI, deploy, dependencias):** pasos 3 y 5–11 (sin TDD en el paso 4) con las obligaciones de infra de `AGENTS.md`: actualizar [`cicd.md`](cicd.md) y `docs/flows/` en el mismo PR, evidencia real de que el check falla/pasa como debe, permisos mínimos y acciones de terceros fijadas por SHA, y **auditoría de seguridad siempre** (paso 8).
 - **Diseño (identidad, tokens, mockups):** el usuario elige entre las propuestas y acepta el mockup (puerta en el paso 1/9); tokens en claro y oscuro con contraste verificado.
 - **Módulo nuevo:** además sigue [`new-module.md`](new-module.md).
-- **Textos visibles / traducciones:** **TODO:** flujo i18n (generación de claves, sync entre locales, traducción con agente; spec §11) aún sin escribir; será su propia tarea.
+- **Textos visibles / traducciones:** el **texto en inglés es la clave**; catálogo y locales en el repo, `i18n:check` en CI. Ver [`i18n.md`](i18n.md) y [`2026-10-26-i18n-operativa.md`](../superpowers/specs/2026-10-26-i18n-operativa.md).
 
 ## Criterio de cierre
 

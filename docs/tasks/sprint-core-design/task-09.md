@@ -2,7 +2,7 @@
 id: sprint-core-design-task-09
 titulo: i18n operativa — pipeline de claves, check de CI, flujo de traducción (definición)
 area: core
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 
@@ -20,6 +20,15 @@ Tarea 9 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 
 **Decisiones a fijar**: rutas y formato de los ficheros de claves, contenido/uso del script de sync, job de CI concreto (dónde corre, qué falla), flujo del Traductor (quién genera, quién revisa), contrato de la skill `i18n-sync`.
 
-**Criterios de aceptación**: el check de CI es determinista y falla si falta una clave en cualquier locale activo; crear un módulo con claves nuevas no exige pasos manuales de sync; el flujo de traducción queda escrito y coherente con `agents.md`; los errores mapean `code → texto` por locale (ADR 0007).
+**Estado (2026-10-26):** spec `docs/superpowers/specs/2026-10-26-i18n-operativa.md` + flujo `docs/flows/i18n.md`.
+- **Fuente de verdad en el repo**: `packages/i18n/catalog.en.json` + `locales/<locale>.json` (9 locales); la BD (`translations`) es **espejo sembrado** (`source: code`/`module:<key>`), no la fuente.
+- **Texto inglés como clave** (sin claves crípticas); desambiguación escribiendo distinto; placeholders `{nombre}` validados; sin plurales en v1.
+- **`i18n:scan`** (actualiza catálogo) + **`i18n:check`** en el job `admin`: falla si falta/sobra una clave, si cambian los placeholders, si el JSON es inválido o si el catálogo está stale. Valida el **set completo** de 9.
+- **Siembra idempotente** por `(locale, text_hash)` con prioridad `manual > import > module > code`; cadenas retiradas `source: code` se borran.
+- **Runtime**: `GET /translations?locale` solo con locales habilitados, `ETag`, fallback `locale → en → text_en`; el servidor no localiza.
+- **Traductor**: solo PRs (nunca BD); el admin importa/edita en caliente; cobertura y faltantes en `/translations/status`.
+- **Flujo** `docs/flows/i18n.md` enlazado desde `feature.md`, `new-module.md` y `agents.md` (elimina el `TODO` de i18n en los tres).
 
-**Referencias**: ADR 0008, `docs/conventions/testing-strategy.md` §6, `docs/flows/agents.md` (Traductor), `docs/flows/new-module.md` (claves i18n TODO), spec diseño §2/§4/§11 (i18n, skills), ADR 0007 §8.
+**Criterios de aceptación**: catálogo + 9 locales en el repo con `i18n:check` en CI cubriendo los casos de fallo; inglés como clave en todo el producto; siembra idempotente con prioridad de origen; runtime con ETag y fallback; cobertura visible; flujo publicado y enlazado; revisado por segundo agente.
+
+**Referencias**: `docs/superpowers/specs/2026-10-26-i18n-operativa.md`, `docs/flows/i18n.md`, ADR 0008, testing-strategy §6, task-01 (`translations`), task-03 (locales de módulo).
