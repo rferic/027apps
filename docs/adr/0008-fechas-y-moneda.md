@@ -26,7 +26,7 @@ Además, la instalación de una instancia es el momento natural de fijar sus **p
    - **Zona horaria** por defecto de la instancia.
    - **Moneda por defecto** de la plataforma (fallback para grupos que no definan la suya).
    - **Idiomas activos** (los que se sirven/verifican), elegidos de un set disponible fijo.
-   - El set de idiomas disponible es: **`en, es, ca, it, fr, de, pt, gl, eu`** (9). Quien instala **habilita/deshabilita** sobre ese set; `en` no se puede deshabilitar (idioma base del código y de fallback). Los no activos simplemente no se sirven ni se exigen en el check de i18n.
+   - El set de idiomas disponible es: **`en, es, ca, it, fr, de, pt, gl, eu`** (9). Quien instala **habilita/deshabilitar** sobre ese set; `en` no se puede deshabilitar (idioma base del código y de fallback). Los no activos simplemente no se sirven. **Precisión 2026-10-26:** el check de CI valida siempre los **9 disponibles** (el código debe poder servirlos), aunque la instancia sirva menos; lo «no exigido» son los idiomas que la instancia no habilita en runtime.
    - Esto **actualiza** la lista «es/ca/en/it» de la spec §4/§11 (y los «4»/«6 idiomas» de §2/§5): el set pasa a los 9 anteriores, con activación por instancia.
 
 ### Fechas

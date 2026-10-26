@@ -148,7 +148,7 @@ El manifest trae SQL ejecutable: capas de protección (filosofía "defensa en pr
 
 - **Validación mecánica del manifest** contra su esquema zod como **check de CI** en el **job `admin` existente** (se añade ahí; no hay job `modules` en `cicd.md` y no se crea uno aparte): todo PR que añada/modifique un `packages/*/manifest.json` pasa el contrato o falla.
 - El `digest`/`down_digest` de cada migración se **recalcula y compara** (evita manifests con digest desincronizado).
-- Las claves i18n del manifest se integran con el **check de locales** (task-09): el set del manifest (`i18n`) no puede contener locales fuera del set activo.
+- Las claves i18n se validan con el **check de locales** (task-09) en el **job `admin`**: el manifest declara un **subconjunto ⊆ 9** que **incluye `en`**, y el check exige **ese subconjunto + su catálogo** (los 9 completos son el set disponible, no el de cada módulo).
 - Permite que la **skill `new-module`** (spec §9/§11, `new-module.md` paso 8) automatice el scaffolding con el contrato ya validado.
 
 ## 7. Relación con el flujo `new-module.md`

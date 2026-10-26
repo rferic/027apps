@@ -232,11 +232,11 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 **`translations`** — gestión de traducciones del Core (decisión usuario, 2026-10-26): el texto **en inglés es la clave legible**, estilo Laravel/gettext; la capa i18n resuelve `locale → fallback en`; el Core permite importar, detectar faltantes y medir cobertura.
 | Columna | Tipo | Notas |
 |---|---|---|
-| `locale` | text NOT NULL | de los locales activos (`settings['global.active_locales']`, ADR 0008) |
+| `locale` | text NOT NULL | del **set disponible de 9** (no solo los habilitados): el espejo se siembra completo (task-09); la instancia sirve los de `localization.enabled_locales` |
 | `text_hash` | text NOT NULL | SHA-256 del `text_en`; lookup/import estable (una edición del original crea entrada nueva, no rompe en silencio) |
 | `text_en` | text NOT NULL | **la clave**: el texto en inglés |
 | `translated_text` | text NOT NULL | el valor traducido |
-| `context` | text NULL | de dónde viene (p. ej. `settings.global.default_currency`, `modules.split_expenses.*`) |
+| `context` | text NULL | **no se siembra en v1** (NULL); reservado si algún día hace falta desambiguar la clave |
 | `source` | text NOT NULL | `code` (set commiteado, ADR 0008), `module:<key>` (manifest), `import`, `manual` |
 | `updated_by` | uuid NULL → `profiles.id` | |
 | `created_at`, `updated_at` | timestamptz | |

@@ -18,7 +18,7 @@ Tarea 9 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 - **Gestión de traducciones** (decisión J de la task-01): importación (por `text_hash`), detección de faltantes y % traducido por locale, disponibles para el panel (sprint-web).
 - **i18n de errores**: mapeo `error.<code>` por locale (ADR 0007 §8) y su test.
 
-**Decisiones a fijar**: rutas y formato de los ficheros de claves, contenido/uso del script de sync, job de CI concreto (dónde corre, qué falla), flujo del Traductor (quién genera, quién revisa), contrato de la skill `i18n-sync`.
+**Decisiones a fijar**: rutas y formato de los ficheros de claves, contenido/uso del script de sync, job de CI concreto (dónde corre, qué falla), flujo del Traductor (quién genera, quién revisa). **La skill `i18n-sync` queda diferida** al sprint de implementación (no la define esta spec).
 
 **Estado (2026-10-26):** spec `docs/superpowers/specs/2026-10-26-i18n-operativa.md` + flujo `docs/flows/i18n.md`.
 - **Fuente de verdad en el repo**: `packages/i18n/catalog.en.json` + `locales/<locale>.json` (9 locales); la BD (`translations`) es **espejo sembrado** (`source: code`/`module:<key>`), no la fuente.

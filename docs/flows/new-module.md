@@ -21,4 +21,4 @@ Un módulo es una tarea de tipo **feature** (con DDL): sigue [`feature.md`](feat
 
 ## Criterio de cierre
 
-Cuando el esqueleto se complete: módulo `finalizada` según [DoD](../conventions/definition-of-done.md), con manifest válido, instalable y reversible (DDL + rollback), 4 locales en sincronía, UI solo con DS y auditoría de seguridad hecha. Mientras existan `TODO`, este flujo **no** puede darse por cerrado para ningún módulo real: el primero que lo use debe completarlo en el mismo PR.
+Cuando el esqueleto se complete: módulo `finalizada` según [DoD](../conventions/definition-of-done.md), con manifest válido, instalable y reversible (DDL + rollback), locales en sincronía (`i18n:check`), UI solo con DS y auditoría de seguridad hecha. Mientras existan `TODO`, este flujo **no** puede darse por cerrado para ningún módulo real: el primero que lo use debe completarlo en el mismo PR.

@@ -53,7 +53,7 @@ Excepción: nada. Para un color nuevo, define el token en `globals.css` (claro y
 
 **Obligatorios**
 - Validar con **zod** todo input externo en el borde (route handlers, server actions, variables de entorno). Dentro del borde se confía en los tipos inferidos.
-- Todo string visible al usuario pasa por una clave i18n **cuando exista la infraestructura i18n** (antes de eso, texto en una constante del módulo, no disperso por el JSX). Claves en los 4 locales (es, ca, en, it).
+- Todo string visible al usuario pasa por una clave i18n **cuando exista la infraestructura i18n** (antes de eso, texto en una constante del módulo, no disperso por el JSX). Texto en inglés como clave; catálogo + locales del set de 9 (`en` no se traduce) — ver [`i18n.md`](../flows/i18n.md).
 - Errores tratados explícitamente: nada de `catch {}` vacío que oculte fallos (los degradados deliberados, como `/api/health`, se documentan en el código).
 - Secretos solo desde variables de entorno; `SUPABASE_SERVICE_ROLE_KEY` nunca con prefijo `NEXT_PUBLIC_` ni en código de cliente.
 - Funciones pequeñas con un propósito; los límites de complejidad del lint son un techo, no un objetivo.
