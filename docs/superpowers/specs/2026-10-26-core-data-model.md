@@ -43,6 +43,8 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `role` | text NOT NULL DEFAULT `user` CHECK (`super_admin`\|`admin`\|`user`) | **jerarquía de 3 roles** (decisión usuario, 2026-10-26): `super_admin` (top, no borrable, root de `/setup`), `admin` (gestiona la instancia + crea/actualiza admins, no crea super_admins ni borra el root), `user` (acceso a sus módulos). `super_admin`/`admin` acceden a **todos los módulos** (públicos y privados). Escritura del rol solo vía `/setup` (primero) y API por un admin/super_admin (nunca el propietario sobre su propia fila — ver §5) |
 | `created_at`, `updated_at` | timestamptz | |
 
+> **Contraseñas y credenciales (OWASP, decisión P):** el Core **nunca** almacena contraseñas, hashes de contraseña, tokens de sesión ni secretos de Supabase en tablas propias. La identidad y su autenticación viven íntegramente en **Supabase Auth** (hashes bcrypt server-side, reset, rate limiting del login — auth §2/§4); `profiles.id` es solo la referencia. Los secrets de la instancia (SMTP, LLM, clientes MCP) van cifrados en `settings.value_encrypted` con clave maestra en env (spec §8); nunca en claro ni en logs. Verificado por `guard-secrets` (CI) y auditoría OWASP (task-10).
+
 **`user_categories`** — etiqueta de usuarios creada por un `admin`/`super_admin`.
 | Columna | Tipo | Notas |
 |---|---|---|
@@ -131,8 +133,9 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `value` | jsonb NULL | config **no sensible** en claro (ADR 0008): zona, moneda default, idiomas activos, `connectivity.cors_allowlist`… |
 | `value_encrypted` | text NULL | **secrets cifrados** con clave maestra en env (spec §8): SMTP propio, LLM BYOK, secrets de clientes MCP |
 | `is_secret` | bool NOT NULL DEFAULT false | invariante (CHECK en el esquema): `is_secret = true` ⇒ `value_encrypted` NOT NULL y `value` NULL; `is_secret = false` ⇒ `value_encrypted` NULL |
+| `is_public` | bool NOT NULL DEFAULT false | **visibilidad** (decisión usuario 2026-10-26, distinta de `is_secret`): `true` = el módulo declara en su manifest que este setting es legible por usuarios con acceso al módulo (p. ej. el móvil); `false` = solo admin/proyecto. El Core declara los suyos en su catálogo (task-06); **el usuario nunca edita settings** |
 | `sort_order` | int NOT NULL | orden dentro de la categoría |
-| `updated_by` | uuid NULL → `profiles.id` | solo `super_admin` escribe |
+| `updated_by` | uuid NULL → `profiles.id` | solo `is_admin()` escribe (decisión B2; la RLS y la API concuerdan en `is_admin()`) |
 | `updated_at` | timestamptz | |
 | — | `UNIQUE (category_key, key)` | |
 
@@ -287,7 +290,8 @@ Patrón de **security definer functions** canónicas (task-10 lo formaliza):
 | `module_migrations` | read: **solo `is_super_admin()`/service (instalador)** — el historial de DDL no lo necesita ningún usuario normal; write: **solo el instalador** |
 | `user_modules` | read: el propio usuario (sus concesiones) + `is_admin()`; write: **solo `is_admin()` (o definer de servicio acotado)** — la concesión/revocación la ejecuta la API, el usuario **nunca** puede auto-concederse (la concesión de módulos es solo de admins) |
 | `user_category_modules` | read: `is_admin()`; write: `is_admin()` (materialización vía caso de uso) |
-| `settings_categories`, `settings`, `currencies` | read: `is_admin()` (config) / los no sensibles vía API `/instance` filter; write: `is_admin()` |
+| `settings_categories`, `settings` | read: `is_admin()` (config) / los no sensibles vía API `/instance` filter; write: `is_admin()` |
+| `currencies` | read: **cualquier autenticado** (datos no sensibles: lista de monedas habilitadas, decisión M4); write: `is_admin()` |
 | `translations` | read: cualquier autenticado (resolución i18n en runtime); write: `is_admin()` / pipeline de import (task-09) |
 | `invitations`, `invitation_modules` | read: `is_admin()` (panel) + el registro de canjeo (flujo wizard); write: `is_admin()` / caso de uso de canjeo |
 | `api_keys` | service: solo `is_super_admin()` (crear/revocar claves de instancia); delegado: el propietario (`user_id = auth.uid()`) + `is_admin()` |
@@ -335,6 +339,8 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 | L | **RLS sin auto-escalado ni auto-concesión**: `profiles.role` no es editable por el propietario (solo `/setup` y API); `user_modules`/`user_category_members` write solo admin (jamás el usuario sobre sí mismo) |
 | M | **Roles jerárquicos (3)**: `super_admin` (top, no borrable, root `/setup`) / `admin` (gestiona instancia, crea/actualiza **admins**, no crea super_admins ni borra el root) / `user`. **super_admin y admin acceden a todos los módulos** (públicos y privados) |
 | N | **Módulos público/privado**: `module_registry.is_public` (default del manifest, override super_admin). **Público** = todos los usuarios lo usan sin `user_modules`; **privado** = solo admins + usuarios con concesión. `has_module_access` = `is_admin() OR is_public OR user_modules` |
+| O | **Settings con visibilidad** (`settings.is_public`): distinta de `is_secret` (cifrado). `is_public` declarada **solo en el manifest del módulo** (task-03) o en el catálogo del Core (task-06); el **usuario nunca edita settings** |
+| P | **Contraseñas fuera del Core**: identidad y hashes de contraseña en Supabase Auth (auth §2/§4); el Core nunca almacena contraseñas ni credenciales en BD (verificación `guard-secrets` + auditoría task-10) |
 
 ## 9. Fuera de alcance
 
@@ -348,9 +354,9 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 
 ## 10. Criterios de aceptación
 
-- El esquema cubre identidad (`profiles`), categorización (`user_categories`, `user_category_members`), acceso (`user_modules` materializado, `user_category_modules`), plugins (`module_registry`, `module_migrations`), config (`settings_categories` + `settings` con prefijo garantizado, `currencies`+default, `translations`), invitación (`invitations` + `invitation_modules`), tokens (`api_keys` sin `group_id`), `devices`, `audit` y `admin_actions`.
+- El esquema cubre identidad (`profiles` con `role` de 3 niveles y **sin contraseñas en BD** — decisión P), categorización (`user_categories`, `user_category_members`), acceso (`user_modules` materializado, `user_category_modules`), plugins (`module_registry` con `is_public`, `module_migrations`), config (`settings_categories` + `settings` con prefijo garantizado, `is_secret`/`is_public`, `currencies`+default, `translations`), invitación (`invitations` + `invitation_modules`), tokens (`api_keys` sin `group_id`), `devices`, `audit` y `admin_actions`.
 - **No** hay tablas de "grupos de datos de módulo" en el Core (eso vive en cada módulo).
-- El **acceso a módulos es por usuario y viaja con él**; la categoría es solo clasificación/plantilla (decisión A2).
+- El **acceso a módulos es por usuario y viaja con él**; la categoría es solo clasificación/plantilla (decisión A2). Los **roles jerárquicos** (M) y el **público/privado** (N) se respetan.
 - **RLS por tabla** con definers canónicos (`is_admin()`, `is_super_admin()`, `has_module_access`), **sin auto-escalado ni auto-concesión** (decisiones L) y contrato de aislamiento definido (D2 adaptado a categorías/usuarios).
 - **Ciclo de vida de módulos** (instalar/activar/desactivar/desinstalar) con `module_migrations` reversibles (decisión K) y semántica de borrado definida (§3.8).
 - Coherente con la spec de API v1 (con delta 2026-10-26), spec de tokens §5/§7, ADR 0004/0007/0008 y testing D2.

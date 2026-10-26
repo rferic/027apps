@@ -26,7 +26,7 @@ Tarea 2 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 - **Rate limiting C1** (decisión delegada por api-v1 §3.3): por **identidad**, **ventana deslizante**, umbrales iniciales móvil 120 / key y MCP 30 req/min, exceso → `429` + envelope `rate_limited`, configurable por settings (`security.rate_limit.*`). Endpoints públicos con límite propio.
 - **Representaciones** de cada recurso con las reglas del contrato (errores ADR 0007, paginación D2, fechas/moneda ADR 0008, sin secrets en respuestas).
 
-**Decisiones tomadas** (conversación de diseño, 2026-10-26): inventario con scopes por rol, filtros de `GET /users`, catálogo de módulos con detalle/settings, público/privado, rate limiting con umbrales, canjeo público, renames (`user_categories`, `/modules/{key}/settings`).
+**Decisiones tomadas** (conversación de diseño, 2026-10-26): inventario con scopes por rol, filtros de `GET /users`, catálogo de módulos con detalle/settings, público/privado, rate limiting con umbrales, canjeo público, renames (`user_categories`, `/modules/{key}/settings`), settings de módulo con `is_public` por manifest y usuario nunca edita (I), sin contraseñas en BD (J), desactivación de usuario con evento `user.deactivated` (M6).
 
 **Criterios de aceptación**: todo endpoint respeta el contrato v1 (errores, paginación, auth, representación); el rate limiting queda con umbrales y mecanismo decididos; los recursos del Core sirven a móvil, admin y MCP con la misma representación (ADR 0004); coherente con la task-01.
 

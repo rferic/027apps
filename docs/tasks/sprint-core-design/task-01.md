@@ -27,7 +27,9 @@ Tarea 1 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega spe
 
 **Decisiones pendientes de redactar en la spec** (de la conversación de diseño, 2026-10-26): semántica de materialización de `category_modules` (A2), lista+default de monedas (C), contrato de módulos/plugins (F/K), invitación con email/nombre/categoría/módulos (B), traducciones (J), RLS sin auto-escalado (L).
 
-**Estado (2026-10-26):** spec `docs/superpowers/specs/2026-10-26-core-data-model.md` **finalizada** — revisada por segundo agente (DoD de Docs) con 11 hallazgos resueltos (1 Alta, 2 Media, 3 Media, 4 Media, 5 Media + 6 editoriales) e incorporadas las decisiones del usuario (reframe categorías, settings categorizados, traducciones, ciclo de vida de módulos, RLS sin auto-escalado); aprobada por el usuario (2026-10-26). Commiteada en `sprint/04-core-design` (`f642151` → `2deda67`).
+**Estado (2026-10-26):** spec `docs/superpowers/specs/2026-10-26-core-data-model.md` **finalizada** — revisada por segundo agente (DoD de Docs) con 11 hallazgos resueltos (1 Alta + 10 Media/Baja) e incorporadas las decisiones del usuario (reframe categorías, settings categorizados, traducciones, ciclo de vida de módulos, RLS sin auto-escalado); aprobada por el usuario (2026-10-26). Commiteada en `sprint/04-core-design` (`f642151` → `2deda67`).
+
+**Deltas posteriores (2026-10-26, con la task-02):** roles jerárquicos de 3 niveles `profiles.role` (M), módulos público/privado `module_registry.is_public` (N), settings con visibilidad `settings.is_public` declarada por manifest (O), **contraseñas fuera del Core** (P), y RLS de `currencies` abierta a cualquier autenticado — commiteadas en `b0f1298` y `53cb369`.
 
 **Criterios de aceptación**: el modelo no contiene tablas de "grupos de datos de módulo" (eso vive en cada módulo); el acceso a módulos es por usuario y viaja con él; RLS por tabla con definers canónicos y contrato de aislamiento definido; coherente con api-v1 (tras el delta), tokens, ADR 0004/0007/0008 y testing D2; aprobada por el usuario y revisada por segundo agente (DoD de Docs).
 
