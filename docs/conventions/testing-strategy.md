@@ -80,3 +80,17 @@ Cada ADR deja un "contrato testable"; la tarea los declara en su frontmatter `ad
 - La suite RLS de aislamiento es parte de la definición de terminado de toda tabla nueva (spec §4) — el CI la incluye.
 - Los E2E web se añaden como proyecto Playwright al `apps/admin`; los E2E móviles al job `android` del CI ([`cicd.md`](../flows/cicd.md)) cuando el Core tenga los flujos críticos.
 - La estrategia se revisa cuando aparezca el primer módulo con lógica real (Split Expenses) para confirmar los umbrales contra la realidad, sin bajar los del dominio (90/80).
+
+## 9. Testing asistido por IA con Playwright (decisión pendiente — se diseña en el Core)
+
+Hoy la estrategia asume TDD + agentes escribiendo los tests y el CI como juez determinista («determinismo antes que agentes»). No hay nada configurado aún para que una IA genere o repare tests con Playwright; queda anotado como **decisión pendiente a diseñar cuando exista el primer Playwright real** (en el arranque del Core, cuando `apps/admin` tenga flujos críticos que testear — sección 2, C1).
+
+**Dirección prevista** (a confirmar en el Core, no cerrada):
+
+1. **Generación asistida de E2E**: el agente redacta los E2E Playwright desde los criterios de aceptación de la spec del recurso/flujo (los mismos que usa el TDD), y Playwright los ejecuta en CI. Si un cambio de UI los rompe, el agente los actualiza en el mismo PR (el CI decide si pasan; el agente no "salta" el check).
+2. **Skill de proyecto** `e2e-web` (spec §11, skills): patrón de escritura de E2E (locators por data-test, estados loading/error/empty, fixtures del family-set) para que cualquier agente produzca tests coherentes sin depender de memoria.
+3. **Opcional — driver visual para el agente**: un MCP de Playwright en el harness (si el agente necesita "ver" el navegador para depurar un test roto), evaluado cuando haya un caso real que lo justifique. No se adopta ninguna dependencia antes de ese punto (política del repo: dependencias nuevas solo con caso real, ADR 0005 §elección de librería).
+
+**Límites que se mantienen**: la IA escribe/actualiza los tests; **no** decide si el build pasa (lo decide el CI) ni baja umbrales de cobertura (tabla 4). El veredicto final sigue siendo determinista.
+
+**Dónde se decide:** se fija cuando se monte el proyecto Playwright del Core; esta sección no lo cierra para no adelantar decisiones sin el primer caso real.
