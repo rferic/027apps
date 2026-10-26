@@ -2,7 +2,7 @@
 id: sprint-core-design-task-02
 titulo: Recursos y endpoints transversales del Core — spec de API (definición)
 area: core
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 
@@ -27,6 +27,8 @@ Tarea 2 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega una
 - **Representaciones** de cada recurso con las reglas del contrato (errores ADR 0007, paginación D2, fechas/moneda ADR 0008, sin secrets en respuestas).
 
 **Decisiones tomadas** (conversación de diseño, 2026-10-26): inventario con scopes por rol, filtros de `GET /users`, catálogo de módulos con detalle/settings, público/privado, rate limiting con umbrales, canjeo público, renames (`user_categories`, `/modules/{key}/settings`), settings de módulo con `is_public` por manifest y usuario nunca edita (I), sin contraseñas en BD (J), desactivación de usuario con evento `user.deactivated` (M6).
+
+**Estado (2026-10-26):** spec `docs/superpowers/specs/2026-10-26-core-api.md` **finalizada** — revisada por segundo agente (DoD de Docs) con 7 hallazgos Media + 7 Baja resueltos (M1–M7, B1–B7: scopes, rate limiting por-IP delta, settings is_public, desactivación de usuario con evento, convención de scopes, referencias) e incorporadas las decisiones del usuario; aprobada por el usuario (2026-10-26). Deltas a la task-01 (roles M/N, is_public O, contraseñas P, RLS currencies) y a api-v1 (C1) registradas. Commiteada en `sprint/04-core-design` (`53cb369` → `6dda28b`).
 
 **Criterios de aceptación**: todo endpoint respeta el contrato v1 (errores, paginación, auth, representación); el rate limiting queda con umbrales y mecanismo decididos; los recursos del Core sirven a móvil, admin y MCP con la misma representación (ADR 0004); coherente con la task-01.
 
