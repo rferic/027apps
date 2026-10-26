@@ -116,12 +116,16 @@ Una política por topic, evaluada en la suscripción:
 
 ### 6.2 Configuración por instancia (puerta de setup del usuario)
 
-- **FCM es opcional**; si no está configurado, **degradación elegante**: no se envía push (realtime y bandeja al abrir siguen funcionando).
+- **FCM es opcional en el wizard, pero nunca silencioso**:
+  - El wizard de `/setup` incluye el paso **"Notificaciones (Firebase)"** junto a Supabase y SMTP, y la guía de instalación lo presenta como **paso recomendado**.
+  - Se puede **omitir**, pero con **aviso explícito**: *"Sin Firebase no recibirás notificaciones con la app cerrada. Podrás configurarlo más tarde en Ajustes → Notificaciones."*
+  - Mientras no esté configurado, el **panel muestra un aviso persistente** ("Push no configurado") con enlace al paso. El estado "sin push" es **visible, no silencioso**.
+  - **Degradación elegante**: sin FCM configurado, realtime y bandeja de novedades al abrir siguen funcionando; el resto de la app no se ve afectado.
 - **Un APK único para todas las instancias**: la configuración de Firebase **no se hornea** en el build (ataría el APK a un proyecto). La app inicializa Firebase **en runtime** con los valores públicos de la instancia.
 - Settings (`settings`, categoría `notifications`, task-06):
-  - **públicos** (`is_public: true`, los lee el móvil vía `/instance` o `/modules`-style): `fcm_project_id`, `fcm_app_id`, `fcm_api_key`, `fcm_sender_id`.
+  - **públicos** (`is_public: true`, los lee el móvil vía `/instance`): `fcm_project_id`, `fcm_app_id`, `fcm_api_key`, `fcm_sender_id`.
   - **secreto** (`is_secret: true`, `value_encrypted`): el **service account JSON** de envío.
-- El paso "conectar Firebase" se documenta en la guía de instalación como paso opcional (junto a Supabase y SMTP).
+- **Instancia del autor**: se configura en el **sprint de infra** (tarea `sprint-infra` de Firebase/FCM, puerta de setup del usuario).
 
 ### 6.3 Envío
 
@@ -147,7 +151,7 @@ Una política por topic, evaluada en la suscripción:
 | A | **Canales con destinatario explícito**: 3 fijos del Core (`admins`, `all`, `user-<uuid>`) + canales de módulo declarados en el manifest con `members_fn` (una función para RLS **y** para resolver destinatarios de push) |
 | B | **El módulo decide su canal**: puede enrutar por `user`, por `admins`/`all` del Core, o por un canal propio por entidad (`group-{id}`…). El Core no conoce los modelos de los módulos |
 | C | **Catálogo de eventos del Core v1**: `user.deactivated`, `module.*`, `invitation.created|redeemed`, `settings.updated`. Los de negocio los declara cada módulo |
-| D | **Push = FCM, opcional por instancia**, configurado **en runtime** desde settings (valores públicos + service account cifrado), porque el APK es único. Sin configurar → degradación elegante |
+| D | **Push = FCM**, **opcional en el wizard pero nunca silencioso** (paso recomendado + aviso explícito al omitir + banner persistente en el panel mientras no esté configurado), configurado **en runtime** desde settings (valores públicos + service account cifrado), porque el APK es único. **Para la instancia del autor se configura en el sprint de infra** (`sprint-infra` task-08) |
 | E | **El texto del push no lleva datos sensibles**; el detalle se consulta a la API con la sesión |
 | F | **Sin email de notificación de negocio en v1** (solo auth por Supabase SMTP) |
 | G | **`JWT_EXPIRY = 900 s`** como requisito de instalación (wizard), no editable en el panel |
