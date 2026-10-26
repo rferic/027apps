@@ -35,15 +35,16 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
   "is_public": false,                   // default del manifest; override por super_admin en el panel (task-02 PATCH /modules/{key})
   "migraciones": [                      // DDL del módulo, en orden
     {
-      "version": "1.0.0",               // versión de la migración (puede haber varias por versión del módulo)
+      "version": "1.0.0",               // versión de la migración (única en el manifest, ver invariantes)
       "up": "./sql/1.0.0-up.sql",       // ruta al SQL dentro del paquete (o inline string)
       "down": "./sql/1.0.0-down.sql",   // rollback de esa migración (reversible, decisión K)
-      "digest": "sha256:…"              // hash esperado del contenido de "up" (verificado por el instalador, decisión A)
+      "digest": "sha256:…",             // hash esperado del contenido "up" (verificado por el instalador, decisión A)
+      "down_digest": "sha256:…"         // hash esperado del contenido "down" (verificado en el uninstall, decisión A)
     }
   ],
   "settings": [                         // siembra settings_categories + settings (forma en task-06)
     {
-      "category": "split_expenses",     // = settings_categories.category_key (source: module:<key>)
+      "category": "split_expenses",     // = settings_categories.category_key; snake_case(key) del módulo (invariante)
       "label": "Split Expenses",        // texto en inglés
       "icon": "split-expenses",         // icono del DS o del paquete
       "sort_order": 10,
@@ -54,46 +55,66 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
     }
   ],
   "i18n": ["es", "ca", "en", "it", "fr", "de", "pt", "gl", "eu"],  // locales que siembra (source: module:<key>); el set activo lo filtra el check de CI (task-09)
-  "scopes": ["expenses:read", "expenses:write", "balance:read"],   // acciones expuestas por el módulo (ADR 0004 §2; se registran en el registry de scopes)
+  "scopes": ["expenses:read", "expenses:write", "balance:read"],   // acciones expuestas (ADR 0004 §2); viven en código, el manifest solo las declara para validación mecánica (CI) y el guard
   "mcp_tools": [ { "name": "expense_list", "action": "expenses:read" } ],  // tools MCP del módulo (contrato en task-05)
   "eventos": ["expense.created", "expense.deleted"],                // eventos de dominio que publica (contrato en task-04)
-  "hooks": { "user.deactivated": "handleUserDeactivated" }          // reacciones a eventos del Core (decisión M6 de task-02)
+  "hooks": { "user.deactivated": "handleUserDeactivated" }          // reacciones a eventos del Core (task-02 §3.2: DELETE /users/{id})
 }
 ```
 
 **Invariantes del contrato (validados por el esquema zod del manifest):**
 - `key` único, kebab-case; `name`/`label` en inglés (nunca claves i18n); `version` semver.
-- Cada migración declara `up` **y** `down` (reversibilidad obligatoria, decisión K).
-- `settings[].category` = `key` del módulo (source `module:<key>`); `settings[].settings[].is_public` se respeta (decisión O).
-- `scopes` siguen la convención `recurso:acción` de task-02; las tools MCP referencian un scope declarado.
+- Cada migración declara `up` **y** `down` (reversibilidad obligatoria, decisión K) y sus `digest`/`down_digest`. **Cada `migraciones[].version` es única en el manifest** (la PK de `module_migrations` es `(module_key, version, direction)`, task-01 §3.2).
+- `settings[].category` = **`snake_case(key)`** del módulo (coherente con el prefijo `{category_key}.{key}` de task-01 §3.3); `settings[].settings[].is_public` se respeta (decisión O).
+- `scopes` siguen la convención `recurso:acción` de task-02; **viven en código** (ADR 0004 §2, token-model §5), el manifest solo los declara para validación mecánica (CI) y el guard — no se "siembran" en BD (no existe tabla de scopes, decisión H6).
+- Las tools MCP referencian un scope declarado.
 - Los `hooks` referencian **eventos del Core** o del propio módulo (task-04 define el catálogo).
 
-**Regla de negocio del manifest:** un manifest NO declara rutas HTTP de `/api/v1` propias del recurso (esos endpoints son de la spec del módulo, mecanismo de extensión de api-v1 §5); el manifest solo declara scopes, tools, eventos, settings y DDL. El contrato de API lo añade el módulo con sus schemas/casos de uso/recursos, sin tocar la mecánica (api-v1 §5).
+**Regla de negocio del manifest:** un manifest NO declara rutas HTTP de `/api/v1` propias del recurso (esos endpoints son de la spec del módulo, mecanismo de extensión de api-v1 §5); el manifest solo declara DDL, settings, tools/eventos/hooks y los scopes para validación mecánica (que viven en código, ADR 0004 §2). El contrato de API lo añade el módulo con sus schemas/casos de uso/recursos, sin tocar la mecánica (api-v1 §5).
 
 ## 4. El instalador (mecánica)
 
-Se ejecuta en el Core (implementación futura), invocado por los endpoints `/modules/{key}/install|activate|deactivate|uninstall` (task-02, `modules:manage`/`is_super_admin`). Sigue el patrón de puerta delgada → caso de uso orquestador (ADR 0004): la puerta autoriza (scopes + confirmación explícita) y el caso de uso `instalarModulo` orquesta: validar manifest → aplicar migraciones → sembrar settings/i18n/scopes → registry.
+Se ejecuta en el Core (implementación futura), invocado por los endpoints `/modules/{key}/install|activate|deactivate` (task-02, `modules:manage`, `is_admin()`) y `/modules/{key}/uninstall` (`is_super_admin()`, decisión B3). Sigue el patrón de puerta delgada → caso de uso orquestador (ADR 0004): la puerta autoriza (scopes + confirmación explícita) y el caso de uso orquestador gestiona: validar manifest → aplicar migraciones → sembrar settings/i18n → registry. Los **scopes no se siembran** (viven en código, decisión H6).
 
 ### 4.1 Instalar (`install`)
-1. **Leer y validar el manifest** contra el **esquema zod** del contrato (§3) — si falla → `validation_failed` (ADR 0007).
-2. **Verificar `digest`** de cada migración (el hash del contenido `up` debe coincidir; `ddl_digest` en `module_migrations`) — decisión A. Si el archivo no coincide → `conflict`/`validation_failed`, no se aplica nada.
+1. **Leer y validar el manifest** contra el **esquema zod** del contrato (§3) — si falla → `validation_failed` (ADR 0007). El runtime lee el manifest/SQL **embebidos en el build del deploy** (el paquete del módulo se compila en la app; el detalle de entrega se confirma en el sprint de implementación, decisión B4).
+2. **Verificar `digest` y `down_digest`** de cada migración (los hashes del contenido `up`/`down` deben coincidir; `ddl_digest` en `module_migrations`) — decisión A. Si no coinciden → `conflict`/`validation_failed`, no se aplica nada.
 3. **Aplicar migraciones `up` en orden** dentro de una transacción (si una falla, rollback de todas; ADR 0004 §6: efectos externos tras el commit). Registrar cada una en `module_migrations` (`direction: up`, `ddl_digest`).
-4. **Sembrar**: `settings_categories` + `settings` (con `is_public`/`is_secret` del manifest), `translations` (`source: module:<key>`), scopes registrados.
+4. **Sembrar**: `settings_categories` + `settings` (con `is_public`/`is_secret` del manifest), `translations` (`source: module:<key>`). Los **scopes no se siembran en BD** (viven en código; decisión H6).
 5. **Registry**: `module_registry` `state = installed`, `manifest_digest`, `version`.
-6. Estado `installed` = DDL aplicado pero **no visible** aún (requiere `activate`).
+6. **`admin_actions`** registrado (`module.install`) **dentro de la transacción** (es una fila de BD, no un efecto externo).
+7. Estado `installed` = DDL aplicado pero **no visible** aún (requiere `activate`).
 
-### 4.2 Activar / desactivar (`activate` / `deactivate`)
-- `activate`: `state = active` (disponible para quien tenga acceso: admins → todos; usuarios → `is_public` o `user_modules`, decisión N).
-- `deactivate`: `state = disabled` — el DDL y los datos **permanecen** (no se tocan); solo deja de estar disponible. No revoca `user_modules` existentes (se mantienen; el módulo simplemente no se sirve mientras está desactivado).
+### 4.1bis Máquina de estados (transiciones legales, decisión H2)
 
-### 4.3 Desinstalar (`uninstall`)
-**Requiere confirmación explícita del super_admin** en el panel (decisión D: revisa el diff de lo que se va a revertir/borrar). Secuencia (todo orquestado, decisión 3 del usuario):
-1. **Comprobar bloqueo**: si hay `user_modules`/`user_category_modules` activos o datos referenciados en uso → `conflict` con mensaje claro (task-01 K: no se desinstala un módulo con concesiones/settings en uso sin confirmación). La confirmación explícita del panel desbloquea.
-2. **Revertir migraciones `down` en orden inverso** (transaccional; si falla → rollback, el módulo queda como estaba).
-3. **Limpiar settings**: borrar `settings_categories` + `settings` con `source: module:<key>` (decisión 3).
-4. **Limpiar i18n**: borrar `translations` con `source: module:<key>` (decisión 3).
-5. **Limpiar registry**: `DELETE module_registry` (y `module_migrations` de ese módulo).
-6. **Efectos externos tras el commit** (ADR 0004 §6): evento `module.uninstalled` publicado (task-04) y `admin_actions` registrado.
+Cada operación solo es válida desde los estados permitidos; cualquier otra transición devuelve **`conflict` (409)** con mensaje claro (ADR 0007):
+
+| Desde | Transición legal |
+|---|---|
+| *(no existe)* | → `installed` (install de cero) |
+| `installed` | → `active` (activate) · → *(eliminado)* (uninstall) |
+| `active` | → `disabled` (deactivate) · → *(eliminado)* (uninstall) |
+| `disabled` | → `active` (activate) · → *(eliminado)* (uninstall) |
+| `installed`/`active`/`disabled` | re-`install` → `conflict` "ya está instalado" (para re-instalar: uninstall → install) |
+
+**Upgrade de versión (1.0.0 → 1.1.0):** se define como alcance de **implementación** del sprint del instalador (aplicar solo las migraciones pendientes sobre un módulo `active`/`disabled`); esta spec fija el contrato que lo permite (migraciones por versión + `module_migrations`) y deja la operación `update` concreta al código. No bloquea esta definición.
+
+### 4.2 Activar / desactivar (`activate` / `deactivate`) — `is_admin()`
+- `activate`: `state = active` (disponible para quien tenga acceso: admins → todos; usuarios → `is_public` o `user_modules`, decisión N). Transición válida desde `installed`/`disabled` (§4.1bis).
+- `deactivate`: `state = disabled` — el DDL y los datos **permanecen** (no se tocan); solo deja de estar disponible. No revoca `user_modules` existentes (se mantienen; el módulo simplemente no se sirve mientras está desactivado). Transición válida solo desde `active`.
+- Ambas registran `admin_actions` (`module.activate`/`module.deactivate`) **dentro de la transacción**.
+
+### 4.3 Desinstalar (`uninstall`) — `is_super_admin()`
+**Requiere confirmación explícita del super_admin** en el panel (decisión D: revisa el diff de lo que se va a revertir/borrar). Transición válida desde `installed`/`active`/`disabled` (§4.1bis). Secuencia (todo orquestado):
+1. **Invitaciones pendientes**: las `invitation_modules` que conceden este módulo **pierden el acceso a él** (se eliminan esas filas; la invitación sigue para el resto de módulos) y el uninstall **continúa** (decisión H1 del usuario).
+2. **Comprobar bloqueo**: si hay `user_modules`/`user_category_modules` activos o datos referenciados en uso → `conflict` con mensaje claro (task-01 K: no se desinstala un módulo con concesiones/settings en uso sin confirmación). La confirmación explícita del panel desbloquea.
+3. **Verificar `down_digest`** de cada migración (decisión A) antes de revertir.
+4. **Revertir migraciones `down` en orden inverso** (transaccional; si falla → rollback, el módulo queda como estaba).
+5. **Limpiar settings**: borrar `settings_categories` + `settings` con `source: module:<key>` (decisión 3).
+6. **Limpiar i18n**: borrar `translations` con `source: module:<key>` (decisión 3).
+7. **Limpiar registry**: `DELETE module_registry` (y `module_migrations` de ese módulo).
+8. **`admin_actions`** registrado (`module.uninstall`) **dentro de la transacción**.
+9. **Efectos externos tras el commit** (ADR 0004 §6): evento `module.uninstalled` publicado (task-04).
 
 > **Semántica de datos** (decisión 3): el `down` de cada migración es **del módulo** — decide si hace drop de sus tablas o archiva (el dinero no se borra, spec §12). El Core no decide por el módulo; solo ejecuta el `down` declarado y limpia los registros del Core (settings/translations/registry).
 
@@ -101,7 +122,7 @@ Se ejecuta en el Core (implementación futura), invocado por los endpoints `/mod
 
 El manifest trae SQL ejecutable: capas de protección (filosofía "defensa en profundidad", como RLS):
 
-- **A — Contrato estricto + digest**: manifest validado contra esquema zod; cada migración con `digest` verificado al aplicar/revertir (`module_migrations.ddl_digest`). Detecta alteración entre instalaciones.
+- **A — Contrato estricto + digest (`up`+`down`)**: manifest validado contra esquema zod; cada migración con `digest` (up) y `down_digest` (down) verificados al aplicar y al revertir (`module_migrations.ddl_digest`). Detecta alteración entre instalaciones, también del rollback.
 - **C — Permisos mínimos de BD**: el rol/credencial que ejecuta el instalador **solo puede DDL sobre el esquema del módulo** (`module_<key>.*`), nunca `auth.*`, tablas del Core (`profiles`, `module_registry`, `settings`, `translations`, `user_categories`, …) ni tablas de otros módulos. RLS como segunda barrera.
 - **D — Confirmación humana explícita**: el super_admin revisa el **diff del DDL** (qué tablas crea/borra) en el panel y confirma antes de `install` y `uninstall` (obligatorio en uninstall; recomendado en install).
 - **B (firma criptográfica, Ed25519) — diferida**: no se adopta en v1 (quien instala elige el módulo; A+C+D cubren la amenaza principal). Se evalúa si el registry se abre a módulos de terceros no revisados. Queda anotado como decisión aplazada.
@@ -109,24 +130,26 @@ El manifest trae SQL ejecutable: capas de protección (filosofía "defensa en pr
 
 ## 6. CI del módulo (determinismo antes que agentes)
 
-- **Validación mecánica del manifest** contra su esquema zod como **check de CI** (job `admin` o `modules`): todo PR que añada/modifique un `packages/*/manifest.json` pasa el contrato o falla.
-- El `digest` de cada migración se **recalcula y compara** (evita manifests con digest desincronizado).
+- **Validación mecánica del manifest** contra su esquema zod como **check de CI** en el **job `admin` existente** (se añade ahí; no hay job `modules` en `cicd.md` y no se crea uno aparte): todo PR que añada/modifique un `packages/*/manifest.json` pasa el contrato o falla.
+- El `digest`/`down_digest` de cada migración se **recalcula y compara** (evita manifests con digest desincronizado).
 - Las claves i18n del manifest se integran con el **check de locales** (task-09): el set del manifest (`i18n`) no puede contener locales fuera del set activo.
 - Permite que la **skill `new-module`** (spec §9/§11, `new-module.md` paso 8) automatice el scaffolding con el contrato ya validado.
 
 ## 7. Relación con el flujo `new-module.md`
 
-Esta spec **completa los TODOs del esqueleto** (`new-module.md`): el contrato del manifest (paso 2), la validación mecánica (paso 2), la suite RLS con el instalador (paso 3), y el alta en el instalador (paso 8). Tras esta spec `finalizada`, el flujo queda referenciable desde las tareas del Core; los pasos que dependen de código (instalador, suite RLS, tools MCP, eventos) se cierran en el sprint de implementación del Core. El esqueleto se actualiza cuando exista el instalador.
+Esta spec **completa los TODOs del esqueleto** (`new-module.md`): el contrato del manifest (paso 2), la validación mecánica (paso 2), la suite RLS con el instalador (paso 3), y el alta en el instalador (paso 8). La **actualización del esqueleto** (que hoy conserva el lenguaje pre-reframe: "activación por grupo", `group_id`, `participants`) queda **enlazada a la tarea de implementación del instalador** en el backlog del Core — el mismo PR que implemente el instalador revisa `new-module.md` contra esta spec y contra el reframe (decisión B7). Los pasos que dependen de código (instalador, suite RLS, tools MCP, eventos) se cierran en el sprint de implementación del Core.
 
 ## 8. Decisiones tomadas (conversación de diseño, 2026-10-26)
 
 | # | Decisión |
 |---|---|
 | A | Manifest en **`packages/<key>/manifest.json`** (cada módulo es un paquete del monorepo, spec §4) |
-| B | Seguridad del DDL: **A + C + D** — esquema zod estricto + `digest` verificado, permisos mínimos de BD (rol acotado a `module_<key>.*`), y **confirmación explícita del super_admin** (diff del DDL) antes de install/uninstall. **Firma criptográfica (Ed25519) diferida** |
+| B | Seguridad del DDL: **A + C + D** — esquema zod estricto + `digest`/`down_digest` verificados (`up` y `down`), permisos mínimos de BD (rol acotado a `module_<key>.*`), y **confirmación explícita del super_admin** (diff del DDL) antes de install/uninstall. **Firma criptográfica (Ed25519) diferida** |
 | C | **Uninstall limpia**: revierte `down` en orden inverso + **borra `settings_categories`/`settings` y `translations`** con `source: module:<key>`; el `down` del módulo decide si hace drop o archiva sus datos (el dinero no se borra, spec §12) |
 | D | **Secuencia**: esta spec es **definición**; el instalador se implementa en el backlog de implementación del Core (sprint futuro). El CI ya valida el manifest contra su esquema |
-| E | Manifest sin rutas de recurso (esos endpoints son de la spec del módulo, extensión de api-v1 §5); solo scopes/tools/eventos/settings/DDL |
+| E | Manifest sin rutas de recurso (esos endpoints son de la spec del módulo, extensión de api-v1 §5); solo DDL/settings/tools/eventos/hooks + scopes para validación (viven en código, H6) |
+| F (H1) | **Uninstall con invitaciones pendientes**: las `invitation_modules` que conceden el módulo **pierden ese acceso** (se eliminan) y el uninstall continúa; la invitación vale para el resto de módulos |
+| G (H2) | **Máquina de estados** definida (§4.1bis): transiciones legales, `conflict` 409 en otras; **upgrade de versión** = alcance de implementación del instalador |
 
 ## 9. Fuera de alcance
 
