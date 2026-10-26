@@ -2,7 +2,7 @@
 id: sprint-core-design-task-02
 titulo: Recursos y endpoints transversales del Core — spec de API (definición)
 area: core
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 

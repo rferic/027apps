@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-10-26
 **Estado:** Borrador para aprobación del usuario
-**Base:** [spec de diseño §4/§8](2026-10-24-027apps-design.md) (capacidades transversales, borrador de datos) · [spec de tokens §5/§7](2026-10-25-token-model.md) (scopes por acción, evolución del modelo) · [spec de auth](2026-10-25-auth.md) (frontera Supabase, invitación, wizard) · [spec de API v1](2026-10-25-api-v1.md) (**con delta 2026-10-26**: `groups`→`categories`, `/me/modules`) · [ADR 0004](../../adr/0004-bordes-y-capa-de-aplicacion.md) (casos de uso, guard, scopes) · [ADR 0007](../../adr/0007-manejo-de-errores.md) (envelope, `request_id`, `admin_actions`) · [ADR 0008](../../adr/0008-fechas-y-moneda.md) (timezone, config de instancia, moneda) · testing strategy (D2, aislamiento)
+**Base:** [spec de diseño §4/§8](2026-10-24-027apps-design.md) (capacidades transversales, borrador de datos) · [spec de tokens §5/§7](2026-10-25-token-model.md) (scopes por acción, evolución del modelo) · [spec de auth](2026-10-25-auth.md) (frontera Supabase, invitación, wizard) · [spec de API v1](2026-10-25-api-v1.md) (**con delta 2026-10-26**: `groups`→`user_categories`, `/me/modules`) · [ADR 0004](../../adr/0004-bordes-y-capa-de-aplicacion.md) (casos de uso, guard, scopes) · [ADR 0007](../../adr/0007-manejo-de-errores.md) (envelope, `request_id`, `admin_actions`) · [ADR 0008](../../adr/0008-fechas-y-moneda.md) (timezone, config de instancia, moneda) · testing strategy (D2, aislamiento)
 **Decide el usuario:** reframe Categoría ≠ Grupo de módulo + decisiones A–J de la conversación de diseño (2026-10-26)
 
 ## 1. Objetivo
@@ -17,7 +17,7 @@ Definir el **modelo de datos del Core** — la superficie transversal que compar
 |---|---|---|
 | Qué es "grupo" | **Categoría/etiqueta de usuarios** ("familia", "amigos") | Grupo real de datos (grupo de gastos, sus miembros, saldos) |
 | Quién lo define | El `super_admin` de la instancia | El caso de uso del módulo |
-| Dónde vive | Tablas del Core (`categories`, `category_members`) | **Tablas propias del módulo** (`expense_groups`, …) |
+| Dónde vive | Tablas del Core (`user_categories`, `user_category_members`) | **Tablas propias del módulo** (`expense_groups`, …) |
 | Rol | Solo `super_admin` (instancia) + usuario con acceso a módulos | Roles del módulo (admin de grupo de gastos, etc.) |
 | RLS | Derivada de identidad + acceso a módulo | La define el módulo sobre sus tablas, apoyándose en el Core |
 
@@ -40,10 +40,10 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `display_name` | text NOT NULL | |
 | `locale` | text NOT NULL | default = locale de la instancia (ADR 0008) |
 | `timezone` | text NOT NULL | default = zona de la instancia (ADR 0008) |
-| `is_super_admin` | bool NOT NULL DEFAULT false | escritura **solo** vía `/setup` (primer admin, auth §3bis) y API por un admin existente; el propietario no la edita (ver §5) |
+| `role` | text NOT NULL DEFAULT `user` CHECK (`super_admin`\|`admin`\|`user`) | **jerarquía de 3 roles** (decisión usuario, 2026-10-26): `super_admin` (top, no borrable, root de `/setup`), `admin` (gestiona la instancia + crea/actualiza admins, no crea super_admins ni borra el root), `user` (acceso a sus módulos). `super_admin`/`admin` acceden a **todos los módulos** (públicos y privados). Escritura del rol solo vía `/setup` (primero) y API por un admin/super_admin (nunca el propietario sobre su propia fila — ver §5) |
 | `created_at`, `updated_at` | timestamptz | |
 
-**`categories`** — etiqueta de usuarios creada por el `super_admin`.
+**`user_categories`** — etiqueta de usuarios creada por un `admin`/`super_admin`.
 | Columna | Tipo | Notas |
 |---|---|---|
 | `id` | uuid PK | |
@@ -52,10 +52,10 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `created_by` | uuid NOT NULL → `profiles.id` | |
 | `created_at` | timestamptz | |
 
-**`category_members`** — M2M usuario ↔ categoría (un usuario puede estar en varias categorías).
+**`user_category_members`** — M2M usuario ↔ categoría (un usuario puede estar en varias categorías).
 | Columna | Tipo | Notas |
 |---|---|---|
-| `category_id` | uuid NOT NULL → `categories.id` | PK compuesta |
+| `user_category_id` | uuid NOT NULL → `user_categories.id` | PK compuesta |
 | `user_id` | uuid NOT NULL → `profiles.id` | PK compuesta |
 | `created_at` | timestamptz | |
 
@@ -70,6 +70,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `name` | text NOT NULL | |
 | `version` | text NOT NULL | versión instalada actual |
 | `state` | text NOT NULL CHECK (`installed`\|`active`\|`disabled`) | `installed`/`active` = disponible; `disabled` = no disponible pero DDL intacto; **uninstall** = `DELETE` de la fila + reversión de migraciones (`module_migrations` `down`) |
+| `is_public` | bool NOT NULL DEFAULT false | módulo **público** (todos los usuarios lo usan sin `user_modules`) vs **privado** (solo admins + usuarios con concesión). Default lo declara el manifest; override por super_admin en el panel |
 | `manifest_digest` | text NOT NULL | hash del manifest validado (contrato, task-03) |
 | `installed_at`, `updated_at` | timestamptz | secreto: no modificar fuera del instalador |
 
@@ -95,16 +96,16 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 
 > **`granted_by` y re-grant** (hallazgo de revisión): al canjear una invitación, `granted_by` = el `super_admin`/admin que creó la invitación (o el definer del canjeo). Un **re-grant** tras una soft-revocación (`revoked_at` no nulo) es un **UPDATE que limpia `revoked_at`**, no un INSERT (la PK es `(user_id, module_key)`); la semántica "re-asignar = resucitar la concesión" queda fijada. Las concesiones mediadas por clave `service` (p. ej. tools MCP, task-05) no tienen `profiles.id` como `granted_by` → se permite `granted_by` NULL **solo** en ese caso (o un sentinel documentado), resuelto en task-02/05; el resto exige un actor humano.
 
-**`category_modules`** — **plantilla de asignación masiva** (decisión A2: **materializa**).
+**`user_category_modules`** — **plantilla de asignación masiva** (decisión A2: **materializa**).
 | Columna | Tipo | Notas |
 |---|---|---|
-| `category_id` | uuid NOT NULL → `categories.id` | |
+| `user_category_id` | uuid NOT NULL → `user_categories.id` | |
 | `module_key` | text NOT NULL → `module_registry.key` | |
 | `assigned_by` | uuid NOT NULL → `profiles.id` | |
 | `created_at` | timestamptz | |
-| — | PK `(category_id, module_key)` | |
+| — | PK `(user_category_id, module_key)` | |
 
-**Semántica (decisión A2):** asignar un módulo a una categoría = **materializar** `user_modules` para los miembros **actuales** de la categoría (transacción: insert `user_modules` por cada `category_members`, si no existe). Los que entren después **no** lo heredan automáticamente — la categoría es un lote inicial, no un vínculo vivo. Revocar en la categoría **no** revoca concesiones ya materializadas (se revoca por usuario cuando toque). La fila `category_modules` queda como trazabilidad del lote.
+**Semántica (decisión A2):** asignar un módulo a una categoría = **materializar** `user_modules` para los miembros **actuales** de la categoría (transacción: insert `user_modules` por cada `user_category_members`, si no existe). Los que entren después **no** lo heredan automáticamente — la categoría es un lote inicial, no un vínculo vivo. Revocar en la categoría **no** revoca concesiones ya materializadas (se revoca por usuario cuando toque). La fila `user_category_modules` queda como trazabilidad del lote.
 
 ### 3.3 Configuración, monedas y traducciones
 
@@ -169,7 +170,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `id` | uuid PK | |
 | `email` | text NOT NULL | el invitado puede modificarlo al registrarse (auth §3) |
 | `name` | text NOT NULL | nombre propuesto (el invitado confirma) |
-| `category_id` | uuid NULL → `categories.id` | **solo clasificación**, no concede permisos |
+| `user_category_id` | uuid NULL → `user_categories.id` | **solo clasificación**, no concede permisos |
 | `token_hash` | text UNIQUE NOT NULL | token de un solo uso, **solo hash** (spec de tokens §6) |
 | `expires_at` | timestamptz NOT NULL | |
 | `used_at` | timestamptz NULL | single-use (se marca al canjear) |
@@ -183,7 +184,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `module_key` | text NOT NULL → `module_registry.key` | |
 | — | PK `(invitation_id, module_key)` | |
 
-> Al canjear: se crea/verifica `profiles` (Supabase Admin API), se inserta `category_members` si hay `category_id`, y se **materializan** los `user_modules` de `invitation_modules`. La revocación de concesiones es posterior y por usuario (3.2).
+> Al canjear: se crea/verifica `profiles` (Supabase Admin API), se inserta `user_category_members` si hay `user_category_id`, y se **materializan** los `user_modules` de `invitation_modules`. La revocación de concesiones es posterior y por usuario (3.2).
 
 ### 3.5 Tokens de máquina
 
@@ -249,8 +250,8 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 Principio rector (spec §12 y decisión de revisión): **el dato no se borra a la ligera — se archiva, se marca o se restringe**. Reglas por ámbito:
 
 - **`profiles`**: nunca hard-delete si hay referencias de historial (invitaciones que creó, concesiones, dispositivos, acciones de admin) — se desactiva (`deleted_at`/soft) o se mantiene inerte. El borrado físico real queda como operación de super_admin explícita y documentada (task-02).
-- **`categories` / `category_members`**: borrar una categoría **no** revoca concesiones ya materializadas (`user_modules`) — la categoría es plantilla, no vínculo vivo (decisión A2). `category_members` puede hard-delete al "expulsar" (no afecta a concesiones); `categories` se puede hard-delete si no tiene `category_modules`/invitaciones pendientes que la referencien (restringir o vaciar antes).
-- **`module_registry`**: la **desinstalación (uninstall)** es el único borrado de módulo: `DELETE` de la fila + reversión de todas sus `module_migrations` (`direction: down`). Mientras el DDL esté aplicado, la fila permanece en `installed`/`active`/`disabled` — **no** se borra a medias. FKs desde `user_modules`/`category_modules`/`invitation_modules`/`settings_categories` (`source: module:<key>`) → `RESTRICT` o `CASCADE` explícito decidido en task-03 (por defecto: no se desinstala un módulo con concesiones/settings en uso sin confirmación).
+- **`user_categories` / `user_category_members`**: borrar una categoría **no** revoca concesiones ya materializadas (`user_modules`) — la categoría es plantilla, no vínculo vivo (decisión A2). `user_category_members` puede hard-delete al "expulsar" (no afecta a concesiones); `user_categories` se puede hard-delete si no tiene `user_category_modules`/invitaciones pendientes que la referencien (restringir o vaciar antes).
+- **`module_registry`**: la **desinstalación (uninstall)** es el único borrado de módulo: `DELETE` de la fila + reversión de todas sus `module_migrations` (`direction: down`). Mientras el DDL esté aplicado, la fila permanece en `installed`/`active`/`disabled` — **no** se borra a medias. FKs desde `user_modules`/`user_category_modules`/`invitation_modules`/`settings_categories` (`source: module:<key>`) → `RESTRICT` o `CASCADE` explícito decidido en task-03 (por defecto: no se desinstala un módulo con concesiones/settings en uso sin confirmación).
 - **`module_migrations`**: inmutable (append-only); solo el instalador escribe; la reversión registra filas `direction: down`.
 - **`settings` / `settings_categories` / `currencies`**: sin borrado casual; desactivar (`enabled=false`, `sort_order`/`disabled`) en lugar de borrar. La **moneda default no se desactiva** (invariante de negocio; enforcement en el caso de uso, task-06).
 - **`invitations` / `api_keys` / `devices` / `admin_actions` / `audit`**: soft (`used_at`, `revoked_at`, `expires_at`) o append-only (`audit`, `admin_actions`); sin hard-delete salvo purga explícita de retención (task-07/10).
@@ -263,35 +264,37 @@ El permiso efectivo se **deriva por petición** (ADR 0004 §2, spec de tokens §
 
 | Llamador | Permiso efectivo |
 |---|---|
-| Móvil (JWT Supabase) | Los **scopes de las acciones** que sus `user_modules` habilitan: si el usuario no tiene `split-expenses`, `expenses:read` no le aplica. `is_super_admin` → instancia completa |
+| Móvil (JWT Supabase) | `super_admin`/`admin` → **acceso a todos los módulos** (públicos y privados). `user` → los módulos **públicos** (`is_public`) + los de sus `user_modules` sin revocar; los scopes de las acciones que esos módulos habilitan. `is_super_admin`/`is_admin` → además poderes de gestión de la instancia |
 | Clave delegada (`027_usr_`) | `min(scopes de la clave, permisos del usuario)` |
 | Clave service (`027_svc_`) | scopes de la clave (sin identidad de usuario; ver §6: definer de servicio) |
-| Admin web | Igual que el móvil + las acciones de `super_admin` para su rol |
+| Admin web | Igual que el móvil + las acciones de `super_admin`/`admin` según su rol |
 
 **Regla**: los scopes son **por acción expuesta** (cada puerta declara los scopes que exige — ADR 0004 §2). La concesión de módulos (`user_modules`) es el **gate** de qué scopes "existen" para el usuario; el guard los comprueba; RLS es la segunda barrera.
 
 ## 5. RLS (por tabla)
 
 Patrón de **security definer functions** canónicas (task-10 lo formaliza):
-- `is_super_admin()` → `profiles.is_super_admin` de `auth.uid()`
-- `has_module_access(key)` → existe `user_modules(user_id = auth.uid(), module_key = key)` sin `revoked_at`
+- `is_super_admin()` → `profiles.role = 'super_admin'` de `auth.uid()`
+- `is_admin()` → `profiles.role IN ('super_admin','admin')` de `auth.uid()`
+- `has_module_access(key)` → `is_admin() OR module_registry.is_public OR existe user_modules(user_id = auth.uid(), module_key = key)` sin `revoked_at`
 - `is_service(caller)` → la puerta/definer identifica llamador service (JWT de servicio emitido por nuestra API, no Supabase) — ver §6
 
 | Tabla | Política RLS |
 |---|---|
-| `profiles` | read: la propia fila (`auth.uid() = id`) + `is_super_admin` lee todos (panel); write: la propia fila **solo en columnas no sensibles** (`display_name`, `locale`, `timezone`). **`is_super_admin` NO es editable por el propietario**: solo el wizard `/setup` (primer admin, auth §3bis) y la API (caso de uso con scope, ADR 0004) la cambian — se implementa con grant a nivel de columna o trigger en el patrón RLS canónico (task-10). Varios admins son válidos: los concede la API por un admin existente, nunca el usuario sobre su propia fila |
-| `categories`, `category_members` | read: `is_super_admin` (gestión) + miembro de la categoría (ver su etiqueta); write: **solo la API/`is_super_admin`** (la membresía la inserta el caso de uso de canjeo o el super_admin, **nunca el miembro sobre sí mismo**) |
+| `profiles` | read: la propia fila (`auth.uid() = id`) + `super_admin`/`admin` leen todos (panel); write: la propia fila **solo en columnas no sensibles** (`display_name`, `locale`, `timezone`). **`role` NO es editable por el propietario**: solo el wizard `/setup` (primer super_admin, auth §3bis) y la API (caso de uso con scope, ADR 0004) lo cambian — se implementa con grant a nivel de columna o trigger en el patrón RLS canónico (task-10). Varios admins/super_admins son válidos; el root de `/setup` no es borrable (decisión de roles) |
+| `user_categories`, `user_category_members` | read: `is_admin()` (gestión) + miembro de la categoría (ver su etiqueta); write: **solo la API/`is_admin()`** (la membresía la inserta el caso de uso de canjeo o un admin, **nunca el miembro sobre sí mismo**) |
 | `module_registry` | read: cualquier autenticado (para `/me/modules`/catálogo); write: **solo el instalador** (via service/API con scope, no RLS directo) |
-| `module_migrations` | read: **solo `is_super_admin`/service (instalador)** — el historial de DDL no lo necesita ningún usuario normal; write: **solo el instalador** |
-| `user_modules` | read: el propio usuario (sus concesiones) + `is_super_admin`; write: **solo `is_super_admin` (o definer de servicio acotado)** — la concesión/revocación la ejecuta la API, el usuario **nunca** puede auto-concederse (la concesión de módulos es solo de admins) |
-| `category_modules` | read: `is_super_admin`; write: `is_super_admin` (materialización vía caso de uso) |
-| `settings_categories`, `settings`, `currencies` | read: `is_super_admin` (config) / los no sensibles vía API `/instance` filter; write: `is_super_admin` |
-| `translations` | read: cualquier autenticado (resolución i18n en runtime); write: `is_super_admin` / pipeline de import (task-09) |
-| `invitations`, `invitation_modules` | read: `is_super_admin` (panel) + el registro de canjeo (flujo wizard); write: `is_super_admin` / caso de uso de canjeo |
-| `api_keys` | service: solo `is_super_admin`; delegado: el propietario (`user_id = auth.uid()`) + `is_super_admin` |
-| `devices` | read/write: el propio usuario; `is_super_admin` para el panel de revocar |
-| `audit` | read: `is_super_admin`; write: solo API (service) |
-| `admin_actions` | read: `is_super_admin`; write: solo API (service) |
+| `module_migrations` | read: **solo `is_super_admin()`/service (instalador)** — el historial de DDL no lo necesita ningún usuario normal; write: **solo el instalador** |
+| `user_modules` | read: el propio usuario (sus concesiones) + `is_admin()`; write: **solo `is_admin()` (o definer de servicio acotado)** — la concesión/revocación la ejecuta la API, el usuario **nunca** puede auto-concederse (la concesión de módulos es solo de admins) |
+| `user_category_modules` | read: `is_admin()`; write: `is_admin()` (materialización vía caso de uso) |
+| `settings_categories`, `settings`, `currencies` | read: `is_admin()` (config) / los no sensibles vía API `/instance` filter; write: `is_admin()` |
+| `translations` | read: cualquier autenticado (resolución i18n en runtime); write: `is_admin()` / pipeline de import (task-09) |
+| `invitations`, `invitation_modules` | read: `is_admin()` (panel) + el registro de canjeo (flujo wizard); write: `is_admin()` / caso de uso de canjeo |
+| `api_keys` | service: solo `is_super_admin()` (crear/revocar claves de instancia); delegado: el propietario (`user_id = auth.uid()`) + `is_admin()` |
+| `devices` | read/write: el propio usuario; `is_admin()` para el panel de revocar |
+| `audit` | read: `is_super_admin()`; write: solo API (service) |
+| `admin_actions` | read: `is_super_admin()`; write: solo API (service) |
+| **Gestión de roles** | `role` de un usuario: `admin` puede promocionar a `admin` y demotar `admin`; **solo `is_super_admin()`** crea/actualiza `super_admin`; el **root de `/setup` no es borrable** (invariante: siempre ≥1 `super_admin`) |
 
 ## 6. Claves de instancia (`027_svc_`) y RLS — el agujero decidido
 
@@ -318,18 +321,20 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 | # | Decisión |
 |---|---|
 | A | **Categoría ≠ Grupo de módulo**: el Core no modela grupos de datos; los módulos tienen los suyos. `participants`/`group_members` fuera del Core |
-| A2 | **Acceso a módulos por usuario** (`user_modules`), viaja con el usuario; `category_modules` es plantilla que **materializa** a los miembros actuales (los nuevos no heredan) |
+| A2 | **Acceso a módulos por usuario** (`user_modules`), viaja con el usuario; `user_category_modules` es plantilla que **materializa** a los miembros actuales (los nuevos no heredan) |
 | B | **Invitación** = email (modificable) + nombre + categoría (solo clasificación) + módulos a conceder al aceptar; el permiso viene de la invitación, no del grupo |
 | C | **Monedas**: listado `currencies` desactivable + `default_currency` en `settings`; los módulos sobreescriben por concepto |
 | D | **Permisos sin tabla RBAC**; derivados por petición (rol + `user_modules` + scopes por acción) |
 | E | **`audit`** (uso agregado de tokens) + **`admin_actions`** (log de mutaciones sensibles) |
 | F | **Módulos = plugins con contrato estricto** (`module_registry` + `module_migrations`); doc pública de "cómo crear tu módulo" (task-03/11) |
 | G | **Settings categorizados**: `settings_categories` (key, label en inglés, icono, orden, source) + `settings` (categoría + key con `UNIQUE(category_key, key)` = prefijo garantizado, texto en inglés, `value`/`value_encrypted` con `is_secret`); los módulos registran su categoría por manifest (task-03) |
-| H | **Delta API v1 (2026-10-26)**: `groups`→`categories`, `/me/modules`, config de módulo fuera de lo transversal, MCP lee categorías/usuarios |
+| H | **Delta API v1 (2026-10-26)**: `groups`→`user_categories`, `/me/modules`, config de módulo fuera de lo transversal, MCP lee categorías/usuarios |
 | I | Claves service: **guard = barrera efectiva**; definer de servicio acotado; nunca `service_role` por omisión |
 | J | **Traducciones del Core** (`translations`): el **texto en inglés es la clave** (estilo Laravel/gettext), fallback `locale → en`; el Core gestiona import, faltantes y cobertura; el kernel de resolución va en task-02, la pipeline en task-09, los strings de módulo viajan en el manifest (task-03) |
 | K | **Ciclo de vida de módulos** (instalar → activar → desactivar → desinstalar): `module_registry.state` = `installed`\|`active`\|`disabled`; **uninstall** = borrado de la fila + reversión de `module_migrations` (DDL `down`); desinstalar un módulo con concesiones/settings en uso exige confirmación (task-03) |
-| L | **RLS sin auto-escalado ni auto-concesión**: `profiles.is_super_admin` no es editable por el propietario (solo `/setup` y API); `user_modules`/`category_members` write solo admin (jamás el usuario sobre sí mismo) |
+| L | **RLS sin auto-escalado ni auto-concesión**: `profiles.role` no es editable por el propietario (solo `/setup` y API); `user_modules`/`user_category_members` write solo admin (jamás el usuario sobre sí mismo) |
+| M | **Roles jerárquicos (3)**: `super_admin` (top, no borrable, root `/setup`) / `admin` (gestiona instancia, crea/actualiza **admins**, no crea super_admins ni borra el root) / `user`. **super_admin y admin acceden a todos los módulos** (públicos y privados) |
+| N | **Módulos público/privado**: `module_registry.is_public` (default del manifest, override super_admin). **Público** = todos los usuarios lo usan sin `user_modules`; **privado** = solo admins + usuarios con concesión. `has_module_access` = `is_admin() OR is_public OR user_modules` |
 
 ## 9. Fuera de alcance
 
@@ -343,10 +348,10 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 
 ## 10. Criterios de aceptación
 
-- El esquema cubre identidad (`profiles`), categorización (`categories`, `category_members`), acceso (`user_modules` materializado, `category_modules`), plugins (`module_registry`, `module_migrations`), config (`settings_categories` + `settings` con prefijo garantizado, `currencies`+default, `translations`), invitación (`invitations` + `invitation_modules`), tokens (`api_keys` sin `group_id`), `devices`, `audit` y `admin_actions`.
+- El esquema cubre identidad (`profiles`), categorización (`user_categories`, `user_category_members`), acceso (`user_modules` materializado, `user_category_modules`), plugins (`module_registry`, `module_migrations`), config (`settings_categories` + `settings` con prefijo garantizado, `currencies`+default, `translations`), invitación (`invitations` + `invitation_modules`), tokens (`api_keys` sin `group_id`), `devices`, `audit` y `admin_actions`.
 - **No** hay tablas de "grupos de datos de módulo" en el Core (eso vive en cada módulo).
 - El **acceso a módulos es por usuario y viaja con él**; la categoría es solo clasificación/plantilla (decisión A2).
-- **RLS por tabla** con definers canónicos (`is_super_admin`, `has_module_access`), **sin auto-escalado ni auto-concesión** (decisiones L) y contrato de aislamiento definido (D2 adaptado a categorías/usuarios).
+- **RLS por tabla** con definers canónicos (`is_admin()`, `is_super_admin()`, `has_module_access`), **sin auto-escalado ni auto-concesión** (decisiones L) y contrato de aislamiento definido (D2 adaptado a categorías/usuarios).
 - **Ciclo de vida de módulos** (instalar/activar/desactivar/desinstalar) con `module_migrations` reversibles (decisión K) y semántica de borrado definida (§3.8).
 - Coherente con la spec de API v1 (con delta 2026-10-26), spec de tokens §5/§7, ADR 0004/0007/0008 y testing D2.
 - Aprobada por el usuario y revisada por segundo agente (DoD de Docs).
