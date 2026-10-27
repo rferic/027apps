@@ -3,6 +3,7 @@ id: sprint-infra-task-08
 titulo: Proyecto Firebase + FCM (notificaciones push)
 area: infra
 estado: pendiente
+plan: docs/superpowers/plans/2026-10-27-sprint-infra.md
 fuente: docs/superpowers/specs/2026-10-26-realtime-notificaciones.md §6
 ---
 

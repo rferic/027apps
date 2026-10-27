@@ -3,6 +3,7 @@ id: sprint-infra-task-09
 titulo: SETTINGS_ENCRYPTION_KEY (clave maestra de secretos)
 area: infra
 estado: pendiente
+plan: docs/superpowers/plans/2026-10-27-sprint-infra.md
 fuente: docs/superpowers/specs/2026-10-26-instance-config.md §5
 ---
 
