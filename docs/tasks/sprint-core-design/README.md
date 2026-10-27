@@ -25,7 +25,7 @@ Sprint de **definición** (sin código de producto): diseñar la superficie inic
 | 07 | Trabajos programados y mantenimiento | spec `2026-10-26-jobs-mantenimiento.md` | ✅ `finalizada` (2026-10-26) |
 | 08 | Observabilidad | spec `2026-10-26-observabilidad.md` + `docs/guia-debugging.md` | ✅ `finalizada` (2026-10-26) |
 | 09 | i18n operativa | spec `2026-10-26-i18n-operativa.md` + `docs/flows/i18n.md` | ✅ `finalizada` (2026-10-26) |
-| 10 | Seguridad de definición (OWASP, amenazas, secrets, RLS, dependabot) | spec `2026-10-26-seguridad.md` | 🔵 en curso |
+| 10 | Seguridad de definición (OWASP, amenazas, secrets, RLS, dependabot) | spec + `security-checklist.md` + `SECURITY.md` | 🟡 `test` |
 | 11 | Documentación de la API pública | `docs/api/README.md` | ⏳ pendiente |
 | 12 | Shell del admin (definición) | spec `2026-10-26-admin-shell.md` | ⏳ pendiente |
 

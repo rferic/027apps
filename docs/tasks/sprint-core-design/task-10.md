@@ -2,7 +2,7 @@
 id: sprint-core-design-task-10
 titulo: Seguridad de definición — checklist OWASP, modelo de amenazas, secrets, RLS, dependencias (definición)
 area: core
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 
@@ -19,6 +19,13 @@ Tarea 10 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega do
 
 **Decisiones a fijar**: estructura de la checklist y cómo se engancha al DoD, contenido del modelo de amenazas, patrón RLS canónico (dónde vive, cómo se copia), política de secrets formal, configuración de dependabot.
 
-**Criterios de aceptación**: la checklist es usable por un auditor distinto del autor en cada tarea; el patrón RLS es copiable y su suite de aislamiento obligatoria; la política de secrets no contradice `AGENTS.md`/`cicd.md`; dependabot queda definido para el repo público.
+**Estado (2026-10-27):** spec `docs/superpowers/specs/2026-10-26-seguridad.md` + **`docs/conventions/security-checklist.md`** + **`SECURITY.md`** (inglés).
+- **Modelo de amenazas** de 12 escenarios (T1–T12) con mitigación y **riesgo residual**, incluidas las lecciones de las auditorías: defaults fail-open de SDK, rol de `pg_cron`, suplantación i18n entre módulos, locks de sesión inviables. Declara lo que queda **fuera** (proveedor cloud, malware del dispositivo, DDoS volumétrico).
+- **Política de secretos**: 5 categorías (plataforma en env / instancia cifrada / usuario en Supabase / máquina hasheada / **no secretos** como `fcm_api_key` y DSN), prohibición de superficies de fuga, cifrado AES-GCM con nonce y AAD, **custodia de la clave maestra separada del backup**, rotación con doble clave, y `guard-secrets` con todos los prefijos (`sb_`, `027_svc_`, `027_usr_`, `SETTINGS_ENCRYPTION_KEY`).
+- **Patrón RLS canónico** (8 reglas): deny por defecto, funciones compartidas, definers con `OWNER` correcto, **nada de políticas permisivas sin comparar fila/topic**, actores identificables, atribución antes del borrado, suite de aislamiento por tabla y tests de borde de retención.
+- **Cadena de suministro**: **Dependabot** semanal agrupado **sin auto-merge** con security updates prioritarias; acciones por SHA; lockfile; dependencias nuevas solo con caso real; SDK pinneados y **defaults de privacidad revisados**.
+- **Checklist** enlazada desde el **DoD punto 7** (el DoD sigue siendo la norma).
 
-**Referencias**: `docs/conventions/definition-of-done.md` (auditoría incondicional), spec diseño §4/§8/§11 (seguridad, secrets), `docs/flows/cicd.md` (guard-secrets), ADR 0004 (guard), ADR 0005 (dependencias), task-01 (patrón RLS).
+**Criterios de aceptación**: checklist con A01–A10 y controles concretos enlazada desde el DoD; modelo de amenazas con mitigación y riesgo residual + fuera de modelo; política de secretos con clasificación, prohibiciones, custodia y rotación; patrón RLS copiable con suite de aislamiento; dependabot/pinning/lockfile; `SECURITY.md` con canal privado y alcance; revisado por segundo agente y auditoría OWASP.
+
+**Referencias**: `docs/superpowers/specs/2026-10-26-seguridad.md`, `docs/conventions/security-checklist.md`, `SECURITY.md`, DoD, `docs/flows/cicd.md`, task-01/04/05/06/09.
