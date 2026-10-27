@@ -24,7 +24,9 @@ Tarea 12 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega un
 - **Módulos aportan páginas** (decisión del usuario): `admin_pages` en el manifest (route/label/icon/role), servidas en `/modules/[key]/[route]`, componente por convención en el paquete, **check de CI** (página declarada ↔ fichero), y **settings del módulo generadas** del catálogo (el módulo no las escribe).
 - **Guard por rol en servidor** por página y acción; 403 sin enumerar; acciones vía `/api/v1` (ADR 0004/0005); **realtime `admins`** como señal de invalidación.
 - **i18n** del panel con el catálogo; estados con el DS; `request_id` visible en errores.
-- **Deltas a task-03** (manifest `admin_pages` + check CI) aplicados.
+- **Deltas reales aplicados**: task-03 (manifest `admin_pages` con `route` de un segmento validada + check de CI + componente por convención) y task-02 (`PATCH /modules/{key}` acepta `is_public` y `mcp_exposed`).
+
+**Correcciones de revisión + auditoría (2026-10-26)**: 1 Alta (las páginas de módulo corren mismo-origen con la sesión del admin → **modelo de confianza explícito**: código first-party revisado, mismo lint/CSP, módulo `active`, `route` de un segmento; sin iframe en v1, riesgo residual en T4/T13), dashboard **por rol** (un `admin` no lee `/admin-actions` ni `/maintenance/status`), `/setup` desaparece al **completar**, páginas para `currencies`/`audit`/`requeue`/`import`/`/me` + cerrar sesión, contraste **AA** corregido en el mockup (destructivo en outline, `--success-on-tint` en oscuro) y `mcp_exposed` escribible por API.
 
 **Criterios de aceptación**: mapa completo con roles; dashboard mínimo definido; contrato de páginas de módulo con check de CI; guard en servidor sin permisos propios; realtime como invalidación; i18n con el catálogo; **mockup aprobado por el usuario** (DoD de Diseño); revisado por segundo agente y auditoría OWASP.
 

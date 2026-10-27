@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,7 +15,7 @@
   --border:#E3E5E8; --input:#E3E5E8;
   --primary:#17191C; --primary-foreground:#FFFFFF;
   --accent:#09795F; --accent-foreground:#FFFFFF; --accent-tint:#ACE4D6; --accent-on-tint:#0C3C32;
-  --destructive:#BE123C; --success:#15803D; --success-tint:#E0F7E8; --success-on-tint:#136B33;
+  --destructive:#BE123C; --destructive-tint:rgba(190,18,60,.10); --success:#15803D; --success-tint:#E0F7E8; --success-on-tint:#136B33;
   --warning:#B93815; --warning-tint:#FDEBE3;
 }
 .dark{
@@ -24,7 +24,7 @@
   --border:rgba(255,255,255,.09); --input:rgba(255,255,255,.10);
   --primary:#F7F8F8; --primary-foreground:#08090A;
   --accent:#1CC29F; --accent-foreground:#05231C; --accent-tint:#102825; --accent-on-tint:#1CC29F;
-  --destructive:#FB7185; --success:#4ADE80; --success-tint:rgba(74,222,128,.14);
+  --destructive:#FB7185; --destructive-tint:rgba(251,113,133,.12); --success:#4ADE80; --success-tint:rgba(74,222,128,.14); --success-on-tint:#4ADE80;
   --warning:#FF8A5C; --warning-tint:rgba(255,138,92,.16);
 }
 *{box-sizing:border-box}
@@ -74,7 +74,7 @@ a:hover{text-decoration:underline}
 .banner{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;
   border:1px solid var(--border);margin-bottom:10px;font-size:12px}
 .banner.warn{background:var(--warning-tint);border-color:transparent;color:var(--warning);font-weight:500}
-.banner.bad{background:var(--destructive);color:#fff;font-weight:500}
+.banner.bad{background:var(--destructive-tint);color:var(--destructive);border-color:transparent;font-weight:600}
 .banner a{color:inherit;text-decoration:underline;font-weight:600}
 .banner .x{margin-left:auto;cursor:pointer;opacity:.7}
 
@@ -101,7 +101,7 @@ tr:hover td{background:var(--surface-2)}
 .pill.gray{background:var(--muted);color:var(--muted-foreground)}
 .pill.ok{background:var(--success-tint);color:var(--success-on-tint)}
 .pill.warn{background:var(--warning-tint);color:var(--warning)}
-.pill.bad{background:var(--destructive);color:#fff}
+.pill.bad{background:var(--destructive-tint);color:var(--destructive)}
 .pill.teal{background:var(--accent-tint);color:var(--accent-on-tint)}
 .mono{letter-spacing:-.01em}
 .muted{color:var(--muted-foreground)}
@@ -137,7 +137,7 @@ input[type=text],input[type=password],select{background:var(--background);color:
     <div class="nav-group">General</div>
     <button class="nav-item active" data-view="dashboard"><span class="ico">▦</span> Dashboard</button>
 
-    <div class="nav-group">Personas</div>
+    <div class="nav-group">People</div>
     <button class="nav-item" data-view="users"><span class="ico">◍</span> Users</button>
     <button class="nav-item"><span class="ico">◫</span> Categories</button>
     <button class="nav-item"><span class="ico">✉</span> Invitations <span class="badge pill teal">2</span></button>
@@ -153,7 +153,6 @@ input[type=text],input[type=password],select{background:var(--background);color:
 
     <div class="nav-group">Operations</div>
     <button class="nav-item" data-view="ops"><span class="ico">⏱</span> Operations</button>
-    <button class="nav-item"><span class="ico">≡</span> Admin actions</button>
 
     <div class="nav-group">Modules</div>
     <button class="nav-item" data-view="module"><span class="ico">◉</span> Split Expenses</button>
@@ -161,6 +160,7 @@ input[type=text],input[type=password],select{background:var(--background);color:
     <div class="foot">
       <button class="nav-item" onclick="document.body.classList.toggle('dark')"><span class="ico">◐</span> Light / dark</button>
       <button class="nav-item"><span class="ico">☺</span> My profile</button>
+      <button class="nav-item"><span class="ico">⇥</span> Sign out</button>
     </div>
   </aside>
 
@@ -168,7 +168,7 @@ input[type=text],input[type=password],select{background:var(--background);color:
   <main class="main">
     <div class="topbar">
       <h1 id="pageTitle">Dashboard</h1><div class="spacer"></div>
-      <span class="chip ok" id="healthChip">● healthy</span>
+      <span class="chip ok" id="healthChip">● ok</span>
       <span class="chip mono">ric@example.com · super_admin</span>
       <button class="btn sm">Invite</button>
     </div>
@@ -207,7 +207,7 @@ input[type=text],input[type=password],select{background:var(--background);color:
         </div>
       </div>
 
-      <h2>Recent admin activity</h2>
+      <h2>Recent admin activity <span class="pill teal" style="font-size:10px">super_admin only</span></h2>
       <table>
         <tr><th>When</th><th>Action</th><th>By</th><th>Subject</th><th class="right">request_id</th></tr>
         <tr><td class="mono">2 min ago</td><td>invitation.create</td><td>ric</td><td>ana@example.com</td><td class="mono muted right">6f1c…8e</td></tr>
@@ -255,7 +255,7 @@ input[type=text],input[type=password],select{background:var(--background);color:
         <div><b style="font-size:14px">Split Expenses</b> <span class="pill ok">active</span>
           <span class="muted mono" style="font-size:11px">split-expenses · v1.0.0</span></div>
         <span class="spacer" style="flex:1"></span>
-        <button class="btn">Deactivate</button><button class="btn danger">Uninstall…</button>
+        <button class="btn">Deactivate</button>
       </div>
 
       <div class="grid g2">

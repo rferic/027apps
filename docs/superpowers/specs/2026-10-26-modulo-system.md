@@ -73,6 +73,10 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
     { "type": "expense.invited", "target": "user" }
   ],
   "hooks": { "user.deactivated": "handleUserDeactivated" },         // reacciones a eventos del Core (task-02 §3.2: DELETE /users/{id})
+  "admin_pages": [                                                  // páginas del panel que aporta el módulo (task-12)
+    { "route": "overview", "label": "Expenses overview", "icon": "chart", "group": "module", "role": "admin" },
+    { "route": "import",   "label": "Import from Splitwise", "icon": "upload", "group": "module", "role": "admin" }
+  ],
   "docs": {                                                         // documentación del módulo (task-11): obligatoria por capacidad
     "readme": "README.md",
     "api": "docs/api.md",
@@ -94,6 +98,7 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
 - Cada **setting** del manifest declara la forma completa de `settings` (task-06 §8): `key`, `type`, `default`, `label`/`help` en inglés, `is_public`, `is_secret` (⇒ `value_encrypted`), `mcp_access`, `sort_order`.
 - Cada **canal** declara `pattern` y `members_fn` (función SQL security definer del módulo que devuelve los `user_id` con acceso; la usan la RLS de realtime y la resolución de push — task-04 §2.2).
 - Los `hooks` referencian **eventos del Core** o del propio módulo (task-04 define el catálogo).
+- **`admin_pages`** (task-12): cada página declara `route` (**un solo segmento**, `^[a-z0-9]+(-[a-z0-9]+)*$`, sin `/`, `..`, `%2e` ni rutas reservadas), `label` (inglés, no vacío), `icon` (del DS), `group` (enum, `module`) y `role` (`admin`|`super_admin`). El componente vive en `packages/<key>/admin/<route>/page.tsx` y **el CI exige que exista**; la página se sirve en `/modules/<key>/<route>` y **solo si el módulo está `active`**. Son código **first-party compilado en el panel**: mismo lint/CSP y misma confianza que el Core (task-12 §6).
 - **Documentación por capacidad** (task-11): `docs.readme` **obligatorio**; `docs.api` **obligatorio si el manifest declara `scopes`** (señal mecánica de que añade endpoints); `docs.mcp` si declara `mcp_tools`; `docs.settings` si declara `settings`; `docs.events` si declara `eventos`/`channels`. El CI exige el fichero **y que cada nombre declarado (`mcp_tools[].name`, `settings[].key`, `eventos[].type`, `channels[].pattern`) aparezca en su documento**. Un módulo sin `README.md` **no instala**.
 
 **Regla de negocio del manifest:** un manifest NO declara rutas HTTP de `/api/v1` propias del recurso (esos endpoints son de la spec del módulo, mecanismo de extensión de api-v1 §5); el manifest solo declara DDL, settings, tools/eventos/hooks y los scopes para validación mecánica (que viven en código, ADR 0004 §2). El contrato de API lo añade el módulo con sus schemas/casos de uso/recursos, sin tocar la mecánica (api-v1 §5).
@@ -156,6 +161,7 @@ El manifest trae SQL ejecutable: capas de protección (filosofía "defensa en pr
 
 ## 6. CI del módulo (determinismo antes que agentes)
 
+- **Validación mecánica de `admin_pages`** (task-12): por cada página, el fichero `admin/<route>/page.tsx` existe; `route` cumple el patrón y no es reservada; `role`/`group`/`icon` en sus enums.
 - **Validación mecánica de la documentación** (task-11): `docs.readme` existe, **no vacío** y en inglés; el `docs.api`/`mcp`/`settings`/`events` exigido también existe y **no está vacío**; el fichero exigido por cada capacidad existe **y cada nombre declarado aparece** (`mcp_tools[].name` → `docs.mcp`, `settings[].key` → `docs.settings`, `eventos[].type` y `channels[].pattern` → `docs.events`); y los **scopes citados** en los documentos existen en el manifest. Sin `readme`, el módulo no instala.
 - **Validación mecánica del manifest** contra su esquema zod como **check de CI** en el **job `admin` existente** (se añade ahí; no hay job `modules` en `cicd.md` y no se crea uno aparte): todo PR que añada/modifique un `packages/*/manifest.json` pasa el contrato o falla.
 - El `digest`/`down_digest` de cada migración se **recalcula y compara** (evita manifests con digest desincronizado).
