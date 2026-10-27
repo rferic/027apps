@@ -2,7 +2,7 @@
 id: sprint-core-design-task-10
 titulo: Seguridad de definición — checklist OWASP, modelo de amenazas, secrets, RLS, dependencias (definición)
 area: core
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 
@@ -31,7 +31,7 @@ Tarea 10 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega do
 - **Checklist A11 Android**: manifest mínimo (`allowBackup=false`, `debuggable=false`), `cleartextTrafficPermitted=false`, Keystore para la sesión, deep links validados, sin tokens en logs, R8 + `apksigner`, dependencias Gradle.
 - **Desambiguación** `mcp_exposed` (módulo, 3 niveles, default `read`) vs `mcp_access` (setting, `none` por defecto); MCP valida `Origin`/`Host`; prioridad i18n `manual > import > code > module` como ítem.
 - **CSRF/cookies**: `HttpOnly`+`Secure`+`SameSite`, PKCE, mutaciones por `Bearer`, `Origin` en acciones sensibles; comparación de hashes en **tiempo constante**.
-- **Estado real de controles**: `guard-secrets` ampliado a `027_svc_`/`027_usr_`/`SETTINGS_ENCRYPTION_KEY=` y `CODEOWNERS`/protección de `main` quedan como **delta de infra**, marcados `✘` en la checklist mientras falten.
+- **Estado real de controles**: `guard-secrets` ampliado a `027_svc_`/`027_usr_`/`SETTINGS_ENCRYPTION_KEY=` y `CODEOWNERS`/protección de `main` quedan como **delta de infra**, marcados `✘` en la checklist mientras falten. **Con dueño creado**: `sprint-infra` task-10 (`CODEOWNERS`) y task-11 (`guard-secrets`); backups en la rama `sprint/infra-backups`.
 
 **Criterios de aceptación**: checklist con A01–A11 y controles verificables, enlazada desde el DoD; modelo T1–T15 con mitigación y residual + fuera de modelo; política de secretos con clasificación/estado real; patrón RLS canónico; Dependabot con fichero real; `SECURITY.md` en inglés con canal privado, APK en alcance y sin SLA; revisado por segundo agente y auditoría.
 
