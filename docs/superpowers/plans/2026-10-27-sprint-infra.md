@@ -40,38 +40,47 @@ Fallas que este setup no debe dejar atrás; cada línea tiene su verificación f
 
 ---
 
-### Task 1 — infra-04: Proyecto Supabase + envs (la puerta)
+### Task 1 — infra-04: Supabase dev + stack local (la puerta)
 
 **Files:**
-- Modify: `docs/infrastructure.md` (fila de Supabase en el inventario: nombres/refs de proyecto, sin claves)
+- Create: `supabase/config.toml`, `supabase/.gitignore` (stack local, versionado)
+- Modify: `docs/infrastructure.md` (fila del stack local + ref del proyecto cloud, sin claves)
 - Local (nunca en git): `apps/admin/.env.local`
 
 **Interfaces:**
-- Produces: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` presentes en `.env.local` local (dev) — las consume sprint-05 (migraciones, auth, `/api/health`) y la tarea 4 las sube a Vercel.
+- Produces: stack **local** operativo (`http://127.0.0.1:54321`, Studio 54323, Mailpit 54324) y `.env.local` apuntándolo — lo consumen sprint-05 (migraciones + suite de aislamiento RLS, offline) y el desarrollo diario.
+- Produces: proyecto **cloud** `027apps-dev` (URL/anón/service role en Vercel, scope Preview/Production) — lo consume infra-06 (previews); Vercel no alcanza `localhost`.
 
-- [ ] **Step 1: (usuario) Crear el proyecto de desarrollo**
+> **Dos entornos, dos propósitos**: local para desarrollo/TDD (rápido, sin red ni secretos); cloud para previews de Vercel y validación de integración (pooler real, migraciones empujadas).
 
-En supabase.com con 2FA: nueva organización → proyecto **`027apps-dev`** (región cercana, p. ej. `eu-central-1`), contraseña de BD generada y guardada en el gestor de contraseñas. Anotar el **project ref** (no es secreto).
+- [ ] **Step 1: (usuario) Crear el proyecto cloud de desarrollo**
 
-> El proyecto de **producción** se crea al cierre de sprint-05 (free tier: un proyecto idle se pausa; no crear ahora lo que no se usa). Queda registrado como puerta del roadmap.
+Dashboard de Supabase con 2FA → **`027apps-dev`** (región `eu-west-1`, la que usaban los proyectos retirados), contraseña de BD generada y guardada **solo** en el gestor de contraseñas (se rota si se pega en un chat: es secret). Anotar el **project ref** (no es secreto).
 
-- [ ] **Step 2: (usuario) Copiar las tres variables al entorno local**
+> El proyecto de **producción** se crea al cierre de sprint-05 (free tier: un proyecto idle se pausa; no crear ahora lo que no se usa).
 
-Dashboard → Settings → API: `Project URL`, `anon public`, `service_role`. Escribirlas en `apps/admin/.env.local` (el usuario, en su editor; el agente no ve valores).
+- [ ] **Step 2: (agente) Levantar el stack local**
 
-- [ ] **Step 3: (agente) Verificar que `.env.local` está ignorado por git**
+Run: `supabase init` (si no hay `supabase/`), luego `supabase start`
+Expected: `API_URL=http://127.0.0.1:54321`, `DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`, Studio `54323`, Mailpit `54324`. `imgproxy`/`pooler` pueden quedar parados: no se usan. Commitear `supabase/config.toml` + `supabase/.gitignore`.
 
-Run: `git check-ignore apps/admin/.env.local && git ls-files apps/admin/.env.local | wc -l`
-Expected: imprime la ruta (ignorado) y `0` (no rastreado).
+- [ ] **Step 3: (agente) `.env.local` → stack local**
 
-- [ ] **Step 4: (agente) E2E local de salud contra el proyecto real**
+Run: `supabase status -o json` → escribir en `apps/admin/.env.local` la URL local y las claves **demo** (públicas, no secretas). Verificar ignorado: `git check-ignore apps/admin/.env.local && git ls-files apps/admin/.env.local | wc -l`
+Expected: ignorado y `0` rastreados.
 
-Run: arrancar `pnpm --filter admin dev` y `curl -s -o /dev/null -w "%{http_code}\n" localhost:3000/api/health`
-Expected: `200` (con envs, `/api/health` hace `listUsers` real; sin envs devolvería `503 degraded` — ese contraste es la evidencia).
+- [ ] **Step 4: (agente) E2E local de salud**
 
-- [ ] **Step 5: (agente) Documentar y cerrar**
+Run: `PORT=3101 pnpm --filter admin dev` (el 3000 puede estar ocupado por OrbStack) y `curl -s -w "%{http_code}" 127.0.0.1:3101/api/health`
+Expected: `200` + `{"status":"ok"}`. `/api/health` hace `auth.admin.listUsers` real contra el stack; sin envs devuelve `503 degraded` — ese contraste es la evidencia.
 
-Actualizar `docs/infrastructure.md` (fila Supabase: `027apps-dev`, ref, propósito dev/preview; prod "al cierre de sprint-05") y el estado de `docs/tasks/sprint-infra/task-04.md` → `finalizada` con la evidencia del paso 4. La subida a Vercel es la tarea 4 de este plan.
+- [ ] **Step 5: (usuario, en infra-06) Envs del cloud a Vercel**
+
+Las tres variables del proyecto `027apps-dev` van a Vercel (Preview y Production), no a `.env.local`. Las pega el usuario en el dashboard.
+
+- [ ] **Step 6: (agente) Documentar y cerrar**
+
+`docs/infrastructure.md` (stack local + `027apps-dev`; prod al cierre de sprint-05), `docs/flows/cicd.md` (migraciones se validan primero en local) y `task-04.md` → `finalizada` con la evidencia del paso 4.
 
 ### Task 2 — infra-09: `SETTINGS_ENCRYPTION_KEY` (clave maestra)
 

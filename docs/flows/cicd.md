@@ -85,12 +85,13 @@ Reglas de manejo de secretos:
 
 Aún no existe ninguna migración; el orden queda definido para cuando aparezca la primera:
 
-1. El PR con la migración tiene preview contra el proyecto Supabase de desarrollo/preview (nunca contra producción).
-2. Merge a `main` → Vercel despliega el admin.
-3. **Después del deploy del admin** un job en `main` (con secrets de Supabase) aplica las migraciones pendientes a producción (`supabase db push`).
-4. **Antes del keep-alive**: el keep-alive diario solo valida salud tras migrar; si la migración falla el job queda en rojo y el siguiente ping no enmascara el problema.
-5. Las migraciones deben ser compatibles hacia atrás con la versión anterior del admin (expand → migrate → contract): el admin nuevo ya está desplegado cuando se aplica la migración y un rollback de código debe seguir funcionando.
-6. Sin secrets de Supabase (forks) el job de migraciones se omite sin fallar.
+1. **En local primero**: `supabase db reset` aplica todas las migraciones desde cero sobre el stack local y la suite de aislamiento RLS corre ahí (no necesita el proyecto cloud ni secretos). Una migración que no pasa en local no abre PR.
+2. El PR con la migración tiene preview contra el proyecto Supabase de desarrollo/preview (nunca contra producción).
+3. Merge a `main` → Vercel despliega el admin.
+4. **Después del deploy del admin** un job en `main` (con secrets de Supabase) aplica las migraciones pendientes a producción (`supabase db push`).
+5. **Antes del keep-alive**: el keep-alive diario solo valida salud tras migrar; si la migración falla el job queda en rojo y el siguiente ping no enmascara el problema.
+6. Las migraciones deben ser compatibles hacia atrás con la versión anterior del admin (expand → migrate → contract): el admin nuevo ya está desplegado cuando se aplica la migración y un rollback de código debe seguir funcionando.
+7. Sin secrets de Supabase (forks) el job de migraciones se omite sin fallar.
 
 ## Backups
 
