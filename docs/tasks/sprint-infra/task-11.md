@@ -3,6 +3,7 @@ id: sprint-infra-task-11
 titulo: Ampliar guard-secrets a los prefijos del proyecto
 area: infra
 estado: pendiente
+plan: docs/superpowers/plans/2026-10-27-sprint-infra.md
 fuente: docs/conventions/security-checklist.md (A06) y docs/superpowers/specs/2026-10-26-seguridad.md §4.2
 ---
 

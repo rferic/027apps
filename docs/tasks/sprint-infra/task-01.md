@@ -3,6 +3,7 @@ id: sprint-infra-task-01
 titulo: Proteger main (ruleset)
 area: infra
 estado: pendiente
+plan: docs/superpowers/plans/2026-10-27-sprint-infra.md
 fuente: docs/flows/cicd.md §A.1
 ---
 

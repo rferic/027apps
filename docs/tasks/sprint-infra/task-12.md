@@ -3,6 +3,7 @@ id: sprint-infra-task-12
 titulo: Backup cifrado de la base de datos fuera de Supabase
 area: infra
 estado: test
+plan: docs/superpowers/plans/2026-10-27-sprint-infra.md
 fuente: docs/superpowers/specs/2026-10-26-backups.md
 ---
 

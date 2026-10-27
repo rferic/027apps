@@ -3,6 +3,7 @@ id: sprint-infra-task-05
 titulo: SMTP del proyecto (proveedor gratuito)
 area: infra
 estado: pendiente
+plan: docs/superpowers/plans/2026-10-27-sprint-infra.md
 fuente: spec auth §3bis / §5bis
 ---
 

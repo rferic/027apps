@@ -3,6 +3,7 @@ id: sprint-infra-task-10
 titulo: CODEOWNERS y propiedad de workflows
 area: infra
 estado: pendiente
+plan: docs/superpowers/plans/2026-10-27-sprint-infra.md
 fuente: docs/conventions/security-checklist.md (A06) y docs/superpowers/specs/2026-10-26-seguridad.md T10
 ---
 
