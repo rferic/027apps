@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>027Apps · Admin shell mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ===== Identidad D (tokens semánticos) ===== */
+:root{
+  --background:#F6F7F8; --surface:#FFFFFF; --surface-2:#F6F7F8;
+  --muted:#ECEEF0; --muted-foreground:#5B6472; --foreground:#17191C;
+  --border:#E3E5E8; --input:#E3E5E8;
+  --primary:#17191C; --primary-foreground:#FFFFFF;
+  --accent:#09795F; --accent-foreground:#FFFFFF; --accent-tint:#ACE4D6; --accent-on-tint:#0C3C32;
+  --destructive:#BE123C; --success:#15803D; --success-tint:#E0F7E8; --success-on-tint:#136B33;
+  --warning:#B93815; --warning-tint:#FDEBE3;
+}
+.dark{
+  --background:#08090A; --surface:#0E0F11; --surface-2:#141517;
+  --muted:#1A1B1E; --muted-foreground:#8A8F98; --foreground:#F7F8F8;
+  --border:rgba(255,255,255,.09); --input:rgba(255,255,255,.10);
+  --primary:#F7F8F8; --primary-foreground:#08090A;
+  --accent:#1CC29F; --accent-foreground:#05231C; --accent-tint:#102825; --accent-on-tint:#1CC29F;
+  --destructive:#FB7185; --success:#4ADE80; --success-tint:rgba(74,222,128,.14);
+  --warning:#FF8A5C; --warning-tint:rgba(255,138,92,.16);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,sans-serif;font-size:13px;line-height:1.45;
+  background:var(--background);color:var(--foreground)}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ===== Shell ===== */
+.shell{display:grid;grid-template-columns:224px 1fr;min-height:100vh}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:10px;
+  display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{display:flex;align-items:center;gap:8px;padding:8px 8px 12px}
+.brand .dot{width:22px;height:22px;border-radius:7px;background:var(--accent);
+  display:grid;place-items:center;color:var(--accent-foreground);font-weight:800;font-size:11px}
+.brand b{font-size:13px;letter-spacing:-.01em}
+.brand .v{margin-left:auto;color:var(--muted-foreground);font-size:11px}
+.nav-group{margin-top:10px;padding:6px 8px 3px;color:var(--muted-foreground);
+  font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+.nav-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;
+  color:var(--muted-foreground);cursor:pointer;border:0;background:none;font:inherit;text-align:left;width:100%}
+.nav-item:hover{background:var(--muted);color:var(--foreground)}
+.nav-item.active{background:var(--accent-tint);color:var(--accent-on-tint);font-weight:600}
+.dark .nav-item.active{color:var(--accent-on-tint)}
+.nav-item .ico{width:15px;text-align:center;opacity:.9}
+.nav-item .badge{margin-left:auto}
+.sidebar .foot{margin-top:auto;padding-top:10px;border-top:1px solid var(--border)}
+
+.main{min-width:0}
+.topbar{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border);
+  background:var(--surface);position:sticky;top:0;z-index:5}
+.topbar h1{font-size:14px;margin:0;font-weight:600}
+.topbar .spacer{flex:1}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;
+  background:var(--muted);color:var(--muted-foreground);font-size:11px}
+.chip.ok{background:var(--success-tint);color:var(--success-on-tint);font-weight:600}
+.chip.bad{background:var(--warning-tint);color:var(--warning);font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;
+  border:1px solid var(--border);background:var(--surface);color:var(--foreground);
+  font:inherit;font-size:12px;cursor:pointer}
+.btn.primary{background:var(--primary);color:var(--primary-foreground);border-color:transparent}
+.btn.danger{color:var(--destructive);border-color:var(--border);background:transparent}
+.btn.sm{padding:3px 8px;font-size:11px;border-radius:7px}
+
+.content{padding:14px 16px 40px;max-width:1080px}
+.banner{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;
+  border:1px solid var(--border);margin-bottom:10px;font-size:12px}
+.banner.warn{background:var(--warning-tint);border-color:transparent;color:var(--warning);font-weight:500}
+.banner.bad{background:var(--destructive);color:#fff;font-weight:500}
+.banner a{color:inherit;text-decoration:underline;font-weight:600}
+.banner .x{margin-left:auto;cursor:pointer;opacity:.7}
+
+.grid{display:grid;gap:10px}
+.g4{grid-template-columns:repeat(4,1fr)} .g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:2fr 1fr}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+.kpi .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-foreground)}
+.kpi .val{font-family:"JetBrains Mono",monospace;font-size:18px;font-weight:600;margin-top:3px}
+.kpi .sub{color:var(--muted-foreground);font-size:11px;margin-top:2px}
+.kpi .glyph{float:right;color:var(--accent);opacity:.9}
+
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted-foreground);margin:16px 0 8px}
+table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);
+  text-align:left;padding:7px 10px;background:var(--muted);font-weight:600}
+td{padding:7px 10px;border-top:1px solid var(--border)}
+td.num{font-family:"JetBrains Mono",monospace;text-align:right}
+tr:hover td{background:var(--surface-2)}
+.right{display:flex;gap:6px;justify-content:flex-end}
+
+.pill{display:inline-flex;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
+.pill.gray{background:var(--muted);color:var(--muted-foreground)}
+.pill.ok{background:var(--success-tint);color:var(--success-on-tint)}
+.pill.warn{background:var(--warning-tint);color:var(--warning)}
+.pill.bad{background:var(--destructive);color:#fff}
+.pill.teal{background:var(--accent-tint);color:var(--accent-on-tint)}
+.mono{letter-spacing:-.01em}
+.muted{color:var(--muted-foreground)}
+.rowflex{display:flex;align-items:center;gap:10px}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--accent-tint);
+  color:var(--accent-on-tint);display:grid;place-items:center;font-weight:600;font-size:11px}
+.doclink{font-size:11px;color:var(--accent)}
+.switch{width:34px;height:19px;border-radius:999px;background:var(--muted);position:relative;
+  cursor:pointer;border:1px solid var(--border)}
+.switch.on{background:var(--accent);border-color:transparent}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;
+  background:var(--surface);transition:.15s}
+.switch.on::after{left:17px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 12px;border-top:1px solid var(--border)}
+.settings-row:first-child{border-top:0}
+.settings-row .k{font-weight:500}
+.settings-row .help{color:var(--muted-foreground);font-size:11px}
+.secret{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted-foreground)}
+input[type=text],input[type=password],select{background:var(--background);color:var(--foreground);
+  border:1px solid var(--input);border-radius:8px;padding:6px 9px;font:inherit;font-size:12px;min-width:220px}
+.view{display:none}.view.active{display:block}
+.legend{color:var(--muted-foreground);font-size:11px;margin:8px 2px}
+.note{font-size:11px;color:var(--muted-foreground);border-left:3px solid var(--border);padding:4px 10px;margin:10px 0}
+</style>
+</head>
+<body class="dark">
+<div class="shell">
+  <!-- ======== SIDEBAR ======== -->
+  <aside class="sidebar">
+    <div class="brand"><div class="dot">027</div><b>027Apps</b><span class="v mono">v0.4.0</span></div>
+
+    <div class="nav-group">General</div>
+    <button class="nav-item active" data-view="dashboard"><span class="ico">▦</span> Dashboard</button>
+
+    <div class="nav-group">Personas</div>
+    <button class="nav-item" data-view="users"><span class="ico">◍</span> Users</button>
+    <button class="nav-item"><span class="ico">◫</span> Categories</button>
+    <button class="nav-item"><span class="ico">✉</span> Invitations <span class="badge pill teal">2</span></button>
+
+    <div class="nav-group">Platform</div>
+    <button class="nav-item" data-view="module"><span class="ico">⬢</span> Modules</button>
+    <button class="nav-item"><span class="ico">⚿</span> API keys</button>
+    <button class="nav-item"><span class="ico">⌖</span> Devices</button>
+
+    <div class="nav-group">Configuration</div>
+    <button class="nav-item"><span class="ico">⚙</span> Settings</button>
+    <button class="nav-item"><span class="ico">文</span> Translations</button>
+
+    <div class="nav-group">Operations</div>
+    <button class="nav-item" data-view="ops"><span class="ico">⏱</span> Operations</button>
+    <button class="nav-item"><span class="ico">≡</span> Admin actions</button>
+
+    <div class="nav-group">Modules</div>
+    <button class="nav-item" data-view="module"><span class="ico">◉</span> Split Expenses</button>
+
+    <div class="foot">
+      <button class="nav-item" onclick="document.body.classList.toggle('dark')"><span class="ico">◐</span> Light / dark</button>
+      <button class="nav-item"><span class="ico">☺</span> My profile</button>
+    </div>
+  </aside>
+
+  <!-- ======== MAIN ======== -->
+  <main class="main">
+    <div class="topbar">
+      <h1 id="pageTitle">Dashboard</h1><div class="spacer"></div>
+      <span class="chip ok" id="healthChip">● healthy</span>
+      <span class="chip mono">ric@example.com · super_admin</span>
+      <button class="btn sm">Invite</button>
+    </div>
+
+    <!-- ======== VIEW: DASHBOARD ======== -->
+    <section class="content view active" id="view-dashboard">
+      <div class="banner warn">Push is not configured — family members won't receive notifications. <a href="#">Fix</a><span class="x">✕</span></div>
+      <div class="banner bad">Instance degraded: 3 outbox events pending for over an hour. <a href="#">Operations</a></div>
+
+      <div class="grid g4">
+        <div class="card kpi"><div class="glyph">◍</div><div class="lbl">Members</div><div class="val">9</div><div class="sub">2 admins · 7 users</div></div>
+        <div class="card kpi"><div class="glyph">◫</div><div class="lbl">Categories</div><div class="val">4</div><div class="sub">Family · Friends · …</div></div>
+        <div class="card kpi"><div class="glyph">⬢</div><div class="lbl">Active modules</div><div class="val">2</div><div class="sub">split-expenses · todos</div></div>
+        <div class="card kpi"><div class="glyph">✉</div><div class="lbl">Pending invites</div><div class="val">2</div><div class="sub">1 expiring in 3 days</div></div>
+      </div>
+
+      <h2>Modules</h2>
+      <div class="grid g3">
+        <div class="card">
+          <div class="rowflex"><b>Split Expenses</b><span class="pill ok">active</span><span class="pill teal mono" style="margin-left:auto">v1.0.0</span></div>
+          <div class="legend">Groups of expenses, balances and settlement.</div>
+          <div class="rowflex"><a class="doclink" href="#">README</a><a class="doclink" href="#">Settings</a><a class="doclink" href="#">MCP</a>
+            <span style="margin-left:auto"><a class="btn sm" href="#" onclick="show('module')">Open →</a></span></div>
+        </div>
+        <div class="card">
+          <div class="rowflex"><b>TODO</b><span class="pill ok">active</span><span class="pill teal mono" style="margin-left:auto">v0.9.2</span></div>
+          <div class="legend">Shared family tasks.</div>
+          <div class="rowflex"><a class="doclink" href="#">README</a><a class="doclink" href="#">Settings</a>
+            <span style="margin-left:auto"><a class="btn sm" href="#">Open →</a></span></div>
+        </div>
+        <div class="card">
+          <div class="rowflex"><b>Calendar</b><span class="pill gray">installed</span></div>
+          <div class="legend">Birthdays and family events.</div>
+          <div class="rowflex"><a class="doclink" href="#">README</a>
+            <span style="margin-left:auto"><a class="btn sm">Activate</a></span></div>
+        </div>
+      </div>
+
+      <h2>Recent admin activity</h2>
+      <table>
+        <tr><th>When</th><th>Action</th><th>By</th><th>Subject</th><th class="right">request_id</th></tr>
+        <tr><td class="mono">2 min ago</td><td>invitation.create</td><td>ric</td><td>ana@example.com</td><td class="mono muted right">6f1c…8e</td></tr>
+        <tr><td class="mono">1 h ago</td><td>module.activate</td><td>service key</td><td>todos</td><td class="mono muted right">b44d…02</td></tr>
+        <tr><td class="mono">3 h ago</td><td>settings.update</td><td>ric</td><td>global.default_currency</td><td class="mono muted right">77aa…19</td></tr>
+        <tr><td class="mono">1 d ago</td><td>key.revoke</td><td>ric</td><td>home-assistant (027_svc_)</td><td class="mono muted right">9e02…c1</td></tr>
+      </table>
+    </section>
+
+    <!-- ======== VIEW: USERS ======== -->
+    <section class="content view" id="view-users">
+      <div class="rowflex" style="margin-bottom:10px">
+        <input type="text" placeholder="Search by name or email…">
+        <select><option>All modules</option><option>split-expenses</option><option>todos</option></select>
+        <select><option>All categories</option><option>Family</option><option>Friends</option></select>
+        <span class="spacer" style="flex:1"></span>
+        <button class="btn primary">Invite user</button>
+      </div>
+      <table>
+        <tr><th>User</th><th>Role</th><th>Categories</th><th>Modules</th><th>Devices</th><th class="right">Actions</th></tr>
+        <tr>
+          <td><div class="rowflex"><div class="avatar">R</div><div><b>Ricard</b><div class="muted mono" style="font-size:11px">ric@example.com</div></div></div></td>
+          <td><span class="pill teal">super_admin</span></td><td>Family</td><td class="mono">all</td><td class="mono">2</td>
+          <td class="right"><button class="btn sm">Edit</button> <button class="btn sm danger">Deactivate</button></td></tr>
+        <tr>
+          <td><div class="rowflex"><div class="avatar">A</div><div><b>Anna</b><div class="muted mono" style="font-size:11px">ana@example.com</div></div></div></td>
+          <td><span class="pill gray">user</span></td><td>Family</td><td class="mono">split-expenses</td><td class="mono">1</td>
+          <td class="right"><button class="btn sm">Edit</button> <button class="btn sm danger">Deactivate</button></td></tr>
+        <tr>
+          <td><div class="rowflex"><div class="avatar">L</div><div><b>Lena <span class="pill warn" style="font-size:10px">pending claim</span></b><div class="muted mono" style="font-size:11px">fictitious</div></div></div></td>
+          <td><span class="pill gray">user</span></td><td>Friends</td><td class="mono">split-expenses</td><td class="mono">—</td>
+          <td class="right"><button class="btn sm">Edit</button></td></tr>
+        <tr>
+          <td><div class="rowflex"><div class="avatar">M</div><div><b>Marc</b><div class="muted mono" style="font-size:11px">marc@example.com</div></div></div></td>
+          <td><span class="pill gray">admin</span></td><td>Family · Friends</td><td class="mono">all</td><td class="mono">1</td>
+          <td class="right"><button class="btn sm">Edit</button> <button class="btn sm danger">Deactivate</button></td></tr>
+      </table>
+      <div class="note">Deactivate is soft: it revokes sessions, module access and keys immediately, and modules get a hook to keep history (e.g. Split Expenses converts the participant to fictitious). <b>Deactivate requires super_admin.</b></div>
+    </section>
+
+    <!-- ======== VIEW: MODULE DETAIL ======== -->
+    <section class="content view" id="view-module">
+      <div class="rowflex" style="margin-bottom:10px">
+        <div class="avatar" style="border-radius:8px">◉</div>
+        <div><b style="font-size:14px">Split Expenses</b> <span class="pill ok">active</span>
+          <span class="muted mono" style="font-size:11px">split-expenses · v1.0.0</span></div>
+        <span class="spacer" style="flex:1"></span>
+        <button class="btn">Deactivate</button><button class="btn danger">Uninstall…</button>
+      </div>
+
+      <div class="grid g2">
+        <div>
+          <h2>Module pages (from the package)</h2>
+          <table>
+            <tr><th>Page</th><th>Route</th><th>Role</th></tr>
+            <tr><td>Expenses overview</td><td class="mono">/modules/split-expenses/overview</td><td>admin</td></tr>
+            <tr><td>Import from Splitwise</td><td class="mono">/modules/split-expenses/import</td><td>admin</td></tr>
+          </table>
+          <div class="note">Pages declared in the manifest and shipped inside the package; settings below are generated from the catalogue, not hand-written.</div>
+
+          <h2>Settings</h2>
+          <div class="card" style="padding:0">
+            <div class="settings-row"><div><div class="k">Default currency</div><div class="help">Currency used by default in this module</div></div>
+              <select><option>EUR</option><option>USD</option></select></div>
+            <div class="settings-row"><div><div class="k">Reminder threshold</div><div class="help">Days before a reminder is shown</div></div>
+              <input type="text" value="3" style="min-width:90px"></div>
+            <div class="settings-row"><div><div class="k">Show category column</div><div class="help">Visible to members (public setting)</div></div>
+              <div class="switch on"></div></div>
+            <div class="settings-row"><div><div class="k">Ledger seed</div><div class="help">Secret imported at setup</div><div class="secret">configured ✓</div></div>
+              <button class="btn sm">Replace…</button></div>
+          </div>
+        </div>
+
+        <div>
+          <h2>Access & exposure</h2>
+          <div class="card" style="padding:0">
+            <div class="settings-row"><div><div class="k">Public module</div><div class="help">Every member can use it without a grant</div></div><div class="switch"></div></div>
+            <div class="settings-row"><div><div class="k">MCP exposure</div><div class="help">none · read · read_write</div></div>
+              <select><option>read</option><option>read_write</option><option>none</option></select></div>
+          </div>
+
+          <h2>Documentation</h2>
+          <div class="card">
+            <div class="rowflex" style="gap:14px">
+              <a class="doclink" href="#">README</a><a class="doclink" href="#">API</a>
+              <a class="doclink" href="#">MCP tools</a><a class="doclink" href="#">Settings</a><a class="doclink" href="#">Events</a>
+            </div>
+          </div>
+
+          <h2>Lifecycle (super_admin)</h2>
+          <div class="card">
+            <div class="legend">Uninstall requires reviewing the schema rollback and keeps attribution.</div>
+            <button class="btn danger">Uninstall module…</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======== VIEW: OPERATIONS ======== -->
+    <section class="content view" id="view-ops">
+      <div class="grid g4">
+        <div class="card kpi"><div class="lbl">Outbox pending</div><div class="val" style="color:var(--warning)">3</div><div class="sub">oldest 63 min</div></div>
+        <div class="card kpi"><div class="lbl">Outbox failed (24 h)</div><div class="val">0</div><div class="sub">—</div></div>
+        <div class="card kpi"><div class="lbl">Last maintenance</div><div class="val mono" style="font-size:13px">11 min</div><div class="sub">outbox.retry · ok</div></div>
+        <div class="card kpi"><div class="lbl">Admin actions (24 h)</div><div class="val">7</div><div class="sub">2 by service keys</div></div>
+      </div>
+
+      <h2>Maintenance jobs</h2>
+      <table>
+        <tr><th>Job</th><th>Last run</th><th>Status</th><th>Processed / failed</th><th class="right">Run now</th></tr>
+        <tr><td class="mono">outbox.retry</td><td class="mono">11 min ago</td><td><span class="pill ok">ok</span></td><td class="mono">14 / 0</td><td class="right"><button class="btn sm">Run</button></td></tr>
+        <tr><td class="mono">audit.purge</td><td class="mono">3 h ago</td><td><span class="pill ok">ok</span></td><td class="mono">— / —</td><td class="right"><button class="btn sm">Run</button></td></tr>
+        <tr><td class="mono">api_keys.anonymize</td><td class="mono">26 h ago</td><td><span class="pill warn">stale</span></td><td class="mono">— / —</td><td class="right"><button class="btn sm">Run</button></td></tr>
+      </table>
+
+      <h2>Admin actions</h2>
+      <table>
+        <tr><th>When</th><th>Action</th><th>Actor</th><th>Subject</th><th class="right">request_id</th></tr>
+        <tr><td class="mono">2 min ago</td><td class="mono">invitation.create</td><td>ric</td><td>ana@example.com</td><td class="mono muted right">6f1c…8e</td></tr>
+        <tr><td class="mono">1 h ago</td><td class="mono">settings.update</td><td>service key</td><td>notifications.push.fcm_sender_id</td><td class="mono muted right">b44d…02</td></tr>
+      </table>
+      <div class="note">Operations is <b>super_admin</b> only. <code>POST /maintenance/run</code> needs an instance key with <code>role_cap=super_admin</code> and the <code>maintenance:run</code> scope.</div>
+    </section>
+  </main>
+</div>
+
+<script>
+  const titles={dashboard:"Dashboard",users:"Users",module:"Modules · Split Expenses",ops:"Operations"};
+  document.querySelectorAll(".nav-item[data-view]").forEach(b=>{
+    b.addEventListener("click",()=>{
+      document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+      document.getElementById("view-"+b.dataset.view).classList.add("active");
+      document.getElementById("pageTitle").textContent=titles[b.dataset.view]||b.dataset.view;
+      window.scrollTo(0,0);
+    })
+  });
+  function show(v){document.querySelector(`.nav-item[data-view="${v}"]`).click()}
+</script>
+</body>
+</html>

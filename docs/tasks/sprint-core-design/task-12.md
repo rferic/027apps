@@ -2,7 +2,7 @@
 id: sprint-core-design-task-12
 titulo: Shell del admin — definición de navegación, roles y consumos (definición)
 area: core
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 
@@ -18,6 +18,14 @@ Tarea 12 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega un
 
 **Decisiones a fijar**: mapa de navegación, nombres y agrupación de secciones, qué acciones exigen `super_admin`, aplicación concreta del ADR 0005 a las secciones del Core, orden de construcción en el sprint-web.
 
-**Criterios de aceptación**: la shell queda definida con roles y navegación; cada sección declara cómo obtiene su dato inicial y cómo muta (API routes, ADR 0004/0005); el guard por rol cubre el panel; el sprint-web puede implementarla sin redecidir arquitectura.
+**Estado (2026-10-26):** spec `docs/superpowers/specs/2026-10-26-admin-shell.md` + **mockup `docs/mockups/admin-shell.html`** (Dashboard, Users, detalle de módulo y Operations, claro/oscuro con los tokens de la identidad D).
+- **Mapa de navegación** con rol mínimo por página: General (Dashboard), Personas (Users/Categories/Invitations), Plataforma (Modules + detalle/API keys/Devices), Configuración (Settings/Translations), Operaciones (**super_admin**: outbox, jobs, admin_actions), Cuenta. `/login` y `/setup` aparte.
+- **Dashboard mínimo**: salud con motivo, 4 KPIs (miembros, categorías, módulos activos, invitaciones), **banners** (setup incompleto, push sin configurar, degradado), actividad reciente (admin_actions) y tarjetas de módulos. Sin métricas históricas.
+- **Módulos aportan páginas** (decisión del usuario): `admin_pages` en el manifest (route/label/icon/role), servidas en `/modules/[key]/[route]`, componente por convención en el paquete, **check de CI** (página declarada ↔ fichero), y **settings del módulo generadas** del catálogo (el módulo no las escribe).
+- **Guard por rol en servidor** por página y acción; 403 sin enumerar; acciones vía `/api/v1` (ADR 0004/0005); **realtime `admins`** como señal de invalidación.
+- **i18n** del panel con el catálogo; estados con el DS; `request_id` visible en errores.
+- **Deltas a task-03** (manifest `admin_pages` + check CI) aplicados.
 
-**Referencias**: ADR 0005, ADR 0004 §8, spec de auth §6 (roles), spec diseño §11 (Core: shell del admin), DS v1 (sprint-02), task-02/03/05/06/08, `docs/tasks/sprint-web/task-01.md` (backlog).
+**Criterios de aceptación**: mapa completo con roles; dashboard mínimo definido; contrato de páginas de módulo con check de CI; guard en servidor sin permisos propios; realtime como invalidación; i18n con el catálogo; **mockup aprobado por el usuario** (DoD de Diseño); revisado por segundo agente y auditoría OWASP.
+
+**Referencias**: `docs/superpowers/specs/2026-10-26-admin-shell.md`, `docs/mockups/admin-shell.html`, ADR 0004/0005, task-03 (manifest), task-04 (canal admins), task-06 (wizard), task-09 (i18n), sprint-web.
