@@ -16,6 +16,7 @@ Inventario de servicios, secretos y operación de una instancia desplegada. Comp
 | GitHub (`rferic/027apps`) | Código, CI, releases del APK | Free (repo público: minutos de Actions sin coste) | El código vive en clones locales; el APK firmado requiere el keystore (gestor de contraseñas) |
 | Vercel | Admin + `/api/v1` | Hobby | Se recrea desde el repo; solo hay que reponer env vars |
 | Supabase | Postgres, Auth, Storage, Realtime | Free: **sin backups**, 500 MB de BD, pausa por inactividad (~1 semana) | **Se reconstruye** desde el backup + migraciones (este documento) |
+| Supabase local (dev) | BD/Auth/Storage/Realtime para desarrollar y para el TDD de migraciones + RLS | Docker, sin coste; lo levanta `supabase start` | Se recrea con `supabase start`; `supabase db reset` deja la BD limpia y aplica las migraciones |
 | Firebase (FCM) | Push | Free (opcional) | Se recrea el proyecto; los valores van en settings |
 | Cloudflare R2 (o Backblaze B2) | Backups cifrados de la BD | R2: 10 GB gratis, sin coste de egress | **Punto único de los backups**: ver copia secundaria (§8) |
 | healthchecks.io (opcional) | Vigilancia de que el backup corre | Free | Se pierde la alerta proactiva; queda el email de fallo de GitHub |
