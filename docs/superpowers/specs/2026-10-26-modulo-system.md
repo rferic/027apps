@@ -61,7 +61,8 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
   "i18n": ["es", "ca", "en", "it", "fr", "de", "pt", "gl", "eu"],  // locales que siembra (source: module:<key>); el set activo lo filtra el check de CI (task-09)
   "scopes": ["expenses:read", "expenses:write", "balance:read"],   // acciones expuestas (ADR 0004 §2); viven en código, el manifest solo las declara para validación mecánica (CI) y el guard
   "mcp_tools": [                                                    // tools MCP (nombre corto; el Core lo expone como <module_key>.<tool> — task-05)
-    { "name": "expenses_list", "description": "List group expenses", "scopes": ["expenses:read"] }
+    { "name": "expenses_list", "kind": "read", "description": "List group expenses", "scopes": ["expenses:read"] },
+    { "name": "expenses_create", "kind": "write", "description": "Create an expense", "scopes": ["expenses:write"] }
   ],
   "channels": [                                                     // canales realtime propios del módulo (task-04)
     { "pattern": "expense-group-{id}", "members_fn": "split_expenses_expense_group_members" }
@@ -89,10 +90,11 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
 - `scopes` siguen la convención `recurso:acción` de task-02; **viven en código** (ADR 0004 §2, token-model §5), el manifest solo los declara para validación mecánica (CI) y el guard — no se "siembran" en BD (no existe tabla de scopes, decisión H6).
 - Las tools MCP referencian un scope declarado.
 - Cada **evento** declara `type`, `target` (`admins`|`all`|`user`|`channel:<pattern>`) y opcionalmente `notify` (task-04 §2.3/§6.3); un `target` de canal exige un `channels[].pattern` declarado.
+- Cada **tool MCP** declara `name`, **`kind` (`read`|`write`)**, `description` (inglés) y `scopes`; `mcp_exposed = read` oculta y bloquea las de `write` (task-05).
 - Cada **setting** del manifest declara la forma completa de `settings` (task-06 §8): `key`, `type`, `default`, `label`/`help` en inglés, `is_public`, `is_secret` (⇒ `value_encrypted`), `mcp_access`, `sort_order`.
 - Cada **canal** declara `pattern` y `members_fn` (función SQL security definer del módulo que devuelve los `user_id` con acceso; la usan la RLS de realtime y la resolución de push — task-04 §2.2).
 - Los `hooks` referencian **eventos del Core** o del propio módulo (task-04 define el catálogo).
-- **Documentación por capacidad** (task-11): `docs.readme` **obligatorio**; `docs.api` si el módulo añade recursos a `/api/v1`; `docs.mcp` si declara `mcp_tools`; `docs.settings` si declara `settings`; `docs.events` si declara `eventos`/`channels`. El CI exige el fichero **y que cada nombre declarado (`mcp_tools[].name`, `settings[].key`, `eventos[].type`, `channels[].pattern`) aparezca en su documento**. Un módulo sin `README.md` **no instala**.
+- **Documentación por capacidad** (task-11): `docs.readme` **obligatorio**; `docs.api` **obligatorio si el manifest declara `scopes`** (señal mecánica de que añade endpoints); `docs.mcp` si declara `mcp_tools`; `docs.settings` si declara `settings`; `docs.events` si declara `eventos`/`channels`. El CI exige el fichero **y que cada nombre declarado (`mcp_tools[].name`, `settings[].key`, `eventos[].type`, `channels[].pattern`) aparezca en su documento**. Un módulo sin `README.md` **no instala**.
 
 **Regla de negocio del manifest:** un manifest NO declara rutas HTTP de `/api/v1` propias del recurso (esos endpoints son de la spec del módulo, mecanismo de extensión de api-v1 §5); el manifest solo declara DDL, settings, tools/eventos/hooks y los scopes para validación mecánica (que viven en código, ADR 0004 §2). El contrato de API lo añade el módulo con sus schemas/casos de uso/recursos, sin tocar la mecánica (api-v1 §5).
 
@@ -154,6 +156,7 @@ El manifest trae SQL ejecutable: capas de protección (filosofía "defensa en pr
 
 ## 6. CI del módulo (determinismo antes que agentes)
 
+- **Validación mecánica de la documentación** (task-11): `docs.readme` existe, no vacío y en inglés; el fichero exigido por cada capacidad existe **y cada nombre declarado aparece** (`mcp_tools[].name` → `docs.mcp`, `settings[].key` → `docs.settings`, `eventos[].type` y `channels[].pattern` → `docs.events`); y los **scopes citados** en los documentos existen en el manifest. Sin `readme`, el módulo no instala.
 - **Validación mecánica del manifest** contra su esquema zod como **check de CI** en el **job `admin` existente** (se añade ahí; no hay job `modules` en `cicd.md` y no se crea uno aparte): todo PR que añada/modifique un `packages/*/manifest.json` pasa el contrato o falla.
 - El `digest`/`down_digest` de cada migración se **recalcula y compara** (evita manifests con digest desincronizado).
 - Las claves i18n se validan con el **check de locales** (task-09) en el **job `admin`**: el manifest declara un **subconjunto ⊆ 9** que **incluye `en`**, y el check exige **ese subconjunto + su catálogo** (los 9 completos son el set disponible, no el de cada módulo).

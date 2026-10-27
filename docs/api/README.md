@@ -41,7 +41,7 @@ Every response includes:
 
 ## 2. Authentication
 
-There are three credentials, for three different callers. **All are opaque, scoped, and revocable instantly.**
+There are three credentials, for three different callers. All are **scoped and revocable instantly**; API keys are **opaque** (only a hash is stored), and the mobile uses the **Supabase session JWT**.
 
 | Caller | Credential | Header |
 |---|---|---|
@@ -52,6 +52,7 @@ There are three credentials, for three different callers. **All are opaque, scop
 - **Scopes per action.** Each endpoint declares the scopes it needs (`expenses:read`, `users:write`, `modules:grant`, …). A delegated key is limited to `min(key scopes, user permissions)`.
 - **Instance keys** carry a `role_cap` (`admin` or `super_admin`): their effective power is `min(scopes, role_cap)`. An instance key **never** acts as a user.
 - **Revocation is immediate**: a revoked or expired key fails on the very next request (no cache delay).
+- **The mobile app uses only the Supabase JWT**; it never uses instance or delegated keys.
 - **Never put a key in a browser** or in client-side code. Keys are for servers and local tools.
 - **Secrets are shown once**, at creation. Only a hash is stored; if you lose it, create a new key.
 
@@ -81,7 +82,7 @@ Every error from `/api/v1` uses the same envelope:
 ```
 
 - **`code` is the contract.** Branch on it, never on `message`. `message` is a default English text; the UI translates it locally.
-- `details` appears **only** for `validation_failed` (field-level errors you can map to a form).
+- `details` appears mainly for `validation_failed` (field-level errors you can map to a form); other codes may carry non-sensitive extra information when the client needs it.
 - `request_id` identifies the exact request in the server logs; quote it in support requests.
 - **No internals** are ever returned: no SQL, no stack traces, no internal paths — not even in development.
 
@@ -102,7 +103,6 @@ Every error from `/api/v1` uses the same envelope:
 | `currency_not_enabled` | 400 | The currency is not enabled on this instance | No — pick an enabled one |
 | `locale_not_available` | 400 | The locale is not served by this instance | No — pick an enabled one |
 | `already_setup` | 409 | The instance already has a `super_admin`; `/setup` is closed | No |
-| `destructive_action_required` | 409 | A destructive operation needs explicit confirmation | No — confirm it |
 
 > Error codes are part of the contract: changing one is a breaking change (see [Versioning](#3-versioning)).
 
@@ -128,7 +128,7 @@ GET /api/v1/some-list?cursor=<opaque>&limit=50
 
 ## 6. Rate limiting
 
-Limits are applied **per identity** (user or key), not per IP, and in layers:
+Limits are applied **per identity** (user or key) on authenticated surfaces, and **per IP** on the identity-less ones, in layers:
 
 | Layer | Default |
 |---|---|
@@ -136,6 +136,8 @@ Limits are applied **per identity** (user or key), not per IP, and in layers:
 | API key | 30 requests/minute |
 | Writes (mutations) | 10 requests/minute |
 | Public endpoints (no identity) | 30 requests/minute per IP |
+
+*These are starting values and are **tuneable per instance**; do not hard-code them.*
 
 On excess: `429` with `Retry-After` (seconds) and `{ "error": { "code": "rate_limited", … } }`. Implement **exponential backoff**; do not retry in a tight loop.
 
@@ -145,7 +147,7 @@ Retries are safe for writes:
 
 - **Creates** accept a **client-generated `id` (UUID)**. The same `id` returns the same resource; the same `id` with different content returns `conflict`.
 - **Repeatable actions** (settle up, send) accept an **`Idempotency-Key`** header (or `idempotency_key` field in MCP). The same key with the **same payload** replays the stored result; a **different payload** returns `conflict`.
-- Keys are remembered for **24 hours**. The replay returns the result of *that* operation, not the current state of the resource.
+- Keys are remembered for **24 hours** (configurable). If the same key arrives while the first request is still **in flight**, the API answers `conflict` with `Retry-After`. The replay returns the result of *that* operation, not the current state of the resource.
 
 ```bash
 curl -sS -X POST "$INSTANCE_URL/api/v1/invitations" \
@@ -167,7 +169,7 @@ An instance has a **catalogue of modules** (e.g. Split Expenses). A module is in
 
 | Endpoint | What it returns |
 |---|---|
-| `GET /api/v1/modules` | Catalogue: `key`, `name`, `version`, `state`, `is_public`, `mcp_exposed` |
+| `GET /api/v1/modules` | Catalogue: `key`, `name`, `version`, `state`, `is_public` |
 | `GET /api/v1/me/modules` | **Your** modules (public + granted); admins see all |
 | `GET /api/v1/modules/{key}` | Detail: state, version, `is_public`, its **public settings**, and its **documentation** |
 
@@ -182,7 +184,28 @@ packages/<key>/
   docs/events.md       # required if it declares events or realtime channels
 ```
 
-The CI **fails** if a declared capability is not documented, and checks that every tool, setting and event **appears by name** in the corresponding document. `GET /modules/{key}` returns the `docs` block with the URLs available, so you always link to documentation that exists.
+The CI **fails** if a declared capability is not documented, and checks that every tool, setting, event **and realtime channel** appears **by name** in the corresponding document (`docs.api` is required when the module declares `scopes`, which is the machine-checkable signal that it adds endpoints).
+
+`GET /modules/{key}` returns a **`docs`** block with the URLs of the documents **served by this instance** (`GET /modules/{key}/docs/{readme|api|mcp|settings|events}`), so you always link to documentation that exists and belongs to the installed package.
+
+### Core endpoints (at a glance)
+
+| Area | Endpoints | Notes |
+|---|---|---|
+| Health & instance | `GET /health`, `GET /instance` | public, non-sensitive |
+| You | `GET/PATCH /me`, `GET /me/modules` | your profile and your modules |
+| Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}` | soft-deactivate; root protected |
+| Categories (admin) | `/user-categories`, `/{id}/members`, `/{id}/modules` | assign module ∈ category materializes access |
+| Modules (admin) | `GET /modules`, `GET /modules/{key}`, `POST /modules/{key}/install\|activate\|deactivate\|uninstall`, `PATCH /modules/{key}` | install/uninstall require an administrator to review the schema changes |
+| Access (admin) | `POST/DELETE /users/{id}/modules/{key}` | per-user grant/revoke |
+| Invitations | `POST/GET /invitations`, `DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | redeem is the public join step (single use) |
+| API keys | `POST/GET /api-keys`, `GET/DELETE /api-keys/{id}` | secret returned once |
+| Devices | `POST/GET /devices`, `DELETE /devices/{id}` | push registration and revocation |
+| Settings & currency | `GET/PATCH /settings`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies/{code}` | security settings are super-admin only |
+| i18n | `GET /translations?locale=`, `GET /translations/status`, `POST /translations/import`, `PUT /translations/{locale}/{hash}` | ETag-cached |
+| Operations (admin) | `GET /admin-actions`, `GET /audit`, `GET /maintenance/status`, `POST /maintenance/run` | maintenance uses an instance key |
+
+Full request/response shapes: the generated OpenAPI (§11) or the normative spec while it is not published.
 
 Module endpoints and tools live in the module's own documentation, not here (the Core does not duplicate them).
 
@@ -220,21 +243,32 @@ The same data is exposed to **AI agents** over the **Model Context Protocol**. M
 
 ### 10.4 Administration tools (`/mcp/admin`)
 
-| Tool | Scope | Effect |
-|---|---|---|
-| `invitations_create` | `invitations:write` | Creates an invitation (**never** returns the redeem token/link) |
-| `invitations_list` / `invitations_revoke` | `invitations:read` / `:write` | List / revoke |
-| `users_list` / `users_get` | `users:read` | List (filters `q`, `module`, `category`) / get — **no email** in output |
-| `users_update` | `users:write` | Profile fields only |
-| `users_assign_role` | `roles:assign` | `admin` ↔ `user`; `super_admin` needs a `super_admin` role cap |
-| `users_deactivate` | `users:deactivate` | Soft-deactivate (revokes sessions/modules/keys); **root cannot be deactivated** |
-| `categories_list` / `_create` / `_update` / `_delete` | `user_categories:*` | Manage user categories |
-| `categories_add_member` / `_remove_member` | `user_categories:write` | Add/remove a user from a category |
-| `categories_assign_module` / `_unassign_module` | `user_categories:write` + `modules:grant` | Grant a module to a category (assign materializes access; unassign does **not** revoke it) |
-| `modules_list` | `modules:read` | Catalogue |
-| `modules_grant` / `modules_revoke` | `modules:grant` | Per-user module access |
-| `settings_get` / `settings_update` | `settings:read` / `:write` | Only settings marked readable/writable for MCP (security settings never) |
-| `admin_actions_list` | `admin_actions:read` | Sensitive mutations log (`super_admin`) |
+| Tool | Scope | Min. `role_cap` | Effect |
+|---|---|---|---|
+| `invitations_create` | `invitations:write` | admin | Creates an invitation (**never** returns the redeem token/link) |
+| `invitations_list` | `invitations:read` | admin | List |
+| `invitations_revoke` | `invitations:write` | admin | Revoke |
+| `users_list` | `users:read` | admin | List (filters `q`, `module`, `category`) — **no email** in output |
+| `users_get` | `users:read` | admin | User detail — **no email** |
+| `users_update` | `users:write` | admin | Profile fields only |
+| `users_assign_role` | `roles:assign` | admin (to `super_admin`: `super_admin`) | `admin` ↔ `user` |
+| `users_deactivate` | `users:deactivate` | **super_admin** | Software deactivation (revokes sessions, modules, keys) |
+| `categories_list` | `user_categories:read` | admin | List categories |
+| `categories_create` | `user_categories:write` | admin | Create |
+| `categories_update` | `user_categories:write` | admin | Rename |
+| `categories_delete` | `user_categories:write` | admin | Delete (does **not** revoke materialized access) |
+| `categories_add_member` | `user_categories:write` | admin | Add a user |
+| `categories_remove_member` | `user_categories:write` | admin | Remove a user |
+| `categories_assign_module` | `user_categories:write` + `modules:grant` | admin | Grant a module to a category (materializes access) |
+| `categories_unassign_module` | `user_categories:write` + `modules:grant` | admin | Remove it from the template (**does not** revoke access) |
+| `modules_list` | `modules:read` | admin | Catalogue (incl. `mcp_exposed`) |
+| `modules_grant` | `modules:grant` | admin | Per-user access |
+| `modules_revoke` | `modules:grant` | admin | Revoke per-user access |
+| `settings_get` | `settings:read` | admin | Only settings marked readable for MCP |
+| `settings_update` | `settings:write` | admin | Only settings marked writable for MCP (`security.*`, `connectivity.*` and `auth.*` are never exposed) |
+| `admin_actions_list` | `admin_actions:read` | **super_admin** | Sensitive mutations log |
+
+**Role invariants (always enforced):** the `/setup` owner (**root**) cannot be demoted or deactivated, and the instance always keeps **at least one active `super_admin`**. Violating either returns a domain error.
 
 **Not available over MCP, by design:** module install/uninstall (DDL needs a human reviewing the diff), API key management (secrets are shown once), any `is_secret` setting, and destructive deletion of money data.
 
@@ -264,7 +298,9 @@ Two channels, as the protocol defines:
 | Rate limited | `429` + `Retry-After` |
 | Unsupported protocol version | `-32022` |
 | Header mismatch | `-32020` |
-| Malformed request / unknown tool | `-32600` / `-32601` |
+| Malformed JSON | `-32700` |
+| Invalid request / unknown tool | `-32600` / `-32601` |
+| Unexpected server failure | `-32603` / HTTP 500 |
 
 **Tool execution errors** (the tool exists and was authorized): `result.isError: true` with the domain error inside `structuredContent`:
 
@@ -301,6 +337,8 @@ One shared budget per key (30 req/min by default, writes 10 req/min), audited pe
 - Each instance **serves it** at `GET /api/v1/openapi.json` (no auth needed to read the schema; the API itself still requires credentials).
 - A copy is committed to the repository at `docs/api/openapi.yaml` for review; CI fails if it is out of date.
 - A browsable rendering (Swagger or an equivalent) is published by the admin panel.
+
+*Planned detail (pending as a delta of the API spec): the served path is `/api/v1/openapi.json`, and the committed review copy lives at `docs/api/openapi.yaml`.*
 
 Until the API is implemented, the **normative reference** for the contract is the specification: [`docs/superpowers/specs/2026-10-25-api-v1.md`](../superpowers/specs/2026-10-25-api-v1.md) and the Core surface in [`2026-10-26-core-api.md`](../superpowers/specs/2026-10-26-core-api.md).
 
