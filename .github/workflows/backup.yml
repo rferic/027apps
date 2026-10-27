@@ -1,0 +1,104 @@
+name: Backup
+
+# Nightly logical backup of the production database, encrypted and stored outside
+# Supabase. Inactive until the secrets exist (see docs/infrastructure.md).
+
+on:
+  schedule:
+    - cron: '42 3 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AWS_DEFAULT_REGION: ${{ vars.BACKUP_S3_REGION || 'auto' }}
+    steps:
+      # Secrets are read here once so the rest of the steps never expose them to
+      # third-party actions. Without them (fork, fresh clone) the job is a no-op.
+      - name: Check configuration
+        id: config
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          RESTIC_REPOSITORY: ${{ secrets.RESTIC_REPOSITORY }}
+          RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          if [ -n "$SUPABASE_DB_URL" ] && [ -n "$RESTIC_REPOSITORY" ] \
+            && [ -n "$RESTIC_PASSWORD" ] && [ -n "$AWS_ACCESS_KEY_ID" ] \
+            && [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Backup secrets are not configured; skipping."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.config.outputs.enabled == 'true'
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install restic
+        if: steps.config.outputs.enabled == 'true'
+        run: |
+          version=0.19.1
+          sha256=f415415624dcc452f2a02b8c33641791a8c6d6d3b65bbb3543fcf9a25151585c
+          curl -fsSLo restic.bz2 \
+            "https://github.com/restic/restic/releases/download/v${version}/restic_${version}_linux_amd64.bz2"
+          echo "${sha256}  restic.bz2" | sha256sum -c -
+          bunzip2 restic.bz2
+          sudo install -m 0755 restic /usr/local/bin/restic
+          restic version
+
+      # pg_dump refuses to dump a server newer than itself; install the current
+      # major client so the workflow also works once the project is on PG 17.
+      - name: Install PostgreSQL client
+        if: steps.config.outputs.enabled == 'true'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSLo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+          pg_dump --version
+
+      - name: Dump and upload
+        if: steps.config.outputs.enabled == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          RESTIC_REPOSITORY: ${{ secrets.RESTIC_REPOSITORY }}
+          RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: bash scripts/backup/backup.sh
+
+      - name: Ping healthcheck
+        if: success() && steps.config.outputs.enabled == 'true'
+        env:
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
+        run: |
+          if [ -n "$HEALTHCHECK_URL" ]; then
+            curl -fsS --retry 3 --max-time 15 "$HEALTHCHECK_URL" > /dev/null
+          fi
+
+      # Without this ping the external check goes red, so a disabled schedule or
+      # an expired token cannot masquerade as "backups are fine".
+      - name: Report failure to healthcheck
+        if: failure() && steps.config.outputs.enabled == 'true'
+        env:
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
+        run: |
+          if [ -n "$HEALTHCHECK_URL" ]; then
+            curl -fsS --retry 3 --max-time 15 "${HEALTHCHECK_URL%/}/fail" > /dev/null || true
+          fi
