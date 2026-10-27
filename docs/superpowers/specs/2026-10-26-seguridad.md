@@ -1,6 +1,6 @@
 # Spec — Core: seguridad de definición (sprint 04, task 10)
 
-**Fecha:** 2026-10-27
+**Fecha:** 2026-10-26 · **Revisión:** 2 (2026-10-27)
 **Estado:** Borrador para aprobación del usuario
 **Base:** [DoD](../../conventions/definition-of-done.md) (auditoría incondicional) · [spec de diseño §4/§8/§11](2026-10-24-027apps-design.md) (seguridad, secrets, checklist OWASP) · [spec de datos](2026-10-26-core-data-model.md) (RLS, actores, atribución) · [spec de config](2026-10-26-instance-config.md) §5 (cifrado de secretos) · [realtime](2026-10-26-realtime-notificaciones.md) (canales, `members_fn`) · [MCP](2026-10-26-mcp.md) (claves, `role_cap`, deny-by-default) · [i18n](2026-10-26-i18n-operativa.md) (suplantación entre módulos) · [cicd](../../flows/cicd.md) (`guard-secrets`)
 **Decide el usuario:** entregables, modelo de amenazas, dependabot, enlace al DoD (2026-10-27)
@@ -39,8 +39,13 @@ Convertir en **sistema ejecutable** lo que hasta ahora estaba disperso o solo en
 | T10 | **Insider / colaborador del repo** | Alguien con escritura edita un workflow y exfiltra secretos de CI | Protección de rama + CODEOWNERS sobre `.github/workflows/`, acciones por SHA, secretos por `env` en el paso, sin `pull_request_target` | Un admin del repo puede cambiar todo; es el mismo nivel de confianza que el propietario |
 | T11 | **Error de configuración** | CORS `*`, rate limit desactivado, `security.*` mal puesto | `security.*`/CORS solo `super_admin`; `security.*` con `mcp_access=none`; defaults seguros (sin `*`, límites activos) | Un `super_admin` comprometido puede relajar la configuración |
 | T12 | **Instancia pausada / borrada** | Free tier pausa por inactividad; cuenta cerrada | Keep-alive diario; backup off-site; documentación de reconstrucción | Ventana de pausa hasta el keep-alive; el backup limita la pérdida |
+| T13 | **XSS / CSRF en el panel** | Un nombre de grupo o un texto importado inyecta script; una acción sensible se dispara desde otro origen con la cookie del panel | Escapado por defecto de React, **prohibido `dangerouslySetInnerHTML`** con datos, **CSP**, cookies `HttpOnly`/`Secure`/`SameSite`, mutaciones por `/api/v1` con `Bearer` (no cookie), verificación de `Origin` en acciones sensibles | Un XSS con sesión válida puede actuar como el admin hasta el `JWT_EXPIRY` |
+| T14 | **APK comprometido / suplantado** | Un tercero publica un APK con el mismo nombre y distinta firma | Firma propia verificada (`apksigner`), distribución por enlace oficial, `debuggable=false`, sin secretos en el APK, Keystore del dispositivo | Quien instala un APK de un enlace no oficial no tiene protección técnica |
+| T15 | **Cuenta del operador comprometida** | Alguien entra en la consola de Supabase/Vercel del propietario | 2FA en los proveedores, secretos en env, backup off-site, rotación | Equivale a propietario comprometido: **mismo nivel de confianza**; no se mitiga desde el código |
 
-**Fuera del modelo** (declarado): ataques de red a Supabase/Vercel/Google, compromiso del proveedor cloud, malware en el dispositivo del usuario, coacción física, DDoS volumétrico (se mitiga con los límites del proveedor).
+**Fuera del modelo** (declarado): ataques de red a Supabase/Vercel/Google, compromiso **del proveedor** cloud (distinto del compromiso de **la cuenta del operador**, que es T15), malware en el dispositivo del usuario, coacción física, DDoS volumétrico (se mitiga con los límites del proveedor), y **desaparición del mantenedor** (riesgo de proyecto, no técnico: sin él no hay actualizaciones ni Dependabot aplicado).
+
+**Nota de estado (importante)**: este documento **define** controles; varios se **implementan** fuera de este sprint: `CODEOWNERS` y protección de `main` (infra), `dependabot.yml` (infra), backups (infra), y la ampliación de `guard-secrets` a los prefijos del proyecto (infra/CI). La checklist marca `✘` mientras no existan.
 
 ## 4. Política de secretos
 
@@ -61,7 +66,7 @@ Convertir en **sistema ejecutable** lo que hasta ahora estaba disperso o solo en
 3. **Cifrado**: AES-256-GCM, nonce de 12 bytes **nuevo por cifrado**, AAD = versión + clave, formato versionado (task-06 §5).
 4. **Custodia de la clave maestra**: gestor de secretos **separado** del backup de la BD; pérdida = secretos irrecuperables (declarado en T7).
 5. **Rotación**: con doble clave (descifrar con la anterior, re-cifrar con la nueva) y ventana documentada. Las claves de máquina, con `expires_at` cuando se usan en CI (el workflow de mantenimiento).
-6. **`guard-secrets` en CI** detecta: `sb_secret_*`, `sbp_`, JWT, `SERVICE_ROLE_KEY=`, PEM privadas, **`027_svc_`/`027_usr_`** y `SETTINGS_ENCRYPTION_KEY=`.
+6. **`guard-secrets` en CI** **debe** detectar: `sb_secret_*`, `sbp_`, JWT, `SERVICE_ROLE_KEY=`, PEM privadas, **`027_svc_`/`027_usr_`** y `SETTINGS_ENCRYPTION_KEY=`. **Estado**: hoy cubre los cinco primeros; la ampliación a los prefijos del proyecto es **delta pendiente** (CI de infra); la checklist marca `✘` mientras falte — sin ella, un secreto real pegado en un doc no se detecta.
 7. **Secretos por `env` del paso** en workflows; nunca en `echo`, nunca en el log del job.
 
 ## 5. Patrón RLS canónico
@@ -80,8 +85,9 @@ Toda tabla nueva del Core o de un módulo cumple esto (el detalle vive en la che
 
 ## 6. Cadena de suministro
 
-- **Dependabot**: semanal, agrupado por ecosistema, **sin auto-merge**; **security updates** con prioridad; acciones de terceros actualizadas por SHA.
+- **Dependabot**: semanal, agrupado por ecosistema, **sin auto-merge**; **security updates** con prioridad; acciones de terceros actualizadas por SHA. Config en `.github/dependabot.yml` (npm, github-actions y gradle).
 - **Acciones de terceros**: fijadas por **SHA de commit** (las `actions/*` de GitHub pueden ir por tag mayor, según `cicd.md`); sin `pull_request_target`; `permissions: {}` por defecto.
+- **`.github/CODEOWNERS`** sobre `.github/workflows/` y protección de `main` — **pendiente en infra** (marcado en la checklist).
 - **Lockfile** (`pnpm-lock.yaml`) obligatorio y en CI con `--frozen-lockfile`.
 - **Dependencia nueva**: solo con caso real y justificación (ADR 0005); revisar mantenimiento, licencia, tamaño y superficie.
 - **SDK de terceros**: versión **pinneada**; sus **defaults de privacidad** se revisan explícitamente (lección de Sentry: `sendDefaultPii`, `event.request`, IPs).

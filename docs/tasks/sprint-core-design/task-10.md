@@ -26,6 +26,13 @@ Tarea 10 del sprint 04 (Diseño del Core). Sprint de **definición**: entrega do
 - **Cadena de suministro**: **Dependabot** semanal agrupado **sin auto-merge** con security updates prioritarias; acciones por SHA; lockfile; dependencias nuevas solo con caso real; SDK pinneados y **defaults de privacidad revisados**.
 - **Checklist** enlazada desde el **DoD punto 7** (el DoD sigue siendo la norma).
 
-**Criterios de aceptación**: checklist con A01–A10 y controles concretos enlazada desde el DoD; modelo de amenazas con mitigación y riesgo residual + fuera de modelo; política de secretos con clasificación, prohibiciones, custodia y rotación; patrón RLS copiable con suite de aislamiento; dependabot/pinning/lockfile; `SECURITY.md` con canal privado y alcance; revisado por segundo agente y auditoría OWASP.
+**Estado (2026-10-27):** spec + `docs/conventions/security-checklist.md` (A01–**A11**) + `SECURITY.md` + `.github/dependabot.yml` (semanal, agrupado npm/actions/gradle, **sin auto-merge**), enlazado desde el DoD punto 7.
+- **Modelo de amenazas T1–T15**: incluye **XSS/CSRF del panel**, **APK comprometido** y **cuenta del operador comprometida**; declara fuera de modelo el proveedor cloud, malware del dispositivo, DDoS volumétrico y la desaparición del mantenedor. Riesgos residuales honestos (incl. pérdida de la clave maestra = secretos irrecuperables).
+- **Checklist A11 Android**: manifest mínimo (`allowBackup=false`, `debuggable=false`), `cleartextTrafficPermitted=false`, Keystore para la sesión, deep links validados, sin tokens en logs, R8 + `apksigner`, dependencias Gradle.
+- **Desambiguación** `mcp_exposed` (módulo, 3 niveles, default `read`) vs `mcp_access` (setting, `none` por defecto); MCP valida `Origin`/`Host`; prioridad i18n `manual > import > code > module` como ítem.
+- **CSRF/cookies**: `HttpOnly`+`Secure`+`SameSite`, PKCE, mutaciones por `Bearer`, `Origin` en acciones sensibles; comparación de hashes en **tiempo constante**.
+- **Estado real de controles**: `guard-secrets` ampliado a `027_svc_`/`027_usr_`/`SETTINGS_ENCRYPTION_KEY=` y `CODEOWNERS`/protección de `main` quedan como **delta de infra**, marcados `✘` en la checklist mientras falten.
 
-**Referencias**: `docs/superpowers/specs/2026-10-26-seguridad.md`, `docs/conventions/security-checklist.md`, `SECURITY.md`, DoD, `docs/flows/cicd.md`, task-01/04/05/06/09.
+**Criterios de aceptación**: checklist con A01–A11 y controles verificables, enlazada desde el DoD; modelo T1–T15 con mitigación y residual + fuera de modelo; política de secretos con clasificación/estado real; patrón RLS canónico; Dependabot con fichero real; `SECURITY.md` en inglés con canal privado, APK en alcance y sin SLA; revisado por segundo agente y auditoría.
+
+**Referencias**: `docs/superpowers/specs/2026-10-26-seguridad.md`, `docs/conventions/security-checklist.md`, `SECURITY.md`, `.github/dependabot.yml`, DoD, `docs/flows/cicd.md`, task-01/04/05/06/09.

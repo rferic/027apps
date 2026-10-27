@@ -42,6 +42,8 @@ Si un fallo se repite en dos tareas, se convierte en **check mecánico** y se an
 - [ ] SQL **parametrizado**; ninguna consulta por concatenación.
 - [ ] **Nada de DDL/SQL dinámico desde agentes** (MCP) ni desde el manifest fuera del instalador.
 - [ ] Textos de usuario: **texto plano** (nunca HTML/Markdown interpretado); placeholders i18n validados (paridad con el inglés).
+- [ ] **XSS**: prohibido `dangerouslySetInnerHTML`/`innerHTML` con datos de usuario o de módulo; **CSP** configurada (`script-src 'self'`, sin `unsafe-inline`) y cabeceras `X-Content-Type-Options`, `Referrer-Policy`.
+- [ ] **i18n**: un módulo **no puede** sobrescribir textos del Core — precedencia `manual > import > code > module` con test de colisión.
 - [ ] Nombres dinámicos (funciones SQL de módulo, jobs) validados por **regex** y allowlist.
 
 ## A04 · Diseño inseguro / abuso
@@ -52,6 +54,8 @@ Si un fallo se repite en dos tareas, se convierte en **check mecánico** y se an
 - [ ] Acciones destructivas: **confirmación explícita**; `confirm: true` en tools MCP destructivas + anotación `destructiveHint`.
 - [ ] Jobs: **lease/lock robusto** (no locks de sesión), **rol dedicado** con grants mínimos, **nunca** `auth.*`.
 - [ ] Límites de tamaño en entradas masivas (imports, payloads) y procesado por lotes.
+- [ ] **`module_registry.mcp_exposed`** en 3 niveles (`none` | `read` | `read_write`, **default `read`**): las tools de **escritura** exigen `read_write`. (No confundir con `settings.mcp_access`, que es por *setting*.)
+- [ ] **Realtime**: las suscripciones se limitan por identidad/sesión (evitar abrir cientos de topics); `core_can_subscribe` autoriza, el límite evita el abuso.
 
 ## A05 · Configuración insegura
 
@@ -59,11 +63,15 @@ Si un fallo se repite en dos tareas, se convierte en **check mecánico** y se an
 - [ ] `/health` **sin detalle**; estado operativo solo para admin.
 - [ ] `debug`/verbosidad **fijados en build**, nunca ajustables en runtime.
 - [ ] Contraseñas **fuera** de nuestras tablas (Supabase Auth); ninguna credencial en el cliente (`NEXT_PUBLIC_*`).
+- [ ] **`settings.mcp_access`** (por setting) en `none` por defecto; `security.*`, `connectivity.*` y `auth.*` **nunca** expuestos a agentes.
 - [ ] Cabeceras/errores de auth: **401 con `WWW-Authenticate`**; 403 para tipo de clave incorrecto.
+- [ ] **MCP**: valida `Origin`/`Host` (anti-DNS-rebinding) y rechaza orígenes no permitidos.
 
 ## A06 · Componentes vulnerables / desactualizados
 
-- [ ] Dependabot **activo** (semanal agrupado, sin auto-merge; security updates prioritarias).
+- [ ] Dependabot **activo** (`.github/dependabot.yml`: semanal agrupado, sin auto-merge; security updates prioritarias).
+- [ ] **`CODEOWNERS`** sobre `.github/workflows/` y protección de `main` con los checks requeridos (si no existen → `✘` + tarea de infra).
+- [ ] **`guard-secrets` cubre los prefijos del proyecto**: `027_svc_`, `027_usr_`, `SETTINGS_ENCRYPTION_KEY=`, además de `sb_secret_`/`sbp_`/JWT/PEM. Si no los cubre → `✘` (un secreto real pegado en un doc no se detectaría).
 - [ ] **Lockfile** en CI (`--frozen-lockfile`).
 - [ ] Acciones de terceros **fijadas por SHA** (las `actions/*` pueden ir por tag mayor); `permissions: {}` por defecto; sin `pull_request_target`.
 - [ ] Dependencia nueva: **caso real + justificación** (ADR 0005); licencia y mantenimiento revisados.
@@ -76,6 +84,9 @@ Si un fallo se repite en dos tareas, se convierte en **check mecánico** y se an
 - [ ] `JWT_EXPIRY = 900 s` en el proyecto Supabase (lag de revocación de realtime acotado y documentado).
 - [ ] Tokens opacos **hasheados** (SHA-256) en BD; secreto mostrado **una vez**; prefijo identificable.
 - [ ] Login/registro: solo por **invitación** (salvo el primer admin); rate limiting del login (Supabase) y del canjeo.
+- [ ] **Cookies de sesión** (panel, helper SSR de Supabase): `HttpOnly` + `Secure` + `SameSite=Lax|Strict`; **PKCE** (`code_verifier`) activo.
+- [ ] **CSRF**: las mutaciones van por `/api/v1` con `Bearer` (sin cookies); cualquier acción sensible autenticada por cookie verifica **`Origin`/`Referer`**.
+- [ ] **Comparación de hashes de tokens en tiempo constante** (`timingSafeEqual`), no `===`.
 
 ## A08 · Integridad de datos y software
 
@@ -84,6 +95,7 @@ Si un fallo se repite en dos tareas, se convierte en **check mecánico** y se an
 - [ ] Cadena de suministro (A06) y lockfile.
 - [ ] Backups: cifrados, **off-site**, con la **clave maestra custodiada aparte**.
 - [ ] Migraciones aplicadas por CI; sin cambios manuales de esquema en producción.
+- [ ] **Instalación de módulos y restauración de backup**: rutas resueltas contra una raíz acotada, sin `../` ni symlinks (path traversal); digest verificado **antes** de escribir en disco.
 
 ## A09 · Fallos de registro y monitorización
 
@@ -107,3 +119,13 @@ Si un fallo se repite en dos tareas, se convierte en **check mecánico** y se an
 - [ ] **Ningún crítico ni alto sin resolver.**
 - [ ] Si la tarea toca secretos, auth, permisos o datos personales: informe **por escrito** en el PR.
 - [ ] Hallazgos repetidos → propuesta de **check mecánico**.
+
+## A11 · Cliente Android (APK)
+
+- [ ] **`AndroidManifest.xml`**: solo permisos necesarios; `android:allowBackup="false"` (o backup excluyendo secretos); `android:debuggable="false"` en release; componentes `exported` solo los imprescindibles.
+- [ ] **Tráfico**: `networkSecurityConfig` con `cleartextTrafficPermitted="false"`; el APK solo habla con la instancia por TLS (pinning opcional, documentado si se añade).
+- [ ] **Sesión**: tokens en **Android Keystore** / `EncryptedSharedPreferences`; nunca en `SharedPreferences` plano, ni en logs, ni en backups.
+- [ ] **Deep links / QR de invitación**: el token de invitación se valida y **nunca** dispara una acción autenticada sin completar el flujo (email + contraseña); sin `intent` implícito con datos sensibles.
+- [ ] **Logs**: sin tokens, URLs con credenciales ni datos personales; `Log`/`Timber` desactivado o filtrado en release.
+- [ ] **Release**: `minifyEnabled`/R8 activo, firma con la keystore del proyecto, `apksigner verify` en CI; **sin** claves de firma en el repo.
+- [ ] **Dependencias Gradle**: versiones fijadas por lockfile/catálogo; Dependabot también para `gradle`.

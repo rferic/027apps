@@ -21,13 +21,14 @@ Please include:
 ## What is in scope
 
 - The application code: `apps/admin` (panel and `/api/v1`), `apps/android`, `packages/*`.
+- **The Android APK signature and release artifacts.** A fake APK impersonating the official signature is a valid report.
 - The module contract and module runtime installer.
 - The CI/CD workflows and release process in this repository.
 
 ## What is out of scope
 
 - **Your own instance's infrastructure** (Vercel/Supabase/Firebase configuration, SMTP provider, DNS, hosting account security). Report those to the respective provider.
-- **Compromised credentials** of your instance: rotate them (see *What to do if a credential leaks* below) and, if needed, report the underlying code flaw.
+- **Compromised credentials** of your instance: rotate them (see *If a credential leaks* below) and, if needed, report the underlying code flaw.
 - Findings that require **physical access** to an unlocked device, or an already-compromised operator account.
 - **Denial of service by volume** against your own instance (use the provider's protections).
 - Reports from automated scanners without a reproducible impact.
@@ -43,8 +44,8 @@ Please include:
 If a token, API key or secret of **your** instance is exposed:
 
 1. **Revoke it immediately**: instance/delegated API keys from the panel, sessions from the device list, or rotate the secret in the corresponding settings.
-2. Rotate the affected **environment variables** (Supabase keys, `SETTINGS_ENCRYPTION_KEY`) and re-deploy. For the master encryption key, follow the double-key rotation in the runbook.
-3. Review `admin_actions` and `audit` for unexpected activity (both are correlated by `request_id`).
+2. Rotate the affected **environment variables** (Supabase keys, `SETTINGS_ENCRYPTION_KEY`) and re-deploy. For the master encryption key, follow the double-key rotation described in the *Secrets policy* (`docs/superpowers/specs/2026-10-26-seguridad.md` §4.2) — the operational runbook lives in the infrastructure sprint (in preparation).
+3. Review `admin_actions` (mutations, correlated by `request_id`) and the per-key counters in `audit` (unexpected endpoint usage). `audit` is aggregated; only `admin_actions` carries the `request_id`.
 4. If data may have been exposed, restore from the latest backup if needed and inform the affected members of your family group.
 
 ## Security model, in one line
