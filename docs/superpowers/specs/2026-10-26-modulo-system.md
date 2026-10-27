@@ -71,7 +71,14 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
     { "type": "expense.deleted", "target": "channel:expense-group-{id}" },
     { "type": "expense.invited", "target": "user" }
   ],
-  "hooks": { "user.deactivated": "handleUserDeactivated" }          // reacciones a eventos del Core (task-02 §3.2: DELETE /users/{id})
+  "hooks": { "user.deactivated": "handleUserDeactivated" },         // reacciones a eventos del Core (task-02 §3.2: DELETE /users/{id})
+  "docs": {                                                         // documentación del módulo (task-11): obligatoria por capacidad
+    "readme": "README.md",
+    "api": "docs/api.md",
+    "mcp": "docs/mcp.md",
+    "settings": "docs/settings.md",
+    "events": "docs/events.md"
+  }
 }
 ```
 
@@ -85,6 +92,7 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
 - Cada **setting** del manifest declara la forma completa de `settings` (task-06 §8): `key`, `type`, `default`, `label`/`help` en inglés, `is_public`, `is_secret` (⇒ `value_encrypted`), `mcp_access`, `sort_order`.
 - Cada **canal** declara `pattern` y `members_fn` (función SQL security definer del módulo que devuelve los `user_id` con acceso; la usan la RLS de realtime y la resolución de push — task-04 §2.2).
 - Los `hooks` referencian **eventos del Core** o del propio módulo (task-04 define el catálogo).
+- **Documentación por capacidad** (task-11): `docs.readme` **obligatorio**; `docs.api` si el módulo añade recursos a `/api/v1`; `docs.mcp` si declara `mcp_tools`; `docs.settings` si declara `settings`; `docs.events` si declara `eventos`/`channels`. El CI exige el fichero **y que cada nombre declarado (`mcp_tools[].name`, `settings[].key`, `eventos[].type`, `channels[].pattern`) aparezca en su documento**. Un módulo sin `README.md` **no instala**.
 
 **Regla de negocio del manifest:** un manifest NO declara rutas HTTP de `/api/v1` propias del recurso (esos endpoints son de la spec del módulo, mecanismo de extensión de api-v1 §5); el manifest solo declara DDL, settings, tools/eventos/hooks y los scopes para validación mecánica (que viven en código, ADR 0004 §2). El contrato de API lo añade el módulo con sus schemas/casos de uso/recursos, sin tocar la mecánica (api-v1 §5).
 
@@ -182,7 +190,7 @@ Esta spec **completa los TODOs del esqueleto** (`new-module.md`): el contrato de
 - La mecánica del instalador (install/activate/deactivate/uninstall) está especificada sobre `module_registry`/`module_migrations` de la task-01, con transacciones y efectos externos tras el commit (ADR 0004 §6).
 - La seguridad del DDL aplica A+C+D (digest, permisos mínimos, confirmación explícita); B queda diferida y anotada.
 - El uninstall limpia settings/translations y delega la semántica de datos al `down` del módulo.
-- El CI valida el manifest contra su esquema (check mecánico).
+- El CI valida el manifest contra su esquema **y la documentación por capacidad** (existencia + cobertura por nombre) — check mecánico.
 - Coherente con task-01 (modelo, decisiones K/N/O), task-02 (endpoints), api-v1 §5 (extensión) y `new-module.md`.
 - Aprobada por el usuario y revisada por segundo agente (DoD de Docs).
 
