@@ -2,7 +2,7 @@
 id: sprint-core-design-task-11
 titulo: Documentación de la API pública — `docs/api/README.md` (definición)
 area: core
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 
