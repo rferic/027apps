@@ -1,5 +1,7 @@
 # ADR 0008 — Fechas y moneda: instantes UTC, fechas de calendario explícitas y dinero en enteros de céntimos
 
+> **Revisión 2026-10-26 — sustitución parcial de modelo.** Donde este ADR dice `instance_settings` (clave-valor plano), léase **`settings_categories` + `settings`** (categorizado, con `is_secret`/`is_public`/`mcp_access`, actores humano/clave y catálogo tipado) según la [spec de datos del Core](../superpowers/specs/2026-10-26-core-data-model.md) y la [spec de configuración](../superpowers/specs/2026-10-26-instance-config.md). La decisión de fondo (configuración general de instancia fijada en el instalador) **se mantiene**; cambia el soporte.
+
 **Fecha:** 2026-10-25
 **Estado:** Aceptada
 **Decisora:** usuario (rferic), en conversación de diseño
@@ -24,7 +26,7 @@ Además, la instalación de una instancia es el momento natural de fijar sus **p
    - **Zona horaria** por defecto de la instancia.
    - **Moneda por defecto** de la plataforma (fallback para grupos que no definan la suya).
    - **Idiomas activos** (los que se sirven/verifican), elegidos de un set disponible fijo.
-   - El set de idiomas disponible es: **`en, es, ca, it, fr, de, pt, gl, eu`** (9). Quien instala **habilita/deshabilita** sobre ese set; `en` no se puede deshabilitar (idioma base del código y de fallback). Los no activos simplemente no se sirven ni se exigen en el check de i18n.
+   - El set de idiomas disponible es: **`en, es, ca, it, fr, de, pt, gl, eu`** (9). Quien instala **habilita/deshabilitar** sobre ese set; `en` no se puede deshabilitar (idioma base del código y de fallback). Los no activos simplemente no se sirven. **Precisión 2026-10-26:** el check de CI valida siempre los **9 disponibles** (el código debe poder servirlos), aunque la instancia sirva menos; lo «no exigido» son los idiomas que la instancia no habilita en runtime.
    - Esto **actualiza** la lista «es/ca/en/it» de la spec §4/§11 (y los «4»/«6 idiomas» de §2/§5): el set pasa a los 9 anteriores, con activación por instancia.
 
 ### Fechas

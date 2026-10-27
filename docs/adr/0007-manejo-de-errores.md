@@ -24,7 +24,7 @@ Se adopta un **modelo de error único y estable en el borde**, con un **código 
 
    - El envelope es la forma de la **representación compartida** (ADR 0004 §7) en el transporte HTTP/JSON. Las otras puertas mantienen su formato nativo y **mapean el mismo `code`**: **MCP** expone el `code` de dominio en su `error` JSON-RPC (y `details` de validación en su `data`); los **comandos** devuelven el `code` en su salida (exit code ≠ 0 para fallo). El `code` y su `message` por defecto son el mismo en todas las puertas; lo que cambia es el transporte del envelope, no el modelo de error.
    - `code`: identificador estable, versionado, en `snake_case` (p. ej. `validation_failed`, `unauthorized`, `insufficient_scope`, `not_found`, `conflict`, `rate_limited`, `internal`). Cambiar un `code` es un breaking change del contrato.
-   - `message`: texto por defecto, en inglés (la lingua franca técnica del código). **El servidor no localiza**: el cliente mapea `code` → texto por locale (flujo i18n, clave `error.<code>`).
+   - `message`: texto por defecto, en inglés (la lingua franca técnica del código). **El servidor no localiza**: el cliente mapea `code` → texto por locale (flujo i18n: el mensaje inglés **es** la cadena del catálogo; ver precisión 2026-10-26 en Consecuencias).
    - `details`: **solo** errores de validación (lista de campos/reglas) o información no sensible que el cliente necesita; nunca internos.
    - `request_id`: id de correlación para soporte (ver 6).
 
@@ -38,7 +38,7 @@ Se adopta un **modelo de error único y estable en el borde**, con un **código 
 
 5. **Sin fuga de internos (OWASP A02/A05).** **Nunca** stack traces, SQL, rutas internas, secrets ni tokens en el envelope — ni siquiera en dev (superficie uniforme). Todo lo inesperado cae en `internal` genérico. Los detalles técnicos van solo al **log del servidor**, no a la respuesta. El `guard-secrets` del CI y la auditoría OWASP de cada tarea vigilan esto.
 
-6. **Logging estructurado con correlación.** Cada error se loguea server-side con `request_id` (generado en la puerta), `code`, mensaje técnico (sin secrets) y stack. El cliente recibe el mismo `request_id` en el envelope para poder reportar. El `code` permite agrupar y medir (frecuencia por tipo de error).
+6. **Logging estructurado con correlación.** Cada error se loguea server-side con `request_id` (generado en la puerta), `code`, mensaje técnico (sin secrets) y stack. El cliente recibe el mismo `request_id` en el envelope para poder reportar. El `code` permite agrupar y medir (frecuencia por tipo de error). **Revisión 2026-10-26:** el `request_id` viaja además en la cabecera `X-Request-Id` de **todas** las respuestas (ver `2026-10-26-observabilidad.md` §2).
 
 7. **Efectos externos tras el commit (ADR 0004 §6).** Si un efecto externo (email, realtime) falla **después** del commit, **no** se revierte el dato ni se propaga como fallo de la mutación: el dato ya se salvó. Se loguea con severidad y queda para reintento/cola — el cliente recibe éxito, el operador ve el fallo en logs.
 
@@ -57,5 +57,5 @@ Se adopta un **modelo de error único y estable en el borde**, con un **código 
 - El Core tendrá un paquete compartido con la **jerarquía de errores de dominio** y el **mapeo a envelope** (el formato HTTP exacto de la respuesta lo fija la spec de API v1, que referencia este ADR).
 - Los **tests de puerta** (ADR 0004, sección «Consecuencias») verifican: envelope correcto por error, mapeo HTTP, y **ausencia de fuga de internos** (no contener SQL/stack/rutas en la respuesta).
 - El `request_id` entra como requisito en logs y respuestas de error.
-- El microcopy de errores se gestiona por el **flujo i18n** (claves `error.<code>`, según los locales activos de la instancia — ADR 0008).
+- El microcopy de errores se gestiona por el **flujo i18n** (ver [i18n.md](../flows/i18n.md)). **Precisión 2026-10-26:** la clave del catálogo es el **mensaje por defecto en inglés** (el texto es la clave); **no** existen claves artificiales `error.<code>`. El `code` sigue siendo el contrato máquina-legible.
 - Los clientes (móvil, admin) implementan el mapeo `code` → texto/acción como patrón fijo, con su tarea de patrones UX del backlog.

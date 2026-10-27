@@ -28,6 +28,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | `ci.yml` | `push` a `main` | los mismos checks sobre el commit mergeado |
 | `ci.yml` | `push` de tag `v*` | los mismos checks + job `release` |
 | `keep-alive.yml` | `schedule` diario (06:17 UTC) y `workflow_dispatch` | ping a producción si existe `PROD_URL` |
+| *(Dependabot)* | `.github/dependabot.yml`: semanal, agrupado (npm, actions, gradle), **sin auto-merge** | PRs de dependencias; una security update no espera a la semana |
 | Vercel (app externa) | PR → preview; `main` → producción | deploy de `apps/admin` |
 
 `ci.yml` usa `concurrency` por ref: un push nuevo a un PR cancela la ejecución anterior; en `main` y tags nunca se cancela.

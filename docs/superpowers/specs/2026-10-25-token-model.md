@@ -43,7 +43,8 @@ Definir cómo se autentica cada consumidor de la API de 027Apps y qué puede toc
 
 ### 3.2 Token de instancia (service)
 
-- Para conectar herramientas del admin (scripts, integraciones, **MCP/IA** con scopes por módulo) que actúan **sin identidad de usuario**, con permisos propios de la instancia.
+- Para conectar herramientas del admin (scripts, integraciones, **MCP de administración** con scopes por módulo) que actúan **sin identidad de usuario**, con permisos propios de la instancia.
+  - **Delta 2026-10-26 (task-05):** las claves de instancia llevan **`role_cap`** (`admin`|`super_admin`): su permiso efectivo es `min(scopes, role_cap)`. Y el **MCP de usuario/módulos** (`/mcp`, `/mcp/<module>`) usa **claves delegadas** `027_usr_` (actúan como su usuario), no claves de instancia.
 - **Alcance:** de **instancia completa** (no scoped a un grupo): la necesidad del usuario es conectar herramientas a *su* API, no a un grupo. Lo crea/revoca **solo `super_admin`** (el propietario de la instancia), desde el panel.
 - **Scopes:** módulo + lectura/escritura + **endpoints concretos**.
 - Expiración **opcional**, rate limiting por clave, auditoría de uso (`last_used_at`, qué endpoints toca).
@@ -74,6 +75,7 @@ Al completar el wizard: se crea/verifica la cuenta en Supabase Auth, se activa l
 - El guard autentica el token (lookup en BD, con caché), resuelve su scope y su usuario (si aplica), y comprueba la acción solicitada.
 - Para tokens delegados el acceso efectivo es `min(scopes del token, permisos del usuario)`; para instancia, los scopes del token; para el móvil (sesión Supabase), los permisos del usuario.
 - **Permisos en vivo, no cacheados con TTL de permisos:** el lookup del *token* en sí se cachea (la fila del token apenas cambia), pero la **resolución de permisos del usuario** (grupos, roles, módulos activos) se lee de la BD **por petición**, o con una caché invalidada explícitamente al cambiar la membresía/rol. Así un miembro removido o degradado pierde el acceso **de inmediato** (criterio de aceptación 1), sin depender de un TTL que la contradiga.
+- **Revocación y expiración no dependen de la caché** (auditoría OWASP 2026-10-26): `revoked_at` y `expires_at` se **comprueban en BD en cada petición**, o la caché del token se **invalida al revocar/expirar**. Cachear «el token" sin ese control retrasaría la revocación hasta el TTL y rompería el criterio "revocación instantánea". Test obligatorio: revocar entre dos llamadas → la siguiente es 401.
 - RLS en BD como segunda barrera (el nivel de fila no depende solo del guard).
 
 ## 6. Transversal (todos los tipos)

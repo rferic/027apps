@@ -1,0 +1,30 @@
+# Dependabot: PRs automáticos de dependencias.
+# Semanal, agrupado por ecosistema y SIN auto-merge: el CI valida, un humano decide.
+# Las security updates se abren en cuanto hay aviso (no esperan a la semana).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      npm:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: gradle
+    directory: "/apps/android"
+    schedule:
+      interval: weekly
+    groups:
+      gradle:
+        patterns: ["*"]
