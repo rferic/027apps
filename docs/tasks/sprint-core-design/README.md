@@ -27,7 +27,7 @@ Sprint de **definición** (sin código de producto): diseñar la superficie inic
 | 09 | i18n operativa | spec `2026-10-26-i18n-operativa.md` + `docs/flows/i18n.md` | ✅ `finalizada` (2026-10-26) |
 | 10 | Seguridad de definición (OWASP, amenazas, secrets, RLS, dependabot) | spec + `security-checklist.md` + `SECURITY.md` | ✅ `finalizada` (2026-10-27) |
 | 11 | Documentación de la API pública | `docs/api/README.md` | ✅ `finalizada` (2026-10-27) |
-| 12 | Shell del admin (definición) | spec `2026-10-26-admin-shell.md` | ⏳ pendiente |
+| 12 | Shell del admin (definición) | spec `2026-10-26-admin-shell.md` | 🔵 en curso |
 
 **Puerta de entrada:** spec de API v1 `finalizada` (cumplida, 2026-10-25); sprint de infra (setup del usuario) puede ir en paralelo o después.
 
