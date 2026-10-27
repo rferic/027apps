@@ -93,7 +93,7 @@ Si responde **409**, ya hay una ejecución en curso: espera y repite.
 
 Si hay **pérdida o corrupción de datos** (borrado accidental, migración defectuosa, proyecto destruido), los logs no arreglan nada: hay que restaurar.
 
-El procedimiento vive en el **runbook del sprint de infraestructura** (spec de backup, rama `sprint/infra-backups`), no en esta guía. Criterio:
+El procedimiento vive en el **runbook de infraestructura** ([`docs/infrastructure.md`](infrastructure.md)) y en la [spec de backup](superpowers/specs/2026-10-26-backups.md). Criterio:
 
 - El **esquema** vive en git (migraciones); lo que se recupera es el **dato**.
 - El backup es un **dump lógico diario, cifrado y off-site**.
@@ -114,5 +114,5 @@ Si (2) genera evento o (3) no lo genera, el filtrado de Sentry está mal configu
 - Observabilidad (contrato): `docs/superpowers/specs/2026-10-26-observabilidad.md`
 - Salud y mantenimiento: `docs/superpowers/specs/2026-10-26-jobs-mantenimiento.md`
 - Configuración y secretos: `docs/superpowers/specs/2026-10-26-instance-config.md`
-- Backups: sprint de infraestructura (rama `sprint/infra-backups`)
+- Backups y operación: [`docs/infrastructure.md`](infrastructure.md) · [spec de backup](superpowers/specs/2026-10-26-backups.md)
 - Flujos: `docs/flows/bugfix.md`, `docs/flows/hotfix.md`
