@@ -1,0 +1,5 @@
+# Workflow edits can exfiltrate CI secrets (threat T10 / checklist A06).
+# A review from the owner is required once the main ruleset enables
+# "Require review from Code Owners" (see docs/tasks/sprint-infra/task-10.md).
+/.github/workflows/ @rferic
+/.github/CODEOWNERS @rferic
