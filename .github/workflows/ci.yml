@@ -59,20 +59,23 @@ jobs:
           # Only file names are printed, never the matched content.
           fail=0
 
-          tracked=$(git ls-files | grep -E '(^|/)\.env($|\.)|\.(jks|keystore|p12|pem|key|p8)$' | grep -vE '\.env(\.[^/]+)?\.example$|(^|/)\.env\.example$' || true)
+          tracked=$(git ls-files | grep -E '(^|/)\.env($|\.)|\.(jks|keystore|p12|pem|key|p8)$|(^|/)google-services\.json$' | grep -vE '\.env(\.[^/]+)?\.example$|(^|/)\.env\.example$' || true)
           if [ -n "$tracked" ]; then
             echo "::error::Tracked env/keystore files:"; echo "$tracked"; fail=1
           fi
 
           # Supabase personal access tokens and sb_secret_ keys, any JWT (anon/service keys),
-          # non-empty service-role assignments, PEM private key blocks.
+          # non-empty service-role assignments, PEM private key blocks, 027Apps machine
+          # keys (027_svc_/027_usr_) and a hardcoded master key.
           # The patterns below do not match their own source text (the bracket
           # classes break the literal), so ci.yml needs no exclusion.
           hits=$(git grep -I -l -i -E -e 'sbp_[A-Za-z0-9]{20,}' \
             -e 'sb_secret_[A-Za-z0-9_-]{20,}' \
             -e '-----BEGIN [A-Z ]*PRIVATE KEY-----' \
             -e 'eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}' \
-            -e 'SERVICE_ROLE_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9._-]{20,}' || true)
+            -e 'SERVICE_ROLE_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9._-]{20,}' \
+            -e '027_(svc|usr)_[A-Za-z0-9_-]{20,}' \
+            -e 'SETTINGS_ENCRYPTION_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9+/=]{20,}' || true)
           if [ -n "$hits" ]; then
             echo "::error::Secret-like values found in:"; echo "$hits"; fail=1
           fi
