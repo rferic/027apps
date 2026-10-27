@@ -2,7 +2,7 @@
 id: sprint-core-design-task-12
 titulo: Shell del admin — definición de navegación, roles y consumos (definición)
 area: core
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-26-sprint-core-design.md
 ---
 
