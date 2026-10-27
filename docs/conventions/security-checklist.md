@@ -70,7 +70,7 @@ Si un fallo se repite en dos tareas, se convierte en **check mecánico** y se an
 ## A06 · Componentes vulnerables / desactualizados
 
 - [ ] Dependabot **activo** (`.github/dependabot.yml`: semanal agrupado, sin auto-merge; security updates prioritarias).
-- [ ] **`CODEOWNERS`** sobre `.github/workflows/` y protección de `main` con los checks requeridos (si no existen → `✘` + tarea de infra).
+- [x] **`CODEOWNERS`** sobre `.github/workflows/` y protección de `main` con los checks requeridos (si no existen → `✘` + tarea de infra).
 - [x] **`guard-secrets` cubre los prefijos del proyecto**: `027_svc_`, `027_usr_`, `SETTINGS_ENCRYPTION_KEY=`, además de `sb_secret_`/`sbp_`/JWT/PEM. Si no los cubre → `✘` (un secreto real pegado en un doc no se detectaría).
 - [ ] **Lockfile** en CI (`--frozen-lockfile`).
 - [ ] Acciones de terceros **fijadas por SHA** (las `actions/*` pueden ir por tag mayor); `permissions: {}` por defecto; sin `pull_request_target`.
