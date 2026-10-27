@@ -178,7 +178,7 @@ An instance has a **catalogue of modules** (e.g. Split Expenses). A module is in
 ```
 packages/<key>/
   README.md            # required: what it does, requirements, how to install/activate
-  docs/api.md          # required if it adds resources to /api/v1
+  docs/api.md          # required if it declares `scopes` (i.e. adds endpoints)
   docs/mcp.md          # required if it exposes MCP tools
   docs/settings.md     # required if it declares settings
   docs/events.md       # required if it declares events or realtime channels
@@ -186,7 +186,7 @@ packages/<key>/
 
 The CI **fails** if a declared capability is not documented, and checks that every tool, setting, event **and realtime channel** appears **by name** in the corresponding document (`docs.api` is required when the module declares `scopes`, which is the machine-checkable signal that it adds endpoints).
 
-`GET /modules/{key}` returns a **`docs`** block with the URLs of the documents **served by this instance** (`GET /modules/{key}/docs/{readme|api|mcp|settings|events}`), so you always link to documentation that exists and belongs to the installed package.
+`GET /modules/{key}` returns a **`docs`** block with the URLs of the documents **served by this instance** (`GET /api/v1/modules/{key}/docs/{readme|api|mcp|settings|events}`), so you always link to documentation that exists and belongs to the installed package.
 
 ### Core endpoints (at a glance)
 
@@ -194,16 +194,16 @@ The CI **fails** if a declared capability is not documented, and checks that eve
 |---|---|---|
 | Health & instance | `GET /health`, `GET /instance` | public, non-sensitive |
 | You | `GET/PATCH /me`, `GET /me/modules` | your profile and your modules |
-| Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}` | soft-deactivate; root protected |
+| Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}` | soft-deactivate (**super-admin**); root protected |
 | Categories (admin) | `/user-categories`, `/{id}/members`, `/{id}/modules` | assign module ∈ category materializes access |
-| Modules (admin) | `GET /modules`, `GET /modules/{key}`, `POST /modules/{key}/install\|activate\|deactivate\|uninstall`, `PATCH /modules/{key}` | install/uninstall require an administrator to review the schema changes |
+| Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET /modules/{key}/docs/{doc}`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin** |
 | Access (admin) | `POST/DELETE /users/{id}/modules/{key}` | per-user grant/revoke |
 | Invitations | `POST/GET /invitations`, `DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | redeem is the public join step (single use) |
 | API keys | `POST/GET /api-keys`, `GET/DELETE /api-keys/{id}` | secret returned once |
 | Devices | `POST/GET /devices`, `DELETE /devices/{id}` | push registration and revocation |
-| Settings & currency | `GET/PATCH /settings`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies/{code}` | security settings are super-admin only |
+| Settings & currency | `GET /settings`, `PATCH /settings/{category}.{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
 | i18n | `GET /translations?locale=`, `GET /translations/status`, `POST /translations/import`, `PUT /translations/{locale}/{hash}` | ETag-cached |
-| Operations (admin) | `GET /admin-actions`, `GET /audit`, `GET /maintenance/status`, `POST /maintenance/run` | maintenance uses an instance key |
+| Operations | `GET /admin-actions`, `GET /audit`, `GET /maintenance/status` (**super-admin**); `POST /maintenance/run` (instance key, `maintenance:run`) | `maintenance/run` needs an instance key with `role_cap=super_admin` |
 
 Full request/response shapes: the generated OpenAPI (§11) or the normative spec while it is not published.
 
@@ -325,7 +325,7 @@ The `code` values are the same catalogue as REST (§4). **`request_id` is presen
 
 - `create` tools accept a client-generated `id` (UUID); repeatable tools accept `idempotency_key`. Same rules as §7.
 - Tools are annotated with `readOnlyHint`, `destructiveHint`, `idempotentHint`.
-- **Destructive tools require `confirm: true`**. This is an input requirement; whether a human confirms is decided by your MCP client (it should ask). An agent can always send `confirm: true`, so the real control is the **scopes you grant** to the key.
+- **Destructive tools require `confirm: true`**; without it the call fails with `validation_failed` (it is an input requirement, not an error code). Whether a human confirms is decided by your MCP client (it should ask). An agent can always send `confirm: true`, so the real control is the **scopes you grant** to the key.
 
 ### 10.9 Limits
 
@@ -333,12 +333,12 @@ One shared budget per key (30 req/min by default, writes 10 req/min), audited pe
 
 ## 11. OpenAPI
 
-- The **OpenAPI document is generated** from the same schemas that validate requests and responses — it cannot drift from the implementation.
+- The **OpenAPI document is generated** from the same schemas that validate requests and responses — it cannot drift from the implementation (delta 2026-10-27 in the API spec).
 - Each instance **serves it** at `GET /api/v1/openapi.json` (no auth needed to read the schema; the API itself still requires credentials).
 - A copy is committed to the repository at `docs/api/openapi.yaml` for review; CI fails if it is out of date.
 - A browsable rendering (Swagger or an equivalent) is published by the admin panel.
 
-*Planned detail (pending as a delta of the API spec): the served path is `/api/v1/openapi.json`, and the committed review copy lives at `docs/api/openapi.yaml`.*
+*The served path is `GET /api/v1/openapi.json`; the committed review copy is `docs/api/openapi.yaml` (checked by CI). Neither exists yet — they are produced once the API is implemented.*
 
 Until the API is implemented, the **normative reference** for the contract is the specification: [`docs/superpowers/specs/2026-10-25-api-v1.md`](../superpowers/specs/2026-10-25-api-v1.md) and the Core surface in [`2026-10-26-core-api.md`](../superpowers/specs/2026-10-26-core-api.md).
 

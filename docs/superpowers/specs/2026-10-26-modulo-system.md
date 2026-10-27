@@ -156,7 +156,7 @@ El manifest trae SQL ejecutable: capas de protección (filosofía "defensa en pr
 
 ## 6. CI del módulo (determinismo antes que agentes)
 
-- **Validación mecánica de la documentación** (task-11): `docs.readme` existe, no vacío y en inglés; el fichero exigido por cada capacidad existe **y cada nombre declarado aparece** (`mcp_tools[].name` → `docs.mcp`, `settings[].key` → `docs.settings`, `eventos[].type` y `channels[].pattern` → `docs.events`); y los **scopes citados** en los documentos existen en el manifest. Sin `readme`, el módulo no instala.
+- **Validación mecánica de la documentación** (task-11): `docs.readme` existe, **no vacío** y en inglés; el `docs.api`/`mcp`/`settings`/`events` exigido también existe y **no está vacío**; el fichero exigido por cada capacidad existe **y cada nombre declarado aparece** (`mcp_tools[].name` → `docs.mcp`, `settings[].key` → `docs.settings`, `eventos[].type` y `channels[].pattern` → `docs.events`); y los **scopes citados** en los documentos existen en el manifest. Sin `readme`, el módulo no instala.
 - **Validación mecánica del manifest** contra su esquema zod como **check de CI** en el **job `admin` existente** (se añade ahí; no hay job `modules` en `cicd.md` y no se crea uno aparte): todo PR que añada/modifique un `packages/*/manifest.json` pasa el contrato o falla.
 - El `digest`/`down_digest` de cada migración se **recalcula y compara** (evita manifests con digest desincronizado).
 - Las claves i18n se validan con el **check de locales** (task-09) en el **job `admin`**: el manifest declara un **subconjunto ⊆ 9** que **incluye `en`**, y el check exige **ese subconjunto + su catálogo** (los 9 completos son el set disponible, no el de cada módulo).
