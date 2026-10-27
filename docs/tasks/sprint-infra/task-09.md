@@ -26,6 +26,7 @@ fuente: docs/superpowers/specs/2026-10-26-instance-config.md §5
 
 - **Generada** por el agente con `openssl rand -base64 32` y escrita **directamente** en `apps/admin/.env.local` sin imprimir el valor (ni en chat ni en logs). 32 bytes → base64.
 - **`guard-secrets`** ya la detecta si se hardcodea (`SETTINGS_ENCRYPTION_KEY=<valor>`, tarea 11, run rojo [40521621072](https://github.com/rferic/027apps/actions/runs/40521621072)).
-- **Pendiente (usuario)**: copiarla al **gestor de contraseñas**, en una entrada propia y separada del backup de la BD. Comando sin exponerla: `grep '^SETTINGS_ENCRYPTION_KEY=' apps/admin/.env.local | cut -d= -f2- | pbcopy`. En Vercel (Preview + Production) se añade en infra-06.
+- **Copia en el gestor de contraseñas**: hecha por el usuario el 2026-10-27 (confirmada en sesión; el valor no pasó por el chat: `pbcopy` desde `.env.local`). Entrada propia, separada del backup de la BD.
+- **Pendiente**: añadirla a Vercel (Preview + Production) en infra-06.
 - **Pendiente (sprint-05 task-04)**: verificación de uso real — guardar un secreto en `settings` (cifrado AES-256-GCM) y leerlo.
 - **Riesgo mientras no esté en el gestor**: si se pierde `.env.local` la clave se pierde; hoy **no hay ningún secreto cifrado con ella**, así que el impacto es nulo. Cuando se guarden secretos, la clave es irrecuperable sin copia.
