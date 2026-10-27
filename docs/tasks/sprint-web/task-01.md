@@ -13,6 +13,7 @@ Sprint de **backlog** (pendiente de planificar): montar la base real del admin w
 - **Parte privada**: shell con navegación + **dashboard** y las páginas de gestión — **configuraciones de instancia** (task-06), **listado y gestión de usuarios**, **categorías** (etiquetas de usuarios), **invitaciones**, **API keys/MCP** (task-02/05). Definida en la task-12 del Core (shell). *(Los "grupos de datos" — p. ej. grupos de gastos — son páginas de cada módulo, no del Core.)*
 
 **Depende de (puerta de entrada, cumplirse antes de planificar/implementar):**
+- **`sprint-05` (login + shell)** para la base (login, `/setup`, navegación); **`sprint-06`** para las páginas privadas (usuarios, categorías, invitaciones, módulos, claves).
 - API del Core **implementada** (`/api/v1` con los recursos transversales — task-02 del Core; API-first, ADR 0004: el panel solo consume su API).
 - **OpenAPI generado** desde los schemas zod compartidos (spec API v1 A2) — fuente de la página de documentación.
 - **Supabase Auth** conectado (sprint de infra, login) y `JWT_EXPIRY` configurado (ADR 0006).
