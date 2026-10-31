@@ -19,5 +19,5 @@ fuente: docs/flows/cicd.md §B
 - **Env vars** (4, scope Preview, verificadas por API por nombre; nunca valores):
   - `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (publicas por diseño): creadas por el agente por API (tipo plain).
   - `SUPABASE_SERVICE_ROLE_KEY` y `SETTINGS_ENCRYPTION_KEY`: creadas por el agente por API (tipo **sensitive**), leyendo los valores desde ficheros locales (API de Supabase y `apps/admin/.env.local`) y borrando los ficheros temporales. Los valores nunca pasaron por el chat.
-- **Primer deploy**: pendiente; se disparará con el primer PR (previews por PR sí).
+- **Primer deploy**: READY (`dpl_Dr9fcbXfkNzPLyKWbnuTaVeTQSc6`, commit `1223511` del PR #29), pero Vercel lo marcó `target: production` con la rama de producción por defecto. Pendiente en dashboard: fijar *Production Branch* = `production` para que los pushes vayan a preview. Las env vars de scope Production están vacías a propósito hasta que exista `027apps-prod`.
 - **Production scope** de las env vars: cuando exista `027apps-prod` (cierre de sprint-05).
