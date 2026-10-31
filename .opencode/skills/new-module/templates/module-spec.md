@@ -3,7 +3,7 @@
 **Fecha:** <YYYY-MM-DD>
 **Estado:** Borrador para aprobación del usuario
 **Paquete:** `packages/<key>/`
-**Manifest:** `packages/<key>/manifest.json` (contrato: `docs/superpowers/specs/2026-10-26-modulo-system.md` §3)
+**Manifest:** `packages/<key>/manifest.json` (contrato: `docs/ai/module-system.md`; esquema: `docs/ai/manifest.schema.json`)
 **Flujo:** `docs/flows/new-module.md` · **Feature base:** `docs/flows/feature.md`
 
 ## 1. Objetivo y límites de v1

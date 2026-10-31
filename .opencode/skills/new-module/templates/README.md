@@ -1,9 +1,10 @@
 # Plantillas de `new-module`
 
-Copia la plantilla al paquete del módulo y **reemplaza todos los placeholders**. La skill
-`new-module` considera un fallo dejar `<...>` en el manifest.
+Copia la plantilla al directorio de trabajo de la tarea y **reemplaza todos los
+placeholders**. La skill `new-module` considera un fallo dejar `<...>` en el manifest.
 
-- `manifest.json` — forma del contrato (§3 de `docs/superpowers/specs/2026-10-26-modulo-system.md`).
+- `manifest.json` — forma del contrato. Fuente canónica: `docs/ai/module-system.md`;
+  esquema: `docs/ai/manifest.schema.json`.
   - `key` en kebab-case y único; no puede ser `admin`, `mcp`, `api` ni `core`.
   - `name`/`label`/`help` en inglés (son claves i18n).
   - `branding.color` ∈ los 8 slots del DS (`teal`, `indigo`, `violet`, `amber`, `rose`,
@@ -16,4 +17,9 @@ Copia la plantilla al paquete del módulo y **reemplaza todos los placeholders**
     `settings` si hay `settings`; `events` si hay `eventos`/`channels`.
   - Borra las capacidades que el módulo no use y sus docs asociados.
 
-- `module-spec.md` — esqueleto de la spec del módulo (entregable de la fase 1 del flujo).
+- `module-spec.md` — esqueleto de la spec del módulo (entregable de la fase de spec).
+  Referencia el contrato en `docs/ai/module-system.md`.
+
+- `state.md` — memoria del proceso: brief, análisis, requisitos cerrados, dependencias del
+  Core, artefactos, puertas y bitácora. Se copia al directorio de trabajo de la tarea y se
+  actualiza en cada fase.
