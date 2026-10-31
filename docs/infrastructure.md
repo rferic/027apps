@@ -5,8 +5,8 @@ Inventario de servicios, secretos y operación de una instancia desplegada. Comp
 [`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-backups.md)
 (decisión de backup). **Nunca** se escriben valores de secretos aquí: solo nombres.
 
-> **Estado:** documento en construcción. Hoy cubre el inventario básico, backups y
-> recuperación (task-12 del sprint de infra); despliegue, releases y el resto de la operación
+> **Estado:** documento en construcción. Hoy cubre el inventario básico, Vercel, backups y
+> recuperación (tasks 06 y 12 del sprint de infra); releases, SMTP y el resto de la operación
 > se completarán con las tareas de despliegue.
 
 ## 1. Servicios
@@ -18,6 +18,22 @@ Inventario de servicios, secretos y operación de una instancia desplegada. Comp
 | Supabase | Postgres, Auth, Storage, Realtime | Free: **sin backups**, 500 MB de BD, pausa por inactividad (~1 semana) | **Se reconstruye** desde el backup + migraciones (este documento) |
 | Supabase local (dev) | BD/Auth/Storage/Realtime para desarrollar y para el TDD de migraciones + RLS | Docker, sin coste; lo levanta `supabase start` | Se recrea con `supabase start`; `supabase db reset` deja la BD limpia y aplica las migraciones |
 | **Supabase `027apps-dev`** (cloud) | **Project ref `wrigkwhrihawvwiciouy`** (`https://wrigkwhrihawvwiciouy.supabase.co`, eu-west) | Env vars solo en Vercel y en el gestor del propietario (nunca en git) | Se recupera con `supabase link --project-ref wrigkwhrihawvwiciouy` + migraciones |
+
+### Vercel (admin + `/api/v1`)
+
+- **Proyecto**: `027apps` en el team EricRF (plan Hobby), conectado a GitHub
+  `rferic/027apps` (deploy automático por PR y push). El proyecto legacy se borró
+  en el reset del 2026-10-27; este se creó desde el repo.
+- **Root Directory**: `apps/admin`, con ficheros de la raíz incluidos (workspace pnpm
+  necesita el `pnpm-workspace.yaml` de la raíz).
+- **Production Branch**: `production` (rama placeholder, no existe → producción en
+  pausa hasta que exista el Core funcional; decisión 2026-10-25).
+- **Protección**: Vercel Authentication activa en todas las URLs de deployment menos
+  dominios custom (los previews solo se ven autenticado).
+- **Env vars** (nunca valores aquí; solo nombres): 4 con scope **Preview** —
+  `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (publicas por diseño),
+  `SUPABASE_SERVICE_ROLE_KEY` y `SETTINGS_ENCRYPTION_KEY` (tipo *sensitive*).
+  Scope Production cuando exista `027apps-prod`.
 | Firebase (FCM) | Push | Free (opcional) | Se recrea el proyecto; los valores van en settings |
 | Cloudflare R2 (o Backblaze B2) | Backups cifrados de la BD | R2: 10 GB gratis, sin coste de egress | **Punto único de los backups**: ver copia secundaria (§8) |
 | healthchecks.io (opcional) | Vigilancia de que el backup corre | Free | Se pierde la alerta proactiva; queda el email de fallo de GitHub |

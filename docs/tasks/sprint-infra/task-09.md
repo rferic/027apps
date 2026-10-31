@@ -2,7 +2,7 @@
 id: sprint-infra-task-09
 titulo: SETTINGS_ENCRYPTION_KEY (clave maestra de secretos)
 area: infra
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-27-sprint-infra.md
 fuente: docs/superpowers/specs/2026-10-26-instance-config.md §5
 ---
@@ -27,6 +27,6 @@ fuente: docs/superpowers/specs/2026-10-26-instance-config.md §5
 - **Generada** por el agente con `openssl rand -base64 32` y escrita **directamente** en `apps/admin/.env.local` sin imprimir el valor (ni en chat ni en logs). 32 bytes → base64.
 - **`guard-secrets`** ya la detecta si se hardcodea (`SETTINGS_ENCRYPTION_KEY=<valor>`, tarea 11, run rojo [40521621072](https://github.com/rferic/027apps/actions/runs/40521621072)).
 - **Copia en el gestor de contraseñas**: hecha por el usuario el 2026-10-27 (confirmada en sesión; el valor no pasó por el chat: `pbcopy` desde `.env.local`). Entrada propia, separada del backup de la BD.
-- **Pendiente**: añadirla a Vercel (Preview + Production) en infra-06.
+- **Pendiente**: añadirla a Vercel (Preview + Production) en infra-06. **HECHA**: añadida a Vercel (Preview) en infra-06 el 2026-10-31 (por API, tipo sensitive, sin pasar el valor por el chat). Production pendiente hasta que exista `027apps-prod`.
 - **Pendiente (sprint-05 task-04)**: verificación de uso real — guardar un secreto en `settings` (cifrado AES-256-GCM) y leerlo.
 - **Riesgo mientras no esté en el gestor**: si se pierde `.env.local` la clave se pierde; hoy **no hay ningún secreto cifrado con ella**, así que el impacto es nulo. Cuando se guarden secretos, la clave es irrecuperable sin copia.
