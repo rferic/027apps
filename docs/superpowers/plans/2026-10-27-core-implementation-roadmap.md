@@ -1,8 +1,8 @@
-# Plan — Implementación del Core (sprints 05, 06, 07)
+# Plan — Implementación del Core (sprints 05, 06, 07) + sprint 08 (paralelo)
 
 **Fecha:** 2026-10-27
 **Specs:** sprint de diseño del Core (`docs/superpowers/specs/2026-10-26-*.md` + `2026-10-25-api-v1/token-model/auth.md`)
-**Sprints:** `sprint-05-core-base` → `sprint-06-core-data` → `sprint-07-mcp`
+**Sprints:** `sprint-05-core-base` → `sprint-06-core-data` → `sprint-07-mcp` · `sprint-08-new-module-skill` (paralelo)
 
 ## Orden y dependencias
 
@@ -12,12 +12,15 @@ sprint-infra (04 Supabase+envs, 09 clave maestra)  ──┐
 sprint-05-core-base  ──►  sprint-06-core-data  ──►  sprint-07-mcp
         │                        │
         └──► sprint-web (login + shell desde 05; páginas privadas tras 06)
+
+sprint-08-new-module-skill (docs + skill, paralelo; no bloquea Core)
 ```
 
 1. **sprint-05** es el cimiento: migraciones+RLS, auth, esqueleto de API, settings, i18n, observabilidad. **Nada más empieza sin él.**
 2. **sprint-06** añade la superficie: personas, invitaciones, claves, módulos+instalador, realtime/outbox/push, jobs.
 3. **sprint-07** añade MCP (necesita módulos y `mcp_exposed`).
 4. **sprint-web** corre en paralelo: login y shell desde 05; páginas de gestión tras 06.
+5. **sprint-08-new-module-skill** corre en paralelo: documentación canónica y skill `new-module`; no bloquea al Core; las fases ejecutables se verifican cuando exista el instalador.
 
 ## Reglas de ejecución
 

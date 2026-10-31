@@ -18,6 +18,9 @@ Todo cambio sigue spec → plan → implementación con TDD → revisión → au
 7. `docs/infrastructure.md` — inventario de servicios, límites del free tier, backups y recuperación (runbook operativo).
 8. `apps/admin/AGENTS.md` — aviso de Next.js: esta versión difiere de lo que sabes; lee `node_modules/next/dist/docs/` antes de escribir código de Next.
 
+Para crear o cambiar un módulo: `docs/ai/module-system.md` (contrato canónico) y
+`.opencode/skills/new-module/SKILL.md` (skill). No dupliques el contrato del manifest.
+
 ## Reglas transversales
 
 - **Determinismo antes que agentes**: lint, typecheck, tests y CI deciden lo mecánico. No gastes juicio en lo que una herramienta puede rechazar; si ves una convención mecánica sin check, propón el check.
@@ -25,6 +28,19 @@ Todo cambio sigue spec → plan → implementación con TDD → revisión → au
 - **Secretos**: nunca en git, logs, ni en la salida de comandos (`.env*`, keystores, tokens). Ver `docs/flows/cicd.md`.
 - **API-first**: móvil y terceros solo hablan con `/api/v1`; nunca con la BD.
 - Cambios mínimos y del alcance de la tarea. No toques ficheros ajenos a ella.
+
+## Module contract changes
+
+Cualquier cambio en el contrato del manifest, el ciclo de vida o el flujo de creación de
+módulos debe actualizar, en el mismo PR:
+
+- `docs/ai/module-system.md`
+- `docs/ai/manifest.schema.json` (si cambia el esquema)
+- la sección de módulos de este fichero y el puntero de `CLAUDE.md`
+- los envoltorios de proveedor (`.opencode/`, `.claude/`, `.agents/`)
+- los ejemplos si cambia la forma
+
+Un cambio solo de código que deje esta documentación desactualizada está incompleto.
 
 ## Obligaciones por tipo de tarea
 
@@ -35,6 +51,7 @@ Todo cambio sigue spec → plan → implementación con TDD → revisión → au
 | **refactor** | Tests existentes en verde sin modificarlos para que pasen; test nuevo si cambia el comportamiento observable. Auditoría de seguridad siempre antes de `finalizada`. |
 | **docs** | Sin contradecir spec ni flujos existentes. Revisión de un segundo agente. Rutas y comandos citados verificados contra el repo. |
 | **infra** (CI, deploy, config, dependencias) | Actualizar `docs/flows/`. Permisos mínimos, acciones de terceros fijadas por SHA de commit (las `actions/*` de GitHub pueden ir en tag mayor), secretos solo por `env` en el paso que los usa. Evidencia real de que el check pasa/falla como se espera. Auditoría de seguridad antes de `finalizada`. |
+| **module-contract** (manifest, ciclo de vida, flujo de creación) | Actualizar en el mismo PR: `docs/ai/module-system.md`, `docs/ai/manifest.schema.json` si cambia el esquema, la sección de módulos de este fichero y el puntero de `CLAUDE.md`, los envoltorios de proveedor y los ejemplos si cambia la forma. Un cambio solo de código que deje la documentación de IA desactualizada está incompleto. |
 
 La auditoría de seguridad es **incondicional**: toda implementación (código, infra) la requiere antes de `finalizada`, sin excepción por tamaño o ámbito.
 
@@ -48,6 +65,7 @@ Definición completa de "terminado" por tipo: `docs/conventions/definition-of-do
 - [ ] Sin colores hardcodeados, sin `any` injustificado, sin `console.log` olvidados, sin código comentado.
 - [ ] Sin secretos ni ficheros `.env*`/keystores en `git status`.
 - [ ] Docs, flujos y fichero de tarea actualizados si procede.
+- [ ] Si cambié el contrato del módulo, actualicé `docs/ai/module-system.md`, el esquema y los envoltorios.
 - [ ] Mensaje de commit y título de PR en Conventional Commits: `tipo(ámbito opcional): asunto en minúsculas` con tipo en `feat|fix|docs|chore|ci|refactor|test|perf|build`. El job `commitlint` rechaza el PR si no.
 
 ## Git
