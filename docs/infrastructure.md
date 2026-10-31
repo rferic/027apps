@@ -17,6 +17,7 @@ Inventario de servicios, secretos y operación de una instancia desplegada. Comp
 | Vercel | Admin + `/api/v1` | Hobby | Se recrea desde el repo; solo hay que reponer env vars |
 | Supabase | Postgres, Auth, Storage, Realtime | Free: **sin backups**, 500 MB de BD, pausa por inactividad (~1 semana) | **Se reconstruye** desde el backup + migraciones (este documento) |
 | Supabase local (dev) | BD/Auth/Storage/Realtime para desarrollar y para el TDD de migraciones + RLS | Docker, sin coste; lo levanta `supabase start` | Se recrea con `supabase start`; `supabase db reset` deja la BD limpia y aplica las migraciones |
+| **Supabase `027apps-dev`** (cloud) | **Project ref `wrigkwhrihawvwiciouy`** (`https://wrigkwhrihawvwiciouy.supabase.co`, eu-west) | Env vars solo en Vercel y en el gestor del propietario (nunca en git) | Se recupera con `supabase link --project-ref wrigkwhrihawvwiciouy` + migraciones |
 | Firebase (FCM) | Push | Free (opcional) | Se recrea el proyecto; los valores van en settings |
 | Cloudflare R2 (o Backblaze B2) | Backups cifrados de la BD | R2: 10 GB gratis, sin coste de egress | **Punto único de los backups**: ver copia secundaria (§8) |
 | healthchecks.io (opcional) | Vigilancia de que el backup corre | Free | Se pierde la alerta proactiva; queda el email de fallo de GitHub |
