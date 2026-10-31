@@ -4,7 +4,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 
 | Pieza | Estado |
 |---|---|
-| Gates de CI (`admin`, `android`, `guard-secrets`) | Implementado (`.github/workflows/ci.yml`) |
+| Gates de CI (`admin`, `android`, `guard-secrets`, `ai-docs`) | Implementado (`.github/workflows/ci.yml`) |
 | Release firmado de Android en tag `v*` | Implementado, pendiente de keystore (ver [Pendiente de ejecución](#pendiente-de-ejecución-puerta-de-usuario)) |
 | Keep-alive diario | Implementado (`.github/workflows/keep-alive.yml`), inactivo hasta que exista el secret `PROD_URL` |
 | `commitlint` | Implementado (`.github/workflows/ci.yml`, config `.commitlintrc.json`); valida el título del PR |
@@ -25,7 +25,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 
 | Workflow | Trigger | Qué ejecuta |
 |---|---|---|
-| `ci.yml` | `pull_request` (`opened`, `synchronize`, `reopened`, `edited`; cualquier rama destino) | `admin`, `android`, `guard-secrets`, `commitlint` |
+| `ci.yml` | `pull_request` (`opened`, `synchronize`, `reopened`, `edited`; cualquier rama destino) | `admin`, `android`, `guard-secrets`, `commitlint`, `ai-docs` |
 | `ci.yml` | `push` a `main` | los mismos checks sobre el commit mergeado |
 | `ci.yml` | `push` de tag `v*` | los mismos checks + job `release` |
 | `keep-alive.yml` | `schedule` diario (06:17 UTC) y `workflow_dispatch` | ping a producción si existe `PROD_URL` |
@@ -45,9 +45,10 @@ Todos corren en `ubuntu-latest` con permisos `contents: read` (solo `release` su
 | `android` | checkout → JDK 17 (temurin) → Android SDK con licencias aceptadas (`android-actions/setup-android`; AGP descarga la plataforma 37) → `gradle/actions/setup-gradle` (caché; `apps/android/gradle.properties` sube el heap del daemon a 3 GB porque D8 se quedaba sin memoria con el valor por defecto en los runners) → `./gradlew :app:testDebugUnitTest :app:assembleDebug` → sube el artifact `apk-debug` | GitHub Actions | Tests unitarios pasan, el APK debug se genera y queda descargable 90 días (retención por defecto) para probar el PR en un dispositivo. |
 | `guard-secrets` | checkout → script que falla si git rastrea `.env*` (salvo `*.example`), `*.jks`/`*.keystore`/`*.p12`/`*.pem`/`*.key`/`*.p8`, `google-services.json`, o si el árbol contiene valores con forma de secreto (`sbp_…`, `sb_secret_…`, cualquier JWT —las claves anon/service de Supabase lo son—, `SERVICE_ROLE_KEY=<valor>`, bloques `-----BEGIN … PRIVATE KEY-----`, claves de máquina `027_svc_…`/`027_usr_…` y `SETTINGS_ENCRYPTION_KEY=<valor>`) | GitHub Actions | Ningún secreto ni keystore se ha colado en git. Solo imprime **nombres de archivo**, nunca el contenido que coincide. Los patrones usan clases de caracteres que impiden que coincidan con su propio texto en `ci.yml`, así que no hace falta excluir el directorio de workflows. |
 | `commitlint` | checkout → Node 22 → `commitlint` (versiones fijadas, vía `npx`) sobre el título del PR, pasado por variable de entorno | GitHub Actions | El título del PR cumple Conventional Commits (`feat`, `fix`, `docs`, `chore`, `ci`, `refactor`, `test`, `perf`, `build`). Solo corre en `pull_request`; en push/tag se omite. Como el squash merge usa el título como mensaje del commit en `main`, validar el título es validar el commit. Renombrar el PR (`edited`) relanza el CI y el `concurrency` cancela la ejecución anterior. |
+| `ai-docs` | checkout → Node 22 → `node scripts/check-ai-docs.mjs` | GitHub Actions | La versión del manifest coincide entre `docs/ai/manifest.schema.json` y `docs/ai/module-system.md`, y `AGENTS.md`, `CLAUDE.md`, `.opencode`, `.claude` y `.agents` apuntan a la fuente canónica. Sin secretos. |
 | `release` | solo en tag `v*`, y solo si el commit etiquetado es ancestro de `origin/main` (`git merge-base --is-ancestor "$GITHUB_SHA" origin/main`, con `fetch-depth: 0`; si no, el job falla antes de tocar secrets); corre en el Environment `release`; ver [Distribución Android](#distribución-android-y-actualizaciones) | GitHub Actions | APK firmado y publicado. |
 
-Los checks `admin`, `android`, `guard-secrets` y `commitlint` son los que se marcarán como requeridos en la protección de `main`.
+Los checks `admin`, `android`, `guard-secrets`, `commitlint` y `ai-docs` son los que se marcarán como requeridos en la protección de `main`.
 
 ## Secretos
 
@@ -124,7 +125,7 @@ Un fork (o un PR desde un fork) no tiene secrets. Resultado esperado, sin fallos
 
 | Pieza | Comportamiento en fork |
 |---|---|
-| `admin`, `android`, `guard-secrets` | Se ejecutan completos (no necesitan secrets) |
+| `admin`, `android`, `guard-secrets`, `ai-docs` | Se ejecutan completos (no necesitan secrets) |
 | `release` | Con `github.event.repository.fork == true` y sin keystore: aviso `::notice::` y todos los pasos de build/publicación se omiten; el job termina en verde |
 | `keep-alive` | Los workflows programados vienen deshabilitados en forks; si se lanza a mano, `PROD_URL` vacío omite el ping |
 | Vercel | No está conectado en el fork: no hay deploy |
@@ -149,7 +150,7 @@ La distribución familiar es **un enlace de descarga**: la página de GitHub Rel
 |---|---|---|---|
 | 1 | Subir `versionCode` (obligatorio, debe ser mayor que el anterior) y `versionName` en `apps/android/app/build.gradle.kts`, mergear a `main` | Desarrollador, vía PR | Gates de CI |
 | 2 | Crear y empujar el tag: `git tag vX.Y.Z && git push origin vX.Y.Z` (un tag con `-`, p. ej. `v0.1.0-sprint1`, se publica como pre-release) | Desarrollador | — |
-| 3 | `ci.yml` corre `admin`, `android` y `guard-secrets` sobre el tag; `release` espera a los tres (`needs`) | GitHub Actions | Checks en verde |
+| 3 | `ci.yml` corre `admin`, `android`, `guard-secrets` y `ai-docs` sobre el tag; `release` espera a los cuatro (`needs`) | GitHub Actions | Checks en verde |
 | 4 | `release`: comprueba que el commit del tag es ancestro de `main` (falla si no) → comprueba que están los 4 secrets → `./gradlew :app:assembleRelease` firmado → `apksigner verify --print-certs` → `gh release create` con el APK `027apps-<tag>.apk` y notas autogeneradas | GitHub Actions | El job falla si el commit no está en `main`, si falta un secret, si la firma no verifica o si no se genera el APK |
 | 5 | Los usuarios abren el enlace de Releases en su móvil, descargan la APK e instalan (la primera vez habilitan "instalar apps de orígenes desconocidos" para su navegador) | Usuarios | Android instala la actualización sobre la versión anterior solo si la clave de firma y el `applicationId` coinciden y `versionCode` es mayor |
 
@@ -170,7 +171,7 @@ Estos pasos requieren al usuario y **no se han ejecutado**; el código que los c
 
 **Orden obligatorio: las protecciones (1–2) van ANTES de subir cualquier secret de firma (4+).** Hasta que existan, cualquier colaborador con permiso de escritura podría empujar un tag `v*` sobre un commit arbitrario y exfiltrar el keystore a través del job `release`. La guarda de CI (ancestro de `main`) funciona sin ellas pero no las sustituye.
 
-1. **Proteger `main`** (*Settings → Branches* o un ruleset): exigir PR y los cuatro checks `admin`, `android`, `guard-secrets`, `commitlint` (y el check de Vercel cuando esté conectado); sin force-push ni borrado. Acción de administrador: no se puede hacer con `gh` sin acceso admin a la API.
+1. **Proteger `main`** (*Settings → Branches* o un ruleset): exigir PR y los cinco checks `admin`, `android`, `guard-secrets`, `commitlint`, `ai-docs` (y el check de Vercel cuando esté conectado); sin force-push ni borrado. Acción de administrador: no se puede hacer con `gh` sin acceso admin a la API.
 2. **Ruleset para tags** (*Settings → Rules → Rulesets*): target *Tags*, patrón `v*`, restringir creación (y actualización/borrado) a administradores del repo.
 3. **Environment `release`** (*Settings → Environments*): con *Required reviewers* (el propietario) y, opcionalmente, *Deployment branches and tags* limitado a `v*`. El job `release` ya declara `environment: release`; los secrets de firma deben guardarse **en ese Environment** (no a nivel de repositorio) para que solo ese job, tras aprobación, pueda leerlos.
 

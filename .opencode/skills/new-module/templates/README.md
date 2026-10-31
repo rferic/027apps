@@ -6,7 +6,7 @@ placeholders**. La skill `new-module` considera un fallo dejar `<...>` en el man
 - `manifest.json` — forma del contrato. Fuente canónica: `docs/ai/module-system.md`;
   esquema: `docs/ai/manifest.schema.json`.
   - `key` en kebab-case y único; no puede ser `admin`, `mcp`, `api` ni `core`.
-  - `name`/`label`/`help` en inglés (son claves i18n).
+  - `name`/`label`/`help` en inglés (textos visibles; i18n los traduce, no son claves i18n).
   - `branding.color` ∈ los 8 slots del DS (`teal`, `indigo`, `violet`, `amber`, `rose`,
     `emerald`, `sky`, `slate`); nunca un hex libre.
   - Cada migración declara `up` **y** `down`; `version` única en el manifest; calcula

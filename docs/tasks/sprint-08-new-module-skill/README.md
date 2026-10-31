@@ -2,7 +2,7 @@
 id: sprint-08-new-module-skill
 titulo: Metodología y skill para crear módulos con un agente
 area: docs
-estado: pendiente
+estado: test
 plan: docs/superpowers/plans/2026-10-31-sprint-08-new-module-skill.md
 spec: docs/superpowers/specs/2026-10-31-sprint-08-new-module-skill.md
 ---

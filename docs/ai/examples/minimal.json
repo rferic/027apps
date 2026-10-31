@@ -1,8 +1,8 @@
 {
-  "key": "family-calendar",
-  "name": "Family Calendar",
+  "key": "example-calendar",
+  "name": "Example Calendar",
   "branding": {
-    "description": "Shared family calendar for events and reminders",
+    "description": "Minimal example module used to validate the manifest schema",
     "icon": "assets/icon.svg",
     "color": "indigo"
   },

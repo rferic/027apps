@@ -1,7 +1,7 @@
 # Spec — Sprint 08: metodología y skill `new-module`
 
 **Fecha:** 2026-10-31
-**Estado:** Borrador para aprobación del usuario
+**Estado:** Aprobada por el usuario (2026-10-31)
 **Sprint:** `sprint-08-new-module-skill`
 **Ámbito:** documentación y tooling; sin código de producto
 **Contrato base:** `docs/superpowers/specs/2026-10-26-modulo-system.md` §3, aprobado por el usuario (2026-10-31)

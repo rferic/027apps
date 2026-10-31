@@ -56,10 +56,10 @@ Run the phases in `docs/flows/new-module.md` in order. Do not skip gates.
    template. The spec must cover security, tests, API, and MCP. Create an HTML+JS mockup in
    `docs/mockups/<key>/index.html` with mobile and admin views. Iterate until the user accepts
    both. The spec is not complete until the mockup is accepted.
-
-After the spec and mockup are accepted, the module follows `feature.md` for the plan, TDD
-implementation, review, security audit, and acceptance. Do not implement before the plan is
-approved.
+8. **Close the definition** — validate the manifest against the schema; confirm the spec
+   covers security, API, MCP, and tests; update `state.md` with the next step and any Core
+   blockers. Then follow `feature.md` for the plan, TDD implementation, review, security
+   audit, and acceptance. Do not implement before the plan is approved.
 
 ## Gates and stop conditions
 

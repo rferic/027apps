@@ -113,7 +113,7 @@ jobs:
 
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [admin, android, guard-secrets]
+    needs: [admin, android, guard-secrets, ai-docs]
     runs-on: ubuntu-latest
     environment: release
     permissions:

@@ -2,7 +2,7 @@
 id: sprint-08-new-module-skill-task-04
 titulo: Entradas por proveedor (AGENTS.md, CLAUDE.md, .claude, .agents)
 area: docs
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-31-sprint-08-new-module-skill.md
 fuente: docs/superpowers/specs/2026-10-31-sprint-08-new-module-skill.md §4, §7; AGENTS.md
 adrs: [0004, 0007, 0008]

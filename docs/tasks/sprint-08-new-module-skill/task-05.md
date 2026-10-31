@@ -2,7 +2,7 @@
 id: sprint-08-new-module-skill-task-05
 titulo: Check de CI + plantilla de PR
 area: docs
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-31-sprint-08-new-module-skill.md
 fuente: docs/superpowers/specs/2026-10-31-sprint-08-new-module-skill.md §5.7, §9; .github/workflows/ci.yml
 adrs: [0004, 0007, 0008]

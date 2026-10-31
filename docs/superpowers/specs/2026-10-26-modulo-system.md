@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-10-26
 **Estado:** Borrador para aprobación del usuario
-**Base:** [spec de diseño §4](2026-10-24-027apps-design.md) (sistema de módulos, manifest, instalación global + activación por grupo → reframe: por usuario) · [spec de datos del Core](2026-10-26-core-data-model.md) (task-01: `module_registry`, `module_migrations`, `is_public`, `settings.is_public`, decisiones K/N/O) · [spec de API](2026-10-26-core-api.md) (task-02: endpoints `/modules/*/install|activate|deactivate|uninstall`, `/modules/{key}/settings`, `/modules/{key}`) · [flujo new-module(../../flows/new-module.md) (esqueleto a completar) · [spec de tokens §5](2026-10-25-token-model.md) (scopes por acción) · [ADR 0004](../../adr/0004-bordes-y-capa-de-aplicacion.md) (puertas, casos de uso, scopes) · [ADR 0007](../../adr/0007-manejo-de-errores.md) (envelope, `conflict`) · [ADR 0008](../../adr/0008-fechas-y-moneda.md) (config por instancia)
+**Base:** [spec de diseño §4](2026-10-24-027apps-design.md) (sistema de módulos, manifest, instalación global + activación por grupo → reframe: por usuario) · [spec de datos del Core](2026-10-26-core-data-model.md) (task-01: `module_registry`, `module_migrations`, `is_public`, `settings.is_public`, decisiones K/N/O) · [spec de API](2026-10-26-core-api.md) (task-02: endpoints `/modules/*/install|activate|deactivate|uninstall`, `/modules/{key}/settings`, `/modules/{key}`) · [metodología new-module](../../flows/new-module.md) + [contrato canónico](../../ai/module-system.md) · [spec de tokens §5](2026-10-25-token-model.md) (scopes por acción) · [ADR 0004](../../adr/0004-bordes-y-capa-de-aplicacion.md) (puertas, casos de uso, scopes) · [ADR 0007](../../adr/0007-manejo-de-errores.md) (envelope, `conflict`) · [ADR 0008](../../adr/0008-fechas-y-moneda.md) (config por instancia)
 **Decide el usuario:** contrato del manifest, seguridad del DDL (A+C+D, firma B diferida), limpieza de settings al uninstall, secuencia de implementación (2026-10-26)
 
 ## 1. Objetivo
@@ -173,11 +173,11 @@ El manifest trae SQL ejecutable: capas de protección (filosofía "defensa en pr
 - **Validación mecánica del manifest** contra su esquema zod como **check de CI** en el **job `admin` existente** (se añade ahí; no hay job `modules` en `cicd.md` y no se crea uno aparte): todo PR que añada/modifique un `packages/*/manifest.json` pasa el contrato o falla.
 - El `digest`/`down_digest` de cada migración se **recalcula y compara** (evita manifests con digest desincronizado).
 - Las claves i18n se validan con el **check de locales** (task-09) en el **job `admin`**: el manifest declara un **subconjunto ⊆ 9** que **incluye `en`**, y el check exige **ese subconjunto + su catálogo** (los 9 completos son el set disponible, no el de cada módulo).
-- Permite que la **skill `new-module`** (spec §9/§11, `new-module.md` paso 8) automatice el scaffolding con el contrato ya validado.
+- Permite que la **skill `new-module`** (`.opencode/skills/new-module/SKILL.md`) ejecute la metodología y el scaffolding con el contrato ya validado.
 
-## 7. Relación con el flujo `new-module.md`
+## 7. Relación con la metodología `new-module.md`
 
-Esta spec **completa los TODOs del esqueleto** (`new-module.md`): el contrato del manifest (paso 2), la validación mecánica (paso 2), la suite RLS con el instalador (paso 3), y el alta en el instalador (paso 8). La **actualización del esqueleto** (que hoy conserva el lenguaje pre-reframe: "activación por grupo", `group_id`, `participants`) queda **enlazada a la tarea de implementación del instalador** en el backlog del Core — el mismo PR que implemente el instalador revisa `new-module.md` contra esta spec y contra el reframe (decisión B7). Los pasos que dependen de código (instalador, suite RLS, tools MCP, eventos) se cierran en el sprint de implementación del Core.
+La metodología (`docs/flows/new-module.md`) y la documentación canónica (`docs/ai/module-system.md`) están completas en el sprint 08. Esta spec sigue siendo la fuente del contrato y de la mecánica del instalador. Los TODOs que dependen de código (instalador, suite RLS, tools MCP, eventos) se cierran en el sprint de implementación del Core; ese PR revisa la metodología contra esta spec y el reframe (decisión B7).
 
 ## 8. Decisiones tomadas (conversación de diseño, 2026-10-26)
 
@@ -216,7 +216,7 @@ Esta spec **completa los TODOs del esqueleto** (`new-module.md`): el contrato de
 - Spec de API del Core: `docs/superpowers/specs/2026-10-26-core-api.md` (task-02: endpoints de módulos)
 - Spec de diseño: `docs/superpowers/specs/2026-10-24-027apps-design.md` §4 (sistema de módulos)
 - Spec de API v1: `docs/superpowers/specs/2026-10-25-api-v1.md` §5 (mecanismo de extensión)
-- Flujo: `docs/flows/new-module.md` (esqueleto a completar)
+- Metodología: `docs/flows/new-module.md`; contrato canónico: `docs/ai/module-system.md`; skill: `.opencode/skills/new-module/SKILL.md`
 - ADRs: `0004-bordes-y-capa-de-aplicacion.md`, `0007-manejo-de-errores.md`, `0008-fechas-y-moneda.md`
 - Plan del sprint: `docs/superpowers/plans/2026-10-26-sprint-core-design.md`
 - Task: `docs/tasks/sprint-core-design/task-03.md`

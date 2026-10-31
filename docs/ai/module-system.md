@@ -136,11 +136,16 @@ Ejemplo completo:
 - `admin_pages`: `route` de un solo segmento (`^[a-z0-9]+(-[a-z0-9]+)*$`, sin `/`, `..`,
   `%2e` ni rutas reservadas), `label` en inglés, `icon` del DS, `group` (`module`) y `role`
   (`admin`|`super_admin`). El componente vive en `packages/<key>/admin/<route>/page.tsx` y el
-  CI exige que exista; se sirve en `/modules/<key>/<route>` y solo si el módulo está `active`.
+  CI del Core exigirá que exista; se sirve en `/modules/<key>/<route>` y solo si el módulo está `active`.
 - Documentación por capacidad: `docs.readme` obligatorio; `docs.api` obligatorio si declara
   `scopes`; `docs.mcp` si declara `mcp_tools`; `docs.settings` si declara `settings`;
-  `docs.events` si declara `eventos`/`channels`. El CI exige el fichero y que cada nombre
-  declarado aparezca en su documento. Un módulo sin `README.md` no instala.
+  `docs.events` si declara `eventos`/`channels`. El CI del Core exigirá el fichero y que cada
+  nombre declarado aparezca en su documento. Un módulo sin `README.md` no instala.
+
+El esquema JSON valida la forma; las referencias cruzadas (scopes de las tools, targets de
+eventos contra `channels[].pattern`, `settings[].category` = `snake_case(key)` y la
+documentación por capacidad) las validará el registry/CI del Core. Mientras no exista, el
+agente debe comprobarlas manualmente.
 
 ## 3. Propiedades y requisitos
 

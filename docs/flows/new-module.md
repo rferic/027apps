@@ -3,8 +3,8 @@
 > **Estado: metodología v1** (sprint 08). Fuente canónica del contrato:
 > [`docs/ai/module-system.md`](../ai/module-system.md). La skill de proyecto `new-module`
 > (`.opencode/skills/new-module/SKILL.md`) ejecuta este flujo paso a paso; este documento es
-> la metodología. Los `TODO` marcan piezas que dependen del Core: la skill debe **detectarlas
-> y detener al agente**, no inventarlas. Un módulo es una tarea de tipo **feature** (con DDL):
+> la metodología. Las dependencias del Core se listan en la tabla §5: la skill debe
+> **detectarlas y detener al agente**, no inventarlas. Un módulo es una tarea de tipo **feature** (con DDL):
 > sigue [`feature.md`](feature.md) completo y añade lo de abajo. Roles y puertas:
 > [`agents.md`](agents.md).
 

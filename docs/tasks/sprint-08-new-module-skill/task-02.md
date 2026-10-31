@@ -2,7 +2,7 @@
 id: sprint-08-new-module-skill-task-02
 titulo: Metodología de creación de módulos (flujo para agentes)
 area: docs
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-31-sprint-08-new-module-skill.md
 fuente: docs/ai/module-system.md; docs/superpowers/specs/2026-10-31-sprint-08-new-module-skill.md §6; docs/flows/feature.md; docs/flows/agents.md
 adrs: [0004, 0007, 0008]
