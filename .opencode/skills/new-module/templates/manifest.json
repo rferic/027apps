@@ -1,0 +1,62 @@
+{
+  "key": "<module-key>",
+  "name": "<Module Name>",
+  "branding": {
+    "description": "<English description>",
+    "icon": "assets/icon.svg",
+    "color": "<teal|indigo|violet|amber|rose|emerald|sky|slate>"
+  },
+  "version": "0.1.0",
+  "is_public": false,
+  "migraciones": [
+    {
+      "version": "0.1.0",
+      "up": "./sql/0.1.0-up.sql",
+      "down": "./sql/0.1.0-down.sql",
+      "digest": "sha256:<replace-with-sha256-of-up>",
+      "down_digest": "sha256:<replace-with-sha256-of-down>"
+    }
+  ],
+  "settings": [
+    {
+      "category": "<module_key_snake_case>",
+      "label": "<Module Name>",
+      "icon": "<ds-icon-name>",
+      "sort_order": 10,
+      "settings": [
+        {
+          "key": "<setting-key>",
+          "type": "<string|int|bool|currency>",
+          "default": "<default-value>",
+          "label": "<English label>",
+          "help": "<English help>",
+          "is_public": true,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 10
+        }
+      ]
+    }
+  ],
+  "i18n": ["es", "ca", "en", "it", "fr", "de", "pt", "gl", "eu"],
+  "scopes": ["<resource>:read", "<resource>:write"],
+  "mcp_tools": [
+    {
+      "name": "<tool_name>",
+      "kind": "read",
+      "description": "<English description>",
+      "scopes": ["<resource>:read"]
+    }
+  ],
+  "channels": [],
+  "eventos": [],
+  "hooks": {},
+  "admin_pages": [],
+  "docs": {
+    "readme": "README.md",
+    "api": "docs/api.md",
+    "mcp": "docs/mcp.md",
+    "settings": "docs/settings.md",
+    "events": "docs/events.md"
+  }
+}
