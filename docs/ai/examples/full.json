@@ -1,0 +1,115 @@
+{
+  "key": "split-expenses",
+  "name": "Split Expenses",
+  "branding": {
+    "description": "Shared family expenses with balances and settlement",
+    "icon": "assets/icon.svg",
+    "color": "teal"
+  },
+  "version": "1.0.0",
+  "is_public": false,
+  "migraciones": [
+    {
+      "version": "1.0.0",
+      "up": "./sql/1.0.0-up.sql",
+      "down": "./sql/1.0.0-down.sql",
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "down_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "settings": [
+    {
+      "category": "split_expenses",
+      "label": "Split Expenses",
+      "icon": "split-expenses",
+      "sort_order": 10,
+      "settings": [
+        {
+          "key": "default_currency",
+          "type": "currency",
+          "default": "EUR",
+          "label": "Default currency",
+          "help": "Currency used by default in this module",
+          "is_public": true,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 10
+        },
+        {
+          "key": "reminder_threshold",
+          "type": "int",
+          "default": 3,
+          "label": "Reminder threshold",
+          "help": "Days before a reminder is shown",
+          "is_public": false,
+          "is_secret": false,
+          "mcp_access": "none",
+          "sort_order": 20
+        }
+      ]
+    }
+  ],
+  "i18n": ["es", "ca", "en", "it", "fr", "de", "pt", "gl", "eu"],
+  "scopes": ["expenses:read", "expenses:write", "balance:read"],
+  "mcp_tools": [
+    {
+      "name": "expenses_list",
+      "kind": "read",
+      "description": "List group expenses",
+      "scopes": ["expenses:read"]
+    },
+    {
+      "name": "expenses_create",
+      "kind": "write",
+      "description": "Create an expense",
+      "scopes": ["expenses:write"]
+    }
+  ],
+  "channels": [
+    {
+      "pattern": "expense-group-{id}",
+      "members_fn": "split_expenses_expense_group_members"
+    }
+  ],
+  "eventos": [
+    {
+      "type": "expense.created",
+      "target": "channel:expense-group-{id}",
+      "notify": ["push"]
+    },
+    {
+      "type": "expense.deleted",
+      "target": "channel:expense-group-{id}"
+    },
+    {
+      "type": "expense.invited",
+      "target": "user"
+    }
+  ],
+  "hooks": {
+    "user.deactivated": "handleUserDeactivated"
+  },
+  "admin_pages": [
+    {
+      "route": "overview",
+      "label": "Expenses overview",
+      "icon": "chart",
+      "group": "module",
+      "role": "admin"
+    },
+    {
+      "route": "import",
+      "label": "Import from Splitwise",
+      "icon": "upload",
+      "group": "module",
+      "role": "admin"
+    }
+  ],
+  "docs": {
+    "readme": "README.md",
+    "api": "docs/api.md",
+    "mcp": "docs/mcp.md",
+    "settings": "docs/settings.md",
+    "events": "docs/events.md"
+  }
+}

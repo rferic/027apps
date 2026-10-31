@@ -1,0 +1,13 @@
+{
+  "key": "family-calendar",
+  "name": "Family Calendar",
+  "branding": {
+    "description": "Shared family calendar for events and reminders",
+    "icon": "assets/icon.svg",
+    "color": "indigo"
+  },
+  "version": "1.0.0",
+  "docs": {
+    "readme": "README.md"
+  }
+}
