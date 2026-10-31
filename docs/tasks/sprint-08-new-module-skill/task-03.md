@@ -48,4 +48,8 @@ ejecute la metodología de task-02.
   `docs/ai/module-system.md`). El escenario GREEN ya cumplía el resto de criterios.
 - **Evidencia**: sesiones de subagente RED `ses_e6d7469b0ffeVzAE7F1zTN1yC3` y GREEN
   `ses_e6d6fbcbaffe2tgiqmGUxf51lP`; no se ha commiteado ningún artefacto del módulo ficticio.
+- **Re-test tras REFACTOR**: smoke test con la skill actualizada (sesión
+  `ses_e6d67caffffekO3S4JnTokdGi6`): usa el cuestionario del §1.1 sin improvisar, copia
+  `state.md` como primer artefacto, respeta la puerta «¿Empezamos el spec?», no inventa el
+  instalador (lo declara bloqueado y deja el módulo en `test`) y no duplica el contrato.
 - Estado `test`: pendiente de revisión de segundo agente (DoD de Docs).
