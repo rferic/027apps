@@ -151,7 +151,7 @@ vercel.com con la cuenta de GitHub (2FA): Add New Project → importar `rferic/0
 
 - [ ] **Step 2: (usuario) Producción en pausa real (desviación documentada)**
 
-**Production Branch: `production`** (rama que no existe): los pushes a `main` generan solo previews. Se cambiará a `main` al cierre de sprint-05 (decisión de pausa del 2026-10-25, ahora con mecanismo en vez de disciplina). `cicd.md` se actualiza en el PR de esta tarea.
+**Production Branch: `production`** (rama placeholder **que debe existir en GitHub**: Vercel la valida y rechaza ramas inexistentes; se crea una vez congelada en el HEAD de `main` y no se toca): los pushes a `main` generan solo previews. Se cambiará a `main` al cierre de sprint-05 (decisión de pausa del 2026-10-25, ahora con mecanismo en vez de disciplina). `cicd.md` se actualiza en el PR de esta tarea.
 
 - [ ] **Step 3: (usuario) Env vars**
 

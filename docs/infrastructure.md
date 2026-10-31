@@ -26,11 +26,12 @@ Inventario de servicios, secretos y operación de una instancia desplegada. Comp
   en el reset del 2026-10-27; este se creó desde el repo.
 - **Root Directory**: `apps/admin`, con ficheros de la raíz incluidos (workspace pnpm
   necesita el `pnpm-workspace.yaml` de la raíz).
-- **Production Branch**: debe ser `production` (rama placeholder, no existe → producción
-  en pausa hasta que exista el Core funcional; decisión 2026-10-25). **Estado 2026-10-31:
-  aún sin fijar en el dashboard**; el primer deploy del PR quedó como `target: production`
-  (READY) porque el proyecto conserva la rama de producción por defecto. Cambiar en
-  *Settings → Git → Production Branch* antes de mergear a `main`.
+- **Production Branch**: debe ser `production` (rama placeholder congelada en el HEAD de
+  `main`; Vercel exige que exista en el repo → producción en pausa hasta que exista el Core
+  funcional; decisión 2026-10-25). **Estado 2026-10-31: pendiente de fijar en el dashboard**;
+  el primer deploy del PR quedó como `target: production` (READY) porque el proyecto conserva
+  la rama de producción por defecto. Cambiar en *Settings → Environments → Production →
+  Branch Tracking* antes de mergear a `main`. Al cierre de sprint-05 se cambia a `main`.
 - **Protección**: Vercel Authentication activa en todas las URLs de deployment menos
   dominios custom (los previews solo se ven autenticado).
 - **Env vars** (nunca valores aquí; solo nombres): 4 con scope **Preview** —
