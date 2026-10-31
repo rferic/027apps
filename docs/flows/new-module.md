@@ -16,6 +16,61 @@
 - **No** si lo que se pide es una pantalla, un recurso o una tabla transversal que pertenece
   al Core: primero se decide si es módulo o Core con la spec §4. Un módulo no reabre el Core.
 
+### 1.1 Cuestionario al usuario
+
+Estas son las preguntas que la skill debe hacer, agrupadas por fase. No preguntes lo que ya
+está en la spec del sistema de módulos; pregunta solo lo que la spec deja al usuario.
+
+**Intake (fase 1):**
+
+1. ¿Cuál es la idea del módulo?
+2. ¿Qué necesidad cubre?
+3. ¿Qué funcionalidades debe tener?
+4. ¿Cuál es el concepto general?
+
+**Ejemplos (fase 2):**
+
+5. ¿Hay apps que hagan algo igual o similar?
+6. ¿Qué hacen bien y qué hacen mal?
+7. ¿Qué patrones se pueden reutilizar y cuáles no encajan con 027Apps?
+
+**Identidad y manifest (fase 3):**
+
+8. ¿Cómo se llama el módulo?
+9. ¿Qué icono/logo debe usar?
+10. ¿Qué propiedades del manifest deben fijarse: `key`, `name`, `branding` (descripción, icono,
+    color), `version`, `is_public`?
+
+**Análisis y enriquecimiento (fase 4):**
+
+11. ¿La propuesta enriquecida cubre todo lo que necesitas?
+12. ¿Qué mejoras sugeridas quieres incluir y cuáles descartar?
+13. ¿Encaja con las entidades y el Core existentes? ¿Hay contradicciones o puntos mal
+    definidos que resolver?
+
+**Cierre de requisitos (fase 5):**
+
+14. ¿Confirmas los límites de v1 y los no-objetivos?
+15. ¿Confirmas tablas y datos, pantallas/UI y páginas de admin, scopes y tools MCP, settings y
+    secretos, eventos y canales, locales, moneda/fechas e `is_public`?
+16. ¿Hay dependencias del Core que deban quedar como bloqueos declarados?
+
+**Puerta del spec (fase 6):**
+
+17. ¿Empezamos el spec?
+
+**Spec + mockup (fase 7):**
+
+18. ¿Apruebas la spec y el mockup? ¿Qué cambios quieres antes de aprobarlos?
+
+**Plan (fase 8):**
+
+19. ¿Apruebas el plan?
+
+**Aceptación (fase 10):**
+
+20. ¿Aceptas el resultado en preview/APK? ¿Autorizas el merge?
+
 ## 2. Roles y puertas
 
 - **Orquestador:** conversa con el usuario, conduce la metodología, redacta la spec y el plan,
