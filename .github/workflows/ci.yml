@@ -102,6 +102,15 @@ jobs:
             -p @commitlint/config-conventional@21.2.4 \
             commitlint
 
+  ai-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: node scripts/check-ai-docs.mjs
+
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: [admin, android, guard-secrets]
