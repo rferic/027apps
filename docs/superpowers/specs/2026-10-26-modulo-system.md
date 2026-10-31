@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-10-26
 **Estado:** Borrador para aprobación del usuario
-**Base:** [spec de diseño §4](2026-10-24-027apps-design.md) (sistema de módulos, manifest, instalación global + activación por grupo → reframe: por usuario) · [spec de datos del Core](2026-10-26-core-data-model.md) (task-01: `module_registry`, `module_migrations`, `is_public`, `settings.is_public`, decisiones K/N/O) · [spec de API](2026-10-26-core-api.md) (task-02: endpoints `/modules/*/install|activate|deactivate|uninstall`, `/modules/{key}/settings`, `/modules/{key}`) · [flujo new-module](docs/flows/new-module.md) (esqueleto a completar) · [spec de tokens §5](2026-10-25-token-model.md) (scopes por acción) · [ADR 0004](../../adr/0004-bordes-y-capa-de-aplicacion.md) (puertas, casos de uso, scopes) · [ADR 0007](../../adr/0007-manejo-de-errores.md) (envelope, `conflict`) · [ADR 0008](../../adr/0008-fechas-y-moneda.md) (config por instancia)
+**Base:** [spec de diseño §4](2026-10-24-027apps-design.md) (sistema de módulos, manifest, instalación global + activación por grupo → reframe: por usuario) · [spec de datos del Core](2026-10-26-core-data-model.md) (task-01: `module_registry`, `module_migrations`, `is_public`, `settings.is_public`, decisiones K/N/O) · [spec de API](2026-10-26-core-api.md) (task-02: endpoints `/modules/*/install|activate|deactivate|uninstall`, `/modules/{key}/settings`, `/modules/{key}`) · [flujo new-module(../../flows/new-module.md) (esqueleto a completar) · [spec de tokens §5](2026-10-25-token-model.md) (scopes por acción) · [ADR 0004](../../adr/0004-bordes-y-capa-de-aplicacion.md) (puertas, casos de uso, scopes) · [ADR 0007](../../adr/0007-manejo-de-errores.md) (envelope, `conflict`) · [ADR 0008](../../adr/0008-fechas-y-moneda.md) (config por instancia)
 **Decide el usuario:** contrato del manifest, seguridad del DDL (A+C+D, firma B diferida), limpieza de settings al uninstall, secuencia de implementación (2026-10-26)
 
 ## 1. Objetivo
@@ -31,6 +31,11 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
 {
   "key": "split-expenses",              // = module_registry.key; UNIQUE; kebab-case
   "name": "Split Expenses",             // texto en inglés (i18n lo traduce)
+  "branding": {                         // presentación en catálogo/panel/app (task-03 §3bis)
+    "description": "Shared family expenses with balances and settlement",
+    "icon": "assets/icon.svg",          // SVG monocromo en el paquete (currentColor)
+    "color": "teal"                     // slot de acento del DS (8 slots, sin hex libre)
+  },
   "version": "1.0.0",                   // semver de la versión instalable actual
   "is_public": false,                   // default del manifest; override por super_admin en el panel (task-02 PATCH /modules/{key})
   "migraciones": [                      // DDL del módulo, en orden
@@ -94,6 +99,7 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
 - `scopes` siguen la convención `recurso:acción` de task-02; **viven en código** (ADR 0004 §2, token-model §5), el manifest solo los declara para validación mecánica (CI) y el guard — no se "siembran" en BD (no existe tabla de scopes, decisión H6).
 - Las tools MCP referencian un scope declarado.
 - Cada **evento** declara `type`, `target` (`admins`|`all`|`user`|`channel:<pattern>`) y opcionalmente `notify` (task-04 §2.3/§6.3); un `target` de canal exige un `channels[].pattern` declarado.
+- **`branding`** (task-03 §3bis): `description` (inglés, no vacía), `icon` (ruta a un **SVG monocromo** en el paquete que usa `currentColor`, con safe-zone para 24/48 px) y `color` ∈ los **8 slots de acento del DS** (`teal`, `indigo`, `violet`, `amber`, `rose`, `emerald`, `sky`, `slate`) — **nunca hex libre** (anti-objetivo: módulos estéticamente dispares). Se sirve como metadata pública en `/modules` y `/modules/{key}`, y el icono como `GET /api/v1/modules/{key}/icon.svg` (`Content-Type: image/svg+xml`, para renderizar con `<img>`, nunca inline).
 - Cada **tool MCP** declara `name`, **`kind` (`read`|`write`)**, `description` (inglés) y `scopes`; `mcp_exposed = read` oculta y bloquea las de `write` (task-05).
 - Cada **setting** del manifest declara la forma completa de `settings` (task-06 §8): `key`, `type`, `default`, `label`/`help` en inglés, `is_public`, `is_secret` (⇒ `value_encrypted`), `mcp_access`, `sort_order`.
 - Cada **canal** declara `pattern` y `members_fn` (función SQL security definer del módulo que devuelve los `user_id` con acceso; la usan la RLS de realtime y la resolución de push — task-04 §2.2).
@@ -161,6 +167,7 @@ El manifest trae SQL ejecutable: capas de protección (filosofía "defensa en pr
 
 ## 6. CI del módulo (determinismo antes que agentes)
 
+- **Validación mecánica de `branding`** (task-03 §3bis): `description` no vacía, `icon.svg` existe y es SVG válido, `color` ∈ slots del DS.
 - **Validación mecánica de `admin_pages`** (task-12): por cada página, el fichero `admin/<route>/page.tsx` existe; `route` cumple el patrón y no es reservada; `role`/`group`/`icon` en sus enums.
 - **Validación mecánica de la documentación** (task-11): `docs.readme` existe, **no vacío** y en inglés; el `docs.api`/`mcp`/`settings`/`events` exigido también existe y **no está vacío**; el fichero exigido por cada capacidad existe **y cada nombre declarado aparece** (`mcp_tools[].name` → `docs.mcp`, `settings[].key` → `docs.settings`, `eventos[].type` y `channels[].pattern` → `docs.events`); y los **scopes citados** en los documentos existen en el manifest. Sin `readme`, el módulo no instala.
 - **Validación mecánica del manifest** contra su esquema zod como **check de CI** en el **job `admin` existente** (se añade ahí; no hay job `modules` en `cicd.md` y no se crea uno aparte): todo PR que añada/modifique un `packages/*/manifest.json` pasa el contrato o falla.

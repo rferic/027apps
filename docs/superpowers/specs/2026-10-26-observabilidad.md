@@ -106,7 +106,7 @@ Se entrega **`docs/guia-debugging.md`** con **6 contenidos obligatorios** + 2 se
 
 - **APM / trazas / métricas** (OpenTelemetry, Prometheus).
 - **Retención larga de logs / exportación**.
-- **Backups y restauración**: sprint de infraestructura (referenciado en la guía y en el README del sprint).
+- **Backups y restauración**: runbook [`docs/infrastructure.md`](../../infrastructure.md) y [spec de backup](2026-10-26-backups.md).
 - **Alertas a Slack/PagerDuty**.
 - **Auditoría de lecturas**: no en v1 (RLS restringe; `admin_actions` solo mutaciones sensibles).
 
@@ -140,6 +140,6 @@ Se entrega **`docs/guia-debugging.md`** con **6 contenidos obligatorios** + 2 se
 - Datos: `docs/superpowers/specs/2026-10-26-core-data-model.md`
 - DoD: `docs/conventions/definition-of-done.md`
 - Entregable: `docs/guia-debugging.md`
-- Backups (otra rama, no olvidar): spec del sprint de infraestructura
+- Backups: [`docs/infrastructure.md`](../../infrastructure.md) · [spec de backup](2026-10-26-backups.md)
 - Plan: `docs/superpowers/plans/2026-10-26-sprint-core-design.md`
 - Task: `docs/tasks/sprint-core-design/task-08.md`

@@ -10,6 +10,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | `commitlint` | Implementado (`.github/workflows/ci.yml`, config `.commitlintrc.json`); valida el título del PR |
 | Deploy Vercel (preview/prod) | Definido; **en pausa** (decisión del usuario 2026-10-25) hasta que exista un core funcional — ver paso B |
 | Migraciones Supabase | Definido; se implementa cuando exista la primera migración |
+| Backup diario de la BD | Implementado (`.github/workflows/backup.yml`), inactivo hasta crear el bucket y los secrets (ver [paso C](#c-backups-bucket-y-secrets)) |
 
 ## Principios
 
@@ -28,6 +29,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | `ci.yml` | `push` a `main` | los mismos checks sobre el commit mergeado |
 | `ci.yml` | `push` de tag `v*` | los mismos checks + job `release` |
 | `keep-alive.yml` | `schedule` diario (06:17 UTC) y `workflow_dispatch` | ping a producción si existe `PROD_URL` |
+| `backup.yml` | `schedule` diario (03:42 UTC) y `workflow_dispatch` | dump de Postgres + subida cifrada a restic si existen los secrets |
 | *(Dependabot)* | `.github/dependabot.yml`: semanal, agrupado (npm, actions, gradle), **sin auto-merge** | PRs de dependencias; una security update no espera a la semana |
 | Vercel (app externa) | PR → preview; `main` → producción | deploy de `apps/admin` |
 
@@ -41,7 +43,7 @@ Todos corren en `ubuntu-latest` con permisos `contents: read` (solo `release` su
 |---|---|---|---|
 | `admin` | checkout → pnpm (versión de `packageManager`) → Node 22 con caché → `pnpm install --frozen-lockfile` → `lint` → `tsc` → `test` → `build` | GitHub Actions | El lockfile está sincronizado; ESLint, tipos (`next typegen && tsc --noEmit`), vitest y `next build` pasan. Sin env vars de Supabase: `/api/health` responde 503 `degraded`, es lo esperado y el job **no** debe tener secrets para "arreglarlo". |
 | `android` | checkout → JDK 17 (temurin) → Android SDK con licencias aceptadas (`android-actions/setup-android`; AGP descarga la plataforma 37) → `gradle/actions/setup-gradle` (caché; `apps/android/gradle.properties` sube el heap del daemon a 3 GB porque D8 se quedaba sin memoria con el valor por defecto en los runners) → `./gradlew :app:testDebugUnitTest :app:assembleDebug` → sube el artifact `apk-debug` | GitHub Actions | Tests unitarios pasan, el APK debug se genera y queda descargable 90 días (retención por defecto) para probar el PR en un dispositivo. |
-| `guard-secrets` | checkout → script que falla si git rastrea `.env*` (salvo `*.example`), `*.jks`/`*.keystore`/`*.p12`/`*.pem`/`*.key`/`*.p8`, o si el árbol contiene valores con forma de secreto (`sbp_…`, `sb_secret_…`, cualquier JWT —las claves anon/service de Supabase lo son—, `SERVICE_ROLE_KEY=<valor>`, bloques `-----BEGIN … PRIVATE KEY-----`) | GitHub Actions | Ningún secreto ni keystore se ha colado en git. Solo imprime **nombres de archivo**, nunca el contenido que coincide. Los patrones usan clases de caracteres que impiden que coincidan con su propio texto en `ci.yml`, así que no hace falta excluir el directorio de workflows. |
+| `guard-secrets` | checkout → script que falla si git rastrea `.env*` (salvo `*.example`), `*.jks`/`*.keystore`/`*.p12`/`*.pem`/`*.key`/`*.p8`, `google-services.json`, o si el árbol contiene valores con forma de secreto (`sbp_…`, `sb_secret_…`, cualquier JWT —las claves anon/service de Supabase lo son—, `SERVICE_ROLE_KEY=<valor>`, bloques `-----BEGIN … PRIVATE KEY-----`, claves de máquina `027_svc_…`/`027_usr_…` y `SETTINGS_ENCRYPTION_KEY=<valor>`) | GitHub Actions | Ningún secreto ni keystore se ha colado en git. Solo imprime **nombres de archivo**, nunca el contenido que coincide. Los patrones usan clases de caracteres que impiden que coincidan con su propio texto en `ci.yml`, así que no hace falta excluir el directorio de workflows. |
 | `commitlint` | checkout → Node 22 → `commitlint` (versiones fijadas, vía `npx`) sobre el título del PR, pasado por variable de entorno | GitHub Actions | El título del PR cumple Conventional Commits (`feat`, `fix`, `docs`, `chore`, `ci`, `refactor`, `test`, `perf`, `build`). Solo corre en `pull_request`; en push/tag se omite. Como el squash merge usa el título como mensaje del commit en `main`, validar el título es validar el commit. Renombrar el PR (`edited`) relanza el CI y el `concurrency` cancela la ejecución anterior. |
 | `release` | solo en tag `v*`, y solo si el commit etiquetado es ancestro de `origin/main` (`git merge-base --is-ancestor "$GITHUB_SHA" origin/main`, con `fetch-depth: 0`; si no, el job falla antes de tocar secrets); corre en el Environment `release`; ver [Distribución Android](#distribución-android-y-actualizaciones) | GitHub Actions | APK firmado y publicado. |
 
@@ -55,6 +57,11 @@ Los checks `admin`, `android`, `guard-secrets` y `commitlint` son los que se mar
 | `PROD_URL` | GitHub Secrets | URL base de producción para el keep-alive | El ping se omite (paso con `if`, job en verde) |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Vercel (Preview y Production) | Runtime de `apps/admin` | `/api/health` devuelve 503 `degraded` |
 | Credenciales de migraciones (token/ DB password de Supabase) | GitHub Secrets (futuro) | Job de migraciones | El job de migraciones se omite |
+| `SUPABASE_DB_URL` | GitHub Secrets | Backup: conexión a Postgres (session pooler, puerto 5432) | Todos los pasos del backup se omiten (job en verde) |
+| `RESTIC_REPOSITORY`, `RESTIC_PASSWORD` | GitHub Secrets | Backup: repositorio restic y su clave de cifrado | Todos los pasos del backup se omiten |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | GitHub Secrets | Backup: token S3 con alcance a un bucket | Todos los pasos del backup se omiten |
+| `HEALTHCHECK_URL` | GitHub Secrets | Backup: ping de éxito/fallo (healthchecks.io) | Sin ping externo; queda el email de fallo de GitHub |
+| `BACKUP_S3_REGION` | GitHub Variables | Backup: región de firma S3 (`auto` en R2) | Valor por defecto `auto` |
 
 Reglas de manejo de secretos:
 
@@ -78,12 +85,32 @@ Reglas de manejo de secretos:
 
 Aún no existe ninguna migración; el orden queda definido para cuando aparezca la primera:
 
-1. El PR con la migración tiene preview contra el proyecto Supabase de desarrollo/preview (nunca contra producción).
-2. Merge a `main` → Vercel despliega el admin.
-3. **Después del deploy del admin** un job en `main` (con secrets de Supabase) aplica las migraciones pendientes a producción (`supabase db push`).
-4. **Antes del keep-alive**: el keep-alive diario solo valida salud tras migrar; si la migración falla el job queda en rojo y el siguiente ping no enmascara el problema.
-5. Las migraciones deben ser compatibles hacia atrás con la versión anterior del admin (expand → migrate → contract): el admin nuevo ya está desplegado cuando se aplica la migración y un rollback de código debe seguir funcionando.
-6. Sin secrets de Supabase (forks) el job de migraciones se omite sin fallar.
+1. **En local primero**: `supabase db reset` aplica todas las migraciones desde cero sobre el stack local y la suite de aislamiento RLS corre ahí (no necesita el proyecto cloud ni secretos). Una migración que no pasa en local no abre PR.
+2. El PR con la migración tiene preview contra el proyecto Supabase de desarrollo/preview (nunca contra producción).
+3. Merge a `main` → Vercel despliega el admin.
+4. **Después del deploy del admin** un job en `main` (con secrets de Supabase) aplica las migraciones pendientes a producción (`supabase db push`).
+5. **Antes del keep-alive**: el keep-alive diario solo valida salud tras migrar; si la migración falla el job queda en rojo y el siguiente ping no enmascara el problema.
+6. Las migraciones deben ser compatibles hacia atrás con la versión anterior del admin (expand → migrate → contract): el admin nuevo ya está desplegado cuando se aplica la migración y un rollback de código debe seguir funcionando.
+7. Sin secrets de Supabase (forks) el job de migraciones se omite sin fallar.
+
+## Backups
+
+El backup **no** vive en Supabase: es un dump lógico diario, cifrado con restic y guardado
+en un bucket S3-compatible de **otro proveedor**. Retención, cifrado y runbook de
+recuperación: [`docs/infrastructure.md`](../infrastructure.md#4-backups).
+
+- **Workflow**: `backup.yml` a las 03:42 UTC y `workflow_dispatch`; `permissions: {}` y
+  `concurrency` para que dos ejecuciones no colisionen en el repositorio restic.
+- **Scripts**: `scripts/backup/backup.sh` (CI y local) y `scripts/backup/restore.sh`
+  (recuperación y simulacro). El mismo código funciona sin GitHub: es parte del modelo de
+  amenaza.
+- **Antes de cambios destructivos**: lanzar el backup a mano antes de mergear una migración
+  que borre o transforme datos.
+- **Orden con migraciones**: no hay dependencia técnica (corren a horas distintas); el
+  backup diario refleja el estado del día anterior, no el de hace un minuto.
+- **Verificación**: TOC (`pg_restore --list`) y `restic check` en cada ejecución, más un
+  simulacro de restauración trimestral. Un backup sin simulacro no es una recuperación
+  probada.
 
 ## Rollback
 
@@ -102,6 +129,7 @@ Un fork (o un PR desde un fork) no tiene secrets. Resultado esperado, sin fallos
 | `keep-alive` | Los workflows programados vienen deshabilitados en forks; si se lanza a mano, `PROD_URL` vacío omite el ping |
 | Vercel | No está conectado en el fork: no hay deploy |
 | Migraciones | Se omiten (sin secrets) |
+| `backup` | Todos los pasos se omiten (sin `SUPABASE_DB_URL`); el job queda en verde |
 
 Se puede comprobar leyendo las condiciones: ningún paso exige un secret sin una guarda previa y ninguna guarda convierte la ausencia de secret en un error salvo el caso del repo original en un tag (intencionado).
 
@@ -175,3 +203,17 @@ Detalle y comandos exactos del keystore en [`apps/android/keystore/README.md`](.
 4. *Production Branch:* `main`.
 5. Verificación: abrir un PR de prueba → aparece el preview de Vercel y `/api/health` responde `{"status":"ok"}`; mergear → producción.
 6. La protección de `main` se hace en el paso A (antes del keystore); añade aquí el check de Vercel a los checks requeridos.
+
+### C. Backups (bucket y secrets)
+
+Después del paso A, por el mismo motivo que el keystore. Detalle en
+[`docs/infrastructure.md`](../infrastructure.md#activación-puerta-de-usuario).
+
+1. Bucket privado en Cloudflare R2 o Backblaze B2, y token S3 con alcance a ese bucket.
+2. `RESTIC_PASSWORD` (`openssl rand -base64 48`) al gestor de contraseñas y a una copia en papel.
+   Sin ella no se puede descifrar ningún backup.
+3. `SUPABASE_DB_URL` con la cadena del **session pooler** (IPv4) y la contraseña de la BD.
+4. Cargar `SUPABASE_DB_URL`, `RESTIC_REPOSITORY`, `RESTIC_PASSWORD`, `AWS_ACCESS_KEY_ID` y
+   `AWS_SECRET_ACCESS_KEY` (comandos en el runbook); `BACKUP_S3_REGION` si no es R2.
+5. Verificación: *Actions → Backup → Run workflow* deja un snapshot en el repo; después,
+   simulacro de restauración (§6 del runbook) antes de marcar la tarea como terminada.
