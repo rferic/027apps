@@ -3,7 +3,7 @@ import { withClient, query, count, impersonate, impersonateAnon, createTestUser 
 
 const createdUsers: string[] = [];
 
-async function seedTwoUsers(role = 'user') {
+async function seedTwoUsers(role: 'super_admin' | 'admin' | 'user' = 'user') {
   return withClient(async (c) => {
     await c.query('BEGIN');
     const a = await createTestUser(c, { email: `a-${Date.now()}-@test.local`, role, displayName: 'User A' });
