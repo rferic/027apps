@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import { withClient, query, count, impersonate, impersonateAnon, createTestUser } from '../pg.js';
 
 const createdUsers: string[] = [];
@@ -15,19 +15,19 @@ async function seedTwoUsers(role: 'super_admin' | 'admin' | 'user' = 'user') {
 }
 
 describe('RLS: profiles', () => {
-  it('un usuario no puede leer la fila de otro', async () => {
+  it('a user cannot read another user row', async () => {
     const { a, b } = await seedTwoUsers();
     await withClient(async (c) => {
       await c.query('BEGIN');
       await impersonate(c, a.id);
       await expect(count(c, 'select count(*) from public.profiles where id = $1', [b.id])).resolves.toBe(0);
-      // El propio usuario sí se ve.
+      // The user can see their own row.
       await expect(count(c, 'select count(*) from public.profiles where id = $1', [a.id])).resolves.toBe(1);
       await c.query('ROLLBACK');
     });
   });
 
-  it('un usuario no puede escalar su rol (column grant)', async () => {
+  it('a user cannot escalate their role (column grant)', async () => {
     const { a } = await seedTwoUsers();
     await withClient(async (c) => {
       await c.query('BEGIN');
@@ -39,7 +39,7 @@ describe('RLS: profiles', () => {
     });
   });
 
-  it('un usuario no puede editar su deactivated_at (column grant)', async () => {
+  it('a user cannot edit their deactivated_at (column grant)', async () => {
     const { a } = await seedTwoUsers();
     await withClient(async (c) => {
       await c.query('BEGIN');
@@ -51,7 +51,7 @@ describe('RLS: profiles', () => {
     });
   });
 
-  it('un usuario puede editarse display_name/locale/timezone (column grant)', async () => {
+  it('a user can edit their display_name/locale/timezone (column grant)', async () => {
     const { a } = await seedTwoUsers();
     await withClient(async (c) => {
       await c.query('BEGIN');
@@ -67,7 +67,7 @@ describe('RLS: profiles', () => {
     });
   });
 
-  it('un admin puede leer todos los perfiles', async () => {
+  it('an admin can read all profiles', async () => {
     const { a, b } = await seedTwoUsers('admin');
     await withClient(async (c) => {
       await c.query('BEGIN');
@@ -77,22 +77,22 @@ describe('RLS: profiles', () => {
     });
   });
 
-  it('un admin desactivado pierde su condición de admin y solo se ve a sí mismo', async () => {
+  it('a deactivated admin loses admin status and can only see themselves', async () => {
     const { a, b } = await seedTwoUsers('admin');
-    // Desactivamos a como superuser (la API real hace este cambio con service_role).
+    // Deactivate "a" as superuser (the real API performs this change with service_role).
     await withClient(async (c) => {
       await c.query('BEGIN');
       await query(c, 'update public.profiles set deactivated_at = now() where id = $1', [a.id]);
       await impersonate(c, a.id);
-      // Ya no es admin: no ve la fila del otro admin activo.
+      // No longer an admin: cannot see the other active admin row.
       await expect(count(c, 'select count(*) from public.profiles where id = $1', [b.id])).resolves.toBe(0);
-      // Solo se ve a sí mismo.
+      // Can only see themselves.
       await expect(count(c, 'select count(*) from public.profiles where id = $1', [a.id])).resolves.toBe(1);
-      // core_is_admin() ya no le deja ver todo.
+      // core_is_admin() no longer grants full visibility.
       await expect(query(c, 'select public.core_is_admin()')).resolves.toEqual({ rows: [{ core_is_admin: false }] });
       await c.query('ROLLBACK');
     });
-    // Un admin activo (b) sí ve al desactivado (a) para poder reactivarlo.
+    // An active admin (b) can see the deactivated one (a) so it can be reactivated.
     await withClient(async (c) => {
       await c.query('BEGIN');
       await query(c, 'update public.profiles set deactivated_at = now() where id = $1', [a.id]);
@@ -102,7 +102,7 @@ describe('RLS: profiles', () => {
     });
   });
 
-  it('anon no puede leer nada', async () => {
+  it('anon cannot read anything', async () => {
     await seedTwoUsers();
     await withClient(async (c) => {
       await c.query('BEGIN');
@@ -112,12 +112,12 @@ describe('RLS: profiles', () => {
     });
   });
 
-  it('los helpers de rol no son ejecutables por anon', async () => {
+  it('role helpers are not executable by anon', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       await impersonateAnon(c);
-      // SAVEPOINT: cada llamada fallida aborta la transacción; se aísla para que
-      // la segunda aserción no herede el error "transaction is aborted".
+      // SAVEPOINT: each failed call aborts the transaction; isolate it so the
+      // second assertion does not inherit the "transaction is aborted" error.
       await c.query('SAVEPOINT sp1');
       await expect(query(c, 'select public.core_is_admin()')).rejects.toThrowError(/permission denied/i);
       await c.query('ROLLBACK TO SAVEPOINT sp1');

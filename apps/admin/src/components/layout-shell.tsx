@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 
 export interface NavItem {
   label: string;
-  /** href de navegación (por defecto "#" para ítems sin ruta aún). */
+  /** Navigation href (defaults to "#" for items without a route yet). */
   href?: string;
   active?: boolean;
 }
@@ -11,7 +11,7 @@ export interface NavItem {
 export interface LayoutShellProps {
   title: string;
   nav: NavItem[];
-  /** Contenido del topbar (p. ej. buscador). */
+  /** Topbar content (e.g. a search box). */
   actions?: ReactNode;
   children?: ReactNode;
 }

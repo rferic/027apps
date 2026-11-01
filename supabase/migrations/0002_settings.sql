@@ -1,4 +1,4 @@
--- Sprint-05 task-01: configuración de instancia (categories + settings)
+-- Sprint-05 task-01: instance configuration (categories + settings)
 -- ADRs: 0004, 0008. Spec: docs/superpowers/specs/2026-10-26-instance-config.md
 
 create table public.settings_categories (
@@ -7,7 +7,7 @@ create table public.settings_categories (
   help text,
   icon text,
   sort_order int not null default 0,
-  -- 'core' para el Core; 'module:<key>' para settings de módulo (sprint-06).
+  -- 'core' for the Core; 'module:<key>' for module settings (sprint-06).
   source text not null default 'core'
     check (source = 'core' or source like 'module:%'),
   created_at timestamptz not null default now()
@@ -20,7 +20,7 @@ create table public.settings (
   label text not null,
   help text,
   value jsonb,
-  -- Formato versionado "v1:<iv_b64>:<tag_b64>:<ciphertext_b64>" (AES-256-GCM, task-04).
+  -- Versioned format "v1:<iv_b64>:<tag_b64>:<ciphertext_b64>" (AES-256-GCM, task-04).
   value_encrypted text,
   is_secret boolean not null default false,
   is_public boolean not null default false,
@@ -28,23 +28,23 @@ create table public.settings (
     check (mcp_access in ('none', 'read', 'write')),
   sort_order int not null default 0,
   updated_by uuid references public.profiles (id),
-  -- FK a api_keys se añade en sprint-06 cuando exista esa tabla; hoy es uuid puro.
+  -- The api_keys FK is added in sprint-06 when that table exists; today it is a plain uuid.
   updated_by_key uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (category_key, key),
-  -- A lo sumo un actor (humano o clave de máquina); las filas sembradas por migración
-  -- tienen ambos a null. La API exige exactamente uno en cada escritura (service).
+  -- At most one actor (human or machine key); migration-seeded rows
+  -- have both null. The API requires exactly one on every write (service).
   check ((updated_by is not null)::int + (updated_by_key is not null)::int <= 1),
-  -- Secretos: solo value_encrypted; no secretos: solo value.
+  -- Secrets: only value_encrypted; non-secrets: only value.
   check (is_secret = false or (value is null and value_encrypted is not null)),
   check (is_secret = true or value_encrypted is null)
 );
 
 create index settings_category_idx on public.settings (category_key, sort_order);
 
--- RLS: lectura solo para admins (un usuario normal no ve settings); la escritura pasa
--- siempre por la API (service_role). Metadatos no escribibles por API se garantizan aquí.
+-- RLS: read access for admins only (a regular user cannot see settings); writes always
+-- go through the API (service_role). Metadata not writable via API is enforced here.
 alter table public.settings_categories enable row level security;
 alter table public.settings enable row level security;
 

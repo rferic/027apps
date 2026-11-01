@@ -1,8 +1,8 @@
 /**
- * Family-set estándar de los tests (`docs/conventions/testing-strategy.md` §3):
- * un grupo "familia" con cuatro miembros —la pareja incluida— y EUR como
- * moneda base (ADR 0008). Es la base de los escenarios realistas; las factories
- * por entidad viven en este mismo paquete cuando exista el módulo que las usa.
+ * Standard test family-set (`docs/conventions/testing-strategy.md` §3):
+ * a "familia" group with four members —partner included— and EUR as the
+ * base currency (ADR 0008). It is the base for realistic scenarios; per-entity
+ * factories live in this same package once the module that uses them exists.
  */
 
 export type FamilyMemberKey = 'owner' | 'partner' | 'child' | 'fictitious';

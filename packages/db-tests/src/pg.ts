@@ -1,9 +1,9 @@
 import { Client, type ClientBase } from 'pg';
 
 /**
- * Conexión a la BD de la pila local de Supabase (postgres superuser):
- * crea/elimina esquemas y usuarios de prueba, aplica políticas RLS en sus tests.
- * Nunca se conecta a un proyecto cloud: solo 127.0.0.1:54322.
+ * Connection to the local Supabase stack database (postgres superuser):
+ * creates/drops test schemas and users, applies RLS policies in its tests.
+ * Never connects to a cloud project: 127.0.0.1:54322 only.
  */
 export function dbUrl(): string {
   const url = process.env.SUPABASE_DB_URL;
@@ -32,7 +32,7 @@ export async function query(c: ClientBase, sql: string, params: unknown[] = []):
 }
 
 export async function count(c: ClientBase, sql: string, params: unknown[] = []): Promise<number> {
-  // Acepta cualquier nombre de columna (count(*), count, n): toma el primer valor.
+  // Accepts any column name (count(*), count, n): takes the first value.
   const res = await c.query(sql, params);
   const first = res.rows[0] as Record<string, unknown> | undefined;
   if (!first) return 0;
@@ -40,9 +40,9 @@ export async function count(c: ClientBase, sql: string, params: unknown[] = []):
 }
 
 /**
- * Impersonación JWT en la transacción actual: fija el rol authenticated y
- * request.jwt.claims con el sub del usuario. Solo tiene efecto dentro de una
- * transacción (BEGIN ... COMMIT) porque usa SET LOCAL.
+ * JWT impersonation in the current transaction: sets the authenticated role and
+ * request.jwt.claims with the user's sub. It only takes effect inside a
+ * transaction (BEGIN ... COMMIT) because it uses SET LOCAL.
  */
 export async function impersonate(c: ClientBase, userId: string, role = 'authenticated'): Promise<void> {
   await c.query(`SET LOCAL ROLE ${role}`);
@@ -51,7 +51,7 @@ export async function impersonate(c: ClientBase, userId: string, role = 'authent
   ]);
 }
 
-/** Anon impersonation: rol anon sin claims. */
+/** Anon impersonation: anon role without claims. */
 export async function impersonateAnon(c: ClientBase): Promise<void> {
   await c.query('SET LOCAL ROLE anon');
   await c.query(`SELECT set_config('request.jwt.claims', $1, true)`, [
@@ -60,10 +60,10 @@ export async function impersonateAnon(c: ClientBase): Promise<void> {
 }
 
 /**
- * Crea un usuario de Auth en la pila local con un profile asociado.
- * Inserta directamente en auth.users y public.profiles (la pila local permite
- * hacerlo como superuser; en cloud esto va por la Admin API).
- * El id se genera aquí: auth.users.id no tiene default en la pila local.
+ * Creates an Auth user on the local stack with an associated profile.
+ * Inserts directly into auth.users and public.profiles (the local stack allows
+ * this as superuser; in cloud this goes through the Admin API).
+ * The id is generated here: auth.users.id has no default on the local stack.
  */
 export async function createTestUser(
   c: ClientBase,

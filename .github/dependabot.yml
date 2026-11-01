@@ -1,6 +1,6 @@
-# Dependabot: PRs automáticos de dependencias.
-# Semanal, agrupado por ecosistema y SIN auto-merge: el CI valida, un humano decide.
-# Las security updates se abren en cuanto hay aviso (no esperan a la semana).
+# Dependabot: automatic dependency PRs.
+# Weekly, grouped by ecosystem and WITHOUT auto-merge: CI validates, a human decides.
+# Security updates open as soon as they are announced (they do not wait a week).
 version: 2
 updates:
   - package-ecosystem: npm

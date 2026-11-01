@@ -1,8 +1,8 @@
--- Sprint-05 task-01: perfiles del Core y helpers de rol
--- ADRs: 0004 (bordes y capa de aplicación), 0008 (fechas)
+-- Sprint-05 task-01: Core profiles and role helpers
+-- ADRs: 0004 (borders and application layer), 0008 (dates)
 
--- Perfil de usuario del Core. La identidad (email/contraseña) la gestiona Supabase Auth;
--- aquí solo viven los datos que la API expone y el rol que gobierna los scopes.
+-- Core user profile. Identity (email/password) is managed by Supabase Auth;
+-- only the data exposed by the API and the role that governs scopes live here.
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   display_name text not null,
@@ -15,9 +15,9 @@ create table public.profiles (
   updated_at timestamptz not null default now()
 );
 
--- El rol solo se cambia desde la capa de aplicación (guard de scopes); a nivel SQL
--- se protege con un grant por columnas: authenticated solo puede UPDATE
--- display_name/locale/timezone (ver migración de RLS). Con DELETE denegado.
+-- The role is only changed from the application layer (scope guard); at the SQL
+-- level it is protected with a column grant: authenticated can only UPDATE
+-- display_name/locale/timezone (see the RLS migration). DELETE is denied.
 create function public.core_is_super_admin() returns boolean
 language sql
 stable
@@ -42,7 +42,7 @@ as $$
   );
 $$;
 
--- Sin grants para anon ni public: solo authenticated y service_role pueden preguntar.
+-- No grants for anon or public: only authenticated and service_role can ask.
 revoke execute on function public.core_is_super_admin() from public, anon;
 revoke execute on function public.core_is_admin() from public, anon;
 grant execute on function public.core_is_super_admin() to authenticated, service_role;
@@ -51,11 +51,11 @@ grant execute on function public.core_is_admin() to authenticated, service_role;
 -- RLS
 alter table public.profiles enable row level security;
 
--- anon/authenticated pueden intentar leer (RLS filtra), así la superficie no filtra
--- por error distinto al de un recurso vacío; service_role tiene todo (API backend).
+-- anon/authenticated may attempt reads (RLS filters), so the surface does not leak
+-- through an error different from an empty resource; service_role has full access (API backend).
 grant select on public.profiles to anon, authenticated;
--- El rol y la desactivación solo se cambian desde la capa de aplicación (service_role);
--- authenticated solo puede editar sus propias preferencias (column grant).
+-- Role and deactivation are only changed from the application layer (service_role);
+-- authenticated can only edit its own preferences (column grant).
 grant update (display_name, locale, timezone) on public.profiles to authenticated;
 grant all on public.profiles to service_role;
 

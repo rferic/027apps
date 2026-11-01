@@ -102,7 +102,7 @@ jobs:
         env:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
-  # Squash merge: el título del PR es el mensaje del commit en main.
+  # Squash merge: the PR title is the commit message on main.
   commitlint:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -165,7 +165,7 @@ jobs:
             echo "::notice::Signing secrets not available (fork): release skipped."
             echo "signed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::Signing secrets missing: see docs/flows/cicd.md (Pendiente de ejecución)."
+            echo "::error::Signing secrets missing: see docs/flows/cicd.md (execution pending)."
             exit 1
           fi
 

@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
 
-// Carga .env.local del paquete (credenciales de la pila Supabase local) en process.env.
-// No sustituye variables ya definidas en el entorno (prioridad al entorno real).
+// Loads the package's .env.local (local Supabase stack credentials) into process.env.
+// Does not override variables already defined in the environment (real environment takes priority).
 try {
   const content = readFileSync(join(root, '.env.local'), 'utf-8');
   for (const line of content.split('\n')) {
@@ -16,14 +16,14 @@ try {
     }
   }
 } catch {
-  // .env.local es opcional: si falta, los tests fallarán con el aviso de pg.ts.
+  // .env.local is optional: if missing, tests fail with the pg.ts warning.
 }
 
 export default defineConfig({
   test: {
-    // Suite de integración contra la pila Supabase local (supabase start + db reset).
-    // Se ejecuta serializado: cada test siembra datos y verifica políticas RLS;
-    // no hay paralelismo porque la BD es compartida y el estado importa.
+    // Integration suite against the local Supabase stack (supabase start + db reset).
+    // Runs serialized: each test seeds data and verifies RLS policies;
+    // no parallelism because the database is shared and state matters.
     include: ['src/**/*.test.ts'],
     environment: 'node',
     testTimeout: 30000,

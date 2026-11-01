@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
+import type { ClientBase } from 'pg';
 import { withClient, query, count, impersonate, impersonateAnon, createTestUser } from '../pg.js';
 
-async function seedCategory(c: any, key = 'instance') {
+async function seedCategory(c: ClientBase, key = 'instance') {
   await query(c, `insert into public.settings_categories (category_key, label, sort_order) values ($1, $2, $3)
                   on conflict (category_key) do nothing`, [key, 'Instance', 10]);
 }
 
-async function seedSetting(c: any, key = 'instance.name', opts: { isSecret?: boolean; value?: unknown } = {}) {
+async function seedSetting(c: ClientBase, key = 'instance.name', opts: { isSecret?: boolean; value?: unknown } = {}) {
   await query(c, `insert into public.settings (category_key, key, label, value, value_encrypted, is_secret, is_public, mcp_access)
                   values ('instance', $1, 'Name', $2, $3, $4, false, 'read')`, [
     key,
@@ -17,7 +18,7 @@ async function seedSetting(c: any, key = 'instance.name', opts: { isSecret?: boo
 }
 
 describe('RLS: settings', () => {
-  it('un usuario normal no puede leer settings', async () => {
+  it('a regular user cannot read settings', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       await seedCategory(c);
@@ -30,7 +31,7 @@ describe('RLS: settings', () => {
     });
   });
 
-  it('un admin puede leer settings', async () => {
+  it('an admin can read settings', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       await seedCategory(c);
@@ -43,7 +44,7 @@ describe('RLS: settings', () => {
     });
   });
 
-  it('anon no puede leer settings ni settings_categories (0 filas, no permission denied)', async () => {
+  it('anon cannot read settings or settings_categories (0 rows, not permission denied)', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       await seedCategory(c);
@@ -55,15 +56,15 @@ describe('RLS: settings', () => {
     });
   });
 
-  it('un usuario no puede insertar ni actualizar settings', async () => {
+  it('a user cannot insert or update settings', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       await seedCategory(c);
       await seedSetting(c);
       const { id } = await createTestUser(c, { email: `u-${Date.now()}@test.local`, role: 'user' });
       await impersonate(c, id);
-      // SAVEPOINT: un fallo esperado deja la transacción abortada; cada aserción
-      // negativa va en su propio savepoint para no enmascarar el error siguiente.
+      // SAVEPOINT: an expected failure leaves the transaction aborted; each
+      // negative assertion goes in its own savepoint so it does not mask the next error.
       await c.query('SAVEPOINT sp1');
       await expect(
         query(c, `insert into public.settings (category_key, key, label) values ('instance', 'hax.key', 'Hack')`),
@@ -78,10 +79,10 @@ describe('RLS: settings', () => {
     });
   });
 
-  it('un admin no puede insertar settings (la escritura pasa por la API con service_role)', async () => {
-    // Decisión de diseño: la escritura de settings es la puerta /settings (service_role),
-    // que audita y valida; en SQL solo admin y super_admin pueden (en un módulo futuro),
-    // pero en v1 la política de escritura es solo service_role. La política lo deniega.
+  it('an admin cannot insert settings (writes go through the API with service_role)', async () => {
+    // Design decision: settings writes go through the /settings door (service_role),
+    // which audits and validates; at the SQL level only admin and super_admin could
+    // (in a future module), but in v1 the write policy is service_role only. The policy denies it.
     await withClient(async (c) => {
       await c.query('BEGIN');
       await seedCategory(c);
@@ -94,7 +95,7 @@ describe('RLS: settings', () => {
     });
   });
 
-  it('CHECK: un setting is_secret=true con value (no cifrado) se rechaza', async () => {
+  it('CHECK: a setting with is_secret=true and a plaintext value is rejected', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       await seedCategory(c);
@@ -106,7 +107,7 @@ describe('RLS: settings', () => {
     });
   });
 
-  it('CHECK: un setting is_secret=false con value_encrypted se rechaza', async () => {
+  it('CHECK: a setting with is_secret=false and value_encrypted is rejected', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       await seedCategory(c);
@@ -118,7 +119,7 @@ describe('RLS: settings', () => {
     });
   });
 
-  it('CHECK: updated_by y updated_by_key simultáneos se rechazan', async () => {
+  it('CHECK: updated_by and updated_by_key together are rejected', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       await seedCategory(c);
