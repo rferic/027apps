@@ -25,7 +25,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 
 | Workflow | Trigger | Qué ejecuta |
 |---|---|---|
-| `ci.yml` | `pull_request` (`opened`, `synchronize`, `reopened`, `edited`; cualquier rama destino) | `admin`, `android`, `guard-secrets`, `commitlint` |
+| `ci.yml` | `pull_request` (`opened`, `synchronize`, `reopened`, `edited`; cualquier rama destino) | `admin`, `android`, `supabase`, `guard-secrets`, `commitlint` |
 | `ci.yml` | `push` a `main` | los mismos checks sobre el commit mergeado |
 | `ci.yml` | `push` de tag `v*` | los mismos checks + job `release` |
 | `keep-alive.yml` | `schedule` diario (06:17 UTC) y `workflow_dispatch` | ping a producción si existe `PROD_URL` |
@@ -43,11 +43,12 @@ Todos corren en `ubuntu-latest` con permisos `contents: read` (solo `release` su
 |---|---|---|---|
 | `admin` | checkout → pnpm (versión de `packageManager`) → Node 22 con caché → `pnpm install --frozen-lockfile` → `lint` → `tsc` → `test` → `build` | GitHub Actions | El lockfile está sincronizado; ESLint, tipos (`next typegen && tsc --noEmit`), vitest y `next build` pasan. Sin env vars de Supabase: `/api/health` responde 503 `degraded`, es lo esperado y el job **no** debe tener secrets para "arreglarlo". |
 | `android` | checkout → JDK 17 (temurin) → Android SDK con licencias aceptadas (`android-actions/setup-android`; AGP descarga la plataforma 37) → `gradle/actions/setup-gradle` (caché; `apps/android/gradle.properties` sube el heap del daemon a 3 GB porque D8 se quedaba sin memoria con el valor por defecto en los runners) → `./gradlew :app:testDebugUnitTest :app:assembleDebug` → sube el artifact `apk-debug` | GitHub Actions | Tests unitarios pasan, el APK debug se genera y queda descargable 90 días (retención por defecto) para probar el PR en un dispositivo. |
+| `supabase` | checkout → pnpm (versión de `packageManager`) → Node 22 con caché → `supabase/setup-cli` (fijado por SHA) → `supabase start` (arranca el stack local y aplica las migraciones) → `pnpm --filter db-tests test` con `SUPABASE_DB_URL` apuntando a `127.0.0.1:54322` | GitHub Actions | Las migraciones se aplican limpias sobre el stack local y la suite de aislamiento RLS pasa al 100 %. No usa el proyecto cloud ni secretos; la guarda de `pg.ts` rechaza cualquier URL que no sea local. |
 | `guard-secrets` | checkout → script que falla si git rastrea `.env*` (salvo `*.example`), `*.jks`/`*.keystore`/`*.p12`/`*.pem`/`*.key`/`*.p8`, `google-services.json`, o si el árbol contiene valores con forma de secreto (`sbp_…`, `sb_secret_…`, cualquier JWT —las claves anon/service de Supabase lo son—, `SERVICE_ROLE_KEY=<valor>`, bloques `-----BEGIN … PRIVATE KEY-----`, claves de máquina `027_svc_…`/`027_usr_…` y `SETTINGS_ENCRYPTION_KEY=<valor>`) | GitHub Actions | Ningún secreto ni keystore se ha colado en git. Solo imprime **nombres de archivo**, nunca el contenido que coincide. Los patrones usan clases de caracteres que impiden que coincidan con su propio texto en `ci.yml`, así que no hace falta excluir el directorio de workflows. |
 | `commitlint` | checkout → Node 22 → `commitlint` (versiones fijadas, vía `npx`) sobre el título del PR, pasado por variable de entorno | GitHub Actions | El título del PR cumple Conventional Commits (`feat`, `fix`, `docs`, `chore`, `ci`, `refactor`, `test`, `perf`, `build`). Solo corre en `pull_request`; en push/tag se omite. Como el squash merge usa el título como mensaje del commit en `main`, validar el título es validar el commit. Renombrar el PR (`edited`) relanza el CI y el `concurrency` cancela la ejecución anterior. |
 | `release` | solo en tag `v*`, y solo si el commit etiquetado es ancestro de `origin/main` (`git merge-base --is-ancestor "$GITHUB_SHA" origin/main`, con `fetch-depth: 0`; si no, el job falla antes de tocar secrets); corre en el Environment `release`; ver [Distribución Android](#distribución-android-y-actualizaciones) | GitHub Actions | APK firmado y publicado. |
 
-Los checks `admin`, `android`, `guard-secrets` y `commitlint` son los que se marcarán como requeridos en la protección de `main`.
+Los checks `admin`, `android`, `supabase`, `guard-secrets` y `commitlint` son los que se marcarán como requeridos en la protección de `main`.
 
 ## Secretos
 
@@ -83,9 +84,9 @@ Reglas de manejo de secretos:
 
 ## Migraciones Supabase
 
-Aún no existe ninguna migración; el orden queda definido para cuando aparezca la primera:
+Ya existen las primeras migraciones (`supabase/migrations/0001–0004`); el orden queda definido así:
 
-1. **En local primero**: `supabase db reset` aplica todas las migraciones desde cero sobre el stack local y la suite de aislamiento RLS corre ahí (no necesita el proyecto cloud ni secretos). Una migración que no pasa en local no abre PR.
+1. **En local primero**: `supabase db reset` aplica todas las migraciones desde cero sobre el stack local y la suite de aislamiento RLS corre ahí (no necesita el proyecto cloud ni secretos). Una migración que no pasa en local no abre PR. El job `supabase` de CI reproduce esto en cada PR con `supabase start` + `pnpm --filter db-tests test`.
 2. El PR con la migración tiene preview contra el proyecto Supabase de desarrollo/preview (nunca contra producción).
 3. Merge a `main` → Vercel despliega el admin.
 4. **Después del deploy del admin** un job en `main` (con secrets de Supabase) aplica las migraciones pendientes a producción (`supabase db push`).

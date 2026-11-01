@@ -2,7 +2,7 @@
 id: sprint-05-task-01
 titulo: Migraciones base, RLS y suite de aislamiento
 area: core
-estado: pendiente
+estado: test
 adrs: [0004, 0008]
 plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 ---
@@ -12,3 +12,20 @@ plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 **TDD**: tests SQL de políticas (miembro A no lee B; usuario normal no escala `role`; settings secretos ilegibles) antes de escribir las políticas.
 
 **DoD**: TDD, `lint/tsc/test`, CI, ADRs 0004/0008, QA + **auditoría OWASP**; `docs/conventions/security-checklist.md` A01/A01-RLS marcada.
+
+## Bitácora (2026-11-01)
+
+- **Migraciones aplicadas limpias** con `supabase db reset` sobre la pila local: `0001_profiles.sql`, `0002_settings.sql`, `0003_currencies.sql`, `0004_rate_limit_counters.sql` («Finished supabase db reset on branch main»).
+- **Suite de aislamiento en verde**: 4 ficheros, **23/23 tests** con `pnpm --filter db-tests test` (`profiles`, `settings`, `currencies`, `rate-limit`).
+- **Bugs corregidos durante la fase verde** (los tests los destaparon):
+  1. `packages/db-tests/src/pg.ts`: `count()` leía la columna `n`, pero las queries usaban `count(*)` sin alias → devolvía siempre 0. Ahora toma el primer valor de la primera fila.
+  2. `0001_profiles.sql`: las políticas no estaban acotadas a `to authenticated`; `anon` evaluaba `core_is_admin()` y recibía `permission denied` en vez de 0 filas. Acotadas a `authenticated`.
+  3. `0003_currencies.sql`: el `UPDATE` con `using (core_is_admin())` producía updates silenciosos de 0 filas; cambiado a `using (true) with check (core_is_admin())` para que el fallo sea un error RLS explícito.
+  4. `0004_rate_limit_counters.sql`: faltaba `grant select` a `anon`/`authenticated` (ahora ven 0 filas en vez de `permission denied`).
+  5. `profiles.test.ts`: `SAVEPOINT`s para aislar aserciones negativas (la segunda heredaba «transaction is aborted»).
+  6. `vitest.config.mts`: carga de `.env.local` con `node:fs` (Vitest 5 no exporta `loadEnv` de `vitest/config`).
+- **Decisión de diseño en `settings`**: la escritura pasa siempre por la API (`service_role`); en SQL solo hay políticas de `SELECT` para `core_is_admin()`. Los tests lo documentan («un admin no puede insertar settings»).
+- **Verde**: `pnpm lint && pnpm tsc` (admin, db-tests, test-utils) sin errores.
+- **CI**: job `supabase` en `.github/workflows/ci.yml` (`supabase/setup-cli@v1.7.3` fijado por SHA, `supabase start` + `pnpm --filter db-tests test`, `SUPABASE_DB_URL` local). `docs/flows/cicd.md` actualizado (triggers, gates y sección de migraciones).
+- **`packages/test-utils`**: scaffold con el family-set estándar (`testing-strategy.md` §3: grupo «familia», 4 miembros con pareja incluida, EUR). Las factories por entidad se añaden con el módulo que las use.
+- **Pendiente para `finalizada`**: QA + auditoría OWASP (A01/A01-RLS) por el auditor; marcar `security-checklist.md`. La implementación cumple el patrón: RLS habilitada, sin política = deny, definers `search_path=''` y `REVOKE` de PUBLIC, column grants en `profiles` (`role`/`deactivated_at` no editables), suite de aislamiento por tabla.

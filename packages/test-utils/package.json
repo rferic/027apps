@@ -1,0 +1,13 @@
+{
+  "name": "@027apps/test-utils",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tsc": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5"
+  }
+}
