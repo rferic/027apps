@@ -8,8 +8,15 @@ async function seedCategory(c: ClientBase, key = 'instance') {
 }
 
 async function seedSetting(c: ClientBase, key = 'instance.name', opts: { isSecret?: boolean; value?: unknown } = {}) {
+  // Migration 0002 already seeds the catalog (including instance.name), so this
+  // helper upserts: the tests only need the row to exist with these values.
   await query(c, `insert into public.settings (category_key, key, label, value, value_encrypted, is_secret, is_public, mcp_access)
-                  values ('instance', $1, 'Name', $2, $3, $4, false, 'read')`, [
+                  values ('instance', $1, 'Name', $2, $3, $4, false, 'read')
+                  on conflict (category_key, key) do update
+                  set label = excluded.label,
+                      value = excluded.value,
+                      value_encrypted = excluded.value_encrypted,
+                      is_secret = excluded.is_secret`, [
     key,
     opts.isSecret ? null : JSON.stringify(opts.value ?? '027Apps'),
     opts.isSecret ? 'v1:iv:tag:ct' : null,
@@ -25,8 +32,10 @@ describe('RLS: settings', () => {
       await seedSetting(c);
       const { id } = await createTestUser(c, { email: `u-${Date.now()}@test.local`, role: 'user' });
       await impersonate(c, id);
-      await expect(count(c, 'select count(*) from public.settings')).resolves.toBe(0);
-      await expect(count(c, 'select count(*) from public.settings_categories')).resolves.toBe(0);
+      // Counts are filtered by the test keys: the migration seed leaves 18 rows
+      // in the table, so an unfiltered count would not prove RLS visibility.
+      await expect(count(c, `select count(*) from public.settings where key = 'instance.name'`)).resolves.toBe(0);
+      await expect(count(c, `select count(*) from public.settings_categories where category_key = 'instance'`)).resolves.toBe(0);
       await c.query('ROLLBACK');
     });
   });
@@ -38,8 +47,8 @@ describe('RLS: settings', () => {
       await seedSetting(c);
       const { id } = await createTestUser(c, { email: `a-${Date.now()}@test.local`, role: 'admin' });
       await impersonate(c, id);
-      await expect(count(c, 'select count(*) from public.settings')).resolves.toBe(1);
-      await expect(count(c, 'select count(*) from public.settings_categories')).resolves.toBe(1);
+      await expect(count(c, `select count(*) from public.settings where key = 'instance.name'`)).resolves.toBe(1);
+      await expect(count(c, `select count(*) from public.settings_categories where category_key = 'instance'`)).resolves.toBe(1);
       await c.query('ROLLBACK');
     });
   });
@@ -50,8 +59,8 @@ describe('RLS: settings', () => {
       await seedCategory(c);
       await seedSetting(c);
       await impersonateAnon(c);
-      await expect(count(c, 'select count(*) from public.settings')).resolves.toBe(0);
-      await expect(count(c, 'select count(*) from public.settings_categories')).resolves.toBe(0);
+      await expect(count(c, `select count(*) from public.settings where key = 'instance.name'`)).resolves.toBe(0);
+      await expect(count(c, `select count(*) from public.settings_categories where category_key = 'instance'`)).resolves.toBe(0);
       await c.query('ROLLBACK');
     });
   });
