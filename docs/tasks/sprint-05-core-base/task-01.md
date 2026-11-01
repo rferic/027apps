@@ -2,7 +2,7 @@
 id: sprint-05-task-01
 titulo: Migraciones base, RLS y suite de aislamiento
 area: core
-estado: test
+estado: finalizada
 adrs: [0004, 0008]
 plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 ---
@@ -34,4 +34,6 @@ plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
   3. **[BAJO]** Faltaba test de `deactivated_at` (criterio nº 3). **Corregido**: test nuevo «un usuario no puede editar su deactivated_at (column grant)».
   4. **[BAJO]** `currencies.code` sin constraint ISO 4217. **Corregido** con `CHECK (code ~ '^[A-Z]{3}$')`; el trigger de `updated_at` se difiere a task-04 (documentado en la migración).
   5. **[BAJO/observación]** CHECK de actor en `settings` es `≤1`, no `=1`. **Aceptado con motivo**: las filas sembradas por migración no tienen actor; la API exige exactamente uno en cada escritura con `service_role`; se reevalúa en sprint-06 cuando exista `api_keys`.
-- **Tras los fixes**: `supabase db reset` limpio y **25/25 tests** verdes (antes 23); `pnpm lint && pnpm tsc` verdes. Pendiente: segunda pasada del auditor para verificar los fixes antes de `finalizada`.
+- **Tras los fixes**: `supabase db reset` limpio y **25/25 tests** verdes (antes 23); `pnpm lint && pnpm tsc` verdes. CI del commit `0ffeefd` en verde, incluido el job `supabase`.
+- **Segunda pasada del auditor (2026-11-01)**: **APROBADA**. Verificó contra la BD real: políticas `to authenticated` (anon ve 0 filas), test de desactivación correcto, column grant de `deactivated_at`, CHECK ISO 4217 sin romper el seed (0 discrepancias de 155 divisas). Sin regresiones. **Checklist A01/A01-RLS**: A01 `✔` (RLS como segunda barrera, `role`/`deactivated_at` no editables, sin enumeración); A01-RLS `✔` (RLS habilitada, deny por defecto, definers `search_path=''` y REVOKE de PUBLIC, suite de aislamiento por tabla, actores identificables, sin CASCADE indebido).
+- **Limpieza post-auditoría (2026-11-01)**: `poolOptions` sustituido por `fileParallelism: false` (Vitest 5, aviso eliminado); script `tsc` añadido a `packages/db-tests` (la puerta raíz ya typechequea la suite); `@types/pg` añadido y tipo de `role` en `profiles.test.ts` corregido. Verde: `pnpm lint && pnpm tsc && pnpm test` (36 admin + 25 db-tests).
