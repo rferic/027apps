@@ -26,5 +26,6 @@ Sprint de **infraestructura**: todo lo que no puede hacer un agente porque exige
 | 10 | **03** Environment release + keystore + secrets APK | Publicar APK |
 | 11 | **07** `PROD_URL` para keep-alive | Salud en producción |
 | 12 | **12** Backup cifrado (verificar) | Recuperación (implementado, `test`) |
+| 13 | **13** Guía de autoalojamiento + skill de IA | Que un tercero monte su instancia |
 
 **Puerta de entrada:** ninguna (se puede empezar ya). **Depende de:** nada.

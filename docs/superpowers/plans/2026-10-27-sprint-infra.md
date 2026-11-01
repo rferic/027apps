@@ -410,6 +410,23 @@ Expected: filas idénticas a prod. Anotar fecha y resultado en `docs/infrastruct
 
 `cicd.md`: fila backup → activado. `task-12.md` → `finalizada` con enlaces de runs. Calendarizar el simulacro trimestral (nota en runbook).
 
+### Task 13 — infra-13: Guía de autoalojamiento + skill de IA
+
+**Files:**
+- Create: `docs/self-hosting.md` (guía pública en inglés, fases 0–9 + checklist final)
+- Create: `.opencode/skills/self-hosting/SKILL.md` + espejos `.agents/skills/self-hosting/SKILL.md` y `.claude/skills/self-hosting/SKILL.md`
+- Modify: `README.md` (sección *Self-hosting* con enlaces), `docs/tasks/sprint-infra/README.md` (fila 13), `docs/infrastructure.md` (enlace desde §9 o §1)
+
+**Interfaces:**
+- Consumes: todo lo verificado en las tareas 01–12 (Supabase, Vercel, SMTP, GitHub, keystore, FCM, backups) y la checklist de producción de `docs/infrastructure.md` §9.
+- Produces: un camino reproducible para que un tercero monte su instancia, y una skill que permite a su IA guiarle paso a paso sin pedir secretos por chat.
+
+- [ ] **Step 1: (agente) Escribir la guía**
+- [ ] **Step 2: (agente) Crear la skill y los espejos**
+- [ ] **Step 3: (agente) Enlazar desde README y el README del sprint**
+- [ ] **Step 4: (agente) Verificar enlaces y que no haya valores de secretos**
+- [ ] **Step 5: (usuario) Revisión final de la guía y la skill**
+
 ---
 
 ## Cierre del sprint

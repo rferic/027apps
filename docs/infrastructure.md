@@ -1,8 +1,9 @@
 # Infraestructura
 
 Inventario de servicios, secretos y operación de una instancia desplegada. Complementa
-[`docs/flows/cicd.md`](flows/cicd.md) (CI/CD y despliegue) y
-[`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-backups.md)
+[`docs/flows/cicd.md`](flows/cicd.md) (CI/CD y despliegue),
+[`docs/self-hosting.md`](self-hosting.md) (guía paso a paso para montar una instancia desde cero)
+y [`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-backups.md)
 (decisión de backup). **Nunca** se escriben valores de secretos aquí: solo nombres.
 
 > **Estado:** documento en construcción. Hoy cubre el inventario básico, Vercel, SMTP
