@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { withClient, query, count, impersonate, createTestUser } from '../pg.js';
+import { withClient, query, count, impersonate, impersonateAnon, createTestUser } from '../pg.js';
 
 async function seedCategory(c: any, key = 'instance') {
   await query(c, `insert into public.settings_categories (category_key, label, sort_order) values ($1, $2, $3)
@@ -39,6 +39,18 @@ describe('RLS: settings', () => {
       await impersonate(c, id);
       await expect(count(c, 'select count(*) from public.settings')).resolves.toBe(1);
       await expect(count(c, 'select count(*) from public.settings_categories')).resolves.toBe(1);
+      await c.query('ROLLBACK');
+    });
+  });
+
+  it('anon no puede leer settings ni settings_categories (0 filas, no permission denied)', async () => {
+    await withClient(async (c) => {
+      await c.query('BEGIN');
+      await seedCategory(c);
+      await seedSetting(c);
+      await impersonateAnon(c);
+      await expect(count(c, 'select count(*) from public.settings')).resolves.toBe(0);
+      await expect(count(c, 'select count(*) from public.settings_categories')).resolves.toBe(0);
       await c.query('ROLLBACK');
     });
   });

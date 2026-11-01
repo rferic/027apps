@@ -2,10 +2,10 @@
 -- Spec: docs/superpowers/specs/2026-10-26-instance-config.md §6 (decisión O)
 
 create table public.currencies (
-  code text primary key,          -- ISO 4217 alfabético de 3 letras (ADR 0008)
+  code text primary key check (code ~ '^[A-Z]{3}$'),  -- ISO 4217 alfabético de 3 letras (ADR 0008)
   enabled boolean not null default true,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now()  -- la capa de aplicación lo fija; trigger común en task-04
 );
 
 -- Seed inicial: la lista ISO 4217 de divisas en circulación (se excluyen los metales

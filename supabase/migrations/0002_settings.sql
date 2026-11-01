@@ -54,7 +54,7 @@ grant all on public.settings_categories to service_role;
 grant all on public.settings to service_role;
 
 create policy "settings_categories_select_admin" on public.settings_categories
-  for select using (core_is_admin());
+  for select to authenticated using (core_is_admin());
 
 create policy "settings_select_admin" on public.settings
-  for select using (core_is_admin());
+  for select to authenticated using (core_is_admin());

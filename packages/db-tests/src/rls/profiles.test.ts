@@ -39,6 +39,18 @@ describe('RLS: profiles', () => {
     });
   });
 
+  it('un usuario no puede editar su deactivated_at (column grant)', async () => {
+    const { a } = await seedTwoUsers();
+    await withClient(async (c) => {
+      await c.query('BEGIN');
+      await impersonate(c, a.id);
+      await expect(
+        query(c, 'update public.profiles set deactivated_at = now() where id = $1', [a.id]),
+      ).rejects.toThrowError(/permission denied|column "deactivated_at"/i);
+      await c.query('ROLLBACK');
+    });
+  });
+
   it('un usuario puede editarse display_name/locale/timezone (column grant)', async () => {
     const { a } = await seedTwoUsers();
     await withClient(async (c) => {
@@ -65,21 +77,27 @@ describe('RLS: profiles', () => {
     });
   });
 
-  it('un usuario desactivado no se ve en el listado de admin pero sí por sí mismo', async () => {
+  it('un admin desactivado pierde su condición de admin y solo se ve a sí mismo', async () => {
     const { a, b } = await seedTwoUsers('admin');
+    // Desactivamos a como superuser (la API real hace este cambio con service_role).
     await withClient(async (c) => {
-      // Desactivamos b como service (sin RLS en el update del admin, los tests de
-      // desactivación completa son de la API; aquí solo comprobamos el efecto en RLS).
       await c.query('BEGIN');
+      await query(c, 'update public.profiles set deactivated_at = now() where id = $1', [a.id]);
       await impersonate(c, a.id);
-      await expect(count(c, 'select count(*) from public.profiles where id = $1', [b.id])).resolves.toBe(1);
+      // Ya no es admin: no ve la fila del otro admin activo.
+      await expect(count(c, 'select count(*) from public.profiles where id = $1', [b.id])).resolves.toBe(0);
+      // Solo se ve a sí mismo.
+      await expect(count(c, 'select count(*) from public.profiles where id = $1', [a.id])).resolves.toBe(1);
+      // core_is_admin() ya no le deja ver todo.
+      await expect(query(c, 'select public.core_is_admin()')).resolves.toEqual({ rows: [{ core_is_admin: false }] });
       await c.query('ROLLBACK');
     });
+    // Un admin activo (b) sí ve al desactivado (a) para poder reactivarlo.
     await withClient(async (c) => {
       await c.query('BEGIN');
-      await query(c, 'update public.profiles set deactivated_at = now() where id = $1', [b.id]);
-      await impersonate(c, a.id);
-      await expect(count(c, 'select count(*) from public.profiles where id = $1', [b.id])).resolves.toBe(1);
+      await query(c, 'update public.profiles set deactivated_at = now() where id = $1', [a.id]);
+      await impersonate(c, b.id);
+      await expect(count(c, 'select count(*) from public.profiles where id = $1', [a.id])).resolves.toBe(1);
       await c.query('ROLLBACK');
     });
   });
