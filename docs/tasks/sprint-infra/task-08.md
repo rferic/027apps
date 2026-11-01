@@ -20,8 +20,9 @@ fuente: docs/superpowers/specs/2026-10-26-realtime-notificaciones.md §6
 
 - **Proyecto Firebase creado**: `027apps` (ID `apps-4d26a`, número `387852103349`), plan Spark. App Android registrada con package `com.rferic.zero27apps` y alias `027Apps`.
 - **Valores públicos capturados** en una nota local fuera del repo (`~/Documents/027apps-firebase/nota-firebase.txt`): `fcm_project_id`, `fcm_app_id`, `fcm_sender_id`, `fcm_api_key`. Se trasladarán a `settings` (categoría `notifications.push`) cuando exista el panel del Core.
-- **Pendiente (usuario)**: generar la cuenta de servicio (JSON) y guardarla en el gestor de contraseñas; subirla cifrada a `settings` cuando exista el panel. Verificación end-to-end pendiente del Core (`POST /devices` + envío FCM).
+- **Pendiente**: subir el JSON de la cuenta de servicio (ya guardado por el usuario) al panel de `settings` cuando exista el Core; verificación end-to-end (`POST /devices` + envío FCM) en el sprint del Core.
 - **API key restringida** (2026-11-01): *Application restrictions* → Android apps con package `com.rferic.zero27apps` y SHA-1 `05:C0:03:5D:21:C7:B0:78:F2:BA:41:D9:1D:16:3D:E4:EB:6C:30:06`; *API restrictions* → APIs existentes + Firebase Cloud Messaging.
+- **Cuenta de servicio generada y guardada por el usuario** (2026-11-01) en su gestor de contraseñas/Drive. El JSON no pasa por git ni por el chat; se subirá cifrado a `settings` cuando exista el panel del Core.
 
 **Notas**:
 - Es **opcional** para cualquier instancia (degradación elegante: sin FCM, realtime + bandeja de novedades), pero **obligatoria para la instancia del autor** (decisión del usuario, 2026-10-26).
