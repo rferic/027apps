@@ -25,7 +25,7 @@
 - **Sin `pull_request_target`**; `permissions` mínimos; secretos inyectados por paso, no a nivel de workflow.
 - **Superficie de GitHub en inglés** (ramas, commits, PRs); docs internos en español. Conventional Commits; `guard-secrets` y `commitlint` en verde.
 - **2FA activa** en GitHub, Supabase, Vercel, Firebase y el proveedor SMTP (T15 del modelo de amenazas).
-- Un PR por cambio de repo (las puertas de usuario no generan PR salvo docs); squash merge solo con orden explícita del usuario.
+- **Un PR por sprint** (no por cambio ni por tarea): el PR del sprint acumula todos los cambios de repo y las bitácoras de las puertas de usuario, y se squash-mergea a `main` una sola vez con orden explícita del usuario.
 
 ## Review Focus
 
