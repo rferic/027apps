@@ -108,11 +108,11 @@ describe('GET /api/v1/settings', () => {
     });
   });
 
-  it('returns all 18 settings with secrets masked', async () => {
+  it('returns all 18 settings with secrets masked for a super_admin', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       try {
-        const caller = await adminCaller(c);
+        const caller = await adminCaller(c, 'super_admin');
         const res = await getSettings(c, caller);
         expect(res.status).toBe(200);
         const body = (await res.json()) as { settings: { key: string; isSecret: boolean; configured?: boolean; value?: unknown; value_encrypted?: unknown }[] };
@@ -133,6 +133,25 @@ describe('GET /api/v1/settings', () => {
       }
     });
   });
+
+  it('hides superAdminOnly keys from an admin (F-G)', async () => {
+    await withClient(async (c) => {
+      await c.query('BEGIN');
+      try {
+        const caller = await adminCaller(c, 'admin');
+        const res = await getSettings(c, caller);
+        expect(res.status).toBe(200);
+        const body = (await res.json()) as { settings: { key: string }[] };
+        const keys = body.settings.map((s) => s.key);
+        expect(keys).not.toContain('security.cors_allowlist');
+        expect(keys).not.toContain('security.jwt_expiry');
+        expect(keys).not.toContain('instance.public_url');
+        expect(keys).toContain('instance.name');
+      } finally {
+        await c.query('ROLLBACK');
+      }
+    });
+  });
 });
 
 describe('GET /api/v1/settings-categories', () => {
@@ -140,7 +159,7 @@ describe('GET /api/v1/settings-categories', () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       try {
-        const caller = await adminCaller(c);
+        const caller = await adminCaller(c, 'super_admin');
         const res = await getCategories(c, caller);
         expect(res.status).toBe(200);
         const body = (await res.json()) as { categories: { categoryKey: string; sortOrder: number; settings: { key: string }[] }[] };
@@ -236,6 +255,37 @@ describe('PATCH /api/v1/settings/{key}', () => {
         const res = await patchSetting(c, caller, 'localization.default_currency', { value: 'XXX' });
         expect(res.status).toBe(400);
         expect(((await res.json()) as { error: { code: string } }).error.code).toBe('currency_not_enabled');
+      } finally {
+        await c.query('ROLLBACK');
+      }
+    });
+  });
+
+  it('returns 429 after exhausting the write rate limit', async () => {
+    await withClient(async (c) => {
+      await c.query('BEGIN');
+      try {
+        const caller = await adminCaller(c);
+        const deps: SettingsRouteDeps = {
+          door: { rateLimitStorage: memoryRateLimitStorage(), logger: () => {} },
+          auth: async () => caller,
+          settings: settingsDeps(c),
+          rateLimits: { write: 2 },
+        };
+        const PATCH = patchSettingRoute(deps);
+        const request = () =>
+          new Request('http://local/api/v1/settings/instance.name', {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ value: 'limited' }),
+          });
+
+        expect((await PATCH(request(), 'instance.name')).status).toBe(200);
+        expect((await PATCH(request(), 'instance.name')).status).toBe(200);
+        const third = await PATCH(request(), 'instance.name');
+        expect(third.status).toBe(429);
+        expect(((await third.json()) as { error: { code: string } }).error.code).toBe('rate_limited');
+        expect(third.headers.get('retry-after')).not.toBeNull();
       } finally {
         await c.query('ROLLBACK');
       }

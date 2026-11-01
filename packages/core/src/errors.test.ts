@@ -17,6 +17,9 @@ const CODES: DomainErrorCode[] = [
   'already_setup',
   'currency_not_enabled',
   'locale_not_available',
+  'cors_origin_not_allowed',
+  'payload_too_large',
+  'currency_is_default',
   'internal',
 ];
 
@@ -55,6 +58,9 @@ describe('httpStatusFor', () => {
     expect(httpStatusFor('rate_limited')).toBe(429);
     expect(httpStatusFor('currency_not_enabled')).toBe(400);
     expect(httpStatusFor('locale_not_available')).toBe(400);
+    expect(httpStatusFor('cors_origin_not_allowed')).toBe(403);
+    expect(httpStatusFor('payload_too_large')).toBe(413);
+    expect(httpStatusFor('currency_is_default')).toBe(409);
     expect(httpStatusFor('internal')).toBe(500);
   });
 });

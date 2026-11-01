@@ -2,10 +2,12 @@
  * Setup: atomic creation of the first super_admin (ADR 0004 / core-api spec).
  *
  * The Auth user is created first; a database transaction then takes an
- * advisory lock, re-checks `requires_setup` (no existing super_admin) and
+ * advisory lock, re-checks `requires_setup` (no ACTIVE super_admin) and
  * inserts the profile with `role='super_admin'`. If the transaction fails the
  * Auth user is deleted so no orphan is left. Re-running after a successful
- * setup → 409 `already_setup`, never leaking who was created.
+ * setup → 409 `already_setup`, never leaking who was created. Counting only
+ * active super_admins matches /instance's `requires_setup`: if the sole
+ * super_admin is deactivated, setup is allowed again as a recovery path.
  */
 
 import { DomainError } from '../errors';
@@ -37,7 +39,7 @@ export async function createFirstSuperAdmin(
     await deps.db.query("SELECT pg_advisory_xact_lock(hashtext('core_setup'))");
 
     const existing = await deps.db.query(
-      'SELECT id FROM public.profiles WHERE role = $1 LIMIT 1',
+      'SELECT id FROM public.profiles WHERE role = $1 AND deactivated_at IS NULL LIMIT 1',
       ['super_admin'],
     );
     if (existing.rows.length > 0) {

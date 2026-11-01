@@ -26,15 +26,35 @@ const SUPER_ADMIN: Caller = { kind: 'session', userId: '00000000-0000-4000-8000-
 const USER: Caller = { kind: 'session', userId: '00000000-0000-4000-8000-000000000003', role: 'user' };
 
 function settingsDeps(c: ClientBase, encryption: SettingsDeps['encryption'] = createSettingsEncryption(TEST_KEY)): SettingsDeps {
+  const db = {
+    async query(sql: string, params: unknown[] = []) {
+      return query(c, sql, params);
+    },
+  };
+  let savepoint = 0;
   return {
-    db: {
-      async query(sql: string, params: unknown[] = []) {
-        return query(c, sql, params);
-      },
+    db,
+    // The test already runs in a transaction; a savepoint gives the service a
+    // real atomic boundary without committing the outer rollback wrapper.
+    async withTransaction<T>(fn: (client: typeof db) => Promise<T>): Promise<T> {
+      const name = `sp_settings_${++savepoint}`;
+      await c.query(`SAVEPOINT ${name}`);
+      try {
+        const result = await fn(db);
+        await c.query(`RELEASE SAVEPOINT ${name}`);
+        return result;
+      } catch (err) {
+        await c.query(`ROLLBACK TO SAVEPOINT ${name}`);
+        throw err;
+      }
     },
     encryption,
     currencies: {
-      async isEnabled(code: string) {
+      async isEnabled(code: string, client) {
+        if (client) {
+          const { rows } = await client.query('select enabled from public.currencies where code = $1', [code]);
+          return rows[0]?.enabled === true;
+        }
         const { rows } = await query(c, 'select enabled from public.currencies where code = $1', [code]);
         const row = rows[0] as { enabled: boolean } | undefined;
         return row?.enabled === true;
@@ -210,9 +230,9 @@ describe('settings service — writes and coherence', () => {
 });
 
 describe('settings service — reads', () => {
-  it('reads the 18 settings, masking secrets and exposing non-secret values', async () => {
+  it('reads the 18 settings for a super_admin, masking secrets and exposing non-secret values', async () => {
     await inRollback(async (c) => {
-      const all = await readAllSettings(settingsDeps(c));
+      const all = await readAllSettings(settingsDeps(c), SUPER_ADMIN);
       expect(all).toHaveLength(18);
 
       const byKey = new Map(all.map((s) => [s.key, s]));
@@ -226,7 +246,18 @@ describe('settings service — reads', () => {
     });
   });
 
-  it('returns only public non-secret settings for /instance', async () => {
+  it('hides superAdminOnly keys from an admin (F-G)', async () => {
+    await inRollback(async (c) => {
+      const all = await readAllSettings(settingsDeps(c), ADMIN);
+      const keys = all.map((s) => s.key);
+      expect(keys).not.toContain('security.cors_allowlist');
+      expect(keys).not.toContain('security.jwt_expiry');
+      expect(keys).not.toContain('instance.public_url');
+      expect(keys).toContain('instance.name');
+    });
+  });
+
+  it('returns only public non-secret settings for /instance (unaffected by F-G)', async () => {
     await inRollback(async (c) => {
       const pub = await readPublicSettings(settingsDeps(c));
       expect(Object.keys(pub).sort()).toEqual([

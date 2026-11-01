@@ -24,15 +24,34 @@ function memoryRateLimitStorage(): RateLimitStorage {
   };
 }
 
-function currenciesDeps(c: ClientBase, caller: Caller): CurrenciesRouteDeps {
+function currenciesDeps(
+  c: ClientBase,
+  caller: Caller,
+  rateLimits?: { public?: number; write?: number },
+): CurrenciesRouteDeps {
+  const db = { async query(sql: string, params: unknown[] = []) { return query(c, sql, params); } };
+  let savepoint = 0;
   return {
     door: { rateLimitStorage: memoryRateLimitStorage(), logger: () => {} },
     auth: async () => caller,
+    rateLimits,
     currencies: {
-      db: { async query(sql: string, params?: unknown[]) { return query(c, sql, params); } },
-      defaultCurrency: async () => {
-        const { rows } = await query(
-          c,
+      db,
+      async withTransaction<T>(fn: (client: typeof db) => Promise<T>): Promise<T> {
+        const name = `sp_currencies_${++savepoint}`;
+        await c.query(`SAVEPOINT ${name}`);
+        try {
+          const result = await fn(db);
+          await c.query(`RELEASE SAVEPOINT ${name}`);
+          return result;
+        } catch (err) {
+          await c.query(`ROLLBACK TO SAVEPOINT ${name}`);
+          throw err;
+        }
+      },
+      async defaultCurrency(client) {
+        const read = client ?? db;
+        const { rows } = await read.query(
           "select value from public.settings where key = 'localization.default_currency'",
         );
         return rows[0] ? (rows[0].value as string) : null; // jsonb is already parsed
@@ -116,7 +135,7 @@ describe('PATCH /api/v1/currencies/{code}', () => {
     });
   });
 
-  it('refuses to disable the default currency (currency_not_enabled)', async () => {
+  it('refuses to disable the default currency (currency_is_default)', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       try {
@@ -132,8 +151,8 @@ describe('PATCH /api/v1/currencies/{code}', () => {
           }),
           'EUR',
         );
-        expect(res.status).toBe(400);
-        expect(((await res.json()) as { error: { code: string } }).error.code).toBe('currency_not_enabled');
+        expect(res.status).toBe(409);
+        expect(((await res.json()) as { error: { code: string } }).error.code).toBe('currency_is_default');
         const { rows } = await query(c, "select enabled from public.currencies where code = 'EUR'");
         expect(rows[0].enabled).toBe(true);
       } finally {

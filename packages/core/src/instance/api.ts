@@ -6,7 +6,7 @@
  */
 
 import { withDoor } from '../api/door';
-import type { Caller, DoorDeps } from '../api/types';
+import type { Caller, CorsOptions, DoorDeps } from '../api/types';
 import { computeHealth, readPublicSettings, type SettingsDeps } from '../settings/service';
 
 export interface InstanceRouteDeps {
@@ -15,6 +15,8 @@ export interface InstanceRouteDeps {
   settings: SettingsDeps;
   /** Deployed Core version (package.json). */
   version: string;
+  cors?: CorsOptions;
+  rateLimits?: { public?: number; write?: number };
 }
 
 /** Required keys once an admin exists (instance-config §7: setup_incomplete). */
@@ -42,32 +44,52 @@ function missingRequired(settingsPublic: Record<string, unknown>): string[] {
 /** GET /api/v1/instance — public metadata plus public settings. */
 export function instanceRoute(deps: InstanceRouteDeps) {
   return (req: Request): Promise<Response> =>
-    withDoor(req, { scopes: [], auth: deps.auth, rateLimit: { identity: 'ip', limit: 30 } }, deps.door, async () => {
-      const [settingsPublic, superAdminExists] = await Promise.all([
-        readPublicSettings(deps.settings),
-        hasActiveSuperAdmin(deps),
-      ]);
-      return {
-        version: deps.version,
-        requires_setup: !superAdminExists,
-        setup_incomplete: superAdminExists && missingRequired(settingsPublic).length > 0,
-        settings_public: settingsPublic,
-      };
-    });
+    withDoor(
+      req,
+      {
+        scopes: [],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: 'ip', limit: deps.rateLimits?.public ?? 30 },
+      },
+      deps.door,
+      async () => {
+        const [settingsPublic, superAdminExists] = await Promise.all([
+          readPublicSettings(deps.settings),
+          hasActiveSuperAdmin(deps),
+        ]);
+        return {
+          version: deps.version,
+          requires_setup: !superAdminExists,
+          setup_incomplete: superAdminExists && missingRequired(settingsPublic).length > 0,
+          settings_public: settingsPublic,
+        };
+      },
+    );
 }
 
 /** GET /api/v1/health — 200 ok or 503 degraded, cached 30 s. */
 export function healthRoute(deps: InstanceRouteDeps) {
   return (req: Request): Promise<Response> =>
-    withDoor(req, { scopes: [], auth: deps.auth, rateLimit: { identity: 'ip', limit: 30 } }, deps.door, async () => {
-      const health = await computeHealth(deps.settings);
-      const body =
-        health.status === 'degraded'
-          ? { status: 'degraded', degradedReasons: health.degradedReasons }
-          : { status: 'ok' };
-      return new Response(JSON.stringify(body), {
-        status: health.status === 'ok' ? 200 : 503,
-        headers: { 'cache-control': 'public, max-age=30' },
-      });
-    });
+    withDoor(
+      req,
+      {
+        scopes: [],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: 'ip', limit: deps.rateLimits?.public ?? 30 },
+      },
+      deps.door,
+      async () => {
+        const health = await computeHealth(deps.settings);
+        const body =
+          health.status === 'degraded'
+            ? { status: 'degraded', degradedReasons: health.degradedReasons }
+            : { status: 'ok' };
+        return new Response(JSON.stringify(body), {
+          status: health.status === 'ok' ? 200 : 503,
+          headers: { 'cache-control': 'public, max-age=30' },
+        });
+      },
+    );
 }

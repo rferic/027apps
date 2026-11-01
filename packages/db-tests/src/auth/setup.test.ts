@@ -46,6 +46,12 @@ function makeDeps(db: ClientBase): SetupDeps {
 
 /** Cleans up all setup-test users and their profiles (local stack is disposable). */
 async function cleanup() {
+  // Destructive: only touch the local stack. A non-local SUPABASE_DB_URL skips
+  // silently so a misconfigured environment can never delete real admins.
+  const url = process.env.SUPABASE_DB_URL;
+  const isLocal = Boolean(url && (url.includes('127.0.0.1') || url.includes('localhost')));
+  if (!isLocal) return;
+
   const db = dbClient();
   await db.connect();
   try {
@@ -113,6 +119,38 @@ describe('createFirstSuperAdmin — local stack', () => {
           displayName: 'Second Admin',
         }),
       ).rejects.toMatchObject({ code: 'already_setup' });
+    } finally {
+      await db.end();
+    }
+  });
+
+  it('allows setup again when the only super_admin is deactivated (F-L)', async () => {
+    await cleanup();
+    const db = dbClient();
+    await db.connect();
+    try {
+      const deps = makeDeps(db);
+      const first = await createFirstSuperAdmin(deps, {
+        email: `${EMAIL_PREFIX}deactivated@local.test`,
+        password: 'test-password',
+        displayName: 'Deactivated Admin',
+      });
+      await query(db, 'UPDATE public.profiles SET deactivated_at = now() WHERE id = $1', [first.userId]);
+
+      // /instance advertises requires_setup again; setup must not dead-end in 409.
+      const second = await createFirstSuperAdmin(deps, {
+        email: `${EMAIL_PREFIX}recovery@local.test`,
+        password: 'test-password',
+        displayName: 'Recovery Admin',
+      });
+      expect(second.email).toBe(`${EMAIL_PREFIX}recovery@local.test`);
+
+      const { rows } = await query(
+        db,
+        "SELECT id FROM public.profiles WHERE role = 'super_admin' AND deactivated_at IS NULL",
+      );
+      expect(rows).toHaveLength(1);
+      expect((rows[0] as { id: string }).id).toBe(second.userId);
     } finally {
       await db.end();
     }

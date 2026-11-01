@@ -26,6 +26,8 @@ const BODY_METHODS = new Set(['POST', 'PATCH', 'PUT']);
 const ALLOW_METHODS = 'GET,POST,PATCH,PUT,DELETE,OPTIONS';
 const ALLOW_HEADERS = 'Authorization,Content-Type';
 const WINDOW_SECONDS = 60;
+/** Maximum accepted request body (1 MB) when the client declares a length. */
+const MAX_BODY_BYTES = 1024 * 1024;
 
 interface CorsContext {
   allowed: boolean;
@@ -60,14 +62,22 @@ function identityFor(caller: Caller, req: Request, kind: 'user' | 'key' | 'ip'):
   switch (kind) {
     case 'user':
       if (caller.kind === 'session' || caller.kind === 'delegated') return caller.userId;
+      // A service key gets its own bucket; otherwise every key collapses together.
+      if (caller.kind === 'service') return caller.keyId;
       return 'anonymous';
     case 'key':
       if (caller.kind === 'service' || caller.kind === 'delegated') return caller.keyId;
       return 'anonymous';
     case 'ip': {
-      const forwarded = req.headers.get('x-forwarded-for');
-      const first = forwarded?.split(',')[0]?.trim();
-      return first && first.length > 0 ? first : 'unknown';
+      // Self-hosted deployments MUST set x-real-ip (or strip incoming XFF) at the
+      // reverse proxy. x-forwarded-for is only a last-resort fallback because a
+      // client can spoof it when no proxy rewrites the header.
+      const realIp = req.headers.get('x-real-ip')?.split(',')[0]?.trim();
+      if (realIp) return realIp;
+      const vercelIp = req.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim();
+      if (vercelIp) return vercelIp;
+      const forwarded = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+      return forwarded && forwarded.length > 0 ? forwarded : 'unknown';
     }
   }
 }
@@ -114,6 +124,16 @@ function withRequestId(res: Response, requestId: string, cors: CorsContext): Res
 }
 
 async function readBody(req: Request, options: DoorOptions): Promise<unknown> {
+  // Reject oversized bodies before parsing. Only when the header is present and
+  // numeric: a missing content-length cannot be trusted to mean "small".
+  const declaredLength = req.headers.get('content-length');
+  if (declaredLength !== null) {
+    const length = Number(declaredLength);
+    if (Number.isFinite(length) && length > MAX_BODY_BYTES) {
+      throw new DomainError('payload_too_large');
+    }
+  }
+
   let raw: unknown;
   try {
     raw = await req.json();
@@ -143,7 +163,7 @@ export async function withDoor(
   // CORS preflight: answered before auth and rate limiting (no credentials needed).
   if (req.method === 'OPTIONS' && options.cors) {
     if (cors.origin && !cors.allowed) {
-      return errorResponse(new DomainError('insufficient_scope'), requestId, cors, deps);
+      return errorResponse(new DomainError('cors_origin_not_allowed'), requestId, cors, deps);
     }
     return new Response(null, {
       status: 204,
@@ -157,7 +177,18 @@ export async function withDoor(
   }
 
   try {
-    const caller = await options.auth(req);
+    // Public routes tolerate an invalid/expired token so mobile clients can keep
+    // fetching /instance and /health between refreshes; scoped routes keep 401.
+    let caller: Caller;
+    try {
+      caller = await options.auth(req);
+    } catch (err) {
+      if (options.scopes.length === 0 && err instanceof DomainError && err.code === 'unauthorized') {
+        caller = { kind: 'anon' };
+      } else {
+        throw err;
+      }
+    }
 
     // Scope enforcement (ADR 0004): the guard consumes options.scopes before
     // rate limiting, so unauthorized callers never consume rate-limit budget.

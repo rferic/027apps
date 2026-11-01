@@ -18,7 +18,6 @@
 import {
   createCipheriv,
   createDecipheriv,
-  timingSafeEqual,
 } from 'node:crypto';
 
 const VERSION = 'v1';
@@ -29,20 +28,18 @@ const TAG_LENGTH = 16;
 export interface EncryptionKeyPort {
   /** Returns the plaintext, or `null` when the ciphertext cannot be trusted. */
   decrypt(valueEncrypted: string, slot: string): Promise<string | null>;
-  encrypt(plaintext: string, slot: string): Promise<string>;
+  /** Returns the versioned ciphertext, or `null` when the master key is unusable. */
+  encrypt(plaintext: string, slot: string): Promise<string | null>;
 }
 
-function decodeKey(base64Key: string): Buffer {
-  let key: Buffer;
-  try {
-    key = Buffer.from(base64Key, 'base64');
-  } catch {
-    throw new Error('SETTINGS_ENCRYPTION_KEY is not valid base64');
-  }
-  if (key.length !== KEY_LENGTH) {
-    throw new Error(`SETTINGS_ENCRYPTION_KEY must decode to ${KEY_LENGTH} bytes, got ${key.length}`);
-  }
-  return key;
+/**
+ * Decodes the base64 master key without throwing: a malformed key means the
+ * instance runs degraded. `Buffer.from(…, 'base64')` never throws on bad input;
+ * the length check is the actual validation.
+ */
+function decodeKey(base64Key: string): Buffer | null {
+  const key = Buffer.from(base64Key, 'base64');
+  return key.length === KEY_LENGTH ? key : null;
 }
 
 function aad(slot: string): Buffer {
@@ -66,20 +63,23 @@ function decodeB64(value: string): Buffer | null {
 }
 
 export function createSettingsEncryption(base64Key: string): EncryptionKeyPort {
+  // Lazy by contract: construction never throws so importing the module cannot
+  // crash the whole API when the env key is missing or malformed.
   const key = decodeKey(base64Key);
 
   return {
-    async encrypt(plaintext: string, slot: string): Promise<string> {
-      const iv = Buffer.alloc(IV_LENGTH);
-      iv.fill(crypto.getRandomValues(new Uint8Array(IV_LENGTH)));
+    async encrypt(plaintext: string, slot: string): Promise<string | null> {
+      if (!key) return null;
+      const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
       const cipher = createCipheriv('aes-256-gcm', key, iv, { authTagLength: TAG_LENGTH });
       cipher.setAAD(aad(slot));
       const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
       const tag = cipher.getAuthTag();
-      return `${VERSION}:${iv.toString('base64')}:${tag.toString('base64')}:${ciphertext.toString('base64')}`;
+      return `${VERSION}:${Buffer.from(iv).toString('base64')}:${tag.toString('base64')}:${ciphertext.toString('base64')}`;
     },
 
     async decrypt(valueEncrypted: string, slot: string): Promise<string | null> {
+      if (!key) return null;
       const parts = splitParts(valueEncrypted);
       if (!parts) return null;
 
@@ -102,9 +102,4 @@ export function createSettingsEncryption(base64Key: string): EncryptionKeyPort {
       }
     },
   };
-}
-
-/** Constant-time comparison helper for key fingerprints (never used for secrets). */
-export function keysEqual(a: Buffer, b: Buffer): boolean {
-  return a.length === b.length && timingSafeEqual(a, b);
 }

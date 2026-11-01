@@ -141,6 +141,7 @@ describe('withDoor — errors', () => {
     const res = await withDoor(
       new Request(URL_BASE),
       makeOptions({
+        scopes: ['settings:read'],
         auth: async () => {
           throw new DomainError('unauthorized');
         },
@@ -158,6 +159,7 @@ describe('withDoor — errors', () => {
     const res = await withDoor(
       new Request(URL_BASE),
       makeOptions({
+        scopes: ['settings:read'],
         auth: async () => {
           throw new DomainError('unauthorized');
         },
@@ -199,6 +201,97 @@ describe('withDoor — rate limiting', () => {
 
     expect(res.status).toBe(200);
     expect(storage.calls).toHaveLength(1);
+  });
+
+  it('uses each service key as its own user identity (F-C)', async () => {
+    const storage = makeStorage(1);
+    const serviceCaller: Caller = { kind: 'service', keyId: 'key-abc', scopes: [], roleCap: 'admin' };
+    await withDoor(
+      new Request(URL_BASE),
+      makeOptions({ auth: async () => serviceCaller, rateLimit: { identity: 'user', limit: 5 } }),
+      makeDeps({ rateLimitStorage: storage }),
+      async () => ({ ok: true }),
+    );
+    expect(storage.calls[0]).toBe('user:key-abc');
+  });
+
+  it('uses the delegated user id for the user identity (F-C)', async () => {
+    const storage = makeStorage(1);
+    const delegatedCaller: Caller = {
+      kind: 'delegated',
+      keyId: 'key-abc',
+      userId: 'u9',
+      scopes: [],
+      roleCap: 'admin',
+    };
+    await withDoor(
+      new Request(URL_BASE),
+      makeOptions({ auth: async () => delegatedCaller, rateLimit: { identity: 'user', limit: 5 } }),
+      makeDeps({ rateLimitStorage: storage }),
+      async () => ({ ok: true }),
+    );
+    expect(storage.calls[0]).toBe('user:u9');
+  });
+
+  it('falls back to the anonymous bucket when no user identity is known (F-C)', async () => {
+    const storage = makeStorage(1);
+    await withDoor(
+      new Request(URL_BASE),
+      makeOptions({ auth: async () => ({ kind: 'anon' }), rateLimit: { identity: 'user', limit: 5 } }),
+      makeDeps({ rateLimitStorage: storage }),
+      async () => ({ ok: true }),
+    );
+    expect(storage.calls[0]).toBe('user:anonymous');
+  });
+
+  it('prefers x-real-ip over the other forwarded headers (F-B)', async () => {
+    const storage = makeStorage(1);
+    await withDoor(
+      new Request(URL_BASE, {
+        headers: { 'x-real-ip': '203.0.113.7', 'x-forwarded-for': '198.51.100.1, 10.0.0.1' },
+      }),
+      makeOptions({ rateLimit: { identity: 'ip', limit: 5 } }),
+      makeDeps({ rateLimitStorage: storage }),
+      async () => ({ ok: true }),
+    );
+    expect(storage.calls[0]).toBe('ip:203.0.113.7');
+  });
+
+  it('uses x-vercel-forwarded-for when x-real-ip is absent (F-B)', async () => {
+    const storage = makeStorage(1);
+    await withDoor(
+      new Request(URL_BASE, {
+        headers: { 'x-vercel-forwarded-for': '198.51.100.9, 10.0.0.1' },
+      }),
+      makeOptions({ rateLimit: { identity: 'ip', limit: 5 } }),
+      makeDeps({ rateLimitStorage: storage }),
+      async () => ({ ok: true }),
+    );
+    expect(storage.calls[0]).toBe('ip:198.51.100.9');
+  });
+
+  it('falls back to the first x-forwarded-for entry (F-B)', async () => {
+    const storage = makeStorage(1);
+    await withDoor(
+      new Request(URL_BASE, {
+        headers: { 'x-forwarded-for': '198.51.100.3, 10.0.0.1' },
+      }),
+      makeOptions({ rateLimit: { identity: 'ip', limit: 5 } }),
+      makeDeps({ rateLimitStorage: storage }),
+      async () => ({ ok: true }),
+    );
+    expect(storage.calls[0]).toBe('ip:198.51.100.3');
+  });
+
+  it('uses the unknown bucket when no forwarding header is present (F-B)', async () => {
+    const storage = makeStorage(1);
+    await withDoor(
+      new Request(URL_BASE),
+      makeOptions({ rateLimit: { identity: 'ip', limit: 5 } }),
+      makeDeps({ rateLimitStorage: storage }),
+      async () => ({ ok: true }),
+    );
+    expect(storage.calls[0]).toBe('ip:unknown');
   });
 });
 
@@ -243,6 +336,39 @@ describe('withDoor — validation', () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as ErrorEnvelope;
     expect(body.error.code).toBe('validation_failed');
+  });
+
+  it('rejects an oversized declared body with 413 payload_too_large (F-E)', async () => {
+    const res = await withDoor(
+      new Request(URL_BASE, {
+        method: 'POST',
+        headers: { 'content-length': String(1024 * 1024 + 1), 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'Ada' }),
+      }),
+      makeOptions({ schema }),
+      makeDeps(),
+      async () => ({ ok: true }),
+    );
+
+    expect(res.status).toBe(413);
+    const body = (await res.json()) as ErrorEnvelope;
+    expect(body.error.code).toBe('payload_too_large');
+  });
+
+  it('parses a body normally when no content-length header is present (F-E)', async () => {
+    const req = new Request(URL_BASE, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Ada' }),
+    });
+    req.headers.delete('content-length');
+
+    const res = await withDoor(req, makeOptions({ schema }), makeDeps(), async (ctx) => ({
+      name: (ctx.body as { name: string }).name,
+    }));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ name: 'Ada' });
   });
 });
 
@@ -315,6 +441,79 @@ describe('withDoor — scopes (F8)', () => {
   });
 });
 
+describe('withDoor — public route auth fallback (F-A)', () => {
+  it('treats an unauthorized auth failure as anon on public routes', async () => {
+    const handler = vi.fn().mockResolvedValue({ ok: true });
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({
+        scopes: [],
+        auth: async () => {
+          throw new DomainError('unauthorized');
+        },
+      }),
+      makeDeps(),
+      handler,
+    );
+
+    expect(res.status).toBe(200);
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler.mock.calls[0]?.[0]?.caller).toEqual({ kind: 'anon' });
+  });
+
+  it('still fails on a non-unauthorized DomainError for public routes', async () => {
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({
+        scopes: [],
+        auth: async () => {
+          throw new DomainError('internal', 'auth backend down');
+        },
+      }),
+      makeDeps(),
+      async () => ({ ok: true }),
+    );
+
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as ErrorEnvelope;
+    expect(body.error.code).toBe('internal');
+  });
+
+  it('still fails on a generic error for public routes', async () => {
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({
+        scopes: [],
+        auth: async () => {
+          throw new Error('boom');
+        },
+      }),
+      makeDeps(),
+      async () => ({ ok: true }),
+    );
+
+    expect(res.status).toBe(500);
+  });
+
+  it('keeps 401 for an unauthorized auth failure on scoped routes', async () => {
+    const handler = vi.fn().mockResolvedValue({ ok: true });
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({
+        scopes: ['settings:read'],
+        auth: async () => {
+          throw new DomainError('unauthorized');
+        },
+      }),
+      makeDeps(),
+      handler,
+    );
+
+    expect(res.status).toBe(401);
+    expect(handler).not.toHaveBeenCalled();
+  });
+});
+
 describe('withDoor — CORS', () => {
   const cors = { allowlist: ['https://admin.test'] };
 
@@ -349,7 +548,7 @@ describe('withDoor — CORS', () => {
     expect(res.status).toBe(403);
     expect(res.headers.get('access-control-allow-origin')).toBeNull();
     const body = (await res.json()) as ErrorEnvelope;
-    expect(body.error.code).toBe('insufficient_scope');
+    expect(body.error.code).toBe('cors_origin_not_allowed');
   });
 
   it('adds CORS headers to allowed actual requests', async () => {

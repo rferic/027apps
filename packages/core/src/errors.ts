@@ -21,6 +21,9 @@ export type DomainErrorCode =
   | 'already_setup'
   | 'currency_not_enabled'
   | 'locale_not_available'
+  | 'cors_origin_not_allowed'
+  | 'payload_too_large'
+  | 'currency_is_default'
   | 'internal';
 
 /** Canonical English message per code. It is the i18n catalogue key. */
@@ -34,6 +37,9 @@ export const DEFAULT_MESSAGES: Readonly<Record<DomainErrorCode, string>> = {
   already_setup: 'Setup already completed',
   currency_not_enabled: 'Currency is not enabled',
   locale_not_available: 'Locale is not available',
+  cors_origin_not_allowed: 'CORS origin not allowed',
+  payload_too_large: 'Request body too large',
+  currency_is_default: 'Currency is the default and cannot be disabled',
   internal: 'Internal server error',
 };
 
@@ -48,6 +54,9 @@ export const HTTP_STATUS: Readonly<Record<DomainErrorCode, number>> = {
   rate_limited: 429,
   currency_not_enabled: 400,
   locale_not_available: 400,
+  cors_origin_not_allowed: 403,
+  payload_too_large: 413,
+  currency_is_default: 409,
   internal: 500,
 };
 
