@@ -5,7 +5,7 @@ import {
   httpStatusFor,
   toEnvelope,
   type DomainErrorCode,
-} from './errors.js';
+} from './errors';
 
 const CODES: DomainErrorCode[] = [
   'validation_failed',

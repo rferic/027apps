@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { checkRateLimit } from './rate-limit.js';
-import { createPostgresRateLimitStorage } from './rate-limit-storage.js';
-import type { RateLimitStorage } from './rate-limit-storage.js';
+import { checkRateLimit } from './rate-limit';
+import { createPostgresRateLimitStorage } from './rate-limit-storage';
+import type { RateLimitStorage } from './rate-limit-storage';
 
 interface Call {
   key: string;

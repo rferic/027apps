@@ -1,4 +1,4 @@
-import type { RateLimitStorage } from './rate-limit-storage.js';
+import type { RateLimitStorage } from './rate-limit-storage';
 import type { ZodType } from 'zod';
 
 /** Who is calling the API. The shape is resolved by the auth function. */

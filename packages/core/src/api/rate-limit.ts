@@ -1,4 +1,4 @@
-import type { RateLimitStorage } from './rate-limit-storage.js';
+import type { RateLimitStorage } from './rate-limit-storage';
 
 export interface RateLimitOptions {
   /** Maximum requests allowed inside one window. */

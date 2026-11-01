@@ -10,8 +10,9 @@
  * this door yet, so nothing ships without the guard.
  */
 
-import { DomainError, httpStatusFor, toEnvelope } from '../errors.js';
-import { checkRateLimit } from './rate-limit.js';
+import { DomainError, httpStatusFor, toEnvelope } from '../errors';
+import { authorize } from '../auth/guard';
+import { checkRateLimit } from './rate-limit';
 import type {
   Caller,
   DoorDeps,
@@ -19,7 +20,7 @@ import type {
   JsonValue,
   LogEntry,
   RequestContext,
-} from './types.js';
+} from './types';
 
 const BODY_METHODS = new Set(['POST', 'PATCH', 'PUT']);
 const ALLOW_METHODS = 'GET,POST,PATCH,PUT,DELETE,OPTIONS';
@@ -90,9 +91,13 @@ function errorResponse(
   };
   deps.logger(entry);
 
+  const headers = { ...baseHeaders(requestId, cors), ...extraHeaders };
+  if (status === 401) {
+    headers['www-authenticate'] = 'Bearer';
+  }
   return new Response(JSON.stringify(envelope), {
     status,
-    headers: { ...baseHeaders(requestId, cors), ...extraHeaders },
+    headers,
   });
 }
 
@@ -154,8 +159,13 @@ export async function withDoor(
   try {
     const caller = await options.auth(req);
 
+    // Scope enforcement (ADR 0004): the guard consumes options.scopes before
+    // rate limiting, so unauthorized callers never consume rate-limit budget.
+    // With an empty scopes list the route is public: the caller passes through.
+    const authorizedCaller = options.scopes.length > 0 ? authorize(caller, options.scopes) : caller;
+
     if (options.rateLimit) {
-      const identity = identityFor(caller, req, options.rateLimit.identity);
+      const identity = identityFor(authorizedCaller, req, options.rateLimit.identity);
       const result = await checkRateLimit(
         deps.rateLimitStorage,
         `${options.rateLimit.identity}:${identity}`,
@@ -172,7 +182,7 @@ export async function withDoor(
 
     const ctx: RequestContext = {
       requestId,
-      caller,
+      caller: authorizedCaller,
       body,
       searchParams: new URL(req.url).searchParams,
     };
@@ -181,6 +191,20 @@ export async function withDoor(
 
     if (result instanceof Response) {
       return withRequestId(result, requestId, cors);
+    }
+
+    // Handler convention: { status, body } customizes the HTTP status (e.g. 201).
+    if (
+      result !== null &&
+      typeof result === 'object' &&
+      'status' in result &&
+      'body' in result
+    ) {
+      const { status, body: responseBody } = result as { status: number; body: JsonValue };
+      return new Response(JSON.stringify(responseBody), {
+        status,
+        headers: baseHeaders(requestId, cors),
+      });
     }
 
     return new Response(JSON.stringify(result), {
