@@ -53,6 +53,8 @@ Definición completa de "terminado" por tipo: `docs/conventions/definition-of-do
 ## Git
 
 - **Idioma de la superficie de GitHub en inglés**: ramas (`sprint/NN-<slug>`, `feature/*`, `fix/*`, `docs/*`, `chore/*`), mensajes de commit (Conventional Commits), títulos y **body de PRs**, descripciones de repositorio, releases y changelog. El contenido técnico de `docs/` (specs, ADRs, flujos, convenciones) se escribe en español; solo lo que GitHub muestra públicamente (y el código) va en inglés.
-- Un PR por cambio; squash merge a `main` (el título del PR es el commit). `main` siempre desplegable.
+- Un PR por sprint (no por tarea ni por cambio): el PR acumula los cambios del sprint y se
+  squash-mergea a `main` una sola vez, con orden explícita del usuario. El título del PR es el
+  commit resultante. Las puertas de setup del usuario se documentan en ese mismo PR.
 - No mergees, no fuerces push ni reescribas historia compartida sin orden explícita del usuario.
 - La tarea no es `finalizada` hasta cumplir `docs/conventions/definition-of-done.md`, incluida la auditoría de seguridad.

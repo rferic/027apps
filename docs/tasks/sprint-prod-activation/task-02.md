@@ -1,5 +1,5 @@
 ---
-id: sprint-infra-task-12
+id: sprint-prod-activation-task-02
 titulo: Backup cifrado de la base de datos fuera de Supabase
 area: infra
 estado: test
@@ -10,6 +10,10 @@ fuente: docs/superpowers/specs/2026-10-26-backups.md
 **Tarea**: que la BD de producción tenga un respaldo diario, cifrado y **externo a Supabase**,
 con restauración documentada y probada. El plan free de Supabase no incluye backups ni PITR:
 hoy la instancia no tiene ninguna copia recuperable.
+
+**Traslado** (2026-10-31): movida desde `sprint-infra` a `sprint-prod-activation` al cerrar ese
+sprint — la verificación real (primer snapshot + simulacro de restauración) exige el proyecto
+`027apps-prod`, que se crea al cierre de sprint-05 (decisión del usuario, 2026-10-27).
 
 **Piezas implementadas** (rama `sprint/infra-backups`):
 - `scripts/backup/backup.sh` — `pg_dump` en formato custom, validación del TOC, `restic
