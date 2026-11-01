@@ -4,7 +4,7 @@ titulo: Auth, sesión SSR y guard de scopes
 area: core
 estado: pendiente
 adrs: [0004, 0007]
-plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
+plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 ---
 
 **Alcance**: login con Supabase Auth (email+contraseña), sesión SSR por cookies (`HttpOnly`/`Secure`/`SameSite`, PKCE), `authorize(caller, scopes)` con scopes por acción y `role_cap`, y **`/setup`** con creación **atómica** del primer `super_admin` (re-chequeo + email único) y rate limit.

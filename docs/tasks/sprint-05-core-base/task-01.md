@@ -4,7 +4,7 @@ titulo: Migraciones base, RLS y suite de aislamiento
 area: core
 estado: pendiente
 adrs: [0004, 0008]
-plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
+plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 ---
 
 **Alcance**: migraciones de `profiles` (con `role`, `deactivated_at`), `settings_categories`, `settings` (`value`/`value_encrypted`, `is_secret`, `is_public`, `mcp_access`), `currencies`; RLS con `core_is_admin()`/`core_is_super_admin()` (definers `search_path=''`, `REVOKE` de PUBLIC) y **suite de aislamiento** por tabla (dos usuarios, datos cruzados).

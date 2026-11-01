@@ -4,7 +4,7 @@ titulo: Salud, instancia y ajustes con secretos cifrados
 area: core
 estado: pendiente
 adrs: [0004, 0007, 0008]
-plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
+plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 ---
 
 **Alcance**: `GET /health` (ok/degraded, 503, caché 30 s), `GET /instance` con `version`, `requires_setup`, `setup_incomplete` y `settings_public`; `GET /settings` (secretos **enmascarados** con `configured`), `PATCH /settings/{category}.{key}` (solo valor, validación por catálogo, `security.*`/`public_url`/CORS solo super_admin); cifrado **AES-256-GCM** (nonce nuevo por cifrado, AAD = versión+clave, formato versionado); `currencies` + default habilitada.
