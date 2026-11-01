@@ -26,7 +26,7 @@ plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
   6. `vitest.config.mts`: carga de `.env.local` con `node:fs` (Vitest 5 no exporta `loadEnv` de `vitest/config`).
 - **Decisión de diseño en `settings`**: la escritura pasa siempre por la API (`service_role`); en SQL solo hay políticas de `SELECT` para `core_is_admin()`. Los tests lo documentan («un admin no puede insertar settings»).
 - **Verde**: `pnpm lint && pnpm tsc` (admin, db-tests, test-utils) sin errores.
-- **CI**: job `supabase` en `.github/workflows/ci.yml` (`supabase/setup-cli@v1.7.3` fijado por SHA, `supabase start` + `pnpm --filter db-tests test`, `SUPABASE_DB_URL` local). `docs/flows/cicd.md` actualizado (triggers, gates y sección de migraciones).
+- **CI**: job `supabase` en `.github/workflows/ci.yml` (`supabase/setup-cli@v3.0.1` fijado por SHA, `supabase start` + `pnpm --filter db-tests test`, `SUPABASE_DB_URL` local). `docs/flows/cicd.md` actualizado (triggers, gates y sección de migraciones).
 - **`packages/test-utils`**: scaffold con el family-set estándar (`testing-strategy.md` §3: grupo «familia», 4 miembros con pareja incluida, EUR). Las factories por entidad se añaden con el módulo que las use.
 - **Auditoría QA + OWASP (2026-11-01)**: auditor independiente (agente `ingeniero`, ojos nuevos). Veredicto: **CAMBIOS NECESARIOS (menores)**; sin hallazgos críticos ni altos. Hallazgos y resolución:
   1. **[MEDIO]** `settings`/`settings_categories` sin `to authenticated`: anon recibía `permission denied` en vez de 0 filas. **Corregido**: políticas acotadas a `authenticated`; test nuevo «anon no puede leer settings ni settings_categories».
