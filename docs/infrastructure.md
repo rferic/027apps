@@ -259,3 +259,32 @@ reciente:
 | Copia secundaria (3-2-1) | Pendiente: `restic copy` a un bucket de otro proveedor |
 | Simulacro automatizado | Pendiente: requiere Supabase self-hosted o proyecto desechable por API |
 | Inventario completo de servicios y variables | Pendiente: tareas de despliegue |
+
+## 9. Producción — activación pendiente
+
+**Hoy no existe entorno de producción.** La decisión 2026-10-25 pausa producción hasta que el
+Core sea funcional: no hay app que desplegar y el plan free de Supabase pausa proyectos idle.
+Solo existe `027apps-dev` (Supabase) y el proyecto Vercel con env vars de scope Preview.
+
+Checklist para activarla al cierre del sprint-05 (en este orden):
+
+1. **Crear `027apps-prod`** en Supabase con contraseña nueva generada en el dashboard (nunca
+   por chat ni en git) y anotar el project ref en este documento.
+2. **Añadir las env vars de scope Production en Vercel**: `NEXT_PUBLIC_SUPABASE_URL`,
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (sensitive) y
+   `SETTINGS_ENCRYPTION_KEY` (sensitive; la misma clave maestra o una nueva con re-cifrado).
+3. **Cambiar *Production Branch* a `main`** en Vercel (*Settings → Environments → Production →
+   Branch Tracking*) y **borrar la rama placeholder `production`** de GitHub.
+4. **Asignar `027apps.ericrf.com`** al proyecto en Vercel (DNS ya en Vercel); no usar el dominio
+   raíz ni el de email.
+5. **Configurar SMTP en `027apps-prod`** con Resend (mismo dominio `mail.ericrf.com`) y probar
+   invitación + reset reales.
+6. **Aplicar migraciones** y lanzar el **primer backup** con el `SUPABASE_DB_URL` de producción
+   (session pooler, IPv4); simulacro de restauración antes de dar por buena la instancia.
+7. **Verificar** `/api/health`, login por invitación, reset de contraseña y restore del backup.
+8. **`PROD_URL`** (task-07): subir el secret con el dominio de producción para activar el
+   keep-alive diario.
+
+Riesgos asociados: rotar o descartar la contraseña de BD de `027apps-dev` al crear la de
+producción (se compartió por chat el 2026-10-27, riesgo aceptado); no reutilizar el proyecto
+dev como prod.

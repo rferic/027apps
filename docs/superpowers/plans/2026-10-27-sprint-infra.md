@@ -424,5 +424,5 @@ Expected: filas idénticas a prod. Anotar fecha y resultado en `docs/infrastruct
 
 - **Proyecto dev idle** → Supabase pausa los proyectos free tras ~1 semana de inactividad; la pausa conserva los datos y el proyecto se restaura a mano desde el dashboard. Si molesta, alternar uso ligero o aceptar el restore manual.
 - **Un solo administrador**: las reglas "solo admins" no se pueden probar negativamente sin segunda cuenta; se deja anotado (tarea 6).
-- **Vercel Production Branch placeholder**: al cierre de sprint-05 hay que **recordar** cambiarlo a `main` (nota en `docs/tasks/sprint-05-core-base/README.md`).
+- **Vercel Production Branch placeholder**: al cierre de sprint-05 hay que **recordar** cambiarlo a `main` y borrar la rama `production`; la checklist completa de activación de producción está en `docs/infrastructure.md` §9.
 - **El release real** (tag → APK firmado → instalación) se verifica cuando el Core sea funcional; la tarea 10 solo garantiza que el mecanismo está listo.
