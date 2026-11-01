@@ -37,7 +37,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 
 ## Gates (jobs de `ci.yml`)
 
-Todos corren en `ubuntu-latest` con permisos `contents: read` (solo `release` sube a `contents: write`).
+Todos corren en `ubuntu-24.04` (imagen fijada explícitamente) con permisos `contents: read` (solo `release` sube a `contents: write`). La etiqueta `ubuntu-latest` está migrando a Ubuntu 26.04 en una ventana rodante (19-oct → 19-nov-2026), así que se fija la imagen para que una misma ejecución no dependa del día. La migración a `ubuntu-26.04` es un cambio aparte, con su propia validación.
 
 | Job | Pasos | Quién lo ejecuta | Qué verifica |
 |---|---|---|---|
