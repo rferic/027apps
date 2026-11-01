@@ -1,13 +1,14 @@
 # Infraestructura
 
 Inventario de servicios, secretos y operación de una instancia desplegada. Complementa
-[`docs/flows/cicd.md`](flows/cicd.md) (CI/CD y despliegue) y
-[`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-backups.md)
+[`docs/flows/cicd.md`](flows/cicd.md) (CI/CD y despliegue),
+[`docs/self-hosting.md`](self-hosting.md) (guía paso a paso para montar una instancia desde cero)
+y [`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-backups.md)
 (decisión de backup). **Nunca** se escriben valores de secretos aquí: solo nombres.
 
-> **Estado:** documento en construcción. Hoy cubre el inventario básico, backups y
-> recuperación (task-12 del sprint de infra); despliegue, releases y el resto de la operación
-> se completarán con las tareas de despliegue.
+> **Estado:** documento en construcción. Hoy cubre el inventario básico, Vercel, SMTP
+> transaccional (Resend), backups y recuperación (tasks 05, 06 y 12 del sprint de infra);
+> releases y el resto de la operación se completarán con las tareas de despliegue.
 
 ## 1. Servicios
 
@@ -18,9 +19,48 @@ Inventario de servicios, secretos y operación de una instancia desplegada. Comp
 | Supabase | Postgres, Auth, Storage, Realtime | Free: **sin backups**, 500 MB de BD, pausa por inactividad (~1 semana) | **Se reconstruye** desde el backup + migraciones (este documento) |
 | Supabase local (dev) | BD/Auth/Storage/Realtime para desarrollar y para el TDD de migraciones + RLS | Docker, sin coste; lo levanta `supabase start` | Se recrea con `supabase start`; `supabase db reset` deja la BD limpia y aplica las migraciones |
 | **Supabase `027apps-dev`** (cloud) | **Project ref `wrigkwhrihawvwiciouy`** (`https://wrigkwhrihawvwiciouy.supabase.co`, eu-west) | Env vars solo en Vercel y en el gestor del propietario (nunca en git) | Se recupera con `supabase link --project-ref wrigkwhrihawvwiciouy` + migraciones |
+| Resend | Email transaccional de Auth (invitaciones, resets) | Free: 100 emails/día (3.000/mes) | Se recrea la cuenta y el dominio; el DNS sigue en Vercel |
 | Firebase (FCM) | Push | Free (opcional) | Se recrea el proyecto; los valores van en settings |
 | Cloudflare R2 (o Backblaze B2) | Backups cifrados de la BD | R2: 10 GB gratis, sin coste de egress | **Punto único de los backups**: ver copia secundaria (§8) |
 | healthchecks.io (opcional) | Vigilancia de que el backup corre | Free | Se pierde la alerta proactiva; queda el email de fallo de GitHub |
+
+### Vercel (admin + `/api/v1`)
+
+- **Proyecto**: `027apps` en el team EricRF (plan Hobby), conectado a GitHub
+  `rferic/027apps` (deploy automático por PR y push). El proyecto legacy se borró
+  en el reset del 2026-10-27; este se creó desde el repo.
+- **Root Directory**: `apps/admin`, con ficheros de la raíz incluidos (workspace pnpm
+  necesita el `pnpm-workspace.yaml` de la raíz).
+- **Production Branch**: `production` (rama placeholder congelada en el HEAD de `main`;
+  Vercel exige que exista en el repo → producción en pausa hasta que exista el Core
+  funcional; decisión 2026-10-25). Fijada el 2026-10-31 en *Settings → Environments →
+  Production → Branch Tracking*; los pushes del PR generan previews `READY`. El dominio de
+  producción `027apps.vercel.app` se eliminó, así que no hay URL de producción. Al cierre de
+  sprint-05 se cambia a `main`.
+- **Protección**: Vercel Authentication activa en todas las URLs de deployment menos
+  dominios custom (los previews solo se ven autenticado).
+- **Env vars** (nunca valores aquí; solo nombres): 4 con scope **Preview** —
+  `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (publicas por diseño),
+  `SUPABASE_SERVICE_ROLE_KEY` y `SETTINGS_ENCRYPTION_KEY` (tipo *sensitive*).
+  Scope Production cuando exista `027apps-prod`.
+
+### Correo transaccional (Resend)
+
+- **Proveedor**: Resend (free: 100 emails/día, 3.000/mes), elegido el 2026-10-31 frente a
+  Brevo por simplicidad y documentación de SMTP para Supabase.
+- **Dominio de envío**: `mail.ericrf.com` (subdominio dedicado; el raíz `ericrf.com` está
+  comprado y gestionado en Vercel DNS). Registros en Vercel DNS: DKIM (TXT
+  `resend._domainkey.mail`), Return-Path (CNAME `rsend.mail` → `rsend-euw1.forge.rmta.net`) y
+  SPF/send (CNAME `send.mail` → `send.forge.rmta.net`).
+- **SMTP en Supabase** (`027apps-dev` → Authentication → SMTP): host `smtp.resend.com`,
+  puerto `465`, usuario `resend`, remitente `no-reply@mail.ericrf.com`, nombre `027Apps`.
+  La contraseña es la API key de Resend: solo en el dashboard de Supabase y en el gestor de
+  contraseñas del propietario; nunca en git ni en este documento.
+- **Límite de Auth**: tras configurar SMTP propio, Supabase impone 30 mensajes/hora
+  (ajustable en *Authentication → Rate Limits*).
+- **Verificación**: invitación de Auth enviada por API a la cuenta del propietario
+  (`HTTP 200`, usuario creado en `auth.users`); pendiente confirmar la entrega en bandeja y
+  rotar la API key usada durante la configuración.
 
 El titular de cada cuenta es el usuario (no un tercero). Las cuentas de un familiar que
 monta su instancia son suyas: 027Apps no aloja datos de nadie.
@@ -32,7 +72,7 @@ monta su instancia son suyas: 027Apps no aloja datos de nadie.
 | Supabase pausa proyectos inactivos | `.github/workflows/keep-alive.yml` (ping diario a `/api/health`) |
 | Sin backups ni PITR en Supabase | Backup propio diario cifrado fuera de Supabase (este documento) |
 | 500 MB de BD / 1 GB de Storage en free | Uso familiar; si se acerca el límite, plan Pro o Supabase self-hosted (la migración ya está cubierta por el dump) |
-| Emails de Auth limitados | SMTP propio en la configuración de Auth |
+| Emails de Auth limitados | SMTP propio (Resend) configurado en Auth; límite de 30 mensajes/hora ajustable |
 | Storage y egress limitados | Uso familiar; los ficheros aún no se respaldan (§8) |
 
 ## 3. Variables y secretos
@@ -220,3 +260,32 @@ reciente:
 | Copia secundaria (3-2-1) | Pendiente: `restic copy` a un bucket de otro proveedor |
 | Simulacro automatizado | Pendiente: requiere Supabase self-hosted o proyecto desechable por API |
 | Inventario completo de servicios y variables | Pendiente: tareas de despliegue |
+
+## 9. Producción — activación pendiente
+
+**Hoy no existe entorno de producción.** La decisión 2026-10-25 pausa producción hasta que el
+Core sea funcional: no hay app que desplegar y el plan free de Supabase pausa proyectos idle.
+Solo existe `027apps-dev` (Supabase) y el proyecto Vercel con env vars de scope Preview.
+
+Checklist para activarla al cierre del sprint-05 (en este orden):
+
+1. **Crear `027apps-prod`** en Supabase con contraseña nueva generada en el dashboard (nunca
+   por chat ni en git) y anotar el project ref en este documento.
+2. **Añadir las env vars de scope Production en Vercel**: `NEXT_PUBLIC_SUPABASE_URL`,
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (sensitive) y
+   `SETTINGS_ENCRYPTION_KEY` (sensitive; la misma clave maestra o una nueva con re-cifrado).
+3. **Cambiar *Production Branch* a `main`** en Vercel (*Settings → Environments → Production →
+   Branch Tracking*) y **borrar la rama placeholder `production`** de GitHub.
+4. **Asignar `027apps.ericrf.com`** al proyecto en Vercel (DNS ya en Vercel); no usar el dominio
+   raíz ni el de email.
+5. **Configurar SMTP en `027apps-prod`** con Resend (mismo dominio `mail.ericrf.com`) y probar
+   invitación + reset reales.
+6. **Aplicar migraciones** y lanzar el **primer backup** con el `SUPABASE_DB_URL` de producción
+   (session pooler, IPv4); simulacro de restauración antes de dar por buena la instancia.
+7. **Verificar** `/api/health`, login por invitación, reset de contraseña y restore del backup.
+8. **`PROD_URL`** (task-07): subir el secret con el dominio de producción para activar el
+   keep-alive diario.
+
+Riesgos asociados: rotar o descartar la contraseña de BD de `027apps-dev` al crear la de
+producción (se compartió por chat el 2026-10-27, riesgo aceptado); no reutilizar el proyecto
+dev como prod.
