@@ -15,7 +15,7 @@ fuente: docs/flows/cicd.md §A.3-9
 - **Environment `release` creado por el agente** (`gh api environments`): `required_reviewers = rferic` (id 14909550 → 14909500), sin política de ramas (los secrets del env solo se exponen a jobs del workflow `release`, disparado por tags `v*` que solo el admin puede crear). La API de GitHub no permite auto-aprobación: nadie puede mergear despliegues del env sin un revisor externo o con el propio usuario como revisor aceptado desde el UI de Actions.
 - **Keystore generado por el agente** (2026-11-01) con `keytool` (RSA 4096, validez 10000 días, alias `027apps`, DN `CN=027apps, O=027Apps, C=ES`) y contraseña aleatoria fuerte generada con `openssl rand`. El keystore es PKCS12: usa una sola contraseña para almacén y clave (`keytool` ignora un `-keypass` distinto). Los 4 secrets se subieron al Environment `release` leyendo de ficheros locales; los valores nunca pasaron por el chat. Verificado con `gh secret list --env release` (solo nombres).
 - **Pendiente (usuario, móvil hasta nuevo aviso)**:
-  1. Guardar en el gestor de contraseñas el fichero `~/Documents/027apps-keystore/027apps-release.jks` y la contraseña de `credenciales.txt`.
-  2. Avisar al agente para borrar la carpeta local `~/Documents/027apps-keystore`.
-  3. Hasta entonces, los ficheros permanecen en el disco con permisos 600/700.
+  1. Guardar en el gestor de contraseñas el fichero `private/android/027apps-release.jks` y la contraseña de `private/android/credenciales.txt`.
+  2. Avisar al agente para borrar los dos ficheros locales de `private/android/`.
+  3. Hasta entonces, los ficheros permanecen en el disco con permisos 600/700. La carpeta `private/` está ignorada por git (`private/README.md`) y **no es un backup**: `git clean -xdf` la borraría.
 - **Primer release real**: se demuestra con el primer tag funcional (cierre de sprint-05+); hoy el job `release` falla de forma intencionada sin keystore (design).
