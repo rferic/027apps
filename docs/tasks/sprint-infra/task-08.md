@@ -2,7 +2,7 @@
 id: sprint-infra-task-08
 titulo: Proyecto Firebase + FCM (notificaciones push)
 area: infra
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-27-sprint-infra.md
 fuente: docs/superpowers/specs/2026-10-26-realtime-notificaciones.md §6
 ---
@@ -25,6 +25,7 @@ fuente: docs/superpowers/specs/2026-10-26-realtime-notificaciones.md §6
   - **Actualizado por el usuario** (2026-11-01): la restricción de la API key en Google Cloud Console ahora apunta al SHA-1 del keystore canónico (`F0:A5:D0:38:87:91:02:0C:A6:99:15:96:5F:41:19:A6:23:A1:9B:61`); el SHA-1 del keystore descartado quedó eliminado. Listo para firmar APKs de release.
 - **Cuenta de servicio generada y guardada por el usuario** (2026-11-01) en su gestor de contraseñas/Drive. El JSON no pasa por git ni por el chat; se subirá cifrado a `settings` cuando exista el panel del Core.
 - **Cierre de la parte de infra** (2026-11-01): todo lo que dependía de cuentas externas está hecho (proyecto, app Android, valores públicos capturados, service account guardado, API key restringida al SHA-1 canónico). El estado pasa a `test`: la verificación end-to-end (subida del service account cifrado a `settings`, `POST /devices`, envío FCM con la app cerrada) se ejecuta en el sprint del Core y es el criterio que falta para `finalizada`.
+- **Traslado de la verificación** (2026-10-31): al cerrar sprint-infra, la verificación end-to-end se registra como criterio del **task-06 del sprint-06-core-data** (realtime, outbox, push y jobs), donde se implementan `POST /devices` y el envío FCM. Esta tarea queda `finalizada` por su alcance de infra (setup de cuentas externas completo y auditado).
 
 **Notas**:
 - Es **opcional** para cualquier instancia (degradación elegante: sin FCM, realtime + bandeja de novedades), pero **obligatoria para la instancia del autor** (decisión del usuario, 2026-10-26).
