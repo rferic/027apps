@@ -15,4 +15,5 @@ fuente: spec auth §3bis / §5bis
 - **Dominio**: subdominio dedicado `mail.ericrf.com` (el raíz `ericrf.com` está comprado y gestionado en Vercel DNS). Registros creados en Vercel DNS: DKIM (TXT `resend._domainkey.mail`), Return-Path (CNAME `rsend.mail` → `rsend-euw1.forge.rmta.net`) y SPF/send (CNAME `send.mail` → `send.forge.rmta.net`).
 - **SMTP en Supabase** (`027apps-dev`, Auth → SMTP): `smtp.resend.com` puerto `465`, usuario `resend`, remitente `no-reply@mail.ericrf.com`, nombre `027Apps`. Verificado por Management API sin imprimir la contraseña.
 - **Prueba de envío**: invitación de Auth por API al email del propietario → `HTTP 200`, usuario creado en `auth.users` (pendiente aceptar la invitación y confirmar la entrega en bandeja).
-- **Pendiente**: rotar la API key de Resend usada en la configuración (se expuso en el chat) y actualizar el password en Supabase; revisar las plantillas de email por defecto; ajustar el límite de 30 mensajes/hora si hiciera falta.
+- **API key de Resend rotada por el usuario** (2026-11-01): la clave que se expuso en el chat quedó revocada y la nueva se actualizó en el SMTP de Supabase (`027apps-dev`). Ya no hay clave activa expuesta.
+- **Pendiente (higiene, no reabre la tarea)**: revisar las plantillas de email por defecto; ajustar el límite de 30 mensajes/hora si hiciera falta.

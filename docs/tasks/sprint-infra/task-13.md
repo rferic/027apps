@@ -2,7 +2,7 @@
 id: sprint-infra-task-13
 titulo: Guía de autoalojamiento + skill de IA
 area: infra
-estado: en curso
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-27-sprint-infra.md
 fuente: petición del usuario (2026-11-01)
 ---
@@ -44,5 +44,4 @@ paso a paso.
 
 ## Bitácora
 
-- **2026-11-01 · en curso.** Creada a petición del usuario como tarea final del sprint. Pendiente:
-  escribir guía, skill y enlaces; verificar enlaces; actualizar README.
+- **2026-11-01 · finalizada.** Entregables creados y verificados: `docs/self-hosting.md` (guía en inglés, fases 0–9 + checklist de verificación), skill `self-hosting` en `.opencode/skills/self-hosting/SKILL.md` con espejos en `.agents/skills/` y `.claude/skills/`, y enlaces en `README.md` §Self-hosting (guía + runbook + skill). La guía enlaza a `docs/infrastructure.md` §9 para la activación de producción en vez de duplicar la checklist. Verificación de enlaces hecha contra el árbol de `docs/`.
