@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { withDoor, deps, withTransactionClient } from "@/lib/api/door";
+import { withDoor, getInfra, withTransactionClient } from "@/lib/api/door";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createFirstSuperAdmin } from "@027apps/core/auth/setup.js";
@@ -18,6 +18,7 @@ const bodySchema = z
   .strict();
 
 export async function POST(req: Request) {
+  const { deps } = await getInfra();
   return withDoor(
     req,
     {
