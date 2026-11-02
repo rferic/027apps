@@ -111,12 +111,16 @@ jobs:
           [ "$ok" -eq 1 ] || { echo "::error::supabase start failed after 3 attempts"; exit 1; }
       # The auth suites talk to the local stack's API (GoTrue); export the URL and
       # the deterministic local keys without echoing their values into the log.
+      # `supabase status --output env` prints stack-local names (API_URL, ...);
+      # map them to the SUPABASE_* names the test suites read.
       - name: Export local stack credentials for the test suites
         run: |
           status=$(supabase status --output env)
-          for var in API_URL ANON_KEY SERVICE_ROLE_KEY DB_URL; do
-            value=$(printf '%s\n' "$status" | grep "^${var}=" | cut -d= -f2-)
-            printf 'SUPABASE_%s=%s\n' "$var" "$value" >> "$GITHUB_ENV"
+          for pair in "API_URL:SUPABASE_URL" "ANON_KEY:SUPABASE_ANON_KEY" "SERVICE_ROLE_KEY:SUPABASE_SERVICE_ROLE_KEY" "DB_URL:SUPABASE_DB_URL"; do
+            src=${pair%%:*}
+            dst=${pair#*:}
+            value=$(printf '%s\n' "$status" | grep "^${src}=" | cut -d= -f2-)
+            printf '%s=%s\n' "$dst" "$value" >> "$GITHUB_ENV"
           done
       - name: RLS isolation suite
         run: pnpm --filter db-tests test
