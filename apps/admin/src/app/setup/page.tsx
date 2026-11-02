@@ -70,7 +70,7 @@ export default function SetupPage() {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Min 6 characters"
+              placeholder="Min 12 characters"
               required
               className="rounded-control border border-border bg-surface px-3 py-2 text-sm"
             />

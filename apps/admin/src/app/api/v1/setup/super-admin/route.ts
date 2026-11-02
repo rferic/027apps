@@ -12,7 +12,7 @@ import { createFirstSuperAdmin } from "@027apps/core/auth/setup.js";
 const bodySchema = z
   .object({
     email: z.string().email(),
-    password: z.string().min(6),
+    password: z.string().min(12),
     display_name: z.string().min(1).max(80),
   })
   .strict();

@@ -291,4 +291,30 @@ describe('PATCH /api/v1/settings/{key}', () => {
       }
     });
   });
+
+  it('returns 429 after exhausting the read rate limit on GET /settings', async () => {
+    await withClient(async (c) => {
+      await c.query('BEGIN');
+      try {
+        const caller = await adminCaller(c);
+        const deps: SettingsRouteDeps = {
+          door: { rateLimitStorage: memoryRateLimitStorage(), logger: () => {} },
+          auth: async () => caller,
+          settings: settingsDeps(c),
+          rateLimits: { read: 2 },
+        };
+        const GET = settingsRoute(deps);
+        const request = () => new Request('http://local/api/v1/settings');
+
+        expect((await GET(request())).status).toBe(200);
+        expect((await GET(request())).status).toBe(200);
+        const third = await GET(request());
+        expect(third.status).toBe(429);
+        expect(((await third.json()) as { error: { code: string } }).error.code).toBe('rate_limited');
+        expect(third.headers.get('retry-after')).not.toBeNull();
+      } finally {
+        await c.query('ROLLBACK');
+      }
+    });
+  });
 });

@@ -27,6 +27,7 @@ const ALLOW_METHODS = 'GET,POST,PATCH,PUT,DELETE,OPTIONS';
 const ALLOW_HEADERS = 'Authorization,Content-Type';
 const WINDOW_SECONDS = 60;
 /** Maximum accepted request body (1 MB) when the client declares a length. */
+/** Body size cap for requests with no trustworthy `content-length` header. */
 const MAX_BODY_BYTES = 1024 * 1024;
 
 interface CorsContext {
@@ -123,20 +124,54 @@ function withRequestId(res: Response, requestId: string, cors: CorsContext): Res
   });
 }
 
-async function readBody(req: Request, options: DoorOptions): Promise<unknown> {
-  // Reject oversized bodies before parsing. Only when the header is present and
-  // numeric: a missing content-length cannot be trusted to mean "small".
-  const declaredLength = req.headers.get('content-length');
-  if (declaredLength !== null) {
-    const length = Number(declaredLength);
-    if (Number.isFinite(length) && length > MAX_BODY_BYTES) {
+/**
+ * Reads the request body as text under a hard byte cap. Used when no
+ * trustworthy `content-length` header is present (chunked transfer, proxies
+ * that strip the header): the stream is consumed incrementally and aborted as
+ * soon as the cap is exceeded, so an attacker cannot stream an unbounded body.
+ */
+async function readBodyText(req: Request): Promise<string> {
+  if (!req.body) return '';
+  const reader = req.body.getReader();
+  const decoder = new TextDecoder();
+  let total = 0;
+  let text = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_BODY_BYTES) {
+      await reader.cancel();
       throw new DomainError('payload_too_large');
     }
+    text += decoder.decode(value, { stream: true });
+  }
+  text += decoder.decode();
+  return text;
+}
+
+async function readBody(req: Request, options: DoorOptions): Promise<unknown> {
+  // Reject oversized bodies before parsing. Only when the header is present
+  // and numeric can it be trusted to reflect the real size; otherwise the
+  // stream itself is read under the hard cap.
+  const declaredLength = req.headers.get('content-length');
+  let text: string;
+  if (declaredLength !== null) {
+    const length = Number(declaredLength);
+    if (!Number.isFinite(length) || length < 0) {
+      text = await readBodyText(req);
+    } else if (length > MAX_BODY_BYTES) {
+      throw new DomainError('payload_too_large');
+    } else {
+      text = await req.text();
+    }
+  } else {
+    text = await readBodyText(req);
   }
 
   let raw: unknown;
   try {
-    raw = await req.json();
+    raw = JSON.parse(text);
   } catch {
     throw new DomainError('validation_failed', 'Invalid JSON body', {
       formErrors: ['Invalid JSON body'],

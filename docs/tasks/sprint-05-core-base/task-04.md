@@ -24,3 +24,20 @@ plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 - **Tests**: `settings/service.test.ts` (16: coherencia, secreto cifrado-only, fail-closed, health) y `api/settings.test.ts`, `api/currencies.test.ts`, `api/instance.test.ts` (19: puertas con request fabricados, 401/403/404/400/429 y cuerpos). Rojo→verde: red encontró el centinela `'configured'` rompiendo `JSON.parse` en la coherencia FCM y el FK del actor; ambos corregidos.
 - **Verde**: `pnpm lint && pnpm tsc && pnpm test` (core 48, admin 41, db-tests 72).
 - **Pendiente para `finalizada`**: QA + auditoría OWASP (checklist A02/A05) y aceptación de las rutas en preview.
+
+## Bitácora (2026-11-02) — auditoría, fixes y CI verde
+
+- **Auditoría (2 agentes independientes, no autores)**: revisión de código + OWASP (A02/A05) → veredicto «aprobada con cambios». Hallazgos corregidos en `7b549b4`: crypto valida la clave perezosamente (clave ausente/malformada → `null`, sin romper el arranque del módulo), `writeSetting` hace default-check + update de moneda en **una transacción** (`currency_is_default` 409 en vez de condición de carrera), `readAllSettings` recibe el caller para enmascarar según rol, y el valor seed del catálogo de `security.cors_allowlist` sin patrón falso-positivo del guard.
+- **Fix de build en CI/Vercel** (`6d0c8f5`): los constructores de puertos reales (pool `pg`, cifrado, settings) se mueven a `getInfra()` perezoso con `connection()` — el build del admin pasa sin envs y los endpoints quedan dinámicos (`ƒ`).
+- **CI en verde** (run `41419226946`, commit `a31566d`): los 7 checks pasan; 76/76 tests de integración (incluida la suite de settings/criptografía) contra el stack local en CI; preview Vercel desplegada (hoy 500 en API por falta de `SUPABASE_DB_URL` en el entorno Preview — paso B pendiente, fail-closed correcto).
+- **Pendiente para `finalizada`**: auditoría de seguridad final post-fix (agente distinto) + aceptación de health/instance/settings/currencies en preview.
+
+## Bitácora (2026-11-02) — auditoría final y su resolución
+
+- **Auditoría final (agente distinto)** sobre `897ea8b^..a31566d`: veredicto **«aprobada con cambios»** — sin críticos ni altos; confirma que el fix transaccional del core es correcto y detecta que la composición real no lo usaba.
+- **Hallazgos resueltos** (commit de hoy):
+  1. (Medio) Transacción sin cablear en producción: `runInTransaction` (BEGIN/COMMIT/ROLLBACK) inyectado en `settingsDeps` y `currenciesDeps` — el default-check + update de moneda y el read-merge-validate-write de settings son atómicos también fuera de los fakes de test.
+  2. (Bajo) Degradación invisible con clave malformada: canario de cifrado en `createInfra` — una clave que no cifra hace `encryption = null` → `/health` degradado y escrituras fail-closed (antes la puerta parecía sana con secretos ilegibles).
+  3. (Bajo) GET autenticados sin tope: `rateLimits.read` (120/min) en `GET /settings`, `GET /settings-categories` y `GET /currencies` con tests 429.
+  4. (Medio) Cabeceras A03 y CSP: `nosniff`/`Referrer-Policy`/`X-Frame-Options` aplicados; CSP estricta con nonce en **Report-Only** (limitación documentada del shell prerenderizado de Cache Components; enforcement tras verificación en navegador).
+- **Verde tras los fixes**: lint ✓, tsc ✓, tests ✓ (core 69, admin 41, db-tests 78), build sin envs ✓ (16/16).

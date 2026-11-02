@@ -370,6 +370,24 @@ describe('withDoor — validation', () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ name: 'Ada' });
   });
+
+  it('rejects an oversized chunked body (no content-length) with 413 payload_too_large', async () => {
+    // 1.1 MB of padding without a content-length header: the stream itself
+    // must be capped, not just the declared length.
+    const padding = 'x'.repeat(1024 * 1024 + 64 * 1024);
+    const req = new Request(URL_BASE, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: padding }),
+    });
+    req.headers.delete('content-length');
+
+    const res = await withDoor(req, makeOptions({ schema }), makeDeps(), async () => ({ ok: true }));
+
+    expect(res.status).toBe(413);
+    const body = (await res.json()) as ErrorEnvelope;
+    expect(body.error.code).toBe('payload_too_large');
+  });
 });
 
 describe('withDoor — scopes (F8)', () => {

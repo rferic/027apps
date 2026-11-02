@@ -27,7 +27,7 @@ function memoryRateLimitStorage(): RateLimitStorage {
 function currenciesDeps(
   c: ClientBase,
   caller: Caller,
-  rateLimits?: { public?: number; write?: number },
+  rateLimits?: { public?: number; read?: number; write?: number },
 ): CurrenciesRouteDeps {
   const db = { async query(sql: string, params: unknown[] = []) { return query(c, sql, params); } };
   let savepoint = 0;
@@ -91,6 +91,26 @@ describe('GET /api/v1/currencies', () => {
         expect(body.currencies.length).toBeGreaterThan(100);
         expect(body.currencies.every((cur) => cur.enabled)).toBe(true);
         expect(body.currencies.find((cur) => cur.code === 'EUR')?.isDefault).toBe(true);
+      } finally {
+        await c.query('ROLLBACK');
+      }
+    });
+  });
+
+  it('returns 429 after exhausting the read rate limit', async () => {
+    await withClient(async (c) => {
+      await c.query('BEGIN');
+      try {
+        const user = await createTestUser(c, { email: `cur-rl-${Date.now()}@test.local`, role: 'user' });
+        const GET = currenciesRoute(currenciesDeps(c, { kind: 'session', userId: user.id, role: 'user' }, { read: 2 }));
+        const request = () => new Request('http://local/api/v1/currencies');
+
+        expect((await GET(request())).status).toBe(200);
+        expect((await GET(request())).status).toBe(200);
+        const third = await GET(request());
+        expect(third.status).toBe(429);
+        expect(((await third.json()) as { error: { code: string } }).error.code).toBe('rate_limited');
+        expect(third.headers.get('retry-after')).not.toBeNull();
       } finally {
         await c.query('ROLLBACK');
       }

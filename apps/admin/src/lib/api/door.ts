@@ -71,6 +71,11 @@ async function createInfra() {
 
   /** Settings service deps: real DB port + encryption key (null = degraded). */
   const SETTINGS_ENCRYPTION_KEY = process.env.SETTINGS_ENCRYPTION_KEY;
+  const rawEncryption = SETTINGS_ENCRYPTION_KEY ? createSettingsEncryption(SETTINGS_ENCRYPTION_KEY) : null;
+  // A malformed master key yields a port whose methods always return null:
+  // probing it keeps /health truthful (degraded) instead of reporting ok.
+  const encryption =
+    rawEncryption && (await rawEncryption.encrypt("027apps-canary", "health")) !== null ? rawEncryption : null;
   const settingsDeps: SettingsDeps = {
     db: {
       async query(sql: string, params: unknown[] = []) {
@@ -78,13 +83,14 @@ async function createInfra() {
         return { rows: result.rows as Record<string, unknown>[] };
       },
     },
-    encryption: SETTINGS_ENCRYPTION_KEY ? createSettingsEncryption(SETTINGS_ENCRYPTION_KEY) : null,
+    encryption,
     currencies: {
       async isEnabled(code: string) {
         const result = await pool.query("select enabled from public.currencies where code = $1", [code]);
         return result.rows[0]?.enabled === true;
       },
     },
+    withTransaction: runInTransaction,
   };
 
   /** Currencies service deps: real DB port + default currency from settings. */
@@ -99,6 +105,7 @@ async function createInfra() {
       const result = await pool.query("select value from public.settings where key = 'localization.default_currency'");
       return result.rows[0] ? (result.rows[0].value as string) : null;
     },
+    withTransaction: runInTransaction,
   };
 
   return { pool, auth, deps, settingsDeps, currenciesDeps };
@@ -140,6 +147,35 @@ function logger(entry: { message: string; level: string; requestId: string }) {
   console.log(
     JSON.stringify({ ts: new Date().toISOString(), level: entry.level, request_id: entry.requestId, msg: entry.message }),
   );
+}
+
+/**
+ * Runs a unit of work inside a real transaction on one pooled client
+ * (BEGIN/COMMIT; ROLLBACK and rethrow on error). This is the runner injected
+ * into the settings and currencies services, so their check-then-write
+ * sequences are atomic in production and not only under the test harnesses.
+ */
+async function runInTransaction<T>(
+  fn: (db: { query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }> }) => Promise<T>,
+): Promise<T> {
+  const { pool } = await getInfra();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await fn({
+      async query(sql: string, params: unknown[] = []) {
+        const res = await client.query(sql, params);
+        return { rows: res.rows as Record<string, unknown>[] };
+      },
+    });
+    await client.query("COMMIT");
+    return result;
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /**

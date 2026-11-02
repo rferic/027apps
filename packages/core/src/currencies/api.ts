@@ -13,7 +13,7 @@ export interface CurrenciesRouteDeps {
   auth: (req: Request) => Promise<Caller>;
   currencies: CurrenciesDeps;
   cors?: CorsOptions;
-  rateLimits?: { public?: number; write?: number };
+  rateLimits?: { public?: number; read?: number; write?: number };
 }
 
 const patchBodySchema = z.object({ enabled: z.boolean() }).strict();
@@ -21,8 +21,16 @@ const patchBodySchema = z.object({ enabled: z.boolean() }).strict();
 /** GET /api/v1/currencies — all currencies with their enabled flag and default. */
 export function currenciesRoute(deps: CurrenciesRouteDeps) {
   return (req: Request): Promise<Response> =>
-    withDoor(req, { scopes: ['currencies:read'], auth: deps.auth, cors: deps.cors }, deps.door, async () =>
-      listCurrencies(deps.currencies),
+    withDoor(
+      req,
+      {
+        scopes: ['currencies:read'],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: 'user', limit: deps.rateLimits?.read ?? 120 },
+      },
+      deps.door,
+      async () => listCurrencies(deps.currencies),
     );
 }
 

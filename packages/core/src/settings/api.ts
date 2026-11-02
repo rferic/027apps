@@ -16,7 +16,7 @@ export interface SettingsRouteDeps {
   auth: (req: Request) => Promise<Caller>;
   settings: SettingsDeps;
   cors?: CorsOptions;
-  rateLimits?: { public?: number; write?: number };
+  rateLimits?: { public?: number; read?: number; write?: number };
 }
 
 /** Canonical key: `<category>.<name>` (e.g. `instance.name`). */
@@ -31,23 +31,43 @@ function sortSettings(settings: SettingView[]): SettingView[] {
 /** GET /api/v1/settings — all settings, secrets masked as `configured`. */
 export function settingsRoute(deps: SettingsRouteDeps) {
   return (req: Request): Promise<Response> =>
-    withDoor(req, { scopes: ['settings:read'], auth: deps.auth, cors: deps.cors }, deps.door, async (ctx) => {
-      const settings = sortSettings(await readAllSettings(deps.settings, ctx.caller));
-      return { settings };
-    });
+    withDoor(
+      req,
+      {
+        scopes: ['settings:read'],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: 'user', limit: deps.rateLimits?.read ?? 120 },
+      },
+      deps.door,
+      async (ctx) => {
+        const settings = sortSettings(await readAllSettings(deps.settings, ctx.caller));
+        return { settings };
+      },
+    );
 }
 
 /** GET /api/v1/settings-categories — categories with their settings, by sort order. */
 export function settingsCategoriesRoute(deps: SettingsRouteDeps) {
   return (req: Request): Promise<Response> =>
-    withDoor(req, { scopes: ['settings:read'], auth: deps.auth, cors: deps.cors }, deps.door, async (ctx) => {
-      const settings = sortSettings(await readAllSettings(deps.settings, ctx.caller));
-      const categories = SETTINGS_CATEGORIES.map((category) => ({
-        ...category,
-        settings: settings.filter((setting) => setting.category === category.categoryKey),
-      }));
-      return { categories };
-    });
+    withDoor(
+      req,
+      {
+        scopes: ['settings:read'],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: 'user', limit: deps.rateLimits?.read ?? 120 },
+      },
+      deps.door,
+      async (ctx) => {
+        const settings = sortSettings(await readAllSettings(deps.settings, ctx.caller));
+        const categories = SETTINGS_CATEGORIES.map((category) => ({
+          ...category,
+          settings: settings.filter((setting) => setting.category === category.categoryKey),
+        }));
+        return { categories };
+      },
+    );
 }
 
 /**
