@@ -64,7 +64,19 @@ describe('settings catalog seed (migration 0002)', () => {
 
   it('defaults match the spec table: non-secrets carry their value, secrets are unconfigured', async () => {
     await withClient(async (c) => {
-      const { rows } = await query(c, 'select category_key, key, value, is_secret, value_encrypted from public.settings');
+      await c.query('BEGIN');
+      try {
+        // A real wizard run may have changed values; restore the seeded state
+        // inside this transaction so the check is about the seed, not the data.
+        for (const [key, value] of Object.entries(CATALOG_DEFAULTS)) {
+          await query(c, 'update public.settings set value = $1 where key = $2 and is_secret = false', [
+            JSON.stringify(value),
+            key,
+          ]);
+        }
+        await c.query('update public.settings set value = null, value_encrypted = null where is_secret');
+
+        const { rows } = await query(c, 'select category_key, key, value, is_secret, value_encrypted from public.settings');
       for (const row of rows as { key: string; value: unknown; is_secret: boolean; value_encrypted: string | null }[]) {
         const fullKey = row.key; // `key` stores the full canonical key (e.g. "instance.name")
         const meta = getSettingMeta(fullKey);
@@ -78,6 +90,9 @@ describe('settings catalog seed (migration 0002)', () => {
         } else {
           expect(row.value).toEqual(expected);
         }
+      }
+      } finally {
+        await c.query('ROLLBACK');
       }
     });
   });

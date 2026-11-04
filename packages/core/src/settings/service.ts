@@ -264,8 +264,7 @@ export async function writeSetting(
 /**
  * Health: `degraded` when the database is unreachable, or when secrets are
  * configured but the encryption key is missing (they would be unreadable).
- */
-export async function computeHealth(deps: SettingsDeps): Promise<HealthStatus> {
+ */export async function computeHealth(deps: SettingsDeps): Promise<HealthStatus> {
   const reasons: string[] = [];
   let reachable = true;
   try {
@@ -281,4 +280,21 @@ export async function computeHealth(deps: SettingsDeps): Promise<HealthStatus> {
     }
   }
   return { status: reasons.length === 0 ? 'ok' : 'degraded', degradedReasons: reasons };
+}
+
+/**
+ * Records the JWT expiry observed on the wizard's own access token (spec §7.2,
+ * step 2). `security.jwt_expiry` is read-only over the API — the wizard only
+ * mirrors what the Supabase project actually issues, with the new super_admin
+ * as the audit actor.
+ */
+export async function recordJwtExpiry(
+  db: QueryClient,
+  actorId: string,
+  seconds: number,
+): Promise<void> {
+  await db.query(
+    'update public.settings set value = $1, updated_by = $2, updated_by_key = null, updated_at = now() where key = $3',
+    [JSON.stringify(seconds), actorId, 'security.jwt_expiry'],
+  );
 }

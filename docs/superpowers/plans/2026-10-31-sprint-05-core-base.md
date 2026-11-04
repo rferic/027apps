@@ -783,6 +783,25 @@ export function initSentry(options: { dsn: string | null; environment: string })
 
 ---
 
+## Task 7: Wizard de instalación completo (pasos 3–5) (sprint-05 task-07)
+
+Añadida al sprint tras la validación del usuario: la task-02 solo entregó los pasos 1–2 y la spec
+`2026-10-26-instance-config.md` §7 exige los cinco. Cierra la instalación de verdad
+(`setup_incomplete = false`), que hoy es imposible desde la UI.
+
+- Create: `packages/core/src/setup/environment.ts` (`checkEnvironment`), `packages/core/src/setup/api.ts`
+  (`setupEnvironmentRoute`, `setupTestEmailRoute`), tests.
+- Modify: `packages/core/src/instance/api.ts` (exportar `isSetupIncomplete`).
+- Modify: `packages/core/src/auth/setup.ts` (`recordJwtExpiry` + `jwtExpirySeconds`).
+- Create: `apps/admin/src/app/api/v1/setup/environment/route.ts`, `.../setup/test-email/route.ts`.
+- Modify: `apps/admin/src/proxy.ts` + `src/lib/instance-gate.ts` (el wizard se cierra por
+  `setup_incomplete`, no por `requires_setup`).
+- Modify: `apps/admin/src/app/setup/*` (wizard por estado: entorno+admin → SMTP → preferencias → FCM).
+- Modify: `apps/admin/src/app/page.tsx` (banner de configuración incompleta, spec §7.3).
+
+Pasos TDD: 1) tests rojos de `checkEnvironment`/`isSetupIncomplete`/gate; 2) implementación;
+3) verde; 4) puerta completa + `pnpm --filter admin build`; 5) QA + auditoría.
+
 ## Orden de ejecución
 
 | # | Task | Sprint-05 task | Dependencias |

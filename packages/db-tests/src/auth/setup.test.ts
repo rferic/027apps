@@ -52,9 +52,18 @@ async function cleanup() {
   const isLocal = Boolean(url && (url.includes('127.0.0.1') || url.includes('localhost')));
   if (!isLocal) return;
 
+  // These tests need a clean instance (createFirstSuperAdmin refuses while any
+  // active super_admin exists), so the local stack loses its admins on every
+  // `pnpm test`. Warn loudly: re-run the wizard afterwards.
+  console.warn('[db-tests] removing every super_admin from the LOCAL stack to run setup tests');
   const db = dbClient();
   await db.connect();
   try {
+    // Settings written by a real wizard run keep `updated_by` pointing at the
+    // admin: clear the audit reference first or the FK blocks the delete.
+    await db.query(
+      "UPDATE public.settings SET updated_by = NULL WHERE updated_by IN (SELECT id FROM public.profiles WHERE role = 'super_admin')",
+    );
     await db.query("DELETE FROM public.profiles WHERE role = 'super_admin'");
     await db.query(`DELETE FROM auth.users WHERE email LIKE $1`, [`${EMAIL_PREFIX}%`]);
   } finally {

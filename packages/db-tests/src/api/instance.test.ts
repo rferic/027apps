@@ -49,6 +49,15 @@ describe('GET /api/v1/instance', () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       try {
+        // The suite runs against a shared local stack that may already have a
+        // real super_admin (a developer's wizard run). Remove it inside this
+        // transaction so the "no admin yet" premise is deterministic; the
+        // ROLLBACK restores it.
+        await c.query(
+          "UPDATE public.settings SET updated_by = NULL WHERE updated_by IN (SELECT id FROM public.profiles WHERE role = 'super_admin')",
+        );
+        await c.query("DELETE FROM public.profiles WHERE role = 'super_admin'");
+
         const GET = instanceRoute(deps(c, settingsDeps(c)));
         const res = await GET(new Request('http://local/api/v1/instance'));
         expect(res.status).toBe(200);
@@ -77,6 +86,11 @@ describe('GET /api/v1/instance', () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       try {
+        // The shared local stack may already be configured (a developer's
+        // wizard run): reset the required key inside this transaction so the
+        // "admin without public_url" premise is deterministic.
+        await query(c, "update public.settings set value = 'null'::jsonb where key = 'instance.public_url'");
+
         const admin = await createTestUser(c, { email: `inst-admin-${Date.now()}@test.local`, role: 'super_admin' });
         const GET = instanceRoute(deps(c, settingsDeps(c)));
         const res = await GET(new Request('http://local/api/v1/instance'));

@@ -19,7 +19,8 @@
     "./auth/*.js": "./src/auth/*.ts",
     "./settings/*.js": "./src/settings/*.ts",
     "./currencies/*.js": "./src/currencies/*.ts",
-    "./instance/*.js": "./src/instance/*.ts"
+    "./instance/*.js": "./src/instance/*.ts",
+    "./setup/*.js": "./src/setup/*.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
