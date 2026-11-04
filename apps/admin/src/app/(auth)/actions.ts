@@ -1,6 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { isSetupIncomplete } from "@027apps/core/instance/api.js";
+import { getInfra } from "@/lib/api/door";
+import { postLoginPath } from "@/lib/post-login";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /**
@@ -16,7 +19,10 @@ export async function signInAction(formData: FormData): Promise<void> {
   if (error) {
     redirect(`/login?error=invalid_credentials`);
   }
-  redirect("/");
+
+  // Pending setup steps win over the panel: finish the wizard first.
+  const { settingsDeps } = await getInfra();
+  redirect(postLoginPath(await isSetupIncomplete(settingsDeps)));
 }
 
 /** Server action: drops the session cookies and returns to the login screen. */
