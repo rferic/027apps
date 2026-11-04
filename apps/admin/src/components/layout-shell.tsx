@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { BrandLogo } from "@/components/brand-logo";
 
 export interface NavItem {
   label: string;
@@ -11,17 +12,19 @@ export interface NavItem {
 export interface LayoutShellProps {
   title: string;
   nav: NavItem[];
+  /** Instance logo (public setting); empty uses the bundled mark. */
+  logoUrl?: string | null;
   /** Topbar content (e.g. a search box). */
   actions?: ReactNode;
   children?: ReactNode;
 }
 
-export function LayoutShell({ title, nav, actions, children }: LayoutShellProps) {
+export function LayoutShell({ title, nav, logoUrl, actions, children }: LayoutShellProps) {
   return (
     <div className="grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[200px_1fr]">
       <aside className="flex flex-col gap-0.5 border-b border-border bg-muted p-3 lg:border-b-0 lg:border-r">
-        <div className="mb-4 px-2.5 py-1.5 text-base font-extrabold tracking-tight">
-          027<span className="text-accent">Apps</span>
+        <div className="mb-4 px-2.5 py-1.5">
+          <BrandLogo logoUrl={logoUrl} />
         </div>
         <nav aria-label="Principal" className="flex gap-0.5 overflow-x-auto lg:flex-col">
           {nav.map((item) => (

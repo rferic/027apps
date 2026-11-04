@@ -9,7 +9,7 @@ import {
   writeSetting,
   type SettingsDeps,
 } from '@027apps/core/settings/service.js';
-import { CATALOG_DEFAULTS } from '@027apps/core/settings/catalog.js';
+import { CATALOG_DEFAULTS, SETTINGS_CATALOG } from '@027apps/core/settings/catalog.js';
 import type { Caller } from '@027apps/core/api/types.js';
 
 /**
@@ -230,10 +230,10 @@ describe('settings service — writes and coherence', () => {
 });
 
 describe('settings service — reads', () => {
-  it('reads the 18 settings for a super_admin, masking secrets and exposing non-secret values', async () => {
+  it('reads every catalog setting for a super_admin, masking secrets and exposing non-secret values', async () => {
     await inRollback(async (c) => {
       const all = await readAllSettings(settingsDeps(c), SUPER_ADMIN);
-      expect(all).toHaveLength(18);
+      expect(all).toHaveLength(SETTINGS_CATALOG.length);
 
       const byKey = new Map(all.map((s) => [s.key, s]));
       expect(byKey.get('instance.name')?.value).toBe(CATALOG_DEFAULTS['instance.name']);
@@ -261,6 +261,7 @@ describe('settings service — reads', () => {
     await inRollback(async (c) => {
       const pub = await readPublicSettings(settingsDeps(c));
       expect(Object.keys(pub).sort()).toEqual([
+        'instance.logo_url',
         'instance.name',
         'instance.public_url',
         'localization.default_currency',

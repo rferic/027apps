@@ -23,7 +23,7 @@ interface DbSetting {
 }
 
 describe('settings catalog seed (migration 0002)', () => {
-  it('seeds exactly the 18 catalog keys with matching metadata', async () => {
+  it('seeds exactly the catalog keys with matching metadata', async () => {
     await withClient(async (c) => {
       const { rows } = await query(c, 'select * from public.settings order by category_key, sort_order');
       const db = new Map(rows.map((r) => [r.key, r as unknown as DbSetting]));

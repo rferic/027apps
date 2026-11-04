@@ -114,6 +114,13 @@ export const SETTINGS_CATALOG: SettingMeta[] = [
     schema: z.string().min(1).max(80),
   },
   {
+    key: 'instance.logo_url', category: 'instance', type: 'url',
+    label: 'Logo URL', help: 'Optional https URL of the instance logo (defaults to the 027Apps mark).',
+    isSecret: false, isPublic: true, mcpAccess: 'read', sortOrder: 15,
+    superAdminOnly: false, readOnly: false,
+    schema: z.string().regex(/^https:\/\/[^\s]+$/, 'must be an https URL').nullable(),
+  },
+  {
     key: 'instance.public_url', category: 'instance', type: 'url',
     label: 'Public URL', help: 'https origin used for invitation links and deep links.',
     isSecret: false, isPublic: true, mcpAccess: 'none', sortOrder: 20,
@@ -283,6 +290,7 @@ export function getSettingMeta(key: string): SettingMeta | undefined {
 /** Default values from the spec table §4 (jsonb `value`, secrets have no default). */
 export const CATALOG_DEFAULTS: Record<string, unknown> = {
   'instance.name': '027Apps',
+  'instance.logo_url': null,
   'instance.public_url': null,
   'localization.default_locale': 'en',
   'localization.timezone': 'UTC',

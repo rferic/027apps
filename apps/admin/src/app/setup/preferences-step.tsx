@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { backToSmtpAction } from "./actions";
 
@@ -19,10 +20,14 @@ export interface PreferencesValues {
   /** Paste of the service account JSON; empty means "keep the configured one". */
   fcmServiceAccount: string;
   fcmServiceAccountConfigured: boolean;
+  /** Optional custom logo; empty uses the bundled 027Apps mark. */
+  logoUrl: string;
 }
 
 export interface PreferencesProps {
   values: PreferencesValues;
+  /** Current instance logo (public setting) for the header preview. */
+  logoUrl?: string | null;
   locales: readonly string[];
   /** Locales already enabled on the instance (`en` can never be removed). */
   enabledLocales: readonly string[];
@@ -33,6 +38,7 @@ export interface PreferencesProps {
 const FIELDS: Record<string, string> = {
   "instance.name": "We couldn't save the instance name.",
   "instance.public_url": "Enter the public HTTPS URL (no trailing slash).",
+  "instance.logo_url": "Enter an https URL for the logo, or leave it empty for the default.",
   "localization.default_locale": "Choose one of the supported languages.",
   "localization.enabled_locales": "We couldn't enable that language.",
   "localization.timezone": "Choose a valid IANA time zone.",
@@ -60,8 +66,55 @@ async function patchSetting(key: string, value: unknown): Promise<string | null>
  * `setup_incomplete`) and optional FCM notifications. Everything is written
  * through `/api/v1/settings`, so the super_admin session is the audit actor.
  */
+
+type StepsResult = { steps: Array<[string, unknown]> } | { error: string };
+
+/** Ordered writes for steps 4–5; the provider goes last (FCM needs all keys). */
+function buildSteps(form: PreferencesValues, enabledLocales: readonly string[]): StepsResult {
+  const steps: Array<[string, unknown]> = [];
+  // The default locale must be enabled first (`enabled_locales` ⊆ supported).
+  if (!enabledLocales.includes(form.locale)) {
+    steps.push(["localization.enabled_locales", [...enabledLocales, form.locale]]);
+  }
+  steps.push(
+    ["instance.name", form.instanceName],
+    ["instance.logo_url", form.logoUrl.trim() || null],
+    ["instance.public_url", form.publicUrl],
+    ["localization.default_locale", form.locale],
+    ["localization.timezone", form.timezone],
+    ["localization.default_currency", form.currency],
+  );
+
+  if (form.pushProvider === "fcm") {
+    steps.push(
+      ["notifications.push.fcm_project_id", form.fcmProjectId],
+      ["notifications.push.fcm_app_id", form.fcmAppId],
+      ["notifications.push.fcm_api_key", form.fcmApiKey],
+      ["notifications.push.fcm_sender_id", form.fcmSenderId],
+    );
+    const serviceAccount = form.fcmServiceAccount.trim();
+    if (serviceAccount) {
+      try {
+        JSON.parse(serviceAccount);
+      } catch {
+        return { error: "The service account must be the JSON key file, copied whole." };
+      }
+      steps.push(["notifications.push.fcm_service_account", serviceAccount]);
+    } else if (!form.fcmServiceAccountConfigured) {
+      return {
+        error:
+          "Paste the service account JSON (Firebase → Project settings → Service accounts → Generate new private key).",
+      };
+    }
+  }
+
+  steps.push(["notifications.push.provider", form.pushProvider]);
+  return { steps };
+}
+
 export function PreferencesStep({
   values,
+  logoUrl,
   locales,
   enabledLocales,
   timezones,
@@ -80,49 +133,15 @@ export function PreferencesStep({
     setSaving(true);
     setError(null);
 
-    const steps: Array<[string, unknown]> = [];
-    // The default locale must be enabled first (`enabled_locales` ⊆ supported).
-    if (!enabledLocales.includes(form.locale)) {
-      steps.push(["localization.enabled_locales", [...enabledLocales, form.locale]]);
+    const built = buildSteps(form, enabledLocales);
+    if ("error" in built) {
+      setError(built.error);
+      setSaving(false);
+      return;
     }
-    steps.push(
-      ["instance.name", form.instanceName],
-      ["instance.public_url", form.publicUrl],
-      ["localization.default_locale", form.locale],
-      ["localization.timezone", form.timezone],
-      ["localization.default_currency", form.currency],
-    );
-    if (form.pushProvider === "fcm") {
-      steps.push(
-        ["notifications.push.fcm_project_id", form.fcmProjectId],
-        ["notifications.push.fcm_app_id", form.fcmAppId],
-        ["notifications.push.fcm_api_key", form.fcmApiKey],
-        ["notifications.push.fcm_sender_id", form.fcmSenderId],
-      );
-      const serviceAccount = form.fcmServiceAccount.trim();
-      if (serviceAccount) {
-        try {
-          JSON.parse(serviceAccount);
-        } catch {
-          setError("The service account must be the JSON key file, copied whole.");
-          setSaving(false);
-          return;
-        }
-        steps.push(["notifications.push.fcm_service_account", serviceAccount]);
-      } else if (!form.fcmServiceAccountConfigured) {
-        setError(
-          "Paste the service account JSON (Firebase → Project settings → Service accounts → Generate new private key).",
-        );
-        setSaving(false);
-        return;
-      }
-    }
-
-    // The provider goes last: enabling FCM requires all five keys to exist.
-    steps.push(["notifications.push.provider", form.pushProvider]);
 
     try {
-      for (const [key, value] of steps) {
+      for (const [key, value] of built.steps) {
         const failure = await patchSetting(key, value);
         if (failure) {
           setError(`${FIELDS[key] ?? "Save failed"} (${key})`);
@@ -151,6 +170,9 @@ export function PreferencesStep({
         onSubmit={onSubmit}
         className="w-full max-w-md rounded-card border border-border bg-surface p-6"
       >
+        <div className="mb-3 flex justify-center">
+          <BrandLogo logoUrl={logoUrl} size="lg" />
+        </div>
         <h2 className="text-sm font-semibold">Step 4 · Preferences</h2>
         <p className="mt-1 mb-4 text-xs text-muted-foreground">
           These values are required to finish the installation. You can change them later in
@@ -168,6 +190,20 @@ export function PreferencesStep({
             required
             className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
           />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">Logo URL (optional)</span>
+          <input
+            type="url"
+            value={form.logoUrl}
+            onChange={(event) => update("logoUrl", event.target.value)}
+            placeholder="https://example.com/logo.png"
+            className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
+          />
+          <span className="text-xs text-muted-foreground">
+            Leave it empty to use the default 027Apps mark.
+          </span>
         </label>
 
         <label className="flex flex-col gap-1">

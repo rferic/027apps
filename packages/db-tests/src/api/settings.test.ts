@@ -5,6 +5,7 @@ import { createSettingsEncryption } from '@027apps/core/crypto.js';
 import { settingsRoute, settingsCategoriesRoute, patchSettingRoute, type SettingsRouteDeps } from '@027apps/core/settings/api.js';
 import type { DoorDeps, Caller } from '@027apps/core/api/types.js';
 import type { RateLimitStorage } from '@027apps/core/api/rate-limit-storage.js';
+import { SETTINGS_CATALOG } from '@027apps/core/settings/catalog.js';
 
 /**
  * Door integration for the settings API (task-04): full GET/PATCH flows with
@@ -108,7 +109,7 @@ describe('GET /api/v1/settings', () => {
     });
   });
 
-  it('returns all 18 settings with secrets masked for a super_admin', async () => {
+  it('returns all catalog settings with secrets masked for a super_admin', async () => {
     await withClient(async (c) => {
       await c.query('BEGIN');
       try {
@@ -117,7 +118,7 @@ describe('GET /api/v1/settings', () => {
         expect(res.status).toBe(200);
         const body = (await res.json()) as { settings: { key: string; isSecret: boolean; configured?: boolean; value?: unknown; value_encrypted?: unknown }[] };
 
-        expect(body.settings).toHaveLength(18);
+        expect(body.settings).toHaveLength(SETTINGS_CATALOG.length);
         const secret = body.settings.find((s) => s.key === 'notifications.push.fcm_service_account');
         expect(secret?.isSecret).toBe(true);
         expect(secret?.configured).toBe(false);
@@ -172,7 +173,7 @@ describe('GET /api/v1/settings-categories', () => {
           'rate_limit',
         ]);
         const totalSettings = body.categories.reduce((sum, cat) => sum + cat.settings.length, 0);
-        expect(totalSettings).toBe(18);
+        expect(totalSettings).toBe(SETTINGS_CATALOG.length);
       } finally {
         await c.query('ROLLBACK');
       }

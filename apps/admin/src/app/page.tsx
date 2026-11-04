@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasActiveSuperAdmin, isSetupIncomplete } from "@027apps/core/instance/api.js";
+import { readPublicSettings } from "@027apps/core/settings/service.js";
 import { getInfra } from "@/lib/api/door";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { signOutAction } from "./(auth)/actions";
@@ -76,11 +77,14 @@ export default async function Home() {
 
   // Spec §7.3: the panel stays usable but advertises the missing configuration.
   const setupIncomplete = await isSetupIncomplete(settingsDeps);
+  const settings = await readPublicSettings(settingsDeps);
+  const logoUrl = typeof settings["instance.logo_url"] === "string" ? settings["instance.logo_url"] : null;
 
   return (
     <LayoutShell
       title={DASHBOARD_TITLE}
       nav={NAV_ITEMS}
+      logoUrl={logoUrl}
       actions={
         <div className="flex items-center gap-2">
           <input

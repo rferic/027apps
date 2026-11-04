@@ -49,10 +49,12 @@ async function creationStep(settingsDeps: SettingsDeps) {
     },
     sentryConfigured: Boolean(process.env.SENTRY_DSN),
   });
+  const settings = await readPublicSettings(settingsDeps);
+  const logoUrl = typeof settings["instance.logo_url"] === "string" ? settings["instance.logo_url"] : null;
   return screen(
     <div className="flex w-full max-w-md flex-col gap-3">
       <EnvironmentChecklist report={report} />
-      <SetupForm />
+      <SetupForm logoUrl={logoUrl} />
     </div>,
   );
 }
@@ -126,6 +128,7 @@ async function preferencesStep(settingsDeps: SettingsDeps) {
     fcmApiKey: text(settings["notifications.push.fcm_api_key"]),
     fcmSenderId: text(settings["notifications.push.fcm_sender_id"]),
     fcmServiceAccount: "",
+    logoUrl: text(settings["instance.logo_url"]),
     fcmServiceAccountConfigured:
       (
         await settingsDeps.db.query(
@@ -145,6 +148,7 @@ async function preferencesStep(settingsDeps: SettingsDeps) {
   return screen(
     <PreferencesStep
       values={values}
+      logoUrl={text(settings["instance.logo_url"])}
       locales={SUPPORTED_LOCALES}
       enabledLocales={enabledLocales}
       timezones={Intl.supportedValuesOf("timeZone")}
