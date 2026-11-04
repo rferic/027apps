@@ -1,8 +1,21 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { hasActiveSuperAdmin, isSetupIncomplete } from "@027apps/core/instance/api.js";
+import { getInfra } from "@/lib/api/door";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { signOutAction } from "./(auth)/actions";
 import { LayoutShell, type NavItem } from "@/components/layout-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { KpiCard } from "@/components/ui/kpi-card";
+
+/**
+ * The panel routes by instance state and session, reading the database and the
+ * auth cookies on every request: it opts out of the static shell instead of
+ * being prerendered (Cache Components `instant` opt-out).
+ */
+export const instant = false;
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/", active: true },
@@ -51,20 +64,51 @@ const ADD_EXPENSE = "Añadir gasto";
 const SEARCH_PLACEHOLDER = "Buscar...";
 const DASHBOARD_TITLE = "Dashboard Familia";
 
-export default function Home() {
+export default async function Home() {
+  // Entry gate: an uninstalled instance goes straight to the setup wizard; an
+  // installed one requires a session before showing the panel.
+  const { settingsDeps } = await getInfra();
+  if (!(await hasActiveSuperAdmin(settingsDeps))) redirect("/setup");
+
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/login");
+
+  // Spec §7.3: the panel stays usable but advertises the missing configuration.
+  const setupIncomplete = await isSetupIncomplete(settingsDeps);
+
   return (
     <LayoutShell
       title={DASHBOARD_TITLE}
       nav={NAV_ITEMS}
       actions={
-        <input
-          type="search"
-          aria-label={SEARCH_PLACEHOLDER}
-          placeholder={SEARCH_PLACEHOLDER}
-          className="w-52 shrink-0 rounded-control border border-border bg-surface px-2.5 py-1.5 text-sm"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="search"
+            aria-label={SEARCH_PLACEHOLDER}
+            placeholder={SEARCH_PLACEHOLDER}
+            className="w-52 shrink-0 rounded-control border border-border bg-surface px-2.5 py-1.5 text-sm"
+          />
+          <form action={signOutAction}>
+            <Button type="submit" variant="secondary">
+              Sign out
+            </Button>
+          </form>
+        </div>
       }
     >
+      {setupIncomplete && (
+        <section
+          role="status"
+          className="mb-3 rounded-card border border-accent bg-surface p-3 text-xs"
+        >
+          <span className="font-semibold">Setup is not finished.</span>{" "}
+          <Link href="/setup" className="text-accent underline underline-offset-2">
+            Complete the installation
+          </Link>{" "}
+          so invitations and deep links point at the right address.
+        </section>
+      )}
       <section className="rounded-card border border-border bg-surface p-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {KPIS.map((kpi) => (

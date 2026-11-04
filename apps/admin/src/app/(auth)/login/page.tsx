@@ -22,7 +22,9 @@ function LoginForm() {
       action={signInAction}
       className="flex w-full max-w-md flex-col gap-3 rounded-card border border-border bg-surface p-6"
     >
-      <h1 className="text-lg font-bold">027 Apps</h1>
+      <h1 className="text-base font-extrabold tracking-tight">
+        027<span className="text-accent">Apps</span>
+      </h1>
       <label className="flex flex-col gap-1">
         <span className="text-sm font-medium">Email</span>
         <input
@@ -30,7 +32,7 @@ function LoginForm() {
           name="email"
           placeholder="admin@example.com"
           required
-          className="rounded-control border border-border bg-surface px-3 py-2 text-sm"
+          className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -40,7 +42,7 @@ function LoginForm() {
           name="password"
           placeholder="Your password"
           required
-          className="rounded-control border border-border bg-surface px-3 py-2 text-sm"
+          className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
         />
       </label>
       {hasError && <p className="text-xs text-destructive">{INVALID_CREDENTIALS_MESSAGE}</p>}

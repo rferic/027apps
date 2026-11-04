@@ -18,3 +18,10 @@ export async function signInAction(formData: FormData): Promise<void> {
   }
   redirect("/");
 }
+
+/** Server action: drops the session cookies and returns to the login screen. */
+export async function signOutAction(): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.signOut();
+  redirect("/login");
+}

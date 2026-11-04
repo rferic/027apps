@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // Dev-only: allow tunneled origins (remote validation from a phone). Next
+  // blocks dev assets and the HMR socket from unknown cross-origin hosts,
+  // which stops the client from hydrating. Matched on the Origin hostname.
+  allowedDevOrigins: ["*.trycloudflare.com", "*.ngrok-free.app", "*.ngrok.io"],
   transpilePackages: ["@027apps/core"],
   turbopack: {
     rules: {

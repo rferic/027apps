@@ -27,8 +27,9 @@ const REQUIRED_SETUP_KEYS = [
   'localization.default_currency',
 ] as const;
 
-async function hasActiveSuperAdmin(deps: InstanceRouteDeps): Promise<boolean> {
-  const { rows } = await deps.settings.db.query(
+/** True when the instance already has at least one active super_admin. */
+export async function hasActiveSuperAdmin(settings: SettingsDeps): Promise<boolean> {
+  const { rows } = await settings.db.query(
     "select 1 from public.profiles where role = 'super_admin' and deactivated_at is null limit 1",
   );
   return rows.length > 0;
@@ -39,6 +40,15 @@ function missingRequired(settingsPublic: Record<string, unknown>): string[] {
     const value = settingsPublic[key];
     return value === null || value === undefined || value === '';
   });
+}
+
+/**
+ * `setup_incomplete` = an admin exists but the required preferences were never
+ * written (`instance.public_url` and the three `localization.*` keys). Derived
+ * from the real state, never stored (instance-config spec §7.3).
+ */
+export async function isSetupIncomplete(settings: SettingsDeps): Promise<boolean> {
+  return missingRequired(await readPublicSettings(settings)).length > 0;
 }
 
 /** GET /api/v1/instance — public metadata plus public settings. */
@@ -56,7 +66,7 @@ export function instanceRoute(deps: InstanceRouteDeps) {
       async () => {
         const [settingsPublic, superAdminExists] = await Promise.all([
           readPublicSettings(deps.settings),
-          hasActiveSuperAdmin(deps),
+          hasActiveSuperAdmin(deps.settings),
         ]);
         return {
           version: deps.version,
