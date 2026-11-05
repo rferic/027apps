@@ -32,7 +32,8 @@ La implementación de FCM está terminada y auditada, pero **la verificación en
 
 1. Subir la service account real a `notifications.push.fcm_service_account`.
 2. Configurar `notifications.push.provider = fcm` y las claves públicas FCM.
-3. Registrar un dispositivo real con `POST /api/v1/devices`.
-4. Comprobar un push con la app cerrada y revocar un token `UNREGISTERED`.
+3. Implementar el cliente FCM en Android (registro del token y render de mensajes data-only); hoy `apps/android` no contiene integración Firebase.
+4. Registrar un dispositivo real con `POST /api/v1/devices`.
+5. Comprobar un push con la app cerrada y revocar un token `UNREGISTERED`.
 
 Esta puerta se documenta como aceptación de despliegue, no como tarea de implementación abierta.
