@@ -3,6 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { entryGate } from "@/lib/instance-gate";
 import { readInstanceState } from "@/lib/instance-state";
 
+/** Paths whose access depends on the instance state (the gate's inputs). */
+const GATED_PATHS = new Set(["/", "/setup", "/login"]);
+
 /**
  * Session refresh at the edge (Next.js 16 proxy file — `middleware.ts` is
  * deprecated). Runs before every page render and every `/api/v1` call: verifies
@@ -43,6 +46,9 @@ export async function proxy(request: NextRequest) {
   // order the instance state allows. A page-level `redirect()` would flush the
   // shell first and answer 200 in production, so routing happens here.
   if (request.method !== "GET" && request.method !== "HEAD") return response;
+  // Only the three entry pages need the instance state: avoid a DB round trip
+  // on every other GET (API routes, pages behind the panel).
+  if (!GATED_PATHS.has(request.nextUrl.pathname)) return response;
 
   const state = await readInstanceState();
   const target = entryGate(request.nextUrl.pathname, {

@@ -7,6 +7,8 @@
 export interface ExistingAuthUser {
   id: string;
   hasProfile: boolean;
+  /** A user that has signed in is a real account, never an orphan. */
+  hasSignedIn: boolean;
 }
 
 /** True when the "already registered" error can be recovered by deleting an orphan. */
@@ -19,6 +21,7 @@ export function isRecoverableOrphan(
     /already been registered/i.test(errorMessage) &&
     existing !== null &&
     !existing.hasProfile &&
+    !existing.hasSignedIn &&
     setupOpen
   );
 }

@@ -9,7 +9,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createFirstSuperAdmin } from "@027apps/core/auth/setup.js";
 import { SMTP_COOKIE } from "@/app/setup/smtp-cookie";
-import { isRecoverableOrphan } from "@/lib/setup-orphan";
+import { isRecoverableOrphan, type ExistingAuthUser } from "@/lib/setup-orphan";
 
 /**
  * POST /api/v1/setup/super-admin: atomic creation of the first super_admin.
@@ -28,9 +28,9 @@ const bodySchema = z
 async function findAuthUser(
   db: { query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }> },
   email: string,
-): Promise<{ id: string; hasProfile: boolean } | null> {
+): Promise<ExistingAuthUser | null> {
   const { rows } = await db.query(
-    `select u.id, p.id as profile_id
+    `select u.id, p.id as profile_id, u.last_sign_in_at
        from auth.users u
        left join public.profiles p on p.id = u.id
       where u.email = $1
@@ -38,9 +38,35 @@ async function findAuthUser(
     [email],
   );
   const row = rows[0];
-  return row ? { id: String(row.id), hasProfile: row.profile_id !== null } : null;
+  return row
+    ? {
+        id: String(row.id),
+        hasProfile: row.profile_id !== null,
+        hasSignedIn: row.last_sign_in_at !== null,
+      }
+    : null;
 }
 
+
+/**
+ * Handles an "already registered" error: drops the orphan and signals a retry,
+ * or signals a conflict when the email belongs to a real account.
+ */
+async function handleExistingUser(
+  adminClient: ReturnType<typeof createSupabaseAdminClient>,
+  settingsDeps: Awaited<ReturnType<typeof getInfra>>["settingsDeps"],
+  email: string,
+  errorMessage: string,
+): Promise<"retry" | "conflict"> {
+  const existing = await findAuthUser(settingsDeps.db, email);
+  const setupOpen = !(await hasActiveSuperAdmin(settingsDeps));
+  if (!existing || !isRecoverableOrphan(errorMessage, existing, setupOpen)) return "conflict";
+
+  const { error } = await adminClient.auth.admin.deleteUser(existing.id);
+  if (error) throw new Error("setup orphan cleanup failed");
+  console.warn("[setup] removed an orphan auth user left by a failed install");
+  return "retry";
+}
 
 /** Creates the Auth user, recovering from an orphan left by a failed install. */
 async function createUserWithOrphanRecovery(
@@ -51,22 +77,16 @@ async function createUserWithOrphanRecovery(
 ): Promise<{ userId: string }> {
   const created = await adminClient.auth.admin.createUser({ email, password, email_confirm: true });
   if (!created.error && created.data.user) return { userId: created.data.user.id };
-  if (!created.error) throw new Error("createUser failed: no user returned");
-  if (!/already been registered/i.test(created.error.message)) {
-    throw new Error(`createUser failed: ${created.error.message}`);
-  }
+  if (!created.error) throw new Error("createUser failed");
+  if (!/already been registered/i.test(created.error.message)) throw new Error("createUser failed");
 
-  const existing = await findAuthUser(settingsDeps.db, email);
-  const setupOpen = !(await hasActiveSuperAdmin(settingsDeps));
-  if (!existing || !isRecoverableOrphan(created.error.message, existing, setupOpen)) {
+  const outcome = await handleExistingUser(adminClient, settingsDeps, email, created.error.message);
+  if (outcome === "conflict") {
     throw new DomainError("conflict", "That email already belongs to an account. Use another email.");
   }
 
-  await adminClient.auth.admin.deleteUser(existing.id);
   const retry = await adminClient.auth.admin.createUser({ email, password, email_confirm: true });
-  if (retry.error || !retry.data.user) {
-    throw new Error(`createUser failed after orphan cleanup: ${retry.error?.message}`);
-  }
+  if (retry.error || !retry.data.user) throw new Error("createUser failed after orphan cleanup");
   return { userId: retry.data.user.id };
 }
 
@@ -96,7 +116,7 @@ export async function POST(req: Request) {
               },
               async deleteUser(userId: string) {
                 const { error } = await adminClient.auth.admin.deleteUser(userId);
-                if (error) throw new Error(`deleteUser failed: ${error.message}`);
+                if (error) throw new Error("deleteUser failed");
               },
             },
             db,
@@ -115,7 +135,7 @@ export async function POST(req: Request) {
         password: body.password,
       });
       if (signInError) {
-        throw new Error(`signIn failed: ${signInError.message}`);
+        throw new Error("signIn failed");
       }
 
       // A fresh install always starts at step 3: drop any SMTP confirmation

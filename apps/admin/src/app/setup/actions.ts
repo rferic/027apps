@@ -2,11 +2,22 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getInfra } from "@/lib/api/door";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SMTP_COOKIE } from "./smtp-cookie";
 
 /** Marks the SMTP step as verified for this browsing session (1 hour). */
 export async function confirmSmtpAction(): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/login");
+  const { settingsDeps } = await getInfra();
+  const { rows } = await settingsDeps.db.query(
+    "select role from public.profiles where id = $1 and deactivated_at is null",
+    [data.user.id],
+  );
+  if (rows[0]?.role !== "super_admin") redirect("/login");
+
   const store = await cookies();
   store.set(SMTP_COOKIE, "1", {
     httpOnly: true,

@@ -264,7 +264,8 @@ export async function writeSetting(
 /**
  * Health: `degraded` when the database is unreachable, or when secrets are
  * configured but the encryption key is missing (they would be unreadable).
- */export async function computeHealth(deps: SettingsDeps): Promise<HealthStatus> {
+ */
+export async function computeHealth(deps: SettingsDeps): Promise<HealthStatus> {
   const reasons: string[] = [];
   let reachable = true;
   try {

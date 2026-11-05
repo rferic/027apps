@@ -74,7 +74,7 @@ export function setupTestEmailRoute(deps: Omit<SetupRouteDeps, 'env'> & TestEmai
             level: 'error',
             requestId: ctx.requestId,
             code: 'internal',
-            message: `setup test email failed: ${(err as Error).message}`,
+            message: "setup test email failed",
           };
           deps.door.logger(entry);
           throw new DomainError('internal', 'Could not send the test email');
