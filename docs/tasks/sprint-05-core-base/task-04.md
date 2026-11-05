@@ -2,7 +2,7 @@
 id: sprint-05-task-04
 titulo: Salud, instancia y ajustes con secretos cifrados
 area: core
-estado: test
+estado: finalizada
 adrs: [0004, 0007, 0008]
 plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 ---
@@ -41,3 +41,10 @@ plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
   3. (Bajo) GET autenticados sin tope: `rateLimits.read` (120/min) en `GET /settings`, `GET /settings-categories` y `GET /currencies` con tests 429.
   4. (Medio) Cabeceras A03 y CSP: `nosniff`/`Referrer-Policy`/`X-Frame-Options` aplicados; CSP estricta con nonce en **Report-Only** (limitación documentada del shell prerenderizado de Cache Components; enforcement tras verificación en navegador).
 - **Verde tras los fixes**: lint ✓, tsc ✓, tests ✓ (core 69, admin 41, db-tests 78), build sin envs ✓ (16/16).
+
+## Cierre (2026-11-05)
+
+- **Aceptación del usuario en preview**: wizard de instalación completo (pasos 1–5), panel y logout validados en el deployment de Vercel de `sprint/05-core-base` (PR #26). CI en verde: `admin`, `android`, `guard-secrets`, `supabase`, `commitlint`.
+- **Puerta local**: `pnpm lint` ✓, `pnpm tsc` ✓, `pnpm test` ✓ (core 89, admin 77, db-tests 78), `pnpm --filter admin build` ✓.
+- **Auditorías**: OWASP (`ingeniero`) → APROBADA CON CAMBIOS, sin críticos ni altos; estilo (`cocinero`) → APROBADA CON CAMBIOS. Fixes aplicados en `0fcb44b` (gate solo en las 3 rutas de entrada; recuperación de huérfanos solo si el usuario nunca ha iniciado sesión + error check; logs sin mensajes crudos de Supabase; `confirmSmtpAction` exige super_admin; test de `recordJwtExpiry`).
+- **Deuda aceptada y documentada**: carrera teórica de recuperación de huérfanos dentro de la ventana de setup abierta (mitigada con `last_sign_in_at`); rate limiting del login delegado en Supabase Auth; invariante de actor en `security.jwt_expiry` documentada en el código.

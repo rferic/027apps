@@ -2,7 +2,7 @@
 id: sprint-05-task-02
 titulo: Auth, sesión SSR y guard de scopes
 area: core
-estado: test
+estado: finalizada
 adrs: [0004, 0007]
 plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 ---
@@ -55,3 +55,10 @@ plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
   6. (Bajo) GET autenticados sin tope: `rateLimits.read` (default 120/min por identidad) en `GET /settings`, `GET /settings-categories` y `GET /currencies`, con tests 429 en db-tests.
 - **Hallazgos aceptados y documentados** (no código): IP spoofable sin proxy de confianza + purga de `rate_limit_counters` (deuda sprint-06, se documenta en `infrastructure.md`); `security.cors_allowlist`/`rate_limit.*` del catálogo aún inertes (sprint-06); credenciales del wizard pasan por JS cliente (contraseña del propio instalador; server action futuro); `/setup` accesible tras el setup (responde 409).
 - **Verde tras los fixes**: `pnpm lint` ✓ (0 warnings), `pnpm tsc` ✓, `pnpm test` ✓ (core 69, admin 41, db-tests 78), `pnpm --filter admin build` ✓ sin envs (16/16 estáticas). Fichero huérfano `apps/admin/-w` eliminado.
+
+## Cierre (2026-11-05)
+
+- **Aceptación del usuario en preview**: wizard de instalación completo (pasos 1–5), panel y logout validados en el deployment de Vercel de `sprint/05-core-base` (PR #26). CI en verde: `admin`, `android`, `guard-secrets`, `supabase`, `commitlint`.
+- **Puerta local**: `pnpm lint` ✓, `pnpm tsc` ✓, `pnpm test` ✓ (core 89, admin 77, db-tests 78), `pnpm --filter admin build` ✓.
+- **Auditorías**: OWASP (`ingeniero`) → APROBADA CON CAMBIOS, sin críticos ni altos; estilo (`cocinero`) → APROBADA CON CAMBIOS. Fixes aplicados en `0fcb44b` (gate solo en las 3 rutas de entrada; recuperación de huérfanos solo si el usuario nunca ha iniciado sesión + error check; logs sin mensajes crudos de Supabase; `confirmSmtpAction` exige super_admin; test de `recordJwtExpiry`).
+- **Deuda aceptada y documentada**: carrera teórica de recuperación de huérfanos dentro de la ventana de setup abierta (mitigada con `last_sign_in_at`); rate limiting del login delegado en Supabase Auth; invariante de actor en `security.jwt_expiry` documentada en el código.

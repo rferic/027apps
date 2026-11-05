@@ -2,7 +2,7 @@
 id: sprint-05-task-07
 titulo: Wizard de instalación completo (pasos 1–5)
 area: core
-estado: test
+estado: finalizada
 adrs: [0004, 0007, 0008]
 plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 ---
@@ -75,3 +75,10 @@ incondicional antes de `finalizada`, evidencia de preview.
   `jwt_expiry: 900`; paso 3 envía el email real (200 `{sent:true}`); paso 4/5 escribe preferencias →
   `/api/v1/instance` `setup_incomplete: false`; `/setup` 307 → `/`; panel sin banner.
 - **Pendiente para `finalizada`**: QA + auditoría OWASP (incondicional) y aceptación del usuario.
+- **QA + auditoría OWASP** (`ingeniero`): APROBADA CON CAMBIOS, **sin críticos ni altos**. Hallazgos corregidos en `0fcb44b`:
+  - M1: la recuperación de huérfanos exige ahora `last_sign_in_at IS NULL` (nunca borra una cuenta que haya iniciado sesión), comprueba el error de `deleteUser` y deja aviso en el log. La carrera con la ventana de setup abierta queda documentada como residual.
+  - M2: el gate del proxy solo consulta el estado de la instancia en `/`, `/setup` y `/login`; el resto de GET ya no hace I/O de BD.
+  - B2: los logs ya no vuelcan mensajes crudos de Supabase (podían incluir el email); B3: `confirmSmtpAction` exige sesión de super_admin.
+  - B1/B4 aceptados y documentados (rate limit del login delegado en Supabase Auth; invariante de actor en `security.jwt_expiry`).
+- **Revisión de estilo** (`cocinero`, tras fallo del modelo de `enfermero`): APROBADA CON CAMBIOS; corregido el docstring de `computeHealth` y añadido test de `recordJwtExpiry` (core 89 tests).
+- **Aceptación del usuario en preview**: wizard completo, panel y logo validados. `estado: finalizada`.

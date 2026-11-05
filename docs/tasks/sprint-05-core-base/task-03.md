@@ -2,7 +2,7 @@
 id: sprint-05-task-03
 titulo: Esqueleto de la API v1 (puertas, errores, request_id, rate limiting)
 area: core
-estado: test
+estado: finalizada
 adrs: [0004, 0007]
 plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 ---
@@ -36,3 +36,10 @@ plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
   4. (Bajo) `rateLimits.read` (120/min) en los GET autenticados de settings y currencies (tests 429 en db-tests).
 - **Hallazgos aceptados** (documentados, no código): rotación de identidad IP sin proxy de confianza y purga de contadores → sprint-06; catálogo `rate_limit.*`/`security.cors_allowlist` aún sin cablear → sprint-06.
 - **Verde tras los fixes**: lint ✓, tsc ✓, tests ✓ (core 69, admin 41, db-tests 78), build sin envs ✓ (16/16).
+
+## Cierre (2026-11-05)
+
+- **Aceptación del usuario en preview**: wizard de instalación completo (pasos 1–5), panel y logout validados en el deployment de Vercel de `sprint/05-core-base` (PR #26). CI en verde: `admin`, `android`, `guard-secrets`, `supabase`, `commitlint`.
+- **Puerta local**: `pnpm lint` ✓, `pnpm tsc` ✓, `pnpm test` ✓ (core 89, admin 77, db-tests 78), `pnpm --filter admin build` ✓.
+- **Auditorías**: OWASP (`ingeniero`) → APROBADA CON CAMBIOS, sin críticos ni altos; estilo (`cocinero`) → APROBADA CON CAMBIOS. Fixes aplicados en `0fcb44b` (gate solo en las 3 rutas de entrada; recuperación de huérfanos solo si el usuario nunca ha iniciado sesión + error check; logs sin mensajes crudos de Supabase; `confirmSmtpAction` exige super_admin; test de `recordJwtExpiry`).
+- **Deuda aceptada y documentada**: carrera teórica de recuperación de huérfanos dentro de la ventana de setup abierta (mitigada con `last_sign_in_at`); rate limiting del login delegado en Supabase Auth; invariante de actor en `security.jwt_expiry` documentada en el código.
