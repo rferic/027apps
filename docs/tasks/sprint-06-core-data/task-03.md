@@ -2,7 +2,7 @@
 id: sprint-06-task-03
 titulo: Invitaciones y canjeo
 area: core
-estado: test
+estado: finalizada
 adrs: [0004, 0007]
 plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 ---
@@ -25,4 +25,4 @@ plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 - **Correcciones tras auditoría**: el `createUser`/`findUserByEmail` de Auth se ejecuta **fuera** de la transacción (preflight sin lock + re-chequeo autoritativo bajo `for update`), para no retener una conexión del pool compartido durante una llamada HTTP; el puerto Auth devuelve `created` y el servicio solo borra usuarios que creó él (una carrera de email no puede borrar una cuenta existente); orden de módulos centralizado en `moduleKeys`.
 - **Trade-offs aceptados y documentados**: el token viaja en el path porque lo fija el contrato (`/invitations/{token}/redeem`); nuestros logs lo redactan (`routeOf`), pero los access logs de la plataforma/proxy deben redactarlo también (nota de despliegue). `email_confirm: true` asume que el enlace se distribuye por un canal seguro; la limpieza del usuario Auth si falla la BD es best-effort (deuda de job de purga). En cuentas existentes el `password` del body no se usa (la prueba de titularidad es el token enviado al email); la cuenta desactivada se rechaza con `conflict`.
 - **Auditorías**: QA/OWASP → APROBADA CON CAMBIOS, sin críticos ni altos (medios resueltos: I/O de Auth fuera de la transacción y test de concurrencia real; el token en URL es contrato). Estilo revisado por segundo agente.
-- **Pendiente para `finalizada`**: CI del PR.
+- **CI**: PR #36 run `42038272629` en verde (`admin`, `android`, `commitlint`, `guard-secrets`, `supabase`) sobre `232cfa1`. **Finalizada**.
