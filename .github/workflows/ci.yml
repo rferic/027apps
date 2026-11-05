@@ -43,7 +43,7 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       - run: ./gradlew :app:testDebugUnitTest :app:assembleDebug
       - uses: actions/upload-artifact@v7
         with:
@@ -95,7 +95,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
           version: 2.108.0
       - run: pnpm install --frozen-lockfile
@@ -205,7 +205,7 @@ jobs:
       - if: steps.keys.outputs.signed == 'true'
         uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
       - if: steps.keys.outputs.signed == 'true'
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
 
       - name: Assemble signed release APK
         if: steps.keys.outputs.signed == 'true'
