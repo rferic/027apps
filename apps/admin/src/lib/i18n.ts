@@ -7,11 +7,6 @@
 
 import type { QueryClient } from "@027apps/core/api/rate-limit-storage.js";
 
-export interface TranslationRow {
-  text_en: string;
-  translated_text: string;
-}
-
 /**
  * Load translations from the database for a locale.
  *
@@ -29,32 +24,8 @@ export async function loadTranslations(
   );
 
   const map = new Map<string, string>();
-  for (const row of rows as unknown as TranslationRow[]) {
-    map.set(row.text_en, row.translated_text);
+  for (const row of rows) {
+    map.set(String(row.text_en), String(row.translated_text));
   }
   return map;
-}
-
-/**
- * Get the default locale for an instance.
- *
- * Falls back to 'en' if not configured.
- */
-export async function getDefaultLocale(
-  db: QueryClient
-): Promise<string> {
-  const { rows } = await db.query(
-    "select value from public.settings where key = 'localization.default_locale'"
-  );
-  if (rows[0]?.value) {
-    try {
-      const parsed = JSON.parse(rows[0].value as string);
-      if (typeof parsed === "string") {
-        return parsed;
-      }
-    } catch {
-      // Keep default
-    }
-  }
-  return "en";
 }

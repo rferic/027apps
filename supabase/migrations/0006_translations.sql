@@ -22,6 +22,9 @@ alter table public.translations enable row level security;
 grant select on public.translations to anon, authenticated;
 grant all on public.translations to service_role;
 
+-- The app reads through /api/v1/translations (service role, enabled locales
+-- only). This read-only policy is for any future direct client; writes are
+-- service-role only.
 create policy "translations_select" on public.translations
   for select to authenticated
   using (true);

@@ -48,6 +48,8 @@ async function deleteRemovedCodeRows(
     hashes.push(sha256(seed.textEn));
     hashesByLocale.set(seed.locale, hashes);
   }
+  // Only locales with a code seed in this run: a module-only seed must never
+  // delete Core strings. The installer seeds the full catalog for all 9 locales.
   for (const [locale, hashes] of hashesByLocale) {
     await db.query(
       "delete from public.translations where locale = $1 and source = 'code' and text_hash <> all($2::text[])",
@@ -71,15 +73,4 @@ export async function seedTranslations(
     ]);
   }
   await deleteRemovedCodeRows(deps.db, seeds);
-}
-
-/** A seed is valid when the locale, texts and length limits hold. */
-export function validateSeed(seed: TranslationSeed): boolean {
-  const locales = ["en", "es", "ca", "it", "fr", "de", "pt", "gl", "eu"];
-  return (
-    locales.includes(seed.locale) &&
-    seed.textEn.length > 0 &&
-    seed.translated.length > 0 &&
-    seed.translated.length <= 2000
-  );
 }

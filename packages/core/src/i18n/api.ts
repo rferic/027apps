@@ -2,6 +2,7 @@ import { withDoor } from "../api/door";
 import { DomainError } from "../errors";
 import type { Caller, CorsOptions, DoorDeps } from "../api/types";
 import type { SettingsDeps } from "../settings/service";
+import { SUPPORTED_LOCALES } from "../settings/catalog";
 import { computeEtag } from "./etag";
 
 /**
@@ -10,7 +11,8 @@ import { computeEtag } from "./etag";
  * The ETag is the hash of the served body, so a `manual`/`import` edit changes
  * it on the next request and `If-None-Match` answers 304.
  */
-const SUPPORTED_LOCALES = ["en", "es", "ca", "it", "fr", "de", "pt", "gl", "eu"];
+/** Authenticated per-user payload: revalidate with the ETag. */
+const CACHE_CONTROL = "private, max-age=0, must-revalidate";
 
 export interface TranslationsRouteDeps {
   door: DoorDeps;
@@ -42,13 +44,15 @@ export function translationsRoute(deps: TranslationsRouteDeps) {
       async (ctx) => {
         const locale = ctx.searchParams.get("locale");
         if (!locale) throw new DomainError("validation_failed", "locale is required");
-        if (!SUPPORTED_LOCALES.includes(locale)) throw new DomainError("locale_not_available");
+        if (!(SUPPORTED_LOCALES as readonly string[]).includes(locale)) {
+          throw new DomainError("locale_not_available");
+        }
         if (!(await enabledLocales(deps.settings)).includes(locale)) {
           throw new DomainError("locale_not_available");
         }
 
         const { rows } = await deps.settings.db.query(
-          "select text_en, translated_text from public.translations where locale = $1",
+          "select text_en, translated_text from public.translations where locale = $1 order by text_en",
           [locale],
         );
         const translations: Record<string, string> = {};
@@ -59,11 +63,18 @@ export function translationsRoute(deps: TranslationsRouteDeps) {
         const body = { locale, translations };
         const etag = computeEtag(body);
         if (req.headers.get("if-none-match") === etag) {
-          return new Response(null, { status: 304, headers: { ETag: etag } });
+          return new Response(null, {
+            status: 304,
+            headers: { ETag: etag, "cache-control": CACHE_CONTROL },
+          });
         }
         return new Response(JSON.stringify(body), {
           status: 200,
-          headers: { "content-type": "application/json", ETag: etag },
+          headers: {
+            "content-type": "application/json",
+            ETag: etag,
+            "cache-control": CACHE_CONTROL,
+          },
         });
       },
     );

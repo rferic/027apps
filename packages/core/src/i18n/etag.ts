@@ -11,11 +11,11 @@ import { createHash } from 'node:crypto';
 /**
  * Compute an ETag for a value.
  *
- * Uses SHA-256 of the canonical JSON serialization,
+ * Uses SHA-256 of the JSON serialization (callers must order the body).
  * formatted as a strong ETag: `"hex-digest"`.
  *
  * @param body - The value to hash (will be JSON.stringify'd)
- * @returns The ETag string (async because JSON.stringify might be async in some contexts)
+ * @returns The ETag string
  */
 export function computeEtag(body: unknown): string {
   const json = JSON.stringify(body);

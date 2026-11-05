@@ -116,3 +116,66 @@ describe("GET /api/v1/translations", () => {
     });
   });
 });
+
+function routeWithDoor(
+  c: ClientBase,
+  door: DoorDeps,
+  caller: Caller = { kind: "session", userId: "u1", role: "super_admin" },
+) {
+  return translationsRoute({ door, auth: async () => caller, settings: settingsDeps(c) });
+}
+
+describe("GET /api/v1/translations — authorization, limits and ETag", () => {
+  it("answers 403 when the caller lacks the scope", async () => {
+    await inRollback(async (c) => {
+      const res = await route(c, { kind: "service", keyId: "k1", scopes: [], roleCap: "admin" })(
+        new Request("http://local/api/v1/translations?locale=en"),
+      );
+      expect(res.status).toBe(403);
+    });
+  });
+
+  it("answers 429 when the rate limit is exceeded", async () => {
+    await inRollback(async (c) => {
+      const limited: DoorDeps = {
+        rateLimitStorage: { increment: async () => ({ count: 121 }) },
+        logger: () => {},
+      };
+      const res = await routeWithDoor(c, limited)(
+        new Request("http://local/api/v1/translations?locale=en"),
+      );
+      expect(res.status).toBe(429);
+    });
+  });
+
+  it("returns an empty map when an enabled locale has no rows", async () => {
+    await inRollback(async (c) => {
+      await enableSpanish(c);
+      const res = await route(c)(new Request("http://local/api/v1/translations?locale=es"));
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { translations: Record<string, string> };
+      expect(body.translations).toEqual({});
+    });
+  });
+
+  it("changes the ETag after a manual edit of the translation", async () => {
+    await inRollback(async (c) => {
+      await enableSpanish(c);
+      await insertSpanish(c);
+      const first = await route(c)(new Request("http://local/api/v1/translations?locale=es"));
+      const firstEtag = first.headers.get("etag");
+
+      await query(
+        c,
+        "update public.translations set translated_text = 'Correo manual', source = 'manual' where locale = 'es' and text_hash = $1",
+        [sha256("Email")],
+      );
+
+      const second = await route(c)(new Request("http://local/api/v1/translations?locale=es"));
+      expect(second.status).toBe(200);
+      expect(second.headers.get("etag")).not.toBe(firstEtag);
+      const body = (await second.json()) as { translations: Record<string, string> };
+      expect(body.translations.Email).toBe("Correo manual");
+    });
+  });
+});
