@@ -28,6 +28,7 @@ jobs:
       - run: pnpm --filter admin lint
       - run: pnpm --filter admin tsc
       - run: pnpm --filter admin test
+      - run: pnpm i18n:check
       - run: pnpm --filter admin build
 
   android:

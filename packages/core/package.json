@@ -20,7 +20,10 @@
     "./settings/*.js": "./src/settings/*.ts",
     "./currencies/*.js": "./src/currencies/*.ts",
     "./instance/*.js": "./src/instance/*.ts",
-    "./setup/*.js": "./src/setup/*.ts"
+    "./setup/*.js": "./src/setup/*.ts",
+    "./i18n/seed.js": "./src/i18n/seed.ts",
+    "./i18n/etag.js": "./src/i18n/etag.ts",
+    "./i18n/api.js": "./src/i18n/api.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
