@@ -200,7 +200,8 @@ export function PreferencesStep({
             className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
           />
           <span className="text-xs text-muted-foreground">
-            Used for invitations and deep links. HTTPS, no trailing slash.
+            Used for invitations and deep links. HTTPS, no trailing slash. Use a stable address
+            (your domain or the Vercel branch alias), not a per-deployment preview URL.
           </span>
         </label>
 

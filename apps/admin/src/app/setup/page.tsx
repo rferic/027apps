@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { EXPECTED_JWT_EXPIRY_SECONDS, jwtExpirySeconds } from "@027apps/core/auth/jwt.js";
 import { hasActiveSuperAdmin, isSetupIncomplete } from "@027apps/core/instance/api.js";
@@ -113,12 +113,24 @@ async function smtpStep() {
   return screen(<SmtpStep email={data.user?.email ?? ""} />);
 }
 
+/** Origin of the current request, used to prefill the public URL. */
+async function requestOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return host ? `${proto}://${host}` : "";
+}
+
 /** Steps 4–5: required preferences (clears `setup_incomplete`) + optional FCM. */
 async function preferencesStep(settingsDeps: SettingsDeps) {
   const settings = await readPublicSettings(settingsDeps);
+  // Prefill the public URL with the current origin so it does not have to be
+  // typed; a stable domain (or the Vercel branch alias) should replace it.
+  const origin = await requestOrigin();
+
   const values: PreferencesValues = {
     instanceName: text(settings["instance.name"]) || "027Apps",
-    publicUrl: text(settings["instance.public_url"]),
+    publicUrl: text(settings["instance.public_url"]) || origin,
     locale: text(settings["localization.default_locale"]) || "en",
     timezone: text(settings["localization.timezone"]) || "UTC",
     currency: text(settings["localization.default_currency"]) || "EUR",

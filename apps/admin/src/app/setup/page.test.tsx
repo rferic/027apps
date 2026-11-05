@@ -13,6 +13,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next/headers", () => ({
+  headers: async () => new Headers(),
   cookies: async () => ({
     get: () => (cookieValue.current ? { value: cookieValue.current } : undefined),
     set: vi.fn(),
