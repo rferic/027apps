@@ -10,7 +10,7 @@ const columns = [
 ];
 
 describe("DataTable", () => {
-  it("renderiza las cabeceras en uppercase muted", () => {
+  it("renders headers in uppercase muted", () => {
     const html = renderToStaticMarkup(<DataTable columns={columns} rows={[]} />);
     expect(html).toContain("<th");
     expect(html).toContain("uppercase");
@@ -19,7 +19,7 @@ describe("DataTable", () => {
     expect(html).toContain(">Balance</th>");
   });
 
-  it("acopla una celda por columna por fila", () => {
+  it("pairs one cell per column per row", () => {
     const activeBadge = <Badge variant="success">Activo</Badge>;
     const html = renderToStaticMarkup(
       <DataTable
@@ -32,7 +32,7 @@ describe("DataTable", () => {
     expect(html).toContain(">5</td>");
   });
 
-  it("alinea a la derecha en mono las columnas numéricas", () => {
+  it("right-aligns numeric columns in mono", () => {
     const html = renderToStaticMarkup(
       <DataTable columns={columns} rows={[["Sara", "Activo", "-340,00 €"]]} />,
     );
@@ -40,7 +40,7 @@ describe("DataTable", () => {
     expect(html).toContain("font-mono");
   });
 
-  it("separa filas con borde hairline", () => {
+  it("separates rows with a hairline border", () => {
     const html = renderToStaticMarkup(
       <DataTable columns={columns} rows={[["Sara", "Activo", "0,00 €"]]} />,
     );
@@ -48,12 +48,12 @@ describe("DataTable", () => {
     expect(html).toContain("border-border");
   });
 
-  it("declara scope=col en las cabeceras", () => {
+  it("declares scope=col on headers", () => {
     const html = renderToStaticMarkup(<DataTable columns={columns} rows={[]} />);
     expect(html).toContain('scope="col"');
   });
 
-  it("incluye un caption accesible cuando se pasa label", () => {
+  it("includes an accessible caption when label is passed", () => {
     const withLabel = renderToStaticMarkup(
       <DataTable columns={columns} rows={[]} label="Miembros" />,
     );

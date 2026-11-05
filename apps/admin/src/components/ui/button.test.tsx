@@ -3,21 +3,21 @@ import { describe, expect, it } from "vitest";
 import { Button } from "./button";
 
 describe("Button", () => {
-  it("usa la variante primary por defecto con tokens sólidos", () => {
+  it("uses the primary variant by default with solid tokens", () => {
     const html = renderToStaticMarkup(<Button>Guardar</Button>);
     expect(html).toContain("bg-primary");
     expect(html).toContain("text-primary-foreground");
   });
 
-  it("no mezcla un color de borde con border-transparent en secondary y destructive", () => {
+  it("does not mix a border color with border-transparent in secondary and destructive", () => {
     const variants = ["secondary", "destructive"] as const;
     for (const variant of variants) {
       const html = renderToStaticMarkup(<Button variant={variant}>Acción</Button>);
-      expect(html, `variante ${variant}`).not.toContain("border-transparent");
+      expect(html, `variant ${variant}`).not.toContain("border-transparent");
     }
   });
 
-  it("aplica cada variante con sus tokens", () => {
+  it("applies each variant with its tokens", () => {
     const cases = [
       ["secondary", "bg-muted"],
       ["ghost", "text-accent"],
@@ -25,11 +25,11 @@ describe("Button", () => {
     ] as const;
     for (const [variant, token] of cases) {
       const html = renderToStaticMarkup(<Button variant={variant}>Acción</Button>);
-      expect(html, `variante ${variant}`).toContain(token);
+      expect(html, `variant ${variant}`).toContain(token);
     }
   });
 
-  it("propaga atributos nativos y clase extra", () => {
+  it("forwards native attributes and extra classes", () => {
     const html = renderToStaticMarkup(
       <Button type="submit" data-testid="guardar" className="w-full">
         Guardar
@@ -40,7 +40,7 @@ describe("Button", () => {
     expect(html).toContain("w-full");
   });
 
-  it("renderiza el contenido como hijo del botón", () => {
+  it("renders its content as the button child", () => {
     const html = renderToStaticMarkup(<Button>Añadir gasto</Button>);
     expect(html).toContain(">Añadir gasto</button>");
   });

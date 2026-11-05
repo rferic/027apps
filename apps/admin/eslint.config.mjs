@@ -7,20 +7,20 @@ const palette =
 const utilities =
   "bg|text|border|ring|ring-offset|outline|fill|stroke|from|via|to|divide|decoration|accent|caret|shadow|placeholder";
 
-// Colores hardcodeados: solo se permiten tokens semánticos (bg-background, text-foreground...).
+// Hardcoded colors: only semantic tokens are allowed (bg-background, text-foreground...).
 const hardcodedColor = [
-  // Paleta de Tailwind: bg-gray-100, dark:text-slate-50, border-red-500/50...
+  // Tailwind palette: bg-gray-100, dark:text-slate-50, border-red-500/50...
   `\\b(${utilities})-(${palette})-\\d{2,3}\\b`,
-  // Blanco/negro crudos: bg-white, text-black...
+  // Raw white/black: bg-white, text-black...
   `\\b(${utilities})-(white|black)\\b`,
-  // Valores arbitrarios: bg-[#fff], text-[rgb(0,0,0)]...
+  // Arbitrary values: bg-[#fff], text-[rgb(0,0,0)]...
   `\\b(${utilities})-\\[(#|rgba?\\(|hsla?\\(|oklch\\(|oklab\\(|lab\\(|lch\\()`,
-  // Literal que es un color completo: "#fff", "rgb(0 0 0)"...
+  // Literal that is a complete color: "#fff", "rgb(0 0 0)"...
   `^\\s*(#[0-9a-fA-F]{3,8}|(rgba?|hsla?|oklch|oklab|lab|lch)\\([^)]*\\))\\s*$`,
 ].join("|");
 
 const message =
-  "Color hardcodeado: usa un token semántico (p. ej. bg-background, text-foreground) definido en src/app/globals.css. Ver docs/conventions/code-style.md.";
+  "Hardcoded color: use a semantic token (e.g. bg-background, text-foreground) defined in src/app/globals.css. See docs/conventions/code-style.md.";
 
 const eslintConfig = defineConfig([
   ...nextVitals,

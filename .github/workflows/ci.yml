@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   admin:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -28,10 +28,11 @@ jobs:
       - run: pnpm --filter admin lint
       - run: pnpm --filter admin tsc
       - run: pnpm --filter admin test
+      - run: pnpm i18n:check
       - run: pnpm --filter admin build
 
   android:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: apps/android
@@ -51,7 +52,7 @@ jobs:
           if-no-files-found: error
 
   guard-secrets:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - name: No secrets or keystores tracked in git
@@ -65,15 +66,18 @@ jobs:
           fi
 
           # Supabase personal access tokens and sb_secret_ keys, any JWT (anon/service keys),
-          # non-empty service-role assignments, PEM private key blocks, 027Apps machine
-          # keys (027_svc_/027_usr_) and a hardcoded master key.
+          # non-empty service-role assignments, PEM private key blocks (header + payload),
+          # 027Apps machine keys (027_svc_/027_usr_) and a hardcoded master key.
+          # SERVICE_ROLE_KEY/SETTINGS_ENCRYPTION_KEY assignments must be a literal
+          # value: references like `process.env.SUPABASE_SERVICE_ROLE_KEY` contain a
+          # dot, which the value class excludes, so passing env vars is not flagged.
           # The patterns below do not match their own source text (the bracket
           # classes break the literal), so ci.yml needs no exclusion.
           hits=$(git grep -I -l -i -E -e 'sbp_[A-Za-z0-9]{20,}' \
             -e 'sb_secret_[A-Za-z0-9_-]{20,}' \
-            -e '-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+            -e '-----BEGIN [A-Z ]*PRIVATE KEY-----[[:space:]]+[A-Za-z0-9+/=]{20,}' \
             -e 'eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}' \
-            -e 'SERVICE_ROLE_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9._-]{20,}' \
+            -e 'SERVICE_ROLE_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9_-]{20,}' \
             -e '027_(svc|usr)_[A-Za-z0-9_-]{20,}' \
             -e 'SETTINGS_ENCRYPTION_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9+/=]{20,}' || true)
           if [ -n "$hits" ]; then
@@ -82,10 +86,54 @@ jobs:
 
           exit $fail
 
-  # Squash merge: el título del PR es el mensaje del commit en main.
+  supabase:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: 2.108.0
+      - run: pnpm install --frozen-lockfile
+      # Docker Hub rate-limits shared runners' pulls; retry the stack a few times.
+      - name: Start local Supabase stack (applies migrations)
+        run: |
+          ok=0
+          for attempt in 1 2 3; do
+            if supabase start; then ok=1; break; fi
+            echo "supabase start failed (attempt $attempt/3), stopping and retrying in 30 s"
+            supabase stop --no-backup >/dev/null 2>&1 || true
+            sleep 30
+          done
+          [ "$ok" -eq 1 ] || { echo "::error::supabase start failed after 3 attempts"; exit 1; }
+      # The auth suites talk to the local stack's API (GoTrue); export the URL and
+      # the deterministic local keys without echoing their values into the log.
+      # `supabase status --output env` prints stack-local names (API_URL, ...)
+      # with quoted values; map them to the SUPABASE_* names the suites read and
+      # strip the quotes.
+      - name: Export local stack credentials for the test suites
+        run: |
+          status=$(supabase status --output env)
+          extract() { printf '%s\n' "$status" | grep "^$1=" | cut -d= -f2- | tr -d '"'; }
+          {
+            printf 'SUPABASE_URL=%s\n' "$(extract API_URL)"
+            printf 'SUPABASE_ANON_KEY=%s\n' "$(extract ANON_KEY)"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$(extract SERVICE_ROLE_KEY)"
+            printf 'SUPABASE_DB_URL=%s\n' "$(extract DB_URL)"
+          } >> "$GITHUB_ENV"
+      - name: RLS isolation suite
+        run: pnpm --filter db-tests test
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+  # Squash merge: the PR title is the commit message on main.
   commitlint:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -105,7 +153,7 @@ jobs:
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: [admin, android, guard-secrets]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: release
     permissions:
       contents: write
@@ -145,7 +193,7 @@ jobs:
             echo "::notice::Signing secrets not available (fork): release skipped."
             echo "signed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::Signing secrets missing: see docs/flows/cicd.md (Pendiente de ejecución)."
+            echo "::error::Signing secrets missing: see docs/flows/cicd.md (execution pending)."
             exit 1
           fi
 

@@ -3,9 +3,9 @@ import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Contraste WCAG AA (4.5:1 para texto normal) del badge success sobre --surface en claro.
-// Se compone el tinte (success-subtle, rgba con alpha) sobre la superficie y se compara
-// con el texto (--success). Criterio de aceptación de la spec (fidelidad AA).
+// WCAG AA contrast (4.5:1 for normal text) of the success badge on --surface in light mode.
+// The tint (success-subtle, rgba with alpha) is composited over the surface and compared
+// with the text color (--success). Spec acceptance criterion (AA fidelity).
 const mirror = JSON.parse(
   readFileSync(
     join(fileURLToPath(new URL(".", import.meta.url)), "../../../tokens.json"),
@@ -34,7 +34,7 @@ const contrast = (a: string, b: string): number => {
   return (hi + 0.05) / (lo + 0.05);
 };
 
-/** Compone un rgba(c, m, a, alpha) sobre un fondo hex. */
+/** Composites an rgba(c, m, a, alpha) color over a hex background. */
 const composite = (rgba: string, base: string): string => {
   const [, c, m, a, alphaStr] = rgba.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/)!;
   const alpha = Number(alphaStr);
@@ -46,15 +46,15 @@ const composite = (rgba: string, base: string): string => {
   return `#${[mix(cr, r), mix(cg, g), mix(cb, b)].map(toHex).join("")}`;
 };
 
-describe("Contraste AA del badge success", () => {
+describe("AA contrast of the success badge", () => {
   const light = mirror.light;
 
-  it("el texto --success sobre el tinte compuesto sobre --surface cumple AA (>= 4.5:1)", () => {
+  it("--success text over the composited tint on --surface meets AA (>= 4.5:1)", () => {
     const tinted = composite(light["success-subtle"], light.surface);
     expect(contrast(light.success, tinted)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("el tinte --success-subtle está definido en claro y oscuro", () => {
+  it("--success-subtle is defined in light and dark modes", () => {
     expect(light["success-subtle"]).toMatch(/^rgba\(/);
     expect(mirror.dark["success-subtle"]).toMatch(/^rgba\(/);
   });
