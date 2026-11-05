@@ -9,6 +9,7 @@ import { resolveCaller, type CallerResolverDeps, type ProfilesPort } from "@027a
 import { createSettingsEncryption } from "@027apps/core/crypto.js";
 import type { SettingsDeps } from "@027apps/core/settings/service.js";
 import type { CurrenciesDeps } from "@027apps/core/currencies/service.js";
+import * as Sentry from "@sentry/nextjs";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -69,6 +70,11 @@ async function createInfra() {
       },
     }),
     logger,
+    captureError(err, context) {
+      Sentry.captureException(err, {
+        tags: { request_id: context.requestId, route: context.route, code: context.code },
+      });
+    },
   };
 
   /** Settings service deps: real DB port + encryption key (null = degraded). */

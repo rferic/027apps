@@ -10,7 +10,7 @@ export async function register(): Promise<void> {
   if (!dsn) return;
   const Sentry = await import("@sentry/nextjs");
   initSentry(
-    { dsn, environment: process.env.NODE_ENV ?? "development" },
+    { dsn, environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "development" },
     Sentry as unknown as SentrySdk,
   );
 }

@@ -17,10 +17,10 @@ Cada paso por `withDoor` (`packages/core/src/api/door.ts`) emite una línea JSON
 | `status` | Código HTTP final |
 | `duration_ms` | Tiempo total en el door |
 | `actor` | `session:<userId>`, `service:<keyId>` o `anon` (nunca email/IP) |
-| `code` | Código del envelope de error (`validation_failed`, `rate_limited`…) |
+| `code` | Código del envelope de error (solo en la línea del error) |
 | `level` | `info` (2xx/3xx/4xx), `error` (5xx) |
 
-Los errores añaden otra línea con `msg` del error y opcionalmente `stack`; esa línea no sustituye a la de `request completed`.
+Los 5xx añaden otra línea con `code: internal` y un mensaje genérico (nunca el mensaje crudo del error). El `stack` no se serializa en el log.
 
 ### Dónde verlos
 
@@ -32,7 +32,7 @@ Los errores añaden otra línea con `msg` del error y opcionalmente `stack`; esa
 
 1. El cliente recibe `X-Request-Id: <id>`.
 2. Busca ese `request_id` en los logs del hosting.
-3. Si es 5xx, el mismo `request_id` aparece en Sentry (si hay DSN).
+3. Si es 5xx, el mismo `request_id` aparece en Sentry como tag (si hay DSN).
 
 ## 2. Sentry (solo 5xx, sin PII)
 

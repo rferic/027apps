@@ -3,7 +3,7 @@
  * secrets. Callers pass fields that are already clean; unknown fields are
  * dropped so an accidental `email`/`ip` never reaches the log.
  */
-export interface LogEntry {
+export interface JsonLogEntry {
   ts: string;
   level: "info" | "warn" | "error";
   msg: string;
@@ -28,7 +28,7 @@ const KEYS = [
 ] as const;
 
 /** Serializes a log entry as one line, with stable key order and escaped values. */
-export function serializeLog(entry: LogEntry): string {
+export function serializeLog(entry: JsonLogEntry): string {
   const ordered: Record<string, unknown> = {};
   for (const key of KEYS) {
     const value = entry[key];

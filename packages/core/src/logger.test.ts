@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { serializeLog, type LogEntry } from "./logger.js";
+import { serializeLog, type JsonLogEntry } from "./logger.js";
 
-const base: LogEntry = {
+const base: JsonLogEntry = {
   ts: "2026-11-05T10:00:00.000Z",
   level: "info",
   msg: "request completed",
@@ -37,7 +37,7 @@ describe("serializeLog", () => {
       ip: "1.2.3.4",
       body: { password: "x" },
       token: "secret",
-    } as unknown as LogEntry;
+    } as unknown as JsonLogEntry;
 
     const line = serializeLog(dirty);
 

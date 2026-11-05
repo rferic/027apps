@@ -10,7 +10,7 @@ import { initSentry, type SentrySdk } from "@027apps/core/sentry.js";
 initSentry(
   {
     dsn: process.env.SENTRY_DSN ?? null,
-    environment: process.env.NODE_ENV ?? "development",
+    environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "development",
   },
   Sentry as unknown as SentrySdk,
 );

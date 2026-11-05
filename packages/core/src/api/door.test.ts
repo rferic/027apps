@@ -133,7 +133,7 @@ describe('withDoor — errors', () => {
 
     const log = deps.logs.find((entry) => entry.level === 'error');
     expect(log?.code).toBe('internal');
-    expect(log?.message).toContain('SQLSTATE');
+    expect(log?.message).toBe('Internal server error');
     expect(log?.requestId).toMatch(UUID);
   });
 
@@ -587,5 +587,43 @@ describe('withDoor — CORS', () => {
     }));
 
     expect(res.headers.get('access-control-allow-origin')).toBeNull();
+  });
+});
+
+describe('withDoor — 5xx reporting', () => {
+  it('reports unexpected 5xx errors with correlation context', async () => {
+    const captureError = vi.fn();
+    const deps = makeDeps({ captureError });
+    const res = await withDoor(
+      new Request(`${URL_BASE}?x=1`),
+      makeOptions(),
+      deps,
+      async () => {
+        throw new Error('boom');
+      },
+    );
+
+    expect(res.status).toBe(500);
+    expect(captureError).toHaveBeenCalledTimes(1);
+    const [err, context] = captureError.mock.calls[0]!;
+    expect((err as Error).message).toBe('boom');
+    expect(context.code).toBe('internal');
+    expect(context.route).toBe('GET /api/v1/resource');
+    expect(context.requestId).toMatch(UUID);
+  });
+
+  it('does not report 4xx responses', async () => {
+    const captureError = vi.fn();
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions(),
+      makeDeps({ captureError }),
+      async () => {
+        throw new DomainError('validation_failed');
+      },
+    );
+
+    expect(res.status).toBe(400);
+    expect(captureError).not.toHaveBeenCalled();
   });
 });

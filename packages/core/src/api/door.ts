@@ -83,11 +83,20 @@ function identityFor(caller: Caller, req: Request, kind: 'user' | 'key' | 'ip'):
   }
 }
 
+/** Method + path for logs; ids/tokens are redacted (never the raw value). */
+export function routeOf(req: Request): string {
+  const pathname = new URL(req.url)
+    .pathname.replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '/:id')
+    .replace(/\/[A-Za-z0-9_-]{24,}/g, '/:token');
+  return `${req.method} ${pathname}`;
+}
+
 function errorResponse(
   err: unknown,
   requestId: string,
   cors: CorsContext,
   deps: DoorDeps,
+  route: string,
   extraHeaders: Record<string, string> = {},
 ): Response {
   const envelope = toEnvelope(err, requestId);
@@ -97,10 +106,14 @@ function errorResponse(
     level: err instanceof DomainError ? 'warn' : 'error',
     requestId,
     code: envelope.error.code,
-    message: err instanceof Error ? err.message : String(err),
+    // Never log a raw 500 message: it may carry SQL or PII.
+    message: err instanceof DomainError ? err.message : 'Internal server error',
     ...(err instanceof Error && err.stack ? { stack: err.stack } : {}),
   };
   deps.logger(entry);
+  if (status >= 500 && deps.captureError) {
+    deps.captureError(err, { requestId, route, code: envelope.error.code });
+  }
 
   const headers = { ...baseHeaders(requestId, cors), ...extraHeaders };
   if (status === 401) {
@@ -203,7 +216,7 @@ export async function withDoor(
     level: response.status >= 500 ? 'error' : 'info',
     requestId,
     message: 'request completed',
-    route: new URL(req.url).pathname,
+    route: routeOf(req),
     status: response.status,
     durationMs: Date.now() - started,
     ...(actor ? { actor } : {}),
@@ -237,7 +250,7 @@ async function runDoor(
   // CORS preflight: answered before auth and rate limiting (no credentials needed).
   if (req.method === 'OPTIONS' && options.cors) {
     if (cors.origin && !cors.allowed) {
-      return errorResponse(new DomainError('cors_origin_not_allowed'), requestId, cors, deps);
+      return errorResponse(new DomainError('cors_origin_not_allowed'), requestId, cors, deps, routeOf(req));
     }
     return new Response(null, {
       status: 204,
@@ -278,7 +291,7 @@ async function runDoor(
         { limit: options.rateLimit.limit, windowSeconds: WINDOW_SECONDS },
       );
       if (!result.allowed) {
-        return errorResponse(new DomainError('rate_limited'), requestId, cors, deps, {
+        return errorResponse(new DomainError('rate_limited'), requestId, cors, deps, routeOf(req), {
           'retry-after': String(result.retryAfterSeconds),
         });
       }
@@ -318,6 +331,6 @@ async function runDoor(
       headers: baseHeaders(requestId, cors),
     });
   } catch (err) {
-    return errorResponse(err, requestId, cors, deps);
+    return errorResponse(err, requestId, cors, deps, routeOf(req));
   }
 }

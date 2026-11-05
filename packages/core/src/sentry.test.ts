@@ -25,7 +25,6 @@ describe("initSentry", () => {
     expect(options.beforeSend({ tags: { status_code: "404" } })).toBeNull();
     expect(options.beforeSend({ tags: { status_code: "500" }, user: { ip: "1.2.3.4" } })).toEqual({
       tags: { status_code: "500" },
-      user: {},
     });
   });
 });

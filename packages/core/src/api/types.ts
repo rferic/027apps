@@ -56,6 +56,11 @@ export interface LogEntry {
 export interface DoorDeps {
   rateLimitStorage: RateLimitStorage;
   logger: (entry: LogEntry) => void;
+  /** Optional 5xx reporter (e.g. Sentry). Never called for 4xx. */
+  captureError?: (
+    err: unknown,
+    context: { requestId: string; route: string; code: string },
+  ) => void;
 }
 
 export type JsonValue =
