@@ -19,7 +19,6 @@ const VALUES: PreferencesValues = {
   fcmSenderId: "",
   fcmServiceAccount: "",
   fcmServiceAccountConfigured: false,
-  logoUrl: "",
 };
 
 function render(values: Partial<PreferencesValues> = {}): string {

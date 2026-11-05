@@ -128,7 +128,6 @@ async function preferencesStep(settingsDeps: SettingsDeps) {
     fcmApiKey: text(settings["notifications.push.fcm_api_key"]),
     fcmSenderId: text(settings["notifications.push.fcm_sender_id"]),
     fcmServiceAccount: "",
-    logoUrl: text(settings["instance.logo_url"]),
     fcmServiceAccountConfigured:
       (
         await settingsDeps.db.query(

@@ -20,8 +20,6 @@ export interface PreferencesValues {
   /** Paste of the service account JSON; empty means "keep the configured one". */
   fcmServiceAccount: string;
   fcmServiceAccountConfigured: boolean;
-  /** Optional custom logo; empty uses the bundled 027Apps mark. */
-  logoUrl: string;
 }
 
 export interface PreferencesProps {
@@ -38,7 +36,6 @@ export interface PreferencesProps {
 const FIELDS: Record<string, string> = {
   "instance.name": "We couldn't save the instance name.",
   "instance.public_url": "Enter the public HTTPS URL (no trailing slash).",
-  "instance.logo_url": "Enter an https URL for the logo, or leave it empty for the default.",
   "localization.default_locale": "Choose one of the supported languages.",
   "localization.enabled_locales": "We couldn't enable that language.",
   "localization.timezone": "Choose a valid IANA time zone.",
@@ -78,7 +75,6 @@ function buildSteps(form: PreferencesValues, enabledLocales: readonly string[]):
   }
   steps.push(
     ["instance.name", form.instanceName],
-    ["instance.logo_url", form.logoUrl.trim() || null],
     ["instance.public_url", form.publicUrl],
     ["localization.default_locale", form.locale],
     ["localization.timezone", form.timezone],
@@ -190,20 +186,6 @@ export function PreferencesStep({
             required
             className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
           />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Logo URL (optional)</span>
-          <input
-            type="url"
-            value={form.logoUrl}
-            onChange={(event) => update("logoUrl", event.target.value)}
-            placeholder="https://example.com/logo.png"
-            className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
-          />
-          <span className="text-xs text-muted-foreground">
-            Leave it empty to use the default 027Apps mark.
-          </span>
         </label>
 
         <label className="flex flex-col gap-1">
