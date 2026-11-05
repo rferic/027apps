@@ -11,6 +11,7 @@ import {
   type ApiKeysDeps,
 } from "@027apps/core/api-keys/service.js";
 import { deactivateUser } from "@027apps/core/users/service.js";
+import { resolveCaller } from "@027apps/core/auth/caller.js";
 import type { Caller } from "@027apps/core/api/types.js";
 
 const email = (name: string) => `key-${name}-${Date.now()}-${Math.random()}@test.local`;
@@ -210,6 +211,73 @@ describe("api keys service", () => {
       expect((await getApiKey(deps(c), superAdmin, delegated.api_key.id)).name).toBe("Owner");
       await revokeApiKey(deps(c), superAdmin, service.api_key.id);
       expect((await getApiKey(deps(c), superAdmin, service.api_key.id)).revoked_at).not.toBeNull();
+    });
+  });
+
+  it("does not let a delegated super_admin escalate into a service key", async () => {
+    await inRollback(async (c) => {
+      const owner = await session(c, "super_admin");
+      const delegated: Caller = {
+        kind: "delegated",
+        keyId: "k1",
+        scopes: ["api_keys:write"],
+        roleCap: "super_admin",
+        userId: owner.userId,
+      };
+
+      await expect(
+        createApiKey(deps(c), delegated, {
+          kind: "service",
+          name: "Escalation",
+          scopes: ["users:deactivate"],
+          role_cap: "super_admin",
+        }),
+      ).rejects.toMatchObject({ code: "insufficient_scope" });
+    });
+  });
+
+  it("resolves a real service key through resolveCaller and stops after revocation", async () => {
+    await inRollback(async (c) => {
+      const who = await session(c, "super_admin");
+      const { api_key, secret } = await createApiKey(deps(c), who, {
+        kind: "service",
+        name: "End to end",
+        scopes: ["users:read"],
+      });
+
+      const port = { resolve: (token: string) => resolveApiKey(deps(c), token) };
+      const request = () =>
+        new Request("http://local/api/v1/users", {
+          headers: { authorization: `Bearer ${secret}` },
+        });
+      const resolver = {
+        supabase: {
+          async getUser() {
+            return { data: { user: null }, error: { message: "unused" } };
+          },
+        },
+        profiles: {
+          async getRole() {
+            return "user" as const;
+          },
+          async isActive() {
+            return true;
+          },
+        },
+        apiKeys: port,
+      };
+
+      await expect(resolveCaller(request(), resolver)).resolves.toMatchObject({
+        kind: "service",
+        keyId: api_key.id,
+        roleCap: "admin",
+        scopes: ["users:read"],
+      });
+
+      await revokeApiKey(deps(c), who, api_key.id);
+      await expect(resolveCaller(request(), resolver)).rejects.toMatchObject({
+        code: "unauthorized",
+      });
     });
   });
 

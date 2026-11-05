@@ -132,7 +132,11 @@ export async function createApiKey(
   let roleCap: ApiKeyRoleCap | null = null;
   let userId: string | null = null;
   if (input.kind === "service") {
-    if (!isSuperAdmin(caller)) throw new DomainError("insufficient_scope");
+    // Minting a service credential is a panel action: a delegated key must
+    // never escalate into a service key, even if its owner is super_admin.
+    if (caller.kind !== "session" || caller.role !== "super_admin") {
+      throw new DomainError("insufficient_scope");
+    }
     roleCap = input.role_cap ?? "admin";
   } else {
     userId = actor;
