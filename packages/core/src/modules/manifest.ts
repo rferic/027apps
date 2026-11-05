@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { DomainError } from "../errors";
 
 /**
  * Module manifest contract (module-system spec §3). This is the mechanical
@@ -31,11 +32,18 @@ const DIGEST = /^sha256:[0-9a-f]{64}$/;
 const FUNCTION_NAME = /^[a-z][a-z0-9_]{0,62}$/;
 const CHANNEL_PATTERN = /^[a-z0-9][a-z0-9-]*(\{[a-z_]+\})?$/;
 
+const sqlOrPath = z
+  .string()
+  .min(1)
+  .refine((value) => !value.startsWith("./") || RELATIVE_FILE.test(value.slice(2)), {
+    message: "invalid module file path",
+  });
+
 const migrationSchema = z
   .object({
     version: z.string().regex(SEMVER),
-    up: z.string().min(1),
-    down: z.string().min(1),
+    up: sqlOrPath,
+    down: sqlOrPath,
     digest: z.string().regex(DIGEST),
     down_digest: z.string().regex(DIGEST),
   })
@@ -128,13 +136,13 @@ export const manifestSchema = z
       .strict(),
     version: z.string().regex(SEMVER),
     is_public: z.boolean(),
-    migraciones: z.array(migrationSchema).default([]),
+    migrations: z.array(migrationSchema).default([]),
     settings: z.array(settingsCategorySchema).default([]),
     i18n: z.array(z.enum(MODULE_LOCALES)),
     scopes: z.array(z.string().regex(SCOPE)).default([]),
     mcp_tools: z.array(mcpToolSchema).default([]),
     channels: z.array(channelSchema).default([]),
-    eventos: z.array(eventSchema).default([]),
+    events: z.array(eventSchema).default([]),
     hooks: z.record(z.string(), z.string().regex(FUNCTION_NAME)).default({}),
     admin_pages: z.array(adminPageSchema).default([]),
     docs: docsSchema,
@@ -144,9 +152,9 @@ export const manifestSchema = z
     if (RESERVED_MODULE_KEYS.has(manifest.key)) {
       ctx.addIssue({ code: "custom", path: ["key"], message: "reserved module key" });
     }
-    const versions = manifest.migraciones.map((migration) => migration.version);
+    const versions = manifest.migrations.map((migration) => migration.version);
     if (new Set(versions).size !== versions.length) {
-      ctx.addIssue({ code: "custom", path: ["migraciones"], message: "duplicate migration version" });
+      ctx.addIssue({ code: "custom", path: ["migrations"], message: "duplicate migration version" });
     }
     for (const category of manifest.settings) {
       const expected = manifest.key.replace(/-/g, "_");
@@ -183,13 +191,13 @@ export const manifestSchema = z
       ctx.addIssue({ code: "custom", path: ["mcp_tools"], message: "duplicate tool name" });
     }
     const channelPatterns = new Set(manifest.channels.map((channel) => channel.pattern));
-    for (const event of manifest.eventos) {
+    for (const event of manifest.events) {
       if (event.target.startsWith("channel:")) {
         const pattern = event.target.slice("channel:".length);
         if (!channelPatterns.has(pattern)) {
           ctx.addIssue({
             code: "custom",
-            path: ["eventos", event.type],
+            path: ["events", event.type],
             message: "channel target has no declared channel pattern",
           });
         }
@@ -225,7 +233,7 @@ export const manifestSchema = z
       ctx.addIssue({ code: "custom", path: ["docs", "settings"], message: "settings docs are required" });
     }
     if (
-      (manifest.eventos.length > 0 || manifest.channels.length > 0) &&
+      (manifest.events.length > 0 || manifest.channels.length > 0) &&
       !manifest.docs.events
     ) {
       ctx.addIssue({ code: "custom", path: ["docs", "events"], message: "events docs are required" });
@@ -252,6 +260,10 @@ export function assertSafeModuleSql(sql: string, moduleKey: string): void {
   const forbiddenSchema = /\b(auth|storage|realtime|extensions|vault|pg_catalog|information_schema|supabase_migrations)\s*\./i;
   if (forbiddenSchema.test(sql)) throw new Error(`module SQL may not reference reserved schemas (${schema})`);
   if (/\bpublic\s*\./i.test(sql)) throw new Error("module SQL may not reference the public schema");
+  // A module may only touch its own schema, never another module's.
+  for (const match of sql.matchAll(/\bmodule_([a-z0-9_]+)\s*\./gi)) {
+    if (`module_${match[1]}` !== schema) throw new Error("module SQL may not reference another module schema");
+  }
 
   const forbiddenKeywords = [
     /\bcreate\s+(or\s+replace\s+)?(role|database|extension|schema)\b/i,
@@ -263,6 +275,9 @@ export function assertSafeModuleSql(sql: string, moduleKey: string): void {
     /\bset\s+(local\s+|session\s+)?search_path\b/i,
     /\bcopy\b/i,
     /\btruncate\s+public\b/i,
+    /\bdo\b/i,
+    /\bexecute\b/i,
+    /\bsecurity\s+definer\b/i,
   ];
   for (const pattern of forbiddenKeywords) {
     if (pattern.test(sql)) throw new Error("module SQL contains a forbidden statement");
@@ -270,5 +285,9 @@ export function assertSafeModuleSql(sql: string, moduleKey: string): void {
 }
 
 export function validateManifest(value: unknown): ModuleManifest {
-  return manifestSchema.parse(value);
+  const parsed = manifestSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new DomainError("validation_failed", "Invalid module manifest", parsed.error.flatten());
+  }
+  return parsed.data;
 }

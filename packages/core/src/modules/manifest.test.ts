@@ -19,7 +19,7 @@ function validManifest(overrides: Record<string, unknown> = {}): unknown {
     branding: { description: "Demo module", icon: "assets/icon.svg", color: "teal" },
     version: "1.0.0",
     is_public: false,
-    migraciones: [
+    migrations: [
       { version: "1.0.0", up: UP, down: DOWN, digest: sha256(UP), down_digest: sha256(DOWN) },
     ],
     settings: [
@@ -71,7 +71,7 @@ describe("manifest contract", () => {
     expect(() =>
       manifestSchema.parse(
         validManifest({
-          migraciones: [
+          migrations: [
             { version: "1.0.0", up: UP, down: DOWN, digest: sha256(UP), down_digest: sha256(DOWN) },
             { version: "1.0.0", up: UP, down: DOWN, digest: sha256(UP), down_digest: sha256(DOWN) },
           ],
@@ -124,6 +124,30 @@ describe("manifest contract", () => {
     expect(() => assertSafeModuleSql("grant all on schema x to y;", "demo-module")).toThrow();
     expect(() => assertSafeModuleSql("set search_path to public;", "demo-module")).toThrow();
     expect(() => assertSafeModuleSql("create table items (id int);", "demo-module")).not.toThrow();
+    expect(() =>
+      assertSafeModuleSql("create table module_other.items (id int);", "demo-module"),
+    ).toThrow(/another module/);
+    expect(() =>
+      assertSafeModuleSql("do $$ begin execute 'drop table items'; end $$;", "demo-module"),
+    ).toThrow(/forbidden/);
+  });
+
+  it("rejects path traversal in migration files", () => {
+    expect(() =>
+      manifestSchema.parse(
+        validManifest({
+          migrations: [
+            {
+              version: "1.0.0",
+              up: "./../../etc/passwd",
+              down: DOWN,
+              digest: sha256(UP),
+              down_digest: sha256(DOWN),
+            },
+          ],
+        }),
+      ),
+    ).toThrow();
   });
 });
 
@@ -169,7 +193,7 @@ describe("packaged module manifests (CI)", () => {
         for (const setting of group.settings) expect(settings).toContain(setting.key);
       }
       const events = readDoc(manifest.docs.events, "events docs");
-      for (const event of manifest.eventos) expect(events).toContain(event.type);
+      for (const event of manifest.events) expect(events).toContain(event.type);
       for (const channel of manifest.channels) expect(events).toContain(channel.pattern);
 
       for (const page of manifest.admin_pages) {
@@ -180,7 +204,7 @@ describe("packaged module manifests (CI)", () => {
       expect(icon).toMatch(/<svg[\s>]/i);
       expect(icon).toContain("currentColor");
 
-      for (const migration of manifest.migraciones) {
+      for (const migration of manifest.migrations) {
         const content = migration.up.startsWith("./")
           ? readFileSync(join(root, migration.up.slice(2)), "utf8")
           : migration.up;

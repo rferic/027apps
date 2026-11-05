@@ -35,8 +35,10 @@ async function inRollback(fn: (c: ClientBase) => Promise<void>): Promise<void> {
 }
 
 function deps(c: ClientBase, overrides: Partial<ModulesDeps> = {}): ModulesDeps {
+  const db = { query: (sql: string, params: unknown[] = []) => query(c, sql, params) };
   return {
-    db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
+    db,
+    withTransaction: (fn) => fn(db),
     moduleRoot: (key) => `/modules/${key}`,
     readFile: async (path) => {
       if (path.endsWith("README.md")) return "# Demo module";
@@ -57,7 +59,7 @@ function manifest(overrides: Record<string, unknown> = {}) {
     branding: { description: "Demo module", icon: "assets/icon.svg", color: "teal" },
     version: "1.0.0",
     is_public: false,
-    migraciones: [
+    migrations: [
       {
         version: "1.0.0",
         up: UP,
@@ -89,7 +91,7 @@ function manifest(overrides: Record<string, unknown> = {}) {
     scopes: [],
     mcp_tools: [],
     channels: [],
-    eventos: [],
+    events: [],
     admin_pages: [],
     docs: { readme: "README.md", settings: "docs/settings.md" },
     ...overrides,
@@ -141,7 +143,7 @@ describe("modules installer", () => {
     await inRollback(async (c) => {
       const admin = await session(c, "admin");
       const tampered = manifest({
-        migraciones: [
+        migrations: [
           { version: "1.0.0", up: UP + " ", down: DOWN, digest: sha256(UP), down_digest: sha256(DOWN) },
         ],
       });
@@ -159,7 +161,7 @@ describe("modules installer", () => {
       const admin = await session(c, "admin");
       const unsafe = "create table public.items (id int);";
       const bad = manifest({
-        migraciones: [
+        migrations: [
           {
             version: "1.0.0",
             up: unsafe,
@@ -190,7 +192,7 @@ describe("modules installer", () => {
       await expect(activateModule(deps(c), admin, "demo-module")).resolves.toMatchObject({
         state: "active",
       });
-      expect(await listModules(deps(c))).toHaveLength(1);
+      expect(await listModules(deps(c), admin)).toHaveLength(1);
     });
   });
 
@@ -232,10 +234,13 @@ describe("modules installer", () => {
       ).resolves.toMatchObject({ is_public: true, mcp_exposed: "read_write" });
 
       expect(await getModuleSettings(deps(c), admin, "demo-module")).toHaveLength(1);
-      const updated = await updateModuleSetting(deps(c), admin, "demo-module", {
-        key: "enabled",
-        value: false,
-      });
+      const updated = await updateModuleSetting(
+        deps(c),
+        admin,
+        "demo-module",
+        { key: "enabled", value: false },
+        "bool",
+      );
       expect(updated.value).toBe(false);
     });
   });
@@ -268,6 +273,39 @@ describe("modules installer", () => {
       expect(settings).toHaveLength(0);
       const { rows: grants } = await query(c, "select 1 from public.user_modules where module_key = 'demo-module'");
       expect(grants).toHaveLength(0);
+    });
+  });
+
+  it("filters the catalogue for non-admins and requires a transaction runner", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      const user = await session(c, "user");
+      const d = deps(c);
+      await installModule(d, admin, manifest());
+
+      expect(await listModules(d, admin)).toHaveLength(1);
+      expect(await listModules(d, user)).toHaveLength(0);
+
+      await activateModule(d, admin, "demo-module");
+      expect(await listModules(d, user)).toHaveLength(0);
+
+      await grantUserModule(d, admin, user.userId, "demo-module");
+      expect(await listModules(d, user)).toHaveLength(1);
+
+      await expect(
+        installModule({ ...d, withTransaction: undefined }, admin, manifest()),
+      ).rejects.toMatchObject({ code: "internal" });
+    });
+  });
+
+  it("rejects a setting value that does not match its declared type", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      const d = deps(c);
+      await installModule(d, admin, manifest());
+      await expect(
+        updateModuleSetting(d, admin, "demo-module", { key: "enabled", value: "yes" }, "bool"),
+      ).rejects.toMatchObject({ code: "validation_failed" });
     });
   });
 

@@ -1,3 +1,4 @@
+import { resolve, sep } from "node:path";
 import { DomainError } from "../errors";
 import type { Caller, JsonValue } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
@@ -60,18 +61,12 @@ const toIso = (value: unknown): string =>
   value instanceof Date ? value.toISOString() : String(value ?? "");
 
 async function withTx<T>(deps: ModulesDeps, fn: (db: QueryClient) => Promise<T>): Promise<T> {
-  if (!deps.withTransaction) return fn(deps.db);
-  return deps.withTransaction(async (db) => {
-    await db.query("BEGIN");
-    try {
-      const result = await fn(db);
-      await db.query("COMMIT");
-      return result;
-    } catch (err) {
-      await db.query("ROLLBACK").catch(() => undefined);
-      throw err;
-    }
-  });
+  // Module DDL must run inside a real transaction (SET LOCAL ROLE is ignored
+  // outside one). The runner owns BEGIN/COMMIT; tests run inside their own.
+  if (!deps.withTransaction) {
+    throw new DomainError("internal", "module operations require a transaction runner");
+  }
+  return deps.withTransaction(fn);
 }
 
 function isAdmin(caller: Caller): boolean {
@@ -148,13 +143,23 @@ async function getModuleRow(db: QueryClient, key: string): Promise<Record<string
   return rows[0];
 }
 
+function safePackagePath(root: string, relative: string): string {
+  const base = resolve(root);
+  const full = resolve(base, relative);
+  if (full !== base && !full.startsWith(base + sep)) {
+    throw new DomainError("validation_failed", "module file escapes its package");
+  }
+  return full;
+}
+
 async function resolveSql(deps: ModulesDeps, key: string, value: string): Promise<string> {
   if (!/^(\.\/|\/)/.test(value)) return value;
   if (!deps.readFile || !deps.moduleRoot) {
     throw new DomainError("internal", "module files are not available at runtime");
   }
   const root = deps.moduleRoot(key);
-  return deps.readFile(`${root}/${value.replace(/^\.\//, "")}`);
+  const relative = value.replace(/^\.\//, "");
+  return deps.readFile(safePackagePath(root, relative));
 }
 
 async function readDoc(
@@ -167,7 +172,7 @@ async function readDoc(
   if (!deps.readFile || !deps.moduleRoot) {
     throw new DomainError("internal", "module files are not available at runtime");
   }
-  const content = await deps.readFile(`${deps.moduleRoot(key)}/${path}`);
+  const content = await deps.readFile(safePackagePath(deps.moduleRoot(key), path));
   if (content.trim() === "") throw new DomainError("validation_failed", `empty ${label} document`);
   return content;
 }
@@ -179,7 +184,7 @@ async function verifyModuleFiles(
 ): Promise<{ up: Map<string, string>; down: Map<string, string> }> {
   const up = new Map<string, string>();
   const down = new Map<string, string>();
-  for (const migration of manifest.migraciones) {
+  for (const migration of manifest.migrations) {
     const upSql = await resolveSql(deps, manifest.key, migration.up);
     const downSql = await resolveSql(deps, manifest.key, migration.down);
     assertSafeModuleSql(upSql, manifest.key);
@@ -220,7 +225,7 @@ async function verifyModuleFiles(
     }
   }
   const eventsDoc = await readDoc(deps, manifest.key, manifest.docs.events, "events");
-  for (const event of manifest.eventos) {
+  for (const event of manifest.events) {
     if (eventsDoc && !eventsDoc.includes(event.type)) {
       throw new DomainError("validation_failed", `event ${event.type} is missing from the events docs`);
     }
@@ -290,7 +295,7 @@ export async function installModule(
       [manifest.key, manifest.name, manifest.version, manifest.is_public, digest],
     );
 
-    for (const migration of manifest.migraciones) {
+    for (const migration of manifest.migrations) {
       const sql = files.up.get(migration.version)!;
       await applySql(db, manifest.key, sql);
       await db.query(
@@ -336,9 +341,25 @@ export async function installModule(
   return toModuleView(await getModuleRow(deps.db, manifest.key));
 }
 
-export async function listModules(deps: ModulesDeps): Promise<ModuleView[]> {
+export async function listModules(deps: ModulesDeps, caller: Caller): Promise<ModuleView[]> {
+  if (isAdmin(caller)) {
+    const { rows } = await deps.db.query(
+      `select ${MODULE_COLUMNS} from public.module_registry order by name asc, key asc`,
+    );
+    return rows.map(toModuleView);
+  }
+  const userId =
+    caller.kind === "session" || caller.kind === "delegated" ? caller.userId : null;
+  if (!userId) return [];
   const { rows } = await deps.db.query(
-    `select ${MODULE_COLUMNS} from public.module_registry order by name asc, key asc`,
+    `select ${MODULE_COLUMNS} from public.module_registry m
+      where m.state = 'active'
+        and (m.is_public = true or exists (
+          select 1 from public.user_modules u
+           where u.user_id = $1 and u.module_key = m.key and u.revoked_at is null
+        ))
+      order by m.name asc, m.key asc`,
+    [userId],
   );
   return rows.map(toModuleView);
 }
@@ -471,15 +492,21 @@ export async function uninstallModule(
 
     const { rows: applied } = await db.query(
       `select version from public.module_migrations
-        where module_key = $1 and direction = 'up'
-        order by applied_at desc, version desc`,
+        where module_key = $1 and direction = 'up'`,
       [key],
     );
-    for (const row of applied) {
-      const version = String(row.version);
-      const sql = files.down.get(version);
-      if (!sql) throw new DomainError("conflict", `No down migration for version ${version}`);
+    const appliedVersions = new Set(applied.map((row) => String(row.version)));
+    // Reverse the manifest order (the order they were applied), not a text sort.
+    let reverted = 0;
+    for (const migration of [...manifest.migrations].reverse()) {
+      if (!appliedVersions.has(migration.version)) continue;
+      reverted += 1;
+      const sql = files.down.get(migration.version);
+      if (!sql) throw new DomainError("conflict", `No down migration for version ${migration.version}`);
       await applySql(db, key, sql);
+    }
+    if (reverted !== appliedVersions.size) {
+      throw new DomainError("conflict", "module has applied migrations missing from the manifest");
     }
 
     const category = categoryFor(key);
@@ -508,12 +535,57 @@ export async function getModuleSettings(
   return rows.map(toSettingView);
 }
 
+function validateSettingValue(type: string, value: unknown): void {
+  const fail = (): never => {
+    throw new DomainError("validation_failed", `value does not match the setting type ${type}`);
+  };
+  switch (type) {
+    case "int":
+      if (!Number.isInteger(value)) fail();
+      break;
+    case "bool":
+      if (typeof value !== "boolean") fail();
+      break;
+    case "string":
+      if (typeof value !== "string" || value.length > 2000) fail();
+      break;
+    case "url": {
+      if (typeof value !== "string") fail();
+      const text = String(value);
+      if (text.length > 2000) fail();
+      try {
+        new URL(text);
+      } catch {
+        fail();
+      }
+      break;
+    }
+    case "currency":
+      if (typeof value !== "string" || !/^[A-Z]{3}$/.test(value)) fail();
+      break;
+    case "locale":
+      if (typeof value !== "string" || !["en", "es", "ca", "it", "fr", "de", "pt", "gl", "eu"].includes(value)) {
+        fail();
+      }
+      break;
+    case "json": {
+      const serialized = JSON.stringify(value ?? null);
+      if (serialized.length > 20_000) fail();
+      break;
+    }
+    default:
+      fail();
+  }
+}
+
 export async function updateModuleSetting(
   deps: ModulesDeps,
   caller: Caller,
   key: string,
   input: { key: string; value: unknown },
+  type: string,
 ): Promise<ModuleSettingView> {
+  validateSettingValue(type, input.value);
   if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
   await getModuleRow(deps.db, key);
   const category = categoryFor(key);

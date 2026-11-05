@@ -16,6 +16,7 @@ import {
   updateModuleSetting,
   type ModulesDeps,
 } from "./service";
+import { validateManifest } from "./manifest";
 
 /**
  * Modules API (core-api spec §3.4). The manifest is loaded server-side from the
@@ -81,8 +82,8 @@ async function loadManifest(deps: ModulesRouteDeps, key: string): Promise<unknow
 
 export function modulesRoute(deps: ModulesRouteDeps) {
   return (req: Request): Promise<Response> =>
-    withDoor(req, readOptions(deps, ["modules:read"]), deps.door, async () => ({
-      modules: await listModules(deps.modules),
+    withDoor(req, readOptions(deps, ["modules:read"]), deps.door, async (ctx) => ({
+      modules: await listModules(deps.modules, ctx.caller),
     }));
 }
 
@@ -182,14 +183,26 @@ export function updateModuleSettingRoute(deps: ModulesRouteDeps) {
       req,
       options(deps, ["modules:manage", "settings:write"], settingSchema),
       deps.door,
-      async (ctx) => ({
-        setting: await updateModuleSetting(
-          deps.modules,
-          ctx.caller,
-          moduleKey(rawKey),
-          ctx.body as { key: string; value: unknown },
-        ),
-      }),
+      async (ctx) => {
+        const key = moduleKey(rawKey);
+        const manifest = validateManifest(await loadManifest(deps, key));
+        const body = ctx.body as { key: string; value: unknown };
+        const category = key.replace(/-/g, "_");
+        const fullKey = body.key.includes(".") ? body.key : `${category}.${body.key}`;
+        const setting = manifest.settings
+          .flatMap((group) => group.settings)
+          .find((candidate) => `${category}.${candidate.key}` === fullKey);
+        if (!setting) throw new DomainError("not_found");
+        return {
+          setting: await updateModuleSetting(
+            deps.modules,
+            ctx.caller,
+            key,
+            body,
+            setting.type,
+          ),
+        };
+      },
     );
 }
 

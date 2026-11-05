@@ -29,7 +29,7 @@ function demoManifest() {
     branding: { description: "Demo module", icon: "assets/icon.svg", color: "teal" },
     version: "1.0.0",
     is_public: false,
-    migraciones: [
+    migrations: [
       { version: "1.0.0", up: UP, down: DOWN, digest: sha256(UP), down_digest: sha256(DOWN) },
     ],
     settings: [
@@ -55,7 +55,7 @@ function demoManifest() {
     scopes: [],
     mcp_tools: [],
     channels: [],
-    eventos: [],
+    events: [],
     admin_pages: [],
     docs: { readme: "README.md", settings: "docs/settings.md" },
   };
@@ -75,12 +75,14 @@ function deps(c: ClientBase, who: Caller): ModulesRouteDeps {
     rateLimitStorage: { increment: async () => ({ count: 1 }) },
     logger: () => {},
   };
+  const db = { query: (sql: string, params: unknown[] = []) => query(c, sql, params) };
   return {
     door,
     auth: async () => who,
     manifest: async (key) => (key === "demo-module" ? demoManifest() : null),
     modules: {
-      db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
+      db,
+      withTransaction: (fn) => fn(db),
       moduleRoot: (key) => `/modules/${key}`,
       readFile,
     },

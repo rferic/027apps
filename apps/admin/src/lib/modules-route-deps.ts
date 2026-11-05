@@ -1,4 +1,4 @@
-import { getInfra, withTransactionClient } from "@/lib/api/door";
+import { getInfra, runInTransaction } from "@/lib/api/door";
 import { loadModuleManifest, moduleRoot, readModuleFile } from "@/lib/modules";
 import type { ModulesRouteDeps } from "@027apps/core/modules/api.js";
 
@@ -11,7 +11,7 @@ export async function modulesRouteDeps(): Promise<ModulesRouteDeps> {
     manifest: loadModuleManifest,
     modules: {
       db: settingsDeps.db,
-      withTransaction: withTransactionClient,
+      withTransaction: runInTransaction,
       readFile: readModuleFile,
       moduleRoot,
       ...(settingsDeps.encryption ? { encryption: settingsDeps.encryption } : {}),

@@ -187,7 +187,7 @@ function logger(entry: LogEntry): void {
  * into the settings and currencies services, so their check-then-write
  * sequences are atomic in production and not only under the test harnesses.
  */
-async function runInTransaction<T>(
+export async function runInTransaction<T>(
   fn: (db: { query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }> }) => Promise<T>,
 ): Promise<T> {
   const { pool } = await getInfra();
