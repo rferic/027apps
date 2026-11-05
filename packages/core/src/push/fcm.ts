@@ -114,9 +114,13 @@ export function createFcmPush(
   return {
     async send(tokens, data) {
       const results: { token: string; error?: "UNREGISTERED" | "INVALID_ARGUMENT" | "RETRY" }[] = [];
+      // Bound concurrency: 500 is the batch size, not the in-flight request count.
       for (let offset = 0; offset < tokens.length; offset += 500) {
         const batch = tokens.slice(offset, offset + 500);
-        results.push(...(await Promise.all(batch.map((token) => sendOne(token, data)))));
+        for (let i = 0; i < batch.length; i += 20) {
+          const chunk = batch.slice(i, i + 20);
+          results.push(...(await Promise.all(chunk.map((token) => sendOne(token, data)))));
+        }
       }
       return results;
     },

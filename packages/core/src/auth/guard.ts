@@ -41,7 +41,7 @@ const ADMIN_SCOPES = [
 
 const SUPER_ADMIN_SCOPES = [...ADMIN_SCOPES, 'users:deactivate'] as const;
 
-// Instance-key-only actions: a super_admin session cannot run maintenance.
+// Instance-key-only actions: maintenance:run is service-key only; sessions lack it.
 const SERVICE_SUPER_ADMIN_SCOPES = [...SUPER_ADMIN_SCOPES, 'maintenance:run'] as const;
 
 const SESSION_SCOPES: Record<'super_admin' | 'admin' | 'user', readonly string[]> = {

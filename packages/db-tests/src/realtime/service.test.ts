@@ -148,6 +148,52 @@ describe("event outbox", () => {
     });
   });
 
+  it("validates the emitting module for channel events", async () => {
+    await inRollback(async (c) => {
+      const moduleKey = `demo-${Date.now()}`;
+      await query(
+        c,
+        "insert into public.module_registry (key, name, version, state, manifest_digest) values ($1, $1, '1.0.0', 'active', 'sha256:0000000000000000000000000000000000000000000000000000000000000000')",
+        [moduleKey],
+      );
+      const otherKey = `other-${Date.now()}`;
+      await query(
+        c,
+        "insert into public.module_registry (key, name, version, state, manifest_digest) values ($1, $1, '1.0.0', 'active', 'sha256:0000000000000000000000000000000000000000000000000000000000000000')",
+        [otherKey],
+      );
+      await query(c, "insert into public.module_channels (module_key, pattern, members_fn) values ($1, 'expense-group-{id}', 'test_members')", [moduleKey]);
+      const topic = `expense-group-${crypto.randomUUID()}`;
+      const messages: { topic: string }[] = [];
+      const deps: RealtimeDeps = {
+        db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
+        realtime: {
+          publish: async (topicValue) => {
+            messages.push({ topic: topicValue });
+          },
+        },
+      };
+
+      await enqueueEvent(deps.db, {
+        type: "expense.created",
+        target: `channel:${topic}`,
+        module_key: otherKey,
+        resource: { id: "1" },
+      });
+      expect((await publishPending(deps)).published).toBe(0);
+
+      await query(c, "delete from public.event_outbox");
+      await enqueueEvent(deps.db, {
+        type: "expense.created",
+        target: `channel:${topic}`,
+        module_key: moduleKey,
+        resource: { id: "1" },
+      });
+      expect((await publishPending(deps)).published).toBe(1);
+      expect(messages[0]!.topic).toBe(topic);
+    });
+  });
+
   it("fails closed when the realtime transport is not configured", async () => {
     await inRollback(async (c) => {
       const deps: RealtimeDeps = {
@@ -155,7 +201,7 @@ describe("event outbox", () => {
       };
       await enqueueEvent(deps.db, { type: "settings.updated", target: "admins", resource: {} });
       expect(await publishPending(deps)).toEqual({ published: 0, retried: 1, failed: 0 });
-      expect(wireEvent({ type: "x", target: "admins", resource: { a: 1 }, payload: null, event_id: "1", request_id: null, module_key: null, subject_id: null, attempts: 0, notify: null })).toEqual({
+      expect(wireEvent({ type: "x", target: "admins", resource: { a: 1 }, payload: null, event_id: "1", request_id: null, module_key: null, subject_id: null, attempts: 0, notify: null, hook_applied: null })).toEqual({
         type: "x",
         resource: { a: 1 },
       });

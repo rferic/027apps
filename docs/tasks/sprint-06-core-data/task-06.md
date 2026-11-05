@@ -23,5 +23,7 @@ plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 - **Eventos del Core**: `user.deactivated`, `module.installed/activated/deactivated/uninstalled`, `invitation.created/redeemed` y `settings.updated` se insertan **en la misma transacción** del caso de uso; el wire nunca lleva `target`.
 - **Tests**: 5 de outbox (wire, sujeto, push + revocación, backoff/failed, canal inválido, transporte ausente), 4 de mantenimiento (purgas, lease/cooldown, allowlist/permisos, estado), 3 de API, 3 de aislamiento `core_can_subscribe`/`realtime.messages` y aserciones de eventos en users/modules/invitations/settings.
 - **Diferido**: implementación de hooks concretos de módulos (puerto inyectado), `api_keys.anonymize`, y la **verificación end-to-end de FCM** (service account real + dispositivo + push con app cerrada), bloqueada hasta disponer de credenciales del usuario.
-- **Verde**: lint ✓, tsc ✓, core 125, admin 77, db-tests 194, build ✓.
-- **Pendiente para `finalizada`**: QA + auditoría OWASP y la verificación FCM del usuario.
+- **Correcciones tras auditoría**: lease vencido reclamado (`timeout`, con test) para no bloquear jobs; `resolveTopic`/`recipients` exigen que el canal pertenezca al **módulo emisor** (test con módulo ajeno); `core_can_subscribe` acepta cualquier placeholder (migración 0013); `members_fn` roto degrada push en lugar de reintentar el evento; `hook_applied` filtra módulos ya aplicados; FCM limita concurrencia a 20 peticiones por lote. El wire se mantiene `{type, resource, payload}` por contrato.
+- **Verde**: lint ✓, tsc ✓, core 125, admin 77, db-tests 196, build ✓.
+- **Auditorías**: QA/OWASP → APROBADA CON CAMBIOS (medios corregidos y con tests; nota futura sobre `event_id` en el wire). Estilo → APROBADA CON CAMBIOS (0013 documentada como migración incremental).
+- **Pendiente para `finalizada`**: CI del PR y la verificación FCM del usuario (bloqueada por credenciales).

@@ -70,6 +70,19 @@ describe("maintenance", () => {
     });
   });
 
+  it("reclaims a stale lease instead of blocking forever", async () => {
+    await inRollback(async (c) => {
+      await query(
+        c,
+        "insert into public.maintenance_runs (job, status, lease_until) values ('rate_limit.purge', 'running', now() - interval '1 minute')",
+      );
+      const results = await runMaintenance(deps(c), instanceKey, ["rate_limit.purge"]);
+      expect(results[0]!.status).toBe("ok");
+      const { rows } = await query(c, "select status from public.maintenance_runs where job = 'rate_limit.purge' and status = 'timeout'");
+      expect(rows).toHaveLength(1);
+    });
+  });
+
   it("rejects unknown jobs and non-instance callers", async () => {
     await inRollback(async (c) => {
       await expect(runMaintenance(deps(c), instanceKey, ["not.a.job"])).rejects.toMatchObject({

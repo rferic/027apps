@@ -45,6 +45,7 @@ export type OutboxEvent = {
   payload: JsonValue | null;
   notify: string[] | null;
   attempts: number;
+  hook_applied: string[] | null;
 };
 
 export type OutboxInput = {
@@ -111,8 +112,9 @@ async function resolveTopic(db: QueryClient, event: OutboxEvent): Promise<string
        from public.module_channels c
        join public.module_registry m on m.key = c.module_key
       where m.state = 'active'
-        and $1 ~ ('^' || replace(c.pattern, '{id}', '[0-9a-f-]{36}') || '$')`,
-    [topic],
+        and c.module_key = $2
+        and $1 ~ ('^' || regexp_replace(c.pattern, '\\{[a-z_]+\\}', '[0-9a-f-]{36}', 'g') || '$')`,
+    [topic, event.module_key],
   );
   if (!rows[0]) throw new DomainError("validation_failed", "event channel is not active");
   return topic;
@@ -149,21 +151,27 @@ async function recipients(db: QueryClient, event: OutboxEvent): Promise<string[]
       `select c.members_fn from public.module_channels c
         join public.module_registry m on m.key = c.module_key
        where m.state = 'active'
-         and $1 ~ ('^' || replace(c.pattern, '{id}', '[0-9a-f-]{36}') || '$')
+         and c.module_key = $2
+         and $1 ~ ('^' || regexp_replace(c.pattern, '\\{[a-z_]+\\}', '[0-9a-f-]{36}', 'g') || '$')
        limit 1`,
-      [topic],
+      [topic, event.module_key],
     );
     const fn = channels[0]?.members_fn;
     if (!fn || !/^[a-z][a-z0-9_]{0,62}$/.test(String(fn))) return [];
-    ({ rows } = await db.query(
-      `select distinct d.push_token
-         from public.devices d
-         join public.profiles p on p.id = d.user_id
-        where p.deactivated_at is null
-          and d.push_token is not null and d.revoked_at is null
-          and d.user_id in (select member from public.${String(fn)}($1) as t(member))`,
-      [topic],
-    ));
+    try {
+      ({ rows } = await db.query(
+        `select distinct d.push_token
+           from public.devices d
+           join public.profiles p on p.id = d.user_id
+          where p.deactivated_at is null
+            and d.push_token is not null and d.revoked_at is null
+            and d.user_id in (select member from public.${String(fn)}($1) as t(member))`,
+        [topic],
+      ));
+    } catch {
+      // A broken members_fn degrades push delivery instead of failing the event.
+      rows = [];
+    }
   }
   return rows.map((row) => String(row.push_token));
 }
@@ -218,7 +226,7 @@ export async function publishPending(
          for update skip locked
       )
       returning event_id, request_id, module_key, type, target, subject_id, resource,
-                payload, notify, attempts`,
+                payload, notify, attempts, hook_applied`,
     [limit],
   );
 
@@ -228,7 +236,8 @@ export async function publishPending(
   const maxAttempts = deps.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
 
   for (const row of rows) {
-    const event = row as unknown as OutboxEvent;
+    // `attempts` already includes the increment made by the claim above.
+    const event = row as OutboxEvent;
     try {
       const topic = await resolveTopic(deps.db, event);
       if (!deps.realtime) throw new Error("realtime transport is not configured");
@@ -236,12 +245,15 @@ export async function publishPending(
 
       if (deps.hooks) {
         const applied = await deps.hooks.run(event);
-        if (applied.length > 0) {
+        const newlyApplied = applied.filter(
+          (moduleKey) => !(event.hook_applied ?? []).includes(moduleKey),
+        );
+        if (newlyApplied.length > 0) {
           await deps.db.query(
             `update public.event_outbox
                 set hook_applied = coalesce(hook_applied, '{}') || $2::text[]
               where event_id = $1`,
-            [event.event_id, applied],
+            [event.event_id, newlyApplied],
           );
         }
       }

@@ -39,6 +39,13 @@ function canRun(caller: Caller): boolean {
 }
 
 async function acquireLease(db: QueryClient, job: string): Promise<string | null> {
+  // A crashed runner must not leave a permanent lease behind.
+  await db.query(
+    `update public.maintenance_runs
+        set status = 'timeout', finished_at = null, lease_until = null
+      where job = $1 and status = 'running' and lease_until < now()`,
+    [job],
+  );
   const { rows } = await db.query(
     `insert into public.maintenance_runs (job, status, lease_until)
      values ($1, 'running', now() + interval '5 minutes')
