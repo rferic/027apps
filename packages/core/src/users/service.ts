@@ -213,6 +213,16 @@ export async function deactivateUser(
       "update public.profiles set deactivated_at = coalesce(deactivated_at, now()), updated_at = now() where id = $1",
       [id],
     );
+    // Deactivation revokes machine access immediately: live credential checks
+    // reject revoked keys, and devices stop receiving pushes.
+    await db.query(
+      "update public.api_keys set revoked_at = coalesce(revoked_at, now()) where user_id = $1 and revoked_at is null",
+      [id],
+    );
+    await db.query(
+      "update public.devices set revoked_at = coalesce(revoked_at, now()) where user_id = $1 and revoked_at is null",
+      [id],
+    );
     return getUserFrom(db, id);
   });
 }

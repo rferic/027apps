@@ -26,9 +26,21 @@ export interface ProfilesPort {
   isActive(userId: string): Promise<boolean>;
 }
 
+/** Resolves a machine token (service/delegated) live from the database. */
+export interface ApiKeyTokenPort {
+  resolve(token: string): Promise<{
+    id: string;
+    kind: 'service' | 'delegated';
+    scopes: string[];
+    roleCap: 'admin' | 'super_admin' | null;
+    userId: string | null;
+  } | null>;
+}
+
 export interface CallerResolverDeps {
   supabase: SupabaseSessionClient;
   profiles: ProfilesPort;
+  apiKeys?: ApiKeyTokenPort;
 }
 
 export async function resolveCaller(req: Request, deps: CallerResolverDeps): Promise<Caller> {
@@ -38,6 +50,31 @@ export async function resolveCaller(req: Request, deps: CallerResolverDeps): Pro
   }
 
   const token = authHeader.slice('Bearer '.length).trim();
+
+  // Machine tokens: revocation and expiry are checked on every request, so a
+  // revoked key stops working on the very next call (tokens spec §5/§6).
+  if (token.startsWith('027_svc_') || token.startsWith('027_usr_')) {
+    const key = await deps.apiKeys?.resolve(token);
+    if (!key) throw new DomainError('unauthorized', 'Invalid, revoked or expired API key');
+    if (key.kind === 'service') {
+      if (!key.roleCap) throw new DomainError('unauthorized', 'Service key without a role cap');
+      return { kind: 'service', keyId: key.id, scopes: key.scopes, roleCap: key.roleCap };
+    }
+    if (!key.userId) throw new DomainError('unauthorized', 'Delegated key without a user');
+    const [role, active] = await Promise.all([
+      deps.profiles.getRole(key.userId),
+      deps.profiles.isActive(key.userId),
+    ]);
+    if (!role || !active) throw new DomainError('unauthorized', 'Profile missing or deactivated');
+    return {
+      kind: 'delegated',
+      keyId: key.id,
+      scopes: key.scopes,
+      roleCap: role,
+      userId: key.userId,
+    };
+  }
+
   const { data, error } = await deps.supabase.getUser(token);
   if (error || !data.user) {
     throw new DomainError('unauthorized', error?.message ?? 'Invalid session token');

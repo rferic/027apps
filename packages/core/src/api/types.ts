@@ -9,7 +9,7 @@ export type Caller =
       kind: 'delegated';
       keyId: string;
       scopes: string[];
-      roleCap: 'admin' | 'super_admin';
+      roleCap: 'user' | 'admin' | 'super_admin';
       userId: string;
     }
   | { kind: 'anon' };
