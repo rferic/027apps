@@ -1,4 +1,5 @@
 import { DomainError } from "../errors";
+import { enqueueEvent } from "../realtime/service";
 import type { Caller } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
 
@@ -223,6 +224,13 @@ export async function deactivateUser(
       "update public.devices set revoked_at = coalesce(revoked_at, now()) where user_id = $1 and revoked_at is null",
       [id],
     );
-    return getUserFrom(db, id);
+    const view = await getUserFrom(db, id);
+    await enqueueEvent(db, {
+      type: "user.deactivated",
+      target: "admins",
+      resource: view,
+      payload: { reason: null },
+    });
+    return view;
   });
 }

@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { DomainError } from "../errors";
+import { enqueueEvent } from "../realtime/service";
 import type { Caller } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
 
@@ -213,6 +214,18 @@ export async function createInvitation(
         [id, modules],
       );
     }
+    await enqueueEvent(db, {
+      type: "invitation.created",
+      target: "admins",
+      resource: {
+        email: normalizeEmail(input.email),
+        name: input.name.trim(),
+        user_category_id: input.user_category_id ?? null,
+        modules,
+        status: "pending",
+        expires_at: expiresAt.toISOString(),
+      },
+    });
     return id;
   });
 
@@ -367,6 +380,12 @@ export async function redeemInvitation(
         "update public.invitations set used_at = now() where id = $1 and used_at is null",
         [invitationId],
       );
+      await enqueueEvent(db, {
+        type: "invitation.redeemed",
+        target: "admins",
+        resource: { id: invitationId, email: String(invitation.email), name: String(invitation.name) },
+        payload: { user_id: userId },
+      });
 
       // Existing accounts keep their stored name; new ones use the invite name.
       const { rows: profileRows } = await db.query(

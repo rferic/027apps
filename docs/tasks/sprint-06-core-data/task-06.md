@@ -2,7 +2,7 @@
 id: sprint-06-task-06
 titulo: Realtime, outbox, push y mantenimiento
 area: core
-estado: pendiente
+estado: test
 adrs: [0004, 0006, 0007]
 plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 ---
@@ -12,3 +12,16 @@ plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 **TDD**: casos de contrato de puerta (scopes/403, representación) + caso de uso (invariantes), y los casos negativos de la checklist de seguridad aplicables.
 
 **DoD**: DoD de Código (TDD, lint/tsc/test/build, CI), ADRs declarados, QA con ojos nuevos y **auditoría OWASP** (checklist `security-checklist.md`).
+
+## Bitácora (2026-11-05)
+
+- **Migración** `0012_realtime_outbox_jobs.sql`: `module_channels`, `event_outbox` (claim/backoff/hooks) y `maintenance_runs` (lease único por job). Función `core_can_subscribe(topic)` `security definer` con fallo cerrado y **una sola política** en `realtime.messages` (`admins`/`all`/`user-<uuid>`/canales de módulo con `members_fn` y módulo `active`). Rol `core_cron` con `SELECT`/`DELETE` solo en tablas purgables y políticas RLS propias.
+- **Outbox** (`packages/core/src/realtime/service.ts`): `enqueueEvent` valida `target` y exige sujeto en `user`; `publishPending` reclama por lote, valida topic y módulo activo, publica el **wire sin `target`**, ejecuta hooks por puerto y envía push (destinatarios `admins`/`all`/`user`/canal), marca `published` o reintenta con backoff hasta `failed` tras 8 intentos. `UNREGISTERED`/`INVALID_ARGUMENT` revoca el dispositivo.
+- **Push** (`packages/core/src/push/fcm.ts`): FCM HTTP v1 **data-only** con OAuth2 desde la service account (cifrada en settings), lotes ≤500, degradación sin configuración (`null`/sin enviar). La app localiza por clave.
+- **Mantenimiento** (`packages/core/src/maintenance/{service,api}.ts`): allowlist cerrada, lease atómico (`on conflict … where status='running'`), cooldown 60 s, purgas como `core_cron`, `/maintenance/run` (solo clave service con `role_cap=super_admin`, delegadas 403) y `/maintenance/status` (sesión super_admin).
+- **Canales de módulo**: el instalador persiste `manifest.channels` en `module_channels`; uninstall los borra por cascada.
+- **Eventos del Core**: `user.deactivated`, `module.installed/activated/deactivated/uninstalled`, `invitation.created/redeemed` y `settings.updated` se insertan **en la misma transacción** del caso de uso; el wire nunca lleva `target`.
+- **Tests**: 5 de outbox (wire, sujeto, push + revocación, backoff/failed, canal inválido, transporte ausente), 4 de mantenimiento (purgas, lease/cooldown, allowlist/permisos, estado), 3 de API, 3 de aislamiento `core_can_subscribe`/`realtime.messages` y aserciones de eventos en users/modules/invitations/settings.
+- **Diferido**: implementación de hooks concretos de módulos (puerto inyectado), `api_keys.anonymize`, y la **verificación end-to-end de FCM** (service account real + dispositivo + push con app cerrada), bloqueada hasta disponer de credenciales del usuario.
+- **Verde**: lint ✓, tsc ✓, core 125, admin 77, db-tests 194, build ✓.
+- **Pendiente para `finalizada`**: QA + auditoría OWASP y la verificación FCM del usuario.

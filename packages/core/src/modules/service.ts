@@ -1,5 +1,6 @@
 import { resolve, sep } from "node:path";
 import { DomainError } from "../errors";
+import { enqueueEvent } from "../realtime/service";
 import type { Caller, JsonValue } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
 import {
@@ -294,6 +295,19 @@ export async function installModule(
        values ($1, $2, $3, 'installed', $4, 'read', $5)`,
       [manifest.key, manifest.name, manifest.version, manifest.is_public, digest],
     );
+    for (const channel of manifest.channels) {
+      await db.query(
+        "insert into public.module_channels (module_key, pattern, members_fn) values ($1, $2, $3)",
+        [manifest.key, channel.pattern, channel.members_fn],
+      );
+    }
+    await enqueueEvent(db, {
+      type: "module.installed",
+      target: "admins",
+      module_key: manifest.key,
+      resource: { key: manifest.key, name: manifest.name, version: manifest.version, state: "installed" },
+      payload: { version: manifest.version },
+    });
 
     for (const migration of manifest.migrations) {
       const sql = files.up.get(migration.version)!;
@@ -440,16 +454,26 @@ async function transition(
   from: ModuleState[],
 ): Promise<ModuleView> {
   if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
-  const { rows } = await deps.db.query(
-    `update public.module_registry
-        set state = $1, updated_at = now()
-      where key = $2 and state = any($3::text[])
-      returning ${MODULE_COLUMNS}`,
-    [target, key, from],
-  );
-  if (rows[0]) return toModuleView(rows[0]);
-  const row = await getModuleRow(deps.db, key);
-  throw new DomainError("conflict", `Cannot move the module from ${String(row.state)} to ${target}`);
+  return withTx(deps, async (db) => {
+    const { rows } = await db.query(
+      `update public.module_registry
+          set state = $1, updated_at = now()
+        where key = $2 and state = any($3::text[])
+        returning ${MODULE_COLUMNS}`,
+      [target, key, from],
+    );
+    if (rows[0]) {
+      await enqueueEvent(db, {
+        type: target === "active" ? "module.activated" : "module.deactivated",
+        target: "admins",
+        module_key: key,
+        resource: toModuleView(rows[0]),
+      });
+      return toModuleView(rows[0]);
+    }
+    const row = await getModuleRow(db, key);
+    throw new DomainError("conflict", `Cannot move the module from ${String(row.state)} to ${target}`);
+  });
 }
 
 export function activateModule(deps: ModulesDeps, caller: Caller, key: string): Promise<ModuleView> {
@@ -514,6 +538,11 @@ export async function uninstallModule(
     await db.query("delete from public.settings_categories where source = $1", [`module:${key}`]);
     await db.query("delete from public.translations where source = $1", [`module:${key}`]);
     await db.query("delete from public.module_registry where key = $1", [key]);
+    await enqueueEvent(db, {
+      type: "module.uninstalled",
+      target: "admins",
+      resource: { key },
+    });
   });
 }
 

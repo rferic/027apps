@@ -41,6 +41,9 @@ const ADMIN_SCOPES = [
 
 const SUPER_ADMIN_SCOPES = [...ADMIN_SCOPES, 'users:deactivate'] as const;
 
+// Instance-key-only actions: a super_admin session cannot run maintenance.
+const SERVICE_SUPER_ADMIN_SCOPES = [...SUPER_ADMIN_SCOPES, 'maintenance:run'] as const;
+
 const SESSION_SCOPES: Record<'super_admin' | 'admin' | 'user', readonly string[]> = {
   super_admin: SUPER_ADMIN_SCOPES,
   admin: ADMIN_SCOPES,
@@ -50,7 +53,7 @@ const SESSION_SCOPES: Record<'super_admin' | 'admin' | 'user', readonly string[]
 const ROLE_CAP_FLOOR: Record<'user' | 'admin' | 'super_admin', readonly string[]> = {
   user: USER_SCOPES,
   admin: ADMIN_SCOPES,
-  super_admin: SUPER_ADMIN_SCOPES,
+  super_admin: SERVICE_SUPER_ADMIN_SCOPES,
 };
 
 export function authorize(caller: Caller, scopes: readonly string[]): Caller {

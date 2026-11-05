@@ -112,6 +112,12 @@ describe("users service — deactivation", () => {
       const user = await deactivateUser(deps(c), caller("super_admin"), id);
 
       expect(user.deactivated_at).not.toBeNull();
+      const { rows } = await query(
+        c,
+        "select type, target from public.event_outbox where type = 'user.deactivated' and resource->>'id' = $1",
+        [id],
+      );
+      expect(rows).toEqual([{ type: "user.deactivated", target: "admins" }]);
     });
   });
 

@@ -133,6 +133,9 @@ describe("modules installer", () => {
       );
       expect(migrations).toEqual([{ version: "1.0.0", direction: "up" }]);
 
+      const { rows: event } = await query(c, "select type, target from public.event_outbox where type = 'module.installed'");
+      expect(event).toEqual([{ type: "module.installed", target: "admins" }]);
+
       await expect(installModule(deps(c), admin, manifest())).rejects.toMatchObject({
         code: "conflict",
       });

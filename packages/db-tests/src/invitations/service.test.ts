@@ -137,6 +137,7 @@ async function category(c: ClientBase, adminId: string, name = "Familia"): Promi
 describe("invitations service", () => {
   it("stores only the token hash and lists a pending invitation with its modules", async () => {
     await inRollback(async (c) => {
+      await query(c, "delete from public.event_outbox");
       const who = await admin(c);
       const auth = authPort(c);
       const inv = await createInvitation(deps(c, auth.port), who, {
@@ -159,6 +160,9 @@ describe("invitations service", () => {
       expect(listed).toHaveLength(1);
       expect(listed[0]).not.toHaveProperty("token");
       expect(listed[0]!.modules).toEqual(["balances", "expenses"]);
+
+      const { rows: event } = await query(c, "select type, target from public.event_outbox where type = 'invitation.created'");
+      expect(event).toEqual([{ type: "invitation.created", target: "admins" }]);
     });
   });
 
@@ -405,6 +409,10 @@ describe("invitations service", () => {
       await withClient(async (c) => {
         await c.query("delete from public.invitations where email = $1", [inviteEmail]);
         const ids = [adminId, ...live.created].filter(Boolean);
+        await c.query(
+          "delete from public.event_outbox where resource->>'email' = $1 or payload->>'user_id' = any($2::text[])",
+          [inviteEmail, ids],
+        );
         await c.query("delete from public.profiles where id = any($1::uuid[])", [ids]);
         await c.query("delete from auth.users where id = any($1::uuid[])", [ids]);
       });
