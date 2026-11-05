@@ -1,0 +1,122 @@
+import { z } from "zod";
+import { withDoor } from "../api/door";
+import { DomainError } from "../errors";
+import type { Caller, CorsOptions, DoorDeps } from "../api/types";
+import { SUPPORTED_LOCALES } from "../settings/catalog";
+import {
+  deactivateUser,
+  getUser,
+  listUsers,
+  updateUser,
+  type UserPatch,
+  type UsersDeps,
+} from "./service";
+
+/**
+ * Users API (core-api spec §3.2): reads for admins, profile edits with
+ * `users:write`, role changes with `roles:assign` (admins never touch a
+ * super_admin), soft deactivation with `users:deactivate` (super_admin only).
+ */
+export interface UsersRouteDeps {
+  door: DoorDeps;
+  auth: (req: Request) => Promise<Caller>;
+  users: UsersDeps;
+  cors?: CorsOptions;
+  rateLimits?: { read?: number; write?: number };
+}
+
+const localeSchema = z.enum([...SUPPORTED_LOCALES] as [string, ...string[]]);
+const timezoneSchema = z
+  .string()
+  .refine((tz) => Intl.supportedValuesOf("timeZone").includes(tz), "not a valid IANA timezone");
+
+const patchSchema = z
+  .object({
+    display_name: z.string().min(1).max(80).optional(),
+    locale: localeSchema.optional(),
+    timezone: timezoneSchema.optional(),
+    role: z.enum(["super_admin", "admin", "user"]).optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, { message: "at least one field is required" });
+
+function pageParams(searchParams: URLSearchParams): { q?: string; limit: number; offset: number } {
+  const q = searchParams.get("q")?.trim() || undefined;
+  if (q && q.length > 100) throw new DomainError("validation_failed", "q is too long");
+  const rawLimit = Number(searchParams.get("limit") ?? 50);
+  const rawOffset = Number(searchParams.get("offset") ?? 0);
+  const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, rawLimit)) : 50;
+  const offset = Number.isFinite(rawOffset) ? Math.max(0, rawOffset) : 0;
+  return { q, limit, offset };
+}
+
+/** GET /api/v1/users — list with `q`, `limit`, `offset`. */
+export function usersRoute(deps: UsersRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:read"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user", limit: deps.rateLimits?.read ?? 120 },
+      },
+      deps.door,
+      async (ctx) => {
+        const page = pageParams(ctx.searchParams);
+        const result = await listUsers(deps.users, page);
+        return { ...result, limit: page.limit, offset: page.offset };
+      },
+    );
+}
+
+/** GET /api/v1/users/{id} — user detail. */
+export function userRoute(deps: UsersRouteDeps) {
+  return (req: Request, id: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:read"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user", limit: deps.rateLimits?.read ?? 120 },
+      },
+      deps.door,
+      async () => ({ user: await getUser(deps.users, id) }),
+    );
+}
+
+/** PATCH /api/v1/users/{id} — profile fields and, with `roles:assign`, role. */
+export function updateUserRoute(deps: UsersRouteDeps) {
+  return (req: Request, id: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        schema: patchSchema,
+        rateLimit: { identity: "user", limit: deps.rateLimits?.write ?? 10 },
+      },
+      deps.door,
+      async (ctx) => ({
+        user: await updateUser(deps.users, ctx.caller, id, ctx.body as UserPatch),
+      }),
+    );
+}
+
+/** DELETE /api/v1/users/{id} — soft deactivation (super_admin only). */
+export function deactivateUserRoute(deps: UsersRouteDeps) {
+  return (req: Request, id: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:deactivate"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user", limit: deps.rateLimits?.write ?? 10 },
+      },
+      deps.door,
+      async (ctx) => ({ user: await deactivateUser(deps.users, ctx.caller, id) }),
+    );
+}

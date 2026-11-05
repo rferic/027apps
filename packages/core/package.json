@@ -25,7 +25,8 @@
     "./i18n/etag.js": "./src/i18n/etag.ts",
     "./i18n/api.js": "./src/i18n/api.ts",
     "./sentry.js": "./src/sentry.ts",
-    "./observability/*.js": "./src/observability/*.ts"
+    "./observability/*.js": "./src/observability/*.ts",
+    "./users/*.js": "./src/users/*.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
