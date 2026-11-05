@@ -182,6 +182,18 @@ async function readBody(req: Request, options: DoorOptions): Promise<unknown> {
     text = await readBodyText(req);
   }
 
+  // Bodyless POST/PATCH/PUT (e.g. adding an existing member) are legitimate:
+  // an empty payload reaches the handler as `undefined`, so the route decides
+  // whether it accepts it. Malformed JSON still fails closed.
+  if (text.trim() === '') {
+    if (!options.schema) return undefined;
+    const parsedEmpty = options.schema.safeParse(undefined);
+    if (!parsedEmpty.success) {
+      throw new DomainError('validation_failed', 'Validation failed', parsedEmpty.error.flatten());
+    }
+    return parsedEmpty.data;
+  }
+
   let raw: unknown;
   try {
     raw = JSON.parse(text);

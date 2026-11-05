@@ -67,10 +67,16 @@ async function withTx<T>(
   });
 }
 
-async function modulesFor(db: QueryClient): Promise<Map<string, string[]>> {
-  const { rows } = await db.query(
-    "select user_category_id, module_key from public.user_category_modules order by module_key asc",
-  );
+async function modulesFor(db: QueryClient, categoryId?: string): Promise<Map<string, string[]>> {
+  const { rows } = categoryId
+    ? await db.query(
+        `select user_category_id, module_key from public.user_category_modules
+          where user_category_id = $1 order by module_key asc`,
+        [categoryId],
+      )
+    : await db.query(
+        "select user_category_id, module_key from public.user_category_modules order by module_key asc",
+      );
   const map = new Map<string, string[]>();
   for (const row of rows) {
     const id = String(row.user_category_id);
@@ -123,7 +129,7 @@ export async function getCategory(deps: UserCategoriesDeps, id: string): Promise
       order by p.display_name asc, p.id asc`,
     [id],
   );
-  const modules = await modulesFor(deps.db);
+  const modules = await modulesFor(deps.db, id);
   return {
     id: String(row.id),
     name: String(row.name),
@@ -218,7 +224,11 @@ export async function addMember(
   await deps.db.query(
     "insert into public.user_category_members (user_category_id, user_id) values ($1, $2) on conflict do nothing",
     [categoryId, userId],
-  );
+  ).catch((err: { code?: string }) => {
+    // The category or the profile vanished between the check and the insert.
+    if (err.code === "23503") throw new DomainError("not_found");
+    throw err;
+  });
 }
 
 export async function removeMember(

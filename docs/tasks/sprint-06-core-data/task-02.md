@@ -19,7 +19,8 @@ plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 - **Core** (`packages/core/src/user-categories/{service,api}.ts`): CRUD de categorías, miembros y plantilla de módulos. Semántica A2: asignar un módulo **materializa** `user_modules` para los miembros actuales en una transacción, es idempotente y **no resucita** concesiones revocadas (`on conflict do nothing`); desasignar o expulsar **no revoca** concesiones; borrar una categoría con módulos → `conflict`. Slug único generado del nombre (o explícito).
 - **Guard**: scopes `user_categories:read/write`, `modules:read`, `modules:grant` (admin y super_admin); las rutas de gestión exigen `is_admin`.
 - **Rutas admin**: `/api/v1/user-categories`, `/{id}`, `/{id}/members/{userId}`, `/{id}/modules`, `/{id}/modules/{key}`, finas sobre `withDoor` (zod estricto, 401/403, 201/204).
-- **Tests**: 5 de servicio + 3 de API (materialización a miembros actuales, no herencia de nuevos, no resurrección, desasignar no revoca, borrado bloqueado).
-- **Verde**: lint ✓, tsc ✓, core 112, admin 77, db-tests 115, build ✓.
+- **Tests**: 5 de servicio + 3 de API (materialización a miembros actuales, no herencia de nuevos, no resurrección, desasignar no revoca, borrado bloqueado) + 5 de aislamiento RLS (miembro solo lee su etiqueta y sus concesiones; usuario no crea/renombra/borra/entra; admin gestiona; `anon` sin privilegios) + 2 de puerta para POST sin cuerpo.
+- **Verde**: lint ✓, tsc ✓, core 114, admin 77, db-tests 120, build ✓.
 - **Diferido**: `/me/modules` y la lectura de la etiqueta por el miembro vía API (sprint-web/task-05), y las FK de módulo.
-- **Pendiente para `finalizada`**: QA + auditoría OWASP.
+- **Correcciones tras auditoría**: POST sin cuerpo aceptado por la puerta (`undefined` → schema opcional) para `POST .../members/{userId}` y `.../modules/{key}`; `getCategory` consulta solo los módulos de su categoría; la carrera categoría/perfil borrados al añadir miembro se mapea a `not_found` (23503); suite RLS de aislamiento añadida.
+- **Auditorías**: QA/OWASP y estilo ejecutadas con agente distinto; sin hallazgos críticos ni altos. Pendiente veredicto final sobre el diff corregido.

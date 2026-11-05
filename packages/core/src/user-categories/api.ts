@@ -34,7 +34,7 @@ const MODULE_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
 const createSchema = z.object({ name: NAME, slug: SLUG.optional() }).strict();
 const renameSchema = z.object({ name: NAME }).strict();
-const emptySchema = z.object({}).strict();
+const emptySchema = z.object({}).strict().optional();
 
 function moduleKey(value: string): string {
   if (!MODULE_KEY.test(value)) throw new DomainError("validation_failed", "invalid module key");

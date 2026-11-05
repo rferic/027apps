@@ -81,7 +81,7 @@ describe("user-categories API", () => {
       expect(((await listed.json()) as { categories: unknown[] }).categories).toHaveLength(1);
 
       const memberRes = await addCategoryMemberRoute(route)(
-        new Request("http://local/api/v1/user-categories/x/members/y", post()),
+        new Request("http://local/api/v1/user-categories/x/members/y", { method: "POST" }),
         category.id,
         member.id,
       );
