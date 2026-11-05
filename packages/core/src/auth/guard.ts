@@ -11,13 +11,13 @@ import { DomainError } from '../errors';
 import type { Caller } from '../api/types';
 
 const SESSION_SCOPES: Record<'super_admin' | 'admin' | 'user', readonly string[]> = {
-  super_admin: ['profile:read', 'profile:write', 'users:read', 'users:write', 'roles:assign', 'users:deactivate', 'settings:read', 'settings:write', 'currencies:read', 'currencies:write'],
-  admin: ['profile:read', 'profile:write', 'users:read', 'users:write', 'roles:assign', 'settings:read', 'settings:write', 'currencies:read', 'currencies:write'],
+  super_admin: ['profile:read', 'profile:write', 'users:read', 'users:write', 'roles:assign', 'users:deactivate', 'user_categories:read', 'user_categories:write', 'modules:read', 'modules:grant', 'settings:read', 'settings:write', 'currencies:read', 'currencies:write'],
+  admin: ['profile:read', 'profile:write', 'users:read', 'users:write', 'roles:assign', 'user_categories:read', 'user_categories:write', 'modules:read', 'modules:grant', 'settings:read', 'settings:write', 'currencies:read', 'currencies:write'],
   user: ['profile:read', 'profile:write', 'currencies:read'],
 };
 
 const ROLE_CAP_FLOOR: Record<'admin' | 'super_admin', readonly string[]> = {
-  admin: ['profile:read', 'profile:write', 'users:read', 'users:write', 'roles:assign', 'settings:read', 'settings:write', 'currencies:read', 'currencies:write'],
+  admin: ['profile:read', 'profile:write', 'users:read', 'users:write', 'roles:assign', 'user_categories:read', 'user_categories:write', 'modules:read', 'modules:grant', 'settings:read', 'settings:write', 'currencies:read', 'currencies:write'],
   super_admin: [
     'profile:read',
     'profile:write',
@@ -25,6 +25,10 @@ const ROLE_CAP_FLOOR: Record<'admin' | 'super_admin', readonly string[]> = {
     'users:write',
     'roles:assign',
     'users:deactivate',
+    'user_categories:read',
+    'user_categories:write',
+    'modules:read',
+    'modules:grant',
     'settings:read',
     'settings:write',
     'currencies:read',
