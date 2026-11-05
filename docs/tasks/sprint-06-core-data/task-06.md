@@ -28,3 +28,10 @@ plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 - **Auditorías**: QA/OWASP → APROBADA CON CAMBIOS (medios corregidos y con tests; nota futura sobre `event_id` en el wire). Estilo → APROBADA CON CAMBIOS (0013 documentada como migración incremental).
 - **CI**: PR #36 run `42055304414` en verde (`admin`, `android`, `commitlint`, `guard-secrets`, `supabase`) sobre `cd7988e`.
 - **Decisión de cierre (2026-11-05, delegada al agente)**: la tarea queda **finalizada** por implementación, TDD, gates y auditorías. La **verificación end-to-end de FCM no está ejecutada** y se registra como **puerta de aceptación de despliegue**, no como trabajo de implementación pendiente: antes de habilitar push en producción hay que subir la service account real, registrar un dispositivo y comprobar el push con la app cerrada. No se afirma que FCM esté verificado.
+
+## Validación Android (2026-11-05)
+
+- `apps/android`: `FcmConfig` (config pública `/instance`), `FcmRegistrar` (inicializa Firebase, obtiene y registra el token en `/devices`, lo refresca al rotar), `PushMessagingService` (recibe data-only y muestra notificación con la clave del evento) y una pantalla mínima de aceptación en `MainActivity` para introducir URL + JWT.
+- Permisos `INTERNET`/`POST_NOTIFICATIONS` y servicio `com.google.firebase.MESSAGING_EVENT` en el manifiesto; Firebase Messaging por BoM, sin `google-services.json` ni secretos horneados.
+- Evidencia local: `./gradlew :app:testDebugUnitTest` (4 tests FCM + 3 ServerUrl) y `./gradlew :app:assembleDebug` en verde.
+- La comprobación con un dispositivo físico/emulador y credenciales reales sigue siendo la puerta manual de aceptación de despliegue.
