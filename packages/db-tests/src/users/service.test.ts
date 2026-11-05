@@ -142,3 +142,16 @@ describe("users service — deactivation", () => {
     });
   });
 });
+
+describe("users service — idempotency", () => {
+  it("keeps the first deactivated_at on repeated deactivation", async () => {
+    await inRollback(async (c) => {
+      const { id } = await createTestUser(c, { email: email("idempotent") });
+
+      const first = await deactivateUser(deps(c), caller("super_admin"), id);
+      const second = await deactivateUser(deps(c), caller("super_admin"), id);
+
+      expect(second.deactivated_at).toBe(first.deactivated_at);
+    });
+  });
+});

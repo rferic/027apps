@@ -13,7 +13,7 @@ import {
 } from "./service";
 
 /**
- * Users API (core-api spec §3.2): reads for admins, profile edits with
+ * Users API (docs/superpowers/specs/2026-10-26-core-api.md §3.2): reads for admins, profile edits with
  * `users:write`, role changes with `roles:assign` (admins never touch a
  * super_admin), soft deactivation with `users:deactivate` (super_admin only).
  */
@@ -92,6 +92,8 @@ export function updateUserRoute(deps: UsersRouteDeps) {
     withDoor(
       req,
       {
+        // Role changes additionally require `roles:assign`, enforced by the
+        // service (admins can never touch a super_admin role).
         scopes: ["users:write"],
         auth: deps.auth,
         cors: deps.cors,

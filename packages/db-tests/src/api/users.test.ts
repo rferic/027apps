@@ -138,3 +138,24 @@ describe("GET/PATCH/DELETE /api/v1/users/{id}", () => {
     });
   });
 });
+
+describe("machine keys", () => {
+  it("cannot change a role even with the scopes", async () => {
+    await inRollback(async (c) => {
+      const { id } = await createTestUser(c, { email: email("machine") });
+      const machine: Caller = {
+        kind: "service",
+        keyId: "key-1",
+        scopes: ["users:read", "users:write", "roles:assign"],
+        roleCap: "super_admin",
+      };
+
+      const res = await updateUserRoute(deps(c, machine))(
+        new Request("http://local/api/v1/users/x", json({ role: "admin" })),
+        id,
+      );
+
+      expect(res.status).toBe(403);
+    });
+  });
+});
