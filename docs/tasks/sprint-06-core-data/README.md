@@ -25,3 +25,14 @@ cifrado a `settings`, registrar un dispositivo vía `POST /devices` y comprobar 
 llega con la app cerrada. Es criterio de aceptación de esta tarea junto con la implementación.
 
 **Cierre:** DoD de Código completo + auditoría OWASP por tarea.
+
+## Puerta de aceptación de despliegue (2026-11-05)
+
+La implementación de FCM está terminada y auditada, pero **la verificación end-to-end no se ha ejecutado** por falta de credenciales reales. Antes de activar push en producción:
+
+1. Subir la service account real a `notifications.push.fcm_service_account`.
+2. Configurar `notifications.push.provider = fcm` y las claves públicas FCM.
+3. Registrar un dispositivo real con `POST /api/v1/devices`.
+4. Comprobar un push con la app cerrada y revocar un token `UNREGISTERED`.
+
+Esta puerta se documenta como aceptación de despliegue, no como tarea de implementación abierta.

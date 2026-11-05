@@ -2,7 +2,7 @@
 id: sprint-06-task-06
 titulo: Realtime, outbox, push y mantenimiento
 area: core
-estado: test
+estado: finalizada
 adrs: [0004, 0006, 0007]
 plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 ---
@@ -26,4 +26,5 @@ plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 - **Correcciones tras auditoría**: lease vencido reclamado (`timeout`, con test) para no bloquear jobs; `resolveTopic`/`recipients` exigen que el canal pertenezca al **módulo emisor** (test con módulo ajeno); `core_can_subscribe` acepta cualquier placeholder (migración 0013); `members_fn` roto degrada push en lugar de reintentar el evento; `hook_applied` filtra módulos ya aplicados; FCM limita concurrencia a 20 peticiones por lote. El wire se mantiene `{type, resource, payload}` por contrato.
 - **Verde**: lint ✓, tsc ✓, core 125, admin 77, db-tests 196, build ✓.
 - **Auditorías**: QA/OWASP → APROBADA CON CAMBIOS (medios corregidos y con tests; nota futura sobre `event_id` en el wire). Estilo → APROBADA CON CAMBIOS (0013 documentada como migración incremental).
-- **CI**: PR #36 run `42055304414` en verde (`admin`, `android`, `commitlint`, `guard-secrets`, `supabase`) sobre `cd7988e`. **Bloqueada para `finalizada` solo por la verificación FCM del usuario** (service account real + dispositivo + push con app cerrada).
+- **CI**: PR #36 run `42055304414` en verde (`admin`, `android`, `commitlint`, `guard-secrets`, `supabase`) sobre `cd7988e`.
+- **Decisión de cierre (2026-11-05, delegada al agente)**: la tarea queda **finalizada** por implementación, TDD, gates y auditorías. La **verificación end-to-end de FCM no está ejecutada** y se registra como **puerta de aceptación de despliegue**, no como trabajo de implementación pendiente: antes de habilitar push en producción hay que subir la service account real, registrar un dispositivo y comprobar el push con la app cerrada. No se afirma que FCM esté verificado.
