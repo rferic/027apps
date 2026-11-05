@@ -2,6 +2,8 @@ import { Pool } from "pg";
 import { connection } from "next/server";
 import { createPostgresRateLimitStorage } from "@027apps/core/api/rate-limit-storage.js";
 import { withDoor } from "@027apps/core/api/door.js";
+import { serializeLog } from "@027apps/core/logger.js";
+import type { LogEntry } from "@027apps/core/api/types.js";
 import type { DoorDeps } from "@027apps/core/api/types.js";
 import { resolveCaller, type CallerResolverDeps, type ProfilesPort } from "@027apps/core/auth/caller.js";
 import { createSettingsEncryption } from "@027apps/core/crypto.js";
@@ -141,11 +143,20 @@ function createProfilesPort(poolInstance: Pool): ProfilesPort {
   };
 }
 
-function logger(entry: { message: string; level: string; requestId: string }) {
-  // JSON one-liner: correlation only (no PII, no bodies). Replaced in task-06
-  // with the structured logger.
+function logger(entry: LogEntry): void {
+  // One-line JSON, stable keys, correlation only (no PII, no bodies).
   console.log(
-    JSON.stringify({ ts: new Date().toISOString(), level: entry.level, request_id: entry.requestId, msg: entry.message }),
+    serializeLog({
+      ts: new Date().toISOString(),
+      level: entry.level,
+      msg: entry.message,
+      request_id: entry.requestId,
+      ...(entry.route ? { route: entry.route } : {}),
+      ...(entry.status !== undefined ? { status: entry.status } : {}),
+      ...(entry.durationMs !== undefined ? { duration_ms: entry.durationMs } : {}),
+      ...(entry.actor ? { actor: entry.actor } : {}),
+      ...(entry.code ? { code: entry.code } : {}),
+    }),
   );
 }
 

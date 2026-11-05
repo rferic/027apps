@@ -193,6 +193,45 @@ export async function withDoor(
   handler: (ctx: RequestContext) => Promise<Response | JsonValue>,
 ): Promise<Response> {
   const requestId = crypto.randomUUID();
+  const started = Date.now();
+  let actor: string | undefined;
+  const response = await runDoor(req, options, deps, handler, requestId, (caller) => {
+    actor = actorLabel(caller);
+  });
+
+  deps.logger({
+    level: response.status >= 500 ? 'error' : 'info',
+    requestId,
+    message: 'request completed',
+    route: new URL(req.url).pathname,
+    status: response.status,
+    durationMs: Date.now() - started,
+    ...(actor ? { actor } : {}),
+  });
+  return response;
+}
+
+/** Correlation label for the log: never the email or IP. */
+function actorLabel(caller: Caller): string {
+  switch (caller.kind) {
+    case 'session':
+    case 'delegated':
+      return `session:${caller.userId}`;
+    case 'service':
+      return `service:${caller.keyId}`;
+    case 'anon':
+      return 'anon';
+  }
+}
+
+async function runDoor(
+  req: Request,
+  options: DoorOptions,
+  deps: DoorDeps,
+  handler: (ctx: RequestContext) => Promise<Response | JsonValue>,
+  requestId: string,
+  onCaller: (caller: Caller) => void,
+): Promise<Response> {
   const cors = resolveCors(req, options);
 
   // CORS preflight: answered before auth and rate limiting (no credentials needed).
@@ -229,6 +268,7 @@ export async function withDoor(
     // rate limiting, so unauthorized callers never consume rate-limit budget.
     // With an empty scopes list the route is public: the caller passes through.
     const authorizedCaller = options.scopes.length > 0 ? authorize(caller, options.scopes) : caller;
+    onCaller(authorizedCaller);
 
     if (options.rateLimit) {
       const identity = identityFor(authorizedCaller, req, options.rateLimit.identity);

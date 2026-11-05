@@ -2,7 +2,7 @@
 id: sprint-05-task-06
 titulo: Observabilidad (logs JSON, Sentry, verificación de la guía)
 area: core
-estado: pendiente
+estado: test
 adrs: [0004, 0007]
 plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 ---
@@ -12,3 +12,14 @@ plan: docs/superpowers/plans/2026-10-31-sprint-05-core-base.md
 **TDD**: test del logger (datos marcados no aparecen; `\n` escapado) y del evento saliente (sin `request.*`/IP); 4xx no generan evento; el 503 de `/health` tampoco.
 
 **DoD**: TDD, checks, ADRs 0004/0007, QA + auditoría; checklist A02/A09.
+
+## Bitácora (2026-11-05)
+
+- **Logger** (`packages/core/src/logger.ts` + test): `serializeLog` de una línea, claves ordenadas, `\n` escapado y descarte de campos desconocidos (email/IP/body/token). 4 tests.
+- **Door**: cada petición emite `request completed` con `request_id`, `route`, `status`, `duration_ms` y `actor` (`session:<id>`/`service:<id>`/`anon`), además del log de error existente. El logger de `apps/admin` usa `serializeLog`.
+- **Sentry** (`packages/core/src/observability/scrub.ts`, `packages/core/src/sentry.ts` + tests): `scrubEvent` quita `request`, `breadcrumbs`, `extra`, `user.ip` y `user.email`; descarta 4xx y el 503 de `/health`; fail-closed si el scrub lanza. `initSentry` inyecta el SDK, `sendDefaultPii: false` y `beforeSend`. 7 tests.
+- **Admin**: `@sentry/nextjs` instalado; `apps/admin/instrumentation.ts` inicializa solo con `SENTRY_DSN` (servidor) y `sentry.server.config.ts` aplica la misma configuración. El SDK de cliente queda desactivado a propósito (el DSN no es público y así ningún evento de navegador lleva datos de request).
+- **Docs**: `docs/guia-debugging.md` (logs, correlación por `request_id`, Sentry, `/health`, fallos comunes y comandos).
+- **Verde**: `pnpm lint` ✓, `pnpm tsc` ✓, `pnpm test` ✓ (i18n 16, core 106, admin 77, db-tests 91), `pnpm i18n:check` ✓, `pnpm --filter admin build` ✓.
+- **Desviación v1**: no se crea `sentry.client.config.ts`; el DSN es solo de servidor (decisión de privacidad). Se documenta aquí.
+- **Pendiente para `finalizada`**: QA + auditoría OWASP.

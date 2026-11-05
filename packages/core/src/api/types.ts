@@ -46,6 +46,11 @@ export interface LogEntry {
   code?: string;
   message: string;
   stack?: string;
+  /** Request telemetry (correlation only; no PII). */
+  route?: string;
+  status?: number;
+  durationMs?: number;
+  actor?: string;
 }
 
 export interface DoorDeps {

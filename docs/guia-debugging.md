@@ -1,118 +1,80 @@
 # Guía de depuración
 
-Cómo diagnosticar un fallo de una instancia de 027Apps **sin leer código**. Pensada para el propietario de la instancia (admin), no para desarrolladores del Core.
+Cómo seguir una petición de la API de 027Apps desde el log hasta Sentry, y qué hacer con los fallos más comunes. Complementa [`docs/flows/cicd.md`](flows/cicd.md) y [`docs/infrastructure.md`](infrastructure.md).
 
-> **Estado**: las rutas de esta guía son las **canónicas de diseño** (`/api/v1/...`). Mientras no se implementen, hoy existe el alias **`/api/health`** (lo usa el keep-alive); cuando el PR de `keep-alive.yml`/`cicd.md` migre al canónico, el alias desaparecerá.
->
-> Si el problema es **pérdida o corrupción de datos**, esto no ayuda: ve a [Restauración](#7-cuándo-restaurar-desde-un-backup).
+## 1. Un log por petición (JSON de una línea)
 
-## 1. Correlación: `request_id`
-
-Toda respuesta lleva la cabecera **`X-Request-Id`**; los errores la repiten en el cuerpo:
+Cada paso por `withDoor` (`packages/core/src/api/door.ts`) emite una línea JSON al logger del hosting. Nunca incluye cuerpos, contraseñas, tokens, emails ni IPs.
 
 ```json
-{ "error": { "code": "internal", "message": "…", "request_id": "9f2c…" } }
+{"ts":"2026-11-05T10:00:00.000Z","level":"info","msg":"request completed","request_id":"6f1c…","route":"/api/v1/settings","status":200,"duration_ms":12,"actor":"session:1047…"}
 ```
 
-En MCP, el mismo `request_id` va dentro del error de ejecución (`structuredContent.error.request_id`). La app móvil y el panel lo muestran en la pantalla de error.
-
-1. Pide al usuario **el `request_id`** (o la captura de la pantalla de error). **No** pidas capturas con datos.
-2. Búscalo en **Sentry** (tag `request_id`).
-3. Búscalo en los **logs del despliegue** (Vercel → Deployments → Functions/Logs).
-4. Si aparece en `admin_actions`, tienes la acción concreta que lo provocó.
-
-> Los logs del hosting tienen **retención corta**. Si el aviso es antiguo, tira de Sentry (30 días) y de `audit`/`admin_actions` en la base de datos.
-
-## 2. Orden de mirada
-
-| Paso | Qué | Dónde |
-|---|---|---|
-| 1 | ¿La instancia está sana? | `GET /api/v1/health` (hoy `/api/health`) |
-| 2 | ¿Hay algo atascado? | `GET /api/v1/maintenance/status` (sesión **`super_admin`**) |
-| 3 | ¿Qué error exacto? | Sentry, filtrando por `request_id` |
-| 4 | ¿Qué pasó justo antes? | Logs del despliegue o `admin_actions` |
-
-```bash
-# Salud (usa -i para ver la cabecera X-Request-Id)
-curl -sS -i "$INSTANCE_URL/api/v1/health"
-
-# Comprobar solo el header, sin cuerpo
-curl -sS -D - -o /dev/null "$INSTANCE_URL/api/v1/health"
-```
-
-> `/health` está **cacheado 30 s**: si acabas de arreglar algo, espera medio minuto antes de dar el incidente por cerrado.
-
-## 3. Diagnóstico por síntoma
-
-| Síntoma | Causa probable | Qué hacer |
-|---|---|---|
-| **5xx repetidos** | Error de código o dato corrupto | Sentry → issue → `request_id` → logs. Si empezó tras un despliegue, revertir (flujo de bugfix) |
-| `/health` = `degraded` (503) · Supabase | Proyecto Supabase pausado (free) o env inválidas | Abrir el proyecto Supabase (despierta la pausa); revisar env del hosting |
-| `/health` = `degraded` · **migraciones** | Migraciones sin aplicar | Aplicar migraciones (Supabase CLI / CI) y repetir |
-| `/health` = `degraded` · **outbox** | Eventos sin entregar (Realtime/FCM) | `/maintenance/status` → contadores → lanzar el job de mantenimiento (abajo) |
-| `/health` = `degraded` · **job atrasado** | `pg_cron` parado o workflow `maintenance` deshabilitado | Revisar Actions y que `pg_cron` esté activo |
-| **Nadie recibe push** | FCM sin configurar o service account caducado | Ajustes → Notificaciones: `notifications.push.provider` y claves |
-| **No llegan emails de reset** | SMTP del **proyecto Supabase** (no de la app) | Supabase → Authentication → SMTP; enviar un reset de prueba |
-| **429** | Rate limit por identidad | Esperado con mucho tráfico; ajustable solo por `super_admin` |
-| **`validation_failed`** con `details` | La app envió datos inválidos | Fallo de cliente: revisar formulario/petición |
-| **Invitación caducada/usada** | Token de un solo uso | Crear invitación nueva |
-| **No veo un módulo** | No activo, no expuesto o sin acceso | Ajustes → Módulos / Usuarios |
-
-**Lanzar mantenimiento a mano** (cuando el outbox está atascado): lo ejecuta una **clave de instancia** (`027_svc_`) con scope `maintenance:run` y `role_cap=super_admin` — no una sesión de admin:
-
-```bash
-curl -sS -X POST "$INSTANCE_URL/api/v1/maintenance/run" \
-  -H "Authorization: Bearer $SERVICE_KEY" -H 'Content-Type: application/json' -d '{}'
-```
-
-Si responde **409**, ya hay una ejecución en curso: espera y repite.
-
-## 4. Qué NO hacer
-
-- **No pegues tokens, contraseñas, emails ni cuerpos de petición** en issues o chats. Usa el `request_id`.
-- **No edites `auth.users`** a mano: rompe `profiles` y las sesiones. Usa el panel.
-- **No borres filas de la BD** para "arreglar": el historial de dinero no se borra.
-- **No desactives el rate limiting** como parche.
-
-## 5. Qué mirar cuando no hay error
-
-| Pregunta | Dónde |
+| Campo | Significado |
 |---|---|
-| ¿Qué versión corre? | `/api/v1/instance` → `version` (o el commit desplegado en Vercel) |
-| ¿Qué se ejecutó y cuándo? | `/api/v1/maintenance/status` |
-| ¿Qué cambió la configuración? | `admin_actions` (con `request_id`) |
-| ¿Qué hizo una clave? | `audit` (contadores por clave × endpoint) |
+| `request_id` | UUID de la petición; es también la cabecera `X-Request-Id` de la respuesta |
+| `route` | Ruta solicitada (`/api/v1/...`) |
+| `status` | Código HTTP final |
+| `duration_ms` | Tiempo total en el door |
+| `actor` | `session:<userId>`, `service:<keyId>` o `anon` (nunca email/IP) |
+| `code` | Código del envelope de error (`validation_failed`, `rate_limited`…) |
+| `level` | `info` (2xx/3xx/4xx), `error` (5xx) |
 
-## 6. Entornos y primera instalación
+Los errores añaden otra línea con `msg` del error y opcionalmente `stack`; esa línea no sustituye a la de `request completed`.
 
-- **`environment` de Sentry**: `production`, `preview` (ramas/PR) y `development` (local). Filtra por entorno antes de concluir que algo está roto en producción.
-- **`debug`**: solo existe en desarrollo (`NODE_ENV`); en producción y preview está apagado y **no se puede activar desde el panel**.
-- **Primer arranque (`/setup`)**: si el asistente no aparece, la instancia ya tiene `super_admin`; si devuelve **429**, estás en el límite de intentos por IP (espera). Si falla el paso de cifrado, comprueba que `SETTINGS_ENCRYPTION_KEY` está definida (32 bytes) — sin ella la instancia arranca en `degraded`.
+### Dónde verlos
 
-## 7. Cuándo restaurar desde un backup
+- **Local**: la terminal de `pnpm dev` (o `pnpm start`).
+- **Vercel**: `vercel logs <deployment-url>`; filtrar por `request_id`.
+- **CI**: los tests no emiten logs de producción.
 
-Si hay **pérdida o corrupción de datos** (borrado accidental, migración defectuosa, proyecto destruido), los logs no arreglan nada: hay que restaurar.
+### Correlacionar
 
-El procedimiento vive en el **runbook de infraestructura** ([`docs/infrastructure.md`](infrastructure.md)) y en la [spec de backup](superpowers/specs/2026-10-26-backups.md). Criterio:
+1. El cliente recibe `X-Request-Id: <id>`.
+2. Busca ese `request_id` en los logs del hosting.
+3. Si es 5xx, el mismo `request_id` aparece en Sentry (si hay DSN).
 
-- El **esquema** vive en git (migraciones); lo que se recupera es el **dato**.
-- El backup es un **dump lógico diario, cifrado y off-site**.
-- La **clave maestra de secretos** (`SETTINGS_ENCRYPTION_KEY`) se custodia **aparte del backup** (ver `docs/superpowers/specs/2026-10-26-instance-config.md` §5): sin ella, los secretos guardados no se descifran.
+## 2. Sentry (solo 5xx, sin PII)
 
-## 8. Verificar que la observabilidad funciona
+- Se activa solo si existe `SENTRY_DSN` (variable **de servidor**, nunca `NEXT_PUBLIC_`). Sin DSN la instancia funciona igual, sin agregación.
+- `sendDefaultPii: false` y `beforeSend` pasa por `scrubEvent` (`packages/core/src/observability/scrub.ts`):
+  - elimina `request.*`, `user.ip`, `user.email`, `breadcrumbs` y `extra`;
+  - **no envía 4xx** ni el **503 operativo de `/health`**;
+  - si el scrub falla, el evento se descarta (**fail-closed**).
+- La inicialización vive en `apps/admin/instrumentation.ts` (y `sentry.server.config.ts`).
 
-1. Una petición correcta debe volver con **`X-Request-Id`**.
-2. Un error **esperado** (p. ej. recurso inexistente con credenciales válidas) debe devolver su `code` con `request_id` y **no** generar evento en Sentry.
-3. Un error **inesperado** (solo en preproducción) debe aparecer en Sentry con `release`, `environment` y `request_id`.
-4. `/health` debe responder `ok`.
+## 3. Salud operativa: `/api/v1/health`
 
-Si (2) genera evento o (3) no lo genera, el filtrado de Sentry está mal configurado.
+- `200 { status: "ok" }` o `503 { status: "degraded", degradedReasons: [...] }`.
+- `503` es un **estado operativo**, no un bug: no genera evento en Sentry.
+- Motivos habituales: `database_unreachable` (BD caída o `SUPABASE_DB_URL` mal) y `encryption_key_missing` (secretos FCM configurados sin `SETTINGS_ENCRYPTION_KEY`).
 
-## 9. Referencias
+## 4. Fallos comunes
 
-- Errores y códigos: `docs/adr/0007-manejo-de-errores.md`
-- Observabilidad (contrato): `docs/superpowers/specs/2026-10-26-observabilidad.md`
-- Salud y mantenimiento: `docs/superpowers/specs/2026-10-26-jobs-mantenimiento.md`
-- Configuración y secretos: `docs/superpowers/specs/2026-10-26-instance-config.md`
-- Backups y operación: [`docs/infrastructure.md`](infrastructure.md) · [spec de backup](superpowers/specs/2026-10-26-backups.md)
-- Flujos: `docs/flows/bugfix.md`, `docs/flows/hotfix.md`
+| Síntoma | Causa probable | Qué mirar |
+|---|---|---|
+| `/` redirige a `/setup` | no hay ningún `super_admin` activo | `select role from profiles`; completar el wizard |
+| `/` o `/setup` redirigen a `/login` | hay admin pero no sesión | cookies `sb-*`; `supabase.auth.getUser()` |
+| El wizard bloquea en el paso 2 | el proyecto Supabase emite tokens ≠ 900 s | `security.jwt_expiry`; Auth → Sessions → JWT expiry = 900 |
+| `POST /setup/super-admin` 409 | el email pertenece a una cuenta real | usar otro email; los huérfanos sin perfil se recuperan solos |
+| 500 en setup con "already registered" | auth user huérfano de un intento fallido | el door lo borra y reintenta si no tiene perfil ni login |
+| Paso 3 no envía email | SMTP del proyecto Supabase sin configurar | Auth → Emails → SMTP (Resend/Brevo); en local, Mailpit `:54324` |
+| `401` en `/api/v1/*` con sesión | falta el Bearer; el proxy lo inyecta para `/api/v1` | `proxy.ts` matcher y cookies de sesión |
+| `429` | rate limit del door | `retry-after`; límites en `rate_limit.*` |
+| Logs sin `request_id` | petición fuera del door (asset, página) | solo las rutas `/api/v1` pasan por `withDoor` |
+
+## 5. Comandos útiles
+
+```bash
+# Logs de un deployment de Vercel
+vercel logs <deployment-url>
+
+# Estado del stack local
+supabase status
+
+# Correo de prueba atrapado en local
+open http://localhost:54324
+
+# Puerta completa antes de commitear
+pnpm lint && pnpm tsc && pnpm test && pnpm --filter admin build
+```
