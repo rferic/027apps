@@ -19,6 +19,8 @@ export type DomainErrorCode =
   | 'conflict'
   | 'rate_limited'
   | 'already_setup'
+  | 'invitation_expired'
+  | 'invitation_used'
   | 'currency_not_enabled'
   | 'locale_not_available'
   | 'cors_origin_not_allowed'
@@ -35,6 +37,8 @@ export const DEFAULT_MESSAGES: Readonly<Record<DomainErrorCode, string>> = {
   conflict: 'State conflict',
   rate_limited: 'Too many requests',
   already_setup: 'Setup already completed',
+  invitation_expired: 'The invitation is past its expiry',
+  invitation_used: 'The invitation was already redeemed',
   currency_not_enabled: 'Currency is not enabled',
   locale_not_available: 'Locale is not available',
   cors_origin_not_allowed: 'CORS origin not allowed',
@@ -51,6 +55,8 @@ export const HTTP_STATUS: Readonly<Record<DomainErrorCode, number>> = {
   not_found: 404,
   conflict: 409,
   already_setup: 409,
+  invitation_expired: 409,
+  invitation_used: 409,
   rate_limited: 429,
   currency_not_enabled: 400,
   locale_not_available: 400,

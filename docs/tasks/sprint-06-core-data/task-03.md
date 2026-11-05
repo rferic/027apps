@@ -2,7 +2,7 @@
 id: sprint-06-task-03
 titulo: Invitaciones y canjeo
 area: core
-estado: pendiente
+estado: test
 adrs: [0004, 0007]
 plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 ---
@@ -12,3 +12,14 @@ plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 **TDD**: casos de contrato de puerta (scopes/403, representación) + caso de uso (invariantes), y los casos negativos de la checklist de seguridad aplicables.
 
 **DoD**: DoD de Código (TDD, lint/tsc/test/build, CI), ADRs declarados, QA con ojos nuevos y **auditoría OWASP** (checklist `security-checklist.md`).
+
+## Bitácora (2026-11-05)
+
+- **Migración** `0008_invitations.sql`: `invitations` (email normalizado, `token_hash` SHA-256 único, `expires_at`, `used_at`, `revoked_at` soft, actor único) e `invitation_modules`; RLS solo admin (el canjeo corre con service role) y CHECK de forma del hash.
+- **Core** (`packages/core/src/invitations/{service,api}.ts`): crear/listar/revocar invitaciones y canjeo público. El token se genera con CSPRNG (`027_inv_…`), solo se guarda su SHA-256 y se devuelve **una vez** al crear; los listados nunca lo incluyen. El canjeo bloquea la fila (`for update`), valida estado (`invitation_used`/`invitation_expired`/revocada → `not_found`), exige que el email coincida, crea o reutiliza el usuario de Supabase Auth, crea el perfil si falta, inserta la membresía de categoría y materializa `invitation_modules` en `user_modules` (re-grant restablece `revoked_at`). Si la transacción falla, borra el usuario Auth recién creado.
+- **Errores**: códigos `invitation_expired` e `invitation_used` (409) añadidos al catálogo ADR 0007, ya documentados en `docs/api/README.md`.
+- **Guard**: scopes `invitations:read/write` para admin y super_admin.
+- **Rutas admin**: `GET/POST /api/v1/invitations`, `DELETE /api/v1/invitations/{id}`, `POST /api/v1/invitations/{id}/redeem` (pública, rate limit 30/min por IP; el segmento lleva el token).
+- **Tests**: 8 de servicio (hash no plaintext, estados, revocación idempotente, canjeo único con perfil/categoría/módulos, caducada/revocada/email distinto, cuenta existente/desactivada, limpieza de usuario Auth) + 5 de API (401/403, token una vez y fuera de logs, 400 id, canjeo único, email/caducidad) + 3 de aislamiento RLS (admin lee/escribe, usuario no, anon sin privilegios).
+- **Verde**: lint ✓, tsc ✓, core 114, admin 77, db-tests 137, build ✓.
+- **Pendiente para `finalizada`**: QA + auditoría OWASP.

@@ -27,7 +27,8 @@
     "./sentry.js": "./src/sentry.ts",
     "./observability/*.js": "./src/observability/*.ts",
     "./users/*.js": "./src/users/*.ts",
-    "./user-categories/*.js": "./src/user-categories/*.ts"
+    "./user-categories/*.js": "./src/user-categories/*.ts",
+    "./invitations/*.js": "./src/invitations/*.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
