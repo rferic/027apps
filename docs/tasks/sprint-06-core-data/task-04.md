@@ -2,7 +2,7 @@
 id: sprint-06-task-04
 titulo: API keys y dispositivos
 area: core
-estado: test
+estado: finalizada
 adrs: [0004, 0007]
 plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 ---
@@ -27,4 +27,4 @@ plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 - **Verde**: lint ✓, tsc ✓, core 119, admin 77, db-tests 162, build ✓.
 - **Correcciones tras auditoría**: **hallazgo alto corregido** — una clave delegada (aunque su dueño sea `super_admin`) ya **no** puede mintear claves service; solo una sesión `super_admin`, con test de regresión y prueba end-to-end crear→resolver→revocar. RLS: los admins pueden leer claves delegadas ajenas (modelo §5); la API mantiene el listado en “propias o todas si super_admin”, así que RLS es segunda barrera más amplia, no la autorización. Se aceptan y documentan: reasignación de `push_token` (decisión del modelo), escritura directa por RLS con scopes que el guard recorta, y la duplicación de `toIso` (deuda de refactor transversal).
 - **Auditorías**: QA/OWASP → APROBADA CON CAMBIOS; el alto está corregido y verificado. Estilo → APROBADA CON CAMBIOS (solo duplicaciones/estilo no bloqueantes).
-- **Pendiente para `finalizada`**: CI del PR.
+- **CI**: PR #36 run `42042171711` en verde (`admin`, `android`, `commitlint`, `guard-secrets`, `supabase`) sobre `4184ca9`. **Finalizada**.
