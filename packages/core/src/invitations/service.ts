@@ -19,7 +19,10 @@ export interface InvitationsDeps {
 /** Supabase Auth port; the admin adapter creates/reads Auth users. */
 export interface InvitationsAuth {
   findUserByEmail(email: string): Promise<{ id: string } | null>;
-  createUser(input: { email: string; password: string; displayName: string }): Promise<{ id: string }>;
+  createUser(input: { email: string; password: string; displayName: string }): Promise<{
+    id: string;
+    created: boolean;
+  }>;
   deleteUser(userId: string): Promise<void>;
 }
 
@@ -86,7 +89,7 @@ function actorFor(caller: Caller): { by: string | null; byKey: string | null } {
 }
 
 function moduleKeys(values: string[] | undefined): string[] {
-  const unique = [...new Set(values ?? [])];
+  const unique = [...new Set(values ?? [])].sort();
   for (const value of unique) {
     if (!MODULE_KEY.test(value)) {
       throw new DomainError("validation_failed", "invalid module key");
@@ -218,7 +221,7 @@ export async function createInvitation(
        from public.invitations where id = $1`,
     [invitationId],
   );
-  return { invitation: toView(rows[0]!, [...modules].sort(), now), token };
+  return { invitation: toView(rows[0]!, modules, now), token };
 }
 
 export async function listInvitations(deps: InvitationsDeps): Promise<InvitationView[]> {
@@ -253,6 +256,19 @@ export async function revokeInvitation(deps: InvitationsDeps, id: string): Promi
   // Already revoked: revocation is idempotent.
 }
 
+/** Rejects a token that cannot be redeemed right now. */
+function assertRedeemable(row: Record<string, unknown>, email: string, now: Date): void {
+  if (row.used_at !== null && row.used_at !== undefined) throw new DomainError("invitation_used");
+  if (row.revoked_at !== null && row.revoked_at !== undefined) throw new DomainError("not_found");
+  if (new Date(String(row.expires_at)).getTime() <= now.getTime()) {
+    throw new DomainError("invitation_expired");
+  }
+  if (email !== String(row.email)) {
+    // The invitation is bound to its email; a different address does not proceed.
+    throw new DomainError("validation_failed", "The email does not match the invitation");
+  }
+}
+
 /** Single-use redemption (public). The invitation row is locked while redeeming. */
 export async function redeemInvitation(
   deps: InvitationsDeps,
@@ -262,7 +278,36 @@ export async function redeemInvitation(
   if (!token.startsWith(TOKEN_PREFIX) || token.length > 200) throw new DomainError("not_found");
   const tokenHash = hashInvitationToken(token);
   const email = normalizeEmail(input.email);
+  const now = () => deps.now?.() ?? new Date();
+
+  // Preflight without locks: fail fast before touching Auth. The shared pool
+  // must not be held during the external Auth HTTP call.
+  const { rows: preview } = await deps.db.query(
+    `select id, email, name, expires_at, used_at, revoked_at
+       from public.invitations where token_hash = $1`,
+    [tokenHash],
+  );
+  const pre = preview[0];
+  if (!pre) throw new DomainError("not_found");
+  assertRedeemable(pre, email, now());
+
+  const displayName = (input.display_name?.trim() || String(pre.name)).slice(0, 80);
+  let userId: string;
   let createdUserId: string | null = null;
+  const existing = await deps.auth.findUserByEmail(email);
+  if (existing) {
+    userId = existing.id;
+  } else {
+    const created = await deps.auth.createUser({
+      email,
+      password: input.password,
+      displayName,
+    });
+    userId = created.id;
+    // Only delete users this call actually created; a concurrent redemption
+    // may have registered the same email first.
+    createdUserId = created.created ? created.id : null;
+  }
 
   try {
     return await withTx(deps, async (db) => {
@@ -276,40 +321,20 @@ export async function redeemInvitation(
       );
       const invitation = rows[0];
       if (!invitation) throw new DomainError("not_found");
-      if (invitation.used_at !== null && invitation.used_at !== undefined) {
-        throw new DomainError("invitation_used");
-      }
-      if (invitation.revoked_at !== null && invitation.revoked_at !== undefined) {
-        throw new DomainError("not_found");
-      }
-      if (new Date(String(invitation.expires_at)).getTime() <= (deps.now?.() ?? new Date()).getTime()) {
-        throw new DomainError("invitation_expired");
-      }
-      if (email !== String(invitation.email)) {
-        // The invitation is bound to its email; a different address does not proceed.
-        throw new DomainError("validation_failed", "The email does not match the invitation");
+      // Authoritative re-check under the row lock: a concurrent redemption may
+      // have won while the Auth user was being created.
+      assertRedeemable(invitation, email, now());
+
+      const { rows: profile } = await db.query(
+        "select deactivated_at from public.profiles where id = $1",
+        [userId],
+      );
+      const deactivated = profile[0]?.deactivated_at;
+      if (deactivated !== null && deactivated !== undefined) {
+        throw new DomainError("conflict", "That account is deactivated");
       }
 
       const invitationId = String(invitation.id);
-      const displayName = (input.display_name?.trim() || String(invitation.name)).slice(0, 80);
-      const existing = await deps.auth.findUserByEmail(email);
-
-      let userId: string;
-      if (existing) {
-        const { rows: profile } = await db.query(
-          "select deactivated_at from public.profiles where id = $1",
-          [existing.id],
-        );
-        const deactivated = profile[0]?.deactivated_at;
-        if (deactivated !== null && deactivated !== undefined) {
-          throw new DomainError("conflict", "That account is deactivated");
-        }
-        userId = existing.id;
-      } else {
-        const created = await deps.auth.createUser({ email, password: input.password, displayName });
-        userId = created.id;
-        createdUserId = created.id;
-      }
 
       await db.query(
         `insert into public.profiles (id, display_name, role)
@@ -343,6 +368,7 @@ export async function redeemInvitation(
         [invitationId],
       );
 
+      // Existing accounts keep their stored name; new ones use the invite name.
       const { rows: profileRows } = await db.query(
         "select display_name from public.profiles where id = $1",
         [userId],

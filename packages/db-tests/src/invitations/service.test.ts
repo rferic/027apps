@@ -26,15 +26,61 @@ async function inRollback(fn: (c: ClientBase) => Promise<void>): Promise<void> {
 }
 
 /** Auth user without a profile: redemption must create the profile itself. */
+const AUTH_USER_INSERT = `insert into auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, aud, role)
+     values ($1, '00000000-0000-0000-0000-000000000000', $2, crypt('test-password', gen_salt('bf')), now(),
+             '{"provider":"email","providers":["email"]}', '{}', 'authenticated', 'authenticated')`;
+
 async function createAuthUserOnly(c: ClientBase, email: string): Promise<string> {
   const id = crypto.randomUUID();
-  await c.query(
-    `insert into auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, aud, role)
-     values ($1, '00000000-0000-0000-0000-000000000000', $2, crypt('test-password', gen_salt('bf')), now(),
-             '{"provider":"email","providers":["email"]}', '{}', 'authenticated', 'authenticated')`,
-    [id, email],
-  );
+  await c.query(AUTH_USER_INSERT, [id, email]);
   return id;
+}
+
+/**
+ * Deps backed by real connections (each call gets its own client), so a
+ * concurrent redemption can be exercised against the row lock.
+ */
+function liveDeps(): { deps: InvitationsDeps; created: string[] } {
+  const created: string[] = [];
+  const port: InvitationsAuth = {
+    async findUserByEmail(value) {
+      const { rows } = await withClient((c) =>
+        query(c, "select id from auth.users where email = $1 limit 1", [value]),
+      );
+      return rows[0] ? { id: String(rows[0].id) } : null;
+    },
+    async createUser({ email: value }) {
+      const id = crypto.randomUUID();
+      try {
+        await withClient((c) => c.query(AUTH_USER_INSERT, [id, value]));
+        created.push(id);
+        return { id, created: true };
+      } catch (err) {
+        if ((err as { code?: string }).code !== "23505") throw err;
+        const { rows } = await withClient((c) =>
+          query(c, "select id from auth.users where email = $1 limit 1", [value]),
+        );
+        if (!rows[0]) throw err;
+        return { id: String(rows[0].id), created: false };
+      }
+    },
+    async deleteUser(userId) {
+      await withClient(async (c) => {
+        await c.query("delete from public.profiles where id = $1", [userId]);
+        await c.query("delete from auth.users where id = $1", [userId]);
+      });
+    },
+  };
+
+  return {
+    created,
+    deps: {
+      auth: port,
+      db: { query: (sql: string, params: unknown[] = []) => withClient((c) => query(c, sql, params)) },
+      withTransaction: (fn) =>
+        withClient((c) => fn({ query: (sql: string, params: unknown[] = []) => query(c, sql, params) })),
+    },
+  };
 }
 
 async function admin(c: ClientBase): Promise<Caller> {
@@ -62,7 +108,7 @@ function authPort(c: ClientBase, seed: { id: string; email: string }[] = []): {
         const id = await createAuthUserOnly(c, value);
         users.set(value, id);
         created.push(id);
-        return { id };
+        return { id, created: true };
       },
       async deleteUser(userId) {
         deleted.push(userId);
@@ -322,5 +368,44 @@ describe("invitations service", () => {
       expect(auth.deleted).toEqual(auth.created);
       expect(auth.created).toHaveLength(1);
     });
+  });
+
+  it("redeems exactly once under two concurrent requests", async () => {
+    const live = liveDeps();
+    const inviteEmail = email("concurrent");
+    let adminId = "";
+
+    try {
+      await withClient(async (c) => {
+        const created = await createTestUser(c, { email: email("conc-admin"), role: "super_admin" });
+        adminId = created.id;
+      });
+      const who: Caller = { kind: "session", userId: adminId, role: "super_admin" };
+      const inv = await createInvitation(live.deps, who, { email: inviteEmail, name: "Concurrent" });
+
+      const attempts = await Promise.allSettled([
+        redeemInvitation(live.deps, inv.token, {
+          email: inviteEmail,
+          password: "correct-horse-battery",
+        }),
+        redeemInvitation(live.deps, inv.token, {
+          email: inviteEmail,
+          password: "correct-horse-battery",
+        }),
+      ]);
+
+      expect(attempts.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+      const rejected = attempts.find((result) => result.status === "rejected") as
+        | PromiseRejectedResult
+        | undefined;
+      expect(rejected?.reason).toMatchObject({ code: "invitation_used" });
+    } finally {
+      await withClient(async (c) => {
+        await c.query("delete from public.invitations where email = $1", [inviteEmail]);
+        const ids = [adminId, ...live.created].filter(Boolean);
+        await c.query("delete from public.profiles where id = any($1::uuid[])", [ids]);
+        await c.query("delete from auth.users where id = any($1::uuid[])", [ids]);
+      });
+    }
   });
 });

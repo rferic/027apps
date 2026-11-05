@@ -27,12 +27,12 @@ export function createInvitationsAuth(db: Db): InvitationsAuth {
         password,
         email_confirm: true,
       });
-      if (!created.error && created.data.user) return { id: created.data.user.id };
+      if (!created.error && created.data.user) return { id: created.data.user.id, created: true };
 
       // A concurrent redemption may have created the same email already.
       if (created.error && /already been registered/i.test(created.error.message)) {
         const existing = await findUserByEmail(email);
-        if (existing) return existing;
+        if (existing) return { id: existing.id, created: false };
       }
       throw new Error("createUser failed");
     },

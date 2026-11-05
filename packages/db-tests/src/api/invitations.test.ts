@@ -44,7 +44,7 @@ function authPort(c: ClientBase): InvitationsAuth {
     async createUser({ email: value }) {
       const id = await createAuthUserOnly(c, value);
       users.set(value, id);
-      return { id };
+      return { id, created: true };
     },
     async deleteUser(userId) {
       await query(c, "delete from public.profiles where id = $1", [userId]);
