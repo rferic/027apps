@@ -252,13 +252,19 @@ export async function assignModule(
   const actor = actorFor(caller);
   await withTx(deps, async (db) => {
     await assertCategory(db, categoryId);
-    await db.query(
-      `insert into public.user_category_modules
-         (user_category_id, module_key, assigned_by, assigned_by_key)
-       values ($1, $2, $3, $4)
-       on conflict do nothing`,
-      [categoryId, moduleKey, actor.by, actor.byKey],
-    );
+    await db
+      .query(
+        `insert into public.user_category_modules
+           (user_category_id, module_key, assigned_by, assigned_by_key)
+         values ($1, $2, $3, $4)
+         on conflict do nothing`,
+        [categoryId, moduleKey, actor.by, actor.byKey],
+      )
+      .catch((err: { code?: string }) => {
+        // The category vanished between the check and the insert.
+        if (err.code === "23503") throw new DomainError("not_found");
+        throw err;
+      });
     // Materialise for current members. DO NOTHING: a revoked grant is not revived.
     await db.query(
       `insert into public.user_modules (user_id, module_key, granted_by, granted_by_key)

@@ -64,6 +64,19 @@ describe("user-categories API", () => {
     });
   });
 
+  it("rejects a malformed category id as a 400, not a 500", async () => {
+    await inRollback(async (c) => {
+      const who = await adminCaller(c);
+      const res = await userCategoryRoute(deps(c, who))(
+        new Request("http://local/api/v1/user-categories/not-a-uuid"),
+        "not-a-uuid",
+      );
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: { code: string } };
+      expect(body.error.code).toBe("validation_failed");
+    });
+  });
+
   it("creates, lists, adds a member and materialises a module", async () => {
     await inRollback(async (c) => {
       const who = await adminCaller(c);

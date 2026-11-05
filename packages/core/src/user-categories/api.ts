@@ -31,6 +31,7 @@ export interface UserCategoriesRouteDeps {
 const NAME = z.string().trim().min(1).max(80);
 const SLUG = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/).max(80);
 const MODULE_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const createSchema = z.object({ name: NAME, slug: SLUG.optional() }).strict();
 const renameSchema = z.object({ name: NAME }).strict();
@@ -38,6 +39,12 @@ const emptySchema = z.object({}).strict().optional();
 
 function moduleKey(value: string): string {
   if (!MODULE_KEY.test(value)) throw new DomainError("validation_failed", "invalid module key");
+  return value;
+}
+
+/** Route params reach Postgres as uuid columns: reject malformed ids as 400, not 500. */
+function uuid(value: string, field: string): string {
+  if (!UUID.test(value)) throw new DomainError("validation_failed", `invalid ${field}`);
   return value;
 }
 
@@ -87,76 +94,101 @@ export function createUserCategoryRoute(deps: UserCategoriesRouteDeps) {
 }
 
 export function userCategoryRoute(deps: UserCategoriesRouteDeps) {
-  return (req: Request, id: string): Promise<Response> =>
+  return (req: Request, rawId: string): Promise<Response> =>
     withDoor(req, readOptions(deps, ["user_categories:read"]), deps.door, async () => ({
-      category: await getCategory(deps.categories, id),
+      category: await getCategory(deps.categories, uuid(rawId, "category id")),
     }));
 }
 
 export function renameUserCategoryRoute(deps: UserCategoriesRouteDeps) {
-  return (req: Request, id: string): Promise<Response> =>
+  return (req: Request, rawId: string): Promise<Response> =>
     withDoor(
       req,
       options(deps, ["user_categories:write"], renameSchema),
       deps.door,
       async (ctx) => ({
-        category: await renameCategory(deps.categories, id, (ctx.body as { name: string }).name),
+        category: await renameCategory(
+          deps.categories,
+          uuid(rawId, "category id"),
+          (ctx.body as { name: string }).name,
+        ),
       }),
     );
 }
 
 export function deleteUserCategoryRoute(deps: UserCategoriesRouteDeps) {
-  return (req: Request, id: string): Promise<Response> =>
+  return (req: Request, rawId: string): Promise<Response> =>
     withDoor(req, options(deps, ["user_categories:write"]), deps.door, async () => {
-      await deleteCategory(deps.categories, id);
+      await deleteCategory(deps.categories, uuid(rawId, "category id"));
       return new Response(null, { status: 204 });
     });
 }
 
 export function addCategoryMemberRoute(deps: UserCategoriesRouteDeps) {
-  return (req: Request, id: string, userId: string): Promise<Response> =>
+  return (req: Request, rawId: string, rawUserId: string): Promise<Response> =>
     withDoor(req, options(deps, ["user_categories:write"], emptySchema), deps.door, async () => {
-      await addMember(deps.categories, id, userId);
+      await addMember(
+        deps.categories,
+        uuid(rawId, "category id"),
+        uuid(rawUserId, "user id"),
+      );
       return new Response(null, { status: 204 });
     });
 }
 
 export function removeCategoryMemberRoute(deps: UserCategoriesRouteDeps) {
-  return (req: Request, id: string, userId: string): Promise<Response> =>
+  return (req: Request, rawId: string, rawUserId: string): Promise<Response> =>
     withDoor(req, options(deps, ["user_categories:write"]), deps.door, async () => {
-      await removeMember(deps.categories, id, userId);
+      await removeMember(
+        deps.categories,
+        uuid(rawId, "category id"),
+        uuid(rawUserId, "user id"),
+      );
       return new Response(null, { status: 204 });
     });
 }
 
 export function categoryModulesRoute(deps: UserCategoriesRouteDeps) {
-  return (req: Request, id: string): Promise<Response> =>
+  return (req: Request, rawId: string): Promise<Response> =>
     withDoor(
       req,
       readOptions(deps, ["user_categories:read", "modules:read"]),
       deps.door,
-      async () => ({ modules: (await getCategory(deps.categories, id)).modules }),
+      async () => ({
+        modules: (await getCategory(deps.categories, uuid(rawId, "category id"))).modules,
+      }),
     );
 }
 
 export function assignCategoryModuleRoute(deps: UserCategoriesRouteDeps) {
-  return (req: Request, id: string, key: string): Promise<Response> =>
+  return (req: Request, rawId: string, key: string): Promise<Response> =>
     withDoor(
       req,
       options(deps, ["user_categories:write", "modules:grant"], emptySchema),
       deps.door,
       async (ctx: RequestContext) => ({
-        modules: await assignModule(deps.categories, ctx.caller, id, moduleKey(key)),
+        modules: await assignModule(
+          deps.categories,
+          ctx.caller,
+          uuid(rawId, "category id"),
+          moduleKey(key),
+        ),
       }),
     );
 }
 
 export function unassignCategoryModuleRoute(deps: UserCategoriesRouteDeps) {
-  return (req: Request, id: string, key: string): Promise<Response> =>
+  return (req: Request, rawId: string, key: string): Promise<Response> =>
     withDoor(
       req,
       options(deps, ["user_categories:write", "modules:grant"]),
       deps.door,
-      async () => ({ modules: await unassignModule(deps.categories, id, moduleKey(key)) }),
+      async () => ({
+        modules: await unassignModule(
+          deps.categories,
+          uuid(rawId, "category id"),
+          moduleKey(key),
+        ),
+      }),
     );
 }
