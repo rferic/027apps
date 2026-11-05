@@ -2,7 +2,7 @@
 id: sprint-06-task-05
 titulo: Sistema de módulos e instalador
 area: core
-estado: test
+estado: finalizada
 adrs: [0004, 0007]
 plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 ---
@@ -26,4 +26,4 @@ plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 - **Correcciones tras auditoría**: **alto** — `assertSafeModuleSql` ahora rechaza referencias a **otros esquemas `module_*`** (test de aislamiento), además de `DO`/`EXECUTE`/`SECURITY DEFINER`; el catálogo se filtra por acceso (privados/deshabilitados solo admin) y la RLS de `module_registry` se alinea (migración 0011); los settings de módulo validan el `type` declarado y tamaño; `install`/`uninstall` **exigen runner transaccional** (`runInTransaction`) para que `SET LOCAL ROLE` nunca se degrade; uninstall revierte en el orden del manifest, no por `version desc`; rutas `up`/`down` validan path traversal y se resuelven bajo el paquete; test de que `module_installer` no lee `settings`/registry. Estilo: claves del manifest normalizadas a inglés (`migrations`, `events`), spec actualizada.
 - **Verde**: lint ✓, tsc ✓, core 125, admin 77, db-tests 179, build ✓.
 - **Auditorías**: QA/OWASP → APROBADA CON CAMBIOS; el alto y los medios están corregidos y con tests. Estilo → APROBADA CON CAMBIOS (claves del manifest corregidas; duplicaciones de tests/helpers aceptadas).
-- **Pendiente para `finalizada`**: CI del PR.
+- **CI**: PR #36 run `42047792624` en verde (`admin`, `android`, `commitlint`, `guard-secrets`, `supabase`) sobre `9d3db45`. **Finalizada**.
