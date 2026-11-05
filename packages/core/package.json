@@ -30,7 +30,8 @@
     "./user-categories/*.js": "./src/user-categories/*.ts",
     "./invitations/*.js": "./src/invitations/*.ts",
     "./api-keys/*.js": "./src/api-keys/*.ts",
-    "./devices/*.js": "./src/devices/*.ts"
+    "./devices/*.js": "./src/devices/*.ts",
+    "./modules/*.js": "./src/modules/*.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

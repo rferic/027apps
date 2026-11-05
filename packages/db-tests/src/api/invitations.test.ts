@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ClientBase } from "pg";
-import { createTestUser, query, withClient } from "../pg.js";
+import { createTestModule, createTestUser, query, withClient } from "../pg.js";
 import {
   createInvitationRoute,
   invitationsRoute,
@@ -16,6 +16,8 @@ const email = (name: string) => `inv-api-${name}-${Date.now()}-${Math.random()}@
 async function inRollback(fn: (c: ClientBase) => Promise<void>): Promise<void> {
   await withClient(async (c) => {
     await c.query("BEGIN");
+    await createTestModule(c, "expenses");
+    await createTestModule(c, "balances");
     try {
       await fn(c);
     } finally {

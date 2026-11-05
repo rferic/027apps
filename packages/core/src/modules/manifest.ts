@@ -1,0 +1,274 @@
+import { createHash } from "node:crypto";
+import { z } from "zod";
+
+/**
+ * Module manifest contract (module-system spec §3). This is the mechanical
+ * gate: the installer and CI validate the same schema. Scopes live in code;
+ * the manifest only declares them so the guard and CI can check consistency.
+ */
+
+export const MODULE_KEY = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const RESERVED_MODULE_KEYS = new Set(["admin", "mcp", "api", "core"]);
+export const MODULE_COLORS = [
+  "teal",
+  "indigo",
+  "violet",
+  "amber",
+  "rose",
+  "emerald",
+  "sky",
+  "slate",
+] as const;
+export const MODULE_LOCALES = ["en", "es", "ca", "it", "fr", "de", "pt", "gl", "eu"] as const;
+
+const SEMVER = /^\d+\.\d+\.\d+$/;
+const SNAKE = /^[a-z][a-z0-9_]*$/;
+const SCOPE = /^[a-z0-9][a-z0-9_-]{0,63}:[a-z0-9_]{1,32}$/;
+const ROUTE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const RESERVED_ROUTES = new Set(["admin", "mcp", "api", "settings", "users", "modules"]);
+const RELATIVE_FILE = /^(?!\/)(?!.*\.\.)[A-Za-z0-9._/-]+$/;
+const DIGEST = /^sha256:[0-9a-f]{64}$/;
+const FUNCTION_NAME = /^[a-z][a-z0-9_]{0,62}$/;
+const CHANNEL_PATTERN = /^[a-z0-9][a-z0-9-]*(\{[a-z_]+\})?$/;
+
+const migrationSchema = z
+  .object({
+    version: z.string().regex(SEMVER),
+    up: z.string().min(1),
+    down: z.string().min(1),
+    digest: z.string().regex(DIGEST),
+    down_digest: z.string().regex(DIGEST),
+  })
+  .strict();
+
+const settingSchema = z
+  .object({
+    key: z.string().regex(SNAKE),
+    type: z.enum(["string", "int", "bool", "currency", "locale", "url", "json"]),
+    default: z.unknown().optional(),
+    label: z.string().trim().min(1),
+    help: z.string().trim().min(1).optional(),
+    is_public: z.boolean(),
+    is_secret: z.boolean(),
+    mcp_access: z.enum(["none", "read", "write"]),
+    sort_order: z.number().int().min(0),
+  })
+  .strict()
+  .refine((setting) => !(setting.is_secret && setting.default !== undefined), {
+    message: "a secret setting cannot declare a default in the public manifest",
+  })
+  .refine((setting) => !(setting.is_secret && setting.is_public), {
+    message: "a secret setting cannot be public",
+  });
+
+const settingsCategorySchema = z
+  .object({
+    category: z.string().regex(SNAKE),
+    label: z.string().trim().min(1),
+    icon: z.string().trim().min(1).optional(),
+    sort_order: z.number().int().min(0),
+    settings: z.array(settingSchema),
+  })
+  .strict();
+
+const mcpToolSchema = z
+  .object({
+    name: z.string().regex(FUNCTION_NAME),
+    kind: z.enum(["read", "write"]),
+    description: z.string().trim().min(1),
+    scopes: z.array(z.string().regex(SCOPE)).min(1),
+  })
+  .strict();
+
+const channelSchema = z
+  .object({
+    pattern: z.string().regex(CHANNEL_PATTERN),
+    members_fn: z.string().regex(FUNCTION_NAME),
+  })
+  .strict();
+
+const eventSchema = z
+  .object({
+    type: z.string().regex(/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/),
+    target: z.string().min(1),
+    notify: z.array(z.enum(["push"])).optional(),
+  })
+  .strict();
+
+const adminPageSchema = z
+  .object({
+    route: z.string().regex(ROUTE),
+    label: z.string().trim().min(1),
+    icon: z.string().trim().min(1),
+    group: z.literal("module"),
+    role: z.enum(["admin", "super_admin"]),
+  })
+  .strict();
+
+const docsSchema = z
+  .object({
+    readme: z.string().regex(RELATIVE_FILE),
+    api: z.string().regex(RELATIVE_FILE).optional(),
+    mcp: z.string().regex(RELATIVE_FILE).optional(),
+    settings: z.string().regex(RELATIVE_FILE).optional(),
+    events: z.string().regex(RELATIVE_FILE).optional(),
+  })
+  .strict();
+
+export const manifestSchema = z
+  .object({
+    key: z.string().regex(MODULE_KEY),
+    name: z.string().trim().min(1),
+    branding: z
+      .object({
+        description: z.string().trim().min(1),
+        icon: z.string().regex(/^assets\/.+\.svg$/),
+        color: z.enum(MODULE_COLORS),
+      })
+      .strict(),
+    version: z.string().regex(SEMVER),
+    is_public: z.boolean(),
+    migraciones: z.array(migrationSchema).default([]),
+    settings: z.array(settingsCategorySchema).default([]),
+    i18n: z.array(z.enum(MODULE_LOCALES)),
+    scopes: z.array(z.string().regex(SCOPE)).default([]),
+    mcp_tools: z.array(mcpToolSchema).default([]),
+    channels: z.array(channelSchema).default([]),
+    eventos: z.array(eventSchema).default([]),
+    hooks: z.record(z.string(), z.string().regex(FUNCTION_NAME)).default({}),
+    admin_pages: z.array(adminPageSchema).default([]),
+    docs: docsSchema,
+  })
+  .strict()
+  .superRefine((manifest, ctx) => {
+    if (RESERVED_MODULE_KEYS.has(manifest.key)) {
+      ctx.addIssue({ code: "custom", path: ["key"], message: "reserved module key" });
+    }
+    const versions = manifest.migraciones.map((migration) => migration.version);
+    if (new Set(versions).size !== versions.length) {
+      ctx.addIssue({ code: "custom", path: ["migraciones"], message: "duplicate migration version" });
+    }
+    for (const category of manifest.settings) {
+      const expected = manifest.key.replace(/-/g, "_");
+      if (category.category !== expected) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["settings", category.category],
+          message: "settings category must be snake_case(key)",
+        });
+      }
+      const keys = category.settings.map((setting) => setting.key);
+      if (new Set(keys).size !== keys.length) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["settings", category.category],
+          message: "duplicate setting key",
+        });
+      }
+    }
+    const scopes = new Set(manifest.scopes);
+    for (const tool of manifest.mcp_tools) {
+      for (const scope of tool.scopes) {
+        if (!scopes.has(scope)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["mcp_tools", tool.name],
+            message: `tool scope ${scope} is not declared in scopes`,
+          });
+        }
+      }
+    }
+    const toolNames = manifest.mcp_tools.map((tool) => tool.name);
+    if (new Set(toolNames).size !== toolNames.length) {
+      ctx.addIssue({ code: "custom", path: ["mcp_tools"], message: "duplicate tool name" });
+    }
+    const channelPatterns = new Set(manifest.channels.map((channel) => channel.pattern));
+    for (const event of manifest.eventos) {
+      if (event.target.startsWith("channel:")) {
+        const pattern = event.target.slice("channel:".length);
+        if (!channelPatterns.has(pattern)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["eventos", event.type],
+            message: "channel target has no declared channel pattern",
+          });
+        }
+      }
+    }
+    const routes = manifest.admin_pages.map((page) => page.route);
+    if (new Set(routes).size !== routes.length) {
+      ctx.addIssue({ code: "custom", path: ["admin_pages"], message: "duplicate admin route" });
+    }
+    for (const page of manifest.admin_pages) {
+      if (RESERVED_ROUTES.has(page.route)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["admin_pages", page.route],
+          message: "reserved admin route",
+        });
+      }
+    }
+    if (!manifest.i18n.includes("en")) {
+      ctx.addIssue({ code: "custom", path: ["i18n"], message: "i18n must include en" });
+    }
+    // Documentation is mandatory by capability (module-system spec §3/§6).
+    if (!manifest.docs.readme) {
+      ctx.addIssue({ code: "custom", path: ["docs", "readme"], message: "readme is required" });
+    }
+    if (manifest.scopes.length > 0 && !manifest.docs.api) {
+      ctx.addIssue({ code: "custom", path: ["docs", "api"], message: "api docs are required" });
+    }
+    if (manifest.mcp_tools.length > 0 && !manifest.docs.mcp) {
+      ctx.addIssue({ code: "custom", path: ["docs", "mcp"], message: "mcp docs are required" });
+    }
+    if (manifest.settings.length > 0 && !manifest.docs.settings) {
+      ctx.addIssue({ code: "custom", path: ["docs", "settings"], message: "settings docs are required" });
+    }
+    if (
+      (manifest.eventos.length > 0 || manifest.channels.length > 0) &&
+      !manifest.docs.events
+    ) {
+      ctx.addIssue({ code: "custom", path: ["docs", "events"], message: "events docs are required" });
+    }
+  });
+
+export type ModuleManifest = z.infer<typeof manifestSchema>;
+
+export function sha256(value: string): string {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+export function manifestDigest(manifest: ModuleManifest): string {
+  return sha256(JSON.stringify(manifest));
+}
+
+/**
+ * Defence in depth for module DDL (module-system spec §5). The installer runs
+ * it as a restricted, non-superuser role scoped to `module_<key>`; this check
+ * rejects obvious escapes before the engine sees them.
+ */
+export function assertSafeModuleSql(sql: string, moduleKey: string): void {
+  const schema = `module_${moduleKey.replace(/-/g, "_")}`;
+  const forbiddenSchema = /\b(auth|storage|realtime|extensions|vault|pg_catalog|information_schema|supabase_migrations)\s*\./i;
+  if (forbiddenSchema.test(sql)) throw new Error(`module SQL may not reference reserved schemas (${schema})`);
+  if (/\bpublic\s*\./i.test(sql)) throw new Error("module SQL may not reference the public schema");
+
+  const forbiddenKeywords = [
+    /\bcreate\s+(or\s+replace\s+)?(role|database|extension|schema)\b/i,
+    /\balter\s+(role|database|system)\b/i,
+    /\bdrop\s+schema\b/i,
+    /\bgrant\b/i,
+    /\brevoke\b/i,
+    /\b(set|reset)\s+(local\s+|session\s+)?role\b/i,
+    /\bset\s+(local\s+|session\s+)?search_path\b/i,
+    /\bcopy\b/i,
+    /\btruncate\s+public\b/i,
+  ];
+  for (const pattern of forbiddenKeywords) {
+    if (pattern.test(sql)) throw new Error("module SQL contains a forbidden statement");
+  }
+}
+
+export function validateManifest(value: unknown): ModuleManifest {
+  return manifestSchema.parse(value);
+}

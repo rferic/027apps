@@ -1,0 +1,283 @@
+import { describe, expect, it, vi } from "vitest";
+import type { ClientBase } from "pg";
+import { createTestUser, query, withClient } from "../pg.js";
+import {
+  activateModule,
+  deactivateModule,
+  getModule,
+  getModuleSettings,
+  grantUserModule,
+  installModule,
+  listModules,
+  revokeUserModule,
+  uninstallModule,
+  updateModule,
+  updateModuleSetting,
+  type ModulesDeps,
+} from "@027apps/core/modules/service.js";
+import { sha256 } from "@027apps/core/modules/manifest.js";
+import type { Caller } from "@027apps/core/api/types.js";
+
+const email = (name: string) => `mod-${name}-${Date.now()}-${Math.random()}@test.local`;
+
+const UP = "create table items (id uuid primary key default gen_random_uuid(), name text not null);";
+const DOWN = "drop table if exists items;";
+
+async function inRollback(fn: (c: ClientBase) => Promise<void>): Promise<void> {
+  await withClient(async (c) => {
+    await c.query("BEGIN");
+    try {
+      await fn(c);
+    } finally {
+      await c.query("ROLLBACK");
+    }
+  });
+}
+
+function deps(c: ClientBase, overrides: Partial<ModulesDeps> = {}): ModulesDeps {
+  return {
+    db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
+    moduleRoot: (key) => `/modules/${key}`,
+    readFile: async (path) => {
+      if (path.endsWith("README.md")) return "# Demo module";
+      if (path.endsWith("docs/settings.md")) return "enabled";
+      if (path.endsWith("assets/icon.svg")) {
+        return '<svg xmlns="http://www.w3.org/2000/svg"><path fill="currentColor"/></svg>';
+      }
+      throw new Error(`missing ${path}`);
+    },
+    ...overrides,
+  };
+}
+
+function manifest(overrides: Record<string, unknown> = {}) {
+  return {
+    key: "demo-module",
+    name: "Demo",
+    branding: { description: "Demo module", icon: "assets/icon.svg", color: "teal" },
+    version: "1.0.0",
+    is_public: false,
+    migraciones: [
+      {
+        version: "1.0.0",
+        up: UP,
+        down: DOWN,
+        digest: sha256(UP),
+        down_digest: sha256(DOWN),
+      },
+    ],
+    settings: [
+      {
+        category: "demo_module",
+        label: "Demo",
+        sort_order: 10,
+        settings: [
+          {
+            key: "enabled",
+            type: "bool",
+            default: true,
+            label: "Enabled",
+            is_public: true,
+            is_secret: false,
+            mcp_access: "read",
+            sort_order: 10,
+          },
+        ],
+      },
+    ],
+    i18n: ["en"],
+    scopes: [],
+    mcp_tools: [],
+    channels: [],
+    eventos: [],
+    admin_pages: [],
+    docs: { readme: "README.md", settings: "docs/settings.md" },
+    ...overrides,
+  };
+}
+
+async function session(
+  c: ClientBase,
+  role: "super_admin" | "admin" | "user",
+): Promise<Caller & { kind: "session" }> {
+  const { id } = await createTestUser(c, { email: email(role), role });
+  return { kind: "session", userId: id, role };
+}
+
+describe("modules installer", () => {
+  it("installs the manifest DDL in its own schema and seeds settings", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      const installed = await installModule(deps(c), admin, manifest());
+
+      expect(installed.state).toBe("installed");
+      expect(installed.version).toBe("1.0.0");
+
+      const { rows: table } = await query(
+        c,
+        "select 1 from information_schema.tables where table_schema = 'module_demo_module' and table_name = 'items'",
+      );
+      expect(table).toHaveLength(1);
+
+      const { rows: settings } = await query(
+        c,
+        "select key, value, is_public from public.settings where category_key = 'demo_module'",
+      );
+      expect(settings).toEqual([{ key: "demo_module.enabled", value: true, is_public: true }]);
+
+      const { rows: migrations } = await query(
+        c,
+        "select version, direction from public.module_migrations where module_key = 'demo-module'",
+      );
+      expect(migrations).toEqual([{ version: "1.0.0", direction: "up" }]);
+
+      await expect(installModule(deps(c), admin, manifest())).rejects.toMatchObject({
+        code: "conflict",
+      });
+    });
+  });
+
+  it("refuses a digest mismatch before touching the database", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      const tampered = manifest({
+        migraciones: [
+          { version: "1.0.0", up: UP + " ", down: DOWN, digest: sha256(UP), down_digest: sha256(DOWN) },
+        ],
+      });
+
+      await expect(installModule(deps(c), admin, tampered)).rejects.toMatchObject({
+        code: "validation_failed",
+      });
+      const { rows } = await query(c, "select 1 from public.module_registry");
+      expect(rows).toHaveLength(0);
+    });
+  });
+
+  it("rejects unsafe SQL", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      const unsafe = "create table public.items (id int);";
+      const bad = manifest({
+        migraciones: [
+          {
+            version: "1.0.0",
+            up: unsafe,
+            down: DOWN,
+            digest: sha256(unsafe),
+            down_digest: sha256(DOWN),
+          },
+        ],
+      });
+      await expect(installModule(deps(c), admin, bad)).rejects.toThrow(/public schema/);
+    });
+  });
+
+  it("walks the lifecycle and enforces legal transitions", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      await installModule(deps(c), admin, manifest());
+
+      await expect(activateModule(deps(c), admin, "demo-module")).resolves.toMatchObject({
+        state: "active",
+      });
+      await expect(deactivateModule(deps(c), admin, "demo-module")).resolves.toMatchObject({
+        state: "disabled",
+      });
+      await expect(deactivateModule(deps(c), admin, "demo-module")).rejects.toMatchObject({
+        code: "conflict",
+      });
+      await expect(activateModule(deps(c), admin, "demo-module")).resolves.toMatchObject({
+        state: "active",
+      });
+      expect(await listModules(deps(c))).toHaveLength(1);
+    });
+  });
+
+  it("gates private modules by access and grants/revokes per user", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      const user = await session(c, "user");
+      await installModule(deps(c), admin, manifest());
+      await activateModule(deps(c), admin, "demo-module");
+
+      await expect(getModule(deps(c), user, "demo-module")).rejects.toMatchObject({
+        code: "not_found",
+      });
+      await grantUserModule(deps(c), admin, user.userId, "demo-module");
+      await expect(getModule(deps(c), user, "demo-module")).resolves.toMatchObject({
+        key: "demo-module",
+      });
+      await revokeUserModule(deps(c), admin, user.userId, "demo-module");
+      await expect(getModule(deps(c), user, "demo-module")).rejects.toMatchObject({
+        code: "not_found",
+      });
+    });
+  });
+
+  it("updates visibility and module settings, masking secrets", async () => {
+    await inRollback(async (c) => {
+      const superAdmin = await session(c, "super_admin");
+      const admin = await session(c, "admin");
+      await installModule(deps(c), admin, manifest());
+
+      await expect(
+        updateModule(deps(c), admin, "demo-module", { mcp_exposed: "read_write" }),
+      ).rejects.toMatchObject({ code: "insufficient_scope" });
+      await expect(
+        updateModule(deps(c), superAdmin, "demo-module", {
+          is_public: true,
+          mcp_exposed: "read_write",
+        }),
+      ).resolves.toMatchObject({ is_public: true, mcp_exposed: "read_write" });
+
+      expect(await getModuleSettings(deps(c), admin, "demo-module")).toHaveLength(1);
+      const updated = await updateModuleSetting(deps(c), admin, "demo-module", {
+        key: "enabled",
+        value: false,
+      });
+      expect(updated.value).toBe(false);
+    });
+  });
+
+  it("uninstalls only with confirmation when grants exist and reverses the DDL", async () => {
+    await inRollback(async (c) => {
+      const superAdmin = await session(c, "super_admin");
+      const admin = await session(c, "admin");
+      const user = await session(c, "user");
+      await installModule(deps(c), admin, manifest());
+      await grantUserModule(deps(c), admin, user.userId, "demo-module");
+
+      await expect(
+        uninstallModule(deps(c), superAdmin, "demo-module", manifest(), false),
+      ).rejects.toMatchObject({ code: "conflict" });
+
+      await uninstallModule(deps(c), superAdmin, "demo-module", manifest(), true);
+
+      const { rows: registry } = await query(c, "select 1 from public.module_registry");
+      expect(registry).toHaveLength(0);
+      const { rows: table } = await query(
+        c,
+        "select 1 from information_schema.tables where table_schema = 'module_demo_module' and table_name = 'items'",
+      );
+      expect(table).toHaveLength(0);
+      const { rows: settings } = await query(
+        c,
+        "select 1 from public.settings where category_key = 'demo_module'",
+      );
+      expect(settings).toHaveLength(0);
+      const { rows: grants } = await query(c, "select 1 from public.user_modules where module_key = 'demo-module'");
+      expect(grants).toHaveLength(0);
+    });
+  });
+
+  it("only super_admins can uninstall", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      await installModule(deps(c), admin, manifest());
+      await expect(
+        uninstallModule(deps(c), admin, "demo-module", manifest(), true),
+      ).rejects.toMatchObject({ code: "insufficient_scope" });
+    });
+  });
+});

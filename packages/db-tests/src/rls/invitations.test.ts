@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ClientBase } from "pg";
-import { withClient, query, count, impersonate, impersonateAnon, createTestUser } from "../pg.js";
+import { withClient, query, count, impersonate, impersonateAnon, createTestUser, createTestModule } from "../pg.js";
 
 const uniq = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -32,6 +32,8 @@ describe("RLS: invitations", () => {
   it("an admin reads and writes invitations", async () => {
     await withClient(async (c) => {
       await c.query("BEGIN");
+      await createTestModule(c, "expenses");
+      await createTestModule(c, "balances");
       const admin = await seedUser(c, "admin", "RLS Inv Admin");
       const invitation = await seedInvitation(c, admin.id);
       await query(c, "insert into public.invitation_modules (invitation_id, module_key) values ($1, 'expenses')", [
@@ -51,6 +53,8 @@ describe("RLS: invitations", () => {
   it("a plain user cannot read or create invitations", async () => {
     await withClient(async (c) => {
       await c.query("BEGIN");
+      await createTestModule(c, "expenses");
+      await createTestModule(c, "balances");
       const admin = await seedUser(c, "admin", "RLS Inv Admin 2");
       const plain = await seedUser(c, "user", "RLS Inv Plain");
       await seedInvitation(c, admin.id);
@@ -75,6 +79,8 @@ describe("RLS: invitations", () => {
   it("anon has no privileges on invitations", async () => {
     await withClient(async (c) => {
       await c.query("BEGIN");
+      await createTestModule(c, "expenses");
+      await createTestModule(c, "balances");
       await impersonateAnon(c);
       await expect(query(c, "select count(*) from public.invitations")).rejects.toThrowError(
         /permission denied/i,

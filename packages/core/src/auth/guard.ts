@@ -20,6 +20,7 @@ const USER_SCOPES = [
   'devices:read',
   'devices:write',
   'devices:revoke',
+  'modules:read',
 ] as const;
 
 const ADMIN_SCOPES = [
@@ -29,7 +30,7 @@ const ADMIN_SCOPES = [
   'roles:assign',
   'user_categories:read',
   'user_categories:write',
-  'modules:read',
+  'modules:manage',
   'modules:grant',
   'invitations:read',
   'invitations:write',

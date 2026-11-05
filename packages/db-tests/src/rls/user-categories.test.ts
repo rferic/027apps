@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ClientBase } from "pg";
-import { withClient, query, count, impersonate, impersonateAnon, createTestUser } from "../pg.js";
+import { withClient, query, count, impersonate, impersonateAnon, createTestUser, createTestModule } from "../pg.js";
 
 /**
  * RLS isolation for user categories (core-data-model §5, decision B4):
@@ -32,6 +32,8 @@ describe("RLS: user categories", () => {
   it("a member reads only their own category label", async () => {
     await withClient(async (c) => {
       await c.query("BEGIN");
+      await createTestModule(c, "expenses");
+      await createTestModule(c, "balances");
       const admin = await seedUser(c, "admin", "RLS Admin");
       const member = await seedUser(c, "user", "RLS Member");
       const mine = await seedCategory(c, admin.id, "Familia");
@@ -56,6 +58,8 @@ describe("RLS: user categories", () => {
   it("a plain user cannot create, rename, delete or join a category", async () => {
     await withClient(async (c) => {
       await c.query("BEGIN");
+      await createTestModule(c, "expenses");
+      await createTestModule(c, "balances");
       const admin = await seedUser(c, "admin", "RLS Admin 2");
       const plain = await seedUser(c, "user", "RLS Plain");
       const category = await seedCategory(c, admin.id, "Casa");
@@ -98,6 +102,8 @@ describe("RLS: user categories", () => {
   it("a user reads only their own module grants and cannot grant themselves one", async () => {
     await withClient(async (c) => {
       await c.query("BEGIN");
+      await createTestModule(c, "expenses");
+      await createTestModule(c, "balances");
       const admin = await seedUser(c, "admin", "RLS Admin 3");
       const owner = await seedUser(c, "user", "RLS Owner");
       const other = await seedUser(c, "user", "RLS Other");
@@ -133,6 +139,8 @@ describe("RLS: user categories", () => {
   it("an admin manages categories and reads every grant", async () => {
     await withClient(async (c) => {
       await c.query("BEGIN");
+      await createTestModule(c, "expenses");
+      await createTestModule(c, "balances");
       const admin = await seedUser(c, "admin", "RLS Admin 4");
       const member = await seedUser(c, "user", "RLS Member 4");
       const category = await seedCategory(c, admin.id, "Trabajo");
@@ -157,6 +165,8 @@ describe("RLS: user categories", () => {
   it("anon has no privileges on the category tables", async () => {
     await withClient(async (c) => {
       await c.query("BEGIN");
+      await createTestModule(c, "expenses");
+      await createTestModule(c, "balances");
       await impersonateAnon(c);
       await expect(query(c, "select count(*) from public.user_categories")).rejects.toThrowError(
         /permission denied/i,
