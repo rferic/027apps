@@ -1,5 +1,5 @@
 ---
-id: sprint01-task-07
+id: sprint-01-task-07
 titulo: Identidad visual y branding — direcciones y elección
 area: fundaciones
 estado: finalizada

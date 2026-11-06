@@ -22,7 +22,7 @@
 
 - [x] **Task 5: Documentation and task tracking**
   - Create `docs/flows/local-development.md` detailing requirements, proxy start/stop commands, verification, `.local` vs `.test` rationale, cookie isolation, and troubleshooting.
-  - Create `docs/tasks/sprint-web/task-03.md` marking task as `en curso`.
+  - Create `docs/tasks/sprint-06-web/task-03.md` marking task as `en curso`.
 
 - [ ] **Task 6: Verification**
   - Run full verification gates (`lint`, `tsc`, `test`, `i18n:check`, `build`), verify domain resolution with `curl`, and check browser interactivity.

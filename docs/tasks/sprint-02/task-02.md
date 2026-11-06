@@ -1,5 +1,5 @@
 ---
-id: sprint02-task-02
+id: sprint-02-task-02
 titulo: Design System v1 — componentes y pantallas base
 area: marca
 estado: finalizada

@@ -1,5 +1,5 @@
 ---
-id: sprint01-task-03
+id: sprint-01-task-03
 titulo: Scaffold Android (Kotlin + Jetpack Compose)
 area: fundaciones
 estado: finalizada

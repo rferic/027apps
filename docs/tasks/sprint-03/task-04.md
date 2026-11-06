@@ -1,5 +1,5 @@
 ---
-id: sprint03-task-04
+id: sprint-03-task-04
 titulo: Spec de autenticación (definición)
 area: core
 estado: finalizada

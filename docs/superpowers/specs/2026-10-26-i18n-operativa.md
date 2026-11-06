@@ -1,4 +1,4 @@
-# Spec — Core: i18n operativa (sprint 04, task 09)
+# Spec — Core: i18n operativa (sprint 05, task 09)
 
 **Fecha:** 2026-10-26 · **Revisión:** 2 (revisión de docs + auditoría OWASP)
 **Estado:** Borrador para aprobación del usuario
@@ -97,7 +97,7 @@ packages/i18n/
 - **Plurales / ICU / RTL** (se reevalúa con caso real).
 - **Contextos de desambiguación** (`translations.context` no se siembra en v1).
 - **Traducción automática en runtime**.
-- **UI del panel de traducciones** (sprint-web).
+- **UI del panel de traducciones** (sprint-06-web).
 - **Skill `i18n-sync`**: **no** la define esta spec; se materializa en el sprint de implementación cuando existan los scripts.
 - **Android**: `apps/android` se localiza con su propio mecanismo (`values-*`); esta pipeline cubre **Core web/admin + módulos**.
 
@@ -126,4 +126,4 @@ packages/i18n/
 
 - ADR 0008 · spec de datos (`translations`) · config (`enabled_locales`) · módulos · API §3.9 · ADR 0007 · testing §6
 - Flujo entregable: `docs/flows/i18n.md`
-- Plan: `docs/superpowers/plans/2026-10-26-sprint-core-design.md` · Task: `docs/tasks/sprint-core-design/task-09.md`
+- Plan: `docs/superpowers/plans/2026-10-26-sprint-05-core-design.md` · Task: `docs/tasks/sprint-05-core-design/task-09.md`

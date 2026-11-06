@@ -34,7 +34,7 @@ Además, el idioma elegido en el wizard se **propone** como `localization.defaul
 
 **Fuera:**
 
-- Traducir el panel privado; eso es sprint-web.
+- Traducir el panel privado; eso es sprint-06-web.
 - Editor/import de traducciones y uso de la tabla `translations` en el wizard.
 - Traducir las plantillas SMTP de Supabase.
 - RTL, plurales/ICU y locales nuevos.
@@ -48,7 +48,7 @@ Además, el idioma elegido en el wizard se **propone** como `localization.defaul
 - El wizard y la ayuda resuelven el idioma con `?lang` (solo ayuda) → cookie → `en`; cualquier valor no soportado cae a `en`.
 - `@027apps/i18n` expone `getDictionary(locale)` con imports estáticos de los 9 JSON; `en` devuelve `{}` porque `t()` ya cae al texto inglés.
 - Un componente cliente `LocaleSwitcher` escribe la cookie y refresca; en la ayuda actualiza además `?lang` para que el enlace sea compartible.
-- El wizard no depende de la BD antes de instalar; el panel seguirá usando `translations` cuando llegue sprint-web. Esta dualidad se documenta.
+- El wizard no depende de la BD antes de instalar; el panel seguirá usando `translations` cuando llegue sprint-06-web. Esta dualidad se documenta.
 
 **Por qué no B/C:** sembrar la BD antes de instalar añade una dependencia y un fallo posible en la primera pantalla (B); llevar el idioma solo en la URL pierde el valor en las server actions que redirigen a `/setup` y obliga a arrastrarlo por todos los pasos (C).
 
@@ -90,7 +90,7 @@ Además, el idioma elegido en el wizard se **propone** como `localization.defaul
 
 - **No se toca el layout raíz.** Leer `cookies()` ahí haría dinámicas todas las rutas (panel, login, setup, ayuda) y perdería el shell estático con Cache Components.
 - El wizard y la ayuda montan un pequeño componente cliente que fija `document.documentElement.lang` al locale resuelto; el contenido de la ayuda lleva además `lang={locale}` en su contenedor.
-- El panel conserva el `lang` actual hasta que su i18n llegue en sprint-web.
+- El panel conserva el `lang` actual hasta que su i18n llegue en sprint-06-web.
 
 ### 5.6 Proxy y ayuda pública
 
@@ -131,7 +131,7 @@ Sin datos concretos de la instancia, sin service account y sin enlaces que ejecu
 
 | Riesgo | Mitigación |
 |---|---|
-| Dos caminos de i18n (repo vs BD) | Documentar que wizard/ayuda leen el repo y el panel usará la BD en sprint-web. |
+| Dos caminos de i18n (repo vs BD) | Documentar que wizard/ayuda leen el repo y el panel usará la BD en sprint-06-web. |
 | `router.refresh()` con Cache Components no re-renderiza | El wizard ya usa `instant = false`; test de integración del selector y prueba manual. |
 | Traducciones nuevas de baja calidad | Las revisa el agente Traductor y `i18n:check` valida claves/placeholders. |
 | Leer la cookie en el layout raíz haría dinámicas todas las rutas | No se toca el layout raíz; el `lang` del wizard/ayuda se fija en cliente. |
@@ -153,5 +153,5 @@ Sin datos concretos de la instancia, sin service account y sin enlaces que ejecu
 ## 10. Plan y entrega
 
 - Aprobación de esta spec → plan de implementación (`writing-plans`).
-- Rama y tarea: nueva tarea de `sprint-web` (setup/i18n) o rama `feature/setup-i18n-help` desde `main`; se decide en el plan para no mezclarla con sprint-06.
+- Rama y tarea: nueva tarea de `sprint-06-web` (setup/i18n) o rama `feature/setup-i18n-help` desde `main`; se decide en el plan para no mezclarla con sprint-09-core-data.
 - TDD: tests primero, luego implementación, auditorías QA/estilo/seguridad y `i18n:check` antes de `finalizada`.

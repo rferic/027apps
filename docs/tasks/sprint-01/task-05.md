@@ -1,5 +1,5 @@
 ---
-id: sprint01-task-05
+id: sprint-01-task-05
 titulo: Convenciones ejecutables — AGENTS.md, clean code y enforcement
 area: fundaciones
 estado: finalizada

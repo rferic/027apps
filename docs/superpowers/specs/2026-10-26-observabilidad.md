@@ -1,4 +1,4 @@
-# Spec — Core: observabilidad (sprint 04, task 08)
+# Spec — Core: observabilidad (sprint 05, task 08)
 
 **Fecha:** 2026-10-26 · **Revisión:** 2 (revisión de docs + auditoría OWASP)
 **Estado:** Borrador para aprobación del usuario
@@ -141,5 +141,5 @@ Se entrega **`docs/guia-debugging.md`** con **6 contenidos obligatorios** + 2 se
 - DoD: `docs/conventions/definition-of-done.md`
 - Entregable: `docs/guia-debugging.md`
 - Backups: [`docs/infrastructure.md`](../../infrastructure.md) · [spec de backup](2026-10-26-backups.md)
-- Plan: `docs/superpowers/plans/2026-10-26-sprint-core-design.md`
-- Task: `docs/tasks/sprint-core-design/task-08.md`
+- Plan: `docs/superpowers/plans/2026-10-26-sprint-05-core-design.md`
+- Task: `docs/tasks/sprint-05-core-design/task-08.md`

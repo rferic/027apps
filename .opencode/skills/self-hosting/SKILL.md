@@ -22,7 +22,7 @@ pastes values only in provider dashboards.
 2. `docs/infrastructure.md` — services, limits, secrets, backups, recovery and §9 production
    activation.
 3. `docs/flows/cicd.md` — rulesets, environments, secret handling and releases.
-4. `docs/tasks/sprint-infra/README.md` and `task-01..13.md` — what was actually verified.
+4. `docs/tasks/sprint-04-infra/README.md` and `task-01..13.md` — what was actually verified.
 
 If a document is missing, stop and report instead of improvising.
 

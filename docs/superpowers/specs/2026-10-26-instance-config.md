@@ -1,4 +1,4 @@
-# Spec — Core: configuración de instancia y wizard de instalación (sprint 04, task 06)
+# Spec — Core: configuración de instancia y wizard de instalación (sprint 05, task 06)
 
 **Fecha:** 2026-10-26
 **Estado:** Borrador para aprobación del usuario
@@ -17,7 +17,7 @@ Definir **qué es configurable en una instancia** (claves, tipos, validación, s
 | Dato | Dónde vive | Quién lo escribe | Qué hace el asistente |
 |---|---|---|---|
 | URL y claves de Supabase | Env del hosting (Vercel) | Quien instala, antes del deploy | **Guía + verifica** (conexión, migraciones) |
-| `SETTINGS_ENCRYPTION_KEY` (32 bytes) | Env del hosting | Quien instala | **Guía + verifica** (presente y válida); provisión en `sprint-infra` task-09 |
+| `SETTINGS_ENCRYPTION_KEY` (32 bytes) | Env del hosting | Quien instala | **Guía + verifica** (presente y válida); provisión en `sprint-04-infra` task-09 |
 | `SENTRY_DSN` (opcional, **solo servidor**) | Env del hosting | Quien instala | **Guía + verifica** si existe; sin DSN no hay agregación de errores pero la instancia funciona (task-08 §4) |
 | SMTP del proyecto Supabase | Dashboard de Supabase | Quien instala | **Guía + verifica** (email de prueba al propio admin) |
 | `JWT_EXPIRY = 900 s` | Proyecto Supabase | Quien instala | **Guía + verifica** (decodifica el access token del admin tras el login) |
@@ -167,7 +167,7 @@ El manifest del módulo (task-03) declara cada setting con la forma completa que
 | D | **18 claves** con tipo, default, secreto, `is_public`, `mcp_access`; nombres canónicos `notifications.push.fcm_*` |
 | E | **Escritura por sensibilidad**: `security.*`, `instance.public_url` y `cors_allowlist` son de **`super_admin`** (cierra la asimetría con MCP) |
 | F | **AES-256-GCM** con nonce de 12 bytes nuevo por cifrado, **AAD** = versión + clave, formato `v1:iv:tag:ciphertext`, rotación con doble clave |
-| G | **Custodia de la clave** en gestor de secretos separado del backup de BD (M-3); provisión en `sprint-infra` task-09 |
+| G | **Custodia de la clave** en gestor de secretos separado del backup de BD (M-3); provisión en `sprint-04-infra` task-09 |
 | H | **`settings_public`** = 8 claves + los 4 `fcm_*`; **incluye `public_url`** (la consumen invitaciones y deep links); nunca CORS/rate limits/secretos |
 | I | **Creación atómica** del primer admin + rate limit en `/setup*` + orden impuesto en servidor (M-4) |
 | J | **Email de prueba solo al admin**, máx. 3 intentos (M-7) |
@@ -179,10 +179,10 @@ El manifest del módulo (task-03) declara cada setting con la forma completa que
 
 ## 10. Fuera de alcance
 
-- **Despliegue, variables de entorno y runbook** → `docs/flows/cicd.md` + `docs/infra`. (Se añade la tarea de `SETTINGS_ENCRYPTION_KEY` en `sprint-infra`.)
+- **Despliegue, variables de entorno y runbook** → `docs/flows/cicd.md` + `docs/infra`. (Se añade la tarea de `SETTINGS_ENCRYPTION_KEY` en `sprint-04-infra`.)
 - **SMTP propio de la app, LLM BYOK, secrets de MCP**: no en v1 (mecanismo `value_encrypted` reservado).
-- **Proveedor SMTP/Firebase de la instancia del autor** → `sprint-infra` task-03/task-08.
-- **UI del panel de ajustes** → sprint-web.
+- **Proveedor SMTP/Firebase de la instancia del autor** → `sprint-04-infra` task-03/task-08.
+- **UI del panel de ajustes** → sprint-06-web.
 - **Rotación operativa completa** → runbook de infraestructura.
 
 ## 11. Criterios de aceptación
@@ -204,6 +204,6 @@ El manifest del módulo (task-03) declara cada setting con la forma completa que
 - Spec de módulos: `docs/superpowers/specs/2026-10-26-modulo-system.md` §3
 - Spec de MCP: `docs/superpowers/specs/2026-10-26-mcp.md` §4.4
 - ADRs: `docs/adr/0007-manejo-de-errores.md`, `0008-fechas-y-moneda.md` (nota de revisión)
-- Infra: `sprint-infra` task-03 (SMTP), task-08 (Firebase), task-09 (`SETTINGS_ENCRYPTION_KEY`)
-- Plan del sprint: `docs/superpowers/plans/2026-10-26-sprint-core-design.md`
-- Task: `docs/tasks/sprint-core-design/task-06.md`
+- Infra: `sprint-04-infra` task-03 (SMTP), task-08 (Firebase), task-09 (`SETTINGS_ENCRYPTION_KEY`)
+- Plan del sprint: `docs/superpowers/plans/2026-10-26-sprint-05-core-design.md`
+- Task: `docs/tasks/sprint-05-core-design/task-06.md`

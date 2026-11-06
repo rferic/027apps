@@ -1,5 +1,5 @@
 ---
-id: sprint01-task-02
+id: sprint-01-task-02
 titulo: Scaffold del admin (Next.js 16) con tooling TypeScript
 area: fundaciones
 estado: finalizada

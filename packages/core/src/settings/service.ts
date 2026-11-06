@@ -141,7 +141,7 @@ async function currentSettingsMap(deps: SettingsDeps): Promise<Record<string, un
 }
 
 function assertCanWrite(caller: Caller, meta: SettingMeta): void {
-  // v1: settings are session-only (MCP access arrives with sprint-06 keys).
+  // v1: settings are session-only (MCP access arrives with sprint-09-core-data keys).
   if (caller.kind !== 'session') {
     throw new DomainError('insufficient_scope');
   }

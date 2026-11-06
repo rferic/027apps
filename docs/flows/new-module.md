@@ -1,6 +1,6 @@
 # Flujo: nuevo módulo (metodología para agentes)
 
-> **Estado: metodología v1** (sprint 08). Fuente canónica del contrato:
+> **Estado: metodología v1** (sprint 12). Fuente canónica del contrato:
 > [`docs/ai/module-system.md`](../ai/module-system.md). La skill de proyecto `new-module`
 > (`.opencode/skills/new-module/SKILL.md`) ejecuta este flujo paso a paso; este documento es
 > la metodología. Las dependencias del Core se listan en la tabla §5: la skill debe

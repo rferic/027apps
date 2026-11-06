@@ -21,7 +21,7 @@ Permitir el desarrollo y pruebas locales del panel de administración y el asist
 - Actualización de `supabase/config.toml` con `site_url = "http://027apps.local"` y URLs de redirección.
 - Mejora de `preferences-step.tsx` con validación de patrones HTML (`pattern="https?://[^\s/]+"`) y traducción en 9 locales.
 - Documentación del flujo completo en `docs/flows/local-development.md`.
-- Creación de la tarea `sprint-web-task-03`.
+- Creación de la tarea `sprint-06-task-03`.
 
 **Fuera:**
 - Commitear ficheros docker-compose o scripts de automatización del proxy Caddy al repositorio (se documenta su ejecución manual mediante `docker run`).

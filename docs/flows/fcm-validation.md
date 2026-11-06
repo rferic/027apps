@@ -1,6 +1,6 @@
 # Validación end-to-end de FCM
 
-Runbook de la **puerta de aceptación de despliegue** de sprint-06 (task-06):
+Runbook de la **puerta de aceptación de despliegue** de sprint-09-core-data (task-06):
 comprobar que un evento del outbox llega como notificación a un dispositivo real
 con la app cerrada, y que un token inválido queda revocado.
 
@@ -272,7 +272,7 @@ recibir la notificación.
 
 ## Paso 12 — Cerrar la puerta
 
-Marca la puerta como verificada en `docs/tasks/sprint-06-core-data/task-06.md`
+Marca la puerta como verificada en `docs/tasks/sprint-09-core-data/task-06.md`
 con:
 
 - fecha y entorno (local/emulador o móvil),

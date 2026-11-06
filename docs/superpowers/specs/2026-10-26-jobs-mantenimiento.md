@@ -1,4 +1,4 @@
-# Spec — Core: trabajos programados y mantenimiento (sprint 04, task 07)
+# Spec — Core: trabajos programados y mantenimiento (sprint 05, task 07)
 
 **Fecha:** 2026-10-26 · **Revisión:** 2 (correcciones de revisión de docs + auditoría OWASP)
 **Estado:** Borrador para aprobación del usuario
@@ -98,7 +98,7 @@ Tras el commit, el caso de uso despacha su evento (task-04). No depende de cron.
 - Workflow `maintenance.yml`, **horario con minuto desplazado** (`:23`), `workflow_dispatch`, `permissions: {}`, `concurrency` para no solapar.
 - Secretos **por `env` en el paso** (`MAINTENANCE_URL`, `MAINTENANCE_API_KEY`); **nunca** echo; acciones de terceros fijadas por SHA.
 - **409 → `exit 0` + notice** (otra ejecución en curso no es un fallo).
-- La clave usada tiene **solo** `maintenance:run`, **`role_cap=super_admin`** y **`expires_at`** con rotación planificada (sprint-infra).
+- La clave usada tiene **solo** `maintenance:run`, **`role_cap=super_admin`** y **`expires_at`** con rotación planificada (sprint-04-infra).
 - **Prerrequisitos de repo**: protección de rama / CODEOWNERS sobre `.github/workflows/` para que un colaborador no edite el workflow y exfiltre la clave.
 - `docs/flows/cicd.md` se actualiza en el PR que implemente el workflow: job nuevo, degradación en forks sin secrets, y **patrones `027_svc_`/`027_usr_` en `guard-secrets`**.
 
@@ -162,9 +162,9 @@ Tras el commit, el caso de uso despacha su evento (task-04). No depende de cron.
 ## 7. Fuera de alcance
 
 - **Backups de la BD** y su retención → infraestructura (runbook + tarea propia).
-- **Keep-alive del proyecto Supabase** → `docs/flows/cicd.md` + `sprint-infra` task-07.
-- **Rotación de la clave maestra** → `sprint-infra` task-09.
-- **UI del panel de mantenimiento** → contract aquí; implementación en sprint-web.
+- **Keep-alive del proyecto Supabase** → `docs/flows/cicd.md` + `sprint-04-infra` task-07.
+- **Rotación de la clave maestra** → `sprint-04-infra` task-09.
+- **UI del panel de mantenimiento** → contract aquí; implementación en sprint-06-web.
 - **Purga de datos de negocio de módulos** → decide cada módulo (el dinero no se borra).
 
 ## 8. Criterios de aceptación
@@ -188,4 +188,4 @@ Tras el commit, el caso de uso despacha su evento (task-04). No depende de cron.
 - Config: `docs/superpowers/specs/2026-10-26-instance-config.md` §5
 - Tokens: `docs/superpowers/specs/2026-10-25-token-model.md` §6
 - Flujo: `docs/flows/cicd.md` (`maintenance.yml` + patrones `guard-secrets` al implementar)
-- Plan: `docs/superpowers/plans/2026-10-26-sprint-core-design.md` · Task: `docs/tasks/sprint-core-design/task-07.md`
+- Plan: `docs/superpowers/plans/2026-10-26-sprint-05-core-design.md` · Task: `docs/tasks/sprint-05-core-design/task-07.md`

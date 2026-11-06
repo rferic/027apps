@@ -273,4 +273,4 @@ walks you step by step, verifies each result and refuses to accept secrets in ch
 - [`docs/flows/cicd.md`](flows/cicd.md) — workflows, environments, secret handling, releases.
 - [`docs/conventions/definition-of-done.md`](conventions/definition-of-done.md) — what "done"
   means, including security audits.
-- `docs/tasks/sprint-infra/task-01.md` … `task-13.md` — the original setup tasks with evidence.
+- `docs/tasks/sprint-04-infra/task-01.md` … `task-13.md` — the original setup tasks with evidence.

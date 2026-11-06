@@ -1,5 +1,5 @@
 ---
-id: sprint01-task-01
+id: sprint-01-task-01
 titulo: Repositorio, monorepo base y ficheros de tarea
 area: fundaciones
 estado: finalizada

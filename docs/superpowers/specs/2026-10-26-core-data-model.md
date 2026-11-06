@@ -1,4 +1,4 @@
-# Spec — Core: modelo de datos y accesos (sprint 04, task 01)
+# Spec — Core: modelo de datos y accesos (sprint 05, task 01)
 
 **Fecha:** 2026-10-26
 **Estado:** Borrador para aprobación del usuario
@@ -242,7 +242,7 @@ Convenciones (ADR 0008): IDs `uuid`, instantes `timestamptz` ISO 8601 UTC, fecha
 | `created_at`, `updated_at` | timestamptz | |
 | — | `UNIQUE (locale, text_hash)`, índice por `text_en` | |
 
-> **Resolución en runtime** (kernel en task-02): `resolve(text_en, locale) = translations(locale, hash) ?? text_en` — **nunca** una clave sin traducir "seca"; el texto en inglés es siempre el último recurso. **Cobertura/detección** (task-09 + sprint-web): % traducido por locale y faltantes = consultas sobre esta tabla; la importación compara por `text_hash`. La **check de CI de ADR 0008 sigue igual** (set commiteado determinista) y alimenta esta tabla como `source: code`; el store runtime la extiende, no la sustituye.
+> **Resolución en runtime** (kernel en task-02): `resolve(text_en, locale) = translations(locale, hash) ?? text_en` — **nunca** una clave sin traducir "seca"; el texto en inglés es siempre el último recurso. **Cobertura/detección** (task-09 + sprint-06-web): % traducido por locale y faltantes = consultas sobre esta tabla; la importación compara por `text_hash`. La **check de CI de ADR 0008 sigue igual** (set commiteado determinista) y alimenta esta tabla como `source: code`; el store runtime la extiende, no la sustituye.
 
 ### 3.4 Invitación
 
@@ -462,4 +462,4 @@ Formato (testing §2/§3): suite SQL por tabla + script de dos usuarios/categor�
 - Spec de auth: `docs/superpowers/specs/2026-10-25-auth.md` §3/§3bis/§5/§5bis
 - ADRs: `docs/adr/0004-bordes-y-capa-de-aplicacion.md`, `0007-manejo-de-errores.md`, `0008-fechas-y-moneda.md`, `0006-realtime.md`
 - Testing: `docs/conventions/testing-strategy.md` (D2, §3, §8)
-- Plan del sprint: `docs/superpowers/plans/2026-10-26-sprint-core-design.md`
+- Plan del sprint: `docs/superpowers/plans/2026-10-26-sprint-05-core-design.md`

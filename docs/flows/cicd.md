@@ -202,7 +202,7 @@ Detalle y comandos exactos del keystore en [`apps/android/keystore/README.md`](.
 1. En Vercel: *Add New → Project → Import Git Repository* → `rferic/027apps`.
 2. **Root Directory:** `apps/admin`. Framework: Next.js (autodetectado). Con la raíz en `apps/admin`, Vercel instala con el `pnpm-lock.yaml` del monorepo (activar "Include source files outside of the Root Directory").
 3. Añadir env vars (**solo Preview** mientras no exista `027apps-prod`) del proyecto Supabase de desarrollo: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (esta última nunca con prefijo `NEXT_PUBLIC_`) y `SETTINGS_ENCRYPTION_KEY` (tipo *sensitive*).
-4. *Production Branch:* `production` (rama **placeholder**, congelada en el HEAD de `main`; Vercel exige que exista en el repo, por eso se crea una vez y no se toca). Los pushes a `main` generan solo previews. Se cambiará a `main` al cierre de sprint-05, cuando exista el Core funcional y `027apps-prod` (nota de recordatorio en `plans/...`).
+4. *Production Branch:* `production` (rama **placeholder**, congelada en el HEAD de `main`; Vercel exige que exista en el repo, por eso se crea una vez y no se toca). Los pushes a `main` generan solo previews. Se cambiará a `main` al cierre de sprint-08-core-base, cuando exista el Core funcional y `027apps-prod` (nota de recordatorio en `plans/...`).
 5. Verificación: abrir un PR de prueba → aparece el preview de Vercel y `/api/health` responde `{"status":"ok"}`. El merge a `main` también es preview mientras `production` sea la production branch.
 6. La protección de `main` se hace en el paso A (antes del keystore); añade aquí el check de Vercel a los checks requeridos.
 

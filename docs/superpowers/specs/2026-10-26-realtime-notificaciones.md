@@ -1,4 +1,4 @@
-# Spec — Core: realtime y notificaciones (sprint 04, task 04)
+# Spec — Core: realtime y notificaciones (sprint 05, task 04)
 
 **Fecha:** 2026-10-26
 **Estado:** Borrador para aprobación del usuario
@@ -141,7 +141,7 @@ SELECT sobre realtime.messages: core_can_subscribe(realtime.topic())
 - **Un APK único**: la configuración de Firebase **no se hornea**; la app inicializa Firebase **en runtime** con los valores públicos de la instancia.
 - Settings (`notifications.push.*`, task-06): `fcm_project_id`, `fcm_app_id`, `fcm_api_key`, `fcm_sender_id` (**públicos**, `is_public: true`) + **service account JSON** (`is_secret: true`, cifrado).
 - **La app obtiene esos valores públicos por `GET /api/v1/instance`**, que incluye un bloque **`settings_public`** (delta a task-02 §3.8: solo claves `is_public` del Core, nunca secretos, nunca settings de módulo).
-- **Instancia del autor**: se configura en el **sprint de infra** (`sprint-infra` task-08).
+- **Instancia del autor**: se configura en el **sprint de infra** (`sprint-04-infra` task-08).
 
 ### 6.3 Envío
 
@@ -177,7 +177,7 @@ SELECT sobre realtime.messages: core_can_subscribe(realtime.topic())
 | F | **`publish()` valida el `target`** (la clave de servidor se salta la RLS): lista cerrada + canales declarados por el emisor + módulo `active` |
 | G | **Una sola política RLS** (`core_can_subscribe`), nunca una por canal (las permisivas se combinan con OR) |
 | H | **Hooks**: despacho en proceso tras el commit, aislado, idempotente por `(event_id, module_key)` |
-| I | **Push = FCM**, opcional en el wizard pero **nunca silencioso** (paso recomendado + aviso al omitir + banner); runtime config; **data-only con clave i18n** (el servidor no localiza); batches ≤500; sin datos sensibles. Instancia del autor → `sprint-infra` task-08 |
+| I | **Push = FCM**, opcional en el wizard pero **nunca silencioso** (paso recomendado + aviso al omitir + banner); runtime config; **data-only con clave i18n** (el servidor no localiza); batches ≤500; sin datos sensibles. Instancia del autor → `sprint-04-infra` task-08 |
 | J | **Sin email de negocio en v1** |
 | K | **`JWT_EXPIRY = 900 s`** se escribe en el **proyecto Supabase** desde el wizard; en `settings` solo informativo, no editable en el panel |
 
@@ -213,5 +213,5 @@ SELECT sobre realtime.messages: core_can_subscribe(realtime.topic())
 - Spec de API del Core: `docs/superpowers/specs/2026-10-26-core-api.md` (task-02)
 - Spec de módulos: `docs/superpowers/specs/2026-10-26-modulo-system.md` (task-03)
 - Testing: `docs/conventions/testing-strategy.md` §5
-- Plan del sprint: `docs/superpowers/plans/2026-10-26-sprint-core-design.md`
-- Task: `docs/tasks/sprint-core-design/task-04.md`
+- Plan del sprint: `docs/superpowers/plans/2026-10-26-sprint-05-core-design.md`
+- Task: `docs/tasks/sprint-05-core-design/task-04.md`

@@ -1,5 +1,5 @@
 ---
-id: sprint01-task-06
+id: sprint-01-task-06
 titulo: Flujos de trabajo y responsabilidades de agentes
 area: fundaciones
 estado: finalizada
