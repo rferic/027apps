@@ -140,6 +140,10 @@ describe('settings service — writes and coherence', () => {
 
   it('rejects provider=fcm until every FCM key is configured', async () => {
     await inRollback(async (c) => {
+      // Independent of whether the developer already configured FCM locally.
+      await c.query(
+        "update public.settings set value = null, value_encrypted = null where key like 'notifications.push.fcm_%'",
+      );
       await expect(
         writeSetting(settingsDeps(c), ADMIN, 'notifications.push.provider', 'fcm'),
       ).rejects.toMatchObject({ code: 'validation_failed' });
@@ -238,6 +242,7 @@ describe('settings service — writes and coherence', () => {
 describe('settings service — reads', () => {
   it('reads every catalog setting for a super_admin, masking secrets and exposing non-secret values', async () => {
     await inRollback(async (c) => {
+      await c.query("update public.settings set value_encrypted = null where key = 'notifications.push.fcm_service_account'");
       const all = await readAllSettings(settingsDeps(c), SUPER_ADMIN);
       expect(all).toHaveLength(SETTINGS_CATALOG.length);
 

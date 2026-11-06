@@ -10,11 +10,19 @@ import {
 } from "@027apps/core/settings/service.js";
 import type { JsonValue } from "@027apps/core/api/types.js";
 import { checkEnvironment } from "@027apps/core/setup/environment.js";
+import { getDictionary } from "@027apps/i18n/dictionary.js";
+import { t } from "@027apps/i18n/t.js";
+import type { Locale } from "@027apps/i18n/types.js";
+import type { TranslationMap } from "@027apps/i18n/types.js";
 import { getInfra } from "@/lib/api/door";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { BrandLogo } from "@/components/brand-logo";
+import { DocumentLang } from "@/components/document-lang";
+import { LocaleSwitcher } from "@/components/locale-switcher";
+import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { EnvironmentChecklist } from "./environment-checklist";
 import { Button } from "@/components/ui/button";
-import { signOutAndRestartAction } from "./actions";
+import { backToSmtpAction, signOutAndRestartAction } from "./actions";
 import { SMTP_COOKIE } from "./smtp-cookie";
 import { PreferencesStep, type PreferencesValues } from "./preferences-step";
 import { SetupForm } from "./setup-form";
@@ -35,12 +43,35 @@ export const instant = false;
 
 const text = (value: JsonValue | undefined): string => (typeof value === "string" ? value : "");
 
-const screen = (children: React.ReactNode) => (
-  <main className="flex min-h-screen items-center justify-center bg-background p-4">{children}</main>
-);
+function screen(
+  children: React.ReactNode,
+  locale: Locale,
+  messages: TranslationMap,
+  logoUrl: string | null,
+) {
+  return (
+    <main lang={locale} className="bg-background p-4">
+      <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-md flex-col justify-center gap-4">
+        <header className="flex flex-col items-center gap-3 sm:relative sm:flex-row sm:justify-center">
+          <BrandLogo logoUrl={logoUrl} size="xl" />
+          <div className="sm:absolute sm:right-0 sm:top-1/2 sm:-translate-y-1/2">
+            <LocaleSwitcher locale={locale} label={t("Language", messages)} />
+          </div>
+        </header>
+        {children}
+      </div>
+      <DocumentLang locale={locale} />
+    </main>
+  );
+}
 
 /** Steps 1–2: what the hosting must provide, then the first super_admin. */
-async function creationStep(settingsDeps: SettingsDeps) {
+async function creationStep(
+  settingsDeps: SettingsDeps,
+  locale: Locale,
+  messages: TranslationMap,
+  logoUrl: string | null,
+) {
   const report = await checkEnvironment({
     db: settingsDeps.db,
     encryptionKey: {
@@ -49,13 +80,14 @@ async function creationStep(settingsDeps: SettingsDeps) {
     },
     sentryConfigured: Boolean(process.env.SENTRY_DSN),
   });
-  const settings = await readPublicSettings(settingsDeps);
-  const logoUrl = typeof settings["instance.logo_url"] === "string" ? settings["instance.logo_url"] : null;
   return screen(
     <div className="flex w-full max-w-md flex-col gap-3">
-      <EnvironmentChecklist report={report} />
-      <SetupForm logoUrl={logoUrl} />
+      <EnvironmentChecklist report={report} messages={messages} />
+      <SetupForm messages={messages} />
     </div>,
+    locale,
+    messages,
+    logoUrl,
   );
 }
 
@@ -82,7 +114,12 @@ async function refreshJwtObservation(settingsDeps: SettingsDeps): Promise<void> 
 }
 
 /** Blocks steps 3–5 when Supabase issues tokens with another lifetime. */
-async function jwtExpiryBlocker(settingsDeps: SettingsDeps) {
+async function jwtExpiryBlocker(
+  settingsDeps: SettingsDeps,
+  locale: Locale,
+  messages: TranslationMap,
+  logoUrl: string | null,
+) {
   const { rows } = await settingsDeps.db.query(
     "select value from public.settings where key = 'security.jwt_expiry'",
   );
@@ -91,26 +128,38 @@ async function jwtExpiryBlocker(settingsDeps: SettingsDeps) {
 
   return screen(
     <section className="w-full max-w-md rounded-card border border-destructive bg-surface p-6">
-      <h2 className="text-sm font-semibold text-destructive">Access tokens must last 900 s</h2>
+      <h2 className="text-sm font-semibold text-destructive">
+        {t("Access tokens must last 900 s", messages)}
+      </h2>
       <p className="mt-1 text-xs text-muted-foreground">
-        Your Supabase project issues tokens lasting {observed} s. Set the JWT expiry to{" "}
-        {EXPECTED_JWT_EXPIRY_SECONDS} seconds in the Supabase dashboard (Auth → Sessions), then sign
-        in again: a session opened before the change keeps the old lifetime.
+        {t(
+          "Your Supabase project issues tokens lasting {observed} s. Set the JWT expiry to {expected} seconds in the Supabase dashboard (Auth → Sessions), then sign in again: a session opened before the change keeps the old lifetime.",
+          messages,
+          { observed, expected: EXPECTED_JWT_EXPIRY_SECONDS },
+        )}
       </p>
       <form action={signOutAndRestartAction} className="mt-3">
         <Button type="submit" variant="secondary">
-          Sign out and sign in again
+          {t("Sign out and sign in again", messages)}
         </Button>
       </form>
     </section>,
+    locale,
+    messages,
+    logoUrl,
   );
 }
 
 /** Step 3: SMTP verification screen with the signed-in admin's own address. */
-async function smtpStep() {
+async function smtpStep(locale: Locale, messages: TranslationMap, logoUrl: string | null) {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
-  return screen(<SmtpStep email={data.user?.email ?? ""} />);
+  return screen(
+    <SmtpStep email={data.user?.email ?? ""} messages={messages} />,
+    locale,
+    messages,
+    logoUrl,
+  );
 }
 
 /** Origin of the current request, used to prefill the public URL. */
@@ -122,16 +171,23 @@ async function requestOrigin(): Promise<string> {
 }
 
 /** Steps 4–5: required preferences (clears `setup_incomplete`) + optional FCM. */
-async function preferencesStep(settingsDeps: SettingsDeps) {
+async function preferencesStep(
+  settingsDeps: SettingsDeps,
+  locale: Locale,
+  messages: TranslationMap,
+  logoUrl: string | null,
+) {
   const settings = await readPublicSettings(settingsDeps);
   // Prefill the public URL with the current origin so it does not have to be
   // typed; a stable domain (or the Vercel branch alias) should replace it.
   const origin = await requestOrigin();
+  const storedLocale = text(settings["localization.default_locale"]);
+  const proposedLocale = !storedLocale || storedLocale === "en" ? locale : storedLocale;
 
   const values: PreferencesValues = {
     instanceName: text(settings["instance.name"]) || "027Apps",
     publicUrl: text(settings["instance.public_url"]) || origin,
-    locale: text(settings["localization.default_locale"]) || "en",
+    locale: proposedLocale,
     timezone: text(settings["localization.timezone"]) || "UTC",
     currency: text(settings["localization.default_currency"]) || "EUR",
     pushProvider: settings["notifications.push.provider"] === "fcm" ? "fcm" : "none",
@@ -157,27 +213,47 @@ async function preferencesStep(settingsDeps: SettingsDeps) {
     : ["en"];
 
   return screen(
-    <PreferencesStep
-      values={values}
-      logoUrl={text(settings["instance.logo_url"])}
-      locales={SUPPORTED_LOCALES}
-      enabledLocales={enabledLocales}
-      timezones={Intl.supportedValuesOf("timeZone")}
-      currencies={currencies}
-    />,
+    <div className="flex w-full max-w-md flex-col gap-2">
+      <form action={backToSmtpAction}>
+        <Button type="submit" variant="secondary">
+          ← {t("Back to step 3 (email test)", messages)}
+        </Button>
+      </form>
+      <PreferencesStep
+        values={values}
+        locales={SUPPORTED_LOCALES}
+        enabledLocales={enabledLocales}
+        timezones={Intl.supportedValuesOf("timeZone")}
+        currencies={currencies}
+        messages={messages}
+        helpHref={`/help/firebase?lang=${locale}`}
+      />
+    </div>,
+    locale,
+    messages,
+    logoUrl,
   );
 }
 
 export default async function SetupPage() {
   const { settingsDeps } = await getInfra();
+  const cookieStore = await cookies();
+  const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
+  const messages = getDictionary(locale);
+  const settings = await readPublicSettings(settingsDeps);
+  const logoUrl = typeof settings["instance.logo_url"] === "string" ? settings["instance.logo_url"] : null;
 
-  if (!(await hasActiveSuperAdmin(settingsDeps))) return creationStep(settingsDeps);
+  if (!(await hasActiveSuperAdmin(settingsDeps))) {
+    return creationStep(settingsDeps, locale, messages, logoUrl);
+  }
   if (!(await isSetupIncomplete(settingsDeps))) redirect("/");
 
   await refreshJwtObservation(settingsDeps);
-  const blocker = await jwtExpiryBlocker(settingsDeps);
+  const blocker = await jwtExpiryBlocker(settingsDeps, locale, messages, logoUrl);
   if (blocker) return blocker;
 
-  const smtpConfirmed = (await cookies()).get(SMTP_COOKIE)?.value === "1";
-  return smtpConfirmed ? preferencesStep(settingsDeps) : smtpStep();
+  const smtpConfirmed = cookieStore.get(SMTP_COOKIE)?.value === "1";
+  return smtpConfirmed
+    ? preferencesStep(settingsDeps, locale, messages, logoUrl)
+    : smtpStep(locale, messages, logoUrl);
 }

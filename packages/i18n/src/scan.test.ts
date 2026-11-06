@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { extractStrings, scanSources, writeCatalog } from "./scan.js";
+import { extractStrings, mergeCatalog, scanSources, writeCatalog } from "./scan.js";
 
 describe("extractStrings", () => {
   it("extracts double- and single-quoted t() calls", () => {
@@ -32,6 +32,17 @@ describe("scanSources", () => {
     writeFileSync(join(dir, "node_modules", "d.ts"), 't("Ignored");');
 
     expect(scanSources(dir)).toEqual(["Email", "Password"]);
+  });
+});
+
+describe("mergeCatalog", () => {
+  it("preserves pre-seeded keys, adds found keys, dedupes and sorts", () => {
+    expect(mergeCatalog(["Seed B", "Shared", "Seed A"], ["Found", "Shared"])).toEqual([
+      "Found",
+      "Seed A",
+      "Seed B",
+      "Shared",
+    ]);
   });
 });
 

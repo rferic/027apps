@@ -5,6 +5,7 @@ import { withDoor } from "@027apps/core/api/door.js";
 import { serializeLog } from "@027apps/core/logger.js";
 import type { LogEntry } from "@027apps/core/api/types.js";
 import type { DoorDeps } from "@027apps/core/api/types.js";
+import type { QueryClient } from "@027apps/core/api/rate-limit-storage.js";
 import { resolveCaller, type CallerResolverDeps, type ProfilesPort } from "@027apps/core/auth/caller.js";
 import { resolveApiKey } from "@027apps/core/api-keys/service.js";
 import { createSettingsEncryption } from "@027apps/core/crypto.js";
@@ -108,8 +109,10 @@ async function createInfra() {
     },
     encryption,
     currencies: {
-      async isEnabled(code: string) {
-        const result = await pool.query("select enabled from public.currencies where code = $1", [code]);
+      async isEnabled(code: string, client?: QueryClient) {
+        // Coherence must run inside the caller's transaction; using the pool
+        // would hold an extra connection per write and exhaust it (max 5).
+        const result = await (client ?? pool).query("select enabled from public.currencies where code = $1", [code]);
         return result.rows[0]?.enabled === true;
       },
     },

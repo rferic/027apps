@@ -44,6 +44,11 @@ export function scanSources(dir: string): string[] {
   return [...found].sort((a, b) => a.localeCompare(b));
 }
 
+/** Keeps pre-seeded strings while adding the literals currently used by the app. */
+export function mergeCatalog(existing: readonly string[], found: readonly string[]): string[] {
+  return [...new Set([...existing, ...found])].sort((a, b) => a.localeCompare(b));
+}
+
 /** Writes the catalog in the canonical format (2 spaces, sorted, final newline). */
 export function writeCatalog(catalogPath: string, strings: string[]): void {
   const sorted = [...new Set(strings)].sort((a, b) => a.localeCompare(b));
@@ -53,7 +58,11 @@ export function writeCatalog(catalogPath: string, strings: string[]): void {
 function main(): void {
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
   const catalogPath = path.join(repoRoot, "packages/i18n/catalog.en.json");
-  const strings = scanSources(path.join(repoRoot, "apps/admin/src"));
+  const existing = fs.existsSync(catalogPath)
+    ? (JSON.parse(fs.readFileSync(catalogPath, "utf8")) as string[])
+    : [];
+  const found = scanSources(path.join(repoRoot, "apps/admin/src"));
+  const strings = mergeCatalog(existing, found);
   writeCatalog(catalogPath, strings);
   process.stdout.write(`i18n scan: ${strings.length} strings written to catalog.en.json\n`);
 }

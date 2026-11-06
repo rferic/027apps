@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@027apps/core": "workspace:*",
+    "@027apps/i18n": "workspace:*",
     "@sentry/nextjs": "^11.10.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
