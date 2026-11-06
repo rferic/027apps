@@ -131,6 +131,7 @@ describe('GET /api/v1/settings', () => {
       await c.query('BEGIN');
       try {
         const caller = await adminCaller(c, 'super_admin');
+        await c.query("update public.settings set value_encrypted = null where key = 'notifications.push.fcm_service_account'");
         const res = await getSettings(c, caller);
         expect(res.status).toBe(200);
         const body = (await res.json()) as { settings: { key: string; isSecret: boolean; configured?: boolean; value?: unknown; value_encrypted?: unknown }[] };
