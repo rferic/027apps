@@ -60,6 +60,24 @@ export async function impersonateAnon(c: ClientBase): Promise<void> {
 }
 
 /**
+ * Creates a registry row so module grants can satisfy their FK. Tests that
+ * insert `user_modules`/`invitation_modules` keys call this first.
+ */
+export async function createTestModule(
+  c: ClientBase,
+  key = "expenses",
+  state: "installed" | "active" | "disabled" = "active",
+): Promise<void> {
+  await c.query(
+    `insert into public.module_registry
+       (key, name, version, state, is_public, mcp_exposed, manifest_digest)
+     values ($1, $1, '1.0.0', $2, true, 'read', $3)
+     on conflict (key) do nothing`,
+    [key, state, `sha256:${"0".repeat(64)}`],
+  );
+}
+
+/**
  * Creates an Auth user on the local stack with an associated profile.
  * Inserts directly into auth.users and public.profiles (the local stack allows
  * this as superuser; in cloud this goes through the Admin API).

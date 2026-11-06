@@ -9,7 +9,7 @@
 
 Definir **cómo se empaqueta, instala, activa, desactiva y desinstala un módulo en runtime** (filosofía "plugin" estilo WordPress, decisión F de task-01): un **contrato de manifest estricto** + un **instalador** que lo valida, aplica/revierte su DDL de forma segura y siembra su configuración/strings. Esta spec fija el contrato y la mecánica; el **instalador se implementará en el backlog de implementación del Core** (sprint futuro, tras esta definición); aquí solo especificación.
 
-**Límite de alcance:** no se implementa código. La spec define: (a) el contrato del `manifest.json`, (b) la mecánica del instalador (install/activate/deactivate/uninstall con migraciones y limpieza), (c) la seguridad del DDL (decisiones A+C+D), (d) el CI que valida el manifest. Los **eventos realtime** (`eventos` del manifest) van a task-04; las **tools MCP** a task-05; la **pipeline i18n** a task-09.
+**Límite de alcance:** no se implementa código. La spec define: (a) el contrato del `manifest.json`, (b) la mecánica del instalador (install/activate/deactivate/uninstall con migraciones y limpieza), (c) la seguridad del DDL (decisiones A+C+D), (d) el CI que valida el manifest. Los **eventos realtime** (`events` del manifest) van a task-04; las **tools MCP** a task-05; la **pipeline i18n** a task-09.
 
 ## 2. Modelo (sobre la task-01)
 
@@ -38,7 +38,7 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
   },
   "version": "1.0.0",                   // semver de la versión instalable actual
   "is_public": false,                   // default del manifest; override por super_admin en el panel (task-02 PATCH /modules/{key})
-  "migraciones": [                      // DDL del módulo, en orden
+  "migrations": [                      // DDL del módulo, en orden
     {
       "version": "1.0.0",               // versión de la migración (única en el manifest, ver invariantes)
       "up": "./sql/1.0.0-up.sql",       // ruta al SQL dentro del paquete (o inline string)
@@ -72,7 +72,7 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
   "channels": [                                                     // canales realtime propios del módulo (task-04)
     { "pattern": "expense-group-{id}", "members_fn": "split_expenses_expense_group_members" }
   ],
-  "eventos": [                                                      // eventos de dominio que publica (contrato en task-04)
+  "events": [                                                      // eventos de dominio que publica (contrato en task-04)
     { "type": "expense.created", "target": "channel:expense-group-{id}", "notify": ["push"] },
     { "type": "expense.deleted", "target": "channel:expense-group-{id}" },
     { "type": "expense.invited", "target": "user" }
@@ -94,7 +94,7 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
 
 **Invariantes del contrato (validados por el esquema zod del manifest):**
 - `key` único, kebab-case; `name`/`label` en inglés (nunca claves i18n); `version` semver. **Palabras reservadas**: `admin`, `mcp`, `api`, `core` no pueden ser `key` de módulo (evita colisión con `/mcp/admin` y rutas del Core — task-05).
-- Cada migración declara `up` **y** `down` (reversibilidad obligatoria, decisión K) y sus `digest`/`down_digest`. **Cada `migraciones[].version` es única en el manifest** (la PK de `module_migrations` es `(module_key, version, direction)`, task-01 §3.2).
+- Cada migración declara `up` **y** `down` (reversibilidad obligatoria, decisión K) y sus `digest`/`down_digest`. **Cada `migrations[].version` es única en el manifest** (la PK de `module_migrations` es `(module_key, version, direction)`, task-01 §3.2).
 - `settings[].category` = **`snake_case(key)`** del módulo (coherente con el prefijo `{category_key}.{key}` de task-01 §3.3); `settings[].settings[].is_public` se respeta (decisión O).
 - `scopes` siguen la convención `recurso:acción` de task-02; **viven en código** (ADR 0004 §2, token-model §5), el manifest solo los declara para validación mecánica (CI) y el guard — no se "siembran" en BD (no existe tabla de scopes, decisión H6).
 - Las tools MCP referencian un scope declarado.
@@ -105,7 +105,7 @@ Cada módulo es un **paquete del monorepo** en `packages/<key>/` (decisión 1 de
 - Cada **canal** declara `pattern` y `members_fn` (función SQL security definer del módulo que devuelve los `user_id` con acceso; la usan la RLS de realtime y la resolución de push — task-04 §2.2).
 - Los `hooks` referencian **eventos del Core** o del propio módulo (task-04 define el catálogo).
 - **`admin_pages`** (task-12): cada página declara `route` (**un solo segmento**, `^[a-z0-9]+(-[a-z0-9]+)*$`, sin `/`, `..`, `%2e` ni rutas reservadas), `label` (inglés, no vacío), `icon` (del DS), `group` (enum, `module`) y `role` (`admin`|`super_admin`). El componente vive en `packages/<key>/admin/<route>/page.tsx` y **el CI exige que exista**; la página se sirve en `/modules/<key>/<route>` y **solo si el módulo está `active`**. Son código **first-party compilado en el panel**: mismo lint/CSP y misma confianza que el Core (task-12 §6).
-- **Documentación por capacidad** (task-11): `docs.readme` **obligatorio**; `docs.api` **obligatorio si el manifest declara `scopes`** (señal mecánica de que añade endpoints); `docs.mcp` si declara `mcp_tools`; `docs.settings` si declara `settings`; `docs.events` si declara `eventos`/`channels`. El CI exige el fichero **y que cada nombre declarado (`mcp_tools[].name`, `settings[].key`, `eventos[].type`, `channels[].pattern`) aparezca en su documento**. Un módulo sin `README.md` **no instala**.
+- **Documentación por capacidad** (task-11): `docs.readme` **obligatorio**; `docs.api` **obligatorio si el manifest declara `scopes`** (señal mecánica de que añade endpoints); `docs.mcp` si declara `mcp_tools`; `docs.settings` si declara `settings`; `docs.events` si declara `events`/`channels`. El CI exige el fichero **y que cada nombre declarado (`mcp_tools[].name`, `settings[].key`, `events[].type`, `channels[].pattern`) aparezca en su documento**. Un módulo sin `README.md` **no instala**.
 
 **Regla de negocio del manifest:** un manifest NO declara rutas HTTP de `/api/v1` propias del recurso (esos endpoints son de la spec del módulo, mecanismo de extensión de api-v1 §5); el manifest solo declara DDL, settings, tools/eventos/hooks y los scopes para validación mecánica (que viven en código, ADR 0004 §2). El contrato de API lo añade el módulo con sus schemas/casos de uso/recursos, sin tocar la mecánica (api-v1 §5).
 
@@ -169,7 +169,7 @@ El manifest trae SQL ejecutable: capas de protección (filosofía "defensa en pr
 
 - **Validación mecánica de `branding`** (task-03 §3bis): `description` no vacía, `icon.svg` existe y es SVG válido, `color` ∈ slots del DS.
 - **Validación mecánica de `admin_pages`** (task-12): por cada página, el fichero `admin/<route>/page.tsx` existe; `route` cumple el patrón y no es reservada; `role`/`group`/`icon` en sus enums.
-- **Validación mecánica de la documentación** (task-11): `docs.readme` existe, **no vacío** y en inglés; el `docs.api`/`mcp`/`settings`/`events` exigido también existe y **no está vacío**; el fichero exigido por cada capacidad existe **y cada nombre declarado aparece** (`mcp_tools[].name` → `docs.mcp`, `settings[].key` → `docs.settings`, `eventos[].type` y `channels[].pattern` → `docs.events`); y los **scopes citados** en los documentos existen en el manifest. Sin `readme`, el módulo no instala.
+- **Validación mecánica de la documentación** (task-11): `docs.readme` existe, **no vacío** y en inglés; el `docs.api`/`mcp`/`settings`/`events` exigido también existe y **no está vacío**; el fichero exigido por cada capacidad existe **y cada nombre declarado aparece** (`mcp_tools[].name` → `docs.mcp`, `settings[].key` → `docs.settings`, `events[].type` y `channels[].pattern` → `docs.events`); y los **scopes citados** en los documentos existen en el manifest. Sin `readme`, el módulo no instala.
 - **Validación mecánica del manifest** contra su esquema zod como **check de CI** en el **job `admin` existente** (se añade ahí; no hay job `modules` en `cicd.md` y no se crea uno aparte): todo PR que añada/modifique un `packages/*/manifest.json` pasa el contrato o falla.
 - El `digest`/`down_digest` de cada migración se **recalcula y compara** (evita manifests con digest desincronizado).
 - Las claves i18n se validan con el **check de locales** (task-09) en el **job `admin`**: el manifest declara un **subconjunto ⊆ 9** que **incluye `en`**, y el check exige **ese subconjunto + su catálogo** (los 9 completos son el set disponible, no el de cada módulo).
@@ -195,7 +195,7 @@ La metodología (`docs/flows/new-module.md`) y la documentación canónica (`doc
 
 - **Implementación del instalador** → sprint de implementación del Core.
 - **Catálogo de settings (tipos zod, wizard)** → task-06.
-- **Contrato de eventos realtime y su publicación** (`eventos`/`hooks` del manifest) → task-04.
+- **Contrato de eventos realtime y su publicación** (`events`/`hooks` del manifest) → task-04.
 - **Tools MCP concretas** → task-05.
 - **Pipeline i18n** (sync, check de locales, skill `i18n-sync`) → task-09.
 - **Modelo de datos de los módulos** (p. ej. tablas de gastos) → spec de cada módulo (Split Expenses la primera).

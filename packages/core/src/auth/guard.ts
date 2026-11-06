@@ -10,24 +10,50 @@
 import { DomainError } from '../errors';
 import type { Caller } from '../api/types';
 
+const USER_SCOPES = [
+  'profile:read',
+  'profile:write',
+  'currencies:read',
+  'api_keys:read',
+  'api_keys:write',
+  'api_keys:revoke',
+  'devices:read',
+  'devices:write',
+  'devices:revoke',
+  'modules:read',
+] as const;
+
+const ADMIN_SCOPES = [
+  ...USER_SCOPES,
+  'users:read',
+  'users:write',
+  'roles:assign',
+  'user_categories:read',
+  'user_categories:write',
+  'modules:manage',
+  'modules:grant',
+  'invitations:read',
+  'invitations:write',
+  'settings:read',
+  'settings:write',
+  'currencies:write',
+] as const;
+
+const SUPER_ADMIN_SCOPES = [...ADMIN_SCOPES, 'users:deactivate'] as const;
+
+// Instance-key-only actions: maintenance:run is service-key only; sessions lack it.
+const SERVICE_SUPER_ADMIN_SCOPES = [...SUPER_ADMIN_SCOPES, 'maintenance:run'] as const;
+
 const SESSION_SCOPES: Record<'super_admin' | 'admin' | 'user', readonly string[]> = {
-  super_admin: ['profile:read', 'profile:write', 'users:read', 'users:write', 'settings:read', 'settings:write', 'currencies:read', 'currencies:write'],
-  admin: ['profile:read', 'profile:write', 'users:read', 'users:write', 'settings:read', 'settings:write', 'currencies:read', 'currencies:write'],
-  user: ['profile:read', 'profile:write', 'currencies:read'],
+  super_admin: SUPER_ADMIN_SCOPES,
+  admin: ADMIN_SCOPES,
+  user: USER_SCOPES,
 };
 
-const ROLE_CAP_FLOOR: Record<'admin' | 'super_admin', readonly string[]> = {
-  admin: ['profile:read', 'profile:write', 'users:read', 'users:write', 'settings:read', 'settings:write', 'currencies:read', 'currencies:write'],
-  super_admin: [
-    'profile:read',
-    'profile:write',
-    'users:read',
-    'users:write',
-    'settings:read',
-    'settings:write',
-    'currencies:read',
-    'currencies:write',
-  ],
+const ROLE_CAP_FLOOR: Record<'user' | 'admin' | 'super_admin', readonly string[]> = {
+  user: USER_SCOPES,
+  admin: ADMIN_SCOPES,
+  super_admin: SERVICE_SUPER_ADMIN_SCOPES,
 };
 
 export function authorize(caller: Caller, scopes: readonly string[]): Caller {

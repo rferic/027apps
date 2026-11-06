@@ -7,6 +7,7 @@ import type { LogEntry } from "@027apps/core/api/types.js";
 import type { DoorDeps } from "@027apps/core/api/types.js";
 import type { QueryClient } from "@027apps/core/api/rate-limit-storage.js";
 import { resolveCaller, type CallerResolverDeps, type ProfilesPort } from "@027apps/core/auth/caller.js";
+import { resolveApiKey } from "@027apps/core/api-keys/service.js";
 import { createSettingsEncryption } from "@027apps/core/crypto.js";
 import type { SettingsDeps } from "@027apps/core/settings/service.js";
 import type { CurrenciesDeps } from "@027apps/core/currencies/service.js";
@@ -59,6 +60,20 @@ async function createInfra() {
         },
       },
       profiles: createProfilesPort(pool),
+      apiKeys: {
+        resolve: (token: string) =>
+          resolveApiKey(
+            {
+              db: {
+                async query(sql: string, params: unknown[] = []) {
+                  const result = await pool.query(sql, params);
+                  return { rows: result.rows as Record<string, unknown>[] };
+                },
+              },
+            },
+            token,
+          ),
+      },
     };
     return resolveCaller(req, resolverDeps);
   };
@@ -175,7 +190,7 @@ function logger(entry: LogEntry): void {
  * into the settings and currencies services, so their check-then-write
  * sequences are atomic in production and not only under the test harnesses.
  */
-async function runInTransaction<T>(
+export async function runInTransaction<T>(
   fn: (db: { query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }> }) => Promise<T>,
 ): Promise<T> {
   const { pool } = await getInfra();

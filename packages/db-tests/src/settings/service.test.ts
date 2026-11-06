@@ -159,6 +159,12 @@ describe('settings service — writes and coherence', () => {
       const caller: Caller = { kind: 'session', userId: admin.id, role: 'admin' };
 
       await writeSetting(settingsDeps(c), caller, 'notifications.push.fcm_project_id', 'other-project');
+      const { rows } = await query(c, "select type, target, payload from public.event_outbox where type = 'settings.updated'");
+      expect(rows[0]).toMatchObject({
+        type: 'settings.updated',
+        target: 'admins',
+        payload: { category_key: 'notifications', key: 'notifications.push.fcm_project_id' },
+      });
       await expect(
         writeSetting(settingsDeps(c), caller, 'notifications.push.fcm_service_account', SERVICE_ACCOUNT),
       ).rejects.toMatchObject({ code: 'validation_failed' });
