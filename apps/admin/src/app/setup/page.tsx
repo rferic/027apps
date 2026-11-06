@@ -152,7 +152,12 @@ async function jwtExpiryBlocker(
 async function smtpStep(locale: Locale, messages: TranslationMap, logoUrl: string | null) {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
-  return screen(<SmtpStep email={data.user?.email ?? ""} />, locale, messages, logoUrl);
+  return screen(
+    <SmtpStep email={data.user?.email ?? ""} messages={messages} />,
+    locale,
+    messages,
+    logoUrl,
+  );
 }
 
 /** Origin of the current request, used to prefill the public URL. */
