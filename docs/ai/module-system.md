@@ -1,7 +1,7 @@
 # Sistema de módulos — documentación canónica para IA
 
 **Manifest version:** 1.0.0
-**Estado:** Aprobado (sprint 08, 2026-10-31)
+**Estado:** Aprobado (sprint 12, 2026-10-31)
 **Contrato base:** `docs/superpowers/specs/2026-10-26-modulo-system.md` §3
 **Esquema:** `docs/ai/manifest.schema.json`
 **Flujo de creación:** `docs/flows/new-module.md`

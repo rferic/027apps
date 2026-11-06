@@ -36,7 +36,7 @@ y [`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-
   funcional; decisión 2026-10-25). Fijada el 2026-10-31 en *Settings → Environments →
   Production → Branch Tracking*; los pushes del PR generan previews `READY`. El dominio de
   producción `027apps.vercel.app` se eliminó, así que no hay URL de producción. Al cierre de
-  sprint-05 se cambia a `main`.
+  sprint-08-core-base se cambia a `main`.
 - **Protección**: Vercel Authentication activa en todas las URLs de deployment menos
   dominios custom (los previews solo se ven autenticado).
 - **Env vars** (nunca valores aquí; solo nombres): 4 con scope **Preview** —
@@ -267,7 +267,7 @@ reciente:
 Core sea funcional: no hay app que desplegar y el plan free de Supabase pausa proyectos idle.
 Solo existe `027apps-dev` (Supabase) y el proyecto Vercel con env vars de scope Preview.
 
-Checklist para activarla al cierre del sprint-05 (en este orden):
+Checklist para activarla al cierre del sprint-08-core-base (en este orden):
 
 1. **Crear `027apps-prod`** en Supabase con contraseña nueva generada en el dashboard (nunca
    por chat ni en git) y anotar el project ref en este documento.

@@ -20,7 +20,7 @@
 - Colors only through semantic tokens; no hardcoded palette classes. No `any`. No `console.log`.
 - Before claiming done: `pnpm lint`, `pnpm tsc`, `pnpm test`, `pnpm i18n:check`, `pnpm --filter admin build`.
 - One PR for this task, branched from `main`; no merge without explicit user order.
-- Branch and task setup happen before Task 1: create `docs/tasks/sprint-web/task-02.md` (`estado: en curso`), branch `feature/setup-i18n-help` from `main`, and keep the pending sprint-06 follow-ups out of this branch.
+- Branch and task setup happen before Task 1: create `docs/tasks/sprint-06-web/task-02.md` (`estado: en curso`), branch `feature/setup-i18n-help` from `main`, and keep the pending sprint-09-core-data follow-ups out of this branch.
 
 ## Review Focus
 
@@ -66,8 +66,8 @@
 
 **Content and docs**
 - Modify `packages/i18n/catalog.en.json` and `packages/i18n/locales/*.json` (8).
-- Do not create `docs/flows/fcm-validation.md` in this branch; it belongs to sprint/06-core-data.
-- Create `docs/tasks/sprint-web/task-02.md`.
+- Do not create `docs/flows/fcm-validation.md` in this branch; it belongs to sprint/09-core-data.
+- Create `docs/tasks/sprint-06-web/task-02.md`.
 
 ---
 
@@ -365,7 +365,7 @@ git commit -m "feat(help): add public localized firebase setup guide"
 - Modify: `packages/i18n/src/scan.ts`, `scan.test.ts`
 - Modify: `packages/i18n/catalog.en.json`, `packages/i18n/locales/*.json` (8)
 - Skip: `docs/flows/fcm-validation.md` (not present in this branch)
-- Create: `docs/tasks/sprint-web/task-02.md`
+- Create: `docs/tasks/sprint-06-web/task-02.md`
 - Verify: `docs/flows/i18n.md` (cookie section already written)
 
 **Interfaces:**
@@ -396,7 +396,7 @@ Expected: PASS with 9 locales complete. Spot-check one new help key in `es`: it 
 
 - [ ] **Step 6: Update the task and docs**
 
-Update `docs/tasks/sprint-web/task-02.md` (created before Task 1) to `estado: test` and add the spec/plan links. Do not create or link `docs/flows/fcm-validation.md` in this branch. Confirm `docs/flows/i18n.md` documents `027_locale` (attributes, precedence, validation, non-session nature).
+Update `docs/tasks/sprint-06-web/task-02.md` (created before Task 1) to `estado: test` and add the spec/plan links. Do not create or link `docs/flows/fcm-validation.md` in this branch. Confirm `docs/flows/i18n.md` documents `027_locale` (attributes, precedence, validation, non-session nature).
 
 - [ ] **Step 7: Run the full gates**
 
@@ -406,7 +406,7 @@ Expected: all green. If Android was untouched, no Gradle run is needed.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add packages/i18n docs/tasks/sprint-web/task-02.md docs/flows/i18n.md
+git add packages/i18n docs/tasks/sprint-06-web/task-02.md docs/flows/i18n.md
 git commit -m "feat(i18n): translate setup wizard and firebase guide"
 ```
 
@@ -415,7 +415,7 @@ git commit -m "feat(i18n): translate setup wizard and firebase guide"
 ### Task 8: Audits and close
 
 **Files:**
-- Modify: `docs/tasks/sprint-web/task-02.md` (`estado`)
+- Modify: `docs/tasks/sprint-06-web/task-02.md` (`estado`)
 - No product code unless an audit finding requires it.
 
 - [ ] **Step 1: Dispatch QA/OWASP audit**
@@ -440,8 +440,8 @@ Expected: all green.
 Only after the audits and gates pass. Commit the task file update.
 
 ```bash
-git add docs/tasks/sprint-web/task-02.md
-git commit -m "docs(sprint-web): close setup i18n help task"
+git add docs/tasks/sprint-06-web/task-02.md
+git commit -m "docs(sprint-06-web): close setup i18n help task"
 ```
 
 ---
@@ -450,6 +450,6 @@ git commit -m "docs(sprint-web): close setup i18n help task"
 
 Plan complete and saved to `docs/superpowers/plans/2026-11-06-setup-i18n-help.md`.
 
-Branch strategy before Task 1: create `docs/tasks/sprint-web/task-02.md` and branch `feature/setup-i18n-help` from `main`. The pending sprint-06 follow-ups must be committed or stashed separately; do not mix them into this branch.
+Branch strategy before Task 1: create `docs/tasks/sprint-06-web/task-02.md` and branch `feature/setup-i18n-help` from `main`. The pending sprint-09-core-data follow-ups must be committed or stashed separately; do not mix them into this branch.
 
 Suggested execution: **native** in this session, because the tasks share the `messages`/`locale` plumbing and the translator step needs orchestration; then one fresh reviewer on the whole branch. Does the plan capture what you want, and should I start with Task 1?

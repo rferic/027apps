@@ -1,4 +1,4 @@
-# Spec — Core: sistema de módulos e instalador en runtime (sprint 04, task 03)
+# Spec — Core: sistema de módulos e instalador en runtime (sprint 05, task 03)
 
 **Fecha:** 2026-10-26
 **Estado:** Borrador para aprobación del usuario
@@ -177,7 +177,7 @@ El manifest trae SQL ejecutable: capas de protección (filosofía "defensa en pr
 
 ## 7. Relación con la metodología `new-module.md`
 
-La metodología (`docs/flows/new-module.md`) y la documentación canónica (`docs/ai/module-system.md`) están completas en el sprint 08. Esta spec sigue siendo la fuente del contrato y de la mecánica del instalador. Los TODOs que dependen de código (instalador, suite RLS, tools MCP, eventos) se cierran en el sprint de implementación del Core; ese PR revisa la metodología contra esta spec y el reframe (decisión B7).
+La metodología (`docs/flows/new-module.md`) y la documentación canónica (`docs/ai/module-system.md`) están completas en el sprint 12. Esta spec sigue siendo la fuente del contrato y de la mecánica del instalador. Los TODOs que dependen de código (instalador, suite RLS, tools MCP, eventos) se cierran en el sprint de implementación del Core; ese PR revisa la metodología contra esta spec y el reframe (decisión B7).
 
 ## 8. Decisiones tomadas (conversación de diseño, 2026-10-26)
 
@@ -218,5 +218,5 @@ La metodología (`docs/flows/new-module.md`) y la documentación canónica (`doc
 - Spec de API v1: `docs/superpowers/specs/2026-10-25-api-v1.md` §5 (mecanismo de extensión)
 - Metodología: `docs/flows/new-module.md`; contrato canónico: `docs/ai/module-system.md`; skill: `.opencode/skills/new-module/SKILL.md`
 - ADRs: `0004-bordes-y-capa-de-aplicacion.md`, `0007-manejo-de-errores.md`, `0008-fechas-y-moneda.md`
-- Plan del sprint: `docs/superpowers/plans/2026-10-26-sprint-core-design.md`
-- Task: `docs/tasks/sprint-core-design/task-03.md`
+- Plan del sprint: `docs/superpowers/plans/2026-10-26-sprint-05-core-design.md`
+- Task: `docs/tasks/sprint-05-core-design/task-03.md`

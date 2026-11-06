@@ -1,4 +1,4 @@
-# Spec — Core: seguridad de definición (sprint 04, task 10)
+# Spec — Core: seguridad de definición (sprint 05, task 10)
 
 **Fecha:** 2026-10-26 · **Revisión:** 2 (2026-10-27)
 **Estado:** Borrador para aprobación del usuario
@@ -112,7 +112,7 @@ Toda tabla nueva del Core o de un módulo cumple esto (el detalle vive en la che
 
 - **Pentest** o auditoría externa (no en esta fase).
 - **Firma criptográfica de módulos** (diferida en task-03).
-- **OAuth 2.1** (backlog `sprint-mcp-oauth`).
+- **OAuth 2.1** (backlog `sprint-07-mcp-oauth`).
 - **Cifrado de la BD en reposo** (lo da Supabase; el backup se cifra aparte).
 - **Bug bounty / programa de divulgación** (SECURITY.md da el canal privado, sin programa formal).
 
@@ -131,4 +131,4 @@ Toda tabla nueva del Core o de un módulo cumple esto (el detalle vive en la che
 - DoD: `docs/conventions/definition-of-done.md` · Checklist: `docs/conventions/security-checklist.md` · `SECURITY.md`
 - Specs: datos, config (secretos), realtime (canales), MCP (claves), i18n (suplantación)
 - Flujos: `docs/flows/cicd.md` (`guard-secrets`, acciones por SHA)
-- Plan: `docs/superpowers/plans/2026-10-26-sprint-core-design.md` · Task: `docs/tasks/sprint-core-design/task-10.md`
+- Plan: `docs/superpowers/plans/2026-10-26-sprint-05-core-design.md` · Task: `docs/tasks/sprint-05-core-design/task-10.md`

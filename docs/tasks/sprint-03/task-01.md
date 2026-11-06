@@ -1,5 +1,5 @@
 ---
-id: sprint03-task-01
+id: sprint-03-task-01
 titulo: Modelo de tokens — spec aprobada (definición)
 area: core
 estado: finalizada

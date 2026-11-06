@@ -1,26 +1,26 @@
-# Plan — Implementación del Core (sprints 05, 06, 07) + sprint 08 (paralelo)
+# Plan — Implementación del Core (sprints 08, 09, 10) + sprint 12 (paralelo)
 
 **Fecha:** 2026-10-27
 **Specs:** sprint de diseño del Core (`docs/superpowers/specs/2026-10-26-*.md` + `2026-10-25-api-v1/token-model/auth.md`)
-**Sprints:** `sprint-05-core-base` → `sprint-06-core-data` → `sprint-07-mcp` · `sprint-08-new-module-skill` (paralelo)
+**Sprints:** `sprint-08-core-base` → `sprint-09-core-data` → `sprint-10-mcp` · `sprint-12-new-module-skill` (paralelo)
 
 ## Orden y dependencias
 
 ```
-sprint-infra (04 Supabase+envs, 09 clave maestra)  ──┐
+sprint-04-infra (04 Supabase+envs, 09 clave maestra)  ──┐
                                                      ▼
-sprint-05-core-base  ──►  sprint-06-core-data  ──►  sprint-07-mcp
+sprint-08-core-base  ──►  sprint-09-core-data  ──►  sprint-10-mcp
         │                        │
-        └──► sprint-web (login + shell desde 05; páginas privadas tras 06)
+        └──► sprint-06-web (login + shell desde 08; páginas privadas tras 09)
 
-sprint-08-new-module-skill (docs + skill, paralelo; no bloquea Core)
+sprint-12-new-module-skill (docs + skill, paralelo; no bloquea Core)
 ```
 
-1. **sprint-05** es el cimiento: migraciones+RLS, auth, esqueleto de API, settings, i18n, observabilidad. **Nada más empieza sin él.**
-2. **sprint-06** añade la superficie: personas, invitaciones, claves, módulos+instalador, realtime/outbox/push, jobs.
-3. **sprint-07** añade MCP (necesita módulos y `mcp_exposed`).
-4. **sprint-web** corre en paralelo: login y shell desde 05; páginas de gestión tras 06.
-5. **sprint-08-new-module-skill** corre en paralelo: documentación canónica y skill `new-module`; no bloquea al Core; las fases ejecutables se verifican cuando exista el instalador.
+1. **sprint-08-core-base** es el cimiento: migraciones+RLS, auth, esqueleto de API, settings, i18n, observabilidad. **Nada más empieza sin él.**
+2. **sprint-09-core-data** añade la superficie: personas, invitaciones, claves, módulos+instalador, realtime/outbox/push, jobs.
+3. **sprint-10-mcp** añade MCP (necesita módulos y `mcp_exposed`).
+4. **sprint-06-web** corre en paralelo: login y shell desde 08; páginas de gestión tras 09.
+5. **sprint-12-new-module-skill** corre en paralelo: documentación canónica y skill `new-module`; no bloquea al Core; las fases ejecutables se verifican cuando exista el instalador.
 
 ## Reglas de ejecución
 
@@ -33,8 +33,8 @@ sprint-08-new-module-skill (docs + skill, paralelo; no bloquea Core)
 
 | Puerta | Cuándo |
 |---|---|
-| Supabase + envs (infra-04) y clave maestra (infra-09) | antes de sprint-05 |
-| Revisión de plan de cada sprint (detallado al arrancar) | al inicio de 05/06/07 |
+| Supabase + envs (infra-04) y clave maestra (infra-09) | antes de sprint-08-core-base |
+| Revisión de plan de cada sprint (detallado al arrancar) | al inicio de 08/09/10 |
 | Aceptación del resultado en preview (Vercel, infra-06) | al cerrar cada sprint |
 | Merge a `main` | orden explícita del usuario |
 

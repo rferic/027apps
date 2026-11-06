@@ -16,7 +16,7 @@
 - No hardcoded colors, no `any`, no `console.log`.
 - Before claiming done: `pnpm lint`, `pnpm tsc`, `pnpm test`, builds affected.
 - One PR for this task, branched from `main`; no merge without explicit user order.
-- Branch and task setup before Task 1: create `docs/tasks/sprint-web/task-04.md` (`estado: en curso`), branch `feature/settings-batch-write` from `main`.
+- Branch and task setup before Task 1: create `docs/tasks/sprint-06-web/task-04.md` (`estado: en curso`), branch `feature/settings-batch-write` from `main`.
 
 ## Review Focus
 
@@ -39,7 +39,7 @@
 - Test: `apps/admin/src/app/setup/preferences-step.test.tsx` — regression test
 
 **Docs**
-- Create: `docs/tasks/sprint-web/task-04.md`
+- Create: `docs/tasks/sprint-06-web/task-04.md`
 - Update: `docs/superpowers/specs/2026-10-26-core-api.md` — add new endpoint reference
 
 ---
@@ -262,7 +262,7 @@ git commit -m "docs(api): add reference to settings batch write endpoint"
 ### Task 6: Task documentation and verification
 
 **Files:**
-- Create: `docs/tasks/sprint-web/task-04.md`
+- Create: `docs/tasks/sprint-06-web/task-04.md`
 - Verify: full test suite
 
 **Interfaces:**
@@ -271,8 +271,8 @@ git commit -m "docs(api): add reference to settings batch write endpoint"
 
 - [ ] **Step 1: Create task documentation**
 
-Create `docs/tasks/sprint-web/task-04.md` with:
-- Frontmatter: `id: sprint-web-task-04`, `titulo: "Settings batch write para evitar rate limiting"`, `area: web`, `estado: test`, `adrs: [0007]`, `plan`, `spec`
+Create `docs/tasks/sprint-06-web/task-04.md` with:
+- Frontmatter: `id: sprint-06-task-04`, `titulo: "Settings batch write para evitar rate limiting"`, `area: web`, `estado: test`, `adrs: [0007]`, `plan`, `spec`
 - Alcance: implementation of batch settings write and rate limit increase
 - TDD: all tasks implemented with failing tests first
 - DoD: tests, lint, tsc, security audit
@@ -285,8 +285,8 @@ Expected: all green.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/tasks/sprint-web/task-04.md
-git commit -m "docs(sprint-web): create task for settings batch write"
+git add docs/tasks/sprint-06-web/task-04.md
+git commit -m "docs(sprint-06-web): create task for settings batch write"
 ```
 
 ---
@@ -294,7 +294,7 @@ git commit -m "docs(sprint-web): create task for settings batch write"
 ### Task 7: Audits and close
 
 **Files:**
-- Modify: `docs/tasks/sprint-web/task-04.md` (`estado`)
+- Modify: `docs/tasks/sprint-06-web/task-04.md` (`estado`)
 - No product code unless audit finding requires it.
 
 - [ ] **Step 1: Dispatch QA/OWASP audit**
@@ -327,8 +327,8 @@ Expected: all green.
 Only after audits and gates pass. Commit task file update.
 
 ```bash
-git add docs/tasks/sprint-web/task-04.md
-git commit -m "docs(sprint-web): close settings batch write task"
+git add docs/tasks/sprint-06-web/task-04.md
+git commit -m "docs(sprint-06-web): close settings batch write task"
 ```
 
 ---
@@ -337,6 +337,6 @@ git commit -m "docs(sprint-web): close settings batch write task"
 
 Plan complete and saved to `docs/superpowers/plans/2026-11-06-settings-batch-write.md`.
 
-Branch strategy before Task 1: create `docs/tasks/sprint-web/task-04.md` and branch `feature/settings-batch-write` from `main`.
+Branch strategy before Task 1: create `docs/tasks/sprint-06-web/task-04.md` and branch `feature/settings-batch-write` from `main`.
 
 Suggested execution: **native** in this session, as the tasks share the core service changes and the final review needs a fresh pair of eyes.

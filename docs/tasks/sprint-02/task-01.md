@@ -1,5 +1,5 @@
 ---
-id: sprint02-task-01
+id: sprint-02-task-01
 titulo: Branding completo — logo, icono de app, splash y favicon
 area: marca
 estado: finalizada

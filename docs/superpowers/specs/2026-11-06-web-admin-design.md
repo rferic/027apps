@@ -1,4 +1,4 @@
-# Spec — Web de administración: panel real sobre la API del Core (sprint 09)
+# Spec — Web de administración: panel real sobre la API del Core (sprint 06)
 
 **Fecha:** 2026-11-06
 **Estado:** Borrador para aprobación del usuario
@@ -71,6 +71,15 @@ Toda lista/detalle muestra vacío, cargando y error (con `code` traducido, `requ
 - El visor debe servirse del bundle, no de un CDN, por el CSP.
 - El panel ya es dinámico (`instant = false`), así que el fetch de `translations` en el layout no rompe el shell estático.
 - Nombres de ruta distintos del shell spec: registrados como delta.
+
+## 12. Revisión de diseño y UX
+
+Antes de implementar el shell se hace una revisión de diseño y UX con dos sombreros (diseñador y
+especialista en UX): `docs/superpowers/specs/2026-11-06-web-admin-ux-review.md`. Fija la arquitectura
+de información (Inicio / Personas / Plataforma / Sistema), la cabecera (logo + nombre de instancia +
+idioma + menú de usuario), los patrones de lista/detalle/formulario, las confirmaciones destructivas,
+los estados reales y una checklist de aceptación de 10 puntos. Es **bloqueante**: la implementación de
+task-05 no empieza sin aplicar sus decisiones y task-11 no cierra sin pasar su checklist.
 
 ## 10. Criterios de aceptación
 

@@ -1,4 +1,4 @@
-# Spec — Core: shell del admin (sprint 04, task 12)
+# Spec — Core: shell del admin (sprint 05, task 12)
 
 **Fecha:** 2026-10-26
 **Estado:** Borrador para aprobación del usuario
@@ -8,7 +8,7 @@
 
 ## 1. Objetivo
 
-Definir la **estructura del panel web**: navegación, páginas, roles por vista, cómo consume datos (ADR 0005) y cómo los **módulos aportan sus propias páginas y settings** al panel. Es el contrato que implementa el sprint-web sin redecir nada.
+Definir la **estructura del panel web**: navegación, páginas, roles por vista, cómo consume datos (ADR 0005) y cómo los **módulos aportan sus propias páginas y settings** al panel. Es el contrato que implementa el sprint-06-web sin redecir nada.
 
 ## 2. Mapa de navegación (sidebar agrupada)
 
@@ -113,10 +113,10 @@ El dashboard **no** incluye gráficos ni métricas históricas en v1 (fuera de a
 
 ## 8. Fuera de alcance
 
-- **Implementación** (rutas Next, componentes, SWR wiring) → sprint-web.
+- **Implementación** (rutas Next, componentes, SWR wiring) → sprint-06-web.
 - **Gráficos/métricas históricas, paginación infinita en tablas grandes** → evaluación posterior.
 - **Páginas de módulo fuera del panel** (p. ej. web pública de un módulo) → spec del módulo.
-- **Mockups de cada página** (solo dashboard en v1; el resto se implementa con el DS) → sprint-web con Storybook.
+- **Mockups de cada página** (solo dashboard en v1; el resto se implementa con el DS) → sprint-06-web con Storybook.
 
 ## 9. Criterios de aceptación
 
@@ -132,5 +132,5 @@ El dashboard **no** incluye gráficos ni métricas históricas en v1 (fuera de a
 
 - ADRs 0004/0005 · realtime (canal `admins`) · config (wizard/settings) · i18n · observabilidad
 - Design System v1: `docs/superpowers/specs/2026-10-25-design-system.md` · Mockup: `docs/mockups/admin-shell.html`
-- Sprint-web (implementación): `docs/tasks/sprint-web/task-01.md`
-- Plan: `docs/superpowers/plans/2026-10-26-sprint-core-design.md` · Task: `docs/tasks/sprint-core-design/task-12.md`
+- Sprint-web (implementación): `docs/tasks/sprint-06-web/task-01.md`
+- Plan: `docs/superpowers/plans/2026-10-26-sprint-05-core-design.md` · Task: `docs/tasks/sprint-05-core-design/task-12.md`

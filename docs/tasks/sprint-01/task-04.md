@@ -1,5 +1,5 @@
 ---
-id: sprint01-task-04
+id: sprint-01-task-04
 titulo: Flujo CI/CD de extremo a extremo (definido completo, implementado por partes) y distribución Android
 area: fundaciones
 estado: finalizada

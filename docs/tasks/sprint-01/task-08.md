@@ -1,5 +1,5 @@
 ---
-id: sprint01-task-08
+id: sprint-01-task-08
 titulo: Tokens de diseño base en el admin (según identidad elegida)
 area: fundaciones
 estado: finalizada

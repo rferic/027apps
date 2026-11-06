@@ -1,5 +1,5 @@
 ---
-id: sprint03-task-05
+id: sprint-03-task-05
 titulo: Estrategia de testing — `docs/conventions/testing-strategy.md` (definición)
 area: core
 estado: finalizada

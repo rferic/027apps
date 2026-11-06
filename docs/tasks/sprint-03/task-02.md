@@ -1,5 +1,5 @@
 ---
-id: sprint03-task-02
+id: sprint-03-task-02
 titulo: Flujo de git — `docs/flows/git.md` (definición)
 area: core
 estado: finalizada
