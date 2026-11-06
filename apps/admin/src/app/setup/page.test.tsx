@@ -60,8 +60,18 @@ const INCOMPLETE_ROWS = PUBLIC_ROWS.map((row) =>
 );
 
 /** Fake infra: dispatches on the query text the core helpers use. */
-function infra(options: { superAdmin: boolean; complete: boolean; jwtExpiry?: number }) {
-  const rows = options.complete ? PUBLIC_ROWS : INCOMPLETE_ROWS;
+function infra(options: {
+  superAdmin: boolean;
+  complete: boolean;
+  jwtExpiry?: number;
+  defaultLocale?: string;
+}) {
+  const baseRows = options.complete ? PUBLIC_ROWS : INCOMPLETE_ROWS;
+  const rows = baseRows.map((row) =>
+    row.key === "localization.default_locale" && options.defaultLocale !== undefined
+      ? { ...row, value: options.defaultLocale }
+      : row,
+  );
   return {
     settingsDeps: {
       db: {
@@ -139,6 +149,44 @@ describe("SetupPage — wizard steps", () => {
     expect(html).toContain("USD");
     expect(html).toContain("/brand/wordmark-light.svg");
     expect(html).toContain('aria-label="Language"');
+  });
+
+  it("proposes the wizard locale when the stored default is English", async () => {
+    cookieValues.current[SMTP_COOKIE] = "1";
+    cookieValues.current[LOCALE_COOKIE] = "es";
+    getInfraMock.mockResolvedValue(
+      infra({ superAdmin: true, complete: false, defaultLocale: "en" }),
+    );
+
+    const html = renderToStaticMarkup(await SetupPage());
+
+    expect(html).toContain('<option value="es" selected="">es</option>');
+    expect(html).toContain("Paso 4 · Preferencias");
+  });
+
+  it("proposes the wizard locale when the stored default is empty", async () => {
+    cookieValues.current[SMTP_COOKIE] = "1";
+    cookieValues.current[LOCALE_COOKIE] = "es";
+    getInfraMock.mockResolvedValue(
+      infra({ superAdmin: true, complete: false, defaultLocale: "" }),
+    );
+
+    const html = renderToStaticMarkup(await SetupPage());
+
+    expect(html).toContain('<option value="es" selected="">es</option>');
+  });
+
+  it("preserves a non-seed default without resetting the current step", async () => {
+    cookieValues.current[SMTP_COOKIE] = "1";
+    cookieValues.current[LOCALE_COOKIE] = "es";
+    getInfraMock.mockResolvedValue(
+      infra({ superAdmin: true, complete: false, defaultLocale: "de" }),
+    );
+
+    const html = renderToStaticMarkup(await SetupPage());
+
+    expect(html).toContain('<option value="de" selected="">de</option>');
+    expect(html).toContain("Paso 4 · Preferencias");
   });
 
   it("blocks the wizard when the project issues tokens that are not 900 s", async () => {

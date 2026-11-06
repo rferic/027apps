@@ -179,11 +179,13 @@ async function preferencesStep(
   // Prefill the public URL with the current origin so it does not have to be
   // typed; a stable domain (or the Vercel branch alias) should replace it.
   const origin = await requestOrigin();
+  const storedLocale = text(settings["localization.default_locale"]);
+  const proposedLocale = !storedLocale || storedLocale === "en" ? locale : storedLocale;
 
   const values: PreferencesValues = {
     instanceName: text(settings["instance.name"]) || "027Apps",
     publicUrl: text(settings["instance.public_url"]) || origin,
-    locale: text(settings["localization.default_locale"]) || "en",
+    locale: proposedLocale,
     timezone: text(settings["localization.timezone"]) || "UTC",
     currency: text(settings["localization.default_currency"]) || "EUR",
     pushProvider: settings["notifications.push.provider"] === "fcm" ? "fcm" : "none",
@@ -217,11 +219,12 @@ async function preferencesStep(
       </form>
       <PreferencesStep
         values={values}
-        logoUrl={logoUrl}
         locales={SUPPORTED_LOCALES}
         enabledLocales={enabledLocales}
         timezones={Intl.supportedValuesOf("timeZone")}
         currencies={currencies}
+        messages={messages}
+        helpHref={`/help/firebase?lang=${locale}`}
       />
     </div>,
     locale,

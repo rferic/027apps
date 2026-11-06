@@ -283,7 +283,7 @@ git commit -m "feat(setup): localize smtp step"
 
 **Interfaces:**
 - Consumes: `t`, `Locale`, `messages`.
-- Produces: `PreferencesStep({ values, logoUrl, locales, enabledLocales, timezones, currencies, messages, helpHref })`.
+- Produces: `PreferencesStep({ values, locales, enabledLocales, timezones, currencies, messages, helpHref })`; the shared header owns the logo and the back action.
 - Produces: `preferencesStep` proposes `uiLocale` when the stored default is `""` or `"en"`.
 
 - [ ] **Step 1: Write failing tests**

@@ -1,5 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { getDictionary } from "@027apps/i18n/dictionary.js";
+import type { TranslationMap } from "@027apps/i18n/types.js";
 import { PreferencesStep, type PreferencesValues } from "./preferences-step";
 
 vi.mock("next/navigation", () => ({
@@ -21,7 +23,11 @@ const VALUES: PreferencesValues = {
   fcmServiceAccountConfigured: false,
 };
 
-function render(values: Partial<PreferencesValues> = {}): string {
+function render(
+  values: Partial<PreferencesValues> = {},
+  messages: TranslationMap = {},
+  helpHref = "/help/firebase?lang=en",
+): string {
   return renderToStaticMarkup(
     <PreferencesStep
       values={{ ...VALUES, ...values }}
@@ -29,6 +35,8 @@ function render(values: Partial<PreferencesValues> = {}): string {
       enabledLocales={["en"]}
       timezones={["UTC", "Europe/Madrid"]}
       currencies={["EUR", "USD"]}
+      messages={messages}
+      helpHref={helpHref}
     />,
   );
 }
@@ -40,6 +48,22 @@ function publicUrlPattern(): RegExp {
   if (!match?.[1]) throw new Error("Public URL input has no pattern");
   return new RegExp(`^(?:${match[1]})$`, "v");
 }
+
+describe("PreferencesStep — localization and Firebase help", () => {
+  it("renders Spanish strings and a localized external help link", () => {
+    const html = render(
+      { locale: "es" },
+      getDictionary("es"),
+      "/help/firebase?lang=es",
+    );
+
+    expect(html).toContain("Paso 4 · Preferencias");
+    expect(html).toContain("Finalizar instalación");
+    expect(html).toContain('href="/help/firebase?lang=es"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+  });
+});
 
 describe("PreferencesStep — Public URL validation", () => {
   it("accepts an HTTPS tunnel URL without a path", () => {
