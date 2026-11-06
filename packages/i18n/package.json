@@ -1,0 +1,25 @@
+{
+  "name": "@027apps/i18n",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "scan": "tsx src/scan.ts",
+    "check": "tsx src/check.ts",
+    "test": "vitest run",
+    "tsc": "tsc --noEmit"
+  },
+  "exports": {
+    "./scan.js": "./src/scan.ts",
+    "./check.js": "./src/check.ts",
+    "./t.js": "./src/t.ts",
+    "./types.js": "./src/types.ts",
+    "./dictionary.js": "./src/dictionary.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5",
+    "vitest": "^5",
+    "tsx": "^4.20.0"
+  }
+}

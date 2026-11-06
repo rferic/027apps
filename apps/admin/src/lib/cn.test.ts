@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import { cn } from "./cn";
 
 describe("cn", () => {
-  it("une valores no vacíos con un espacio", () => {
+  it("joins non-empty values with a space", () => {
     expect(cn("a", "b", "c")).toBe("a b c");
   });
 
-  it("descarta false, null y undefined", () => {
+  it("discards false, null and undefined", () => {
     expect(cn("a", false, null, "b", undefined)).toBe("a b");
   });
 
-  it("devuelve string vacío sin argumentos útiles", () => {
+  it("returns an empty string with no useful arguments", () => {
     expect(cn()).toBe("");
     expect(cn(false, null)).toBe("");
   });

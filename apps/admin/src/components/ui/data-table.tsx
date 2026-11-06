@@ -9,7 +9,7 @@ export interface DataTableColumn {
 export interface DataTableProps {
   columns: DataTableColumn[];
   rows: ReactNode[][];
-  /** Etiqueta accesible de la tabla (caption/aria-label). */
+  /** Accessible table label (caption/aria-label). */
   label?: string;
 }
 

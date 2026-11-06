@@ -5,6 +5,8 @@
   "scripts": {
     "lint": "pnpm -r --if-present run lint",
     "tsc": "pnpm -r --if-present run tsc",
-    "test": "pnpm -r --if-present run test"
+    "test": "pnpm -r --if-present run test",
+    "i18n:scan": "pnpm --filter @027apps/i18n scan",
+    "i18n:check": "pnpm --filter @027apps/i18n check"
   }
 }

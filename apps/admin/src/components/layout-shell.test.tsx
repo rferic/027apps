@@ -9,7 +9,7 @@ const nav = [
 ];
 
 describe("LayoutShell", () => {
-  it("compone sidebar y topbar sobre fondo base", () => {
+  it("composes sidebar and topbar over the base background", () => {
     const html = renderToStaticMarkup(
       <LayoutShell title="Dashboard Familia" nav={nav}>
         contenido
@@ -21,7 +21,7 @@ describe("LayoutShell", () => {
     expect(html).toContain("bg-muted");
   });
 
-  it("adapta el layout a móvil: grid apilado y nav horizontal por debajo de lg", () => {
+  it("adapts to mobile: stacked grid and horizontal nav below lg", () => {
     const html = renderToStaticMarkup(<LayoutShell title="T" nav={nav}>x</LayoutShell>);
     expect(html).toContain("grid-cols-1");
     expect(html).toContain("lg:grid-cols-[200px_1fr]");
@@ -29,7 +29,7 @@ describe("LayoutShell", () => {
     expect(html).toContain("overflow-x-auto");
   });
 
-  it("marca el nav activo con el token primario sólido y aria-current", () => {
+  it("marks the active nav item with the solid primary token and aria-current", () => {
     const html = renderToStaticMarkup(<LayoutShell title="T" nav={nav}>x</LayoutShell>);
     expect(html).toContain(">Dashboard</a>");
     expect(html).toContain("bg-primary");
@@ -38,7 +38,7 @@ describe("LayoutShell", () => {
     expect(html).toContain('aria-current="page"');
   });
 
-  it("renderiza el contenido y las acciones del topbar", () => {
+  it("renders the content and the topbar actions", () => {
     const html = renderToStaticMarkup(
       <LayoutShell title="T" nav={nav} actions={<input placeholder="Buscar..." />}>
         <button>Acción</button>

@@ -25,7 +25,7 @@
 - **Sin `pull_request_target`**; `permissions` mínimos; secretos inyectados por paso, no a nivel de workflow.
 - **Superficie de GitHub en inglés** (ramas, commits, PRs); docs internos en español. Conventional Commits; `guard-secrets` y `commitlint` en verde.
 - **2FA activa** en GitHub, Supabase, Vercel, Firebase y el proveedor SMTP (T15 del modelo de amenazas).
-- Un PR por cambio de repo (las puertas de usuario no generan PR salvo docs); squash merge solo con orden explícita del usuario.
+- **Un PR por sprint** (no por cambio ni por tarea): el PR del sprint acumula todos los cambios de repo y las bitácoras de las puertas de usuario, y se squash-mergea a `main` una sola vez con orden explícita del usuario.
 
 ## Review Focus
 
@@ -151,7 +151,7 @@ vercel.com con la cuenta de GitHub (2FA): Add New Project → importar `rferic/0
 
 - [ ] **Step 2: (usuario) Producción en pausa real (desviación documentada)**
 
-**Production Branch: `production`** (rama que no existe): los pushes a `main` generan solo previews. Se cambiará a `main` al cierre de sprint-05 (decisión de pausa del 2026-10-25, ahora con mecanismo en vez de disciplina). `cicd.md` se actualiza en el PR de esta tarea.
+**Production Branch: `production`** (rama placeholder **que debe existir en GitHub**: Vercel la valida y rechaza ramas inexistentes; se crea una vez congelada en el HEAD de `main` y no se toca): los pushes a `main` generan solo previews. Se cambiará a `main` al cierre de sprint-05 (decisión de pausa del 2026-10-25, ahora con mecanismo en vez de disciplina). `cicd.md` se actualiza en el PR de esta tarea.
 
 - [ ] **Step 3: (usuario) Env vars**
 
@@ -410,6 +410,23 @@ Expected: filas idénticas a prod. Anotar fecha y resultado en `docs/infrastruct
 
 `cicd.md`: fila backup → activado. `task-12.md` → `finalizada` con enlaces de runs. Calendarizar el simulacro trimestral (nota en runbook).
 
+### Task 13 — infra-13: Guía de autoalojamiento + skill de IA
+
+**Files:**
+- Create: `docs/self-hosting.md` (guía pública en inglés, fases 0–9 + checklist final)
+- Create: `.opencode/skills/self-hosting/SKILL.md` + espejos `.agents/skills/self-hosting/SKILL.md` y `.claude/skills/self-hosting/SKILL.md`
+- Modify: `README.md` (sección *Self-hosting* con enlaces), `docs/tasks/sprint-infra/README.md` (fila 13), `docs/infrastructure.md` (enlace desde §9 o §1)
+
+**Interfaces:**
+- Consumes: todo lo verificado en las tareas 01–12 (Supabase, Vercel, SMTP, GitHub, keystore, FCM, backups) y la checklist de producción de `docs/infrastructure.md` §9.
+- Produces: un camino reproducible para que un tercero monte su instancia, y una skill que permite a su IA guiarle paso a paso sin pedir secretos por chat.
+
+- [ ] **Step 1: (agente) Escribir la guía**
+- [ ] **Step 2: (agente) Crear la skill y los espejos**
+- [ ] **Step 3: (agente) Enlazar desde README y el README del sprint**
+- [ ] **Step 4: (agente) Verificar enlaces y que no haya valores de secretos**
+- [ ] **Step 5: (usuario) Revisión final de la guía y la skill**
+
 ---
 
 ## Cierre del sprint
@@ -424,5 +441,5 @@ Expected: filas idénticas a prod. Anotar fecha y resultado en `docs/infrastruct
 
 - **Proyecto dev idle** → Supabase pausa los proyectos free tras ~1 semana de inactividad; la pausa conserva los datos y el proyecto se restaura a mano desde el dashboard. Si molesta, alternar uso ligero o aceptar el restore manual.
 - **Un solo administrador**: las reglas "solo admins" no se pueden probar negativamente sin segunda cuenta; se deja anotado (tarea 6).
-- **Vercel Production Branch placeholder**: al cierre de sprint-05 hay que **recordar** cambiarlo a `main` (nota en `docs/tasks/sprint-05-core-base/README.md`).
+- **Vercel Production Branch placeholder**: al cierre de sprint-05 hay que **recordar** cambiarlo a `main` y borrar la rama `production`; la checklist completa de activación de producción está en `docs/infrastructure.md` §9.
 - **El release real** (tag → APK firmado → instalación) se verifica cuando el Core sea funcional; la tarea 10 solo garantiza que el mecanismo está listo.
