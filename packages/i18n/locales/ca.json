@@ -132,5 +132,20 @@
   "Your Supabase project issues tokens lasting {observed} s. Set the JWT expiry to {expected} seconds in the Supabase dashboard (Auth → Sessions), then sign in again: a session opened before the change keeps the old lifetime.": "El teu projecte de Supabase emet tokens amb una durada de {observed} s. Estableix la caducitat del JWT a {expected} segons al tauler de Supabase (Auth → Sessions) i torna a iniciar sessió: una sessió oberta abans del canvi manté la durada anterior.",
   "failed": "fallit",
   "missing": "falta",
-  "ok": "correcte"
+  "ok": "correcte",
+  "Active": "Actiu",
+  "Disabled": "Desactivat",
+  "Installed": "Instal·lat",
+  "Key": "Clau",
+  "Install a module to make its features available to the instance.": "Instal·leu un mòdul per posar les seves funcions a disposició de la instància.",
+  "Modules installed on this instance. This page is read-only.": "Mòduls instal·lats en aquesta instància. Aquesta pàgina és de només lectura.",
+  "Name": "Nom",
+  "No": "No",
+  "No modules are installed yet.": "Encara no hi ha mòduls instal·lats.",
+  "Public": "Públic",
+  "Request ID": "ID de sol·licitud",
+  "State": "Estat",
+  "Version": "Versió",
+  "We couldn't load the module catalogue.": "No hem pogut carregar el catàleg de mòduls.",
+  "Yes": "Sí"
 }

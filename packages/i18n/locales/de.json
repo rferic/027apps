@@ -132,5 +132,20 @@
   "Your Supabase project issues tokens lasting {observed} s. Set the JWT expiry to {expected} seconds in the Supabase dashboard (Auth → Sessions), then sign in again: a session opened before the change keeps the old lifetime.": "Ihr Supabase-Projekt gibt Token mit einer Laufzeit von {observed} s aus. Stellen Sie die JWT-Gültigkeit im Supabase-Dashboard auf {expected} Sekunden ein (Auth → Sessions) und melden Sie sich erneut an: Eine vor der Änderung geöffnete Sitzung behält die alte Laufzeit.",
   "failed": "fehlgeschlagen",
   "missing": "fehlt",
-  "ok": "OK"
+  "ok": "OK",
+  "Active": "Aktiv",
+  "Disabled": "Deaktiviert",
+  "Installed": "Installiert",
+  "Key": "Schlüssel",
+  "Install a module to make its features available to the instance.": "Installieren Sie ein Modul, um seine Funktionen für die Instanz verfügbar zu machen.",
+  "Modules installed on this instance. This page is read-only.": "Auf dieser Instanz installierte Module. Diese Seite ist schreibgeschützt.",
+  "Name": "Name",
+  "No": "Nein",
+  "No modules are installed yet.": "Es sind noch keine Module installiert.",
+  "Public": "Öffentlich",
+  "Request ID": "Anfrage-ID",
+  "State": "Status",
+  "Version": "Version",
+  "We couldn't load the module catalogue.": "Der Modulkatalog konnte nicht geladen werden.",
+  "Yes": "Ja"
 }
