@@ -13,6 +13,7 @@
 
 import { z } from 'zod';
 import { DomainError } from '../errors';
+import { enqueueEvent } from '../realtime/service';
 import type { EncryptionKeyPort } from '../crypto';
 import type { QueryClient } from '../api/rate-limit-storage';
 import { SETTINGS_CATALOG, getSettingMeta, type SettingMeta } from './catalog';
@@ -225,6 +226,12 @@ export async function writeSettings(
           `update public.settings set value = $1, updated_by = $2, updated_by_key = $3, updated_at = now() where key = $4`,
           [JSON.stringify(newValue), actor.updatedBy, actor.updatedByKey, key],
         );
+        await enqueueEvent(db, {
+          type: "settings.updated",
+          target: "admins",
+          resource: {},
+          payload: { category_key: meta.category, key },
+        });
       }
     }
 

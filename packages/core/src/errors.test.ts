@@ -15,6 +15,8 @@ const CODES: DomainErrorCode[] = [
   'conflict',
   'rate_limited',
   'already_setup',
+  'invitation_expired',
+  'invitation_used',
   'currency_not_enabled',
   'locale_not_available',
   'cors_origin_not_allowed',

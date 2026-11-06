@@ -338,6 +338,31 @@ describe('withDoor — validation', () => {
     expect(body.error.code).toBe('validation_failed');
   });
 
+  it('passes undefined for a bodyless POST when the schema accepts it', async () => {
+    const res = await withDoor(
+      new Request(URL_BASE, { method: 'POST' }),
+      makeOptions({ schema: z.object({}).strict().optional() }),
+      makeDeps(),
+      async (ctx) => ({ body: ctx.body === undefined ? "undefined" : "defined" }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ body: "undefined" });
+  });
+
+  it('still rejects a bodyless POST when the schema requires an object', async () => {
+    const res = await withDoor(
+      new Request(URL_BASE, { method: 'POST' }),
+      makeOptions({ schema }),
+      makeDeps(),
+      async () => ({ ok: true }),
+    );
+
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as ErrorEnvelope;
+    expect(body.error.code).toBe('validation_failed');
+  });
+
   it('rejects an oversized declared body with 413 payload_too_large (F-E)', async () => {
     const res = await withDoor(
       new Request(URL_BASE, {

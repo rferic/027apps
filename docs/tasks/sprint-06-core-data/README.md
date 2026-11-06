@@ -2,7 +2,7 @@
 id: sprint-06-core-data
 titulo: Core datos y plataforma — personas, claves, módulos, realtime y jobs
 area: core
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 ---
 
@@ -25,3 +25,20 @@ cifrado a `settings`, registrar un dispositivo vía `POST /devices` y comprobar 
 llega con la app cerrada. Es criterio de aceptación de esta tarea junto con la implementación.
 
 **Cierre:** DoD de Código completo + auditoría OWASP por tarea.
+
+## Puerta de aceptación de despliegue (2026-11-05)
+
+La implementación de FCM está terminada y auditada, pero **la verificación end-to-end no se ha ejecutado** por falta de credenciales reales. El procedimiento completo, con comandos y solución de problemas, está en [`docs/flows/fcm-validation.md`](../../flows/fcm-validation.md).
+
+Resumen de la puerta, antes de activar push en producción:
+
+1. Subir la service account real a `notifications.push.fcm_service_account`.
+2. Configurar `notifications.push.provider = fcm` y las claves públicas FCM.
+3. Instalar el APK debug, registrar el token con la pantalla FCM de Android y comprobar el push con la app cerrada.
+4. Verificar que un token inválido queda con `revoked_at` y deja de reintentarse.
+
+El cliente Android ya inicializa Firebase en `Application.onCreate` para que un
+arranque en frío provocado por FCM pueda mostrar el mensaje data-only. El APK
+debug permite HTTP solo para la validación local con `adb reverse`.
+
+Esta puerta se documenta como aceptación de despliegue, no como tarea de implementación abierta.
