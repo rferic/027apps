@@ -124,7 +124,7 @@ describe("SetupPage — wizard steps", () => {
     expect(html).toContain("Paso 1 · Entorno");
     expect(html).toContain("Crear super admin");
     expect(html).toContain("/brand/wordmark-light.svg");
-    expect(html).toContain('aria-label="Language"');
+    expect(html).toContain('aria-label="Idioma"');
   });
 
   it("shows the SMTP step (3) once the admin exists and email is unconfirmed", async () => {

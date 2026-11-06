@@ -66,7 +66,7 @@
 
 **Content and docs**
 - Modify `packages/i18n/catalog.en.json` and `packages/i18n/locales/*.json` (8).
-- Modify `docs/flows/fcm-validation.md` — link to the help page.
+- Do not create `docs/flows/fcm-validation.md` in this branch; it belongs to sprint/06-core-data.
 - Create `docs/tasks/sprint-web/task-02.md`.
 
 ---
@@ -364,7 +364,7 @@ git commit -m "feat(help): add public localized firebase setup guide"
 **Files:**
 - Modify: `packages/i18n/src/scan.ts`, `scan.test.ts`
 - Modify: `packages/i18n/catalog.en.json`, `packages/i18n/locales/*.json` (8)
-- Modify: `docs/flows/fcm-validation.md`
+- Skip: `docs/flows/fcm-validation.md` (not present in this branch)
 - Create: `docs/tasks/sprint-web/task-02.md`
 - Verify: `docs/flows/i18n.md` (cookie section already written)
 
@@ -396,7 +396,7 @@ Expected: PASS with 9 locales complete. Spot-check one new help key in `es`: it 
 
 - [ ] **Step 6: Update the task and docs**
 
-Update `docs/tasks/sprint-web/task-02.md` (created before Task 1) to `estado: test` and add the spec/plan links. Add a link to `/help/firebase` in `docs/flows/fcm-validation.md`. Confirm `docs/flows/i18n.md` documents `027_locale` (attributes, precedence, validation, non-session nature).
+Update `docs/tasks/sprint-web/task-02.md` (created before Task 1) to `estado: test` and add the spec/plan links. Do not create or link `docs/flows/fcm-validation.md` in this branch. Confirm `docs/flows/i18n.md` documents `027_locale` (attributes, precedence, validation, non-session nature).
 
 - [ ] **Step 7: Run the full gates**
 
@@ -406,7 +406,7 @@ Expected: all green. If Android was untouched, no Gradle run is needed.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add packages/i18n docs/tasks/sprint-web/task-02.md docs/flows/fcm-validation.md
+git add packages/i18n docs/tasks/sprint-web/task-02.md docs/flows/i18n.md
 git commit -m "feat(i18n): translate setup wizard and firebase guide"
 ```
 

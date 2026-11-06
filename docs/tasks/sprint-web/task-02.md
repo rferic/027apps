@@ -2,7 +2,7 @@
 id: sprint-web-task-02
 titulo: Setup i18n y ayuda pública de Firebase
 area: web
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-11-06-setup-i18n-help.md
 spec: docs/superpowers/specs/2026-11-06-setup-i18n-help-design.md
 ---

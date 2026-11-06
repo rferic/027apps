@@ -27,7 +27,7 @@ describe("Firebase help page", () => {
     );
 
     expect(html).toContain('lang="es"');
-    expect(html).toContain("Set up Firebase Cloud Messaging");
+    expect(html).toContain("Configurar Firebase Cloud Messaging");
     expect(html.match(/<option/g)).toHaveLength(9);
     expect(html).toContain('<option value="es" selected="">Español</option>');
     expect(html).toContain('href="https://console.firebase.google.com/"');
