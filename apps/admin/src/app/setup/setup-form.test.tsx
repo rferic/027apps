@@ -17,7 +17,7 @@ afterEach(() => {
 
 describe("SetupForm — render", () => {
   it("renders the super-admin form with email, display name and password", () => {
-    const html = renderToStaticMarkup(<SetupForm />);
+    const html = renderToStaticMarkup(<SetupForm messages={{}} />);
     expect(html).toContain('type="email"');
     expect(html).toContain('type="text"');
     expect(html).toContain('type="password"');
@@ -26,12 +26,12 @@ describe("SetupForm — render", () => {
 
   it("renders the loading state with a disabled button", () => {
     // The initial render is idle; the loading state is reached on submit.
-    const html = renderToStaticMarkup(<SetupForm />);
+    const html = renderToStaticMarkup(<SetupForm messages={{}} />);
     expect(html).not.toContain("Creating…");
   });
 
   it("explains each field and enforces the password length in the browser", () => {
-    const html = renderToStaticMarkup(<SetupForm />);
+    const html = renderToStaticMarkup(<SetupForm messages={{}} />);
     expect(html).toContain("We use this to sign you in.");
     expect(html).toContain("How you will appear in the app.");
     expect(html).toContain("At least 12 characters.");
@@ -47,7 +47,7 @@ describe("submitSuperAdmin", () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await submitSuperAdmin(input);
+    const result = await submitSuperAdmin(input, {});
 
     expect(result).toEqual({ ok: true });
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/setup/super-admin", {
@@ -63,7 +63,7 @@ describe("submitSuperAdmin", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await submitSuperAdmin(input);
+    const result = await submitSuperAdmin(input, {});
 
     expect(result).toEqual({ ok: false, message: "Setup already completed", fieldErrors: {} });
   });
@@ -72,7 +72,7 @@ describe("submitSuperAdmin", () => {
     fetchMock.mockResolvedValueOnce(new Response("gateway error", { status: 502 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await submitSuperAdmin(input);
+    const result = await submitSuperAdmin(input, {});
 
     expect(result).toEqual({
       ok: false,
@@ -85,7 +85,7 @@ describe("submitSuperAdmin", () => {
     fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await submitSuperAdmin(input);
+    const result = await submitSuperAdmin(input, {});
 
     expect(result).toEqual({
       ok: false,
@@ -109,7 +109,7 @@ describe("submitSuperAdmin", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await submitSuperAdmin(input);
+    const result = await submitSuperAdmin(input, {});
 
     expect(result).toEqual({
       ok: false,
@@ -135,7 +135,7 @@ describe("submitSuperAdmin", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await submitSuperAdmin(input);
+    const result = await submitSuperAdmin(input, {});
 
     expect(result).toEqual({
       ok: false,

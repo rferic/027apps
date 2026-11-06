@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BrandLogo } from "@/components/brand-logo";
+import { t } from "@027apps/i18n/t.js";
+import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
-import { backToSmtpAction } from "./actions";
 
 export interface PreferencesValues {
   instanceName: string;
@@ -24,38 +24,65 @@ export interface PreferencesValues {
 
 export interface PreferencesProps {
   values: PreferencesValues;
-  /** Current instance logo (public setting) for the header preview. */
-  logoUrl?: string | null;
   locales: readonly string[];
   /** Locales already enabled on the instance (`en` can never be removed). */
   enabledLocales: readonly string[];
   timezones: readonly string[];
   currencies: readonly string[];
+  messages: TranslationMap;
+  helpHref: string;
 }
 
-const FIELDS: Record<string, string> = {
-  "instance.name": "We couldn't save the instance name.",
-  "instance.public_url": "Enter the public HTTPS URL (no trailing slash).",
-  "localization.default_locale": "Choose one of the supported languages.",
-  "localization.enabled_locales": "We couldn't enable that language.",
-  "localization.timezone": "Choose a valid IANA time zone.",
-  "localization.default_currency": "Choose an enabled currency.",
-  "notifications.push.provider":
-    "Firebase needs the four client values and the service account before it can be enabled.",
-  "notifications.push.fcm_service_account": "The service account must be the JSON key file from Firebase.",
-};
+function fieldMessage(key: string, messages: TranslationMap): string {
+  switch (key) {
+    case "instance.name":
+      return t("We couldn't save the instance name.", messages);
+    case "instance.public_url":
+      return t("Enter the public URL (no trailing slash).", messages);
+    case "localization.default_locale":
+      return t("Choose one of the supported languages.", messages);
+    case "localization.enabled_locales":
+      return t("We couldn't enable that language.", messages);
+    case "localization.timezone":
+      return t("Choose a valid IANA time zone.", messages);
+    case "localization.default_currency":
+      return t("Choose an enabled currency.", messages);
+    case "notifications.push.provider":
+      return t(
+        "Firebase needs the four client values and the service account before it can be enabled.",
+        messages,
+      );
+    case "notifications.push.fcm_service_account":
+      return t("The service account must be the JSON key file from Firebase.", messages);
+    default:
+      return t("Save failed", messages);
+  }
+}
 
-const NETWORK_ERROR = "We couldn't reach the server. Check the connection, then try again.";
-
-async function patchSetting(key: string, value: unknown): Promise<string | null> {
-  const res = await fetch(`/api/v1/settings/${key.replace(".", "/")}`, {
+/**
+ * Sends every wizard update in a single PATCH. Returns the message to show, or
+ * `null` on success; the failing key comes from `error.details.key`.
+ */
+export async function patchSettings(
+  updates: ReadonlyArray<readonly [string, unknown]>,
+  messages: TranslationMap,
+): Promise<string | null> {
+  const res = await fetch(`/api/v1/settings`, {
     method: "PATCH",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ value }),
+    body: JSON.stringify({ updates: updates.map(([key, value]) => ({ key, value })) }),
   });
   if (res.ok) return null;
-  const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
-  return body?.error?.message ?? "Save failed";
+
+  const body = (await res.json().catch(() => null)) as {
+    error?: { message?: string; details?: { key?: string } };
+  } | null;
+  const detail = t("Details: {message}", messages, {
+    message: body?.error?.message ?? "Save failed",
+  });
+  const key = body?.error?.details?.key;
+  if (!key) return `${t("Save failed", messages)} ${detail}`;
+  return `${fieldMessage(key, messages)} (${key}) ${detail}`;
 }
 
 /**
@@ -66,10 +93,14 @@ async function patchSetting(key: string, value: unknown): Promise<string | null>
 
 type StepsResult = { steps: Array<[string, unknown]> } | { error: string };
 
-/** Ordered writes for steps 4–5; the provider goes last (FCM needs all keys). */
-function buildSteps(form: PreferencesValues, enabledLocales: readonly string[]): StepsResult {
+/** Writes for steps 4–5; order does not matter because coherence sees the merged batch. */
+export function buildSteps(
+  form: PreferencesValues,
+  enabledLocales: readonly string[],
+  messages: TranslationMap,
+): StepsResult {
   const steps: Array<[string, unknown]> = [];
-  // The default locale must be enabled first (`enabled_locales` ⊆ supported).
+  // The default locale must be enabled, so add it to the same batch when missing.
   if (!enabledLocales.includes(form.locale)) {
     steps.push(["localization.enabled_locales", [...enabledLocales, form.locale]]);
   }
@@ -93,13 +124,17 @@ function buildSteps(form: PreferencesValues, enabledLocales: readonly string[]):
       try {
         JSON.parse(serviceAccount);
       } catch {
-        return { error: "The service account must be the JSON key file, copied whole." };
+        return {
+          error: t("The service account must be the JSON key file, copied whole.", messages),
+        };
       }
       steps.push(["notifications.push.fcm_service_account", serviceAccount]);
     } else if (!form.fcmServiceAccountConfigured) {
       return {
-        error:
+        error: t(
           "Paste the service account JSON (Firebase → Project settings → Service accounts → Generate new private key).",
+          messages,
+        ),
       };
     }
   }
@@ -110,11 +145,12 @@ function buildSteps(form: PreferencesValues, enabledLocales: readonly string[]):
 
 export function PreferencesStep({
   values,
-  logoUrl,
   locales,
   enabledLocales,
   timezones,
   currencies,
+  messages,
+  helpHref,
 }: PreferencesProps) {
   const router = useRouter();
   const [form, setForm] = useState(values);
@@ -129,7 +165,7 @@ export function PreferencesStep({
     setSaving(true);
     setError(null);
 
-    const built = buildSteps(form, enabledLocales);
+    const built = buildSteps(form, enabledLocales, messages);
     if ("error" in built) {
       setError(built.error);
       setSaving(false);
@@ -137,16 +173,14 @@ export function PreferencesStep({
     }
 
     try {
-      for (const [key, value] of built.steps) {
-        const failure = await patchSetting(key, value);
-        if (failure) {
-          setError(`${FIELDS[key] ?? "Save failed"} (${key})`);
-          setSaving(false);
-          return;
-        }
+      const failure = await patchSettings(built.steps, messages);
+      if (failure) {
+        setError(failure);
+        setSaving(false);
+        return;
       }
     } catch {
-      setError(NETWORK_ERROR);
+      setError(t("We couldn't reach the server. Check the connection, then try again.", messages));
       setSaving(false);
       return;
     }
@@ -156,28 +190,22 @@ export function PreferencesStep({
   };
 
   return (
-    <div className="flex w-full max-w-md flex-col gap-2">
-      <form action={backToSmtpAction}>
-        <Button type="submit" variant="secondary">
-          ← Back to step 3 (email test)
-        </Button>
-      </form>
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-md rounded-card border border-border bg-surface p-6"
-      >
-        <div className="mb-3 flex justify-center">
-          <BrandLogo logoUrl={logoUrl} size="lg" />
-        </div>
-        <h2 className="text-sm font-semibold">Step 4 · Preferences</h2>
-        <p className="mt-1 mb-4 text-xs text-muted-foreground">
-          These values are required to finish the installation. You can change them later in
-          settings. Step 5 (notifications) is optional and lives at the bottom of this form.
-        </p>
+    <form
+      onSubmit={onSubmit}
+      className="w-full max-w-md rounded-card border border-border bg-surface p-6"
+    >
+      <h2 className="text-sm font-semibold">{t("Step 4 · Preferences", messages)}</h2>
+      <p className="mt-1 mb-4 text-xs text-muted-foreground">
+        {t("These values are required to finish the installation.", messages)}{" "}
+        {t(
+          "You can change them later in settings. Step 5 (notifications) is optional and lives at the bottom of this form.",
+          messages,
+        )}
+      </p>
 
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Instance name</span>
+          <span className="text-sm font-medium">{t("Instance name", messages)}</span>
           <input
             type="text"
             value={form.instanceName}
@@ -189,24 +217,26 @@ export function PreferencesStep({
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Public URL</span>
+          <span className="text-sm font-medium">{t("Public URL", messages)}</span>
           <input
             type="url"
             value={form.publicUrl}
             onChange={(event) => update("publicUrl", event.target.value)}
             placeholder="https://panel.example.com"
-            pattern={"https://[^\\/\\s]+"}
+            pattern={"https?://[^\\/\\s]+"}
             required
             className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
           />
           <span className="text-xs text-muted-foreground">
-            Used for invitations and deep links. HTTPS, no trailing slash. Use a stable address
-            (your domain or the Vercel branch alias), not a per-deployment preview URL.
+            {t(
+              "Used for invitations and deep links. HTTPS, or HTTP only for local addresses (localhost, *.local, *.test, private IPs). No trailing slash. Use a stable address, not a per-deployment preview URL.",
+              messages,
+            )}
           </span>
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Default language</span>
+          <span className="text-sm font-medium">{t("Default language", messages)}</span>
           <select
             value={form.locale}
             onChange={(event) => update("locale", event.target.value)}
@@ -221,7 +251,7 @@ export function PreferencesStep({
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Time zone</span>
+          <span className="text-sm font-medium">{t("Time zone", messages)}</span>
           <input
             type="text"
             list="setup-timezones"
@@ -238,7 +268,7 @@ export function PreferencesStep({
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Default currency</span>
+          <span className="text-sm font-medium">{t("Default currency", messages)}</span>
           <select
             value={form.currency}
             onChange={(event) => update("currency", event.target.value)}
@@ -253,16 +283,26 @@ export function PreferencesStep({
         </label>
 
         <fieldset className="mt-2 flex flex-col gap-3 border-t border-border pt-3">
-          <legend className="text-sm font-semibold">Step 5 · Notifications (optional)</legend>
+          <legend className="text-sm font-semibold">
+            {t("Step 5 · Notifications (optional)", messages)}{" "}
+            <a
+              href={helpHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-normal text-accent underline"
+            >
+              {t("Firebase setup help", messages)}
+            </a>
+          </legend>
           <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium">Provider</span>
+            <span className="text-sm font-medium">{t("Provider", messages)}</span>
             <select
               value={form.pushProvider}
               onChange={(event) => update("pushProvider", event.target.value as "none" | "fcm")}
               className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
             >
-              <option value="none">None for now</option>
-              <option value="fcm">Firebase Cloud Messaging</option>
+              <option value="none">{t("None for now", messages)}</option>
+              <option value="fcm">{t("Firebase Cloud Messaging", messages)}</option>
             </select>
           </label>
 
@@ -272,8 +312,8 @@ export function PreferencesStep({
                 type="text"
                 value={form.fcmProjectId}
                 onChange={(event) => update("fcmProjectId", event.target.value)}
-                placeholder="Project ID"
-                aria-label="FCM project id"
+                placeholder={t("Project ID", messages)}
+                aria-label={t("FCM project id", messages)}
                 required
                 className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
               />
@@ -281,8 +321,8 @@ export function PreferencesStep({
                 type="text"
                 value={form.fcmAppId}
                 onChange={(event) => update("fcmAppId", event.target.value)}
-                placeholder="App ID"
-                aria-label="FCM app id"
+                placeholder={t("App ID", messages)}
+                aria-label={t("FCM app id", messages)}
                 required
                 className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
               />
@@ -290,8 +330,8 @@ export function PreferencesStep({
                 type="text"
                 value={form.fcmApiKey}
                 onChange={(event) => update("fcmApiKey", event.target.value)}
-                placeholder="Web API key (AIza…)"
-                aria-label="FCM web API key"
+                placeholder={t("Web API key (AIza…)", messages)}
+                aria-label={t("FCM web API key", messages)}
                 required
                 className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
               />
@@ -299,25 +339,29 @@ export function PreferencesStep({
                 type="text"
                 value={form.fcmSenderId}
                 onChange={(event) => update("fcmSenderId", event.target.value)}
-                placeholder="Sender ID"
-                aria-label="FCM sender id"
+                placeholder={t("Sender ID", messages)}
+                aria-label={t("FCM sender id", messages)}
                 required
                 className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
               />
               <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Service account JSON</span>
+                <span className="text-sm font-medium">{t("Service account JSON", messages)}</span>
                 <textarea
                   value={form.fcmServiceAccount}
                   onChange={(event) => update("fcmServiceAccount", event.target.value)}
                   placeholder='{"type":"service_account","project_id":"...","private_key":"-----BEGIN PRIVATE KEY-----..."}'
                   rows={3}
-                  aria-label="FCM service account JSON"
+                  aria-label={t("FCM service account JSON", messages)}
                   className="rounded-control border border-border bg-background px-2.5 py-1.5 font-mono text-xs"
                 />
                 <span className="text-xs text-muted-foreground">
-                  Firebase → Project settings → Service accounts → Generate new private key. Stored
-                  encrypted and never shown again
-                  {form.fcmServiceAccountConfigured ? " (one is already configured)." : "."}
+                  {t(
+                    "Firebase → Project settings → Service accounts → Generate new private key. Stored encrypted and never shown again.",
+                    messages,
+                  )}{" "}
+                  {form.fcmServiceAccountConfigured
+                    ? t("One service account is already configured.", messages)
+                    : ""}
                 </span>
               </label>
             </>
@@ -332,10 +376,9 @@ export function PreferencesStep({
       )}
       <div className="mt-4">
         <Button type="submit" disabled={saving}>
-          {saving ? "Finishing…" : "Finish installation"}
+          {saving ? t("Finishing…", messages) : t("Finish installation", messages)}
         </Button>
       </div>
-      </form>
-    </div>
+    </form>
   );
 }

@@ -152,6 +152,91 @@ function assertCanWrite(caller: Caller, meta: SettingMeta): void {
   }
 }
 
+/**
+ * Writes multiple settings in a single transaction. Validates all keys first,
+ * validates schemas and coherence once on the merged map, then writes all.
+ * Atomic: either all succeed or none are applied.
+ */
+export async function writeSettings(
+  deps: SettingsDeps,
+  caller: Caller,
+  updates: ReadonlyArray<{ key: string; value: unknown }>,
+): Promise<SettingView[]> {
+  const seen = new Set<string>();
+  for (const { key } of updates) {
+    if (seen.has(key)) {
+      throw new DomainError('validation_failed', 'Duplicate key', { key });
+    }
+    seen.add(key);
+  }
+
+  const parsedValues: Record<string, unknown> = {};
+  for (const { key, value } of updates) {
+    const meta = getSettingMeta(key);
+    if (!meta) throw new DomainError('not_found');
+    assertCanWrite(caller, meta);
+    const parsed = meta.schema.safeParse(value);
+    if (!parsed.success) {
+      throw new DomainError('validation_failed', 'Validation failed', { key, ...parsed.error.flatten() });
+    }
+    parsedValues[key] = parsed.data;
+  }
+
+  const run = deps.withTransaction ?? (<T>(fn: (db: QueryClient) => Promise<T>) => fn(deps.db));
+
+  return run(async (db) => {
+    const txDeps: SettingsDeps = { ...deps, db };
+    const current = await currentSettingsMap(txDeps);
+    const merged = { ...current, ...parsedValues };
+    await validateCoherence(txDeps, merged, db);
+
+    const actor = auditFields(caller);
+
+    // Encrypt every secret before the first UPDATE: a missing or unusable key
+    // must abort the batch without touching any row, even without a real
+    // transaction runner. Plaintext never reaches logs or error messages.
+    const encryptedSecrets = new Map<string, string>();
+    for (const { key } of updates) {
+      const meta = getSettingMeta(key)!;
+      if (!meta.isSecret) continue;
+      if (!deps.encryption) {
+        throw new DomainError('internal', 'SETTINGS_ENCRYPTION_KEY is not configured');
+      }
+      const newValue = parsedValues[key];
+      const plaintext = typeof newValue === 'string' ? newValue : JSON.stringify(newValue);
+      const encrypted = await deps.encryption.encrypt(plaintext, key);
+      if (encrypted === null) {
+        throw new DomainError('internal', 'SETTINGS_ENCRYPTION_KEY is not usable');
+      }
+      encryptedSecrets.set(key, encrypted);
+    }
+
+    for (const { key } of updates) {
+      const newValue = parsedValues[key];
+      const meta = getSettingMeta(key)!;
+
+      if (meta.isSecret) {
+        await db.query(
+          `update public.settings set value_encrypted = $1, updated_by = $2, updated_by_key = $3, updated_at = now() where key = $4`,
+          [encryptedSecrets.get(key), actor.updatedBy, actor.updatedByKey, key],
+        );
+      } else {
+        await db.query(
+          `update public.settings set value = $1, updated_by = $2, updated_by_key = $3, updated_at = now() where key = $4`,
+          [JSON.stringify(newValue), actor.updatedBy, actor.updatedByKey, key],
+        );
+      }
+    }
+
+    const allViews = await readAllSettings(txDeps, caller);
+    const viewByKey = new Map(allViews.map((view) => [view.key, view]));
+    return updates.flatMap(({ key }) => {
+      const view = viewByKey.get(key);
+      return view ? [view] : [];
+    });
+  });
+}
+
 async function validateCoherence(
   deps: SettingsDeps,
   merged: Record<string, unknown>,
@@ -199,9 +284,8 @@ function auditFields(caller: Caller): { updatedBy: string | null; updatedByKey: 
 }
 
 /**
- * Writes one setting value. Validates the catalog schema, runs coherence rules
- * over the merged settings map and stores the value (plaintext for non-secrets,
- * encrypted for secrets). The metadata never changes; the actor is recorded.
+ * Writes one setting value by delegating to writeSettings with a single update.
+ * The schema validation, coherence, and write logic is shared with writeSettings.
  */
 export async function writeSetting(
   deps: SettingsDeps,
@@ -209,56 +293,12 @@ export async function writeSetting(
   key: string,
   value: unknown,
 ): Promise<SettingView> {
-  const meta = getSettingMeta(key);
-  if (!meta) throw new DomainError('not_found');
-
-  assertCanWrite(caller, meta);
-
-  const parsed = meta.schema.safeParse(value);
-  if (!parsed.success) {
-    throw new DomainError('validation_failed', 'Validation failed', parsed.error.flatten());
+  const result = await writeSettings(deps, caller, [{ key, value }]);
+  const setting = result[0];
+  if (!setting) {
+    throw new DomainError('internal', 'Setting row not found');
   }
-  const newValue = parsed.data;
-
-  // Coherence is a read-merge-validate-write: running it on one transaction
-  // prevents two concurrent writes from each validating against stale state.
-  const run = deps.withTransaction ?? (<T>(fn: (db: QueryClient) => Promise<T>) => fn(deps.db));
-
-  return run(async (db) => {
-    const txDeps: SettingsDeps = { ...deps, db };
-
-    // For a secret being written, the plaintext goes into the in-memory merge so
-    // cross-key rules (FCM project_id) can validate it; it is never stored or logged.
-    const current = await currentSettingsMap(txDeps);
-    const merged = { ...current, [key]: newValue };
-    await validateCoherence(txDeps, merged, db);
-
-    const actor = auditFields(caller);
-
-    if (meta.isSecret) {
-      if (!deps.encryption) {
-        // Fail closed: never store a plaintext secret when the key is missing.
-        throw new DomainError('internal', 'SETTINGS_ENCRYPTION_KEY is not configured');
-      }
-      const plaintext = typeof newValue === 'string' ? newValue : JSON.stringify(newValue);
-      const encrypted = await deps.encryption.encrypt(plaintext, key);
-      if (encrypted === null) {
-        // Invalid master key: fail closed instead of writing an unusable value.
-        throw new DomainError('internal', 'SETTINGS_ENCRYPTION_KEY is not usable');
-      }
-      await db.query(
-        `update public.settings set value_encrypted = $1, updated_by = $2, updated_by_key = $3, updated_at = now() where key = $4`,
-        [encrypted, actor.updatedBy, actor.updatedByKey, key],
-      );
-      return (await readAllSettings(txDeps, caller)).find((s) => s.key === key)!;
-    }
-
-    await db.query(
-      `update public.settings set value = $1, updated_by = $2, updated_by_key = $3, updated_at = now() where key = $4`,
-      [JSON.stringify(newValue), actor.updatedBy, actor.updatedByKey, key],
-    );
-    return (await readAllSettings(txDeps, caller)).find((s) => s.key === key)!;
-  });
+  return setting;
 }
 
 /**

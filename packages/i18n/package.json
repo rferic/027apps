@@ -13,7 +13,8 @@
     "./scan.js": "./src/scan.ts",
     "./check.js": "./src/check.ts",
     "./t.js": "./src/t.ts",
-    "./types.js": "./src/types.ts"
+    "./types.js": "./src/types.ts",
+    "./dictionary.js": "./src/dictionary.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

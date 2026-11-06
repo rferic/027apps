@@ -5,7 +5,7 @@ const redirectMock = vi.fn((url: string) => {
   throw new Error(`NEXT_REDIRECT:${url}`);
 });
 const getInfraMock = vi.fn();
-const cookieValue = { current: undefined as string | undefined };
+const cookieValues = { current: {} as Record<string, string> };
 
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => redirectMock(url),
@@ -15,7 +15,8 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/headers", () => ({
   headers: async () => new Headers(),
   cookies: async () => ({
-    get: () => (cookieValue.current ? { value: cookieValue.current } : undefined),
+    get: (name: string) =>
+      cookieValues.current[name] ? { value: cookieValues.current[name] } : undefined,
     set: vi.fn(),
   }),
 }));
@@ -32,7 +33,14 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
+vi.mock("./actions", () => ({
+  backToSmtpAction: "/back-smtp",
+  signOutAndRestartAction: "/sign-out",
+}));
+
 import SetupPage from "./page";
+import { SMTP_COOKIE } from "./smtp-cookie";
+import { LOCALE_COOKIE } from "@/lib/locale";
 
 const TABLES = ["profiles", "settings", "settings_categories", "currencies", "rate_limit_counters"];
 
@@ -57,8 +65,18 @@ const INCOMPLETE_ROWS = PUBLIC_ROWS.map((row) =>
 );
 
 /** Fake infra: dispatches on the query text the core helpers use. */
-function infra(options: { superAdmin: boolean; complete: boolean; jwtExpiry?: number }) {
-  const rows = options.complete ? PUBLIC_ROWS : INCOMPLETE_ROWS;
+function infra(options: {
+  superAdmin: boolean;
+  complete: boolean;
+  jwtExpiry?: number;
+  defaultLocale?: string;
+}) {
+  const baseRows = options.complete ? PUBLIC_ROWS : INCOMPLETE_ROWS;
+  const rows = baseRows.map((row) =>
+    row.key === "localization.default_locale" && options.defaultLocale !== undefined
+      ? { ...row, value: options.defaultLocale }
+      : row,
+  );
   return {
     settingsDeps: {
       db: {
@@ -86,7 +104,7 @@ function infra(options: { superAdmin: boolean; complete: boolean; jwtExpiry?: nu
 beforeEach(() => {
   redirectMock.mockClear();
   getInfraMock.mockReset();
-  cookieValue.current = undefined;
+  cookieValues.current = {};
   process.env.SETTINGS_ENCRYPTION_KEY = "unused-in-tests";
 });
 
@@ -98,6 +116,25 @@ describe("SetupPage — wizard steps", () => {
 
     expect(html).toContain("Environment");
     expect(html).toContain("Create super admin");
+    expect(html).toContain("/brand/wordmark-light.svg");
+    expect(html).toContain('aria-label="Language"');
+  });
+
+  it("renders steps 1–2 in Spanish with the shared header", async () => {
+    cookieValues.current[LOCALE_COOKIE] = "es";
+    getInfraMock.mockResolvedValue(infra({ superAdmin: false, complete: false }));
+
+    const html = renderToStaticMarkup(await SetupPage());
+
+    expect(html).toContain("Paso 1 · Entorno");
+    expect(html).toContain("Crear super admin");
+    expect(html).toContain("Todas las 5 tablas del núcleo existen.");
+    expect(html).toContain("Clave de 32 bytes detectada.");
+    expect(html).toContain("/brand/wordmark-light.svg");
+    expect(html).toContain("h-12");
+    expect(html).toContain('aria-label="Idioma"');
+    expect(html).toContain("sm:flex-row");
+    expect(html).not.toContain('class="absolute right-0 top-1/2 -translate-y-1/2"');
   });
 
   it("shows the SMTP step (3) once the admin exists and email is unconfirmed", async () => {
@@ -107,10 +144,12 @@ describe("SetupPage — wizard steps", () => {
 
     expect(html).toContain("Step 3 · Email");
     expect(html).toContain("Send test email");
+    expect(html).toContain("/brand/wordmark-light.svg");
+    expect(html).toContain('aria-label="Language"');
   });
 
   it("shows preferences (4–5) after the SMTP confirmation", async () => {
-    cookieValue.current = "1";
+    cookieValues.current[SMTP_COOKIE] = "1";
     getInfraMock.mockResolvedValue(infra({ superAdmin: true, complete: false }));
 
     const html = renderToStaticMarkup(await SetupPage());
@@ -118,6 +157,48 @@ describe("SetupPage — wizard steps", () => {
     expect(html).toContain("Step 4 · Preferences");
     expect(html).toContain("Finish installation");
     expect(html).toContain("USD");
+    expect(html).toContain('action="/back-smtp"');
+    expect(html).not.toContain('action="/sign-out"');
+    expect(html).toContain("/brand/wordmark-light.svg");
+    expect(html).toContain('aria-label="Language"');
+  });
+
+  it("proposes the wizard locale when the stored default is English", async () => {
+    cookieValues.current[SMTP_COOKIE] = "1";
+    cookieValues.current[LOCALE_COOKIE] = "es";
+    getInfraMock.mockResolvedValue(
+      infra({ superAdmin: true, complete: false, defaultLocale: "en" }),
+    );
+
+    const html = renderToStaticMarkup(await SetupPage());
+
+    expect(html).toContain('<option value="es" selected="">es</option>');
+    expect(html).toContain("Paso 4 · Preferencias");
+  });
+
+  it("proposes the wizard locale when the stored default is empty", async () => {
+    cookieValues.current[SMTP_COOKIE] = "1";
+    cookieValues.current[LOCALE_COOKIE] = "es";
+    getInfraMock.mockResolvedValue(
+      infra({ superAdmin: true, complete: false, defaultLocale: "" }),
+    );
+
+    const html = renderToStaticMarkup(await SetupPage());
+
+    expect(html).toContain('<option value="es" selected="">es</option>');
+  });
+
+  it("preserves a non-seed default without resetting the current step", async () => {
+    cookieValues.current[SMTP_COOKIE] = "1";
+    cookieValues.current[LOCALE_COOKIE] = "es";
+    getInfraMock.mockResolvedValue(
+      infra({ superAdmin: true, complete: false, defaultLocale: "de" }),
+    );
+
+    const html = renderToStaticMarkup(await SetupPage());
+
+    expect(html).toContain('<option value="de" selected="">de</option>');
+    expect(html).toContain("Paso 4 · Preferencias");
   });
 
   it("blocks the wizard when the project issues tokens that are not 900 s", async () => {
@@ -127,6 +208,9 @@ describe("SetupPage — wizard steps", () => {
 
     expect(html).toContain("Access tokens must last 900 s");
     expect(html).toContain("3600 s");
+    expect(html).toContain('action="/sign-out"');
+    expect(html).toContain("/brand/wordmark-light.svg");
+    expect(html).toContain('aria-label="Language"');
   });
 
   it("sends a fully configured instance to the panel", async () => {
