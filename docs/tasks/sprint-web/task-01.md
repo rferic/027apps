@@ -1,22 +1,41 @@
 ---
 id: sprint-web
-titulo: Web de administración — base y páginas de gestión (backlog)
+titulo: Web de administración — panel real sobre la API del Core
 area: web
-estado: pendiente
+estado: en curso
 ---
 
-Sprint de **backlog** (pendiente de planificar): montar la base real del admin web sobre el scaffold existente (`apps/admin`: layout, `/api/health`, DS v1 del sprint-02) y, después, las páginas de gestión privadas.
+Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs y `MEMBERS_ROWS` hardcodeados, `NAV_ITEMS` con enlaces muertos) por el panel real, sobre la API del Core ya en `main`.
 
-**Por qué existe / alcance previsto (a detallar al planificar):**
-- **Base para empezar a trabajar**: login + sesión (Supabase Auth SS, roles super_admin/admin — spec de auth §6, ADR 0005), wizard de instalación `/setup` (primer super_admin — spec de auth §3bis, task-06 del Core).
-- **Página de documentación de la API**: render del **OpenAPI generado** (spec API v1 A2) con **Swagger UI o alternativa** (Scalar/RapiDoc) — para que quien integre vea el contrato vivo.
-- **Parte privada**: shell con navegación + **dashboard** y las páginas de gestión — **configuraciones de instancia** (task-06), **listado y gestión de usuarios**, **categorías** (etiquetas de usuarios), **invitaciones**, **API keys/MCP** (task-02/05). Definida en la task-12 del Core (shell). *(Los "grupos de datos" — p. ej. grupos de gastos — son páginas de cada módulo, no del Core.)*
+**Spec:** `docs/superpowers/specs/2026-11-06-web-admin-design.md` · **Plan:** `docs/superpowers/plans/2026-11-06-web-admin.md`
 
-**Depende de (puerta de entrada, cumplirse antes de planificar/implementar):**
-- **`sprint-05` (login + shell)** para la base (login, `/setup`, navegación); **`sprint-06`** para las páginas privadas (usuarios, categorías, invitaciones, módulos, claves).
-- API del Core **implementada** (`/api/v1` con los recursos transversales — task-02 del Core; API-first, ADR 0004: el panel solo consume su API).
-- **OpenAPI generado** desde los schemas zod compartidos (spec API v1 A2) — fuente de la página de documentación.
-- **Supabase Auth** conectado (sprint de infra, login) y `JWT_EXPIRY` configurado (ADR 0006).
-- Definición del Core (specs 01, 02, 06, 12) `finalizada` para que la implementación no redecida arquitectura (ADR 0005).
+## Alcance
 
-**Nota:** no es un sprint del Core; es el panel de administración (web de administración, spec §2), su implementación sigue ADR 0004/0005 y el flujo de `docs/flows/feature.md`.
+- Rutas canónicas en inglés (el idioma va en la cookie): `/`, `/members`, `/categories`, `/invitations`, `/keys`, `/modules`, `/settings`, `/docs/api`.
+- Shell con marca, navegación, ítem activo, cerrar sesión, selector de idioma, guard de rol en servidor y responsive móvil.
+- Dashboard y listas que consumen `/api/v1`, con estados vacío/cargando/error y `request_id` en el error.
+- `/docs/api`: visor Scalar del OpenAPI generado desde los schemas zod compartidos.
+
+## Tareas
+
+| # | Tarea | Estado |
+|---|---|---|
+| 01 | README del sprint | en curso |
+| 02 | Setup i18n y ayuda Firebase | finalizada |
+| 03 | Dominio local de desarrollo | test |
+| 04 | Settings batch write | finalizada |
+| 05 | Shell y navegación + `/modules` | pendiente |
+| 06 | Dashboard con datos reales | pendiente |
+| 07 | Miembros | pendiente |
+| 08 | Categorías + invitaciones | pendiente |
+| 09 | Claves API + ajustes | pendiente |
+| 10 | Documentación de la API | pendiente |
+
+## Dependencias
+
+- API del Core en `main` (✅). No existen aún `GET /me` (task-05), `/admin-actions` (el dashboard lo omite) ni `/openapi.json` (task-10).
+- OpenAPI: no existe generación en el repo; se construye en task-10.
+
+## Cierre
+
+Un solo PR, squash a `main` por orden del usuario, cuando 05–10 estén `finalizada` con DoD completo (TDD, gates, revisión de segundo agente y auditoría OWASP).
