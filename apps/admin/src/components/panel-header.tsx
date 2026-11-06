@@ -1,0 +1,62 @@
+import { t } from "@027apps/i18n/t.js";
+import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
+import { signOutAction } from "@/app/(auth)/actions";
+import { APP_NAME } from "@/lib/brand";
+import type { PanelUser } from "@/lib/panel-guard";
+import { BrandLogo } from "./brand-logo";
+import { LocaleSwitcher } from "./locale-switcher";
+import { Button } from "./ui/button";
+
+interface PanelHeaderProps {
+  user: PanelUser;
+  locale: Locale;
+  messages: TranslationMap;
+  /** `instance.name`; empty falls back to the product name. */
+  instanceName: string;
+  logoUrl: string | null;
+}
+
+/** Literal keys so `i18n:scan` sees each role label. */
+function roleLabel(role: PanelUser["role"], messages: TranslationMap): string {
+  switch (role) {
+    case "super_admin":
+      return t("Super admin", messages);
+    case "admin":
+      return t("Admin", messages);
+    default:
+      return t("User", messages);
+  }
+}
+
+/**
+ * Panel header (UX review §4): identity on the left, global preferences and
+ * the session menu on the right. The user menu is a `<details>` so it works
+ * without JavaScript, and it is the only place "Log out" lives.
+ */
+export function PanelHeader({ user, locale, messages, instanceName, logoUrl }: PanelHeaderProps) {
+  return (
+    <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <BrandLogo logoUrl={logoUrl} size="md" />
+        <span className="truncate text-sm font-semibold">{instanceName.trim() || APP_NAME}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <LocaleSwitcher locale={locale} label={t("Language", messages)} />
+        <details className="relative">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-control border border-border px-2.5 py-1.5 text-xs focus-visible:ring-2 focus-visible:ring-accent">
+            <span className="max-w-36 truncate font-semibold">{user.displayName || user.email}</span>
+            <span className="text-muted-foreground">{roleLabel(user.role, messages)}</span>
+          </summary>
+          <div className="absolute right-0 z-10 mt-1 flex w-52 flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-lg">
+            <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+            <form action={signOutAction}>
+              <Button type="submit" variant="secondary" className="w-full">
+                {t("Log out", messages)}
+              </Button>
+            </form>
+          </div>
+        </details>
+      </div>
+    </header>
+  );
+}
