@@ -38,7 +38,7 @@ function fieldMessage(key: string, messages: TranslationMap): string {
     case "instance.name":
       return t("We couldn't save the instance name.", messages);
     case "instance.public_url":
-      return t("Enter the public HTTPS URL (no trailing slash).", messages);
+      return t("Enter the public URL (no trailing slash).", messages);
     case "localization.default_locale":
       return t("Choose one of the supported languages.", messages);
     case "localization.enabled_locales":
@@ -223,13 +223,13 @@ export function PreferencesStep({
             value={form.publicUrl}
             onChange={(event) => update("publicUrl", event.target.value)}
             placeholder="https://panel.example.com"
-            pattern={"https://[^\\/\\s]+"}
+            pattern={"https?://[^\\/\\s]+"}
             required
             className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
           />
           <span className="text-xs text-muted-foreground">
             {t(
-              "Used for invitations and deep links. HTTPS, no trailing slash. Use a stable address (your domain or the Vercel branch alias), not a per-deployment preview URL.",
+              "Used for invitations and deep links. HTTPS, or HTTP only for local addresses (localhost, *.local, *.test, private IPs). No trailing slash. Use a stable address, not a per-deployment preview URL.",
               messages,
             )}
           </span>

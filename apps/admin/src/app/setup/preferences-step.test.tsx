@@ -107,16 +107,18 @@ describe("PreferencesStep — Public URL validation", () => {
     );
   });
 
+  it("accepts HTTP for local addresses", () => {
+    expect(publicUrlPattern().test("http://027apps.local:3003")).toBe(true);
+    expect(publicUrlPattern().test("http://localhost:3003")).toBe(true);
+    expect(publicUrlPattern().test("http://127.0.0.1:3003")).toBe(true);
+  });
+
   it("rejects a trailing slash", () => {
     expect(publicUrlPattern().test("https://example.com/")).toBe(false);
   });
 
   it("rejects a path after the host", () => {
     expect(publicUrlPattern().test("https://example.com/setup")).toBe(false);
-  });
-
-  it("rejects plain HTTP", () => {
-    expect(publicUrlPattern().test("http://example.com")).toBe(false);
   });
 });
 
