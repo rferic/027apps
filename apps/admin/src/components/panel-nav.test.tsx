@@ -36,20 +36,27 @@ describe("PanelNav", () => {
   it("marks the matching destination with aria-current", () => {
     const html = renderToStaticMarkup(<PanelNav messages={{}} />);
 
-    expect(html).toContain('href="/members" aria-current="page"');
+    expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*href="\/members"/);
     expect((html.match(/aria-current="page"/g) ?? []).length).toBe(1);
-    expect(html).not.toContain('href="/" aria-current="page"');
+    expect(html).not.toMatch(/<a[^>]*aria-current="page"[^>]*href="\/"/);
   });
 
   it("matches nested routes by prefix but keeps / exact", () => {
     pathname.current = "/members/u-1";
     const nested = renderToStaticMarkup(<PanelNav messages={{}} />);
-    expect(nested).toContain('href="/members" aria-current="page"');
-    expect(nested).not.toContain('href="/" aria-current="page"');
+    expect(nested).toMatch(/<a[^>]*aria-current="page"[^>]*href="\/members"/);
+    expect(nested).not.toMatch(/<a[^>]*aria-current="page"[^>]*href="\/"/);
 
     pathname.current = "/";
     const home = renderToStaticMarkup(<PanelNav messages={{}} />);
-    expect(home).toContain('href="/" aria-current="page"');
+    expect(home).toMatch(/<a[^>]*aria-current="page"[^>]*href="\/"/);
+  });
+
+  it("does not mark /members when a sibling route merely shares its prefix", () => {
+    pathname.current = "/members-archive";
+    const html = renderToStaticMarkup(<PanelNav messages={{}} />);
+
+    expect(html).not.toContain('aria-current="page"');
   });
 
   it("translates labels and the navigation name", () => {

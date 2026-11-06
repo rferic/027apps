@@ -1,58 +1,60 @@
 import { cookies } from "next/headers";
-import { hasActiveSuperAdmin, isSetupIncomplete } from "@027apps/core/instance/api.js";
-import { readPublicSettings } from "@027apps/core/settings/service.js";
+import Link from "next/link";
+import { hasActiveSuperAdmin, setupIncomplete } from "@027apps/core/instance/api.js";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
-import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { PanelForbidden } from "@/components/panel-forbidden";
 import { getInfra } from "@/lib/api/door";
-import { APP_NAME } from "@/lib/brand";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
+import { loadPanelSettings } from "@/lib/panel-settings";
 
-/** Reads the session and the instance state on every request (no static shell). */
-export const instant = false;
+type InstanceStatus = "ready" | "incomplete" | "not-installed";
 
-interface InstanceStatus {
-  variant: BadgeVariant;
-  label: string;
+function instanceStatus(installed: boolean, incomplete: boolean): InstanceStatus {
+  if (!installed) return "not-installed";
+  return incomplete ? "incomplete" : "ready";
 }
 
-function instanceStatus(installed: boolean, incomplete: boolean, messages: TranslationMap): InstanceStatus {
-  if (!installed) return { variant: "neutral", label: t("Not installed", messages) };
-  if (incomplete) return { variant: "destructive", label: t("Setup incomplete", messages) };
-  return { variant: "success", label: t("Ready", messages) };
+function statusLabel(status: InstanceStatus, messages: TranslationMap): string {
+  switch (status) {
+    case "ready":
+      return t("Everything is ready.", messages);
+    case "incomplete":
+      return t("Setup is incomplete.", messages);
+    default:
+      return t("Not installed.", messages);
+  }
 }
 
 /**
- * Dashboard placeholder: identity, instance state and the real setup status.
- * KPIs, module cards and activity belong to task-06; nothing here is sample data.
+ * Dashboard placeholder: the header already carries the instance identity, so
+ * the page leads with the real state instead of repeating the name.
  */
 export default async function DashboardPage() {
   const gate = await requirePanel("admin");
-  // The panel layout already renders the generic 403 for this case.
-  if ("denied" in gate) return null;
 
-  const { settingsDeps } = await getInfra();
   const cookieStore = await cookies();
   const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
   const messages = await loadPanelMessages(locale);
-  const settings = await readPublicSettings(settingsDeps);
-  const instanceName = typeof settings["instance.name"] === "string" ? settings["instance.name"] : "";
+  if ("denied" in gate) {
+    return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
+  }
 
+  const settings = await loadPanelSettings();
+  const { settingsDeps } = await getInfra();
   const installed = await hasActiveSuperAdmin(settingsDeps);
-  const incomplete = await isSetupIncomplete(settingsDeps);
-  const status = instanceStatus(installed, incomplete, messages);
+  const incomplete = setupIncomplete(settings);
+  const status = instanceStatus(installed, incomplete);
 
   return (
     <section className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-base font-bold">{instanceName.trim() || APP_NAME}</h1>
-        <Badge variant={status.variant}>{status.label}</Badge>
-      </div>
-      <h2 className="text-sm font-semibold">{t("Dashboard", messages)}</h2>
-      {installed && !incomplete && (
-        <p className="text-xs text-muted-foreground">{t("Your installation is ready.", messages)}</p>
+      <h1 className="text-base font-bold">{statusLabel(status, messages)}</h1>
+      {status !== "ready" && (
+        <Link href="/setup" className="text-xs font-semibold text-accent hover:underline">
+          {t("Finish setup", messages)}
+        </Link>
       )}
     </section>
   );

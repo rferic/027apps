@@ -12,10 +12,19 @@ describe("BrandLogo", () => {
   });
 
   it("uses a custom logo when instance.logo_url is set", () => {
-    const html = renderToStaticMarkup(<BrandLogo logoUrl="https://example.com/logo.png" />);
+    const html = renderToStaticMarkup(
+      <BrandLogo logoUrl="https://example.com/logo.png" name="Familia García" />,
+    );
 
     expect(html).toContain("https://example.com/logo.png");
+    expect(html).toContain('alt="Familia García"');
     expect(html).not.toContain("/brand/wordmark-light.svg");
+  });
+
+  it("keeps the product name as the alt when no instance name is provided", () => {
+    const html = renderToStaticMarkup(<BrandLogo logoUrl="https://example.com/logo.png" />);
+
+    expect(html).toContain('alt="027Apps"');
   });
 
   it("falls back to the wordmark when the setting is empty", () => {

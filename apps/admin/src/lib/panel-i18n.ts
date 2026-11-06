@@ -1,28 +1,37 @@
+import { cache } from "react";
+import type { LogEntry } from "@027apps/core/api/types.js";
+import { getDictionary } from "@027apps/i18n/dictionary.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { getInfra } from "@/lib/api/door";
 
 /**
- * Panel translations straight from the database: the layout renders on the
- * server, and a self-call to `/api/v1/translations` would need an absolute
- * origin to build. English is the catalog itself, so it needs no map.
+ * The repo dictionaries are the source of truth; `translations` only carries
+ * runtime edits. It may be empty (or unreachable), so overlaying its rows on
+ * the bundled map keeps all nine locales available from the first request.
  */
-export async function loadPanelMessages(locale: Locale): Promise<TranslationMap> {
-  if (locale === "en") return {};
+export const loadPanelMessages = cache(async (locale: Locale): Promise<TranslationMap> => {
+  const base = getDictionary(locale);
+  let logger: ((entry: LogEntry) => void) | undefined;
 
-  const { settingsDeps } = await getInfra();
   try {
-    const { rows } = await settingsDeps.db.query(
+    const infra = await getInfra();
+    logger = infra.deps.logger;
+    const { rows } = await infra.settingsDeps.db.query(
       "select text_en, translated_text from public.translations where locale = $1",
       [locale],
     );
-    const messages: TranslationMap = {};
+    const overrides: TranslationMap = {};
     for (const row of rows) {
-      messages[String(row.text_en)] = String(row.translated_text);
+      overrides[String(row.text_en)] = String(row.translated_text);
     }
-    return messages;
+    return { ...base, ...overrides };
   } catch {
-    // Deliberate degradation: the panel stays usable in English when the
-    // translation table is unreachable.
-    return {};
+    // Deliberate degradation: the panel stays readable with the packaged map.
+    logger?.({
+      level: "warn",
+      requestId: "panel-i18n",
+      message: "panel translations unavailable; falling back to the bundled dictionary",
+    });
+    return base;
   }
-}
+});

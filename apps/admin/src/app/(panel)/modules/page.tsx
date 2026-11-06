@@ -3,19 +3,13 @@ import { redirect } from "next/navigation";
 import { modulesRoute } from "@027apps/core/modules/api.js";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
+import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
-import { DocumentLang } from "@/components/document-lang";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { modulesRouteDeps } from "@/lib/modules-route-deps";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-/**
- * The catalogue is read on every request: the page renders the session-aware
- * module list, so it opts out of the static shell.
- */
-export const instant = false;
 
 /** Only the fields this page shows, taken from `listModules` (`ModuleView`). */
 interface ModuleRow {
@@ -65,9 +59,15 @@ function errorFields(value: unknown, headerRequestId?: string): CatalogueErrorFi
 
 function readModules(value: unknown): ModuleRow[] | null {
   if (!isRecord(value) || !Array.isArray(value.modules)) return null;
-  return value.modules
-    .map(readModule)
-    .filter((module): module is ModuleRow => module !== null);
+  const modules: ModuleRow[] = [];
+  for (const entry of value.modules) {
+    const row = readModule(entry);
+    // One malformed row invalidates the whole page: a partial table would look
+    // complete while silently hiding modules.
+    if (!row) return null;
+    modules.push(row);
+  }
+  return modules;
 }
 
 /**
@@ -112,9 +112,7 @@ async function loadCatalogue(): Promise<Catalogue> {
 }
 
 function stateVariant(state: string): BadgeVariant {
-  if (state === "active") return "success";
-  if (state === "disabled") return "neutral";
-  return "neutral";
+  return state === "active" ? "success" : "neutral";
 }
 
 function stateLabel(state: string, messages: TranslationMap): string {
@@ -216,6 +214,22 @@ function ModulesCards({
   );
 }
 
+/** Public error codes mapped to a readable message; unknown codes stay as-is. */
+function errorCodeLabel(code: string, messages: TranslationMap): string {
+  switch (code) {
+    case "internal":
+      return t("Something went wrong on the server.", messages);
+    case "insufficient_scope":
+      return t("You do not have permission to do that.", messages);
+    case "rate_limited":
+      return t("Too many requests. Wait a moment and try again.", messages);
+    case "not_found":
+      return t("We could not find what you asked for.", messages);
+    default:
+      return code;
+  }
+}
+
 function CatalogueError({
   error,
   messages,
@@ -228,11 +242,7 @@ function CatalogueError({
       <h2 className="text-sm font-semibold text-destructive">
         {t("We couldn't load the module catalogue.", messages)}
       </h2>
-      {error.code && (
-        <p className="mt-2 text-muted-foreground">
-          <code className="font-mono">{error.code}</code>
-        </p>
-      )}
+      {error.code && <p className="mt-2 text-muted-foreground">{errorCodeLabel(error.code, messages)}</p>}
       {error.message && (
         <p className="mt-1 text-muted-foreground">
           {t("Details: {message}", messages, { message: error.message })}
@@ -244,6 +254,9 @@ function CatalogueError({
           <code className="select-all font-mono">{error.requestId}</code>
         </p>
       )}
+      <a href="/modules" className="mt-2 inline-block font-semibold text-accent hover:underline">
+        {t("Try again", messages)}
+      </a>
     </div>
   );
 }
@@ -283,17 +296,7 @@ export default async function ModulesPage() {
 
   // Generic refusal: it never reveals which routes or roles exist.
   if ("denied" in gate) {
-    return (
-      <>
-        <p
-          role="alert"
-          className="mx-auto max-w-md rounded-card border border-border bg-surface p-6 text-center text-sm font-semibold"
-        >
-          {t("You do not have access to this page.", messages)}
-        </p>
-        <DocumentLang locale={locale} />
-      </>
-    );
+    return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
   }
 
   const catalogue = await loadCatalogue();
@@ -316,8 +319,6 @@ export default async function ModulesPage() {
       ) : (
         <CatalogueError error={catalogue} messages={messages} />
       )}
-
-      <DocumentLang locale={locale} />
     </section>
   );
 }

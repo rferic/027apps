@@ -1,14 +1,13 @@
 import { cookies } from "next/headers";
-import { readPublicSettings } from "@027apps/core/settings/service.js";
 import { t } from "@027apps/i18n/t.js";
-import type { TranslationMap } from "@027apps/i18n/types.js";
 import { DocumentLang } from "@/components/document-lang";
+import { PanelForbidden } from "@/components/panel-forbidden";
 import { PanelHeader } from "@/components/panel-header";
 import { PanelNav } from "@/components/panel-nav";
-import { getInfra } from "@/lib/api/door";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
+import { loadPanelSettings } from "@/lib/panel-settings";
 
 /**
  * The panel reads the session, the role and the instance settings on every
@@ -16,31 +15,22 @@ import { requirePanel } from "@/lib/panel-guard";
  */
 export const instant = false;
 
-/** Generic refusal: it never reveals which routes or roles exist. */
-function Forbidden({ locale, messages }: { locale: string; messages: TranslationMap }) {
-  return (
-    <main id="content" className="flex min-h-screen items-center justify-center bg-background p-6">
-      <p
-        role="alert"
-        className="max-w-md rounded-card border border-border bg-surface p-6 text-center text-sm font-semibold"
-      >
-        {t("You do not have access to this page.", messages)}
-      </p>
-      <DocumentLang locale={locale} />
-    </main>
-  );
-}
-
 export default async function PanelLayout({ children }: LayoutProps<"/">) {
   const gate = await requirePanel("admin");
 
   const cookieStore = await cookies();
   const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
   const messages = await loadPanelMessages(locale);
-  if ("denied" in gate) return <Forbidden locale={locale} messages={messages} />;
+  if ("denied" in gate) {
+    return (
+      <>
+        <PanelForbidden locale={locale} messages={messages} user={gate.user} standalone />
+        <DocumentLang locale={locale} />
+      </>
+    );
+  }
 
-  const { settingsDeps } = await getInfra();
-  const settings = await readPublicSettings(settingsDeps);
+  const settings = await loadPanelSettings();
   const instanceName = typeof settings["instance.name"] === "string" ? settings["instance.name"] : "";
   const logoUrl = typeof settings["instance.logo_url"] === "string" ? settings["instance.logo_url"] : null;
 

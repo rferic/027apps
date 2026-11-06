@@ -3,15 +3,17 @@
 import { useRouter } from "next/navigation";
 import { SUPPORTED_LOCALES } from "@027apps/core/settings/catalog.js";
 import type { Locale } from "@027apps/i18n/types.js";
+import { cn } from "@/lib/cn";
 import { LOCALE_LABELS, localeCookie } from "@/lib/locale";
 
 interface LocaleSwitcherProps {
   locale: Locale;
   label: string;
   onChangePath?: (locale: Locale) => string;
+  className?: string;
 }
 
-export function LocaleSwitcher({ locale, label, onChangePath }: LocaleSwitcherProps) {
+export function LocaleSwitcher({ locale, label, onChangePath, className }: LocaleSwitcherProps) {
   const router = useRouter();
 
   return (
@@ -26,7 +28,10 @@ export function LocaleSwitcher({ locale, label, onChangePath }: LocaleSwitcherPr
           if (onChangePath) router.replace(onChangePath(next));
           else router.refresh();
         }}
-        className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
+        className={cn(
+          "rounded-control border border-border bg-background px-2.5 py-1.5 text-xs text-foreground",
+          className,
+        )}
       >
         {SUPPORTED_LOCALES.map((supportedLocale) => (
           <option key={supportedLocale} value={supportedLocale}>

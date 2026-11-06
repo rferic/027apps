@@ -33,7 +33,8 @@ Convertir el mockup actual (`KPIs` y `MEMBERS_ROWS` hardcodeados, `NAV_ITEMS` co
 ## 4. i18n del panel
 
 - Locale desde la cookie `027_locale` (`resolveLocale`); nunca en la URL.
-- El panel usa la tabla `translations`: el Server Component pide `GET /api/v1/translations?locale=xx` y pinta con `t("literal", map)`.
+- Base: los diccionarios empaquetados del repo (`getDictionary(locale)`), completos en los 9 locales. El panel **no depende** de que la siembra de `translations` exista: con la tabla vacía se sirven igualmente los 9 idiomas.
+- Overlay: las filas de `public.translations` para el locale (`text_en → translated_text`) se superponen a la base y permiten ediciones en runtime (ver [`docs/flows/i18n.md`](../../flows/i18n.md)). Si la tabla no está disponible, se degrada a la base y se registra sin datos personales.
 - Toda cadena nueva es literal `t("...")`; `pnpm i18n:scan`; los 8 locales los rellena el `traductor`; `pnpm i18n:check` en verde.
 
 ## 5. Dashboard (v1, por rol en servidor)

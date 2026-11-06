@@ -86,7 +86,10 @@ describe("requirePanel", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "u-1", email: "a@b.co" } } });
     queryMock.mockResolvedValue({ rows: [{ display_name: "Ana", role: "user" }] });
 
-    await expect(requirePanel("admin")).resolves.toEqual({ denied: true });
+    await expect(requirePanel("admin")).resolves.toEqual({
+      denied: true,
+      user: { ...ADMIN, role: "user" },
+    });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 

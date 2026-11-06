@@ -38,6 +38,10 @@ vi.mock("@/lib/panel-i18n", () => ({
   loadPanelMessages: async () => ({}),
 }));
 
+vi.mock("@/app/(auth)/actions", () => ({
+  signOutAction: "sign-out",
+}));
+
 vi.mock("@/lib/modules-route-deps", () => ({
   modulesRouteDeps: () => modulesRouteDepsMock(),
 }));
@@ -129,7 +133,7 @@ describe("ModulesPage", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("shows the error state with the request id from the error envelope", async () => {
+  it("shows the error state with the translated code, the request id and a retry link", async () => {
     routeHandlerMock.mockResolvedValue(
       json(
         { error: { code: "internal", message: "Internal server error", request_id: "req-500" } },
@@ -141,20 +145,43 @@ describe("ModulesPage", () => {
     const html = renderToStaticMarkup(await ModulesPage());
 
     expect(html).toContain("load the module catalogue");
-    expect(html).toContain("internal");
+    expect(html).toContain("Something went wrong on the server.");
+    expect(html).not.toContain(">internal<");
     expect(html).toContain("req-500");
+    expect(html).toContain('href="/modules"');
+    expect(html).toContain("Try again");
     expect(html).not.toContain("<table");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("renders the generic 403 without module data when the role is denied", async () => {
+  it("keeps an unknown error code visible instead of hiding it", async () => {
+    routeHandlerMock.mockResolvedValue(json({ error: { code: "teapot" } }, 418));
+
+    const html = renderToStaticMarkup(await ModulesPage());
+
+    expect(html).toContain("teapot");
+  });
+
+  it("treats a row that fails validation as an error, not as an empty catalogue", async () => {
+    routeHandlerMock.mockResolvedValue(
+      json({ modules: [MODULES[0], { key: "broken", name: "Broken" }] }),
+    );
+
+    const html = renderToStaticMarkup(await ModulesPage());
+
+    expect(html).toContain("load the module catalogue");
+    expect(html).not.toContain("No modules are installed yet.");
+    expect(html).not.toContain("expenses");
+  });
+
+  it("renders the generic 403 with an exit when the role is denied", async () => {
     requirePanelMock.mockResolvedValue({ denied: true });
 
     const html = renderToStaticMarkup(await ModulesPage());
 
     expect(html).toContain("You do not have access to this page.");
+    expect(html).toContain("Log out");
     expect(html).not.toContain("expenses");
-    expect(html).not.toContain("notes");
     expect(modulesRouteMock).not.toHaveBeenCalled();
     expect(getSessionMock).not.toHaveBeenCalled();
   });

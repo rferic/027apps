@@ -10,15 +10,17 @@ const SIZES = {
 /**
  * Instance brand. The default is the official 027Apps wordmark (light/dark
  * variants, switched by the OS theme); `instance.logo_url` replaces it with a
- * custom logo. The wordmark already contains the name, so no extra text is
- * rendered next to it.
+ * custom logo, whose alternative text is the instance name.
  */
 export function BrandLogo({
   logoUrl,
+  name,
   size = "sm",
   className,
 }: {
   logoUrl?: string | null;
+  /** Accessible name for a custom logo; the wordmark keeps the product name. */
+  name?: string;
   size?: keyof typeof SIZES;
   className?: string;
 }) {
@@ -26,7 +28,7 @@ export function BrandLogo({
   if (custom) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- user-provided URL, no optimizer
-      <img src={custom} alt="027Apps" className={cn(SIZES[size], "w-auto", className)} />
+      <img src={custom} alt={name?.trim() || "027Apps"} className={cn(SIZES[size], "w-auto", className)} />
     );
   }
 

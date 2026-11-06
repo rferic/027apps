@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
@@ -62,7 +63,7 @@ export function PanelNav({ messages }: PanelNavProps) {
               const active = isActive(pathname, item.href);
               return (
                 <li key={item.href}>
-                  <a
+                  <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
@@ -73,7 +74,7 @@ export function PanelNav({ messages }: PanelNavProps) {
                     )}
                   >
                     {item.label}
-                  </a>
+                  </Link>
                 </li>
               );
             })}
