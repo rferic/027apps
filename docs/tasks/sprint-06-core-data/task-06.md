@@ -37,3 +37,10 @@ plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 - `app/src/debug/AndroidManifest.xml` permite HTTP en claro **solo en debug** para validar contra el dev server con `adb reverse`; release sigue bloqueándolo.
 - Evidencia local: `./gradlew :app:testDebugUnitTest` (6 tests FCM + 3 ServerUrl) y `./gradlew :app:assembleDebug` en verde.
 - Procedimiento completo de aceptación: [`docs/flows/fcm-validation.md`](../../flows/fcm-validation.md). La comprobación con un dispositivo real y credenciales de Firebase sigue siendo la puerta manual de despliegue.
+
+## Intento de cierre de la puerta FCM (2026-11-06)
+
+- **Arnés arreglado**: la pantalla de aceptación (`MainActivity`) no era usable con un JWT real de ~800 caracteres; el campo se expandía hasta 1878 px y el `Button` quedaba con bounds `0x0`. Ahora la columna hace scroll y el campo del JWT es de una línea (`singleLine`). Verificado en emulador: botón en `[16,240][242,280]` y pulsable.
+- **Verificado por servidor**: con un dispositivo de token falso, `outbox.publish` publicó el evento y FCM devolvió el token como inválido, dejando `devices.revoked_at` a las 16:27:39. Eso cubre descifrado de la service account, firma OAuth2, llamada a FCM HTTP v1 y revocación (criterio 4 del runbook).
+- **No verificado**: la entrega real con la app cerrada (criterio 3). En esta máquina no hay dispositivo físico y el emulador `google_apis` falla con `FIS_AUTH_ERROR` al obtener el token de Firebase Installations (sin cuenta de Google y con la API key probablemente restringida por huella). La imagen con Play Store no completa el arranque.
+- **Puerta pendiente**: sigue siendo puerta de despliegue. Procedimiento y pasos exactos en `docs/flows/fcm-validation.md`; basta un móvil con Google Play Services y el APK debug.
