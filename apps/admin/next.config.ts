@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   // blocks dev assets and the HMR socket from unknown cross-origin hosts,
   // which stops the client from hydrating. Matched on the Origin hostname.
   allowedDevOrigins: ["*.trycloudflare.com", "*.ngrok-free.app", "*.ngrok.io"],
-  transpilePackages: ["@027apps/core"],
+  transpilePackages: ["@027apps/core", "@027apps/i18n"],
   turbopack: {
     rules: {
       "*.css": {
