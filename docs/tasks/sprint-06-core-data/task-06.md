@@ -31,7 +31,9 @@ plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 
 ## Validación Android (2026-11-05)
 
-- `apps/android`: `FcmConfig` (config pública `/instance`), `FcmRegistrar` (inicializa Firebase, obtiene y registra el token en `/devices`, lo refresca al rotar), `PushMessagingService` (recibe data-only y muestra notificación con la clave del evento) y una pantalla mínima de aceptación en `MainActivity` para introducir URL + JWT.
+- `apps/android`: `FcmConfig` (config pública `/instance` y persistencia en prefs), `FcmRegistrar` (inicializa Firebase, obtiene y registra el token en `/devices`, lo refresca al rotar), `PushMessagingService` (recibe data-only y muestra notificación con la clave del evento) y una pantalla mínima de aceptación en `MainActivity` para introducir URL + JWT.
+- `Zero27AppsApplication` inicializa Firebase en `Application.onCreate` a partir de la config persistida. Es imprescindible para el criterio “app cerrada”: FCM arranca el proceso en frío para entregar un data-only y `PushMessagingService` necesita el `FirebaseApp` por defecto ya creado.
 - Permisos `INTERNET`/`POST_NOTIFICATIONS` y servicio `com.google.firebase.MESSAGING_EVENT` en el manifiesto; Firebase Messaging por BoM, sin `google-services.json` ni secretos horneados.
-- Evidencia local: `./gradlew :app:testDebugUnitTest` (4 tests FCM + 3 ServerUrl) y `./gradlew :app:assembleDebug` en verde.
-- La comprobación con un dispositivo físico/emulador y credenciales reales sigue siendo la puerta manual de aceptación de despliegue.
+- `app/src/debug/AndroidManifest.xml` permite HTTP en claro **solo en debug** para validar contra el dev server con `adb reverse`; release sigue bloqueándolo.
+- Evidencia local: `./gradlew :app:testDebugUnitTest` (6 tests FCM + 3 ServerUrl) y `./gradlew :app:assembleDebug` en verde.
+- Procedimiento completo de aceptación: [`docs/flows/fcm-validation.md`](../../flows/fcm-validation.md). La comprobación con un dispositivo real y credenciales de Firebase sigue siendo la puerta manual de despliegue.

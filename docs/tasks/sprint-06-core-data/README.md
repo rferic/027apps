@@ -28,12 +28,17 @@ llega con la app cerrada. Es criterio de aceptación de esta tarea junto con la 
 
 ## Puerta de aceptación de despliegue (2026-11-05)
 
-La implementación de FCM está terminada y auditada, pero **la verificación end-to-end no se ha ejecutado** por falta de credenciales reales. Antes de activar push en producción:
+La implementación de FCM está terminada y auditada, pero **la verificación end-to-end no se ha ejecutado** por falta de credenciales reales. El procedimiento completo, con comandos y solución de problemas, está en [`docs/flows/fcm-validation.md`](../../flows/fcm-validation.md).
+
+Resumen de la puerta, antes de activar push en producción:
 
 1. Subir la service account real a `notifications.push.fcm_service_account`.
 2. Configurar `notifications.push.provider = fcm` y las claves públicas FCM.
-3. Usar la pantalla de aceptación FCM de Android (`MainActivity`) para inicializar Firebase con `/instance`, registrar el token y recibir mensajes data-only. La integración ya está implementada en `FcmRegistrar` y `PushMessagingService`; las pruebas unitarias y `assembleDebug` pasan en local.
-4. Registrar un dispositivo real con `POST /api/v1/devices`.
-5. Comprobar un push con la app cerrada y revocar un token `UNREGISTERED`.
+3. Instalar el APK debug, registrar el token con la pantalla FCM de Android y comprobar el push con la app cerrada.
+4. Verificar que un token inválido queda con `revoked_at` y deja de reintentarse.
+
+El cliente Android ya inicializa Firebase en `Application.onCreate` para que un
+arranque en frío provocado por FCM pueda mostrar el mensaje data-only. El APK
+debug permite HTTP solo para la validación local con `adb reverse`.
 
 Esta puerta se documenta como aceptación de despliegue, no como tarea de implementación abierta.
