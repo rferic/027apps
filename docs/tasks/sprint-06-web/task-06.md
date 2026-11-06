@@ -2,7 +2,7 @@
 id: sprint-06-task-06
 titulo: Dashboard con datos reales
 area: web
-estado: pendiente
+estado: test
 adrs: [0004, 0005, 0007]
 plan: docs/superpowers/plans/2026-11-06-web-admin.md
 spec: docs/superpowers/specs/2026-11-06-web-admin-design.md
