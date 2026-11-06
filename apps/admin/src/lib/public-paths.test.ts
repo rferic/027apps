@@ -6,7 +6,10 @@ describe("isPublicHelpPath", () => {
     expect(isPublicHelpPath(pathname)).toBe(true);
   });
 
-  it.each(["/", "/setup", "/login", "/helpful"])("does not expose %s", (pathname) => {
-    expect(isPublicHelpPath(pathname)).toBe(false);
-  });
+  it.each(["/", "/setup", "/login", "/helpful", "/help/other", "/help/firebase/secret"])(
+    "does not expose %s",
+    (pathname) => {
+      expect(isPublicHelpPath(pathname)).toBe(false);
+    },
+  );
 });
