@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { ClientBase } from 'pg';
 import { withClient, query, createTestUser } from '../pg.js';
 import { createSettingsEncryption } from '@027apps/core/crypto.js';
-import { settingsRoute, settingsCategoriesRoute, patchSettingRoute, type SettingsRouteDeps } from '@027apps/core/settings/api.js';
+import {
+  settingsRoute,
+  settingsCategoriesRoute,
+  patchSettingRoute,
+  patchSettingsRoute,
+  type SettingsRouteDeps,
+} from '@027apps/core/settings/api.js';
 import type { DoorDeps, Caller } from '@027apps/core/api/types.js';
 import type { RateLimitStorage } from '@027apps/core/api/rate-limit-storage.js';
 import { SETTINGS_CATALOG } from '@027apps/core/settings/catalog.js';
@@ -75,6 +81,17 @@ async function patchSetting(c: ClientBase, caller: Caller, key: string, body: un
       body: JSON.stringify(body),
     }),
     key,
+  );
+}
+
+async function patchSettings(c: ClientBase, caller: Caller, updates: Array<{ key: string; value: unknown }>): Promise<Response> {
+  const PATCH = patchSettingsRoute(routeDeps(c, caller));
+  return PATCH(
+    new Request('http://local/api/v1/settings', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ updates }),
+    }),
   );
 }
 
@@ -313,6 +330,109 @@ describe('PATCH /api/v1/settings/{key}', () => {
         expect(third.status).toBe(429);
         expect(((await third.json()) as { error: { code: string } }).error.code).toBe('rate_limited');
         expect(third.headers.get('retry-after')).not.toBeNull();
+      } finally {
+        await c.query('ROLLBACK');
+      }
+    });
+  });
+});
+
+describe('PATCH /api/v1/settings (batch)', () => {
+  it('applies all 12 settings in a single request (wizard regression)', async () => {
+    await withClient(async (c) => {
+      await c.query('BEGIN');
+      try {
+        const caller = await adminCaller(c, 'super_admin');
+
+        const updates = [
+          { key: 'localization.enabled_locales', value: ['en'] },
+          { key: 'instance.name', value: '027Apps' },
+          { key: 'instance.public_url', value: 'https://panel.example.com' },
+          { key: 'localization.default_locale', value: 'en' },
+          { key: 'localization.timezone', value: 'Europe/Madrid' },
+          { key: 'localization.default_currency', value: 'EUR' },
+          { key: 'notifications.push.fcm_project_id', value: 'my-project' },
+          { key: 'notifications.push.fcm_app_id', value: '1:123:web:abc' },
+          { key: 'notifications.push.fcm_api_key', value: 'AIzaSy...' },
+          { key: 'notifications.push.fcm_sender_id', value: '123' },
+          { key: 'notifications.push.fcm_service_account', value: JSON.stringify({ type: 'service_account', project_id: 'my-project', private_key: '-----BEGIN PRIVATE KEY-----', client_email: 'x@y.iam.gserviceaccount.com', token_uri: 'https://oauth2.googleapis.com/token', client_id: '123' }) },
+          { key: 'notifications.push.provider', value: 'fcm' },
+        ];
+
+        const res = await patchSettings(c, caller, updates);
+        expect(res.status).toBe(200);
+
+        const body = (await res.json()) as { settings: { key: string; value?: unknown; configured?: boolean }[] };
+        expect(body.settings).toHaveLength(12);
+
+        for (const { key } of updates) {
+          const setting = body.settings.find((s) => s.key === key);
+          if (key === 'notifications.push.fcm_service_account') {
+            expect(setting?.configured).toBe(true);
+          } else {
+            expect(setting?.value).not.toBeUndefined();
+          }
+        }
+
+        const { rows } = await query(
+          c,
+          'select key, value, value_encrypted from public.settings where key = any($1)',
+          [updates.map((update) => update.key)],
+        );
+        const stored = new Map(rows.map((row) => [row.key, row]));
+        for (const { key, value } of updates) {
+          const row = stored.get(key);
+          if (key === 'notifications.push.fcm_service_account') {
+            expect(row?.value_encrypted).toEqual(expect.any(String));
+          } else {
+            expect(row?.value).toEqual(value);
+          }
+        }
+      } finally {
+        await c.query('ROLLBACK');
+      }
+    });
+  });
+
+  it('rejects an invalid batch with 400, details.key and none applied', async () => {
+    await withClient(async (c) => {
+      await c.query('BEGIN');
+      try {
+        const caller = await adminCaller(c, 'super_admin');
+
+        const res = await patchSettings(c, caller, [
+          { key: 'instance.name', value: 'changed' },
+          { key: 'localization.timezone', value: 'not-a-timezone' },
+        ]);
+        expect(res.status).toBe(400);
+        const body = (await res.json()) as { error: { code: string; details?: { key?: string } } };
+        expect(body.error.code).toBe('validation_failed');
+        expect(body.error.details?.key).toBe('localization.timezone');
+
+        const { rows } = await query(c, "select value from public.settings where key = 'instance.name'");
+        expect(rows[0].value).toBe('027Apps');
+      } finally {
+        await c.query('ROLLBACK');
+      }
+    });
+  });
+
+  it('rejects without session with 401', async () => {
+    await withClient(async (c) => {
+      await c.query('BEGIN');
+      try {
+        const deps: SettingsRouteDeps = {
+          door: { rateLimitStorage: memoryRateLimitStorage(), logger: () => {} },
+          auth: async () => ({ kind: 'anon' }),
+          settings: settingsDeps(c),
+        };
+        const PATCH = patchSettingsRoute(deps);
+        const res = await PATCH(new Request('http://local/api/v1/settings', {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ updates: [{ key: 'instance.name', value: 'x' }] }),
+        }));
+        expect(res.status).toBe(401);
       } finally {
         await c.query('ROLLBACK');
       }

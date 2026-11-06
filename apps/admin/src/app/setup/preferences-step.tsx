@@ -59,15 +59,30 @@ function fieldMessage(key: string, messages: TranslationMap): string {
   }
 }
 
-async function patchSetting(key: string, value: unknown): Promise<string | null> {
-  const res = await fetch(`/api/v1/settings/${key.replace(".", "/")}`, {
+/**
+ * Sends every wizard update in a single PATCH. Returns the message to show, or
+ * `null` on success; the failing key comes from `error.details.key`.
+ */
+export async function patchSettings(
+  updates: ReadonlyArray<readonly [string, unknown]>,
+  messages: TranslationMap,
+): Promise<string | null> {
+  const res = await fetch(`/api/v1/settings`, {
     method: "PATCH",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ value }),
+    body: JSON.stringify({ updates: updates.map(([key, value]) => ({ key, value })) }),
   });
   if (res.ok) return null;
-  const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
-  return body?.error?.message ?? "Save failed";
+
+  const body = (await res.json().catch(() => null)) as {
+    error?: { message?: string; details?: { key?: string } };
+  } | null;
+  const detail = t("Details: {message}", messages, {
+    message: body?.error?.message ?? "Save failed",
+  });
+  const key = body?.error?.details?.key;
+  if (!key) return `${t("Save failed", messages)} ${detail}`;
+  return `${fieldMessage(key, messages)} (${key}) ${detail}`;
 }
 
 /**
@@ -78,14 +93,14 @@ async function patchSetting(key: string, value: unknown): Promise<string | null>
 
 type StepsResult = { steps: Array<[string, unknown]> } | { error: string };
 
-/** Ordered writes for steps 4–5; the provider goes last (FCM needs all keys). */
-function buildSteps(
+/** Writes for steps 4–5; order does not matter because coherence sees the merged batch. */
+export function buildSteps(
   form: PreferencesValues,
   enabledLocales: readonly string[],
   messages: TranslationMap,
 ): StepsResult {
   const steps: Array<[string, unknown]> = [];
-  // The default locale must be enabled first (`enabled_locales` ⊆ supported).
+  // The default locale must be enabled, so add it to the same batch when missing.
   if (!enabledLocales.includes(form.locale)) {
     steps.push(["localization.enabled_locales", [...enabledLocales, form.locale]]);
   }
@@ -158,15 +173,11 @@ export function PreferencesStep({
     }
 
     try {
-      for (const [key, value] of built.steps) {
-        const failure = await patchSetting(key, value);
-        if (failure) {
-          setError(
-            `${fieldMessage(key, messages)} (${key}) ${t("Details: {message}", messages, { message: failure })}`,
-          );
-          setSaving(false);
-          return;
-        }
+      const failure = await patchSettings(built.steps, messages);
+      if (failure) {
+        setError(failure);
+        setSaving(false);
+        return;
       }
     } catch {
       setError(t("We couldn't reach the server. Check the connection, then try again.", messages));

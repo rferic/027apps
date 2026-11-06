@@ -1,12 +1,26 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getDictionary } from "@027apps/i18n/dictionary.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
-import { PreferencesStep, type PreferencesValues } from "./preferences-step";
+import {
+  PreferencesStep,
+  buildSteps,
+  patchSettings,
+  type PreferencesValues,
+} from "./preferences-step";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
 }));
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+type FetchLike = (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
 
 const VALUES: PreferencesValues = {
   instanceName: "027Apps",
@@ -20,6 +34,27 @@ const VALUES: PreferencesValues = {
   fcmApiKey: "",
   fcmSenderId: "",
   fcmServiceAccount: "",
+  fcmServiceAccountConfigured: false,
+};
+
+const FCM_VALUES: PreferencesValues = {
+  ...VALUES,
+  instanceName: "Test",
+  publicUrl: "https://test.example.com",
+  locale: "es",
+  pushProvider: "fcm",
+  fcmProjectId: "my-project",
+  fcmAppId: "1:123:web:abc",
+  fcmApiKey: "AIzaSy...",
+  fcmSenderId: "123",
+  fcmServiceAccount: JSON.stringify({
+    type: "service_account",
+    project_id: "my-project",
+    private_key: "-----BEGIN PRIVATE KEY-----",
+    client_email: "x@y.iam.gserviceaccount.com",
+    token_uri: "https://oauth2.googleapis.com/token",
+    client_id: "123",
+  }),
   fcmServiceAccountConfigured: false,
 };
 
@@ -82,5 +117,57 @@ describe("PreferencesStep — Public URL validation", () => {
 
   it("rejects plain HTTP", () => {
     expect(publicUrlPattern().test("http://example.com")).toBe(false);
+  });
+});
+
+describe("PreferencesStep — batch save", () => {
+  it("sends a single PATCH /api/v1/settings with all 12 wizard updates", async () => {
+    const fetchSpy = vi.fn<FetchLike>(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ settings: [] }),
+    }));
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const built = buildSteps(FCM_VALUES, ["en"], getDictionary("en"));
+    if ("error" in built) throw new Error(built.error);
+    expect(built.steps).toHaveLength(12);
+
+    const failure = await patchSettings(built.steps, getDictionary("en"));
+
+    expect(failure).toBeNull();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchSpy.mock.calls[0]!;
+    expect(url).toBe("/api/v1/settings");
+    expect(init?.method).toBe("PATCH");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      updates: built.steps.map(([key, value]) => ({ key, value })),
+    });
+  });
+
+  it("maps error.details.key to the field message and the server detail", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          error: {
+            code: "validation_failed",
+            message: "Validation failed",
+            details: { key: "instance.name" },
+          },
+        }),
+      })),
+    );
+
+    const built = buildSteps(FCM_VALUES, ["en"], {});
+    if ("error" in built) throw new Error(built.error);
+
+    const failure = await patchSettings(built.steps, {});
+
+    expect(failure).toContain("We couldn't save the instance name.");
+    expect(failure).toContain("(instance.name)");
+    expect(failure).toContain("Details: Validation failed");
   });
 });
