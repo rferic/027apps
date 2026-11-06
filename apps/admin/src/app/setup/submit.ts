@@ -1,3 +1,7 @@
+import { DEFAULT_MESSAGES } from "@027apps/core/errors.js";
+import { t } from "@027apps/i18n/t.js";
+import type { TranslationMap } from "@027apps/i18n/types.js";
+
 export interface SuperAdminInput {
   email: string;
   password: string;
@@ -16,45 +20,74 @@ export type FieldErrors = Partial<Record<"email" | "password" | "displayName", s
 
 export type SubmitResult = { ok: true } | { ok: false; message: string; fieldErrors: FieldErrors };
 
-const NETWORK_ERROR_MESSAGE =
-  "We couldn't reach the server. Check your connection, then try again.";
-
-const CHECK_FIELDS_MESSAGE = "Please check the highlighted fields and try again.";
-
-const GENERIC_ERROR_MESSAGE = "We couldn't create the super admin. Try again.";
-
-/** Friendly wording for the fields the setup door validates. */
-const FIELD_MESSAGES: Record<string, { field: keyof FieldErrors; message: string }> = {
-  email: { field: "email", message: "Enter a valid email address, for example name@example.com." },
-  password: {
-    field: "password",
-    message: "Use at least 12 characters. A longer passphrase is safer and easier to remember.",
-  },
-  display_name: {
-    field: "displayName",
-    message: "Add a display name between 1 and 80 characters.",
-  },
-};
+function fieldMessage(key: string, messages: TranslationMap): { field: keyof FieldErrors; message: string } | null {
+  switch (key) {
+    case "email":
+      return {
+        field: "email",
+        message: t("Enter a valid email address, for example name@example.com.", messages),
+      };
+    case "password":
+      return {
+        field: "password",
+        message: t(
+          "Use at least 12 characters. A longer passphrase is safer and easier to remember.",
+          messages,
+        ),
+      };
+    case "display_name":
+      return {
+        field: "displayName",
+        message: t("Add a display name between 1 and 80 characters.", messages),
+      };
+    default:
+      return null;
+  }
+}
 
 /** Keeps only the fields we know how to explain, with friendly wording. */
-function pickKnownFields(raw: Record<string, string[] | undefined> = {}): FieldErrors {
+function pickKnownFields(
+  raw: Record<string, string[] | undefined> = {},
+  messages: TranslationMap,
+): FieldErrors {
   const picked: FieldErrors = {};
-  for (const [key, messages] of Object.entries(raw)) {
-    const known = FIELD_MESSAGES[key];
-    if (known && messages && messages.length > 0) picked[known.field] = known.message;
+  for (const [key, rawMessages] of Object.entries(raw)) {
+    const known = fieldMessage(key, messages);
+    if (known && rawMessages && rawMessages.length > 0) picked[known.field] = known.message;
   }
   return picked;
 }
 
 /** Turns the door's validation envelope into per-field messages plus a summary. */
-function describeError(body: ErrorEnvelope | null): { message: string; fieldErrors: FieldErrors } {
-  const fieldErrors = pickKnownFields(body?.error?.details?.fieldErrors);
-  if (Object.keys(fieldErrors).length > 0) return { message: CHECK_FIELDS_MESSAGE, fieldErrors };
-  return { message: body?.error?.message ?? GENERIC_ERROR_MESSAGE, fieldErrors };
+function describeError(
+  body: ErrorEnvelope | null,
+  messages: TranslationMap,
+): { message: string; fieldErrors: FieldErrors } {
+  const fieldErrors = pickKnownFields(body?.error?.details?.fieldErrors, messages);
+  if (Object.keys(fieldErrors).length > 0) {
+    return {
+      message: t("Please check the highlighted fields and try again.", messages),
+      fieldErrors,
+    };
+  }
+
+  const message = body?.error?.message;
+  if (message && Object.values(DEFAULT_MESSAGES).includes(message)) {
+    return { message: t(message, messages), fieldErrors };
+  }
+  return {
+    message: message
+      ? `${t("We couldn't create the super admin. Try again.", messages)} ${t("Details: {message}", messages, { message })}`
+      : t("We couldn't create the super admin. Try again.", messages),
+    fieldErrors,
+  };
 }
 
 /** POSTs the setup form to the door and maps non-201 to a readable message. */
-export async function submitSuperAdmin(input: SuperAdminInput): Promise<SubmitResult> {
+export async function submitSuperAdmin(
+  input: SuperAdminInput,
+  messages: TranslationMap,
+): Promise<SubmitResult> {
   let res: Response;
   try {
     res = await fetch("/api/v1/setup/super-admin", {
@@ -69,10 +102,14 @@ export async function submitSuperAdmin(input: SuperAdminInput): Promise<SubmitRe
   } catch {
     // Offline, tunnel down or dev server restarting: the form must explain it
     // instead of leaving the button stuck on "Creating…".
-    return { ok: false, message: NETWORK_ERROR_MESSAGE, fieldErrors: {} };
+    return {
+      ok: false,
+      message: t("We couldn't reach the server. Check your connection, then try again.", messages),
+      fieldErrors: {},
+    };
   }
 
   if (res.status === 201) return { ok: true };
   const body = (await res.json().catch(() => null)) as ErrorEnvelope | null;
-  return { ok: false, ...describeError(body) };
+  return { ok: false, ...describeError(body, messages) };
 }

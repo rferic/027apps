@@ -75,7 +75,7 @@ Además, el idioma elegido en el wizard se **propone** como `localization.defaul
 ### 5.3 UI
 
 - `apps/admin/src/components/locale-switcher.tsx` (cliente): `<select>` con nombres nativos (`English`, `Español`, `Català`, `Italiano`, `Français`, `Deutsch`, `Português`, `Galego`, `Euskara`), etiqueta traducida y `aria-label`.
-- El wizard usa un wrapper común (`screen`) que incluye el selector en todas las pantallas.
+- El wizard usa un wrapper común (`screen`) con una cabecera repetida en los cinco pasos: logo a la izquierda y selector a la derecha. El logo sale de `SetupForm` para no duplicarlo; no se añade otro indicador de progreso. Alternativa descartada: mantener el selector absoluto y el logo solo en el paso 2, porque no da una identidad consistente durante la instalación. Cambio visual aprobado por el usuario el 2026-11-06.
 - Los componentes de servidor (`EnvironmentChecklist`, la página) reciben el mapa y llaman a `t(texto, messages)` directamente; los cliente (`SetupForm`, `SmtpStep`, `PreferencesStep`) reciben `messages: TranslationMap` como prop y llaman a `t(texto, messages)`.
 - El enlace de ayuda vive en el fieldset de notificaciones: `href="/help/firebase?lang=<locale>"`, `target="_blank"`, `rel="noopener noreferrer"`.
 - `/help/firebase`: página pública, sin sesión ni BD; contenido en pasos y enlace externo a la consola de Firebase. No incluye valores reales ni secretos.

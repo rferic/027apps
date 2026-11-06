@@ -204,8 +204,8 @@ git commit -m "feat(admin): add locale resolution and switcher"
 
 **Interfaces:**
 - Consumes: `getDictionary`, `t`, `resolveLocale`, `LOCALE_COOKIE`, `LocaleSwitcher`, `DocumentLang`.
-- Produces: `screen(children, locale, messages)` — every wizard step renders inside it.
-- Produces: `EnvironmentChecklist({ report, messages })`, `SetupForm({ logoUrl, messages })`.
+- Produces: `screen(children, locale, messages, logoUrl)` — every wizard step renders inside a shared header with logo + locale switcher.
+- Produces: `EnvironmentChecklist({ report, messages })`, `SetupForm({ messages })`; the logo moves out of `SetupForm` into the shared header.
 
 - [ ] **Step 1: Update the page test cookie mock and add a failing Spanish assertion**
 

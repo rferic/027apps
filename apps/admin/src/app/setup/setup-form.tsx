@@ -2,23 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BrandLogo } from "@/components/brand-logo";
+import { t } from "@027apps/i18n/t.js";
+import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
 import { submitSuperAdmin, type FieldErrors } from "./submit";
-
-/** Wording kept next to the input it explains. */
-const HINTS = {
-  email: "We use this to sign you in.",
-  displayName: "How you will appear in the app.",
-  password: "At least 12 characters.",
-} as const;
 
 /**
  * Setup wizard form (step 2). Step 1 is the environment checklist rendered by
  * the page. On 201 the user is already signed in (the route signs in with the
  * SSR client) and the form sends the browser to the next step of the wizard.
  */
-export function SetupForm({ logoUrl }: { logoUrl?: string | null }) {
+export function SetupForm({ messages }: { messages: TranslationMap }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -33,7 +27,7 @@ export function SetupForm({ logoUrl }: { logoUrl?: string | null }) {
     setError(null);
     setFieldErrors({});
 
-    const result = await submitSuperAdmin({ email, password, displayName });
+    const result = await submitSuperAdmin({ email, password, displayName }, messages);
     if (result.ok) {
       setStatus("done");
       router.push("/setup");
@@ -47,16 +41,13 @@ export function SetupForm({ logoUrl }: { logoUrl?: string | null }) {
 
   return (
     <div className="w-full max-w-md rounded-card border border-border bg-surface p-6">
-      <div className="mb-2 flex justify-center">
-        <BrandLogo logoUrl={logoUrl} size="lg" />
-      </div>
-      <h2 className="text-sm font-semibold">Step 2 · Super admin</h2>
+      <h2 className="text-sm font-semibold">{t("Step 2 · Super admin", messages)}</h2>
       <p className="mb-4 text-sm text-muted-foreground">
-        Welcome. Create the first super_admin to unlock the instance.
+        {t("Welcome. Create the first super_admin to unlock the instance.", messages)}
       </p>
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Email</span>
+          <span className="text-sm font-medium">{t("Email", messages)}</span>
           <input
             type="email"
             value={email}
@@ -72,11 +63,11 @@ export function SetupForm({ logoUrl }: { logoUrl?: string | null }) {
             id="setup-email-help"
             className={`text-xs ${fieldErrors.email ? "text-destructive" : "text-muted-foreground"}`}
           >
-            {fieldErrors.email ?? HINTS.email}
+            {fieldErrors.email ?? t("We use this to sign you in.", messages)}
           </span>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Display name</span>
+          <span className="text-sm font-medium">{t("Display name", messages)}</span>
           <input
             type="text"
             value={displayName}
@@ -93,16 +84,16 @@ export function SetupForm({ logoUrl }: { logoUrl?: string | null }) {
             id="setup-display-name-help"
             className={`text-xs ${fieldErrors.displayName ? "text-destructive" : "text-muted-foreground"}`}
           >
-            {fieldErrors.displayName ?? HINTS.displayName}
+            {fieldErrors.displayName ?? t("How you will appear in the app.", messages)}
           </span>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Password</span>
+          <span className="text-sm font-medium">{t("Password", messages)}</span>
           <input
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="Min 12 characters"
+            placeholder={t("Min 12 characters", messages)}
             minLength={12}
             autoComplete="new-password"
             aria-invalid={Boolean(fieldErrors.password)}
@@ -114,7 +105,7 @@ export function SetupForm({ logoUrl }: { logoUrl?: string | null }) {
             id="setup-password-help"
             className={`text-xs ${fieldErrors.password ? "text-destructive" : "text-muted-foreground"}`}
           >
-            {fieldErrors.password ?? HINTS.password}
+            {fieldErrors.password ?? t("At least 12 characters.", messages)}
           </span>
         </label>
         {error && (
@@ -123,7 +114,9 @@ export function SetupForm({ logoUrl }: { logoUrl?: string | null }) {
           </p>
         )}
         <Button type="submit" disabled={status === "loading"}>
-          {status === "loading" ? "Creating…" : "Create super admin"}
+          {status === "loading"
+            ? t("Creating…", messages)
+            : t("Create super admin", messages)}
         </Button>
       </form>
     </div>
