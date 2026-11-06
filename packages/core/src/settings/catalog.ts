@@ -245,9 +245,18 @@ export const SETTINGS_CATALOG: SettingMeta[] = [
     label: 'FCM service account', help: 'Service account JSON used to sign pushes (secret).',
     isSecret: true, isPublic: false, mcpAccess: 'none', sortOrder: 60,
     superAdminOnly: false, readOnly: false,
-    schema: z.string().max(10_240).refine((v) => fcmServiceAccountSchema.safeParse(JSON.parse(v)).success, {
-      message: 'invalid service account JSON',
-    }),
+    schema: z.string().max(10_240).refine(
+      (v) => {
+        // A malformed JSON must fail validation, not throw out of safeParse:
+        // the thrown message would echo a fragment of the secret to the logs.
+        try {
+          return fcmServiceAccountSchema.safeParse(JSON.parse(v)).success;
+        } catch {
+          return false;
+        }
+      },
+      { message: 'invalid service account JSON' },
+    ),
   },
   {
     key: 'rate_limit.mobile_per_min', category: 'rate_limit', type: 'int',

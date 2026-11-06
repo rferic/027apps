@@ -28,7 +28,7 @@ export const DEFAULT_WRITE_LIMIT = 30;
 const patchBodySchema = z.object({ value: z.unknown() }).strict();
 
 const patchSettingsBodySchema = z.object({
-  updates: z.array(z.object({ key: z.string(), value: z.unknown() })).min(1).max(30),
+  updates: z.array(z.object({ key: z.string(), value: z.unknown() }).strict()).min(1).max(30),
 }).strict();
 
 function sortSettings(settings: SettingView[]): SettingView[] {

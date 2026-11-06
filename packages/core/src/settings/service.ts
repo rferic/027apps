@@ -192,22 +192,33 @@ export async function writeSettings(
 
     const actor = auditFields(caller);
 
+    // Encrypt every secret before the first UPDATE: a missing or unusable key
+    // must abort the batch without touching any row, even without a real
+    // transaction runner. Plaintext never reaches logs or error messages.
+    const encryptedSecrets = new Map<string, string>();
+    for (const { key } of updates) {
+      const meta = getSettingMeta(key)!;
+      if (!meta.isSecret) continue;
+      if (!deps.encryption) {
+        throw new DomainError('internal', 'SETTINGS_ENCRYPTION_KEY is not configured');
+      }
+      const newValue = parsedValues[key];
+      const plaintext = typeof newValue === 'string' ? newValue : JSON.stringify(newValue);
+      const encrypted = await deps.encryption.encrypt(plaintext, key);
+      if (encrypted === null) {
+        throw new DomainError('internal', 'SETTINGS_ENCRYPTION_KEY is not usable');
+      }
+      encryptedSecrets.set(key, encrypted);
+    }
+
     for (const { key } of updates) {
       const newValue = parsedValues[key];
       const meta = getSettingMeta(key)!;
 
       if (meta.isSecret) {
-        if (!deps.encryption) {
-          throw new DomainError('internal', 'SETTINGS_ENCRYPTION_KEY is not configured');
-        }
-        const plaintext = typeof newValue === 'string' ? newValue : JSON.stringify(newValue);
-        const encrypted = await deps.encryption.encrypt(plaintext, key);
-        if (encrypted === null) {
-          throw new DomainError('internal', 'SETTINGS_ENCRYPTION_KEY is not usable');
-        }
         await db.query(
           `update public.settings set value_encrypted = $1, updated_by = $2, updated_by_key = $3, updated_at = now() where key = $4`,
-          [encrypted, actor.updatedBy, actor.updatedByKey, key],
+          [encryptedSecrets.get(key), actor.updatedBy, actor.updatedByKey, key],
         );
       } else {
         await db.query(
@@ -283,7 +294,11 @@ export async function writeSetting(
   value: unknown,
 ): Promise<SettingView> {
   const result = await writeSettings(deps, caller, [{ key, value }]);
-  return result[0];
+  const setting = result[0];
+  if (!setting) {
+    throw new DomainError('internal', 'Setting row not found');
+  }
+  return setting;
 }
 
 /**

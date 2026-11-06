@@ -27,7 +27,12 @@ type FakeRow = {
   updatedAt: string;
 };
 
-function makeDeps(initial: Record<string, unknown> = {}) {
+type MakeDepsOptions = {
+  /** 1-based index of the UPDATE that throws, simulating a mid-batch failure. */
+  failOnUpdate?: number;
+};
+
+function makeDeps(initial: Record<string, unknown> = {}, options: MakeDepsOptions = {}) {
   const rows = new Map<string, FakeRow>(
     CATALOG_KEYS.map((key) => [
       key,
@@ -35,8 +40,13 @@ function makeDeps(initial: Record<string, unknown> = {}) {
     ]),
   );
 
+  let updateCount = 0;
   const query = vi.fn(async (sql: string, params: unknown[] = []) => {
     if (sql.startsWith('update public.settings')) {
+      updateCount += 1;
+      if (options.failOnUpdate === updateCount) {
+        throw new Error('simulated write failure');
+      }
       const [stored, updatedBy, , key] = params;
       const row = rows.get(String(key));
       if (row) {
@@ -71,9 +81,17 @@ function makeDeps(initial: Record<string, unknown> = {}) {
   });
 
   let transactionCalls = 0;
-  const withTransaction: TransactionRunner = (fn) => {
+  const withTransaction: TransactionRunner = async (fn) => {
     transactionCalls += 1;
-    return fn({ query });
+    // Real runner semantics: restore the pre-transaction state on failure.
+    const before = new Map([...rows].map(([key, row]) => [key, { ...row }]));
+    try {
+      return await fn({ query });
+    } catch (err) {
+      rows.clear();
+      for (const [key, row] of before) rows.set(key, row);
+      throw err;
+    }
   };
   const encryption = {
     encrypt: vi.fn(async () => 'encrypted-value'),
@@ -90,12 +108,15 @@ function makeDeps(initial: Record<string, unknown> = {}) {
   const updateCalls = () =>
     query.mock.calls.filter((c) => String(c[0]).startsWith('update public.settings'));
 
+  const values = () => Object.fromEntries([...rows].map(([key, row]) => [key, row.value]));
+
   return {
     deps,
     query,
     transactionCount: () => transactionCalls,
     encryption,
     updateCalls,
+    values,
   };
 }
 
@@ -220,5 +241,60 @@ describe('writeSettings', () => {
     expect(result).toHaveLength(1);
     expect(result[0]?.configured).toBe(true);
     expect(result[0]?.value).toBeUndefined();
+  });
+
+  it('rejects a non-JSON service account as validation_failed instead of throwing', async () => {
+    const { deps, updateCalls } = makeDeps();
+
+    await expect(
+      writeSettings(deps, CALLER, [
+        { key: 'notifications.push.fcm_service_account', value: 'no-es-json' },
+      ]),
+    ).rejects.toMatchObject({
+      code: 'validation_failed',
+      message: 'Validation failed',
+      details: { key: 'notifications.push.fcm_service_account' },
+    });
+
+    expect(updateCalls()).toHaveLength(0);
+  });
+
+  it('fails before the first write when a secret cannot be encrypted', async () => {
+    const { deps, updateCalls } = makeDeps({
+      'notifications.push.fcm_project_id': 'my-project',
+    });
+    // Degraded instance: no encryption key configured.
+    deps.encryption = null;
+    // Worst case: a runner that does not roll back must still see zero writes.
+    deps.withTransaction = (fn) => fn(deps.db);
+
+    await expect(
+      writeSettings(deps, CALLER, [
+        { key: 'instance.name', value: 'changed' },
+        { key: 'notifications.push.fcm_service_account', value: FCM_SERVICE_ACCOUNT },
+      ]),
+    ).rejects.toMatchObject({ code: 'internal' });
+
+    expect(updateCalls()).toHaveLength(0);
+  });
+
+  it('rolls back earlier writes when a mid-batch write fails', async () => {
+    const { deps, updateCalls, values } = makeDeps(
+      { 'instance.name': 'original', 'localization.timezone': 'UTC' },
+      { failOnUpdate: 2 },
+    );
+
+    await expect(
+      writeSettings(deps, CALLER, [
+        { key: 'instance.name', value: 'changed' },
+        { key: 'localization.timezone', value: 'Europe/Madrid' },
+      ]),
+    ).rejects.toThrow('simulated write failure');
+
+    expect(updateCalls()).toHaveLength(2);
+    expect(values()).toMatchObject({
+      'instance.name': 'original',
+      'localization.timezone': 'UTC',
+    });
   });
 });
