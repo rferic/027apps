@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { entryGate } from "@/lib/instance-gate";
 import { readInstanceState } from "@/lib/instance-state";
+import { isPublicHelpPath } from "@/lib/public-paths";
 
 /** Paths whose access depends on the instance state (the gate's inputs). */
 const GATED_PATHS = new Set(["/", "/setup", "/login"]);
@@ -29,6 +30,12 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
+
+  if (isPublicHelpPath(request.nextUrl.pathname)) {
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.headers.set("Content-Security-Policy-Report-Only", contentSecurityPolicy);
+    return response;
+  }
 
   const { supabase, refreshedCookies } = sessionClient(request);
   // Triggers a token refresh when the access token is expired.
