@@ -63,9 +63,98 @@ const ianaTimezoneSchema = z.string().refine(
   { message: 'not a valid IANA timezone' },
 );
 
+/**
+ * Helper: checks if a hostname is a local/private IP or .local/.test domain.
+ * Returns true for:
+ * - localhost, *.localhost, *.local, *.test (but not starting/containing ".." or ".")
+ * - 127.0.0.1, ::1 (IPv6 loopback)
+ * - 10.x.x.x, 172.16.x.x-172.31.x.x, 192.168.x.x private ranges
+ * Rejects: hostnames starting with `.` or containing `..`.
+ */
+function isLocalHostname(hostname: string): boolean {
+  // Reject hostnames starting with `.` or containing `..` (label must not be empty)
+  if (hostname.startsWith('.') || hostname.includes('..')) return false;
+
+  // localhost or *.localhost or *.local or *.test
+  if (hostname === 'localhost') return true;
+  if (hostname.endsWith('.localhost')) return true;
+  if (hostname.endsWith('.local')) return true;
+  if (hostname.endsWith('.test')) return true;
+
+  // IPv6 loopback [::1]
+  if (hostname === '[::1]') return true;
+
+  // Parse as IPv4 or validate each octet is 0-255
+  // Reject non-canonical notations (0x7f.0.0.1, 010.0.0.1, integer IPs, etc.)
+  const parts = hostname.split('.');
+  if (parts.length === 4) {
+    // All parts must be decimal integers only (no hex, no leading zeros except "0")
+    const isValidDecimal = parts.every(
+      (p) => /^\d+$/.test(p) && (p === '0' || !p.startsWith('0')),
+    );
+    if (!isValidDecimal) return false;
+
+    const octets = parts.map((p) => Number(p));
+    if (octets.every((n) => !Number.isNaN(n) && Number.isInteger(n) && n >= 0 && n <= 255)) {
+      // 127.x.x.x (loopback)
+      if (octets[0] === 127) return true;
+      // 10.x.x.x
+      if (octets[0] === 10) return true;
+      // 172.16.x.x - 172.31.x.x
+      if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return true;
+      // 192.168.x.x
+      if (octets[0] === 192 && octets[1] === 168) return true;
+    }
+  }
+
+  return false;
+}
+
+// Note: We compare the canonical form of the input (with explicit default port stripped)
+// against url.origin to reject trailing slashes, paths, query strings, and userinfo.
+// Explicit default ports (443 for https, 80 for http) are allowed and stripped before comparison.
 const publicUrlSchema = z
   .string()
-  .regex(/^https:\/\/[^/]+$/, 'must be an https origin without trailing slash');
+  .refine(
+    (input) => {
+      let url: URL;
+      try {
+        url = new URL(input);
+      } catch {
+        return false;
+      }
+
+      // Must be http or https only
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return false;
+      }
+
+      // For http: scheme, hostname must be local
+      if (url.protocol === 'http:' && !isLocalHostname(url.hostname)) {
+        return false;
+      }
+
+      // Check if input explicitly includes a default port
+      // url.port is empty when it's the default, so we check the original input
+      // We use regex to detect if :443 or :80 appears before any path/query
+      const hasExplicitDefaultPort =
+        (url.protocol === 'https:' && input.includes(':443/')) ||
+        (url.protocol === 'https:' && input.endsWith(':443')) ||
+        (url.protocol === 'http:' && input.includes(':80/')) ||
+        (url.protocol === 'http:' && input.endsWith(':80'));
+
+      // Build canonical form by removing explicit default port if present
+      const inputWithoutDefaultPort = hasExplicitDefaultPort
+        ? url.protocol === 'https:'
+          ? input.replace(/:443$/, '')
+          : input.replace(/:80$/, '')
+        : input;
+
+      // Must be origin-only: no path, query, or userinfo
+      return inputWithoutDefaultPort === url.origin;
+    },
+    { message: 'must be an https origin, or http for local hosts, without trailing slash' },
+  );
 
 const corsOriginSchema = z
   .string()
