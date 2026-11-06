@@ -1,0 +1,13 @@
+{
+  "key": "example-calendar",
+  "name": "Example Calendar",
+  "branding": {
+    "description": "Minimal example module used to validate the manifest schema",
+    "icon": "assets/icon.svg",
+    "color": "indigo"
+  },
+  "version": "1.0.0",
+  "docs": {
+    "readme": "README.md"
+  }
+}
