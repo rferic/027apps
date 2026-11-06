@@ -52,9 +52,9 @@ function screen(
   return (
     <main lang={locale} className="bg-background p-4">
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-md flex-col justify-center gap-4">
-        <header className="relative flex items-center justify-center">
+        <header className="flex flex-col items-center gap-3 sm:relative sm:flex-row sm:justify-center">
           <BrandLogo logoUrl={logoUrl} size="xl" />
-          <div className="absolute right-0 top-1/2 -translate-y-1/2">
+          <div className="sm:absolute sm:right-0 sm:top-1/2 sm:-translate-y-1/2">
             <LocaleSwitcher locale={locale} label={t("Language", messages)} />
           </div>
         </header>

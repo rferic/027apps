@@ -133,6 +133,8 @@ describe("SetupPage — wizard steps", () => {
     expect(html).toContain("/brand/wordmark-light.svg");
     expect(html).toContain("h-12");
     expect(html).toContain('aria-label="Idioma"');
+    expect(html).toContain("sm:flex-row");
+    expect(html).not.toContain('class="absolute right-0 top-1/2 -translate-y-1/2"');
   });
 
   it("shows the SMTP step (3) once the admin exists and email is unconfirmed", async () => {
