@@ -27,6 +27,17 @@ class FcmConfigTest {
     }
 
     @Test
+    fun `round-trips the config through preferences`() {
+        val config = FcmConfig("demo-project", "1:123:android:abc", "api-key", "123")
+        assertEquals(config, FcmConfig.fromPrefs(config.toPrefs()))
+    }
+
+    @Test
+    fun `returns null when the saved config is incomplete`() {
+        assertNull(FcmConfig.fromPrefs(mapOf(FcmConfig.KEY_PROJECT_ID to "demo-project")))
+    }
+
+    @Test
     fun `builds the device registration payload`() {
         assertEquals(
             "{\"platform\":\"android\",\"push_token\":\"token\"}",

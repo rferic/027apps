@@ -12,7 +12,7 @@ import java.net.URL
 
 /** Registers this installation with the instance and keeps its FCM token fresh. */
 class FcmRegistrar(private val context: Context) {
-    private val prefs = context.getSharedPreferences("fcm_runtime", Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val mainHandler = Handler(Looper.getMainLooper())
 
     var instanceUrl: String?
@@ -45,6 +45,7 @@ class FcmRegistrar(private val context: Context) {
                 val instance = request("GET", "$baseUrl/api/v1/instance", jwt, null)
                 val config = FcmConfig.fromInstanceJson(instance)
                     ?: error("FCM public configuration is missing")
+                remember(config)
                 initializeFirebase(config)
                 FirebaseMessaging.getInstance().token
                     .addOnSuccessListener { token -> registerDevice(token, callback) }
@@ -79,15 +80,15 @@ class FcmRegistrar(private val context: Context) {
         }.start()
     }
 
+    /** Keeps the public config so a process started by FCM can initialize Firebase. */
+    private fun remember(config: FcmConfig) {
+        val editor = prefs.edit()
+        config.toPrefs().forEach { (key, value) -> editor.putString(key, value) }
+        editor.apply()
+    }
+
     private fun initializeFirebase(config: FcmConfig) {
-        if (FirebaseApp.getApps(context).isNotEmpty()) return
-        val options = FirebaseOptions.Builder()
-            .setApplicationId(config.appId)
-            .setApiKey(config.apiKey)
-            .setProjectId(config.projectId)
-            .setGcmSenderId(config.senderId)
-            .build()
-        FirebaseApp.initializeApp(context, options)
+        initialize(context, config)
     }
 
     private fun request(method: String, url: String, jwt: String, body: String?): String {
@@ -112,7 +113,37 @@ class FcmRegistrar(private val context: Context) {
         }
     }
 
-    private companion object {
-        const val TAG = "FcmRegistrar"
+    companion object {
+        private const val TAG = "FcmRegistrar"
+        private const val PREFS = "fcm_runtime"
+
+        /**
+         * Called from `Application.onCreate`. FCM can start the process for a
+         * data-only message with no Activity, so the default FirebaseApp must be
+         * ready before `PushMessagingService` runs.
+         */
+        fun initializeFromStorage(context: Context): Boolean {
+            if (FirebaseApp.getApps(context).isNotEmpty()) return true
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val values = listOf(
+                FcmConfig.KEY_PROJECT_ID,
+                FcmConfig.KEY_APP_ID,
+                FcmConfig.KEY_API_KEY,
+                FcmConfig.KEY_SENDER_ID,
+            ).associateWith { prefs.getString(it, null) }
+            val config = FcmConfig.fromPrefs(values) ?: return false
+            return initialize(context, config)
+        }
+
+        private fun initialize(context: Context, config: FcmConfig): Boolean {
+            if (FirebaseApp.getApps(context).isNotEmpty()) return true
+            val options = FirebaseOptions.Builder()
+                .setApplicationId(config.appId)
+                .setApiKey(config.apiKey)
+                .setProjectId(config.projectId)
+                .setGcmSenderId(config.senderId)
+                .build()
+            return FirebaseApp.initializeApp(context, options) != null
+        }
     }
 }
