@@ -22,7 +22,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { EnvironmentChecklist } from "./environment-checklist";
 import { Button } from "@/components/ui/button";
-import { signOutAndRestartAction } from "./actions";
+import { backToSmtpAction, signOutAndRestartAction } from "./actions";
 import { SMTP_COOKIE } from "./smtp-cookie";
 import { PreferencesStep, type PreferencesValues } from "./preferences-step";
 import { SetupForm } from "./setup-form";
@@ -52,9 +52,11 @@ function screen(
   return (
     <main lang={locale} className="bg-background p-4">
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-md flex-col justify-center gap-4">
-        <header className="flex items-center justify-between gap-4">
-          <BrandLogo logoUrl={logoUrl} size="md" />
-          <LocaleSwitcher locale={locale} label={t("Language", messages)} />
+        <header className="relative flex items-center justify-center">
+          <BrandLogo logoUrl={logoUrl} size="xl" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2">
+            <LocaleSwitcher locale={locale} label={t("Language", messages)} />
+          </div>
         </header>
         {children}
       </div>
@@ -212,7 +214,7 @@ async function preferencesStep(
 
   return screen(
     <div className="flex w-full max-w-md flex-col gap-2">
-      <form action={signOutAndRestartAction}>
+      <form action={backToSmtpAction}>
         <Button type="submit" variant="secondary">
           ← {t("Back to step 3 (email test)", messages)}
         </Button>

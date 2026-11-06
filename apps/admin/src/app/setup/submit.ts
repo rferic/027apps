@@ -71,13 +71,13 @@ function describeError(
     };
   }
 
-  const message = body?.error?.message;
-  if (message && Object.values(DEFAULT_MESSAGES).includes(message)) {
-    return { message: t(message, messages), fieldErrors };
+  const bodyMessage = body?.error?.message;
+  if (bodyMessage && Object.values(DEFAULT_MESSAGES).includes(bodyMessage)) {
+    return { message: t(bodyMessage, messages), fieldErrors };
   }
   return {
-    message: message
-      ? `${t("We couldn't create the super admin. Try again.", messages)} ${t("Details: {message}", messages, { message })}`
+    message: bodyMessage
+      ? `${t("We couldn't create the super admin. Try again.", messages)} ${t("Details: {message}", messages, { message: bodyMessage })}`
       : t("We couldn't create the super admin. Try again.", messages),
     fieldErrors,
   };

@@ -33,6 +33,11 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
+vi.mock("./actions", () => ({
+  backToSmtpAction: "/back-smtp",
+  signOutAndRestartAction: "/sign-out",
+}));
+
 import SetupPage from "./page";
 import { SMTP_COOKIE } from "./smtp-cookie";
 import { LOCALE_COOKIE } from "@/lib/locale";
@@ -123,7 +128,10 @@ describe("SetupPage — wizard steps", () => {
 
     expect(html).toContain("Paso 1 · Entorno");
     expect(html).toContain("Crear super admin");
+    expect(html).toContain("Todas las 5 tablas del núcleo existen.");
+    expect(html).toContain("Clave de 32 bytes detectada.");
     expect(html).toContain("/brand/wordmark-light.svg");
+    expect(html).toContain("h-12");
     expect(html).toContain('aria-label="Idioma"');
   });
 
@@ -147,6 +155,8 @@ describe("SetupPage — wizard steps", () => {
     expect(html).toContain("Step 4 · Preferences");
     expect(html).toContain("Finish installation");
     expect(html).toContain("USD");
+    expect(html).toContain('action="/back-smtp"');
+    expect(html).not.toContain('action="/sign-out"');
     expect(html).toContain("/brand/wordmark-light.svg");
     expect(html).toContain('aria-label="Language"');
   });
@@ -196,6 +206,7 @@ describe("SetupPage — wizard steps", () => {
 
     expect(html).toContain("Access tokens must last 900 s");
     expect(html).toContain("3600 s");
+    expect(html).toContain('action="/sign-out"');
     expect(html).toContain("/brand/wordmark-light.svg");
     expect(html).toContain('aria-label="Language"');
   });

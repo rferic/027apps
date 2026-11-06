@@ -62,7 +62,7 @@ export function EnvironmentChecklist({
               {SYMBOL[check.status]}
             </span>
             <span>
-              <span className="font-medium capitalize">{checkLabel(check.key, messages)}</span>{" "}
+              <span className="font-medium">{checkLabel(check.key, messages)}</span>{" "}
               <span className={TONE[check.status]}>{statusLabel(check.status, messages)}</span>
               <span className="block text-muted-foreground">{t(check.hint, messages)}</span>
             </span>
