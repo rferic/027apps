@@ -44,34 +44,68 @@ function makeDeps(db: ClientBase): SetupDeps {
   };
 }
 
-/** Cleans up all setup-test users and their profiles (local stack is disposable). */
+/**
+ * Real admins (not created by this suite) paused for the duration of the run.
+ * `createFirstSuperAdmin` refuses while any *active* super_admin exists, so the
+ * suite deactivates them instead of deleting them and restores them afterwards.
+ */
+const pausedAdmins = new Set<string>();
+
+/** Removes this suite's users and pauses real admins (local stack only). */
 async function cleanup() {
-  // Destructive: only touch the local stack. A non-local SUPABASE_DB_URL skips
-  // silently so a misconfigured environment can never delete real admins.
+  // Never touch a non-local SUPABASE_DB_URL: a misconfigured environment must
+  // not be able to pause or delete real admins.
   const url = process.env.SUPABASE_DB_URL;
   const isLocal = Boolean(url && (url.includes('127.0.0.1') || url.includes('localhost')));
   if (!isLocal) return;
 
-  // These tests need a clean instance (createFirstSuperAdmin refuses while any
-  // active super_admin exists), so the local stack loses its admins on every
-  // `pnpm test`. Warn loudly: re-run the wizard afterwards.
-  console.warn('[db-tests] removing every super_admin from the LOCAL stack to run setup tests');
   const db = dbClient();
   await db.connect();
   try {
-    // Settings written by a real wizard run keep `updated_by` pointing at the
-    // admin: clear the audit reference first or the FK blocks the delete.
-    await db.query(
-      "UPDATE public.settings SET updated_by = NULL WHERE updated_by IN (SELECT id FROM public.profiles WHERE role = 'super_admin')",
-    );
-    await db.query("DELETE FROM public.profiles WHERE role = 'super_admin'");
+    // Test profiles cascade away with their auth user (FK ON DELETE CASCADE).
     await db.query(`DELETE FROM auth.users WHERE email LIKE $1`, [`${EMAIL_PREFIX}%`]);
+
+    const { rows } = await query(
+      db,
+      "SELECT id FROM public.profiles WHERE role = 'super_admin' AND deactivated_at IS NULL",
+    );
+    const active = rows.map((row) => String(row.id));
+    if (active.length > 0) {
+      for (const id of active) pausedAdmins.add(id);
+      console.warn(
+        `[db-tests] pausing ${active.length} real super_admin(s) on the LOCAL stack; restored after the suite`,
+      );
+      await db.query('UPDATE public.profiles SET deactivated_at = now() WHERE id = ANY($1::uuid[])', [
+        active,
+      ]);
+    }
   } finally {
     await db.end();
   }
 }
 
-afterAll(cleanup);
+/** Reactivates the real admins paused by `cleanup()` (never deletes them). */
+async function restoreRealAdmins() {
+  if (pausedAdmins.size === 0) return;
+  const db = dbClient();
+  await db.connect();
+  try {
+    await db.query('UPDATE public.profiles SET deactivated_at = NULL WHERE id = ANY($1::uuid[])', [
+      [...pausedAdmins],
+    ]);
+    pausedAdmins.clear();
+  } finally {
+    await db.end();
+  }
+}
+
+afterAll(async () => {
+  try {
+    await cleanup();
+  } finally {
+    await restoreRealAdmins();
+  }
+});
 
 describe('createFirstSuperAdmin — local stack', () => {
   it('two concurrent installers → exactly one wins, the other gets already_setup', async () => {
@@ -100,7 +134,10 @@ describe('createFirstSuperAdmin — local stack', () => {
       expect(rejected).toHaveLength(1);
       expect((rejected[0].reason as { code: string }).code).toBe('already_setup');
 
-      const { rows } = await query(a, "SELECT display_name FROM public.profiles WHERE role = 'super_admin'");
+      const { rows } = await query(
+        a,
+        "SELECT display_name FROM public.profiles WHERE role = 'super_admin' AND deactivated_at IS NULL",
+      );
       expect(rows).toHaveLength(1);
       expect((rows[0] as { display_name: string }).display_name).toMatch(/^Setup [AB]$/);
     } finally {
@@ -220,7 +257,10 @@ describe('createFirstSuperAdmin — local stack', () => {
       expect(auth.rows).toHaveLength(0);
       const profile = await query(db, 'SELECT role FROM public.profiles WHERE id = $1', [userId]);
       expect(profile.rows).toHaveLength(0);
-      const admins = await query(db, "SELECT id FROM public.profiles WHERE role = 'super_admin'");
+      const admins = await query(
+        db,
+        "SELECT id FROM public.profiles WHERE role = 'super_admin' AND deactivated_at IS NULL",
+      );
       expect(admins.rows).toHaveLength(0);
     } finally {
       await db.end();
