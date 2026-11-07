@@ -45,7 +45,7 @@ describe("PanelNav", () => {
     const html = renderToStaticMarkup(<PanelNav role="super_admin" messages={{}} />);
 
     const headings = [...html.matchAll(/<h2[^>]*>([^<]*)<\/h2>/g)].map((match) => match[1]);
-    expect(headings).toEqual(["Home", "People", "Platform", "Settings", "Documentation"]);
+    expect(headings).toEqual(["Home", "Users", "Platform", "Settings", "Documentation"]);
   });
 
   it("renders every group destination in order with an icon", () => {
@@ -155,7 +155,7 @@ describe("PanelNav", () => {
     expect((drawer.match(/border-t border-border pt-5/g) ?? []).length).toBe(4);
     for (const label of [
       "Home",
-      "People",
+      "Users",
       "Platform",
       "Settings",
       "Documentation",

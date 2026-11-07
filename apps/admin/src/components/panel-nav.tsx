@@ -139,7 +139,7 @@ export function PanelNav({ role, messages, variant = "sidebar", onNavigate }: Pa
       items: [{ label: t("Dashboard", messages), href: "/", icon: HomeIcon }],
     },
     {
-      label: t("People", messages),
+      label: t("Users", messages),
       items: [
         { label: t("Members", messages), href: "/members", icon: UsersIcon },
         { label: t("Categories", messages), href: "/categories", icon: TagIcon },

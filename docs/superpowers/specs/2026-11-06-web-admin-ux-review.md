@@ -47,7 +47,7 @@ Problemas observados en `apps/admin/src/app/page.tsx`:
 | Grupo | Destinos | Por qué |
 |---|---|---|
 | **Inicio** | `/` (dashboard) | "¿Cómo está mi instancia?" |
-| **Personas** | `/members`, `/categories`, `/invitations` | Todo lo que describe quién entra y qué puede hacer |
+| **Usuarios** | `/members`, `/categories`, `/invitations` | Todo lo que describe quién entra y qué puede hacer |
 | **Plataforma** | `/modules`, `/keys` | Qué corre y con qué credenciales |
 | **Ajustes** | `/settings/instance`, `/settings/localization`, `/settings/security`, `/settings/notifications`, `/settings/rate-limits` | Configuración de la instancia, una sección por destino |
 | **Documentación** | `/docs/api` (API), `/help/firebase` (guía de Firebase, externa) | Contrato de la API y guías de integración |
