@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { withDoor } from '../api/door';
+import { DEFAULT_READ_LIMIT, DEFAULT_WRITE_LIMIT } from '../api/rate-limits';
 import type { Caller, CorsOptions, DoorDeps } from '../api/types';
 import { listCurrencies, setCurrencyEnabled, type CurrenciesDeps } from './service';
 
@@ -27,7 +28,7 @@ export function currenciesRoute(deps: CurrenciesRouteDeps) {
         scopes: ['currencies:read'],
         auth: deps.auth,
         cors: deps.cors,
-        rateLimit: { identity: 'user', limit: deps.rateLimits?.read ?? 120 },
+        rateLimit: { identity: 'user', limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
       },
       deps.door,
       async () => listCurrencies(deps.currencies),
@@ -44,7 +45,7 @@ export function patchCurrencyRoute(deps: CurrenciesRouteDeps) {
         auth: deps.auth,
         schema: patchCurrencyBodySchema,
         cors: deps.cors,
-        rateLimit: { identity: 'user', limit: deps.rateLimits?.write ?? 10 },
+        rateLimit: { identity: 'user', limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
       },
       deps.door,
       async (ctx) => {

@@ -137,9 +137,9 @@ Limits are applied **per identity** (user or key) on authenticated surfaces, and
 
 | Layer | Default |
 |---|---|
-| Mobile / panel session | 120 requests/minute |
+| Mobile / panel session | 240 requests/minute |
 | API key | 30 requests/minute |
-| Writes (mutations) | 10 requests/minute |
+| Writes (mutations) | 60 requests/minute |
 | Public endpoints (no identity) | 30 requests/minute per IP |
 
 *These are starting values and are **tuneable per instance**; do not hard-code them.*

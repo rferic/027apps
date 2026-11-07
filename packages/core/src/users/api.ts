@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { withDoor } from "../api/door";
+import { DEFAULT_READ_LIMIT, DEFAULT_WRITE_LIMIT } from "../api/rate-limits";
 import { DomainError } from "../errors";
 import type { Caller, CorsOptions, DoorDeps } from "../api/types";
 import { SUPPORTED_LOCALES } from "../settings/catalog";
@@ -59,7 +60,7 @@ export function usersRoute(deps: UsersRouteDeps) {
         scopes: ["users:read"],
         auth: deps.auth,
         cors: deps.cors,
-        rateLimit: { identity: "user", limit: deps.rateLimits?.read ?? 120 },
+        rateLimit: { identity: "user", limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
       },
       deps.door,
       async (ctx) => {
@@ -79,7 +80,7 @@ export function userRoute(deps: UsersRouteDeps) {
         scopes: ["users:read"],
         auth: deps.auth,
         cors: deps.cors,
-        rateLimit: { identity: "user", limit: deps.rateLimits?.read ?? 120 },
+        rateLimit: { identity: "user", limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
       },
       deps.door,
       async () => ({ user: await getUser(deps.users, id) }),
@@ -98,7 +99,7 @@ export function updateUserRoute(deps: UsersRouteDeps) {
         auth: deps.auth,
         cors: deps.cors,
         schema: userPatchSchema,
-        rateLimit: { identity: "user", limit: deps.rateLimits?.write ?? 10 },
+        rateLimit: { identity: "user", limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
       },
       deps.door,
       async (ctx) => ({
@@ -116,7 +117,7 @@ export function deactivateUserRoute(deps: UsersRouteDeps) {
         scopes: ["users:deactivate"],
         auth: deps.auth,
         cors: deps.cors,
-        rateLimit: { identity: "user", limit: deps.rateLimits?.write ?? 10 },
+        rateLimit: { identity: "user", limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
       },
       deps.door,
       async (ctx) => ({ user: await deactivateUser(deps.users, ctx.caller, id) }),

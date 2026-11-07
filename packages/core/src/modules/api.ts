@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { withDoor } from "../api/door";
+import { DEFAULT_READ_LIMIT, DEFAULT_WRITE_LIMIT } from "../api/rate-limits";
 import { DomainError } from "../errors";
 import type { Caller, CorsOptions, DoorDeps } from "../api/types";
 import {
@@ -61,7 +62,7 @@ function options(deps: ModulesRouteDeps, scopes: string[], schema?: z.ZodType) {
     auth: deps.auth,
     cors: deps.cors,
     ...(schema ? { schema } : {}),
-    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? 10 },
+    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
   };
 }
 
@@ -70,7 +71,7 @@ function readOptions(deps: ModulesRouteDeps, scopes: string[]) {
     scopes,
     auth: deps.auth,
     cors: deps.cors,
-    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? 120 },
+    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
   };
 }
 

@@ -138,7 +138,7 @@ describe("GET /api/v1/translations — authorization, limits and ETag", () => {
   it("answers 429 when the rate limit is exceeded", async () => {
     await inRollback(async (c) => {
       const limited: DoorDeps = {
-        rateLimitStorage: { increment: async () => ({ count: 121 }) },
+        rateLimitStorage: { increment: async () => ({ count: 241 }) },
         logger: () => {},
       };
       const res = await routeWithDoor(c, limited)(

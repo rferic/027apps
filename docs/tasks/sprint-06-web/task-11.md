@@ -66,6 +66,9 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   "No currencies match".
 - Tests: chips y placeholder, filtro por nombre/símbolo/código y diacríticos, chip fija sin botón de
   quitar, `onClear` sin la default, `aria-selected`, contador y opción pendiente atenuada.
+- **Pendiente (rate limit)**: "Clear all except the default" dispara un `PATCH` por moneda; limpiar
+  más de 60 en un minuto agota el límite de escritura por usuario (60/min) y devuelve 429. Opciones:
+  endpoint de lote para monedas o subir el límite solo en esa ruta.
 
 ### Iteración 8 — Fechas con la zona de la instancia (hecho)
 
