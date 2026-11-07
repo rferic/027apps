@@ -22,6 +22,10 @@ export function panelErrorCodeLabel(code: string, messages: TranslationMap): str
       return t("This invitation has already been used.", messages);
     case "invitation_expired":
       return t("This invitation has expired.", messages);
+    case "currency_is_default":
+      return t("The default currency cannot be disabled.", messages);
+    case "currency_not_enabled":
+      return t("Choose an enabled currency.", messages);
     default:
       return memberErrorCodeLabel(code, messages);
   }

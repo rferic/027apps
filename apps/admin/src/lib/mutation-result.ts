@@ -5,10 +5,15 @@
  * with a 2xx HTML body is rejected.
  */
 
-/** Public `error.details` shape for `validation_failed` (zod `.flatten()`). */
+/**
+ * Public `error.details` shape. `validation_failed` from zod carries
+ * `formErrors`/`fieldErrors`; the settings batch also names the failing
+ * catalog key in `key`, which the form uses to place the error inline.
+ */
 export interface MutationErrorDetails {
   formErrors?: string[];
   fieldErrors?: Record<string, string[]>;
+  key?: string;
 }
 
 export type MutationFailure = {
@@ -48,10 +53,12 @@ function readDetails(value: unknown): MutationErrorDetails | undefined {
   if (!isRecord(value)) return undefined;
   const formErrors = readStringArray(value.formErrors);
   const fieldErrors = readFieldErrors(value.fieldErrors);
-  if (!formErrors && !fieldErrors) return undefined;
+  const key = readString(value.key);
+  if (!formErrors && !fieldErrors && !key) return undefined;
   return {
     ...(formErrors ? { formErrors } : {}),
     ...(fieldErrors ? { fieldErrors } : {}),
+    ...(key ? { key } : {}),
   };
 }
 
