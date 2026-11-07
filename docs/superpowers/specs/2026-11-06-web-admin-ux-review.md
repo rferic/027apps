@@ -94,12 +94,15 @@ Reglas:
   acceso al instante").
 - **Formularios**: etiqueta arriba, ayuda debajo, error junto al campo. Un botón primario; "Cancelar"
   como enlace.
-- **Selección múltiple (monedas)**: `fieldset`/`legend`, buscador que filtra por nombre, código o
-  símbolo y lista de checkboxes con `símbolo · Nombre (CODE)`. El nombre y el símbolo se derivan en
-  cliente con `Intl` (la BD solo guarda `code`/`enabled`), con el código como fallback. Las marcadas son
-  las monedas `enabled`; la default está marcada y no se puede desmarcar. "Deselect all except the
-  default" pide confirmación inline, aplica un `PATCH` por moneda y refresca una vez al terminar el
-  lote. Contador visible y vacío "No currencies match".
+- **Selección múltiple (monedas)**: combobox con chips estilo react-select (`ui/multi-select.tsx`), sin
+  dependencias nuevas. El trigger muestra una chip por moneda `enabled` (`símbolo · Nombre`) y el
+  desplegable lleva buscador que filtra por nombre, código o símbolo (insensible a mayúsculas y
+  diacríticos) y lista con estado seleccionado. El nombre y el símbolo se derivan en cliente con `Intl`
+  (la BD solo guarda `code`/`enabled`), con el código como fallback. La default es una chip fija sin
+  botón de quitar. El pie muestra "{selected} of {total} selected" y "Clear all except the default"
+  (deshabilitado si no hay nada que limpiar), que pide confirmación inline y aplica un `PATCH` por
+  moneda no-default, refrescando una vez al terminar. Teclado: flechas mueven, Enter/Espacio alternan,
+  Escape cierra y devuelve el foco al trigger. Vacío "No currencies match".
 - **Confirmaciones destructivas**: nombrar el objeto y la consecuencia; nunca solo "¿Estás seguro?".
 - **Feedback**: cambio guardado → mensaje breve junto a la acción; error → inline + `request_id`.
 

@@ -83,8 +83,10 @@ Los formularios y diálogos del admin siguen **un único patrón**; no se improv
   y `aria-invalid`, y acciones a la derecha con `min-h-11`.
 - **Controles**: los campos usan las primitivas del DS (`ui/select.tsx`, `ui/button.tsx`, etc.); nada de
   `<select>` con clases sueltas ni de repetir el estilo del control en cada pantalla.
-- **Excepciones** (documentadas en el código): el drawer móvil necesita layout lateral y no usa `Dialog`;
-  un grupo de checkboxes usa `fieldset`/`legend` con las primitivas de ayuda y error.
+- **Multiselección**: usa `ui/multi-select.tsx` (combobox con chips, buscador y navegación por teclado)
+  en vez de reimplementar una lista de checkboxes. `<fieldset>`/`<legend>` queda para grupos pequeños
+  sin búsqueda.
+- **Excepciones** (documentadas en el código): el drawer móvil necesita layout lateral y no usa `Dialog`.
 - **Verificación**: cualquier modal o formulario nuevo se mira en claro y oscuro, y a 375 px. Hay un test
   (`apps/admin/src/components/ui/raw-dialog.test.ts`) que falla si aparece un `<dialog>` fuera del
   componente compartido.

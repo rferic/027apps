@@ -15,72 +15,50 @@ const CURRENCIES = [
 ];
 
 describe("CurrencySettings", () => {
-  it("renders a search control and a fieldset with the currency list", () => {
+  it("renders the combobox with a chip per enabled currency", () => {
     const html = renderToStaticMarkup(
       <CurrencySettings defaultCode="EUR" currencies={CURRENCIES} locale="en" messages={{}} />,
     );
 
-    expect(html).toMatch(/<input[^>]*type="search"[^>]*>/);
-    expect(html).toContain("<fieldset");
-    expect(html).toContain("<legend");
-    expect(html).toContain("Search currencies");
-    expect(html).toContain("aria-describedby");
+    expect(html).toContain('role="combobox"');
+    expect(html).toContain("€ · Euro");
+    expect(html).toContain("$ · US Dollar");
+    expect(html).toContain("SEK · Swedish Krona");
+    expect(html).not.toContain("Japanese Yen");
   });
 
-  it("shows symbol, localized name and code for every currency", () => {
+  it("replaces the old checkbox list", () => {
     const html = renderToStaticMarkup(
       <CurrencySettings defaultCode="EUR" currencies={CURRENCIES} locale="en" messages={{}} />,
     );
 
-    expect(html).toContain("€ · Euro (EUR)");
-    expect(html).toContain("$ · US Dollar (USD)");
-    expect(html).toContain("¥ · Japanese Yen (JPY)");
-    expect(html).toContain("SEK · Swedish Krona (SEK)");
+    expect(html).not.toContain('type="checkbox"');
+    expect(html).not.toContain("<fieldset");
   });
 
-  it("marks the default currency and refuses to deselect it", () => {
+  it("keeps the default currency fixed and removable ones clearable", () => {
     const html = renderToStaticMarkup(
       <CurrencySettings defaultCode="EUR" currencies={CURRENCIES} locale="en" messages={{}} />,
     );
 
-    const eur = html.match(/<input[^>]*id="currency-EUR"[^>]*>/)?.[0];
-    expect(eur).toContain("disabled");
-    expect(eur).toContain("checked");
-    expect(html).toContain("Default currency");
-    expect(html).toContain(`aria-describedby="currency-EUR-default"`);
+    expect(html).toContain('data-fixed="true"');
+    expect(html).not.toContain('data-remove="EUR"');
+    expect(html).toContain('data-remove="USD"');
+    expect(html).toContain('data-remove="SEK"');
   });
 
-  it("keeps every other currency toggleable", () => {
+  it("shows the empty trigger when no currency is enabled", () => {
     const html = renderToStaticMarkup(
-      <CurrencySettings defaultCode="EUR" currencies={CURRENCIES} locale="en" messages={{}} />,
+      <CurrencySettings
+        defaultCode={null}
+        currencies={[{ code: "EUR", enabled: false, isDefault: false }]}
+        locale="en"
+        messages={{}}
+      />,
     );
 
-    for (const code of ["USD", "JPY", "SEK"]) {
-      const input = html.match(new RegExp(`<input[^>]*id="currency-${code}"[^>]*>`))?.[0];
-      expect(input).toBeDefined();
-      expect(input).not.toContain("disabled");
-    }
-    const usd = html.match(/<input[^>]*id="currency-USD"[^>]*>/)?.[0];
-    expect(usd).toContain("checked");
-    const jpy = html.match(/<input[^>]*id="currency-JPY"[^>]*>/)?.[0];
-    expect(jpy).not.toContain("checked");
-  });
-
-  it("shows the enabled counter and the bulk action", () => {
-    const html = renderToStaticMarkup(
-      <CurrencySettings defaultCode="EUR" currencies={CURRENCIES} locale="en" messages={{}} />,
-    );
-
-    expect(html).toContain("3 of 4 enabled");
-    expect(html).toContain("Deselect all except the default");
-  });
-
-  it("shows the search empty state instead of an empty list", () => {
-    const html = renderToStaticMarkup(
-      <CurrencySettings defaultCode={null} currencies={[]} locale="en" messages={{}} />,
-    );
-
-    expect(html).toContain("No currencies match");
+    expect(html).toContain('role="combobox"');
+    expect(html).not.toContain('data-remove="');
     expect(html).toContain("No default currency is configured.");
   });
 });

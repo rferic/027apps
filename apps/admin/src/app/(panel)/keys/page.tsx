@@ -9,7 +9,9 @@ import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
+import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
+import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
 import { loadApiKeys, type ApiKeyKind, type ApiKeyRow } from "@/lib/panel-keys";
 
@@ -37,16 +39,6 @@ function filterKeys(rows: ApiKeyRow[], filter: StateFilter): ApiKeyRow[] {
   if (filter === "active") return rows.filter((row) => row.revoked_at === null);
   if (filter === "revoked") return rows.filter((row) => row.revoked_at !== null);
   return rows;
-}
-
-function formatDate(value: string, locale: Locale): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
 }
 
 function kindLabel(kind: ApiKeyKind, messages: TranslationMap): string {
@@ -116,6 +108,7 @@ function KeysFilter({ filter, messages }: { filter: StateFilter; messages: Trans
 interface KeysViewProps {
   rows: ApiKeyRow[];
   locale: Locale;
+  timeZone: string;
   currentUserId: string;
   messages: TranslationMap;
 }
@@ -124,7 +117,7 @@ function scopesText(row: ApiKeyRow): string {
   return row.scopes.length > 0 ? row.scopes.join(", ") : "—";
 }
 
-function RevokeCell({ row, currentUserId, messages }: Omit<KeysViewProps, "rows" | "locale"> & { row: ApiKeyRow }) {
+function RevokeCell({ row, currentUserId, messages }: Omit<KeysViewProps, "rows" | "locale" | "timeZone"> & { row: ApiKeyRow }) {
   if (row.revoked_at !== null) return <span className="text-muted-foreground">{t("Revoked", messages)}</span>;
   return (
     <ApiKeyRevokeButton
@@ -137,7 +130,7 @@ function RevokeCell({ row, currentUserId, messages }: Omit<KeysViewProps, "rows"
   );
 }
 
-function KeysTable({ rows, locale, currentUserId, messages }: KeysViewProps) {
+function KeysTable({ rows, locale, timeZone, currentUserId, messages }: KeysViewProps) {
   return (
     <div className="hidden overflow-x-auto sm:block">
       <table className="w-full border-collapse text-left text-xs">
@@ -188,12 +181,12 @@ function KeysTable({ rows, locale, currentUserId, messages }: KeysViewProps) {
               </td>
               <td className="py-2 pr-3 font-mono text-[11px]">{row.prefix}</td>
               <td className="py-2 pr-3 font-mono text-[11px]">{scopesText(row)}</td>
-              <td className="py-2 pr-3">{formatDate(row.created_at, locale)}</td>
+              <td className="py-2 pr-3">{formatDate(row.created_at, { locale, timeZone })}</td>
               <td className="py-2 pr-3">
-                {row.expiresAt ? formatDate(row.expiresAt, locale) : t("Never", messages)}
+                {row.expiresAt ? formatDate(row.expiresAt, { locale, timeZone }) : t("Never", messages)}
               </td>
               <td className="py-2 pr-3">
-                {row.last_used_at ? formatDate(row.last_used_at, locale) : t("Never", messages)}
+                {row.last_used_at ? formatDate(row.last_used_at, { locale, timeZone }) : t("Never", messages)}
               </td>
               <td className="py-2 pr-3">
                 <Badge variant={row.revoked_at ? "destructive" : "success"}>
@@ -215,7 +208,7 @@ function KeysTable({ rows, locale, currentUserId, messages }: KeysViewProps) {
   );
 }
 
-function KeysCards({ rows, locale, currentUserId, messages }: KeysViewProps) {
+function KeysCards({ rows, locale, timeZone, currentUserId, messages }: KeysViewProps) {
   return (
     <ul className="flex flex-col gap-2 sm:hidden">
       {rows.map((row) => (
@@ -237,11 +230,11 @@ function KeysCards({ rows, locale, currentUserId, messages }: KeysViewProps) {
             <dt className="text-muted-foreground">{t("Requested scopes", messages)}</dt>
             <dd className="font-mono text-[11px]">{scopesText(row)}</dd>
             <dt className="text-muted-foreground">{t("Created", messages)}</dt>
-            <dd>{formatDate(row.created_at, locale)}</dd>
+            <dd>{formatDate(row.created_at, { locale, timeZone })}</dd>
             <dt className="text-muted-foreground">{t("Expires", messages)}</dt>
-            <dd>{row.expiresAt ? formatDate(row.expiresAt, locale) : t("Never", messages)}</dd>
+            <dd>{row.expiresAt ? formatDate(row.expiresAt, { locale, timeZone }) : t("Never", messages)}</dd>
             <dt className="text-muted-foreground">{t("Last used", messages)}</dt>
-            <dd>{row.last_used_at ? formatDate(row.last_used_at, locale) : t("Never", messages)}</dd>
+            <dd>{row.last_used_at ? formatDate(row.last_used_at, { locale, timeZone }) : t("Never", messages)}</dd>
           </dl>
           <div className="mt-2">
             <RevokeCell row={row} currentUserId={currentUserId} messages={messages} />
@@ -292,6 +285,8 @@ export default async function KeysPage({
     return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
   }
 
+  const timeZone = await loadPanelTimeZone();
+
   const params = await searchParams;
   const filter = parseFilter(first(params.state));
   const data = await loadApiKeys();
@@ -325,12 +320,14 @@ export default async function KeysPage({
               <KeysTable
                 rows={rows}
                 locale={locale}
+                timeZone={timeZone}
                 currentUserId={gate.user.id}
                 messages={messages}
               />
               <KeysCards
                 rows={rows}
                 locale={locale}
+                timeZone={timeZone}
                 currentUserId={gate.user.id}
                 messages={messages}
               />

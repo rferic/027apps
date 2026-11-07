@@ -125,9 +125,10 @@ describe("SettingsSectionPage", () => {
     const localization = renderToStaticMarkup(await SettingsSectionPage(props("localization")));
     const instance = renderToStaticMarkup(await SettingsSectionPage(props("instance")));
 
-    expect(localization).toContain("Search currencies");
-    expect(localization).toContain("USD");
-    expect(instance).not.toContain("Search currencies");
+    expect(localization).toContain('role="combobox"');
+    expect(localization).toContain("Currencies available to this instance.");
+    expect(localization).toContain("€ · Euro");
+    expect(instance).not.toContain("Currencies available to this instance.");
   });
 
   it("refuses /settings/security to an admin before reading any data", async () => {

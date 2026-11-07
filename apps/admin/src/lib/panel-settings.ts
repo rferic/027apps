@@ -5,6 +5,7 @@ import { readPublicSettings } from "@027apps/core/settings/service.js";
 import { settingsCategoriesRoute } from "@027apps/core/settings/api.js";
 import { SETTINGS_CATALOG, getSettingMeta } from "@027apps/core/settings/catalog.js";
 import { getInfra } from "@/lib/api/door";
+import { resolveTimeZone } from "@/lib/format-date";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   CurrencyList,
@@ -23,6 +24,15 @@ const INTERNAL_ORIGIN = "http://panel.internal";
 export const loadPanelSettings = cache(async () => {
   const { settingsDeps } = await getInfra();
   return readPublicSettings(settingsDeps);
+});
+
+/**
+ * Presentation time zone for the request (ADR 0008 §2). Invalid or missing
+ * values fall back to UTC instead of silently using the server zone.
+ */
+export const loadPanelTimeZone = cache(async () => {
+  const settings = await loadPanelSettings();
+  return resolveTimeZone(settings["localization.timezone"]);
 });
 
 export type SettingsFailure = { ok: false; code?: string; requestId?: string };

@@ -24,6 +24,10 @@ vi.mock("@/lib/panel-i18n", () => ({
   loadPanelMessages: async () => ({}),
 }));
 
+vi.mock("@/lib/panel-settings", () => ({
+  loadPanelTimeZone: async () => "UTC",
+}));
+
 vi.mock("@/lib/panel-members", () => ({
   loadMember: (id: string) => loadMemberMock(id),
 }));

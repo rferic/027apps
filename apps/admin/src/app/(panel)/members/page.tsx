@@ -7,7 +7,9 @@ import { MemberError } from "@/components/member-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
+import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
+import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
 import {
   loadMembers,
@@ -81,16 +83,6 @@ function emailLabel(row: MemberRow, messages: TranslationMap): string {
   return row.email ?? "—";
 }
 
-function formatJoined(value: string, locale: Locale): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-}
-
 function MemberBadges({ row, messages }: { row: MemberRow; messages: TranslationMap }) {
   return (
     <span className="flex flex-wrap items-center gap-1">
@@ -100,7 +92,7 @@ function MemberBadges({ row, messages }: { row: MemberRow; messages: Translation
   );
 }
 
-function MembersTable({ rows, locale, messages }: { rows: MemberRow[]; locale: Locale; messages: TranslationMap }) {
+function MembersTable({ rows, locale, timeZone, messages }: { rows: MemberRow[]; locale: Locale; timeZone: string; messages: TranslationMap }) {
   return (
     <div className="hidden overflow-x-auto sm:block">
       <table className="w-full border-collapse text-left text-xs">
@@ -142,7 +134,7 @@ function MembersTable({ rows, locale, messages }: { rows: MemberRow[]; locale: L
               <td className="py-2 pr-3">
                 <Badge variant={statusVariant(row)}>{statusLabel(row, messages)}</Badge>
               </td>
-              <td className="py-2">{formatJoined(row.created_at, locale)}</td>
+              <td className="py-2">{formatDate(row.created_at, { locale, timeZone })}</td>
             </tr>
           ))}
         </tbody>
@@ -151,7 +143,7 @@ function MembersTable({ rows, locale, messages }: { rows: MemberRow[]; locale: L
   );
 }
 
-function MembersCards({ rows, locale, messages }: { rows: MemberRow[]; locale: Locale; messages: TranslationMap }) {
+function MembersCards({ rows, locale, timeZone, messages }: { rows: MemberRow[]; locale: Locale; timeZone: string; messages: TranslationMap }) {
   return (
     <ul className="flex flex-col gap-2 sm:hidden">
       {rows.map((row) => (
@@ -168,7 +160,7 @@ function MembersCards({ rows, locale, messages }: { rows: MemberRow[]; locale: L
               <span className="text-xs text-muted-foreground">{emailLabel(row, messages)}</span>
             )}
             <span className="text-xs text-muted-foreground">
-              {t("Joined", messages)}: {formatJoined(row.created_at, locale)}
+              {t("Joined", messages)}: {formatDate(row.created_at, { locale, timeZone })}
             </span>
           </Link>
         </li>
@@ -248,12 +240,14 @@ function MembersBody({
   q,
   page,
   locale,
+  timeZone,
   messages,
 }: {
   data: MemberListSuccess;
   q: string;
   page: number;
   locale: Locale;
+  timeZone: string;
   messages: TranslationMap;
 }) {
   const pages = Math.max(1, Math.ceil(data.total / MEMBERS_PAGE_SIZE));
@@ -261,8 +255,8 @@ function MembersBody({
 
   return (
     <>
-      <MembersTable rows={data.users} locale={locale} messages={messages} />
-      <MembersCards rows={data.users} locale={locale} messages={messages} />
+      <MembersTable rows={data.users} locale={locale} timeZone={timeZone} messages={messages} />
+      <MembersCards rows={data.users} locale={locale} timeZone={timeZone} messages={messages} />
       <Pagination q={q} page={page} pages={pages} messages={messages} />
     </>
   );
@@ -279,6 +273,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   if ("denied" in gate) {
     return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
   }
+
+  const timeZone = await loadPanelTimeZone();
 
   const params = await searchParams;
   const q = (first(params.q) ?? "").trim().slice(0, 100);
@@ -332,7 +328,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
       </form>
 
       {data.ok ? (
-        <MembersBody data={data} q={q} page={page} locale={locale} messages={messages} />
+        <MembersBody data={data} q={q} page={page} locale={locale} timeZone={timeZone} messages={messages} />
       ) : (
         <MemberError
           error={data}

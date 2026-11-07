@@ -9,7 +9,9 @@ import { MemberProfileForm } from "@/components/member-profile-form";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
+import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
+import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
 import { loadMember, type MemberDetail } from "@/lib/panel-members";
 
@@ -50,16 +52,6 @@ function memberEmail(member: MemberDetail, messages: TranslationMap): string {
   return member.email ?? "—";
 }
 
-function formatJoined(value: string, locale: Locale): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-}
-
 function MemberBreadcrumb({ name, messages }: { name: string; messages: TranslationMap }) {
   return (
     <nav aria-label={t("Breadcrumb", messages)} className="text-xs text-muted-foreground">
@@ -75,10 +67,12 @@ function MemberBreadcrumb({ name, messages }: { name: string; messages: Translat
 function MemberHeader({
   member,
   locale,
+  timeZone,
   messages,
 }: {
   member: MemberDetail;
   locale: Locale;
+  timeZone: string;
   messages: TranslationMap;
 }) {
   return (
@@ -92,7 +86,7 @@ function MemberHeader({
       </span>
       <p className="text-xs text-muted-foreground">{memberEmail(member, messages)}</p>
       <p className="text-xs text-muted-foreground">
-        {t("Joined", messages)}: {formatJoined(member.created_at, locale)}
+        {t("Joined", messages)}: {formatDate(member.created_at, { locale, timeZone })}
       </p>
     </header>
   );
@@ -109,6 +103,8 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
   if ("denied" in gate) {
     return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
   }
+
+  const timeZone = await loadPanelTimeZone();
 
   const { id } = await params;
   const result = await loadMember(id);
@@ -134,7 +130,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
   return (
     <section className="flex flex-col gap-5">
       <MemberBreadcrumb name={memberName(member)} messages={messages} />
-      <MemberHeader member={member} locale={locale} messages={messages} />
+      <MemberHeader member={member} locale={locale} timeZone={timeZone} messages={messages} />
       <MemberProfileForm
         member={member}
         viewerRole={gate.user.role}

@@ -7,6 +7,7 @@ import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
+import { formatDate } from "@/lib/format-date";
 import { loadCategories, loadModuleChoices, type CategoryRow } from "@/lib/panel-categories";
 import {
   loadInvitations,
@@ -14,6 +15,7 @@ import {
   type InvitationStatus,
 } from "@/lib/panel-invitations";
 import { loadPanelMessages } from "@/lib/panel-i18n";
+import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
 
 /**
@@ -46,17 +48,6 @@ function statusLabel(status: InvitationStatus, messages: TranslationMap): string
   }
 }
 
-/** Date only: instance time zone is task-11 debt (M2d), not redefined here. */
-function formatDate(value: string, locale: Locale): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-}
-
 function categoryName(
   row: InvitationRow,
   categories: Map<string, string>,
@@ -78,6 +69,7 @@ function moduleNames(row: InvitationRow, modules: Map<string, string>): string {
 interface InvitationsViewProps {
   rows: InvitationRow[];
   locale: Locale;
+  timeZone: string;
   categories: Map<string, string>;
   categoriesOk: boolean;
   modules: Map<string, string>;
@@ -87,6 +79,7 @@ interface InvitationsViewProps {
 function InvitationsTable({
   rows,
   locale,
+  timeZone,
   categories,
   categoriesOk,
   modules,
@@ -131,7 +124,7 @@ function InvitationsTable({
               </td>
               <td className="py-2 pr-3">{categoryName(row, categories, categoriesOk, messages)}</td>
               <td className="py-2 pr-3">{moduleNames(row, modules)}</td>
-              <td className="py-2 pr-3">{formatDate(row.expires_at, locale)}</td>
+              <td className="py-2 pr-3">{formatDate(row.expires_at, { locale, timeZone })}</td>
               <td className="py-2 text-right">
                 {row.status === "pending" && (
                   <InvitationRevokeButton
@@ -153,6 +146,7 @@ function InvitationsTable({
 function InvitationsCards({
   rows,
   locale,
+  timeZone,
   categories,
   categoriesOk,
   modules,
@@ -174,7 +168,7 @@ function InvitationsCards({
             <dt className="text-muted-foreground">{t("Modules", messages)}</dt>
             <dd>{moduleNames(row, modules)}</dd>
             <dt className="text-muted-foreground">{t("Expires", messages)}</dt>
-            <dd>{formatDate(row.expires_at, locale)}</dd>
+            <dd>{formatDate(row.expires_at, { locale, timeZone })}</dd>
           </dl>
           {row.status === "pending" && (
             <div className="mt-2">
@@ -219,6 +213,8 @@ export default async function InvitationsPage() {
     return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
   }
 
+  const timeZone = await loadPanelTimeZone();
+
   const [invitations, categories, moduleChoices] = await Promise.all([
     loadInvitations(),
     loadCategories(),
@@ -256,6 +252,7 @@ export default async function InvitationsPage() {
             <InvitationsTable
               rows={invitations.invitations}
               locale={locale}
+              timeZone={timeZone}
               categories={categoryNames}
               categoriesOk={categories.ok}
               modules={moduleNames}
@@ -264,6 +261,7 @@ export default async function InvitationsPage() {
             <InvitationsCards
               rows={invitations.invitations}
               locale={locale}
+              timeZone={timeZone}
               categories={categoryNames}
               categoriesOk={categories.ok}
               modules={moduleNames}

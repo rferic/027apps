@@ -32,6 +32,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 5 | Settings como padre con una página por categoría y guard por sección | hecho |
 | 6 | Monedas como selector múltiple con búsqueda, nombre y símbolo derivados | hecho |
 | 7 | Checklist UX de 10 puntos a 375 y 1280 px, revisión y auditoría | pendiente |
+| 8 | Fechas de presentación con la zona de la instancia (deuda M2d, ADR 0008 §2) | hecho |
 
 ### Iteración 5 — Settings padre/hijos (hecho)
 
@@ -53,14 +54,28 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 
 - Sin cambios de BD ni de API: el nombre y el símbolo se derivan en cliente con
   `Intl.DisplayNames` y `Intl.NumberFormat.formatToParts`, con el `code` como fallback.
-- Buscador `type="search"` que filtra por nombre, código o símbolo, insensible a mayúsculas y
-  diacríticos (`normalize("NFD")` + `\p{Diacritic}`).
-- Lista `fieldset`/`legend` con una fila por moneda (`símbolo · Nombre (CODE)`); las marcadas son
-  `enabled`. La moneda por defecto está marcada, no se puede desmarcar y se explica con
-  "Default currency".
-- "Deselect all except the default" pide confirmación inline y luego aplica un `PATCH` por moneda
-  no-default. Cada toggle individual también es un `PATCH`; hay `saving` por fila, error inline con
-  `request_id` y un `router.refresh()` al terminar el lote.
-- Contador "{enabled} of {total} enabled" y vacío "No currencies match".
-- Tests: filtro por nombre/símbolo/código y diacríticos, default no desmarcable, "deselect all" que no
-  toca la default, un `PATCH` por cambio, contador y vacío.
+- Combobox con chips (`ui/multi-select.tsx`), sin dependencias nuevas: el trigger muestra una chip por
+  moneda `enabled` (`símbolo · Nombre`) y el desplegable lleva buscador que filtra por nombre, código o
+  símbolo, insensible a mayúsculas y diacríticos (`normalize("NFD")` + `\p{Diacritic}`).
+- La moneda por defecto es una chip fija sin botón de quitar y el toggle de su opción se ignora.
+- Pie con contador "{selected} of {total} selected" y "Clear all except the default": pide confirmación
+  inline y luego aplica un `PATCH` por moneda no-default. Cada toggle individual también es un `PATCH`;
+  hay `pendingValue` atenuado, error inline con `request_id` y un `router.refresh()` al terminar el lote.
+- Teclado: flechas mueven el activo, Enter/Espacio alternan, Escape cierra y devuelve el foco al trigger;
+  cierre por clic fuera. `aria-expanded`, `aria-selected`, `aria-multiselectable` y vacío
+  "No currencies match".
+- Tests: chips y placeholder, filtro por nombre/símbolo/código y diacríticos, chip fija sin botón de
+  quitar, `onClear` sin la default, `aria-selected`, contador y opción pendiente atenuada.
+
+### Iteración 8 — Fechas con la zona de la instancia (hecho)
+
+- Deuda M2d (ADR 0008 §2): las cuatro llamadas a `Intl.DateTimeFormat` del panel (miembros, detalle de
+  miembro, invitaciones y claves) no pasaban `timeZone`, así que el servidor formateaba en UTC y el
+  navegador en su zona local: días distintos y error de hidratación.
+- `lib/format-date.ts` centraliza `formatDate(value, { locale, timeZone })` y `resolveTimeZone`; un
+  valor vacío o inválido cae a `UTC` en vez de heredar la zona del servidor.
+- `loadPanelTimeZone()` (cacheado junto a `loadPanelSettings`) lee
+  `readPublicSettings(settingsDeps)["localization.timezone"]` y lo pasan las cuatro páginas.
+- Tests: `2026-11-06T23:30:00Z` es día 7 en `Europe/Madrid` y día 6 en `UTC`; espía sobre
+  `Intl.DateTimeFormat` que exige `timeZone` en la llamada de formato; fallback a `UTC` y `—` para
+  valores inválidos.
