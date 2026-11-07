@@ -52,11 +52,11 @@ function stateLabel(state: string, messages: TranslationMap): string {
     case "disabled":
       return t("Disabled", messages);
     default:
-      return t("Installed", messages);
+      return t("Unknown", messages);
   }
 }
 
-/** Public error codes mapped to a readable message; unknown codes stay as-is. */
+/** Public error codes mapped to a readable message; unknown codes keep the code as detail. */
 function errorCodeLabel(code: string, messages: TranslationMap): string {
   switch (code) {
     case "internal":
@@ -67,8 +67,10 @@ function errorCodeLabel(code: string, messages: TranslationMap): string {
       return t("Too many requests. Wait a moment and try again.", messages);
     case "not_found":
       return t("We could not find what you asked for.", messages);
+    case "unauthorized":
+      return t("Your session has expired. Sign in again.", messages);
     default:
-      return code;
+      return t("Unexpected error: {code}", messages, { code });
   }
 }
 
@@ -81,9 +83,9 @@ function DashboardError({
 }) {
   return (
     <div role="alert" className="rounded-card border border-destructive bg-surface p-4 text-xs">
-      <h2 className="text-sm font-semibold text-destructive">
+      <h1 className="text-sm font-semibold text-destructive">
         {t("We couldn't load the dashboard.", messages)}
-      </h2>
+      </h1>
       {error.code && (
         <p className="mt-2 text-muted-foreground">{errorCodeLabel(error.code, messages)}</p>
       )}
@@ -197,6 +199,9 @@ function DashboardModules({
           <p className="mt-1 text-xs text-muted-foreground">
             {t("Install a module to make its features available to the instance.", messages)}
           </p>
+          <Link href="/modules" className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
+            {t("Install a module", messages)}
+          </Link>
         </div>
       ) : (
         <ModuleCards modules={modules} messages={messages} />
@@ -231,7 +236,13 @@ function DashboardBody({
   dashboard: DashboardSuccess;
   messages: TranslationMap;
 }) {
-  const isEmpty = dashboard.kpis.members === 0 && dashboard.modules.length === 0;
+  // Nothing to show only when the four KPIs that carry the next step are empty:
+  // members, pending invitations, categories and modules.
+  const isEmpty =
+    dashboard.kpis.members === 0 &&
+    dashboard.kpis.pendingInvitations === 0 &&
+    dashboard.kpis.categories === 0 &&
+    dashboard.modules.length === 0;
 
   return (
     <>

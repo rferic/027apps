@@ -53,6 +53,27 @@ describe("users service — reads", () => {
       await expect(getUser(deps(c), crypto.randomUUID())).rejects.toMatchObject({ code: "not_found" });
     });
   });
+
+  it("counts only active profiles in active_total, across every page", async () => {
+    await inRollback(async (c) => {
+      const prefix = `Active ${Date.now()}-${Math.random()}`;
+      await createTestUser(c, { email: email("active-one"), displayName: `${prefix} One` });
+      await createTestUser(c, { email: email("active-two"), displayName: `${prefix} Two` });
+      const deactivated = await createTestUser(c, {
+        email: email("active-off"),
+        displayName: `${prefix} Off`,
+      });
+      await query(c, "update public.profiles set deactivated_at = now() where id = $1", [
+        deactivated.id,
+      ]);
+
+      const list = await listUsers(deps(c), { q: prefix, limit: 2, offset: 0 });
+
+      expect(list.total).toBe(3);
+      expect(list.active_total).toBe(2);
+      expect(list.users).toHaveLength(2);
+    });
+  });
 });
 
 describe("users service — profile and role edits", () => {

@@ -10,6 +10,7 @@ const computeHealthMock = vi.fn();
 const readInstanceStateMock = vi.fn();
 const healthRouteMock = vi.fn();
 const instanceRouteMock = vi.fn();
+const loggerMock = vi.fn();
 
 const handlers = {
   users: vi.fn(),
@@ -17,6 +18,13 @@ const handlers = {
   invitations: vi.fn(),
   modules: vi.fn(),
 };
+
+const authenticatedRoutes = [
+  { route: "users", handler: handlers.users, invalid: { users: "not-an-array" } },
+  { route: "user categories", handler: handlers.categories, invalid: { categories: "not-an-array" } },
+  { route: "invitations", handler: handlers.invitations, invalid: { invitations: "not-an-array" } },
+  { route: "modules", handler: handlers.modules, invalid: { modules: "not-an-array" } },
+] as const;
 
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => redirectMock(url),
@@ -98,7 +106,7 @@ const USERS = [
 function resolveDefaultReads(): void {
   computeHealthMock.mockResolvedValue({ status: "ok", degradedReasons: [] });
   readInstanceStateMock.mockResolvedValue({ installed: true, setupIncomplete: false });
-  handlers.users.mockResolvedValue(json({ users: USERS, total: 3 }));
+  handlers.users.mockResolvedValue(json({ users: USERS, total: 3, active_total: 2 }));
   handlers.categories.mockResolvedValue(json({ categories: [{ id: "c1" }, { id: "c2" }] }));
   handlers.invitations.mockResolvedValue(
     json({
@@ -113,8 +121,9 @@ beforeEach(() => {
   getSessionMock.mockReset();
   getSessionMock.mockResolvedValue({ data: { session: { access_token: "token-123" } } });
   getInfraMock.mockReset();
+  loggerMock.mockReset();
   getInfraMock.mockResolvedValue({
-    deps: { rateLimitStorage: {}, logger: vi.fn() },
+    deps: { rateLimitStorage: {}, logger: loggerMock },
     auth: async () => ({ kind: "anon" }),
     settingsDeps: { db: { query: vi.fn() }, encryption: null },
   });
@@ -152,7 +161,7 @@ describe("loadPanelDashboard", () => {
     handlers.users.mockImplementation(async () => {
       started += 1;
       await gate;
-      return json({ users: USERS, total: USERS.length });
+      return json({ users: USERS, total: USERS.length, active_total: 2 });
     });
     handlers.categories.mockImplementation(async () => {
       started += 1;
@@ -237,32 +246,87 @@ describe("loadPanelDashboard", () => {
     });
   });
 
-  it("fails the whole dashboard with the request id when one authenticated route fails", async () => {
+  it("uses the instance-wide active_total even when the page is capped", async () => {
     handlers.users.mockResolvedValue(
-      json(
-        { error: { code: "internal", message: "Internal server error", request_id: "req-500" } },
-        500,
-        { "x-request-id": "req-header" },
-      ),
+      json({ users: USERS.slice(0, 1), total: 137, active_total: 121 }),
+    );
+
+    await expect(loadPanelDashboard()).resolves.toMatchObject({
+      ok: true,
+      kpis: { members: 137, activeMembers: 121 },
+    });
+  });
+
+  it.each(authenticatedRoutes)(
+    "fails the whole dashboard with the request id when $route returns 500",
+    async ({ handler }) => {
+      handler.mockResolvedValue(
+        json(
+          { error: { code: "internal", message: "Internal server error", request_id: "req-500" } },
+          500,
+          { "x-request-id": "req-header" },
+        ),
+      );
+
+      await expect(loadPanelDashboard()).resolves.toEqual({
+        ok: false,
+        code: "internal",
+        requestId: "req-500",
+      });
+    },
+  );
+
+  it.each(authenticatedRoutes)(
+    "keeps the header request id when $route returns an invalid 2xx shape",
+    async ({ handler, invalid }) => {
+      handler.mockResolvedValue(json(invalid, 200, { "x-request-id": "req-shape" }));
+
+      await expect(loadPanelDashboard()).resolves.toEqual({
+        ok: false,
+        requestId: "req-shape",
+      });
+    },
+  );
+
+  it("rejects a non-numeric total or active_total instead of substituting the page size", async () => {
+    handlers.users.mockResolvedValue(json({ users: [], total: "3", active_total: 0 }));
+    await expect(loadPanelDashboard()).resolves.toEqual({ ok: false });
+
+    resolveDefaultReads();
+    handlers.users.mockResolvedValue(json({ users: [], total: 0, active_total: null }));
+    await expect(loadPanelDashboard()).resolves.toEqual({ ok: false });
+  });
+
+  it("prefers the invalid response that actually carries a request id", async () => {
+    handlers.users.mockResolvedValue(json({ users: "not-an-array" }));
+    handlers.categories.mockResolvedValue(
+      json({ categories: "not-an-array" }, 200, { "x-request-id": "req-cat" }),
     );
 
     await expect(loadPanelDashboard()).resolves.toEqual({
       ok: false,
-      code: "internal",
-      requestId: "req-500",
+      requestId: "req-cat",
     });
   });
 
-  it("fails instead of showing zeros when a response has an invalid shape", async () => {
-    handlers.users.mockResolvedValue(json({ users: "not-an-array" }));
+  it.each([
+    {
+      service: "computeHealth",
+      fail: () => computeHealthMock.mockRejectedValue(new Error("database unreachable")),
+    },
+    {
+      service: "readInstanceState",
+      fail: () => readInstanceStateMock.mockRejectedValue(new Error("database unreachable")),
+    },
+  ])("fails and logs without PII when $service throws", async ({ fail }) => {
+    fail();
 
     await expect(loadPanelDashboard()).resolves.toEqual({ ok: false });
-  });
 
-  it("fails when a Core service read throws", async () => {
-    computeHealthMock.mockRejectedValue(new Error("database unreachable"));
-
-    await expect(loadPanelDashboard()).resolves.toEqual({ ok: false });
+    expect(loggerMock).toHaveBeenCalledWith(
+      expect.objectContaining({ level: "error", requestId: "panel-dashboard" }),
+    );
+    expect(JSON.stringify(loggerMock.mock.calls)).not.toContain("database unreachable");
   });
 
   it("never invokes the public health or instance routes", async () => {

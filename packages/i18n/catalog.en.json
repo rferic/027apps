@@ -152,6 +152,8 @@
   "Time zone",
   "Too many requests. Wait a moment and try again.",
   "Try again",
+  "Unexpected error: {code}",
+  "Unknown",
   "Use at least 12 characters. A longer passphrase is safer and easier to remember.",
   "Used for invitations and deep links. HTTPS, or HTTP only for local addresses (localhost, *.local, *.test, private IPs). No trailing slash. Use a stable address, not a per-deployment preview URL.",
   "User",
@@ -177,5 +179,6 @@
   "You do not have access to this page.",
   "You do not have permission to do that.",
   "Your installation is ready.",
+  "Your session has expired. Sign in again.",
   "Your Supabase project issues tokens lasting {observed} s. Set the JWT expiry to {expected} seconds in the Supabase dashboard (Auth → Sessions), then sign in again: a session opened before the change keeps the old lifetime."
 ]

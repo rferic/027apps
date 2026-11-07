@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { LogEntry } from "@027apps/core/api/types.js";
 import { invitationsRoute } from "@027apps/core/invitations/api.js";
 import { modulesRoute } from "@027apps/core/modules/api.js";
 import { computeHealth, type SettingsDeps } from "@027apps/core/settings/service.js";
@@ -24,7 +25,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  * panel after a handful of reloads.
  */
 const INTERNAL_ORIGIN = "http://panel.internal";
-/** The users route caps `limit` at 100; the dashboard asks for the widest page. */
+/**
+ * The users route caps `limit` at 100. The page only feeds the total/active KPIs,
+ * which come from the route's instance-wide `total`/`active_total` aggregates.
+ */
 const USERS_PAGE = "/api/v1/users?limit=100";
 
 export interface DashboardHealth {
@@ -64,9 +68,9 @@ export type DashboardFailure = {
 
 export type DashboardData = DashboardSuccess | DashboardFailure;
 
-type RouteCall =
-  | { ok: true; body: Record<string, unknown> }
-  | { ok: false; requestId?: string; code?: string };
+type RouteSuccess = { ok: true; body: Record<string, unknown>; requestId?: string };
+type RouteFailure = { ok: false; requestId?: string; code?: string };
+type RouteCall = RouteSuccess | RouteFailure;
 
 type ErrorFields = { requestId?: string; code?: string };
 
@@ -122,14 +126,31 @@ async function callRoute(
   if (!isRecord(body)) {
     return { ok: false, ...(headerRequestId ? { requestId: headerRequestId } : {}) };
   }
-  return { ok: true, body };
+  return { ok: true, body, ...(headerRequestId ? { requestId: headerRequestId } : {}) };
 }
 
 type HealthCall = { ok: true; health: DashboardHealth } | { ok: false };
 type SetupCall = { ok: true; setupIncomplete: boolean } | { ok: false };
 
+/** Correlation only: the log line never carries error text, bodies or PII. */
+function logServiceReadFailure(
+  logger: ((entry: LogEntry) => void) | undefined,
+  message: string,
+): void {
+  logger?.({
+    level: "error",
+    requestId: "panel-dashboard",
+    route: "/",
+    code: "service_read_failed",
+    message,
+  });
+}
+
 /** Health is a service call, so a failure has no route envelope (`code`/`request_id`). */
-async function readHealth(settings: SettingsDeps): Promise<HealthCall> {
+async function readHealth(
+  settings: SettingsDeps,
+  logger: ((entry: LogEntry) => void) | undefined,
+): Promise<HealthCall> {
   try {
     const health = await computeHealth(settings);
     return {
@@ -137,31 +158,34 @@ async function readHealth(settings: SettingsDeps): Promise<HealthCall> {
       health: { status: health.status, reasons: health.degradedReasons },
     };
   } catch {
+    logServiceReadFailure(logger, "dashboard health read failed");
     return { ok: false };
   }
 }
 
 /** `requires_setup` (no super_admin yet) and `setup_incomplete` share the same headline. */
-async function readSetupIncomplete(): Promise<SetupCall> {
+async function readSetupIncomplete(
+  logger: ((entry: LogEntry) => void) | undefined,
+): Promise<SetupCall> {
   try {
     const state = await readInstanceState();
     return { ok: true, setupIncomplete: !state.installed || state.setupIncomplete };
   } catch {
+    logServiceReadFailure(logger, "dashboard instance state read failed");
     return { ok: false };
   }
 }
 
 function readUsers(body: Record<string, unknown>): { members: number; activeMembers: number } | null {
   if (!Array.isArray(body.users)) return null;
-  let activeMembers = 0;
   for (const entry of body.users) {
     if (!isRecord(entry)) return null;
-    const deactivatedAt = entry.deactivated_at;
-    if (deactivatedAt !== null && typeof deactivatedAt !== "string") return null;
-    if (deactivatedAt === null) activeMembers += 1;
   }
-  const total = readNumber(body.total) ?? body.users.length;
-  return { members: total, activeMembers };
+  // Instance-wide aggregates: the page (capped at 100) never decides the KPI.
+  const members = readNumber(body.total);
+  const activeMembers = readNumber(body.active_total);
+  if (members === undefined || activeMembers === undefined) return null;
+  return { members, activeMembers };
 }
 
 function readPendingInvitations(body: Record<string, unknown>): number | null {
@@ -194,19 +218,23 @@ function readModules(body: Record<string, unknown>): DashboardModule[] | null {
   return modules;
 }
 
-/** Validates the four successful route bodies plus the two service reads together. */
+/**
+ * Validates the four successful route bodies plus the two service reads together.
+ * A 2xx with an invalid shape still keeps its `x-request-id`, and when several
+ * bodies are malformed the first one that carries a request id wins.
+ */
 function composeDashboard(input: {
   health: DashboardHealth;
   setupIncomplete: boolean;
-  users: Record<string, unknown>;
-  categories: Record<string, unknown>;
-  invitations: Record<string, unknown>;
-  modules: Record<string, unknown>;
+  users: RouteSuccess;
+  categories: RouteSuccess;
+  invitations: RouteSuccess;
+  modules: RouteSuccess;
 }): DashboardData {
-  const userCounts = readUsers(input.users);
-  const categoryCount = readCategoryCount(input.categories);
-  const pendingInvitations = readPendingInvitations(input.invitations);
-  const moduleList = readModules(input.modules);
+  const userCounts = readUsers(input.users.body);
+  const categoryCount = readCategoryCount(input.categories.body);
+  const pendingInvitations = readPendingInvitations(input.invitations.body);
+  const moduleList = readModules(input.modules.body);
 
   if (
     !userCounts ||
@@ -214,7 +242,14 @@ function composeDashboard(input: {
     pendingInvitations === null ||
     !moduleList
   ) {
-    return { ok: false };
+    const failedRequestIds = [
+      ...(userCounts ? [] : [input.users.requestId]),
+      ...(categoryCount === null ? [input.categories.requestId] : []),
+      ...(pendingInvitations === null ? [input.invitations.requestId] : []),
+      ...(moduleList ? [] : [input.modules.requestId]),
+    ];
+    const requestId = failedRequestIds.find((id) => id !== undefined);
+    return { ok: false, ...(requestId ? { requestId } : {}) };
   }
 
   return {
@@ -252,8 +287,8 @@ export async function loadPanelDashboard(): Promise<DashboardData> {
   ]);
 
   const [health, setup, users, categories, invitations, modules] = await Promise.all([
-    readHealth(infra.settingsDeps),
-    readSetupIncomplete(),
+    readHealth(infra.settingsDeps, infra.deps.logger),
+    readSetupIncomplete(infra.deps.logger),
     callRoute(
       usersRoute({
         door: infra.deps,
@@ -287,9 +322,9 @@ export async function loadPanelDashboard(): Promise<DashboardData> {
   return composeDashboard({
     health: health.health,
     setupIncomplete: setup.setupIncomplete,
-    users: users.body,
-    categories: categories.body,
-    invitations: invitations.body,
-    modules: modules.body,
+    users,
+    categories,
+    invitations,
+    modules,
   });
 }

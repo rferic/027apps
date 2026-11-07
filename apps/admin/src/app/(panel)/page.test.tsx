@@ -41,8 +41,8 @@ const READY = {
     activeMembers: 4,
     pendingInvitations: 2,
     activeModules: 3,
-    totalModules: 4,
-    categories: 2,
+    totalModules: 7,
+    categories: 6,
   },
   modules: [
     { key: "expenses", name: "Expenses", state: "active", isPublic: true },
@@ -75,6 +75,7 @@ describe("DashboardPage", () => {
     expect(html).toContain(">4<");
     expect(html).toContain(">2<");
     expect(html).toContain(">3<");
+    expect(html).toContain(">6<");
     expect(html).toContain("Expenses");
     expect(html).toContain("Notes");
     expect(html).toContain('href="/modules"');
@@ -91,6 +92,21 @@ describe("DashboardPage", () => {
     expect(html).toContain('href="/setup"');
     expect(html).toContain("Finish setup");
     expect(html).not.toContain("Everything is ready.");
+  });
+
+  it("keeps the setup headline and the degraded banner at the same time", async () => {
+    loadDashboardMock.mockResolvedValue({
+      ...READY,
+      setupIncomplete: true,
+      health: { status: "degraded", reasons: ["database_unreachable"] },
+    });
+
+    const html = renderToStaticMarkup(await DashboardPage());
+
+    expect(html).toContain('<h1 class="text-base font-bold">Setup is incomplete.</h1>');
+    expect(html).not.toContain("The service is degraded.");
+    expect(html).toContain("What needs attention");
+    expect(html).toContain("The database is unreachable.");
   });
 
   it("shows the degraded banner with readable reasons", async () => {
@@ -111,12 +127,22 @@ describe("DashboardPage", () => {
 
     const html = renderToStaticMarkup(await DashboardPage());
 
+    expect(html).toContain('<h1 class="text-sm font-semibold text-destructive">');
     expect(html).toContain("We couldn&#x27;t load the dashboard.");
     expect(html).toContain("Something went wrong on the server.");
     expect(html).toContain("req-123");
     expect(html).toContain('href="/"');
     expect(html).toContain("Try again");
     expect(html).not.toContain("Active members");
+  });
+
+  it("keeps an unknown error code as translated detail", async () => {
+    loadDashboardMock.mockResolvedValue({ ok: false, code: "teapot", requestId: "req-418" });
+
+    const html = renderToStaticMarkup(await DashboardPage());
+
+    expect(html).toContain("Unexpected error: teapot");
+    expect(html).not.toContain(">teapot<");
   });
 
   it("renders the generic 403 when the role is denied", async () => {
@@ -139,8 +165,22 @@ describe("DashboardPage", () => {
 
     expect(html).toContain("No modules are installed yet.");
     expect(html).toContain("Install a module to make its features available to the instance.");
+    expect(html).toContain('href="/modules"');
+    expect(html).toContain("Install a module");
     expect(html).not.toContain("Expenses");
     expect(html).toContain("Active members");
+  });
+
+  it("never labels an unknown module state as installed", async () => {
+    loadDashboardMock.mockResolvedValue({
+      ...READY,
+      modules: [{ key: "expenses", name: "Expenses", state: "installing", isPublic: true }],
+    });
+
+    const html = renderToStaticMarkup(await DashboardPage());
+
+    expect(html).toContain("Unknown");
+    expect(html).not.toContain(">Installed<");
   });
 
   it("replaces the four zeros with a next-step block when there is nothing yet", async () => {
@@ -163,5 +203,26 @@ describe("DashboardPage", () => {
     expect(html).toContain("Invite members or install a module to get started.");
     expect(html).toContain('href="/invitations"');
     expect(html).not.toContain("Active members");
+  });
+
+  it("keeps the KPIs when a category or an invitation already exists", async () => {
+    loadDashboardMock.mockResolvedValue({
+      ...READY,
+      kpis: {
+        members: 0,
+        activeMembers: 0,
+        pendingInvitations: 1,
+        activeModules: 0,
+        totalModules: 0,
+        categories: 0,
+      },
+      modules: [],
+    });
+
+    const html = renderToStaticMarkup(await DashboardPage());
+
+    expect(html).not.toContain("No members or modules yet.");
+    expect(html).toContain("Active members");
+    expect(html).toContain(">1<");
   });
 });

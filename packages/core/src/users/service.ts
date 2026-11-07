@@ -43,7 +43,10 @@ export interface UserListFilters {
 
 export interface UserList {
   users: UserView[];
+  /** Profiles matching the filter, across every page. */
   total: number;
+  /** Active (not deactivated) profiles matching the filter, across every page. */
+  active_total: number;
 }
 
 export interface UserPatch {
@@ -111,13 +114,18 @@ export async function listUsers(deps: UsersDeps, filters: UserListFilters): Prom
     [pattern, filters.limit, filters.offset],
   );
   const { rows: countRows } = await deps.db.query(
-    `select count(*)::int as n
+    `select count(*)::int as n,
+            count(*) filter (where p.deactivated_at is null)::int as active_total
        from public.profiles p
        join auth.users u on u.id = p.id
       where ($1::text is null or p.display_name ilike $1 escape '\\' or u.email ilike $1 escape '\\')`,
     [pattern],
   );
-  return { users: rows.map(toView), total: Number(countRows[0]?.n ?? 0) };
+  return {
+    users: rows.map(toView),
+    total: Number(countRows[0]?.n ?? 0),
+    active_total: Number(countRows[0]?.active_total ?? 0),
+  };
 }
 
 export async function getUser(deps: UsersDeps, id: string): Promise<UserView> {
