@@ -35,6 +35,7 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
   const settings = await loadPanelSettings();
   const instanceName = typeof settings["instance.name"] === "string" ? settings["instance.name"] : "";
   const logoUrl = typeof settings["instance.logo_url"] === "string" ? settings["instance.logo_url"] : null;
+  const role = gate.user.role === "super_admin" ? "super_admin" : "admin";
 
   return (
     <div
@@ -42,7 +43,7 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
       className="grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[220px_1fr]"
     >
       <aside className="hidden border-r border-border bg-muted p-3 lg:block">
-        <PanelNav messages={messages} variant="sidebar" />
+        <PanelNav role={role} messages={messages} variant="sidebar" />
       </aside>
       <div className="flex min-w-0 flex-col">
         <PanelHeader
@@ -52,7 +53,7 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
           theme={theme}
           instanceName={instanceName}
           logoUrl={logoUrl}
-          menu={<PanelMobileMenu messages={messages} />}
+          menu={<PanelMobileMenu role={role} messages={messages} />}
         />
         <main id="content" className="flex-1 p-4">
           {children}

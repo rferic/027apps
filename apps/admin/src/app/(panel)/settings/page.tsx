@@ -1,18 +1,16 @@
 import { cookies } from "next/headers";
-import { t } from "@027apps/i18n/t.js";
-import type { TranslationMap } from "@027apps/i18n/types.js";
-import { CurrencySettings } from "@/components/currency-settings";
-import { PanelError } from "@/components/panel-error";
+import { redirect } from "next/navigation";
 import { PanelForbidden } from "@/components/panel-forbidden";
-import { SettingsForm } from "@/components/settings-form";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
+import { loadSettingsCategories } from "@/lib/panel-settings";
 import {
-  loadCurrencies,
-  loadSettingsCategories,
-  settingsVisibility,
-} from "@/lib/panel-settings";
+  canSeeSettingsSection,
+  firstVisibleSettingsSection,
+  settingsSectionByCategory,
+  type SettingsSection,
+} from "@/lib/settings-sections";
 
 /**
  * The page reads the session while rendering; the layout's opt-out is not
@@ -20,33 +18,12 @@ import {
  */
 export const instant = false;
 
-function CurrenciesBlock({
-  data,
-  messages,
-}: {
-  data: Awaited<ReturnType<typeof loadCurrencies>>;
-  messages: TranslationMap;
-}) {
-  if (!data.ok) {
-    return (
-      <PanelError
-        error={data}
-        heading={t("We couldn't load the currencies.", messages)}
-        retryHref="/settings"
-        messages={messages}
-      />
-    );
-  }
-  return (
-    <CurrencySettings
-      defaultCode={data.default}
-      currencies={data.currencies}
-      messages={messages}
-    />
-  );
-}
-
-export default async function SettingsPage() {
+/**
+ * `/settings` is a parent route: it sends the user to the first section its
+ * role can see. The API order decides when it is available; the canonical
+ * order is the fallback if that read fails.
+ */
+export default async function SettingsIndexPage() {
   const gate = await requirePanel("admin");
 
   const cookieStore = await cookies();
@@ -58,34 +35,16 @@ export default async function SettingsPage() {
     return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
   }
 
-  const [settings, currencies] = await Promise.all([loadSettingsCategories(), loadCurrencies()]);
-  const visibility = settingsVisibility(gate.user.role === "super_admin" ? "super_admin" : "admin");
+  const role = gate.user.role === "super_admin" ? "super_admin" : "admin";
+  const settings = await loadSettingsCategories();
+  const firstFromApi = settings.ok
+    ? settings.categories
+        .map((category) => settingsSectionByCategory(category.categoryKey))
+        .find((section): section is SettingsSection => {
+          return section !== undefined && canSeeSettingsSection(role, section);
+        })
+    : undefined;
 
-  return (
-    <section className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-base font-bold">{t("Settings", messages)}</h1>
-        <p className="text-xs text-muted-foreground">
-          {t("Instance configuration. Changes apply to every client.", messages)}
-        </p>
-      </header>
-
-      {settings.ok ? (
-        <SettingsForm
-          categories={settings.categories}
-          restricted={visibility.restricted}
-          messages={messages}
-        />
-      ) : (
-        <PanelError
-          error={settings}
-          heading={t("We couldn't load the settings.", messages)}
-          retryHref="/settings"
-          messages={messages}
-        />
-      )}
-
-      <CurrenciesBlock data={currencies} messages={messages} />
-    </section>
-  );
+  const target = firstFromApi ?? firstVisibleSettingsSection(role);
+  redirect(`/settings/${target.slug}`);
 }

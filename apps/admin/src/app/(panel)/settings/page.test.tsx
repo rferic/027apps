@@ -3,15 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requirePanelMock = vi.fn();
 const loadSettingsCategoriesMock = vi.fn();
-const loadCurrenciesMock = vi.fn();
-const settingsVisibilityMock = vi.fn();
+const redirectMock = vi.fn((url: string) => {
+  throw new Error(`NEXT_REDIRECT:${url}`);
+});
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
 }));
 
 vi.mock("next/navigation", () => ({
-  redirect: vi.fn(),
+  redirect: (url: string) => redirectMock(url),
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 
@@ -25,29 +26,27 @@ vi.mock("@/lib/panel-i18n", () => ({
 
 vi.mock("@/lib/panel-settings", () => ({
   loadSettingsCategories: () => loadSettingsCategoriesMock(),
-  loadCurrencies: () => loadCurrenciesMock(),
-  settingsVisibility: (role: string) => settingsVisibilityMock(role),
 }));
 
 vi.mock("@/app/(auth)/actions", () => ({
   signOutAction: "sign-out",
 }));
 
-import SettingsPage, { instant } from "./page";
+import SettingsIndexPage, { instant } from "./page";
 
-const CATEGORIES = [
-  {
-    categoryKey: "instance",
-    label: "Instance",
-    help: "Instance identity and public links.",
+function category(categoryKey: string, label: string, key: string, settingLabel: string) {
+  return {
+    categoryKey,
+    label,
+    help: "",
     icon: "server",
     sortOrder: 10,
     settings: [
       {
-        key: "instance.name",
-        category: "instance",
-        label: "Instance name",
-        help: "Public name of this 027Apps instance.",
+        key,
+        category: categoryKey,
+        label: settingLabel,
+        help: "",
         type: "string" as const,
         isSecret: false,
         isPublic: true,
@@ -59,104 +58,55 @@ const CATEGORIES = [
         value: "027Apps",
       },
     ],
-  },
-];
+  };
+}
 
-const CURRENCIES = {
-  ok: true as const,
-  default: "EUR",
-  currencies: [
-    { code: "EUR", enabled: true, isDefault: true },
-    { code: "USD", enabled: false, isDefault: false },
-  ],
-};
-
-const VISIBILITY = {
-  restricted: [
-    {
-      key: "instance.public_url",
-      category: "instance",
-      label: "Public URL",
-      help: "https origin used for invitation links and deep links.",
-      readOnly: false,
-    },
-  ],
-  readOnlyKeys: ["security.jwt_expiry"],
-};
+const SECURITY = category("security", "Security", "security.jwt_expiry", "JWT expiry");
+const INSTANCE = category("instance", "Instance", "instance.name", "Instance name");
+const LOCALIZATION = category(
+  "localization",
+  "Localization",
+  "localization.timezone",
+  "Timezone",
+);
 
 beforeEach(() => {
+  redirectMock.mockClear();
   requirePanelMock.mockReset();
   requirePanelMock.mockResolvedValue({
     user: { id: "u1", email: "admin@example.com", displayName: "Admin", role: "admin" },
   });
   loadSettingsCategoriesMock.mockReset();
-  loadSettingsCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES });
-  loadCurrenciesMock.mockReset();
-  loadCurrenciesMock.mockResolvedValue(CURRENCIES);
-  settingsVisibilityMock.mockReset();
-  settingsVisibilityMock.mockReturnValue(VISIBILITY);
+  loadSettingsCategoriesMock.mockResolvedValue({
+    ok: true,
+    categories: [SECURITY, INSTANCE, LOCALIZATION],
+  });
 });
 
-describe("SettingsPage", () => {
+describe("SettingsIndexPage", () => {
   it("opts the segment out of the static shell", () => {
     expect(instant).toBe(false);
   });
 
-  it("groups settings by category and shows currencies", async () => {
-    const html = renderToStaticMarkup(await SettingsPage());
-
-    expect(html).toContain("Instance");
-    expect(html).toContain("Instance name");
-    expect(html).toContain("Save changes");
-    expect(html).toContain("Currencies");
-    expect(html).toContain("USD");
-    expect(settingsVisibilityMock).toHaveBeenCalledWith("admin");
+  it("redirects an admin to the first section it can see (skips security)", async () => {
+    await expect(SettingsIndexPage()).rejects.toThrow("NEXT_REDIRECT:/settings/instance");
+    expect(redirectMock).toHaveBeenCalledWith("/settings/instance");
+    expect(loadSettingsCategoriesMock).toHaveBeenCalledTimes(1);
   });
 
-  it("composes the super-admin-only rows as read-only notes for an admin", async () => {
-    const html = renderToStaticMarkup(await SettingsPage());
-
-    expect(html).toContain("Public URL");
-    expect(html).toContain("Only a super administrator can view this value.");
-    expect(html).not.toContain('id="setting-instance-public_url"');
-  });
-
-  it("shows no restricted rows for a super_admin", async () => {
+  it("redirects a super_admin to the first visible category from the API order", async () => {
     requirePanelMock.mockResolvedValue({
       user: { id: "u1", email: "root@example.com", displayName: "Root", role: "super_admin" },
     });
-    settingsVisibilityMock.mockReturnValue({ restricted: [], readOnlyKeys: ["security.jwt_expiry"] });
 
-    const html = renderToStaticMarkup(await SettingsPage());
-
-    expect(html).not.toContain("Only a super administrator can view this value.");
-    expect(settingsVisibilityMock).toHaveBeenCalledWith("super_admin");
+    await expect(SettingsIndexPage()).rejects.toThrow("NEXT_REDIRECT:/settings/security");
+    expect(redirectMock).toHaveBeenCalledWith("/settings/security");
   });
 
-  it("shows the settings error with the request id and a retry link", async () => {
-    loadSettingsCategoriesMock.mockResolvedValue({
-      ok: false,
-      code: "internal",
-      requestId: "req-500",
-    });
+  it("falls back to the canonical first section when the categories read fails", async () => {
+    loadSettingsCategoriesMock.mockResolvedValue({ ok: false, code: "internal" });
 
-    const html = renderToStaticMarkup(await SettingsPage());
-
-    expect(html).toContain("load the settings.");
-    expect(html).toContain("Something went wrong on the server.");
-    expect(html).toContain("req-500");
-    expect(html).toContain('href="/settings"');
-    expect(html).not.toContain("Save changes");
-  });
-
-  it("keeps the settings form when only the currencies read fails", async () => {
-    loadCurrenciesMock.mockResolvedValue({ ok: false, code: "internal", requestId: "req-cur" });
-
-    const html = renderToStaticMarkup(await SettingsPage());
-
-    expect(html).toContain("Save changes");
-    expect(html).toContain("load the currencies.");
-    expect(html).toContain("req-cur");
+    await expect(SettingsIndexPage()).rejects.toThrow("NEXT_REDIRECT:/settings/instance");
   });
 
   it("renders the generic 403 and never loads data when the role is denied", async () => {
@@ -165,10 +115,10 @@ describe("SettingsPage", () => {
       user: { id: "u9", email: "user@example.com", displayName: "User", role: "user" },
     });
 
-    const html = renderToStaticMarkup(await SettingsPage());
+    const html = renderToStaticMarkup(await SettingsIndexPage());
 
     expect(html).toContain("You do not have access to this page.");
     expect(loadSettingsCategoriesMock).not.toHaveBeenCalled();
-    expect(loadCurrenciesMock).not.toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
   });
 });

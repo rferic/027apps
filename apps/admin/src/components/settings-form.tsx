@@ -358,6 +358,7 @@ function CategorySection({
   draft,
   restricted,
   error,
+  showHeading,
   onChange,
   messages,
 }: {
@@ -365,12 +366,13 @@ function CategorySection({
   draft: SettingsDraft;
   restricted: RestrictedSetting[];
   error: MutationFailure | null;
+  showHeading: boolean;
   onChange: (key: string, value: string) => void;
   messages: TranslationMap;
 }) {
   const hidden = restricted.filter((setting) => setting.category === category.categoryKey);
-  return (
-    <FormSection title={category.label} description={category.help}>
+  const fields = (
+    <>
       {category.settings.map((setting) => (
         <SettingField
           key={setting.key}
@@ -384,6 +386,20 @@ function CategorySection({
       {hidden.map((setting) => (
         <RestrictedSettingRow key={setting.key} setting={setting} messages={messages} />
       ))}
+    </>
+  );
+
+  if (!showHeading) {
+    return (
+      <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4">
+        {fields}
+      </div>
+    );
+  }
+
+  return (
+    <FormSection title={category.label} description={category.help}>
+      {fields}
     </FormSection>
   );
 }
@@ -446,6 +462,7 @@ export function SettingsForm({
           draft={draft}
           restricted={restricted}
           error={error}
+          showHeading={categories.length > 1}
           onChange={change}
           messages={messages}
         />

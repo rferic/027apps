@@ -17,7 +17,7 @@ import { PanelMobileMenu } from "./panel-mobile-menu";
  */
 describe("PanelMobileMenu", () => {
   it("renders a mobile-only trigger with an accessible name", () => {
-    const html = renderToStaticMarkup(<PanelMobileMenu messages={{}} />);
+    const html = renderToStaticMarkup(<PanelMobileMenu role="admin" messages={{}} />);
 
     expect(html).toContain('aria-label="Open menu"');
     expect(html).toContain("lg:hidden");
@@ -25,7 +25,7 @@ describe("PanelMobileMenu", () => {
   });
 
   it("renders a native dialog with the Menu title, a close button and the navigation", () => {
-    const html = renderToStaticMarkup(<PanelMobileMenu messages={{}} />);
+    const html = renderToStaticMarkup(<PanelMobileMenu role="admin" messages={{}} />);
 
     expect(html).toContain("<dialog");
     expect(html).toContain('aria-label="Menu"');
@@ -36,7 +36,7 @@ describe("PanelMobileMenu", () => {
   });
 
   it("uses the sliding panel layout and the backdrop token", () => {
-    const html = renderToStaticMarkup(<PanelMobileMenu messages={{}} />);
+    const html = renderToStaticMarkup(<PanelMobileMenu role="admin" messages={{}} />);
 
     expect(html).toContain("fixed inset-y-0 left-0");
     expect(html).toContain("w-72");
@@ -48,6 +48,7 @@ describe("PanelMobileMenu", () => {
   it("translates the trigger, the title and the close button", () => {
     const html = renderToStaticMarkup(
       <PanelMobileMenu
+        role="admin"
         messages={{
           Menu: "Menú",
           "Open menu": "Abrir el menú",

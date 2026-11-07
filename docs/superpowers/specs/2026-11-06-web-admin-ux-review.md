@@ -49,11 +49,17 @@ Problemas observados en `apps/admin/src/app/page.tsx`:
 | **Inicio** | `/` (dashboard) | "¿Cómo está mi instancia?" |
 | **Personas** | `/members`, `/categories`, `/invitations` | Todo lo que describe quién entra y qué puede hacer |
 | **Plataforma** | `/modules`, `/keys` | Qué corre y con qué credenciales |
-| **Sistema** | `/settings`, `/docs/api` | Configuración y contrato de la API |
+| **Sistema** | `/settings` (padre), `/docs/api` | Configuración y contrato de la API |
 
 Reglas:
 
 - **Máximo un nivel de anidación** (`/members/[id]`). En el detalle, breadcrumb "Miembros / Nombre".
+- **Settings no es una página única**: `/settings` redirige a la primera sección visible y cada
+  categoría real tiene su ruta: `/settings/instance`, `/settings/localization`, `/settings/security`,
+  `/settings/notifications`, `/settings/rate-limits`. Cada página carga y guarda solo esa categoría;
+  en la navegación, Settings es el ítem padre de esos hijos.
+- **Security solo para `super_admin`**: ni el menú ni la ruta se ofrecen a un `admin`, que recibe el
+  403 genérico sin leer los ajustes.
 - El **selector de idioma** va en la cabecera, junto al menú de usuario (es preferencia global, no
   navegación).
 - El **menú de usuario** (avatar + nombre + rol) contiene "Cerrar sesión". Nunca un botón suelto.
@@ -88,6 +94,12 @@ Reglas:
   acceso al instante").
 - **Formularios**: etiqueta arriba, ayuda debajo, error junto al campo. Un botón primario; "Cancelar"
   como enlace.
+- **Selección múltiple (monedas)**: `fieldset`/`legend`, buscador que filtra por nombre, código o
+  símbolo y lista de checkboxes con `símbolo · Nombre (CODE)`. El nombre y el símbolo se derivan en
+  cliente con `Intl` (la BD solo guarda `code`/`enabled`), con el código como fallback. Las marcadas son
+  las monedas `enabled`; la default está marcada y no se puede desmarcar. "Deselect all except the
+  default" pide confirmación inline, aplica un `PATCH` por moneda y refresca una vez al terminar el
+  lote. Contador visible y vacío "No currencies match".
 - **Confirmaciones destructivas**: nombrar el objeto y la consecuencia; nunca solo "¿Estás seguro?".
 - **Feedback**: cambio guardado → mensaje breve junto a la acción; error → inline + `request_id`.
 

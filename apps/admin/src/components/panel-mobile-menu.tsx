@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { cn } from "@/lib/cn";
+import type { PanelRole } from "@/lib/panel-guard";
 import { CloseIcon, MenuIcon } from "./panel-icons";
 import { PanelNav } from "./panel-nav";
 
@@ -12,7 +13,7 @@ import { PanelNav } from "./panel-nav";
  * free — focus trap, top layer, Escape — so no dependency or custom focus
  * management is needed. The trigger lives in the header and is hidden at `lg`.
  */
-export function PanelMobileMenu({ messages }: { messages: TranslationMap }) {
+export function PanelMobileMenu({ role, messages }: { role: PanelRole; messages: TranslationMap }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   const close = () => dialogRef.current?.close();
@@ -54,7 +55,7 @@ export function PanelMobileMenu({ messages }: { messages: TranslationMap }) {
             <CloseIcon className="h-5 w-5" />
           </button>
         </div>
-        <PanelNav messages={messages} variant="drawer" onNavigate={close} />
+        <PanelNav role={role} messages={messages} variant="drawer" onNavigate={close} />
       </dialog>
     </>
   );
