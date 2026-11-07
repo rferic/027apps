@@ -169,6 +169,31 @@ async function assertCategory(db: QueryClient, categoryId: string): Promise<void
   if (!rows[0]) throw new DomainError("not_found");
 }
 
+function readSettingString(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+/**
+ * Initial preferences for a profile created by redemption (task-07 debt M2b):
+ * the wizard's localization is the instance default, so a new member must not
+ * start on hardcoded `en`/`UTC`. Missing rows or null values keep the column
+ * defaults; a partially configured instance falls back per key.
+ */
+async function defaultProfileLocalization(
+  db: QueryClient,
+): Promise<{ locale: string; timezone: string }> {
+  const { rows } = await db.query(
+    "select key, value from public.settings where key = any($1::text[])",
+    [["localization.default_locale", "localization.timezone"]],
+  );
+  const values = new Map<string, unknown>();
+  for (const row of rows) values.set(String(row.key), row.value);
+  return {
+    locale: readSettingString(values.get("localization.default_locale")) ?? "en",
+    timezone: readSettingString(values.get("localization.timezone")) ?? "UTC",
+  };
+}
+
 export async function createInvitation(
   deps: InvitationsDeps,
   caller: Caller,
@@ -349,11 +374,13 @@ export async function redeemInvitation(
 
       const invitationId = String(invitation.id);
 
+      // The wizard's localization seeds the profile instead of `en`/`UTC`.
+      const localization = await defaultProfileLocalization(db);
       await db.query(
-        `insert into public.profiles (id, display_name, role)
-         values ($1, $2, 'user')
+        `insert into public.profiles (id, display_name, role, locale, timezone)
+         values ($1, $2, 'user', $3, $4)
          on conflict (id) do nothing`,
-        [userId, displayName],
+        [userId, displayName, localization.locale, localization.timezone],
       );
 
       if (invitation.user_category_id) {

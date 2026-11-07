@@ -269,8 +269,37 @@ describe("invitations service", () => {
     });
   });
 
-  it("rejects expired, revoked and mismatched-email redemptions without creating users", async () => {
+  it("seeds the new profile with the instance localization settings", async () => {
     await inRollback(async (c) => {
+      await query(
+        c,
+        "update public.settings set value = '\"es\"'::jsonb where key = 'localization.default_locale'",
+      );
+      await query(
+        c,
+        "update public.settings set value = '\"Europe/Madrid\"'::jsonb where key = 'localization.timezone'",
+      );
+
+      const who = await admin(c);
+      const auth = authPort(c);
+      const d = deps(c, auth.port);
+      const inv = await createInvitation(d, who, { email: email("locale"), name: "Locale" });
+
+      const result = await redeemInvitation(d, inv.token, {
+        email: inv.invitation.email,
+        password: "correct-horse-battery",
+      });
+
+      const { rows } = await query(
+        c,
+        "select locale, timezone from public.profiles where id = $1",
+        [result.user.id],
+      );
+      expect(rows).toEqual([{ locale: "es", timezone: "Europe/Madrid" }]);
+    });
+  });
+
+  it("rejects expired, revoked and mismatched-email redemptions without creating users", async () => {    await inRollback(async (c) => {
       const who = await admin(c);
       const auth = authPort(c);
       const d = deps(c, auth.port);
