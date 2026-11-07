@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
+import { PanelError } from "@/components/panel-error";
 import { assignCategoryModule, unassignCategoryModule } from "@/lib/category-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
-import type { ModuleChoice } from "@/lib/panel-categories";
+import type { CategoryFailure, ModuleChoice } from "@/lib/panel-categories";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
 const inputClass =
@@ -47,14 +48,17 @@ export function CategoryModules({
   categoryId,
   assigned,
   available,
-  catalogueUnavailable = false,
+  catalogueFailure = null,
+  retryHref,
   messages,
 }: {
   categoryId: string;
   assigned: string[];
   available: ModuleChoice[];
   /** The module catalogue read failed; assignment controls are hidden. */
-  catalogueUnavailable?: boolean;
+  catalogueFailure?: CategoryFailure | null;
+  /** Reloads this page so the failed catalogue is read again. */
+  retryHref: string;
   messages: TranslationMap;
 }) {
   const router = useRouter();
@@ -133,10 +137,13 @@ export function CategoryModules({
         </ul>
       )}
 
-      {catalogueUnavailable ? (
-        <p role="alert" className="text-xs font-semibold text-destructive">
-          {t("We couldn't load the module catalogue.", messages)}
-        </p>
+      {catalogueFailure ? (
+        <PanelError
+          error={catalogueFailure}
+          heading={t("We couldn't load the module catalogue.", messages)}
+          retryHref={retryHref}
+          messages={messages}
+        />
       ) : assignable.length > 0 ? (
         <form onSubmit={handleAssign} className="flex flex-wrap items-end gap-2">
           <label htmlFor="category-module-add" className="flex flex-col gap-1 text-xs font-semibold">

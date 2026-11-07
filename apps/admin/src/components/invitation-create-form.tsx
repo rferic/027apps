@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent, type RefObject, type SyntheticEvent } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
@@ -219,6 +219,109 @@ interface InvitationCreateFormProps {
   messages: TranslationMap;
 }
 
+interface InvitationCreateDialogProps extends InvitationCreateFormProps {
+  dialogRef: RefObject<HTMLDialogElement | null>;
+  creating: boolean;
+  created: boolean;
+  token: string | null;
+  copied: boolean;
+  error: MutationFailure | null;
+  fieldErrors: Record<string, string[]>;
+  onCancel: (event: SyntheticEvent<HTMLDialogElement>) => void;
+  /** Closes the dialog; the `onClose` event then clears the state. */
+  onDismiss: () => void;
+  /** Fired on `close`, including Escape, so the token never survives. */
+  onClosed: () => void;
+  onCopy: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}
+
+/**
+ * The dialog body. Once the token exists the form is not rendered: a second
+ * creation in the same dialog would overwrite the only copy of the first token
+ * (the Core returns the plaintext token once), so the only way out is "Done".
+ */
+export function InvitationCreateDialog({
+  dialogRef,
+  categories,
+  modules,
+  optionsUnavailable = false,
+  creating,
+  created,
+  token,
+  copied,
+  error,
+  fieldErrors,
+  onCancel,
+  onDismiss,
+  onClosed,
+  onCopy,
+  onSubmit,
+  messages,
+}: InvitationCreateDialogProps) {
+  return (
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="invitation-create-title"
+      onCancel={onCancel}
+      onClose={onClosed}
+      className="w-full max-w-lg rounded-card border border-border bg-surface p-4 backdrop:bg-foreground/40"
+    >
+      <h2 id="invitation-create-title" className="text-sm font-semibold">
+        {created ? t("Invitation created", messages) : t("New invitation", messages)}
+      </h2>
+
+      {token ? (
+        <>
+          <TokenPanel token={token} copied={copied} onCopy={onCopy} messages={messages} />
+          <div className="mt-3 flex flex-wrap justify-end gap-2">
+            <Button variant="secondary" className="min-h-11" onClick={onDismiss}>
+              {t("Done", messages)}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-3">
+          {created && (
+            <p role="status" className="text-xs text-muted-foreground">
+              {t("The invitation was created but the API did not return a token.", messages)}
+            </p>
+          )}
+
+          <InvitationFields
+            categories={categories}
+            modules={modules}
+            fieldErrors={fieldErrors}
+            messages={messages}
+          />
+
+          {optionsUnavailable && (
+            <p className="text-xs text-muted-foreground">
+              {t("Some category or module options are unavailable right now.", messages)}
+            </p>
+          )}
+
+          {error && <InvitationErrorAlert error={error} messages={messages} />}
+
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="secondary"
+              className="min-h-11"
+              onClick={onDismiss}
+              disabled={creating}
+            >
+              {created ? t("Done", messages) : t("Cancel", messages)}
+            </Button>
+            <Button type="submit" variant="primary" className="min-h-11" disabled={creating}>
+              {creating ? t("Creating…", messages) : t("Create invitation", messages)}
+            </Button>
+          </div>
+        </form>
+      )}
+    </dialog>
+  );
+}
+
 /**
  * Creation form. The Core returns the plaintext token only in this response
  * (`createInvitation` contract), so it is kept in component state and cleared
@@ -299,60 +402,27 @@ export function InvitationCreateForm({
         {t("Create invitation", messages)}
       </Button>
 
-      <dialog
-        ref={dialogRef}
-        aria-labelledby="invitation-create-title"
+      <InvitationCreateDialog
+        dialogRef={dialogRef}
+        categories={categories}
+        modules={modules}
+        optionsUnavailable={optionsUnavailable}
+        creating={creating}
+        created={created}
+        token={token}
+        copied={copied}
+        error={error}
+        fieldErrors={fieldErrors}
         onCancel={(event) => {
           // Escape must not dismiss the dialog while the request is in flight.
           if (creating) event.preventDefault();
         }}
-        className="w-full max-w-lg rounded-card border border-border bg-surface p-4 backdrop:bg-foreground/40"
-      >
-        <h2 id="invitation-create-title" className="text-sm font-semibold">
-          {created ? t("Invitation created", messages) : t("New invitation", messages)}
-        </h2>
-
-        {token && (
-          <TokenPanel token={token} copied={copied} onCopy={handleCopy} messages={messages} />
-        )}
-
-        {created && !token && (
-          <p role="status" className="mt-3 text-xs text-muted-foreground">
-            {t("The invitation was created but the API did not return a token.", messages)}
-          </p>
-        )}
-
-        <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-3">
-          <InvitationFields
-            categories={categories}
-            modules={modules}
-            fieldErrors={fieldErrors}
-            messages={messages}
-          />
-
-          {optionsUnavailable && (
-            <p className="text-xs text-muted-foreground">
-              {t("Some category or module options are unavailable right now.", messages)}
-            </p>
-          )}
-
-          {error && <InvitationErrorAlert error={error} messages={messages} />}
-
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button
-              variant="secondary"
-              className="min-h-11"
-              onClick={closeDialog}
-              disabled={creating}
-            >
-              {created ? t("Done", messages) : t("Cancel", messages)}
-            </Button>
-            <Button type="submit" variant="primary" className="min-h-11" disabled={creating}>
-              {creating ? t("Creating…", messages) : t("Create invitation", messages)}
-            </Button>
-          </div>
-        </form>
-      </dialog>
+        onDismiss={closeDialog}
+        onClosed={resetState}
+        onCopy={handleCopy}
+        onSubmit={handleSubmit}
+        messages={messages}
+      />
     </>
   );
 }

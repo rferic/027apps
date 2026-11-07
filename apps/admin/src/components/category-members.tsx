@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
+import { PanelError } from "@/components/panel-error";
 import { addCategoryMember, removeCategoryMember } from "@/lib/category-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
-import type { CategoryMemberRow, MemberChoice } from "@/lib/panel-categories";
+import type { CategoryFailure, CategoryMemberRow, MemberChoice } from "@/lib/panel-categories";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
 const inputClass =
@@ -98,22 +99,27 @@ function AddMemberForm({
   available,
   memberQuery,
   adding,
-  choicesUnavailable,
+  choicesFailure,
+  retryHref,
   onSubmit,
   messages,
 }: {
   available: MemberChoice[];
   memberQuery: string;
   adding: boolean;
-  choicesUnavailable: boolean;
+  choicesFailure: CategoryFailure | null;
+  retryHref: string;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   messages: TranslationMap;
 }) {
-  if (choicesUnavailable) {
+  if (choicesFailure) {
     return (
-      <p role="alert" className="text-xs font-semibold text-destructive">
-        {t("We couldn't load the members available to add.", messages)}
-      </p>
+      <PanelError
+        error={choicesFailure}
+        heading={t("We couldn't load the members available to add.", messages)}
+        retryHref={retryHref}
+        messages={messages}
+      />
     );
   }
   if (available.length === 0) {
@@ -216,7 +222,9 @@ interface CategoryMembersProps {
   /** The picker hit the API's 100-row cap, so it is not exhaustive. */
   truncated: boolean;
   /** The picker read failed; membership data is still valid and visible. */
-  choicesUnavailable?: boolean;
+  choicesFailure?: CategoryFailure | null;
+  /** Reloads this page so the failed picker is read again. */
+  retryHref: string;
   messages: TranslationMap;
 }
 
@@ -232,7 +240,8 @@ export function CategoryMembers({
   choices,
   memberQuery,
   truncated,
-  choicesUnavailable = false,
+  choicesFailure = null,
+  retryHref,
   messages,
 }: CategoryMembersProps) {
   const router = useRouter();
@@ -324,7 +333,8 @@ export function CategoryMembers({
         available={available}
         memberQuery={memberQuery}
         adding={adding}
-        choicesUnavailable={choicesUnavailable}
+        choicesFailure={choicesFailure}
+        retryHref={retryHref}
         onSubmit={handleAdd}
         messages={messages}
       />

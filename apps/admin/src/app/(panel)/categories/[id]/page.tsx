@@ -36,6 +36,12 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+/** Current page, so a failed secondary read can be retried without losing the search. */
+function currentHref(id: string, query: string): string {
+  const path = `/categories/${encodeURIComponent(id)}`;
+  return query ? `${path}?memberQ=${encodeURIComponent(query)}` : path;
+}
+
 type MemberChoicesResult = Awaited<ReturnType<typeof loadMemberChoices>>;
 type ModuleChoicesResult = Awaited<ReturnType<typeof loadModuleChoices>>;
 
@@ -54,7 +60,10 @@ function modulesOf(result: ModuleChoicesResult): ModuleChoice[] {
 function CategoryBreadcrumb({ name, messages }: { name: string; messages: TranslationMap }) {
   return (
     <nav aria-label={t("Breadcrumb", messages)} className="text-xs text-muted-foreground">
-      <Link href="/categories" className="font-semibold text-accent hover:underline">
+      <Link
+        href="/categories"
+        className="font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
         {t("Categories", messages)}
       </Link>
       <span aria-hidden="true"> / </span>
@@ -126,6 +135,7 @@ export default async function CategoryPage({
   ]);
 
   const category = result.category;
+  const retryHref = currentHref(category.id, query);
   return (
     <section className="flex flex-col gap-5">
       <CategoryBreadcrumb name={category.name} messages={messages} />
@@ -138,14 +148,16 @@ export default async function CategoryPage({
         choices={choicesOf(memberChoices)}
         memberQuery={query}
         truncated={choicesTruncated(memberChoices)}
-        choicesUnavailable={!memberChoices.ok}
+        choicesFailure={memberChoices.ok ? null : memberChoices}
+        retryHref={retryHref}
         messages={messages}
       />
       <CategoryModules
         categoryId={category.id}
         assigned={category.modules}
         available={modulesOf(moduleChoices)}
-        catalogueUnavailable={!moduleChoices.ok}
+        catalogueFailure={moduleChoices.ok ? null : moduleChoices}
+        retryHref={retryHref}
         messages={messages}
       />
       <CategoryDangerZone

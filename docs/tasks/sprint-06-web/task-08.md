@@ -2,7 +2,7 @@
 id: sprint-06-task-08
 titulo: Categorías + invitaciones
 area: web
-estado: test
+estado: finalizada
 adrs: [0004, 0005, 0007]
 plan: docs/superpowers/plans/2026-11-06-web-admin.md
 spec: docs/superpowers/specs/2026-11-06-web-admin-design.md
@@ -90,3 +90,37 @@ la de invitaciones porque `GET /api/v1/invitations` tampoco pagina.
 - `pnpm --filter db-tests exec vitest run src/invitations/service.test.ts`: 10 tests.
 - `pnpm lint` y `pnpm tsc`: verdes.
 - `pnpm i18n:check`: 292 cadenas, 9 locales.
+
+## Informe de auditoría (2026-11-06)
+
+**Veredicto**: aprobado en seguridad, sin hallazgos críticos ni altos. Los
+medios y bajos del lote remitido quedan corregidos salvo las desviaciones
+aceptadas que se documentan abajo.
+
+| ID | Estado | Corrección |
+|---|---|---|
+| **M1** | Corregido | `slugConflictError` (`lib/panel-errors.ts`) traduce `conflict` como "A category with that slug already exists." y el formulario la pinta junto al campo **slug** con `aria-invalid` y `aria-describedby`; el alerta deja de mostrar el label genérico de `member-errors` para `conflict`. Test unitario del helper. |
+| **M2** | Corregido | `InvitationCreateDialog` no renderiza el formulario cuando hay `token`: solo el panel del token y "Done". Así no se puede crear una segunda invitación sin cerrar y destruir el único token del alta anterior. Test de render estático: con token no hay `<form>` ni campos. |
+| **L1** | Corregido | `CategoryMembers`/`CategoryModules` reciben `choicesFailure`/`catalogueFailure` con el fallo completo y pintan `PanelError` (código traducido, `request_id` y reintento). El reintento apunta a la página actual y conserva `memberQ`. Tests de los dos `request_id` y del enlace. |
+| **L2** | Corregido | Si el listado de categorías falla, una invitación con `user_category_id` muestra "Category unavailable" (o el id cuando el listado sí cargó pero no contiene la categoría). Un `user_category_id` nulo sigue mostrando "—". Test del fallo de lectura. |
+| **L7** | Corregido | El `<dialog>` usa `onClose` para limpiar el estado, así que Escape también borra el token además del botón "Done"/"Cancel". |
+| **L9** | Corregido | El subtítulo pasa a "Invitations you have created.", que describe el listado real (pendientes, usadas, caducadas y revocadas). |
+| **L10** | Corregido | El enlace del breadcrumb de `/categories/[id]` lleva `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`, el mismo patrón que las filas. |
+
+### Rechazos y desviaciones
+
+| ID | Decisión | Motivo |
+|---|---|---|
+| **L3** | Se mantiene asignar módulos no `active`. | El contrato del Core permite asignar y materializar; el efecto es inerte hasta que el módulo se activa. Queda documentado aquí. |
+| **L4** | No se unifican `PanelError`/`MemberError` ni los mapas de códigos. | Deuda de refactor: hacerlo ahora obligaría a tocar task-07, ya auditada, fuera del alcance de task-08. |
+| **L5** | El token de canje sigue en el path de la API. | Es el contrato de API v1 ya aprobado. Se anota para v2 y para sanear los logs de `/redeem`. |
+| **L6** | Una cuenta existente ignora la contraseña del canje. | Decisión de diseño de auth; se anota para la spec de auth, no se cambia aquí. |
+| **L8** | La acción de fila sigue en su propia columna. | Consistente con `/members`; se registra como desviación menor del patrón §6. |
+| **L11** | Huecos de test de cascade/on-conflict. | Deuda declarada: los tests de interacción (diálogos, Escape, doble submit, cascada) van a task-11. |
+| **DoD** | Sin SWR ni mutaciones optimistas. | ADR 0005; la desviación ya está registrada como M1 de task-07 y se cita aquí, no se redefine. |
+
+**Verificación (2026-11-07)**:
+
+- `pnpm --filter admin test`: 48 ficheros, 314 tests.
+- `pnpm lint` y `pnpm tsc`: verdes.
+- `pnpm i18n:scan` + `pnpm i18n:check`: 295 cadenas, 9 locales.

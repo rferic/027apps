@@ -60,9 +60,14 @@ function formatDate(value: string, locale: Locale): string {
 function categoryName(
   row: InvitationRow,
   categories: Map<string, string>,
+  categoriesOk: boolean,
+  messages: TranslationMap,
 ): string {
   if (!row.user_category_id) return "—";
-  return categories.get(row.user_category_id) ?? "—";
+  const name = categories.get(row.user_category_id);
+  if (name) return name;
+  // The name is unknown: a failed read is not the same as "no category".
+  return categoriesOk ? row.user_category_id : t("Category unavailable", messages);
 }
 
 function moduleNames(row: InvitationRow, modules: Map<string, string>): string {
@@ -74,11 +79,19 @@ interface InvitationsViewProps {
   rows: InvitationRow[];
   locale: Locale;
   categories: Map<string, string>;
+  categoriesOk: boolean;
   modules: Map<string, string>;
   messages: TranslationMap;
 }
 
-function InvitationsTable({ rows, locale, categories, modules, messages }: InvitationsViewProps) {
+function InvitationsTable({
+  rows,
+  locale,
+  categories,
+  categoriesOk,
+  modules,
+  messages,
+}: InvitationsViewProps) {
   return (
     <div className="hidden overflow-x-auto sm:block">
       <table className="w-full border-collapse text-left text-xs">
@@ -116,7 +129,7 @@ function InvitationsTable({ rows, locale, categories, modules, messages }: Invit
               <td className="py-2 pr-3">
                 <Badge variant={statusVariant(row.status)}>{statusLabel(row.status, messages)}</Badge>
               </td>
-              <td className="py-2 pr-3">{categoryName(row, categories)}</td>
+              <td className="py-2 pr-3">{categoryName(row, categories, categoriesOk, messages)}</td>
               <td className="py-2 pr-3">{moduleNames(row, modules)}</td>
               <td className="py-2 pr-3">{formatDate(row.expires_at, locale)}</td>
               <td className="py-2 text-right">
@@ -137,7 +150,14 @@ function InvitationsTable({ rows, locale, categories, modules, messages }: Invit
   );
 }
 
-function InvitationsCards({ rows, locale, categories, modules, messages }: InvitationsViewProps) {
+function InvitationsCards({
+  rows,
+  locale,
+  categories,
+  categoriesOk,
+  modules,
+  messages,
+}: InvitationsViewProps) {
   return (
     <ul className="flex flex-col gap-2 sm:hidden">
       {rows.map((row) => (
@@ -150,7 +170,7 @@ function InvitationsCards({ rows, locale, categories, modules, messages }: Invit
             <dt className="text-muted-foreground">{t("Name", messages)}</dt>
             <dd>{row.name}</dd>
             <dt className="text-muted-foreground">{t("Category", messages)}</dt>
-            <dd>{categoryName(row, categories)}</dd>
+            <dd>{categoryName(row, categories, categoriesOk, messages)}</dd>
             <dt className="text-muted-foreground">{t("Modules", messages)}</dt>
             <dd>{moduleNames(row, modules)}</dd>
             <dt className="text-muted-foreground">{t("Expires", messages)}</dt>
@@ -217,7 +237,7 @@ export default async function InvitationsPage() {
         <div className="flex flex-col gap-1">
           <h1 className="text-base font-bold">{t("Invitations", messages)}</h1>
           <p className="text-xs text-muted-foreground">
-            {t("Invitations waiting to be redeemed.", messages)}
+            {t("Invitations you have created.", messages)}
           </p>
         </div>
         <InvitationCreateForm
@@ -237,6 +257,7 @@ export default async function InvitationsPage() {
               rows={invitations.invitations}
               locale={locale}
               categories={categoryNames}
+              categoriesOk={categories.ok}
               modules={moduleNames}
               messages={messages}
             />
@@ -244,6 +265,7 @@ export default async function InvitationsPage() {
               rows={invitations.invitations}
               locale={locale}
               categories={categoryNames}
+              categoriesOk={categories.ok}
               modules={moduleNames}
               messages={messages}
             />

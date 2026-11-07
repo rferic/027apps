@@ -108,6 +108,7 @@ describe("InvitationsPage", () => {
     expect(html).toContain("Expenses");
     expect(html).toContain("Expires");
     expect(html).toContain("<caption");
+    expect(html).toContain("Invitations you have created.");
   });
 
   it("renders a status as text, not only as a colour", async () => {
@@ -164,6 +165,15 @@ describe("InvitationsPage", () => {
     const html = renderToStaticMarkup(await InvitationsPage());
 
     expect(html).toContain("—");
+  });
+
+  it("does not read a failed category list as 'no category'", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING] });
+    loadCategoriesMock.mockResolvedValue({ ok: false, code: "internal" });
+
+    const html = renderToStaticMarkup(await InvitationsPage());
+
+    expect(html).toContain("Category unavailable");
   });
 
   it("shows the empty state with the create action", async () => {

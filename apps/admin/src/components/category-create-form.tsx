@@ -7,7 +7,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
 import { createCategory } from "@/lib/category-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
-import { panelErrorCodeLabel } from "@/lib/panel-errors";
+import { panelErrorCodeLabel, slugConflictError } from "@/lib/panel-errors";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -47,7 +47,7 @@ function CategoryFormError({
       <p className="font-semibold text-destructive">
         {t("We couldn't create the category.", messages)}
       </p>
-      {error.code && (
+      {error.code && error.code !== "conflict" && (
         <p className="mt-1 text-muted-foreground">{panelErrorCodeLabel(error.code, messages)}</p>
       )}
       {error.details?.formErrors?.map((message) => (
@@ -75,6 +75,9 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<MutationFailure | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+
+  // A conflict on this form is always the slug: say so next to the field.
+  const slugError = slugConflictError(error, messages) ?? fieldErrors.slug?.[0];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -155,7 +158,7 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
               type="text"
               maxLength={80}
               autoComplete="off"
-              {...fieldAria("slug", fieldErrors.slug?.[0], "category-slug-help")}
+              {...fieldAria("slug", slugError, "category-slug-help")}
               className={inputClass}
             />
           </label>
@@ -165,7 +168,7 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
               messages,
             )}
           </p>
-          <FieldError id="category-slug-error" message={fieldErrors.slug?.[0]} />
+          <FieldError id="category-slug-error" message={slugError} />
 
           {error && <CategoryFormError error={error} messages={messages} />}
 

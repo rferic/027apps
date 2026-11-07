@@ -174,14 +174,25 @@ describe("CategoryPage", () => {
     expect(loadCategoryMock).not.toHaveBeenCalled();
   });
 
-  it("renders even if the member or module pickers fail", async () => {
+  it("shows the request id and a retry link when a picker read fails", async () => {
     loadCategoryMock.mockResolvedValue({ ok: true, category: CATEGORY });
-    loadMemberChoicesMock.mockResolvedValue({ ok: false, code: "internal" });
-    loadModuleChoicesMock.mockResolvedValue({ ok: false, code: "internal" });
+    loadMemberChoicesMock.mockResolvedValue({
+      ok: false,
+      code: "internal",
+      requestId: "req-members",
+    });
+    loadModuleChoicesMock.mockResolvedValue({
+      ok: false,
+      code: "internal",
+      requestId: "req-modules",
+    });
 
     const html = renderToStaticMarkup(await render());
 
     expect(html).toContain("load the members available to add.");
     expect(html).toContain("load the module catalogue.");
+    expect(html).toContain("req-members");
+    expect(html).toContain("req-modules");
+    expect(html).toContain("Try again");
   });
 });
