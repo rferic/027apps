@@ -31,12 +31,14 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 | 09 | Claves API + ajustes | pendiente |
 | 10 | Documentación de la API | pendiente |
 | 11 | Revisión de diseño y UX | pendiente |
+| 12 | Canje público de invitaciones | pendiente |
 
 ## Dependencias
 
 - API del Core en `main` (✅). No existen aún `GET /me` (task-05), `/admin-actions` (el dashboard lo omite) ni `/openapi.json` (task-10).
+- task-12 reutiliza `POST /api/v1/invitations/{token}/redeem` y las invitaciones de task-08; no cambia el contrato.
 - OpenAPI: no existe generación en el repo; se construye en task-10.
 
 ## Cierre
 
-Un solo PR, squash a `main` por orden del usuario, cuando 05–11 estén `finalizada` con DoD completo (TDD, gates, revisión de segundo agente y auditoría OWASP).
+Un solo PR, squash a `main` por orden del usuario, cuando 05–12 estén `finalizada` con DoD completo (TDD, gates, revisión de segundo agente y auditoría OWASP).
