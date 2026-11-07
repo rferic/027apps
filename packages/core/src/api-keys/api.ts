@@ -25,7 +25,7 @@ export interface ApiKeysRouteDeps {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const createSchema = z
+export const createApiKeySchema = z
   .object({
     kind: z.enum(["service", "delegated"]),
     name: z.string().trim().min(1).max(80),
@@ -70,7 +70,7 @@ export function createApiKeyRoute(deps: ApiKeysRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["api_keys:write"], createSchema),
+      options(deps, ["api_keys:write"], createApiKeySchema),
       deps.door,
       async (ctx) => ({
         status: 201,

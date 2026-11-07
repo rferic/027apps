@@ -35,15 +35,15 @@ export interface ModulesRouteDeps {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MODULE_KEY = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-const emptySchema = z.object({}).strict().optional();
-const uninstallSchema = z.object({ confirm: z.boolean().optional() }).strict().optional();
-const updateSchema = z
+export const moduleEmptySchema = z.object({}).strict().optional();
+export const moduleUninstallSchema = z.object({ confirm: z.boolean().optional() }).strict().optional();
+export const moduleUpdateSchema = z
   .object({
     is_public: z.boolean().optional(),
     mcp_exposed: z.enum(["none", "read", "read_write"]).optional(),
   })
   .strict();
-const settingSchema = z.object({ key: z.string().trim().min(1).max(200), value: z.unknown() }).strict();
+export const moduleSettingSchema = z.object({ key: z.string().trim().min(1).max(200), value: z.unknown() }).strict();
 
 function moduleKey(value: string): string {
   if (!MODULE_KEY.test(value)) throw new DomainError("validation_failed", "invalid module key");
@@ -98,7 +98,7 @@ export function updateModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["modules:manage"], updateSchema),
+      options(deps, ["modules:manage"], moduleUpdateSchema),
       deps.door,
       async (ctx) => ({
         module: await updateModule(
@@ -115,7 +115,7 @@ export function installModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["modules:manage"], emptySchema),
+      options(deps, ["modules:manage"], moduleEmptySchema),
       deps.door,
       async (ctx) => ({
         status: 201,
@@ -132,14 +132,14 @@ export function installModuleRoute(deps: ModulesRouteDeps) {
 
 export function activateModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
-    withDoor(req, options(deps, ["modules:manage"], emptySchema), deps.door, async (ctx) => ({
+    withDoor(req, options(deps, ["modules:manage"], moduleEmptySchema), deps.door, async (ctx) => ({
       module: await activateModule(deps.modules, ctx.caller, moduleKey(rawKey)),
     }));
 }
 
 export function deactivateModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
-    withDoor(req, options(deps, ["modules:manage"], emptySchema), deps.door, async (ctx) => ({
+    withDoor(req, options(deps, ["modules:manage"], moduleEmptySchema), deps.door, async (ctx) => ({
       module: await deactivateModule(deps.modules, ctx.caller, moduleKey(rawKey)),
     }));
 }
@@ -148,7 +148,7 @@ export function uninstallModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["modules:manage"], uninstallSchema),
+      options(deps, ["modules:manage"], moduleUninstallSchema),
       deps.door,
       async (ctx) => {
         const key = moduleKey(rawKey);
@@ -181,7 +181,7 @@ export function updateModuleSettingRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["modules:manage", "settings:write"], settingSchema),
+      options(deps, ["modules:manage", "settings:write"], moduleSettingSchema),
       deps.door,
       async (ctx) => {
         const key = moduleKey(rawKey);
@@ -208,7 +208,7 @@ export function updateModuleSettingRoute(deps: ModulesRouteDeps) {
 
 export function grantUserModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, userId: string, rawKey: string): Promise<Response> =>
-    withDoor(req, options(deps, ["modules:grant"], emptySchema), deps.door, async (ctx) => {
+    withDoor(req, options(deps, ["modules:grant"], moduleEmptySchema), deps.door, async (ctx) => {
       const key = moduleKey(rawKey);
       await grantUserModule(deps.modules, ctx.caller, uuid(userId, "user id"), key);
       return new Response(null, { status: 204 });

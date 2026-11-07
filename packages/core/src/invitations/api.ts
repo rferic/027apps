@@ -26,7 +26,7 @@ export interface InvitationsRouteDeps {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const createSchema = z
+export const createInvitationSchema = z
   .object({
     email: z.string().trim().email().max(320),
     name: z.string().trim().min(1).max(80),
@@ -36,7 +36,7 @@ const createSchema = z
   })
   .strict();
 
-const redeemSchema = z
+export const redeemInvitationSchema = z
   .object({
     email: z.string().trim().email().max(320),
     password: z.string().min(12).max(200),
@@ -79,7 +79,7 @@ export function createInvitationRoute(deps: InvitationsRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["invitations:write"], createSchema),
+      options(deps, ["invitations:write"], createInvitationSchema),
       deps.door,
       async (ctx) => ({
         status: 201,
@@ -114,7 +114,7 @@ export function redeemInvitationRoute(deps: InvitationsRouteDeps) {
         scopes: [],
         auth: async () => ({ kind: "anon" as const }),
         cors: deps.cors,
-        schema: redeemSchema,
+        schema: redeemInvitationSchema,
         rateLimit: { identity: "ip" as const, limit: deps.rateLimits?.redeem ?? 30 },
       },
       deps.door,

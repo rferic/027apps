@@ -16,7 +16,7 @@ export interface CurrenciesRouteDeps {
   rateLimits?: { public?: number; read?: number; write?: number };
 }
 
-const patchBodySchema = z.object({ enabled: z.boolean() }).strict();
+export const patchCurrencyBodySchema = z.object({ enabled: z.boolean() }).strict();
 
 /** GET /api/v1/currencies — all currencies with their enabled flag and default. */
 export function currenciesRoute(deps: CurrenciesRouteDeps) {
@@ -42,7 +42,7 @@ export function patchCurrencyRoute(deps: CurrenciesRouteDeps) {
       {
         scopes: ['currencies:write'],
         auth: deps.auth,
-        schema: patchBodySchema,
+        schema: patchCurrencyBodySchema,
         cors: deps.cors,
         rateLimit: { identity: 'user', limit: deps.rateLimits?.write ?? 10 },
       },

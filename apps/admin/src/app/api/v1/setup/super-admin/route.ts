@@ -1,8 +1,8 @@
-import { z } from "zod";
 import { cookies } from "next/headers";
 import { withDoor, getInfra, withTransactionClient } from "@/lib/api/door";
 import { EXPECTED_JWT_EXPIRY_SECONDS, jwtExpirySeconds } from "@027apps/core/auth/jwt.js";
 import { hasActiveSuperAdmin } from "@027apps/core/instance/api.js";
+import { setupSuperAdminSchema } from "@027apps/core/setup/api.js";
 import { DomainError } from "@027apps/core/errors.js";
 import { recordJwtExpiry } from "@027apps/core/settings/service.js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -16,13 +16,6 @@ import { isRecoverableOrphan, type ExistingAuthUser } from "@/lib/setup-orphan";
  * Public door (rate limited by IP 30/min). Once setup is done it responds
  * 409 `already_setup` without leaking any data.
  */
-const bodySchema = z
-  .object({
-    email: z.string().email(),
-    password: z.string().min(12),
-    display_name: z.string().min(1).max(80),
-  })
-  .strict();
 
 /** Auth user with that email, plus whether it already has a profile. */
 async function findAuthUser(
@@ -98,7 +91,7 @@ export async function POST(req: Request) {
       scopes: [],
       auth: () => Promise.resolve({ kind: "anon" }),
       rateLimit: { identity: "ip", limit: 30 },
-      schema: bodySchema,
+      schema: setupSuperAdminSchema,
     },
     deps,
     async (ctx) => {

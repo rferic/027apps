@@ -31,6 +31,7 @@ jobs:
       - run: pnpm i18n:check
       - run: pnpm --filter @027apps/core exec vitest run src/modules/manifest.test.ts
       - run: pnpm --filter admin build
+      - run: pnpm check:openapi
 
   android:
     runs-on: ubuntu-24.04

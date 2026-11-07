@@ -33,9 +33,9 @@ const SLUG = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/).max(80);
 const MODULE_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const createSchema = z.object({ name: NAME, slug: SLUG.optional() }).strict();
-const renameSchema = z.object({ name: NAME }).strict();
-const emptySchema = z.object({}).strict().optional();
+export const userCategoryCreateSchema = z.object({ name: NAME, slug: SLUG.optional() }).strict();
+export const userCategoryRenameSchema = z.object({ name: NAME }).strict();
+export const userCategoryEmptySchema = z.object({}).strict().optional();
 
 function moduleKey(value: string): string {
   if (!MODULE_KEY.test(value)) throw new DomainError("validation_failed", "invalid module key");
@@ -78,7 +78,7 @@ export function createUserCategoryRoute(deps: UserCategoriesRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["user_categories:write"], createSchema),
+      options(deps, ["user_categories:write"], userCategoryCreateSchema),
       deps.door,
       async (ctx) => ({
         status: 201,
@@ -104,7 +104,7 @@ export function renameUserCategoryRoute(deps: UserCategoriesRouteDeps) {
   return (req: Request, rawId: string): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["user_categories:write"], renameSchema),
+      options(deps, ["user_categories:write"], userCategoryRenameSchema),
       deps.door,
       async (ctx) => ({
         category: await renameCategory(
@@ -126,7 +126,7 @@ export function deleteUserCategoryRoute(deps: UserCategoriesRouteDeps) {
 
 export function addCategoryMemberRoute(deps: UserCategoriesRouteDeps) {
   return (req: Request, rawId: string, rawUserId: string): Promise<Response> =>
-    withDoor(req, options(deps, ["user_categories:write"], emptySchema), deps.door, async () => {
+    withDoor(req, options(deps, ["user_categories:write"], userCategoryEmptySchema), deps.door, async () => {
       await addMember(
         deps.categories,
         uuid(rawId, "category id"),
@@ -164,7 +164,7 @@ export function assignCategoryModuleRoute(deps: UserCategoriesRouteDeps) {
   return (req: Request, rawId: string, key: string): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["user_categories:write", "modules:grant"], emptySchema),
+      options(deps, ["user_categories:write", "modules:grant"], userCategoryEmptySchema),
       deps.door,
       async (ctx: RequestContext) => ({
         modules: await assignModule(

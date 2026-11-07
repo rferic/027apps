@@ -62,13 +62,13 @@ Toda lista/detalle muestra vacío, cargando y error (con `code` traducido, `requ
 ## 8. OpenAPI (`/docs/api`)
 
 - **Visor: Scalar** (`@scalar/api-reference-react`), MIT, componente React, autoalojado en el bundle (respeta el CSP `script-src 'self'`), UI densa y dark mode.
-- **Generación desde zod**: registro declarativo en `packages/core/src/openapi/` (path, método, schemas de entrada/salida, summary, scopes) con `zod-to-openapi`, reutilizando los schemas compartidos. Script `pnpm --filter @027apps/core openapi:generate` que emite `docs/api/openapi.yaml` (commiteado). En runtime, `GET /api/v1/openapi.json` sin auth.
-- **Límite honesto**: el mapeo ruta↔método↔schema no es derivable de los route handlers actuales (imperativos `withDoor`); se declara una vez y el CI verifica (a) yaml al día y (b) paridad entre `apps/admin/src/app/api/v1/**/route.ts` y el registro. No es OpenAPI a mano: los schemas son los zod compartidos.
+- **Generación desde zod**: registro declarativo en `packages/core/src/openapi/` (path, método, schemas de entrada/salida, summary, scopes) con `z.toJSONSchema()` de zod 4 (nativo; `zod-to-openapi` no soporta zod 4), reutilizando los schemas compartidos. Script `pnpm --filter @027apps/core openapi:generate` que emite `docs/api/openapi.json` (commiteado; JSON y no YAML porque zod 4 lo emite nativamente y evita un serializador extra). En runtime, `GET /api/v1/openapi.json` sin auth.
+- **Límite honesto**: el mapeo ruta↔método↔schema no es derivable de los route handlers actuales (imperativos `withDoor`); se declara una vez y el CI verifica (a) documento al día y (b) paridad entre `apps/admin/src/app/api/v1/**/route.ts` y el registro. No es OpenAPI a mano: los schemas son los zod compartidos.
 
 ## 9. Riesgos
 
 - `GET /api/v1/me` no existe: el guard resuelve el rol en servidor (patrón `ProfilesPort`/`resolveCaller`) o se implementa `/me` en task-05.
-- Compatibilidad de `zod-to-openapi` con zod 4.6.7: verificar antes de fijar la dependencia.
+- Compatibilidad de `zod-to-openapi` con zod 4.6.7: descartado; se usa `z.toJSONSchema()` nativo (task-10).
 - El visor debe servirse del bundle, no de un CDN, por el CSP.
 - El panel ya es dinámico (`instant = false`), así que el fetch de `translations` en el layout no rompe el shell estático.
 - Nombres de ruta distintos del shell spec: registrados como delta.

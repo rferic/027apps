@@ -2,7 +2,7 @@
 
 Public guide for integrating with a 027Apps instance. This document is the **human entry point**; the normative contract is the generated **OpenAPI** document.
 
-> **Status.** The v1 contract is defined and approved, but **not yet implemented** (today only `GET /api/health` exists as an alias of the canonical `GET /api/v1/health`). This guide describes the contract you will integrate against; once the API lands, the OpenAPI document will be served by every instance and committed to the repository for review. If something here disagrees with the OpenAPI, **the OpenAPI wins**.
+> **Status.** The v1 contract is implemented by the Core (`apps/admin/src/app/api/v1/**`) and the OpenAPI document is generated from the same zod schemas. This guide describes how to integrate; if something here disagrees with the OpenAPI, **the OpenAPI wins**.
 
 ## Contents
 
@@ -333,14 +333,22 @@ One shared budget per key (30 req/min by default, writes 10 req/min), audited pe
 
 ## 11. OpenAPI
 
-- The **OpenAPI document is generated** from the same schemas that validate requests and responses — it cannot drift from the implementation (delta 2026-10-27 in the API spec).
+- The **OpenAPI document is generated** from the same schemas that validate requests and responses — it cannot drift from the implementation (delta 2026-10-27 in the API spec). Generation uses zod 4's native `z.toJSONSchema()`; the registry in `packages/core/src/openapi/registry.ts` maps each route handler to its shared schemas and scopes.
 - Each instance **serves it** at `GET /api/v1/openapi.json` (no auth needed to read the schema; the API itself still requires credentials).
-- A copy is committed to the repository at `docs/api/openapi.yaml` for review; CI fails if it is out of date.
-- A browsable rendering (Swagger or an equivalent) is published by the admin panel.
+- A copy is committed to the repository at `docs/api/openapi.json` for review; CI fails if it is out of date or if a route handler has no operation.
+- A browsable rendering is available in the admin panel at `/docs/api` (Scalar, bundled locally so the CSP needs no CDN).
 
-*The served path is `GET /api/v1/openapi.json`; the committed review copy is `docs/api/openapi.yaml` (checked by CI). Neither exists yet — they are produced once the API is implemented.*
+```bash
+# Regenerate the committed review copy after changing the registry.
+pnpm --filter @027apps/core openapi:generate
 
-Until the API is implemented, the **normative reference** for the contract is the specification: [`docs/superpowers/specs/2026-10-25-api-v1.md`](../superpowers/specs/2026-10-25-api-v1.md) and the Core surface in [`2026-10-26-core-api.md`](../superpowers/specs/2026-10-26-core-api.md).
+# Verify the document is current and every route has an operation.
+pnpm check:openapi
+```
+
+The served path and the committed review copy are both `docs/api/openapi.json` (JSON, not YAML: zod 4 emits JSON natively, so no extra serializer is needed).
+
+The generated document is the **normative contract**; the design specs remain the rationale: [`docs/superpowers/specs/2026-10-25-api-v1.md`](../superpowers/specs/2026-10-25-api-v1.md) and the Core surface in [`2026-10-26-core-api.md`](../superpowers/specs/2026-10-26-core-api.md).
 
 ---
 

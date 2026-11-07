@@ -18,7 +18,7 @@ export interface DevicesRouteDeps {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const registerSchema = z
+export const registerDeviceSchema = z
   .object({
     platform: z.enum(["android", "ios"]),
     push_token: z.string().trim().min(8).max(4096).optional().nullable(),
@@ -63,7 +63,7 @@ export function registerDeviceRoute(deps: DevicesRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["devices:write"], registerSchema),
+      options(deps, ["devices:write"], registerDeviceSchema),
       deps.door,
       async (ctx) => ({
         device: await registerDevice(

@@ -30,7 +30,7 @@ const timezoneSchema = z
   .string()
   .refine((tz) => Intl.supportedValuesOf("timeZone").includes(tz), "not a valid IANA timezone");
 
-const patchSchema = z
+export const userPatchSchema = z
   .object({
     display_name: z.string().min(1).max(80).optional(),
     locale: localeSchema.optional(),
@@ -97,7 +97,7 @@ export function updateUserRoute(deps: UsersRouteDeps) {
         scopes: ["users:write"],
         auth: deps.auth,
         cors: deps.cors,
-        schema: patchSchema,
+        schema: userPatchSchema,
         rateLimit: { identity: "user", limit: deps.rateLimits?.write ?? 10 },
       },
       deps.door,

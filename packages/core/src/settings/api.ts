@@ -25,9 +25,9 @@ const KEY_PATTERN = /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/;
 /** Default write limit: wizard batch (12 writes) + margin. */
 export const DEFAULT_WRITE_LIMIT = 30;
 
-const patchBodySchema = z.object({ value: z.unknown() }).strict();
+export const patchSettingBodySchema = z.object({ value: z.unknown() }).strict();
 
-const patchSettingsBodySchema = z.object({
+export const patchSettingsBodySchema = z.object({
   updates: z.array(z.object({ key: z.string(), value: z.unknown() }).strict()).min(1).max(30),
 }).strict();
 
@@ -88,7 +88,7 @@ export function patchSettingRoute(deps: SettingsRouteDeps) {
       {
         scopes: ['settings:write'],
         auth: deps.auth,
-        schema: patchBodySchema,
+        schema: patchSettingBodySchema,
         cors: deps.cors,
         rateLimit: { identity: 'user', limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
       },

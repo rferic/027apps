@@ -1,0 +1,17 @@
+/** Route-level skeleton so navigating to `/docs/api` responds immediately. */
+export default function ApiDocsLoading() {
+  return (
+    <section aria-busy="true" className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <div className="h-5 w-24 animate-pulse rounded-md bg-muted" />
+      </div>
+      <div className="rounded-card border border-border bg-surface p-4">
+        <div className="flex flex-col gap-3">
+          {[0, 1, 2, 3, 4, 5].map((row) => (
+            <div key={row} className="h-4 animate-pulse rounded-md bg-muted" />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

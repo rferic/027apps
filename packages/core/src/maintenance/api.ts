@@ -13,7 +13,7 @@ export interface MaintenanceRouteDeps {
   cors?: CorsOptions;
 }
 
-const runSchema = z.object({ jobs: z.array(z.string().min(1).max(64)).optional() }).strict().optional();
+export const maintenanceRunSchema = z.object({ jobs: z.array(z.string().min(1).max(64)).optional() }).strict().optional();
 
 function assertInstanceKey(caller: Caller): void {
   if (caller.kind !== "service" || caller.roleCap !== "super_admin") {
@@ -29,7 +29,7 @@ export function maintenanceRunRoute(deps: MaintenanceRouteDeps) {
         scopes: ["maintenance:run"],
         auth: deps.auth,
         cors: deps.cors,
-        schema: runSchema,
+        schema: maintenanceRunSchema,
         rateLimit: { identity: "key", limit: 5 },
       },
       deps.door,
