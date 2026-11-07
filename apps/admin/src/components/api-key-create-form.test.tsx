@@ -87,6 +87,21 @@ describe("ApiKeyKindFields and scopes", () => {
 });
 
 describe("ApiKeyCreatedPanel", () => {
+  it("asks for a manual copy when the clipboard copy failed (insecure context)", () => {
+    const html = renderToStaticMarkup(
+      <ApiKeyCreatedPanel
+        secret="027_svc_abc"
+        copied={false}
+        copyFailed
+        onCopy={() => {}}
+        messages={{}}
+      />,
+    );
+
+    expect(html).toContain("Select the text and copy it manually.");
+    expect(html).toContain("027_svc_abc");
+  });
+
   it("shows the one-time secret on the page with copy and a Done link to the list", () => {
     const html = renderToStaticMarkup(
       <ApiKeyCreatedPanel secret="027_svc_abc" copied={false} onCopy={() => {}} messages={{}} />,

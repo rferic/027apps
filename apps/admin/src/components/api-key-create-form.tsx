@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { FieldError, FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { Select } from "@/components/ui/select";
 import { createApiKey, type CreateApiKeyInput } from "@/lib/api-key-mutations";
+import { copyText } from "@/lib/clipboard";
 import {
   API_KEY_SCOPE_GROUPS,
   allowedApiKeyScopes,
@@ -94,11 +95,13 @@ function CreateErrorAlert({
 function SecretPanel({
   secret,
   copied,
+  copyFailed = false,
   onCopy,
   messages,
 }: {
   secret: string;
   copied: boolean;
+  copyFailed?: boolean;
   onCopy: () => void;
   messages: TranslationMap;
 }) {
@@ -121,6 +124,11 @@ function SecretPanel({
           {copied ? t("Copied.", messages) : t("Copy key", messages)}
         </Button>
       </div>
+      {copyFailed && (
+        <p role="alert" className="text-xs font-semibold text-destructive">
+          {t("Select the text and copy it manually.", messages)}
+        </p>
+      )}
       <p className="text-xs text-muted-foreground">
         {t("The key is stored hashed. If you lose it, revoke it and create another.", messages)}
       </p>
@@ -136,11 +144,13 @@ function SecretPanel({
 export function ApiKeyCreatedPanel({
   secret,
   copied,
+  copyFailed = false,
   onCopy,
   messages,
 }: {
   secret: string | null;
   copied: boolean;
+  copyFailed?: boolean;
   onCopy: () => void;
   messages: TranslationMap;
 }) {
@@ -148,7 +158,13 @@ export function ApiKeyCreatedPanel({
     <section role="status" className="flex max-w-xl flex-col gap-3">
       <h2 className="text-sm font-semibold">{t("API key created", messages)}</h2>
       {secret ? (
-        <SecretPanel secret={secret} copied={copied} onCopy={onCopy} messages={messages} />
+        <SecretPanel
+          secret={secret}
+          copied={copied}
+          copyFailed={copyFailed}
+          onCopy={onCopy}
+          messages={messages}
+        />
       ) : (
         <p className="text-xs text-muted-foreground">
           {t("The key was created but the API did not return the secret.", messages)}
@@ -293,6 +309,7 @@ export function ApiKeyCreateForm({ canCreateService, messages }: ApiKeyCreateFor
   const [secret, setSecret] = useState<string | null>(null);
   const [created, setCreated] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -314,23 +331,27 @@ export function ApiKeyCreateForm({ canCreateService, messages }: ApiKeyCreateFor
     setSecret(result.secret ?? null);
     setCreated(true);
     setCopied(false);
+    setCopyFailed(false);
     router.refresh();
   }
 
   async function handleCopy() {
     if (!secret) return;
-    try {
-      await navigator.clipboard.writeText(secret);
-      setCopied(true);
-    } catch {
-      // The input stays selectable when the clipboard API is unavailable.
-      setCopied(false);
-    }
+    // The secret stays in a selectable <input> if every copy path fails.
+    const ok = await copyText(secret);
+    setCopied(ok);
+    setCopyFailed(!ok);
   }
 
   if (created) {
     return (
-      <ApiKeyCreatedPanel secret={secret} copied={copied} onCopy={handleCopy} messages={messages} />
+      <ApiKeyCreatedPanel
+        secret={secret}
+        copied={copied}
+        copyFailed={copyFailed}
+        onCopy={handleCopy}
+        messages={messages}
+      />
     );
   }
 

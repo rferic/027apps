@@ -8,6 +8,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
 import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { Select } from "@/components/ui/select";
+import { copyText } from "@/lib/clipboard";
 import { createInvitation, type CreateInvitationInput } from "@/lib/invitation-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
 import type { ModuleChoice } from "@/lib/panel-categories";
@@ -70,11 +71,13 @@ function InvitationCreateError({
 function TokenPanel({
   token,
   copied,
+  copyFailed = false,
   onCopy,
   messages,
 }: {
   token: string;
   copied: boolean;
+  copyFailed?: boolean;
   onCopy: () => void;
   messages: TranslationMap;
 }) {
@@ -97,6 +100,11 @@ function TokenPanel({
           {copied ? t("Copied.", messages) : t("Copy token", messages)}
         </Button>
       </div>
+      {copyFailed && (
+        <p role="alert" className="text-xs font-semibold text-destructive">
+          {t("Select the text and copy it manually.", messages)}
+        </p>
+      )}
       <p className="text-xs text-muted-foreground">
         {t("The invitee redeems this token from the mobile app to join the instance.", messages)}
       </p>
@@ -112,11 +120,13 @@ function TokenPanel({
 export function InvitationCreatedPanel({
   token,
   copied,
+  copyFailed = false,
   onCopy,
   messages,
 }: {
   token: string | null;
   copied: boolean;
+  copyFailed?: boolean;
   onCopy: () => void;
   messages: TranslationMap;
 }) {
@@ -124,7 +134,13 @@ export function InvitationCreatedPanel({
     <section role="status" className="flex max-w-xl flex-col gap-3">
       <h2 className="text-sm font-semibold">{t("Invitation created", messages)}</h2>
       {token ? (
-        <TokenPanel token={token} copied={copied} onCopy={onCopy} messages={messages} />
+        <TokenPanel
+          token={token}
+          copied={copied}
+          copyFailed={copyFailed}
+          onCopy={onCopy}
+          messages={messages}
+        />
       ) : (
         <p className="text-xs text-muted-foreground">
           {t("The invitation was created but the API did not return a token.", messages)}
@@ -272,6 +288,7 @@ export function InvitationCreateForm({
   const [token, setToken] = useState<string | null>(null);
   const [created, setCreated] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -293,18 +310,16 @@ export function InvitationCreateForm({
     setToken(result.token ?? null);
     setCreated(true);
     setCopied(false);
+    setCopyFailed(false);
     router.refresh();
   }
 
   async function handleCopy() {
     if (!token) return;
-    try {
-      await navigator.clipboard.writeText(token);
-      setCopied(true);
-    } catch {
-      // The input stays selectable when the clipboard API is unavailable.
-      setCopied(false);
-    }
+    // The token stays in a selectable <input> if every copy path fails.
+    const ok = await copyText(token);
+    setCopied(ok);
+    setCopyFailed(!ok);
   }
 
   if (created) {
@@ -312,6 +327,7 @@ export function InvitationCreateForm({
       <InvitationCreatedPanel
         token={token}
         copied={copied}
+        copyFailed={copyFailed}
         onCopy={handleCopy}
         messages={messages}
       />

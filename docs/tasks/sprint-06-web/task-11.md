@@ -35,6 +35,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 8 | Fechas de presentación con la zona de la instancia (deuda M2d, ADR 0008 §2) | hecho |
 | 9 | Idiomas habilitados con el mismo selector múltiple que las monedas | hecho |
 | 10 | Arquitectura de información final: Ajustes plano y grupo Documentación | hecho |
+| 11 | Copiado del token de invitación y del secreto de API key en móvil (contexto no seguro por HTTP): fallback sin `navigator.clipboard` y aviso de copia manual | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 

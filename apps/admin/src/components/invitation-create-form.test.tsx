@@ -39,6 +39,21 @@ describe("InvitationCreateForm", () => {
 });
 
 describe("InvitationCreatedPanel", () => {
+  it("asks for a manual copy when the clipboard copy failed (insecure context)", () => {
+    const html = renderToStaticMarkup(
+      <InvitationCreatedPanel
+        token="tok-123"
+        copied={false}
+        copyFailed
+        onCopy={() => {}}
+        messages={{}}
+      />,
+    );
+
+    expect(html).toContain("Select the text and copy it manually.");
+    expect(html).toContain("tok-123");
+  });
+
   it("shows the one-time token on the page with copy and a Done link to the list", () => {
     const html = renderToStaticMarkup(
       <InvitationCreatedPanel token="tok-123" copied={false} onCopy={() => {}} messages={{}} />,
