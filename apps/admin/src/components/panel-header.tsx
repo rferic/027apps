@@ -41,7 +41,13 @@ export function PanelHeader({ user, locale, messages, instanceName, logoUrl, men
     <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4">
       <div className="flex min-w-0 items-center gap-3">
         {menu}
-        <BrandLogo logoUrl={logoUrl} name={instanceName.trim() || APP_NAME} size="md" className="shrink-0" />
+        <BrandLogo
+          logoUrl={logoUrl}
+          name={instanceName.trim() || APP_NAME}
+          size="lg"
+          variant="mark"
+          className="shrink-0"
+        />
         <span className="truncate text-sm font-semibold">{instanceName.trim() || APP_NAME}</span>
       </div>
       <div className="flex min-w-0 items-center gap-2">

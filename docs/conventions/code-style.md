@@ -34,6 +34,8 @@ La UI solo usa **tokens semánticos** (`bg-background`, `text-foreground`...), d
 
 Excepción: nada. Para un color nuevo, define el token en `globals.css` (claro y oscuro) y úsalo por nombre.
 
+Excepción de plataforma: los elementos nativos (`<dialog>`, `<select>`, `<input>`) heredan colores del navegador (CanvasText/Canvas); si se usan, se les fija siempre el token correspondiente (`bg-surface text-foreground`).
+
 ## Naming
 
 - Ficheros y carpetas: `kebab-case` (`user-menu.tsx`). Excepciones impuestas por Next.js (`page.tsx`, `layout.tsx`, `route.ts`).
@@ -64,6 +66,24 @@ Excepción: nada. Para un color nuevo, define el token en `globals.css` (claro y
 - Acceso a la BD desde clientes externos: móvil y terceros usan `/api/v1`.
 - Código muerto, código comentado, `console.log` de depuración.
 - Dependencias nuevas sin necesidad demostrada; acciones de terceros en CI fijadas por SHA de commit (las `actions/*` propias de GitHub pueden ir en tag mayor, p. ej. `actions/checkout@v4`).
+
+## Diálogos y formularios
+
+Los formularios y diálogos del admin siguen **un único patrón**; no se improvisa por pantalla.
+
+- **Diálogos**: siempre el `Dialog` compartido (`apps/admin/src/components/ui/dialog.tsx`). Nunca un
+  `<dialog>` suelto. El elemento nativo hereda `color: CanvasText` y `background: Canvas` del navegador,
+  así que **siempre** lleva `bg-surface text-foreground`; sin eso, el texto sale negro en tema oscuro
+  (bug real que apareció en todos los modales del panel).
+- **Formularios**: `FormField`, `FieldError`, `FormAlert`, `FormActions` y `FormSection`
+  (`apps/admin/src/components/ui/form.tsx`), tanto en modal como en página. Etiqueta asociada por
+  `htmlFor`/`id`, ayuda en `text-muted-foreground`, error en `text-destructive` con `aria-describedby`
+  y `aria-invalid`, y acciones a la derecha con `min-h-11`.
+- **Excepciones** (documentadas en el código): el drawer móvil necesita layout lateral y no usa `Dialog`;
+  un grupo de checkboxes usa `fieldset`/`legend` con las primitivas de ayuda y error.
+- **Verificación**: cualquier modal o formulario nuevo se mira en claro y oscuro, y a 375 px. Hay un test
+  (`apps/admin/src/components/ui/raw-dialog.test.ts`) que falla si aparece un `<dialog>` fuera del
+  componente compartido.
 
 ## Comentarios
 

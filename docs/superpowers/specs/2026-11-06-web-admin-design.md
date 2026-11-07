@@ -29,6 +29,7 @@ Convertir el mockup actual (`KPIs` y `MEMBERS_ROWS` hardcodeados, `NAV_ITEMS` co
 - Guard por rol en servidor: cada página declara su rol mínimo; sin permiso → 403 sin enumerar. Las acciones se ocultan/deshabilitan con motivo si la API responde `insufficient_scope`.
 - Responsive: sidebar a iconos <1024 px, drawer en móvil; tablas a tarjetas.
 - Banner `setup_incomplete` (vía `/instance`).
+- Cabecera: marca y nombre a la izquierda. El wordmark completo se reserva para login, wizard y ayuda; en la cabecera del panel se usa el latido (mark.svg) + nombre de instancia (ADR 0003, dirección L4).
 
 ## 4. i18n del panel
 

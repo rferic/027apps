@@ -11,17 +11,23 @@ const SIZES = {
  * Instance brand. The default is the official 027Apps wordmark (light/dark
  * variants, switched by the OS theme); `instance.logo_url` replaces it with a
  * custom logo, whose alternative text is the instance name.
+ *
+ * `variant="mark"` renders the heartbeat glyph alone, in the accent colour, for
+ * the panel header where the instance name sits next to it (ADR 0003, L4).
  */
 export function BrandLogo({
   logoUrl,
   name,
   size = "sm",
+  variant = "wordmark",
   className,
 }: {
   logoUrl?: string | null;
   /** Accessible name for a custom logo; the wordmark keeps the product name. */
   name?: string;
   size?: keyof typeof SIZES;
+  /** `wordmark` is the full logo; `mark` is the heartbeat glyph only. */
+  variant?: "wordmark" | "mark";
   className?: string;
 }) {
   const custom = logoUrl?.trim();
@@ -29,6 +35,15 @@ export function BrandLogo({
     return (
       // eslint-disable-next-line @next/next/no-img-element -- user-provided URL, no optimizer
       <img src={custom} alt={name?.trim() || "027Apps"} className={cn(SIZES[size], "w-auto", className)} />
+    );
+  }
+
+  if (variant === "mark") {
+    return (
+      <span className={cn("flex items-center text-accent", SIZES[size], className)}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset */}
+        <img src="/brand/mark.svg" alt="027Apps" className="h-full w-auto" />
+      </span>
     );
   }
 

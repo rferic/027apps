@@ -32,4 +32,20 @@ describe("BrandLogo", () => {
 
     expect(html).toContain("/brand/wordmark-light.svg");
   });
+
+  it("renders the mark in accent colour at the requested size when variant is mark", () => {
+    const html = renderToStaticMarkup(<BrandLogo variant="mark" size="lg" />);
+
+    expect(html).toContain("/brand/mark.svg");
+    expect(html).toContain("text-accent");
+    expect(html).toContain("h-10");
+    expect(html).not.toContain("/brand/wordmark-light.svg");
+  });
+
+  it("keeps the wordmark when no variant is given", () => {
+    const html = renderToStaticMarkup(<BrandLogo size="lg" />);
+
+    expect(html).toContain("/brand/wordmark-light.svg");
+    expect(html).not.toContain("/brand/mark.svg");
+  });
 });

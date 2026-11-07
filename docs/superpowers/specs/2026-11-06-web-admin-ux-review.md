@@ -91,6 +91,8 @@ Reglas:
 - **Confirmaciones destructivas**: nombrar el objeto y la consecuencia; nunca solo "¿Estás seguro?".
 - **Feedback**: cambio guardado → mensaje breve junto a la acción; error → inline + `request_id`.
 
+Diálogos y formularios usan las primitivas compartidas (ui/dialog.tsx, ui/form.tsx); ver code-style.md § Diálogos y formularios.
+
 ## 7. Accesibilidad y calidad
 
 - Foco visible en todos los interactivos; `aria-current="page"` en el ítem activo.
