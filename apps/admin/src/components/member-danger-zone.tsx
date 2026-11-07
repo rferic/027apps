@@ -14,6 +14,8 @@ type DeleteFailure = Extract<MutationResult, { ok: false }>;
 interface MemberDangerZoneProps {
   id: string;
   name: string;
+  /** Self-deactivation is rejected by the API: never offer it here either. */
+  isSelf: boolean;
   messages: TranslationMap;
 }
 
@@ -22,12 +24,14 @@ interface MemberDangerZoneProps {
  * `<dialog>` supplies focus trap, Escape and the top layer without a
  * dependency; the copy names the member and the consequence.
  */
-export function MemberDangerZone({ id, name, messages }: MemberDangerZoneProps) {
+export function MemberDangerZone({ id, name, isSelf, messages }: MemberDangerZoneProps) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<DeleteFailure | null>(null);
   const copy = deactivationCopy(name, messages);
+
+  if (isSelf) return null;
 
   async function handleDeactivate() {
     setDeleting(true);

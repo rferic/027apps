@@ -6,6 +6,7 @@ import {
   PreferencesStep,
   buildSteps,
   patchSettings,
+  savePreferences,
   type PreferencesValues,
 } from "./preferences-step";
 
@@ -65,6 +66,7 @@ function render(
 ): string {
   return renderToStaticMarkup(
     <PreferencesStep
+      userId="user-1"
       values={{ ...VALUES, ...values }}
       locales={["en", "es"]}
       enabledLocales={["en"]}
@@ -171,5 +173,51 @@ describe("PreferencesStep — batch save", () => {
     expect(failure).toContain("We couldn't save the instance name.");
     expect(failure).toContain("(instance.name)");
     expect(failure).toContain("Details: Validation failed");
+  });
+
+  it("propagates the chosen locale and timezone to the user profile after the batch", async () => {
+    const fetchSpy = vi.fn<FetchLike>(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    }));
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const failure = await savePreferences(
+      "user-1",
+      { ...FCM_VALUES, locale: "es", timezone: "Europe/Madrid" },
+      ["en"],
+      getDictionary("en"),
+    );
+
+    expect(failure).toBeNull();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    const [settingsUrl] = fetchSpy.mock.calls[0]!;
+    expect(settingsUrl).toBe("/api/v1/settings");
+
+    const [userUrl, init] = fetchSpy.mock.calls[1]!;
+    expect(userUrl).toBe("/api/v1/users/user-1");
+    expect(init?.method).toBe("PATCH");
+    expect(init?.credentials).toBe("same-origin");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      locale: "es",
+      timezone: "Europe/Madrid",
+    });
+  });
+
+  it("does not fail the installation when the profile PATCH is rejected", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<FetchLike>(async (url) =>
+        String(url) === "/api/v1/settings"
+          ? { ok: true, status: 200, json: async () => ({ settings: [] }) }
+          : { ok: false, status: 500, json: async () => ({}) },
+      ),
+    );
+
+    await expect(
+      savePreferences("user-1", FCM_VALUES, ["en"], getDictionary("en")),
+    ).resolves.toBeNull();
   });
 });

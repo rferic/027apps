@@ -25,16 +25,25 @@ const inputClass =
 interface MemberProfileFormProps {
   member: MemberRow;
   viewerRole: ViewerRole;
+  /** The viewer is editing their own profile: the role stays read-only. */
+  isSelf: boolean;
   messages: TranslationMap;
 }
 
 /** Profile + role edit; one PATCH with only the fields the API understands. */
-export function MemberProfileForm({ member, viewerRole, messages }: MemberProfileFormProps) {
+export function MemberProfileForm({
+  member,
+  viewerRole,
+  isSelf,
+  messages,
+}: MemberProfileFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<SaveFailure | null>(null);
-  const roleEditable = canAssignRole(viewerRole, member.role);
+  // The API also rejects a self role change; hiding the control keeps the
+  // panel from offering an action the Core refuses by design.
+  const roleEditable = !isSelf && canAssignRole(viewerRole, member.role);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,6 +76,10 @@ export function MemberProfileForm({ member, viewerRole, messages }: MemberProfil
   return (
     <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
       <h2 className="text-sm font-semibold">{t("Profile", messages)}</h2>
+
+      {isSelf && (
+        <p className="text-xs text-muted-foreground">{t("This is your account.", messages)}</p>
+      )}
 
       <label htmlFor="member-display-name" className="flex flex-col gap-1 text-xs font-semibold">
         {t("Display name", messages)}
@@ -118,26 +131,27 @@ export function MemberProfileForm({ member, viewerRole, messages }: MemberProfil
         {t("Use an IANA time zone, for example Europe/Madrid.", messages)}
       </p>
 
-      {roleEditable ? (
-        <label htmlFor="member-role" className="flex flex-col gap-1 text-xs font-semibold">
-          {t("Role", messages)}
-          <select id="member-role" name="role" defaultValue={member.role} className={inputClass}>
-            {roleOptions(viewerRole).map((role) => (
-              <option key={role} value={role}>
-                {role === "super_admin"
-                  ? t("Super admin", messages)
-                  : role === "admin"
-                    ? t("Admin", messages)
-                    : t("User", messages)}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          {t("Only a super admin can change this role.", messages)}
-        </p>
-      )}
+      {!isSelf &&
+        (roleEditable ? (
+          <label htmlFor="member-role" className="flex flex-col gap-1 text-xs font-semibold">
+            {t("Role", messages)}
+            <select id="member-role" name="role" defaultValue={member.role} className={inputClass}>
+              {roleOptions(viewerRole).map((role) => (
+                <option key={role} value={role}>
+                  {role === "super_admin"
+                    ? t("Super admin", messages)
+                    : role === "admin"
+                      ? t("Admin", messages)
+                      : t("User", messages)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            {t("Only a super admin can change this role.", messages)}
+          </p>
+        ))}
 
       <div className="flex flex-wrap items-center gap-3">
         <button

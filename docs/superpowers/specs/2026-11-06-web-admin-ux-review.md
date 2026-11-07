@@ -121,3 +121,16 @@ Reglas:
 8. Rol y estado se leen sin depender del color.
 9. Navegación usable con teclado (foco visible, orden lógico).
 10. Los textos de menú caben en las 9 locales sin romper el layout.
+
+## 10. Preguntas obligatorias de auditoría
+
+Toda auditoría de una página del panel debe responder por escrito a estas tres, con `archivo:línea`:
+
+1. **Acciones sobre uno mismo**: ¿puede el actor ejecutar cada acción destructiva o de privilegio sobre
+   su propia cuenta? Si la UI la ofrece, ¿el API la rechaza? ¿Qué ve el usuario? (rol propio,
+   desactivarse, revocar su propia clave, cambiar su propio email).
+2. **Procedencia del dato**: cada valor visible, ¿de qué campo sale? ¿Puede ser un valor por defecto
+   (semilla o `null` presentado como real)? ¿Se distingue "sin configurar" de "configurado a X"?
+3. **Coherencia entre pasos**: lo que el usuario eligió en el wizard (idioma, zona, moneda, nombre),
+   ¿se propagó a donde se muestra después (perfil, panel, correos)? Si no, ¿es intencionado y está
+   documentado?

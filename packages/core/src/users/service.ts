@@ -186,6 +186,11 @@ export async function updateUser(
 ): Promise<UserView> {
   return withRoleLock(deps, async (db) => {
     const current = await getUserFrom(db, id);
+    // Nobody edits their own privileges: an admin must not promote or demote
+    // themselves through the users API, even when the root checks would pass.
+    if (caller.kind === "session" && caller.userId === id && patch.role !== undefined) {
+      throw new DomainError("conflict", "You cannot change your own role");
+    }
     if (patch.role !== undefined) await assertRoleChangeAllowed(db, caller, current, patch.role);
 
     await db.query(
@@ -212,6 +217,12 @@ export async function deactivateUser(
   }
   return withRoleLock(deps, async (db) => {
     const current = await getUserFrom(db, id);
+    // Before the root check: self-deactivation is forbidden for everyone,
+    // including the root, so the API never answers "the root…" to its own
+    // account (the diagnostic would be misleading and the action still wrong).
+    if (caller.kind === "session" && caller.userId === id) {
+      throw new DomainError("conflict", "You cannot deactivate your own account");
+    }
     if ((await rootUserId(db)) === current.id) {
       throw new DomainError("conflict", "The root user cannot be deactivated");
     }

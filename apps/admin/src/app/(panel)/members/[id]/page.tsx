@@ -129,13 +129,24 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
   }
 
   const member = result.member;
+  const isSelf = gate.user.id === member.id;
   return (
     <section className="flex flex-col gap-5">
       <MemberBreadcrumb name={memberName(member)} messages={messages} />
       <MemberHeader member={member} locale={locale} messages={messages} />
-      <MemberProfileForm member={member} viewerRole={gate.user.role} messages={messages} />
+      <MemberProfileForm
+        member={member}
+        viewerRole={gate.user.role}
+        isSelf={isSelf}
+        messages={messages}
+      />
       {gate.user.role === "super_admin" ? (
-        <MemberDangerZone id={member.id} name={memberName(member)} messages={messages} />
+        <MemberDangerZone
+          id={member.id}
+          name={memberName(member)}
+          isSelf={isSelf}
+          messages={messages}
+        />
       ) : null}
     </section>
   );

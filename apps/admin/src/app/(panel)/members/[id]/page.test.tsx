@@ -80,8 +80,11 @@ describe("MemberPage", () => {
     expect(loadMemberMock).toHaveBeenCalledWith("u1");
   });
 
-  it("offers the destructive action only to a super_admin", async () => {
+  it("offers the destructive action only to a super_admin acting on someone else", async () => {
     loadMemberMock.mockResolvedValue({ ok: true, member: MEMBER });
+    requirePanelMock.mockResolvedValue({
+      user: { id: "u2", email: "admin@example.com", displayName: "Admin", role: "super_admin" },
+    });
 
     const asSuperAdmin = renderToStaticMarkup(await render());
     expect(asSuperAdmin).toContain("Deactivate member");
@@ -93,6 +96,19 @@ describe("MemberPage", () => {
     const asAdmin = renderToStaticMarkup(await render());
     expect(asAdmin).not.toContain("Deactivate member");
     expect(asAdmin).toContain("Only a super admin can change this role.");
+  });
+
+  it("never offers self-destructive actions or a self role change", async () => {
+    loadMemberMock.mockResolvedValue({ ok: true, member: MEMBER });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("This is your account.");
+    expect(html).toContain("Display name");
+    expect(html).not.toContain('id="member-role"');
+    expect(html).not.toContain("Only a super admin can change this role.");
+    expect(html).not.toContain("Danger zone");
+    expect(html).not.toContain("Deactivate member");
   });
 
   it("renders the generic 403 and never loads the member when the role is denied", async () => {

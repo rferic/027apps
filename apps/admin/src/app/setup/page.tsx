@@ -150,6 +150,13 @@ async function jwtExpiryBlocker(
   );
 }
 
+/** The signed-in admin id, used to mirror preferences onto their own profile. */
+async function sessionUserId(): Promise<string> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? "";
+}
+
 /** Step 3: SMTP verification screen with the signed-in admin's own address. */
 async function smtpStep(locale: Locale, messages: TranslationMap, logoUrl: string | null) {
   const supabase = await createSupabaseServerClient();
@@ -178,6 +185,9 @@ async function preferencesStep(
   logoUrl: string | null,
 ) {
   const settings = await readPublicSettings(settingsDeps);
+  // The wizard mirrors the chosen language and zone onto this admin's profile
+  // after the settings batch; the id comes from the session, never the URL.
+  const userId = await sessionUserId();
   // Prefill the public URL with the current origin so it does not have to be
   // typed; a stable domain (or the Vercel branch alias) should replace it.
   const origin = await requestOrigin();
@@ -220,6 +230,7 @@ async function preferencesStep(
         </Button>
       </form>
       <PreferencesStep
+        userId={userId}
         values={values}
         locales={SUPPORTED_LOCALES}
         enabledLocales={enabledLocales}

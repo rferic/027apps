@@ -23,6 +23,8 @@ export interface PreferencesValues {
 }
 
 export interface PreferencesProps {
+  /** The signed-in super_admin whose profile mirrors the chosen locale/timezone. */
+  userId: string;
   values: PreferencesValues;
   locales: readonly string[];
   /** Locales already enabled on the instance (`en` can never be removed). */
@@ -86,12 +88,59 @@ export async function patchSettings(
 }
 
 /**
+ * The wizard writes the chosen language and zone to the instance settings, but
+ * the admin's own profile keeps its seeded `en`/`UTC` until this call. It is
+ * best-effort on purpose: the settings batch already cleared `setup_incomplete`,
+ * so a failure here must not block the installation (the profile stays editable
+ * from /members afterwards). No console output by design.
+ */
+export async function patchUserPreferences(
+  userId: string,
+  values: Pick<PreferencesValues, "locale" | "timezone">,
+): Promise<void> {
+  try {
+    await fetch(`/api/v1/users/${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ locale: values.locale, timezone: values.timezone }),
+    });
+  } catch {
+    // Best-effort: the installation is already complete at this point.
+  }
+}
+
+/**
+ * Steps 4–5 in order: the settings batch first (it completes setup), then the
+ * profile mirror. Returns the message to show, or `null` on success.
+ */
+export async function savePreferences(
+  userId: string,
+  form: PreferencesValues,
+  enabledLocales: readonly string[],
+  messages: TranslationMap,
+): Promise<string | null> {
+  const built = buildSteps(form, enabledLocales, messages);
+  if ("error" in built) return built.error;
+
+  try {
+    const failure = await patchSettings(built.steps, messages);
+    if (failure) return failure;
+  } catch {
+    return t("We couldn't reach the server. Check the connection, then try again.", messages);
+  }
+
+  await patchUserPreferences(userId, { locale: form.locale, timezone: form.timezone });
+  return null;
+}
+
+type StepsResult = { steps: Array<[string, unknown]> } | { error: string };
+
+/**
  * Setup steps 4 and 5: preferences (required — this is what clears
  * `setup_incomplete`) and optional FCM notifications. Everything is written
  * through `/api/v1/settings`, so the super_admin session is the audit actor.
  */
-
-type StepsResult = { steps: Array<[string, unknown]> } | { error: string };
 
 /** Writes for steps 4–5; order does not matter because coherence sees the merged batch. */
 export function buildSteps(
@@ -144,6 +193,7 @@ export function buildSteps(
 }
 
 export function PreferencesStep({
+  userId,
   values,
   locales,
   enabledLocales,
@@ -165,22 +215,9 @@ export function PreferencesStep({
     setSaving(true);
     setError(null);
 
-    const built = buildSteps(form, enabledLocales, messages);
-    if ("error" in built) {
-      setError(built.error);
-      setSaving(false);
-      return;
-    }
-
-    try {
-      const failure = await patchSettings(built.steps, messages);
-      if (failure) {
-        setError(failure);
-        setSaving(false);
-        return;
-      }
-    } catch {
-      setError(t("We couldn't reach the server. Check the connection, then try again.", messages));
+    const failure = await savePreferences(userId, form, enabledLocales, messages);
+    if (failure) {
+      setError(failure);
       setSaving(false);
       return;
     }

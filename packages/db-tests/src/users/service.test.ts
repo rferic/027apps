@@ -123,6 +123,30 @@ describe("users service — profile and role edits", () => {
       ).rejects.toMatchObject({ code: "conflict" });
     });
   });
+
+  it("rejects changing your own role even as super_admin", async () => {
+    await inRollback(async (c) => {
+      await makeRootSuperAdmin(c, "Root Self Role");
+      const self = await createTestUser(c, { email: email("self-role"), role: "super_admin" });
+      const selfCaller: Caller = {
+        kind: "session",
+        userId: self.id,
+        role: "super_admin",
+      };
+
+      await expect(
+        updateUser(deps(c), selfCaller, self.id, { role: "admin" }),
+      ).rejects.toMatchObject({
+        code: "conflict",
+        message: "You cannot change your own role",
+      });
+
+      const { rows } = await query(c, "select role from public.profiles where id = $1", [
+        self.id,
+      ]);
+      expect(rows).toEqual([{ role: "super_admin" }]);
+    });
+  });
 });
 
 describe("users service — deactivation", () => {
@@ -166,6 +190,30 @@ describe("users service — deactivation", () => {
       await expect(
         deactivateUser(deps(c), caller("super_admin"), only.id),
       ).rejects.toMatchObject({ code: "conflict" });
+    });
+  });
+
+  it("rejects deactivating your own account even as super_admin", async () => {
+    await inRollback(async (c) => {
+      await makeRootSuperAdmin(c, "Root Self Deactivate");
+      const self = await createTestUser(c, { email: email("self-deactivate"), role: "super_admin" });
+      const selfCaller: Caller = {
+        kind: "session",
+        userId: self.id,
+        role: "super_admin",
+      };
+
+      await expect(deactivateUser(deps(c), selfCaller, self.id)).rejects.toMatchObject({
+        code: "conflict",
+        message: "You cannot deactivate your own account",
+      });
+
+      const { rows } = await query(
+        c,
+        "select deactivated_at from public.profiles where id = $1",
+        [self.id],
+      );
+      expect(rows).toEqual([{ deactivated_at: null }]);
     });
   });
 });
