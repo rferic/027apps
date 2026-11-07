@@ -16,29 +16,36 @@ beforeEach(() => {
 });
 
 describe("PanelNav", () => {
-  it("renders the four mental-model groups", () => {
+  it("renders four group headings as captions, not as rows", () => {
     const html = renderToStaticMarkup(<PanelNav messages={{}} />);
 
     for (const group of ["Home", "People", "Platform", "System"]) {
-      expect(html).toContain(group);
+      expect(html).toContain(`<h2 class="px-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">${group}</h2>`);
     }
+    expect((html.match(/<h2 /g) ?? []).length).toBe(4);
   });
 
-  it("renders the eight destinations as real links", () => {
+  it("renders the eight destinations as real links with an icon", () => {
     const html = renderToStaticMarkup(<PanelNav messages={{}} />);
 
     for (const href of HREFS) {
       expect(html).toContain(`href="${href}"`);
     }
     expect(html).not.toContain('href="#"');
+    // One glyph per destination, plus the label next to it.
+    expect((html.match(/<svg /g) ?? []).length).toBe(8);
+    expect(html).toContain(">Dashboard</span>");
+    expect(html).toContain(">Members</span>");
   });
 
-  it("marks the matching destination with aria-current", () => {
+  it("marks a single active destination with aria-current and the accent bar", () => {
     const html = renderToStaticMarkup(<PanelNav messages={{}} />);
 
     expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*href="\/members"/);
     expect((html.match(/aria-current="page"/g) ?? []).length).toBe(1);
     expect(html).not.toMatch(/<a[^>]*aria-current="page"[^>]*href="\/"/);
+    expect(html).toContain("border-accent bg-primary/10 font-semibold text-foreground");
+    expect(html).toContain("min-h-11");
   });
 
   it("matches nested routes by prefix but keeps / exact", () => {
@@ -57,6 +64,18 @@ describe("PanelNav", () => {
     const html = renderToStaticMarkup(<PanelNav messages={{}} />);
 
     expect(html).not.toContain('aria-current="page"');
+  });
+
+  it("gives drawer rows more height and separates groups without changing labels", () => {
+    const sidebar = renderToStaticMarkup(<PanelNav messages={{}} variant="sidebar" />);
+    const drawer = renderToStaticMarkup(<PanelNav messages={{}} variant="drawer" />);
+
+    expect(sidebar).not.toContain("min-h-12");
+    expect(drawer).toContain("min-h-12");
+    expect(drawer).toContain("border-t border-border pt-5");
+    for (const label of ["Home", "People", "Platform", "System", "Dashboard", "API docs"]) {
+      expect(drawer).toContain(label);
+    }
   });
 
   it("translates labels and the navigation name", () => {

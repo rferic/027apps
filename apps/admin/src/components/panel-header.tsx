@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { signOutAction } from "@/app/(auth)/actions";
@@ -14,6 +15,8 @@ interface PanelHeaderProps {
   /** `instance.name`; empty falls back to the product name. */
   instanceName: string;
   logoUrl: string | null;
+  /** Mobile-only navigation trigger, placed before the brand. */
+  menu?: ReactNode;
 }
 
 /** Literal keys so `i18n:scan` sees each role label. */
@@ -33,10 +36,11 @@ function roleLabel(role: PanelUser["role"], messages: TranslationMap): string {
  * the session menu on the right. The user menu is a `<details>` so it works
  * without JavaScript, and it is the only place "Log out" lives.
  */
-export function PanelHeader({ user, locale, messages, instanceName, logoUrl }: PanelHeaderProps) {
+export function PanelHeader({ user, locale, messages, instanceName, logoUrl, menu }: PanelHeaderProps) {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4">
       <div className="flex min-w-0 items-center gap-3">
+        {menu}
         <BrandLogo logoUrl={logoUrl} name={instanceName.trim() || APP_NAME} size="md" className="shrink-0" />
         <span className="truncate text-sm font-semibold">{instanceName.trim() || APP_NAME}</span>
       </div>
