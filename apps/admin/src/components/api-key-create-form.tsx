@@ -6,7 +6,12 @@ import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
 import { createApiKey, type CreateApiKeyInput } from "@/lib/api-key-mutations";
-import { API_KEY_SCOPE_GROUPS, type ScopeGroupId } from "@/lib/api-key-scopes";
+import {
+  API_KEY_SCOPE_GROUPS,
+  allowedApiKeyScopes,
+  type ApiKeyScopeRoleCap,
+  type ScopeGroupId,
+} from "@/lib/api-key-scopes";
 import type { MutationFailure } from "@/lib/mutation-result";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
@@ -133,19 +138,29 @@ function SecretPanel({
 }
 
 function ScopeChoices({
+  kind,
+  roleCap,
   fieldErrors,
   messages,
 }: {
+  kind: KeyKind;
+  roleCap: ApiKeyScopeRoleCap;
   fieldErrors: Record<string, string[]>;
   messages: TranslationMap;
 }) {
+  const allowed = new Set(allowedApiKeyScopes(kind, roleCap));
+  const groups = API_KEY_SCOPE_GROUPS.map((group) => ({
+    ...group,
+    scopes: group.scopes.filter((scope) => allowed.has(scope)),
+  })).filter((group) => group.scopes.length > 0);
+
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="text-xs font-semibold">{t("Scopes", messages)}</legend>
       <p className="text-xs text-muted-foreground">
-        {t("Only the scopes you tick are granted to this key.", messages)}
+        {t("Scopes are limited by the key kind and role cap.", messages)}
       </p>
-      {API_KEY_SCOPE_GROUPS.map((group) => (
+      {groups.map((group) => (
         <div key={group.id} className="flex flex-col gap-1">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {scopeGroupLabel(group.id, messages)}
@@ -168,13 +183,17 @@ function ScopeChoices({
 function KindFields({
   canCreateService,
   kind,
+  roleCap,
   onKindChange,
+  onRoleCapChange,
   fieldErrors,
   messages,
 }: {
   canCreateService: boolean;
   kind: KeyKind;
+  roleCap: ApiKeyScopeRoleCap;
   onKindChange: (kind: KeyKind) => void;
+  onRoleCapChange: (roleCap: ApiKeyScopeRoleCap) => void;
   fieldErrors: Record<string, string[]>;
   messages: TranslationMap;
 }) {
@@ -203,7 +222,15 @@ function KindFields({
       {kind === "service" && canCreateService && (
         <label htmlFor="api-key-role-cap" className="flex flex-col gap-1 text-xs font-semibold">
           {t("Role cap", messages)}
-          <select id="api-key-role-cap" name="role_cap" defaultValue="admin" className={inputClass}>
+          <select
+            id="api-key-role-cap"
+            name="role_cap"
+            value={roleCap}
+            onChange={(event) =>
+              onRoleCapChange(event.target.value === "super_admin" ? "super_admin" : "admin")
+            }
+            className={inputClass}
+          >
             <option value="admin">{t("Administrator", messages)}</option>
             <option value="super_admin">{t("Super administrator", messages)}</option>
           </select>
@@ -218,6 +245,7 @@ interface ApiKeyCreateDialogProps {
   dialogRef: RefObject<HTMLDialogElement | null>;
   canCreateService: boolean;
   kind: KeyKind;
+  roleCap: ApiKeyScopeRoleCap;
   creating: boolean;
   created: boolean;
   secret: string | null;
@@ -225,6 +253,7 @@ interface ApiKeyCreateDialogProps {
   error: MutationFailure | null;
   fieldErrors: Record<string, string[]>;
   onKindChange: (kind: KeyKind) => void;
+  onRoleCapChange: (roleCap: ApiKeyScopeRoleCap) => void;
   onCancel: (event: SyntheticEvent<HTMLDialogElement>) => void;
   onDismiss: () => void;
   onClosed: () => void;
@@ -242,6 +271,7 @@ export function ApiKeyCreateDialog({
   dialogRef,
   canCreateService,
   kind,
+  roleCap,
   creating,
   created,
   secret,
@@ -249,6 +279,7 @@ export function ApiKeyCreateDialog({
   error,
   fieldErrors,
   onKindChange,
+  onRoleCapChange,
   onCancel,
   onDismiss,
   onClosed,
@@ -310,12 +341,19 @@ export function ApiKeyCreateDialog({
           <KindFields
             canCreateService={canCreateService}
             kind={kind}
+            roleCap={roleCap}
             onKindChange={onKindChange}
+            onRoleCapChange={onRoleCapChange}
             fieldErrors={fieldErrors}
             messages={messages}
           />
 
-          <ScopeChoices fieldErrors={fieldErrors} messages={messages} />
+          <ScopeChoices
+            kind={kind}
+            roleCap={roleCap}
+            fieldErrors={fieldErrors}
+            messages={messages}
+          />
 
           {error && <CreateErrorAlert error={error} messages={messages} />}
 
@@ -347,6 +385,7 @@ export function ApiKeyCreateForm({
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [kind, setKind] = useState<KeyKind>("delegated");
+  const [roleCap, setRoleCap] = useState<ApiKeyScopeRoleCap>("admin");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<MutationFailure | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
@@ -356,6 +395,7 @@ export function ApiKeyCreateForm({
 
   function resetState() {
     setKind("delegated");
+    setRoleCap("admin");
     setError(null);
     setFieldErrors({});
     setSecret(null);
@@ -419,6 +459,7 @@ export function ApiKeyCreateForm({
         dialogRef={dialogRef}
         canCreateService={canCreateService}
         kind={kind}
+        roleCap={roleCap}
         creating={creating}
         created={created}
         secret={secret}
@@ -426,6 +467,7 @@ export function ApiKeyCreateForm({
         error={error}
         fieldErrors={fieldErrors}
         onKindChange={setKind}
+        onRoleCapChange={setRoleCap}
         onCancel={(event) => {
           // Escape must not dismiss the dialog while the request is in flight.
           if (creating) event.preventDefault();

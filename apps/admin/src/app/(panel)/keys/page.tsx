@@ -56,6 +56,27 @@ function kindVariant(kind: ApiKeyKind): BadgeVariant {
   return kind === "service" ? "success" : "neutral";
 }
 
+function ownerLabel(row: ApiKeyRow, messages: TranslationMap): string {
+  return row.kind === "service" ? t("Instance", messages) : row.owner;
+}
+
+function roleCapLabel(row: ApiKeyRow, messages: TranslationMap): string | null {
+  if (!row.roleCap) return null;
+  return row.roleCap === "super_admin"
+    ? t("Super administrator", messages)
+    : t("Administrator", messages);
+}
+
+function OwnerCell({ row, messages }: { row: ApiKeyRow; messages: TranslationMap }) {
+  const cap = roleCapLabel(row, messages);
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="font-semibold">{ownerLabel(row, messages)}</span>
+      {cap && <Badge variant="neutral">{cap}</Badge>}
+    </div>
+  );
+}
+
 function revokeHref(filter: StateFilter): string {
   return filter === "all" ? "/keys" : `/keys?state=${filter}`;
 }
@@ -113,6 +134,7 @@ function RevokeCell({ row, currentUserId, messages }: Omit<KeysViewProps, "rows"
     <ApiKeyRevokeButton
       id={row.id}
       name={row.name}
+      owner={row.kind === "service" ? null : row.owner}
       isOwnKey={row.kind === "delegated" && row.user_id === currentUserId}
       messages={messages}
     />
@@ -133,13 +155,19 @@ function KeysTable({ rows, locale, currentUserId, messages }: KeysViewProps) {
               {t("Kind", messages)}
             </th>
             <th scope="col" className="py-2 pr-3 font-semibold">
+              {t("Owner", messages)}
+            </th>
+            <th scope="col" className="py-2 pr-3 font-semibold">
               {t("Prefix", messages)}
             </th>
             <th scope="col" className="py-2 pr-3 font-semibold">
-              {t("Scopes", messages)}
+              {t("Requested scopes", messages)}
             </th>
             <th scope="col" className="py-2 pr-3 font-semibold">
               {t("Created", messages)}
+            </th>
+            <th scope="col" className="py-2 pr-3 font-semibold">
+              {t("Expires", messages)}
             </th>
             <th scope="col" className="py-2 pr-3 font-semibold">
               {t("Last used", messages)}
@@ -159,9 +187,15 @@ function KeysTable({ rows, locale, currentUserId, messages }: KeysViewProps) {
               <td className="py-2 pr-3">
                 <Badge variant={kindVariant(row.kind)}>{kindLabel(row.kind, messages)}</Badge>
               </td>
+              <td className="py-2 pr-3">
+                <OwnerCell row={row} messages={messages} />
+              </td>
               <td className="py-2 pr-3 font-mono text-[11px]">{row.prefix}</td>
               <td className="py-2 pr-3 font-mono text-[11px]">{scopesText(row)}</td>
               <td className="py-2 pr-3">{formatDate(row.created_at, locale)}</td>
+              <td className="py-2 pr-3">
+                {row.expiresAt ? formatDate(row.expiresAt, locale) : t("Never", messages)}
+              </td>
               <td className="py-2 pr-3">
                 {row.last_used_at ? formatDate(row.last_used_at, locale) : t("Never", messages)}
               </td>
@@ -198,12 +232,18 @@ function KeysCards({ rows, locale, currentUserId, messages }: KeysViewProps) {
             </Badge>
           </div>
           <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+            <dt className="text-muted-foreground">{t("Owner", messages)}</dt>
+            <dd>
+              <OwnerCell row={row} messages={messages} />
+            </dd>
             <dt className="text-muted-foreground">{t("Prefix", messages)}</dt>
             <dd className="font-mono text-[11px]">{row.prefix}</dd>
-            <dt className="text-muted-foreground">{t("Scopes", messages)}</dt>
+            <dt className="text-muted-foreground">{t("Requested scopes", messages)}</dt>
             <dd className="font-mono text-[11px]">{scopesText(row)}</dd>
             <dt className="text-muted-foreground">{t("Created", messages)}</dt>
             <dd>{formatDate(row.created_at, locale)}</dd>
+            <dt className="text-muted-foreground">{t("Expires", messages)}</dt>
+            <dd>{row.expiresAt ? formatDate(row.expiresAt, locale) : t("Never", messages)}</dd>
             <dt className="text-muted-foreground">{t("Last used", messages)}</dt>
             <dd>{row.last_used_at ? formatDate(row.last_used_at, locale) : t("Never", messages)}</dd>
           </dl>

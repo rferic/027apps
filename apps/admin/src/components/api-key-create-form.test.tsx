@@ -11,6 +11,7 @@ const BASE = {
   dialogRef: { current: null },
   canCreateService: false,
   kind: "delegated" as const,
+  roleCap: "admin" as const,
   creating: false,
   created: false,
   secret: null,
@@ -18,6 +19,7 @@ const BASE = {
   error: null,
   fieldErrors: {},
   onKindChange: () => {},
+  onRoleCapChange: () => {},
   onCancel: () => {},
   onDismiss: () => {},
   onClosed: () => {},
@@ -64,6 +66,33 @@ describe("ApiKeyCreateDialog", () => {
     expect(html).toContain('value="service"');
     expect(html).toContain("api-key-role-cap");
     expect(html).toContain('value="super_admin"');
+  });
+
+  it("does not offer maintenance:run to a service key capped at admin", () => {
+    const html = renderToStaticMarkup(
+      <ApiKeyCreateDialog {...BASE} canCreateService kind="service" roleCap="admin" />,
+    );
+
+    expect(html).not.toContain('value="maintenance:run"');
+    expect(html).not.toContain('value="users:deactivate"');
+  });
+
+  it("offers maintenance:run and super-admin scopes to a super_admin service key", () => {
+    const html = renderToStaticMarkup(
+      <ApiKeyCreateDialog {...BASE} canCreateService kind="service" roleCap="super_admin" />,
+    );
+
+    expect(html).toContain('value="maintenance:run"');
+    expect(html).toContain('value="users:deactivate"');
+  });
+
+  it("never offers maintenance:run to a delegated key", () => {
+    const html = renderToStaticMarkup(
+      <ApiKeyCreateDialog {...BASE} kind="delegated" roleCap="super_admin" />,
+    );
+
+    expect(html).not.toContain('value="maintenance:run"');
+    expect(html).not.toContain('value="users:deactivate"');
   });
 
   it("does not leave a second creation path when the API returned no secret", () => {

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { apiKeysRoute } from "@027apps/core/api-keys/api.js";
+import type { QueryClient } from "@027apps/core/api/rate-limit-storage.js";
 import { apiKeysRouteDeps } from "@/lib/api-keys-route-deps";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -15,10 +16,12 @@ export interface ApiKeyRow {
   name: string;
   scopes: string[];
   user_id: string | null;
-  role_cap: ApiKeyRoleCap | null;
+  /** Profile display name of the owner; "Instance" for service keys. */
+  owner: string;
+  roleCap: ApiKeyRoleCap | null;
   /** Contract prefix (`027_svc_` / `027_usr_`), not the stored key. */
   prefix: string;
-  expires_at: string | null;
+  expiresAt: string | null;
   revoked_at: string | null;
   last_used_at: string | null;
   created_at: string;
@@ -86,8 +89,8 @@ function readKeyIdentity(value: Record<string, unknown>): KeyIdentity | null {
 
 interface KeyDates {
   user_id: string | null;
-  role_cap: ApiKeyRoleCap | null;
-  expires_at: string | null;
+  roleCap: ApiKeyRoleCap | null;
+  expiresAt: string | null;
   revoked_at: string | null;
   last_used_at: string | null;
 }
@@ -102,19 +105,49 @@ function readKeyDates(value: Record<string, unknown>): KeyDates | null {
   if (expiresAt === undefined || revokedAt === undefined || lastUsedAt === undefined) return null;
   return {
     user_id: userId,
-    role_cap: roleCap,
-    expires_at: expiresAt,
+    roleCap,
+    expiresAt,
     revoked_at: revokedAt,
     last_used_at: lastUsedAt,
   };
 }
 
-function readApiKey(value: unknown): ApiKeyRow | null {
+type ParsedApiKey = Omit<ApiKeyRow, "owner">;
+
+function readApiKey(value: unknown): ParsedApiKey | null {
   if (!isRecord(value)) return null;
   const identity = readKeyIdentity(value);
   const dates = readKeyDates(value);
   if (!identity || !dates) return null;
   return { ...identity, ...dates };
+}
+
+/**
+ * Display names for the delegated keys' owners, read through the same service
+ * pool as the rest of the panel. A profile read failure must not hide the
+ * credentials an admin may need to revoke: the caller falls back to the id.
+ */
+async function loadOwnerNames(
+  db: QueryClient,
+  userIds: readonly string[],
+): Promise<Map<string, string>> {
+  const names = new Map<string, string>();
+  if (userIds.length === 0) return names;
+
+  try {
+    const { rows } = await db.query(
+      "select id, display_name from public.profiles where id = any($1::uuid[])",
+      [userIds],
+    );
+    for (const row of rows) {
+      const id = readString(row.id);
+      const displayName = readString(row.display_name);
+      if (id && displayName) names.set(id, displayName);
+    }
+  } catch {
+    // Fall back to the raw user id below.
+  }
+  return names;
 }
 
 function errorFields(
@@ -183,23 +216,37 @@ async function callRoute(
 /** GET /api/v1/api-keys — own keys, or every key for a super_admin. */
 export async function loadApiKeys(): Promise<ApiKeysList> {
   const token = await sessionToken();
-  const call = await callRoute(
-    apiKeysRoute(await apiKeysRouteDeps()),
-    "/api/v1/api-keys",
-    token,
-  );
+  const deps = await apiKeysRouteDeps();
+  const call = await callRoute(apiKeysRoute(deps), "/api/v1/api-keys", token);
   if (!call.ok) return call;
   if (!Array.isArray(call.body.api_keys)) {
     return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
   }
 
-  const apiKeys: ApiKeyRow[] = [];
+  const parsed: ParsedApiKey[] = [];
   for (const entry of call.body.api_keys) {
     const row = readApiKey(entry);
     // One malformed row invalidates the list: a partial table would look
     // complete while hiding credentials.
     if (!row) return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
-    apiKeys.push(row);
+    parsed.push(row);
   }
+
+  const userIds = [
+    ...new Set(
+      parsed
+        .filter((row) => row.kind === "delegated" && row.user_id !== null)
+        .map((row) => row.user_id as string),
+    ),
+  ];
+  const ownerNames = await loadOwnerNames(deps.apiKeys.db, userIds);
+
+  const apiKeys: ApiKeyRow[] = parsed.map((row) => ({
+    ...row,
+    owner:
+      row.kind === "service"
+        ? "Instance"
+        : ((row.user_id && ownerNames.get(row.user_id)) || row.user_id || "—"),
+  }));
   return { ok: true, apiKeys };
 }

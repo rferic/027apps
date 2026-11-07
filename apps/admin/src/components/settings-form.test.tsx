@@ -131,6 +131,7 @@ describe("SettingsForm", () => {
     expect(html).toContain("Configured");
     expect(html).toContain("Leave empty to keep the current value.");
     expect(html).toContain("The saved secret is never shown.");
+    expect(html).toContain('autoComplete="off"');
     expect(html).not.toContain("leaked-secret");
   });
 

@@ -37,9 +37,10 @@ const OWN_KEY = {
   name: "Zapier",
   scopes: ["users:read", "settings:read"],
   user_id: "u1",
-  role_cap: null,
+  owner: "Sara",
+  roleCap: null,
   prefix: "027_usr_",
-  expires_at: null,
+  expiresAt: null,
   revoked_at: null,
   last_used_at: "2026-11-01T10:00:00.000Z",
   created_at: "2026-10-01T10:00:00.000Z",
@@ -51,7 +52,8 @@ const SERVICE_KEY = {
   kind: "service" as const,
   name: "Backup",
   user_id: null,
-  role_cap: "admin" as const,
+  owner: "Instance",
+  roleCap: "super_admin" as const,
   prefix: "027_svc_",
   revoked_at: "2026-11-02T10:00:00.000Z",
   last_used_at: null,
@@ -74,7 +76,7 @@ describe("KeysPage", () => {
     expect(instant).toBe(false);
   });
 
-  it("lists name, kind, prefix, scopes, dates and status as text", async () => {
+  it("lists name, kind, owner, role cap, prefix, scopes, dates and status as text", async () => {
     loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY] });
 
     const html = renderToStaticMarkup(await render());
@@ -82,8 +84,12 @@ describe("KeysPage", () => {
     expect(html).toContain("Zapier");
     expect(html).toContain("027_usr_");
     expect(html).toContain("users:read, settings:read");
+    expect(html).toContain("Requested scopes");
     expect(html).toContain("Delegated");
     expect(html).toContain("Service");
+    expect(html).toContain("Sara");
+    expect(html).toContain("Instance");
+    expect(html).toContain("Super administrator");
     expect(html).toContain("Active");
     expect(html).toContain("Revoked");
     expect(html).toContain("Never");
@@ -91,14 +97,28 @@ describe("KeysPage", () => {
     expect(html).toContain("<caption");
   });
 
-  it("marks the caller's own key and offers revocation for active keys only", async () => {
+  it("marks the caller's own key and names its owner in the confirmation", async () => {
     loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY] });
 
     const html = renderToStaticMarkup(await render());
 
     expect(html).toContain("This is your key");
+    expect(html).toContain("This key belongs to Sara.");
     expect(html).toContain("Revoke the API key Zapier?");
     expect(html).not.toContain("Revoke the API key Backup?");
+  });
+
+  it("names the instance in the confirmation for an active service key", async () => {
+    loadApiKeysMock.mockResolvedValue({
+      ok: true,
+      apiKeys: [{ ...SERVICE_KEY, revoked_at: null }],
+    });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("Revoke the API key Backup?");
+    expect(html).toContain("This is an instance key.");
+    expect(html).toContain("Super administrator");
   });
 
   it("never shows service creation to an admin", async () => {

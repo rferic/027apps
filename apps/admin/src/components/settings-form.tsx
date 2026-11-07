@@ -112,6 +112,7 @@ function SecretInput({
           id={id}
           name={setting.key}
           rows={4}
+          autoComplete="off"
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
@@ -122,7 +123,7 @@ function SecretInput({
           id={id}
           name={setting.key}
           type="password"
-          autoComplete="new-password"
+          autoComplete="off"
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}

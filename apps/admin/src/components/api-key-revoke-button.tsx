@@ -11,18 +11,22 @@ import type { MutationFailure } from "@/lib/mutation-result";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
 /**
- * Revocation is immediate and irreversible, so the confirmation names the key,
- * states that every integration using it stops working, and marks the caller's
- * own key explicitly (revoking yourself is allowed as self-service).
+ * Revocation is immediate and irreversible, so the confirmation names the key
+ * and its owner, states that every integration using it stops working, and
+ * marks the caller's own key explicitly (revoking yourself is allowed as
+ * self-service).
  */
 export function ApiKeyRevokeButton({
   id,
   name,
+  owner,
   isOwnKey,
   messages,
 }: {
   id: string;
   name: string;
+  /** Profile display name, or `null` for a service key owned by the instance. */
+  owner: string | null;
   isOwnKey: boolean;
   messages: TranslationMap;
 }) {
@@ -69,6 +73,11 @@ export function ApiKeyRevokeButton({
         <h2 id={`api-key-revoke-title-${id}`} className="text-sm font-semibold">
           {t("Revoke the API key {name}?", messages, { name })}
         </h2>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {owner === null
+            ? t("This is an instance key.", messages)
+            : t("This key belongs to {owner}.", messages, { owner })}
+        </p>
         {isOwnKey && (
           <p className="mt-2 flex items-center gap-2 text-xs">
             <Badge variant="destructive">{t("This is your key", messages)}</Badge>
