@@ -2,7 +2,7 @@
 
 Public guide for integrating with a 027Apps instance. This document is the **human entry point**; the normative contract is the generated **OpenAPI** document.
 
-> **Status.** The v1 contract is implemented by the Core (`apps/admin/src/app/api/v1/**`) and the OpenAPI document is generated from the same zod schemas. This guide describes how to integrate; if something here disagrees with the OpenAPI, **the OpenAPI wins**.
+> **Status (2026-11-06): partial — 51 operations documented.** The OpenAPI document is generated from the same zod schemas that validate requests and responses, and today it covers the Core routes in `apps/admin/src/app/api/v1/**`. Sections or endpoints marked **Previsto** describe the v1 target and are **not implemented yet**; the rest reflects the code that runs. If something here disagrees with the OpenAPI, **the OpenAPI wins**.
 
 ## Contents
 
@@ -57,7 +57,8 @@ There are three credentials, for three different callers. All are **scoped and r
 - **Secrets are shown once**, at creation. Only a hash is stored; if you lose it, create a new key.
 
 ```bash
-curl -sS "$INSTANCE_URL/api/v1/me" -H "Authorization: Bearer $DELEGATED_KEY"
+# Any endpoint the credential is allowed to reach; this one needs users:read.
+curl -sS "$INSTANCE_URL/api/v1/users" -H "Authorization: Bearer $DELEGATED_KEY"
 ```
 
 ## 3. Versioning
@@ -76,13 +77,16 @@ Every error from `/api/v1` uses the same envelope:
     "code": "validation_failed",
     "message": "Validation failed",
     "request_id": "6f1c2a8e-…",
-    "details": [{ "path": "email", "rule": "email", "message": "must be a valid email" }]
+    "details": {
+      "formErrors": [],
+      "fieldErrors": { "email": ["must be a valid email"] }
+    }
   }
 }
 ```
 
 - **`code` is the contract.** Branch on it, never on `message`. `message` is a default English text; the UI translates it locally.
-- `details` appears mainly for `validation_failed` (field-level errors you can map to a form); other codes may carry non-sensitive extra information when the client needs it.
+- `details` is an **object** (never an array) that appears mainly for `validation_failed` (`formErrors`/`fieldErrors` from zod, as above); other codes may carry non-sensitive extra information when the client needs it.
 - `request_id` identifies the exact request in the server logs; quote it in support requests.
 - **No internals** are ever returned: no SQL, no stack traces, no internal paths — not even in development.
 
@@ -99,32 +103,33 @@ Every error from `/api/v1` uses the same envelope:
 | `internal` | 500 | Unexpected server error (correlated by `request_id`) | **Yes**, with backoff |
 | `invitation_expired` | 409 | The invitation is past `expires_at` | No — request a new invitation |
 | `invitation_used` | 409 | The invitation was already redeemed (single use) | No |
-| `not_a_member` | 403 | The user is not a member of the resource's group | No |
 | `currency_not_enabled` | 400 | The currency is not enabled on this instance | No — pick an enabled one |
 | `locale_not_available` | 400 | The locale is not served by this instance | No — pick an enabled one |
+| `currency_is_default` | 409 | The instance default currency cannot be disabled | No — choose another default first |
+| `cors_origin_not_allowed` | 403 | The `Origin` is not in the instance allowlist | No |
+| `payload_too_large` | 413 | The request body exceeds the 1 MB cap | No |
 | `already_setup` | 409 | The instance already has a `super_admin`; `/setup` is closed | No |
 
 > Error codes are part of the contract: changing one is a breaking change (see [Versioning](#3-versioning)).
 
 ## 5. Pagination
 
-Two modes, both in v1.
-
-**Offset/limit (default)** — for lists you navigate:
+**Implemented: offset/limit.** Lists that need it return their own named collection plus the page metadata (the generated OpenAPI is authoritative per endpoint). For users:
 
 ```
-GET /api/v1/users?offset=0&limit=50
-{ "data": [ … ], "meta": { "total": 128, "offset": 0, "limit": 50 } }
+GET /api/v1/users?q=&offset=0&limit=50
+{
+  "users": [ … ],
+  "total": 128,
+  "active_total": 120,
+  "limit": 50,
+  "offset": 0
+}
 ```
 
-**Cursor** — for large or live lists (declared per resource):
+`limit` is clamped to 1…100 and `offset` to ≥ 0. There is no generic `{ "data", "meta" }` envelope in v1.
 
-```
-GET /api/v1/some-list?cursor=<opaque>&limit=50
-{ "data": [ … ], "meta": { "next_cursor": "<opaque>" } }
-```
-
-`limit` has a server-side maximum. Treat `next_cursor` as **opaque**; never build one yourself.
+**Previsto: cursor pagination.** For large or live lists (declared per resource) the target is an opaque `next_cursor`; it is **not implemented** and no endpoint accepts `cursor=` today.
 
 ## 6. Rate limiting
 
@@ -141,7 +146,9 @@ Limits are applied **per identity** (user or key) on authenticated surfaces, and
 
 On excess: `429` with `Retry-After` (seconds) and `{ "error": { "code": "rate_limited", … } }`. Implement **exponential backoff**; do not retry in a tight loop.
 
-## 7. Idempotency
+## 7. Idempotency (previsto)
+
+> **Not implemented yet.** Current writes are **not** idempotent: repeating a create makes a second resource, and no endpoint reads `Idempotency-Key`. Treat network failures on writes as ambiguous. The target contract is below.
 
 Retries are safe for writes:
 
@@ -167,11 +174,11 @@ curl -sS -X POST "$INSTANCE_URL/api/v1/invitations" \
 
 An instance has a **catalogue of modules** (e.g. Split Expenses). A module is installed **globally** on the instance and each user has access to it either because it is **public** or because it was **granted**.
 
-| Endpoint | What it returns |
-|---|---|
-| `GET /api/v1/modules` | Catalogue: `key`, `name`, `version`, `state`, `is_public` |
-| `GET /api/v1/me/modules` | **Your** modules (public + granted); admins see all |
-| `GET /api/v1/modules/{key}` | Detail: state, version, `is_public`, its **public settings**, and its **documentation** |
+| Endpoint | Status | What it returns |
+|---|---|---|
+| `GET /api/v1/modules` | **implemented** | Catalogue: `key`, `name`, `version`, `state`, `is_public` |
+| `GET /api/v1/modules/{key}` | **implemented** | Detail: state, version, `is_public` and its **public settings** |
+| `GET /api/v1/me/modules` | **previsto** | **Your** modules (public + granted); admins see all |
 
 **Module documentation is part of the module contract.** Each module ships, inside its package:
 
@@ -186,30 +193,38 @@ packages/<key>/
 
 The CI **fails** if a declared capability is not documented, and checks that every tool, setting, event **and realtime channel** appears **by name** in the corresponding document (`docs.api` is required when the module declares `scopes`, which is the machine-checkable signal that it adds endpoints).
 
-`GET /modules/{key}` returns a **`docs`** block with the URLs of the documents **served by this instance** (`GET /api/v1/modules/{key}/docs/{readme|api|mcp|settings|events}`), so you always link to documentation that exists and belongs to the installed package.
+**Previsto:** `GET /modules/{key}` will return a **`docs`** block with the URLs of the documents **served by this instance** (`GET /api/v1/modules/{key}/docs/{readme|api|mcp|settings|events}`), so you always link to documentation that exists and belongs to the installed package. Those `docs` endpoints and the `docs` block are **not implemented**; today the package documents are validated by the manifest checks but not served over HTTP.
 
 ### Core endpoints (at a glance)
 
+The table reflects the **51 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
+
 | Area | Endpoints | Notes |
 |---|---|---|
-| Health & instance | `GET /health`, `GET /instance` | public, non-sensitive |
-| You | `GET/PATCH /me`, `GET /me/modules` | your profile and your modules |
+| Health & instance | `GET /health`, `GET /instance`, `GET /openapi.json` | public, non-sensitive; `/health` answers 200 or 503 |
+| Setup | `GET /setup/environment`, `POST /setup/super-admin`, `POST /setup/test-email` | public while uninstalled (environment/super-admin); test-email is **session-only** super_admin |
 | Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}` | soft-deactivate (**super-admin**); root protected |
 | Categories (admin) | `/user-categories`, `/{id}/members`, `/{id}/modules` | assign module ∈ category materializes access |
-| Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET /modules/{key}/docs/{doc}`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin** |
+| Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin** |
+| Module docs | `GET /modules/{key}/docs/{doc}` | **previsto** |
+| You | `GET/PATCH /me`, `GET /me/modules` | **previsto** |
 | Access (admin) | `POST/DELETE /users/{id}/modules/{key}` | per-user grant/revoke |
 | Invitations | `POST/GET /invitations`, `DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | redeem is the public join step (single use) |
 | API keys | `POST/GET /api-keys`, `GET/DELETE /api-keys/{id}` | secret returned once |
 | Devices | `POST/GET /devices`, `DELETE /devices/{id}` | push registration and revocation |
-| Settings & currency | `GET /settings`, `PATCH /settings/{category}.{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
-| i18n | `GET /translations?locale=`, `GET /translations/status`, `POST /translations/import`, `PUT /translations/{locale}/{hash}` | ETag-cached |
-| Operations | `GET /admin-actions`, `GET /audit`, `GET /maintenance/status` (**super-admin**); `POST /maintenance/run` (instance key, `maintenance:run`) | `maintenance/run` needs an instance key with `role_cap=super_admin` |
+| Settings & currency | `GET /settings`, `PATCH /settings`, `PATCH /settings/{category}/{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
+| i18n | `GET /translations?locale=` | ETag-cached (304 on `If-None-Match`) |
+| i18n admin | `GET /translations/status`, `POST /translations/import`, `PUT /translations/{locale}/{hash}` | **previsto** |
+| Operations | `GET /maintenance/status` (**session-only**, super_admin); `POST /maintenance/run` (**service key**, `maintenance:run`) | `maintenance/run` needs an instance key with `role_cap=super_admin` |
+| Audit | `GET /admin-actions`, `GET /audit` | **previsto** |
 
 Full request/response shapes: the generated OpenAPI (§11) or the normative spec while it is not published.
 
 Module endpoints and tools live in the module's own documentation, not here (the Core does not duplicate them).
 
-## 10. MCP
+## 10. MCP (previsto)
+
+> **Not implemented yet.** This section describes the target integration surface; the current Core exposes **no `/mcp` route** and the 51 documented operations are REST only. It stays here so clients and module authors can see the intended contract.
 
 The same data is exposed to **AI agents** over the **Model Context Protocol**. MCP is **JSON-RPC over HTTP**, so it has its own endpoints and error model.
 
@@ -335,8 +350,9 @@ One shared budget per key (30 req/min by default, writes 10 req/min), audited pe
 
 - The **OpenAPI document is generated** from the same schemas that validate requests and responses — it cannot drift from the implementation (delta 2026-10-27 in the API spec). Generation uses zod 4's native `z.toJSONSchema()`; the registry in `packages/core/src/openapi/registry.ts` maps each route handler to its shared schemas and scopes.
 - Each instance **serves it** at `GET /api/v1/openapi.json` (no auth needed to read the schema; the API itself still requires credentials).
-- A copy is committed to the repository at `docs/api/openapi.json` for review; CI fails if it is out of date or if a route handler has no operation.
-- A browsable rendering is available in the admin panel at `/docs/api` (Scalar, bundled locally so the CSP needs no CDN).
+- A copy is committed to the repository at `docs/api/openapi.json` for review (**51 operations** today); CI fails if it is out of date or if a route handler has no operation (and also if a `route.ts` exports no HTTP method).
+- Every operation publishes the credentials it actually accepts: `session` routes list `sessionAuth` and `apiKeyAuth`; `/setup/test-email` and `/maintenance/status` are `sessionAuth` only; `/maintenance/run` is `apiKeyAuth` only.
+- A browsable rendering is available in the admin panel at `/docs/api` (Scalar, bundled locally so the CSP needs no CDN; the client/agent/MCP toolbars are disabled).
 
 ```bash
 # Regenerate the committed review copy after changing the registry.

@@ -23,7 +23,7 @@ export interface SetupRouteDeps {
 const TEST_EMAIL_ATTEMPTS_PER_MINUTE = 3;
 
 /** Empty body: the destination is the caller's own address, never a field. */
-export const setupTestEmailBodySchema = z.object({}).strict();
+export const setupTestEmailBodySchema = z.object({}).strict().optional();
 
 /** First super_admin created by `/setup` (public only while none exists). */
 export const setupSuperAdminSchema = z

@@ -3,8 +3,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z, type ZodType } from "zod";
 import { CORE_VERSION } from "../version";
-import { OPERATIONS, type OperationAuth } from "./registry";
-import { componentName, namedComponents } from "./schemas";
+import { OPERATIONS, type OperationAuth, type OperationResponse } from "./registry";
+import { componentName, componentOverride, namedComponents } from "./schemas";
 
 /**
  * Builds the OpenAPI 3.1 document from the registry. The same command writes
@@ -88,7 +88,8 @@ function buildComponents(): Record<string, JsonSchema> {
   const schemas: Record<string, JsonSchema> = {};
   for (const { name, schema } of namedComponents()) {
     const { main, extra } = hoistDefinitions(name, toComponentSchema(schema));
-    schemas[name] = main;
+    // Overrides add what zod cannot express after a refinement (`minProperties`).
+    schemas[name] = { ...main, ...componentOverride(name) };
     Object.assign(schemas, extra);
   }
   return schemas;
@@ -99,10 +100,22 @@ function securityFor(auth: OperationAuth): Array<Record<string, string[]>> {
     case "public":
       return [];
     case "session":
+      // The door accepts either credential on ordinary routes.
+      return [{ sessionAuth: [] }, { apiKeyAuth: [] }];
+    case "session-only":
       return [{ sessionAuth: [] }];
     case "key":
+    case "service-key":
       return [{ apiKeyAuth: [] }];
   }
+}
+
+function extraResponse(response: OperationResponse): JsonObject {
+  const result: JsonObject = { description: response.description };
+  if (response.schema) {
+    result.content = { "application/json": { schema: schemaOrRef(response.schema) } };
+  }
+  return result;
 }
 
 function pathParameters(path: string): JsonObject[] {
@@ -125,12 +138,17 @@ function buildOperation(operation: (typeof OPERATIONS)[number]): JsonObject {
   }
 
   const responses: JsonObject = { [String(status)]: success };
-  responses.default = {
-    description: "Error envelope (ADR 0007).",
-    content: {
-      "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } },
-    },
-  };
+  if (operation.errorDefault !== false) {
+    responses.default = {
+      description: "Error envelope (ADR 0007).",
+      content: {
+        "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+      },
+    };
+  }
+  for (const [code, response] of Object.entries(operation.responses ?? {})) {
+    responses[code] = extraResponse(response);
+  }
 
   const parameters = pathParameters(operation.path);
   const result: JsonObject = {
@@ -141,8 +159,9 @@ function buildOperation(operation: (typeof OPERATIONS)[number]): JsonObject {
   if (parameters.length > 0) result.parameters = parameters;
   if (operation.scopes.length > 0) result["x-027-scopes"] = [...operation.scopes];
   if (operation.request) {
+    // A schema that accepts `undefined` (an optional body) is not required.
     result.requestBody = {
-      required: true,
+      required: !operation.request.safeParse(undefined).success,
       content: { "application/json": { schema: schemaOrRef(operation.request) } },
     };
   }

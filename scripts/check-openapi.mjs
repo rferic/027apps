@@ -19,7 +19,13 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const apiRoot = path.join(repoRoot, "apps/admin/src/app/api/v1");
 const documentPath = path.join(repoRoot, "docs/api/openapi.json");
 const HTTP_METHODS = new Set(["get", "post", "patch", "put", "delete", "head", "options"]);
-const METHOD_EXPORT = /export\s+(?:async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g;
+const METHOD_EXPORTS = [
+  // `export function GET`, `export async function GET`, `export const GET =`, ...
+  /export\s+(?:(?:async\s+)?function|(?:const|let|var))\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g,
+  // `export { GET }`, `export { GET as handler }`, ...
+  /export\s*\{([^}]*)\}/g,
+];
+const METHOD_NAME = /^(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/;
 
 function fail(message) {
   process.stderr.write(`${message}\n`);
@@ -45,16 +51,30 @@ function routeKey(file) {
   return `/${segments.join("/")}`;
 }
 
+function exportedMethods(source) {
+  const methods = new Set();
+  for (const match of source.matchAll(METHOD_EXPORTS[0])) methods.add(match[1]);
+  for (const match of source.matchAll(METHOD_EXPORTS[1])) {
+    for (const entry of match[1].split(",")) {
+      // `GET` or `GET as handler`: the exported name is what Next.js reads.
+      const name = entry.trim().split(/\s+as\s+/)[0]?.trim();
+      if (name && METHOD_NAME.test(name)) methods.add(name);
+    }
+  }
+  return methods;
+}
+
 function routeOperations() {
   const operations = new Set();
+  const emptyRoutes = [];
   for (const file of walk(apiRoot)) {
     const source = readFileSync(file, "utf8");
     const route = routeKey(file);
-    for (const match of source.matchAll(METHOD_EXPORT)) {
-      operations.add(`${match[1]} ${route}`);
-    }
+    const methods = exportedMethods(source);
+    if (methods.size === 0) emptyRoutes.push(path.relative(repoRoot, file));
+    for (const method of methods) operations.add(`${method} ${route}`);
   }
-  return operations;
+  return { operations, emptyRoutes };
 }
 
 function documentedOperations() {
@@ -81,7 +101,7 @@ if (check.status !== 0) {
   fail("openapi parity: the generated document is out of date");
 }
 
-const routes = routeOperations();
+const { operations: routes, emptyRoutes } = routeOperations();
 const documented = documentedOperations();
 const missing = sorted(new Set([...routes].filter((key) => !documented.has(key))));
 const extra = sorted(new Set([...documented].filter((key) => !routes.has(key))));
@@ -90,6 +110,10 @@ process.stdout.write(
   `openapi parity: ${routes.size} route operation(s), ${documented.size} documented operation(s)\n`,
 );
 
+if (emptyRoutes.length > 0) {
+  process.stderr.write("Route handlers with no exported HTTP method:\n");
+  for (const file of emptyRoutes) process.stderr.write(`  ${file}\n`);
+}
 if (missing.length > 0) {
   process.stderr.write("Missing from the OpenAPI registry (route handler exists, no operation):\n");
   for (const key of missing) process.stderr.write(`  ${key}\n`);
@@ -99,6 +123,6 @@ if (extra.length > 0) {
   for (const key of extra) process.stderr.write(`  ${key}\n`);
 }
 
-if (missing.length > 0 || extra.length > 0) process.exit(1);
+if (emptyRoutes.length > 0 || missing.length > 0 || extra.length > 0) process.exit(1);
 
 process.stdout.write("openapi parity: every route and every operation match\n");

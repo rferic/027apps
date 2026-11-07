@@ -1,4 +1,5 @@
 import { z, type ZodType } from "zod";
+import { DOMAIN_ERROR_CODES, type ErrorEnvelope } from "../errors";
 import type { UserView } from "../users/service";
 import type { CategoryDetail, CategoryMember, CategoryView } from "../user-categories/service";
 import type { InvitationView, RedeemResult } from "../invitations/service";
@@ -19,6 +20,7 @@ import type { EnvironmentReport } from "../setup/environment";
 
 const componentNames = new WeakMap<ZodType, string>();
 const components: Array<{ name: string; schema: ZodType }> = [];
+const componentOverrides = new Map<string, Record<string, unknown>>();
 
 /** Registers `schema` under `name` for `components.schemas` and returns it unchanged. */
 export function component<T extends ZodType>(name: string, schema: T): T {
@@ -39,6 +41,20 @@ export function componentName(schema: ZodType): string | null {
 /** Every registered component, in name order (deterministic output). */
 export function namedComponents(): ReadonlyArray<{ name: string; schema: ZodType }> {
   return [...components].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Adds JSON Schema keywords that zod cannot express after a refinement (for
+ * example `minProperties` for a "not empty" object). The patch is merged into
+ * the emitted component, so the published contract keeps the runtime rule.
+ */
+export function overrideComponent(name: string, patch: Record<string, unknown>): void {
+  componentOverrides.set(name, { ...(componentOverrides.get(name) ?? {}), ...patch });
+}
+
+/** JSON Schema patch for a component, or `undefined` when there is none. */
+export function componentOverride(name: string): Record<string, unknown> | undefined {
+  return componentOverrides.get(name);
 }
 
 const isoDate = z.iso.datetime();
@@ -463,12 +479,14 @@ export const errorResponseSchema = component(
     .object({
       error: z
         .object({
-          code: z.string(),
+          code: z.enum(DOMAIN_ERROR_CODES),
           message: z.string(),
           request_id: z.uuid(),
-          details: z.array(z.json()).optional(),
+          // `DomainError.details` is always an object (zod's `flatten()`), never
+          // an array. The `satisfies` below keeps the schema tied to the type.
+          details: z.record(z.string(), z.json()).optional(),
         })
         .loose(),
     })
-    .strict(),
+    .strict() satisfies z.ZodType<ErrorEnvelope>,
 );

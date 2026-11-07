@@ -42,6 +42,7 @@ import {
   moduleSettingListSchema,
   moduleSettingResponseSchema,
   openApiDocumentSchema,
+  overrideComponent,
   redeemResultSchema,
   settingListSchema,
   settingResponseSchema,
@@ -59,7 +60,23 @@ import {
  * every route file has an operation here (and vice versa).
  */
 export type HttpMethod = "get" | "post" | "patch" | "put" | "delete";
-export type OperationAuth = "session" | "key" | "public";
+
+/**
+ * Who may call the operation, as published in the document:
+ * - `public`: no credential.
+ * - `session`: a Supabase session JWT or a `027_svc_`/`027_usr_` API key.
+ * - `session-only`: a Supabase session JWT (never an API key).
+ * - `service-key`: any API key (used by the instance-only maintenance door).
+ * - `key`: only API keys. Reserved; no route needs it today.
+ */
+export type OperationAuth = "public" | "session" | "session-only" | "key" | "service-key";
+
+/** Extra response documented outside the success status and the error default. */
+export interface OperationResponse {
+  description: string;
+  /** Omitted for responses with no JSON body (e.g. 304). */
+  schema?: ZodType;
+}
 
 export interface OpenApiOperation {
   method: HttpMethod;
@@ -73,9 +90,16 @@ export interface OpenApiOperation {
   auth: OperationAuth;
   /** Successful status; 200 unless the handler returns 201 or 204. */
   status?: 200 | 201 | 204;
+  /** Additional status codes (health 503, translations 304, ...). */
+  responses?: Record<string, OperationResponse>;
+  /** Set `false` to omit the `default` error envelope (non-error operations). */
+  errorDefault?: boolean;
 }
 
 const userPatch = component("UserPatch", userPatchSchema);
+// `userPatchSchema` refines "at least one field"; JSON Schema emits the object
+// shape but not the refinement, so publish the equivalent `minProperties`.
+overrideComponent("UserPatch", { minProperties: 1 });
 const categoryCreate = component("UserCategoryCreate", userCategoryCreateSchema);
 const categoryRename = component("UserCategoryRename", userCategoryRenameSchema);
 const invitationCreate = component("InvitationCreate", createInvitationSchema);
@@ -99,6 +123,15 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: [],
     response: healthResponseSchema,
     auth: "public",
+    // 503 still carries the Health body, not the error envelope; there is no
+    // `default` because every status this operation returns is documented.
+    responses: {
+      "503": {
+        description: "Degraded: at least one dependency is not healthy.",
+        schema: healthResponseSchema,
+      },
+    },
+    errorDefault: false,
   },
   {
     method: "get",
@@ -140,7 +173,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     summary: "Send an SMTP test to the authenticated super_admin.",
     scopes: ["users:write"],
     response: setupTestEmailResponseSchema,
-    auth: "session",
+    auth: "session-only",
   },
   {
     method: "get",
@@ -503,6 +536,10 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: ["profile:read"],
     response: translationsSchema,
     auth: "session",
+    // `If-None-Match` with the current ETag answers 304 with no body.
+    responses: {
+      "304": { description: "Not modified: the ETag matches the current payload." },
+    },
   },
   {
     method: "post",
@@ -511,7 +548,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: ["maintenance:run"],
     request: maintenanceRun,
     response: maintenanceRunResponseSchema,
-    auth: "key",
+    auth: "service-key",
   },
   {
     method: "get",
@@ -519,6 +556,6 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     summary: "Last run per job, outbox counters and health (super_admin).",
     scopes: [],
     response: maintenanceStatusSchema,
-    auth: "session",
+    auth: "session-only",
   },
 ];

@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { userPatchSchema } from "../users/api";
 import { buildOpenApiDocument, serializeOpenApiDocument, type JsonObject } from "./generate";
 import { OPERATIONS } from "./registry";
+import { errorResponseSchema } from "./schemas";
 
 const COMMITTED = fileURLToPath(new URL("../../../../docs/api/openapi.json", import.meta.url));
 
@@ -90,12 +92,92 @@ describe("OpenAPI generation", () => {
     expect(json).not.toContain("process.env");
   });
 
-  it("exposes every operation with a security requirement or explicitly public", () => {
+  it("publishes the credentials each operation actually accepts", () => {
+    const expected: Record<string, JsonObject[]> = {
+      public: [],
+      session: [{ sessionAuth: [] }, { apiKeyAuth: [] }],
+      "session-only": [{ sessionAuth: [] }],
+      key: [{ apiKeyAuth: [] }],
+      "service-key": [{ apiKeyAuth: [] }],
+    };
+    const document = buildOpenApiDocument();
     for (const operation of OPERATIONS) {
-      const document = buildOpenApiDocument();
       const path = record(record(record(document.paths)[operation.path])[operation.method]);
-      expect(Array.isArray(path.security)).toBe(true);
-      expect((path.security as JsonObject[]).length).toBe(operation.auth === "public" ? 0 : 1);
+      expect(path.security).toEqual(expected[operation.auth]);
     }
+  });
+
+  it("marks the operations that only accept one credential type", () => {
+    const document = buildOpenApiDocument();
+    const operation = (path: string, method: string): JsonRecord =>
+      record(record(record(document.paths)[path])[method]);
+
+    expect(operation("/setup/test-email", "post").security).toEqual([{ sessionAuth: [] }]);
+    expect(operation("/maintenance/status", "get").security).toEqual([{ sessionAuth: [] }]);
+    expect(operation("/maintenance/run", "post").security).toEqual([{ apiKeyAuth: [] }]);
+    expect(operation("/users", "get").security).toEqual([
+      { sessionAuth: [] },
+      { apiKeyAuth: [] },
+    ]);
+  });
+
+  it("accepts an object in ErrorResponse.details and rejects an array", () => {
+    const envelope = {
+      error: {
+        code: "validation_failed",
+        message: "Validation failed",
+        request_id: "6f1c2a8e-8f14-4d2b-9b3e-1f7a8d2c4b6a",
+        details: { formErrors: [], fieldErrors: { email: ["must be a valid email"] } },
+      },
+    };
+    expect(errorResponseSchema.safeParse(envelope).success).toBe(true);
+
+    const asArray = { ...envelope, error: { ...envelope.error, details: [] } };
+    expect(errorResponseSchema.safeParse(asArray).success).toBe(false);
+
+    const components = record(record(buildOpenApiDocument().components).schemas);
+    const details = record(record(record(record(components.ErrorResponse).properties).error).properties)
+      .details;
+    expect(record(details).type).toBe("object");
+    expect(record(details).additionalProperties).toBeDefined();
+  });
+
+  it("documents health 503 with the Health schema and no default error", () => {
+    const document = buildOpenApiDocument();
+    const responses = record(record(record(record(document.paths)["/health"]).get).responses);
+    expect(responses).toHaveProperty("503");
+    expect(responses).not.toHaveProperty("default");
+
+    const schema = record(record(record(responses["503"]).content)["application/json"]).schema;
+    expect(record(schema).$ref).toBe("#/components/schemas/Health");
+  });
+
+  it("documents the translations 304 revalidation response", () => {
+    const document = buildOpenApiDocument();
+    const responses = record(record(record(record(document.paths)["/translations"]).get).responses);
+    expect(responses).toHaveProperty("304");
+    expect(record(responses["304"]).content).toBeUndefined();
+  });
+
+  it("marks optional request bodies as not required", () => {
+    const document = buildOpenApiDocument();
+    const requestBody = (path: string, method: string): JsonRecord =>
+      record(record(record(record(document.paths)[path])[method]).requestBody);
+
+    expect(requestBody("/modules/{key}/uninstall", "post").required).toBe(false);
+    expect(requestBody("/maintenance/run", "post").required).toBe(false);
+    expect(requestBody("/setup/super-admin", "post").required).toBe(true);
+  });
+
+  it("documents that PATCH /users/{id} requires at least one property", () => {
+    const document = buildOpenApiDocument();
+    const patch = record(record(record(document.paths)["/users/{id}"]).patch);
+    const body = record(record(record(patch.requestBody).content)["application/json"]);
+    expect(record(body.schema).$ref).toBe("#/components/schemas/UserPatch");
+
+    const components = record(record(document.components).schemas);
+    expect(record(components.UserPatch).minProperties).toBe(1);
+    // The documented rule matches the runtime schema (empty PATCH is a 400).
+    expect(userPatchSchema.safeParse({}).success).toBe(false);
   });
 });

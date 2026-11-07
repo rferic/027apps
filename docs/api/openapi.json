@@ -1281,13 +1281,30 @@
             "additionalProperties": {},
             "properties": {
               "code": {
+                "enum": [
+                  "validation_failed",
+                  "unauthorized",
+                  "insufficient_scope",
+                  "not_found",
+                  "conflict",
+                  "rate_limited",
+                  "already_setup",
+                  "invitation_expired",
+                  "invitation_used",
+                  "currency_not_enabled",
+                  "locale_not_available",
+                  "cors_origin_not_allowed",
+                  "payload_too_large",
+                  "currency_is_default",
+                  "internal"
+                ],
                 "type": "string"
               },
               "details": {
-                "items": {
+                "additionalProperties": {
                   "$ref": "#/components/schemas/ErrorResponse____schema0"
                 },
-                "type": "array"
+                "type": "object"
               },
               "message": {
                 "type": "string"
@@ -3764,6 +3781,7 @@
       },
       "UserPatch": {
         "additionalProperties": false,
+        "minProperties": 1,
         "properties": {
           "display_name": {
             "maxLength": 80,
@@ -3911,6 +3929,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "List own keys, or all keys as super_admin.",
@@ -3954,6 +3975,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Create a service or delegated key; the secret is returned once.",
@@ -3992,6 +4016,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Revoke a key immediately.",
@@ -4035,6 +4062,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Key detail (never the secret).",
@@ -4070,6 +4100,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Currencies with their enabled flag and the default.",
@@ -4125,6 +4158,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Enable or disable a currency; the default cannot be disabled.",
@@ -4160,6 +4196,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Own devices; admins may filter with ?user=.",
@@ -4203,6 +4242,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Register or refresh this device (idempotent by push_token).",
@@ -4241,6 +4283,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Revoke a device (soft) and drop its sessions.",
@@ -4262,15 +4307,15 @@
             },
             "description": "Successful response."
           },
-          "default": {
+          "503": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/Health"
                 }
               }
             },
-            "description": "Error envelope (ADR 0007)."
+            "description": "Degraded: at least one dependency is not healthy."
           }
         },
         "security": [],
@@ -4332,6 +4377,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "List invitations.",
@@ -4375,6 +4423,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Create a single-use invitation; the token is returned once.",
@@ -4413,6 +4464,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Revoke a pending invitation.",
@@ -4479,7 +4533,7 @@
               }
             }
           },
-          "required": true
+          "required": false
         },
         "responses": {
           "200": {
@@ -4573,6 +4627,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Instance module catalogue.",
@@ -4618,6 +4675,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Module detail with its public settings.",
@@ -4671,6 +4731,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Change is_public and mcp_exposed.",
@@ -4716,6 +4779,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Activate an installed module.",
@@ -4761,6 +4827,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Deactivate a module without reversing its DDL.",
@@ -4806,6 +4875,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Install the trusted packaged manifest.",
@@ -4851,6 +4923,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "All module settings (admins; secrets masked).",
@@ -4905,6 +4980,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Write one module setting.",
@@ -4934,7 +5012,7 @@
               }
             }
           },
-          "required": true
+          "required": false
         },
         "responses": {
           "204": {
@@ -4954,6 +5032,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Reverse migrations and remove the module (super_admin).",
@@ -5017,6 +5098,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "All settings; secrets are masked as configured.",
@@ -5060,6 +5144,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Write up to 30 settings in one transaction.",
@@ -5095,6 +5182,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Settings grouped by category and sort order.",
@@ -5158,6 +5248,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Write one setting value.",
@@ -5280,6 +5373,9 @@
             },
             "description": "Successful response."
           },
+          "304": {
+            "description": "Not modified: the ETag matches the current payload."
+          },
           "default": {
             "content": {
               "application/json": {
@@ -5294,6 +5390,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Resolved translation pairs for an enabled locale (ETag).",
@@ -5329,6 +5428,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "List user categories.",
@@ -5372,6 +5474,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Create a user category.",
@@ -5410,6 +5515,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Delete a category (materialised grants are kept).",
@@ -5453,6 +5561,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Category detail with its members.",
@@ -5506,6 +5617,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Rename a category.",
@@ -5552,6 +5666,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Remove a member from a category.",
@@ -5596,6 +5713,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Add a member to a category.",
@@ -5641,6 +5761,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Modules assigned to a category.",
@@ -5695,6 +5818,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Remove a module from a category (does not revoke access).",
@@ -5747,6 +5873,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Assign a module to a category (materialises access for members).",
@@ -5783,6 +5912,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "List users (admins) with q/limit/offset.",
@@ -5828,6 +5960,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Soft-deactivate a user (super_admin, root protected).",
@@ -5871,6 +6006,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "User detail.",
@@ -5924,6 +6062,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Edit profile fields; role changes additionally require roles:assign.",
@@ -5970,6 +6111,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Revoke module access from a user (soft).",
@@ -6014,6 +6158,9 @@
         "security": [
           {
             "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
           }
         ],
         "summary": "Grant module access to a user.",

@@ -2,7 +2,7 @@
 
 import { ApiReferenceReact } from "@scalar/api-reference-react";
 import "@scalar/api-reference-react/style.css";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./api-reference.css";
 
 /**
@@ -27,19 +27,27 @@ function usePrefersDark(): boolean {
 
 export function ApiReference({ url }: { url: string }) {
   const dark = usePrefersDark();
+  // A stable object: Scalar re-initialises whenever `configuration` changes.
+  const configuration = useMemo(
+    () => ({
+      url,
+      theme: "default" as const,
+      darkMode: dark,
+      forceDarkModeState: dark ? ("dark" as const) : ("light" as const),
+      documentDownloadType: "none" as const,
+      withDefaultFonts: false,
+      // The panel is an internal, read-only view: no client, agent or MCP UI.
+      hideClientButton: true,
+      showDeveloperTools: "never" as const,
+      agent: { disabled: true },
+      mcp: { disabled: true },
+    }),
+    [url, dark],
+  );
 
   return (
     <div className="overflow-hidden rounded-card border border-border bg-surface">
-      <ApiReferenceReact
-        configuration={{
-          url,
-          theme: "default",
-          darkMode: dark,
-          forceDarkModeState: dark ? "dark" : "light",
-          documentDownloadType: "none",
-          withDefaultFonts: false,
-        }}
-      />
+      <ApiReferenceReact configuration={configuration} />
     </div>
   );
 }
