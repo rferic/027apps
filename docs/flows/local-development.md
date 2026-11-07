@@ -109,3 +109,20 @@ OrbStack resuelve dominios personalizados automáticamente **únicamente bajo la
 - Spec de diseño: `docs/superpowers/specs/2026-11-06-local-dev-domain-design.md`
 - Plan de implementación: `docs/superpowers/plans/2026-11-06-local-dev-domain.md`
 - Flujos relacionados: `docs/flows/cicd.md`, `docs/flows/i18n.md`
+
+## Nunca ejecutes `next build` con el dev server levantado
+
+`pnpm --filter admin build` escribe en `apps/admin/.next`, el mismo directorio que usa `next dev`.
+Si el dev server está corriendo, el build lo deja en un estado inconsistente: el proceso sigue vivo y
+acepta conexiones, pero **no responde** (ni por `localhost` ni por la IP de la LAN), y al intentar
+relanzarlo Next avisa de que ya hay un servidor en ese puerto.
+
+Síntoma típico: el móvil se queda cargando y `curl http://<ip>:3003/login` se agota sin respuesta.
+
+Secuencia correcta:
+
+1. Para el dev server: `lsof -nP -iTCP:3003 -sTCP:LISTEN -t` y `kill <pid>`.
+2. `pnpm --filter admin build`.
+3. Relanza: `PORT=3003 pnpm --filter admin dev`.
+
+Si ya se ha roto: `pkill -9 -f "next dev"` y `rm -rf apps/admin/.next`, y vuelve a arrancar.
