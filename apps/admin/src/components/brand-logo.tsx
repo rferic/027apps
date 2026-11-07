@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import { BrandMark } from "./brand-mark";
 
 const SIZES = {
   sm: "h-6",
@@ -44,8 +45,7 @@ export function BrandLogo({
   if (variant === "mark") {
     return (
       <span className={cn("flex items-center text-brand", MARK_WIDTHS[size], className)}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset */}
-        <img src="/brand/mark.svg" alt="027Apps" className="h-auto w-full" />
+        <BrandMark className="h-auto w-full" label={name?.trim() || "027Apps"} />
       </span>
     );
   }

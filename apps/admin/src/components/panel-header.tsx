@@ -36,9 +36,10 @@ function roleLabel(role: PanelUser["role"], messages: TranslationMap): string {
 }
 
 /**
- * Panel header (UX review §4): identity on the left, global preferences and
- * the session menu on the right. The user menu is a `<details>` so it works
- * without JavaScript, and it is the only place "Log out" lives.
+ * Panel header (UX review §4): identity on the left, the session menu on the
+ * right. The user menu is a `<details>` so it works without JavaScript, and it
+ * is the only place "Log out", the theme and the language live; keeping the
+ * preferences compact gives the brand more room on mobile.
  */
 export function PanelHeader({ user, locale, messages, theme, instanceName, logoUrl, menu }: PanelHeaderProps) {
   return (
@@ -54,26 +55,45 @@ export function PanelHeader({ user, locale, messages, theme, instanceName, logoU
         />
         <span className="truncate text-sm font-semibold">{instanceName.trim() || APP_NAME}</span>
       </div>
-      <div className="flex min-w-0 items-center gap-2">
-        <LocaleSwitcher locale={locale} label={t("Language", messages)} className="min-h-11" />
-        <ThemeSwitcher messages={messages} theme={theme} className="min-h-11" />
-        <details className="relative min-w-0">
-          <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-control border border-border px-2.5 py-1.5 text-xs focus-visible:ring-2 focus-visible:ring-accent">
-            <span className="max-w-24 truncate font-semibold sm:max-w-36">
-              {user.displayName || user.email}
-            </span>
-            <span className="hidden text-muted-foreground sm:block">{roleLabel(user.role, messages)}</span>
-          </summary>
-          <div className="absolute right-0 z-10 mt-1 flex w-52 flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-lg">
-            <span className="hidden truncate text-xs text-muted-foreground sm:block">{user.email}</span>
-            <form action={signOutAction}>
-              <Button type="submit" variant="secondary" className="min-h-11 w-full">
-                {t("Log out", messages)}
-              </Button>
-            </form>
+      <details className="relative min-w-0">
+        <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-control border border-border px-2.5 py-1.5 text-xs focus-visible:ring-2 focus-visible:ring-accent">
+          <span className="max-w-24 truncate font-semibold sm:max-w-36">
+            {user.displayName || user.email}
+          </span>
+        </summary>
+        <div
+          data-user-menu
+          className="absolute right-0 z-10 mt-1 flex w-64 flex-col gap-3 rounded-card border border-border bg-surface p-3 shadow-lg"
+        >
+          <div className="flex flex-col gap-0.5">
+            <span className="truncate text-sm font-semibold">{user.displayName || user.email}</span>
+            <span className="text-xs text-muted-foreground">{roleLabel(user.role, messages)}</span>
+            <span className="truncate text-xs text-muted-foreground">{user.email}</span>
           </div>
-        </details>
-      </div>
+          <hr className="border-border" />
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">{t("Theme", messages)}</span>
+            <ThemeSwitcher messages={messages} theme={theme} className="min-h-11" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              {t("Language", messages)}
+            </span>
+            {/*
+              Choosing a language calls router.refresh(), which re-renders the
+              server tree; the native <details> then closes because it is not
+              controlled state. Acceptable: the new locale is already applied.
+            */}
+            <LocaleSwitcher locale={locale} label={t("Language", messages)} className="min-h-11" />
+          </div>
+          <hr className="border-border" />
+          <form action={signOutAction}>
+            <Button type="submit" variant="secondary" className="min-h-11 w-full">
+              {t("Log out", messages)}
+            </Button>
+          </form>
+        </div>
+      </details>
     </header>
   );
 }
