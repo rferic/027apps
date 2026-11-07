@@ -6163,6 +6163,33 @@
               "maxLength": 100,
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "description": "Filter by role.",
+              "enum": [
+                "super_admin",
+                "admin",
+                "user"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "description": "Filter by activation state.",
+              "enum": [
+                "active",
+                "deactivated"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6444,6 +6471,54 @@
         "summary": "Grant module access to a user.",
         "x-027-scopes": [
           "modules:grant"
+        ]
+      }
+    },
+    "/users/{id}/restore": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Reactivate a soft-deactivated user (super_admin, idempotent).",
+        "x-027-scopes": [
+          "users:deactivate"
         ]
       }
     }

@@ -97,6 +97,14 @@ export const paginationQuerySchema = z.object({
 
 export const usersQuerySchema = paginationQuerySchema.extend({
   q: z.string().max(100).optional().describe("Filter by name or email."),
+  role: z
+    .enum(["super_admin", "admin", "user"])
+    .optional()
+    .describe("Filter by role."),
+  state: z
+    .enum(["active", "deactivated"])
+    .optional()
+    .describe("Filter by activation state."),
 });
 
 export const userResponseSchema = component(

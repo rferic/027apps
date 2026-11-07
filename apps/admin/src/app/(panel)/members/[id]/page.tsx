@@ -5,6 +5,7 @@ import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { MemberDangerZone } from "@/components/member-danger-zone";
 import { MemberProfileForm } from "@/components/member-profile-form";
+import { MemberRestoreAction } from "@/components/member-restore-action";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
@@ -138,12 +139,16 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
         messages={messages}
       />
       {gate.user.role === "super_admin" ? (
-        <MemberDangerZone
-          id={member.id}
-          name={memberName(member)}
-          isSelf={isSelf}
-          messages={messages}
-        />
+        member.deactivated_at !== null ? (
+          <MemberRestoreAction id={member.id} name={memberName(member)} messages={messages} />
+        ) : (
+          <MemberDangerZone
+            id={member.id}
+            name={memberName(member)}
+            isSelf={isSelf}
+            messages={messages}
+          />
+        )
       ) : null}
     </section>
   );

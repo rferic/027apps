@@ -18,6 +18,7 @@ import type { QueryClient } from "../api/rate-limit-storage";
  * message for the error code, never this text.
  */
 export type Role = "super_admin" | "admin" | "user";
+export type UserState = "active" | "deactivated";
 
 export interface UsersDeps {
   db: QueryClient;
@@ -37,15 +38,22 @@ export type UserView = {
 
 export interface UserListFilters {
   q?: string;
+  role?: Role;
+  state?: UserState;
   limit: number;
   offset: number;
 }
 
 export interface UserList {
   users: UserView[];
-  /** Profiles matching the filter, across every page. */
+  /** Profiles matching every filter (including `state`), across every page. */
   total: number;
-  /** Active (not deactivated) profiles matching the filter, across every page. */
+  /**
+   * Active (not deactivated) profiles matching `q` + `role`, across every
+   * page. It deliberately ignores `state`: the dashboard keeps "how many are
+   * active among the current search" even when the list shows deactivated
+   * profiles.
+   */
   active_total: number;
 }
 
@@ -104,22 +112,27 @@ async function activeSuperAdmins(db: QueryClient): Promise<number> {
 
 export async function listUsers(deps: UsersDeps, filters: UserListFilters): Promise<UserList> {
   const pattern = filters.q ? likePattern(filters.q) : null;
+  // `null` means "no state filter"; a boolean lets both queries share the SQL.
+  const active = filters.state === undefined ? null : filters.state === "active";
   const { rows } = await deps.db.query(
     `select p.id, p.display_name, p.locale, p.timezone, p.role, p.created_at, p.deactivated_at
        from public.profiles p
        join auth.users u on u.id = p.id
       where ($1::text is null or p.display_name ilike $1 escape '\\' or u.email ilike $1 escape '\\')
+        and ($2::text is null or p.role = $2)
+        and ($3::boolean is null or (p.deactivated_at is null) = $3)
       order by p.created_at asc, p.id asc
-      limit $2 offset $3`,
-    [pattern, filters.limit, filters.offset],
+      limit $4 offset $5`,
+    [pattern, filters.role ?? null, active, filters.limit, filters.offset],
   );
   const { rows: countRows } = await deps.db.query(
-    `select count(*)::int as n,
+    `select count(*) filter (where ($3::boolean is null or (p.deactivated_at is null) = $3))::int as n,
             count(*) filter (where p.deactivated_at is null)::int as active_total
        from public.profiles p
        join auth.users u on u.id = p.id
-      where ($1::text is null or p.display_name ilike $1 escape '\\' or u.email ilike $1 escape '\\')`,
-    [pattern],
+      where ($1::text is null or p.display_name ilike $1 escape '\\' or u.email ilike $1 escape '\\')
+        and ($2::text is null or p.role = $2)`,
+    [pattern, filters.role ?? null, active],
   );
   return {
     users: rows.map(toView),
@@ -252,4 +265,32 @@ export async function deactivateUser(
     });
     return view;
   });
+}
+
+/**
+ * POST /api/v1/users/{id}/restore — undo a soft deactivation (super_admin).
+ *
+ * Reactivation cannot break an invariant (the root is always safe and no
+ * "last super_admin" rule can be violated by adding access back), so there is
+ * no advisory lock and no conflict path beyond 404. An already active profile
+ * is a 200 without a write: retrying the request is safe.
+ *
+ * Revoked credentials stay revoked on purpose: restoring access never
+ * resurrects api keys or devices that were revoked at deactivation.
+ */
+export async function restoreUser(
+  deps: UsersDeps,
+  caller: Caller,
+  id: string,
+): Promise<UserView> {
+  if (caller.kind !== "session" || caller.role !== "super_admin") {
+    throw new DomainError("insufficient_scope");
+  }
+  const current = await getUserFrom(deps.db, id);
+  if (current.deactivated_at === null) return current;
+  await deps.db.query(
+    "update public.profiles set deactivated_at = null, updated_at = now() where id = $1",
+    [id],
+  );
+  return getUserFrom(deps.db, id);
 }

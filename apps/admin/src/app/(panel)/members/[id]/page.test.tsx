@@ -49,6 +49,11 @@ const MEMBER = {
   deactivated_at: null,
 };
 
+const DEACTIVATED = {
+  ...MEMBER,
+  deactivated_at: "2026-03-01T00:00:00.000Z",
+};
+
 function render(id = "u1") {
   return MemberPage({ params: Promise.resolve({ id }) });
 }
@@ -100,6 +105,27 @@ describe("MemberPage", () => {
     const asAdmin = renderToStaticMarkup(await render());
     expect(asAdmin).not.toContain("Deactivate member");
     expect(asAdmin).toContain("Only a super admin can change this role.");
+  });
+
+  it("offers reactivation only to a super_admin when the member is deactivated", async () => {
+    loadMemberMock.mockResolvedValue({ ok: true, member: DEACTIVATED });
+    requirePanelMock.mockResolvedValue({
+      user: { id: "u2", email: "admin@example.com", displayName: "Admin", role: "super_admin" },
+    });
+
+    const asSuperAdmin = renderToStaticMarkup(await render());
+    expect(asSuperAdmin).toContain("Reactivate member");
+    expect(asSuperAdmin).toContain("Member access");
+    expect(asSuperAdmin).toContain("Deactivated");
+    expect(asSuperAdmin).not.toContain("Danger zone");
+    expect(asSuperAdmin).not.toContain("Deactivate member");
+
+    requirePanelMock.mockResolvedValue({
+      user: { id: "u2", email: "admin@example.com", displayName: "Admin", role: "admin" },
+    });
+    const asAdmin = renderToStaticMarkup(await render());
+    expect(asAdmin).not.toContain("Reactivate member");
+    expect(asAdmin).not.toContain("Danger zone");
   });
 
   it("never offers self-destructive actions or a self role change", async () => {

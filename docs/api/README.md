@@ -2,7 +2,7 @@
 
 Public guide for integrating with a 027Apps instance. This document is the **human entry point**; the normative contract is the generated **OpenAPI** document.
 
-> **Status (2026-11-06): partial — 52 operations documented.** The OpenAPI document is generated from the same zod schemas that validate requests and responses, and today it covers the Core routes in `apps/admin/src/app/api/v1/**`. Sections or endpoints marked **Previsto** describe the v1 target and are **not implemented yet**; the rest reflects the code that runs. If something here disagrees with the OpenAPI, **the OpenAPI wins**.
+> **Status (2026-11-06): partial — 53 operations documented.** The OpenAPI document is generated from the same zod schemas that validate requests and responses, and today it covers the Core routes in `apps/admin/src/app/api/v1/**`. Sections or endpoints marked **Previsto** describe the v1 target and are **not implemented yet**; the rest reflects the code that runs. If something here disagrees with the OpenAPI, **the OpenAPI wins**.
 
 ## Contents
 
@@ -117,7 +117,7 @@ Every error from `/api/v1` uses the same envelope:
 **Implemented: offset/limit.** Lists that need it return their own named collection plus the page metadata (the generated OpenAPI is authoritative per endpoint). For users:
 
 ```
-GET /api/v1/users?q=&offset=0&limit=50
+GET /api/v1/users?q=&role=user&state=active&offset=0&limit=50
 {
   "users": [ … ],
   "total": 128,
@@ -127,7 +127,11 @@ GET /api/v1/users?q=&offset=0&limit=50
 }
 ```
 
-`limit` is clamped to 1…100 and `offset` to ≥ 0. There is no generic `{ "data", "meta" }` envelope in v1.
+`limit` is clamped to 1…100 and `offset` to ≥ 0. `/users` also accepts `q` (name or email),
+`role` (`super_admin|admin|user`) and `state` (`active|deactivated`); an unknown value is a
+`validation_failed` (400). `total` counts every filter, while `active_total` counts active profiles
+matching `q` + `role` and deliberately ignores `state`. There is no generic `{ "data", "meta" }`
+envelope in v1.
 
 **Previsto: cursor pagination.** For large or live lists (declared per resource) the target is an opaque `next_cursor`; it is **not implemented** and no endpoint accepts `cursor=` today.
 
@@ -197,13 +201,13 @@ The CI **fails** if a declared capability is not documented, and checks that eve
 
 ### Core endpoints (at a glance)
 
-The table reflects the **52 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
+The table reflects the **53 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
 
 | Area | Endpoints | Notes |
 |---|---|---|
 | Health & instance | `GET /health`, `GET /instance`, `GET /openapi.json` | public, non-sensitive; `/health` answers 200 or 503 |
 | Setup | `GET /setup/environment`, `POST /setup/super-admin`, `POST /setup/test-email` | public while uninstalled (environment/super-admin); test-email is **session-only** super_admin |
-| Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}` | soft-deactivate (**super-admin**); root protected |
+| Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}`, `POST /users/{id}/restore` | soft-deactivate and restore (**super-admin**); root protected; restore is idempotent |
 | Categories (admin) | `/user-categories`, `/{id}/members`, `/{id}/modules` | assign module ∈ category materializes access |
 | Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin** |
 | Module docs | `GET /modules/{key}/docs/{doc}` | **previsto** |
@@ -369,7 +373,7 @@ One shared budget per key (30 req/min by default, writes 10 req/min), audited pe
 
 - The **OpenAPI document is generated** from the same schemas that validate requests and responses — it cannot drift from the implementation (delta 2026-10-27 in the API spec). Generation uses zod 4's native `z.toJSONSchema()`; the registry in `packages/core/src/openapi/registry.ts` maps each route handler to its shared schemas and scopes.
 - Each instance **serves it** at `GET /api/v1/openapi.json` (no auth needed to read the schema; the API itself still requires credentials).
-- A copy is committed to the repository at `docs/api/openapi.json` for review (**52 operations** today); CI fails if it is out of date or if a route handler has no operation (and also if a `route.ts` exports no HTTP method).
+- A copy is committed to the repository at `docs/api/openapi.json` for review (**53 operations** today); CI fails if it is out of date or if a route handler has no operation (and also if a `route.ts` exports no HTTP method).
 - Every operation publishes the credentials it actually accepts: `session` routes list `sessionAuth` and `apiKeyAuth`; `/setup/test-email` and `/maintenance/status` are `sessionAuth` only; `/maintenance/run` is `apiKeyAuth` only.
 - A browsable rendering is available in the admin panel at `/docs/api` (Scalar, bundled locally so the CSP needs no CDN; the client/agent/MCP toolbars are disabled).
 

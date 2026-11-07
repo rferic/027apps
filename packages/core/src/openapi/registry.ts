@@ -216,6 +216,14 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
   },
   {
     method: "post",
+    path: "/users/{id}/restore",
+    summary: "Reactivate a soft-deactivated user (super_admin, idempotent).",
+    scopes: ["users:deactivate"],
+    response: userResponseSchema,
+    auth: "session",
+  },
+  {
+    method: "post",
     path: "/users/{id}/modules/{key}",
     summary: "Grant module access to a user.",
     scopes: ["modules:grant"],

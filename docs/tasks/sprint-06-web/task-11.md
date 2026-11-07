@@ -37,6 +37,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 10 | Arquitectura de información final: Ajustes plano y grupo Documentación | hecho |
 | 11 | Copiado del token de invitación y del secreto de API key en móvil (contexto no seguro por HTTP): fallback sin `navigator.clipboard` y aviso de copia manual | hecho |
 | 12 | Paginación en servidor de todas las listas del panel, componente compartido, filtros de cliente y regla escrita | hecho |
+| 13 | Reactivación de miembros desactivados y filtros de rol/estado en `/members` | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -175,3 +176,36 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 - Tests: paginación por recurso en Core (página 1 con `limit=2`, página 2 con `offset=2`, `total`,
   clamp de `limit`, 401 sin sesión), helper de query, componente `Pagination`, helpers de página y
   página/filtros de cada listado del panel.
+
+### Iteración 13 — Reactivación y filtros de miembros (hecho)
+
+- **Endpoint elegido: `POST /api/v1/users/{id}/restore`**, no `PATCH { active: true }`. La
+  desactivación ya es `DELETE /users/{id}` y `PATCH /users/{id}` acepta solo campos de perfil/rol
+  (`UserPatch` es `.strict()`); añadir `active` a ese cuerpo mezclaría dos operaciones con permisos
+  distintos (`users:write` frente a `users:deactivate`) y rompería el contrato del PATCH. `POST` sobre
+  un subrecurso `restore` deja el permiso, el rate limit de escritura y el 200 idempotente en un único
+  sitio, y se documenta como operación propia en OpenAPI.
+- Core: `restoreUser` exige sesión `super_admin` (mismo scope `users:deactivate` que desactivar).
+  Perfil inexistente → 404; ya activo → 200 sin escritura (idempotente); si estaba desactivado,
+  `deactivated_at = null, updated_at = now()` y devuelve el `UserView`. No hay regla especial para el
+  root ni para el último `super_admin`: reactivar siempre es seguro, así que no hay lock de rol. No se
+  resucitan las API keys ni los dispositivos revocados al desactivar (la revocación es definitiva).
+  No se emite un evento nuevo: el catálogo de realtime es cerrado y `user.restored` requeriría spec.
+- `GET /users` acepta `role` (`super_admin|admin|user`) y `state` (`active|deactivated`), validados con
+  zod en el borde (valor desconocido → `validation_failed` 400). Se combinan con `q` y la paginación.
+  `total` cuenta todos los filtros; `active_total` cuenta activos con `q` + `role` e ignora `state`.
+- Admin: en `/members/[id]`, un miembro desactivado muestra **Reactivate member** (acción primaria,
+  diálogo breve) en lugar de la zona de peligro, solo para `super_admin`; tras reactivar hace
+  `router.refresh()`. La zona de peligro explica que la desactivación es reversible.
+- `/members` añade dos `Select` (rol y estado) al formulario GET, combinados con `q`; los filtros se
+  conservan en la paginación y en el enlace de reintento. Sin resultados hay vacío propio con
+  "Clear filters".
+- **Borrado físico: no se implementa.** El diseño aprobado es desactivación soft porque preserva
+  historial y referencias (`settings.updated_by`, `api_keys.created_by`, autoría de eventos). Un
+  borrado físico requiere spec propia y decidir qué ocurre con ese historial (¿nullable?, ¿usuario
+  ficticio?, ¿cascada?), además de revocar antes todas las credenciales. La UI lo deja claro:
+  "deactivate" es reversible y no se ofrece "delete".
+- Tests: Core (restore ok, 404, idempotente, 403 no super_admin; filtro por rol, por estado, combinado
+  con `q` + paginación y `total`), Admin (botón solo con desactivado + `super_admin`, `restoreMember`
+  llama a `POST /users/{id}/restore`, envío y conservación de `role`/`state`, vacío de filtro) y
+  OpenAPI (parámetros `role`/`state` y operación `restore`).

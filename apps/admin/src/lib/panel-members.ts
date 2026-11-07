@@ -10,6 +10,7 @@ export const MEMBERS_PAGE_SIZE = 20;
 const INTERNAL_ORIGIN = "http://panel.internal";
 
 export type MemberRole = "super_admin" | "admin" | "user";
+export type MemberState = "active" | "deactivated";
 
 /** `UserView` plus the auth email the Core API deliberately does not expose. */
 export interface MemberRow {
@@ -216,11 +217,18 @@ function withEmail(user: UserFields, lookup: EmailLookup): MemberRow {
   return { ...user, email: lookup.emails.get(user.id) ?? null, emailUnavailable: false };
 }
 
-/** GET /api/v1/users with `q` and an offset; the page size is fixed here. */
-export async function loadMembers(input: { q?: string; offset: number }): Promise<MemberList> {
+/** GET /api/v1/users with `q`, `role`, `state` and an offset; the page size is fixed here. */
+export async function loadMembers(input: {
+  q?: string;
+  role?: MemberRole;
+  state?: MemberState;
+  offset: number;
+}): Promise<MemberList> {
   const token = await sessionToken();
   const params = new URLSearchParams();
   if (input.q) params.set("q", input.q);
+  if (input.role) params.set("role", input.role);
+  if (input.state) params.set("state", input.state);
   params.set("limit", String(MEMBERS_PAGE_SIZE));
   params.set("offset", String(Math.max(0, input.offset)));
 

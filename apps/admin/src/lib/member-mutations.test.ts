@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { deactivateMember, patchMember } from "./member-mutations";
+import { deactivateMember, patchMember, restoreMember } from "./member-mutations";
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), { status, headers });
@@ -134,6 +134,31 @@ describe("deactivateMember", () => {
       ok: false,
       code: "conflict",
       requestId: "req-conflict",
+    });
+  });
+});
+
+describe("restoreMember", () => {
+  it("POSTs the restore endpoint same-origin", async () => {
+    const fetcher = vi.fn(async () => json({ user: {} }));
+
+    await expect(restoreMember("u1", fetcher)).resolves.toEqual({ ok: true });
+
+    const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("/api/v1/users/u1/restore");
+    expect(init.method).toBe("POST");
+    expect(init.credentials).toBe("same-origin");
+  });
+
+  it("surfaces the API code when the caller is not a super_admin", async () => {
+    const fetcher = vi.fn(async () =>
+      json({ error: { code: "insufficient_scope", request_id: "req-403" } }, 403),
+    );
+
+    await expect(restoreMember("u1", fetcher)).resolves.toEqual({
+      ok: false,
+      code: "insufficient_scope",
+      requestId: "req-403",
     });
   });
 });

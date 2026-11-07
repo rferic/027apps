@@ -78,6 +78,26 @@ describe("OpenAPI generation", () => {
     }
   });
 
+  it("documents the role and state filters of GET /users", () => {
+    const document = buildOpenApiDocument();
+    const get = record(record(record(document.paths)["/users"]).get);
+    const parameters = (get.parameters ?? []) as JsonRecord[];
+    const byName = new Map(parameters.map((parameter) => [parameter.name, parameter]));
+    expect(byName.has("role")).toBe(true);
+    expect(byName.has("state")).toBe(true);
+    expect(JSON.stringify(byName.get("role"))).toContain("super_admin");
+    expect(JSON.stringify(byName.get("state"))).toContain("deactivated");
+  });
+
+  it("documents POST /users/{id}/restore under the deactivation scope", () => {
+    const document = buildOpenApiDocument();
+    const restore = record(record(record(document.paths)["/users/{id}/restore"]).post);
+    expect(restore["x-027-scopes"]).toEqual(["users:deactivate"]);
+    const success = record(record(restore.responses)["200"]);
+    const schema = record(record(record(success.content)["application/json"]).schema);
+    expect(schema.$ref).toBe("#/components/schemas/UserResponse");
+  });
+
   it("never publishes the API key secret in a list or detail representation", () => {
     const document = buildOpenApiDocument();
     const schemas = record(record(document.components).schemas);

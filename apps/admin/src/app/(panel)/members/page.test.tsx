@@ -182,8 +182,64 @@ describe("MembersPage", () => {
     expect(html).toContain('method="get"');
     expect(html).toContain('name="q"');
     expect(html).toContain('id="members-q"');
+    expect(html).toContain('name="role"');
+    expect(html).toContain('id="members-role"');
+    expect(html).toContain('name="state"');
+    expect(html).toContain('id="members-state"');
+    expect(html).toContain("All roles");
+    expect(html).toContain("All states");
     expect(html).toContain("Search by name or email");
     expect(html).toContain(">Search<");
+  });
+
+  it("sends the role and state filters and keeps them in the pagination links", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 45, activeTotal: 44 });
+
+    const html = renderToStaticMarkup(
+      await render({ role: "user", state: "deactivated", page: "2" }),
+    );
+
+    expect(loadMembersMock).toHaveBeenCalledWith({
+      role: "user",
+      state: "deactivated",
+      offset: 20,
+    });
+    expect(html).toContain('href="/members?role=user&amp;state=deactivated&amp;page=3"');
+    expect(html).toContain('href="/members?role=user&amp;state=deactivated"');
+  });
+
+  it("combines the search with the filters in the query", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 45, activeTotal: 44 });
+
+    const html = renderToStaticMarkup(await render({ q: "ana", role: "admin", state: "active" }));
+
+    expect(loadMembersMock).toHaveBeenCalledWith({
+      q: "ana",
+      role: "admin",
+      state: "active",
+      offset: 0,
+    });
+    expect(html).toContain(
+      'href="/members?q=ana&amp;role=admin&amp;state=active&amp;page=2"',
+    );
+  });
+
+  it("shows a filter-specific empty state and lets the reader clear every filter", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: [], total: 0, activeTotal: 0 });
+
+    const html = renderToStaticMarkup(await render({ role: "admin", state: "active" }));
+
+    expect(html).toContain("No members match this filter.");
+    expect(html).toContain("Clear filters");
+    expect(html).toContain('href="/members"');
+  });
+
+  it("ignores an unknown role or state instead of sending it to the API", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    await render({ role: "owner", state: "disabled" });
+
+    expect(loadMembersMock).toHaveBeenCalledWith({ offset: 0 });
   });
 
   it("renders the generic 403 and never loads the list when the role is denied", async () => {

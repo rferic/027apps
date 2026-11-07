@@ -112,6 +112,17 @@ describe("loadMembers", () => {
     expect(request.url).toBe("http://panel.internal/api/v1/users?limit=20&offset=0");
   });
 
+  it("sends the role and state filters to the API", async () => {
+    usersHandlerMock.mockResolvedValue(json({ users: USERS, total: 0, active_total: 0 }));
+
+    await loadMembers({ role: "user", state: "deactivated", offset: 0 });
+
+    const request = usersHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe(
+      "http://panel.internal/api/v1/users?role=user&state=deactivated&limit=20&offset=0",
+    );
+  });
+
   it("keeps the instance-wide total when the page only holds 20 rows", async () => {
     const page = Array.from({ length: 20 }, (_, index) => ({
       ...USERS[0],

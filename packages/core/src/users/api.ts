@@ -8,7 +8,9 @@ import {
   deactivateUser,
   getUser,
   listUsers,
+  restoreUser,
   updateUser,
+  type UserListFilters,
   type UserPatch,
   type UsersDeps,
 } from "./service";
@@ -41,17 +43,44 @@ export const userPatchSchema = z
   .strict()
   .refine((value) => Object.keys(value).length > 0, { message: "at least one field is required" });
 
-function pageParams(searchParams: URLSearchParams): { q?: string; limit: number; offset: number } {
+/**
+ * `GET /users` filters beyond `q`: role and activation state. Validated with
+ * zod at the edge, like every other filter, so an unknown value is a 400
+ * instead of silently returning the unfiltered list.
+ */
+export const userListFiltersSchema = z
+  .object({
+    role: z.enum(["super_admin", "admin", "user"]).optional(),
+    state: z.enum(["active", "deactivated"]).optional(),
+  })
+  .strict();
+
+function pageParams(searchParams: URLSearchParams): UserListFilters {
   const q = searchParams.get("q")?.trim() || undefined;
   if (q && q.length > 100) throw new DomainError("validation_failed", "q is too long");
   const rawLimit = Number(searchParams.get("limit") ?? 50);
   const rawOffset = Number(searchParams.get("offset") ?? 0);
   const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, rawLimit)) : 50;
   const offset = Number.isFinite(rawOffset) ? Math.max(0, rawOffset) : 0;
-  return { q, limit, offset };
+
+  const filters = userListFiltersSchema.safeParse({
+    role: searchParams.get("role") || undefined,
+    state: searchParams.get("state") || undefined,
+  });
+  if (!filters.success) {
+    throw new DomainError("validation_failed", "invalid role or state filter");
+  }
+
+  return {
+    ...(q ? { q } : {}),
+    ...(filters.data.role ? { role: filters.data.role } : {}),
+    ...(filters.data.state ? { state: filters.data.state } : {}),
+    limit,
+    offset,
+  };
 }
 
-/** GET /api/v1/users — list with `q`, `limit`, `offset`. */
+/** GET /api/v1/users — list with `q`, `role`, `state`, `limit`, `offset`. */
 export function usersRoute(deps: UsersRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(
@@ -121,5 +150,21 @@ export function deactivateUserRoute(deps: UsersRouteDeps) {
       },
       deps.door,
       async (ctx) => ({ user: await deactivateUser(deps.users, ctx.caller, id) }),
+    );
+}
+
+/** POST /api/v1/users/{id}/restore — undo a soft deactivation (super_admin only). */
+export function restoreUserRoute(deps: UsersRouteDeps) {
+  return (req: Request, id: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:deactivate"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user", limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
+      },
+      deps.door,
+      async (ctx) => ({ user: await restoreUser(deps.users, ctx.caller, id) }),
     );
 }

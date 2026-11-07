@@ -49,7 +49,8 @@ export function buildProfilePatch(
 
 /**
  * Destructive confirmation copy (§6): it must name the member and the
- * consequence, never a bare "Are you sure?".
+ * consequence, never a bare "Are you sure?". Deactivation is soft, so the
+ * copy says it is reversible and points at the restore action.
  */
 export function deactivationCopy(
   name: string,
@@ -59,7 +60,20 @@ export function deactivationCopy(
     trigger: t("Deactivate member", messages),
     title: t("Deactivate {name}?", messages, { name }),
     consequence: t("{name} will lose access immediately.", messages, { name }),
-    note: t("This cannot be undone from this page.", messages),
+    note: t("You can reactivate this member later from this page.", messages),
     confirm: t("Deactivate", messages),
+  };
+}
+
+/** Brief confirmation for the reversible action: restore access. */
+export function restoreCopy(
+  name: string,
+  messages: TranslationMap,
+): { trigger: string; title: string; consequence: string; confirm: string } {
+  return {
+    trigger: t("Reactivate member", messages),
+    title: t("Reactivate {name}?", messages, { name }),
+    consequence: t("{name} will be able to sign in again.", messages, { name }),
+    confirm: t("Reactivate", messages),
   };
 }

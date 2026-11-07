@@ -3,6 +3,7 @@ import {
   buildProfilePatch,
   canAssignRole,
   deactivationCopy,
+  restoreCopy,
   roleOptions,
 } from "./member-form";
 
@@ -63,7 +64,7 @@ describe("deactivationCopy", () => {
     expect(copy.title).toBe("Deactivate Sara?");
     expect(copy.consequence).toContain("Sara");
     expect(copy.consequence).toContain("will lose access immediately.");
-    expect(copy.note).toContain("cannot be undone");
+    expect(copy.note).toContain("reactivate");
   });
 
   it("translates the copy when the panel has a dictionary", () => {
@@ -74,5 +75,17 @@ describe("deactivationCopy", () => {
 
     expect(copy.title).toBe("¿Desactivar a Sara?");
     expect(copy.consequence).toBe("Sara perderá el acceso de inmediato.");
+  });
+});
+
+describe("restoreCopy", () => {
+  it("names the member and the regained access in the confirmation", () => {
+    const copy = restoreCopy("Sara", {});
+
+    expect(copy.trigger).toBe("Reactivate member");
+    expect(copy.title).toBe("Reactivate Sara?");
+    expect(copy.consequence).toContain("Sara");
+    expect(copy.consequence).toContain("sign in again");
+    expect(copy.confirm).toBe("Reactivate");
   });
 });

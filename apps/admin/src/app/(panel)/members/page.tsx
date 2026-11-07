@@ -7,6 +7,7 @@ import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
+import { Select } from "@/components/ui/select";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -16,7 +17,9 @@ import {
   loadMembers,
   MEMBERS_PAGE_SIZE,
   type MemberListSuccess,
+  type MemberRole,
   type MemberRow,
+  type MemberState,
 } from "@/lib/panel-members";
 
 /**
@@ -27,6 +30,8 @@ export const instant = false;
 
 interface MembersSearchParams {
   q?: string | string[];
+  role?: string | string[];
+  state?: string | string[];
   page?: string | string[];
 }
 
@@ -40,9 +45,26 @@ function parsePage(value: string | undefined): number {
   return Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 1;
 }
 
-function membersHref(input: { q: string; page: number }): string {
+/** Only the three real roles filter; anything else means "all". */
+function parseRole(value: string | undefined): MemberRole | undefined {
+  return value === "super_admin" || value === "admin" || value === "user" ? value : undefined;
+}
+
+/** Only the two real states filter; anything else means "all". */
+function parseState(value: string | undefined): MemberState | undefined {
+  return value === "active" || value === "deactivated" ? value : undefined;
+}
+
+function membersHref(input: {
+  q: string;
+  role?: MemberRole;
+  state?: MemberState;
+  page: number;
+}): string {
   const params = new URLSearchParams();
   if (input.q) params.set("q", input.q);
+  if (input.role) params.set("role", input.role);
+  if (input.state) params.set("state", input.state);
   if (input.page > 1) params.set("page", String(input.page));
   const query = params.toString();
   return query ? `/members?${query}` : "/members";
@@ -170,12 +192,23 @@ function MembersCards({ rows, locale, timeZone, messages }: { rows: MemberRow[];
   );
 }
 
-function MembersEmpty({ q, messages }: { q: string; messages: TranslationMap }) {
+function MembersEmpty({
+  q,
+  filtered,
+  messages,
+}: {
+  q: string;
+  filtered: boolean;
+  messages: TranslationMap;
+}) {
+  const heading = q
+    ? t("No members match {q}.", messages, { q })
+    : filtered
+      ? t("No members match this filter.", messages)
+      : t("No members yet.", messages);
   return (
     <div className="rounded-card border border-border bg-surface p-6">
-      <h2 className="text-sm font-semibold">
-        {q ? t("No members match {q}.", messages, { q }) : t("No members yet.", messages)}
-      </h2>
+      <h2 className="text-sm font-semibold">{heading}</h2>
       <p className="mt-1 text-xs text-muted-foreground">
         {t("Invite someone to give them access to this instance.", messages)}
       </p>
@@ -183,9 +216,9 @@ function MembersEmpty({ q, messages }: { q: string; messages: TranslationMap }) 
         <Link href="/invitations" className="hover:underline">
           {t("Invite a member", messages)}
         </Link>
-        {q && (
+        {(q || filtered) && (
           <Link href="/members" className="hover:underline">
-            {t("Clear search", messages)}
+            {q ? t("Clear search", messages) : t("Clear filters", messages)}
           </Link>
         )}
       </div>
@@ -196,6 +229,8 @@ function MembersEmpty({ q, messages }: { q: string; messages: TranslationMap }) 
 function MembersBody({
   data,
   q,
+  role,
+  state,
   page,
   locale,
   timeZone,
@@ -203,6 +238,8 @@ function MembersBody({
 }: {
   data: MemberListSuccess;
   q: string;
+  role?: MemberRole;
+  state?: MemberState;
   page: number;
   locale: Locale;
   timeZone: string;
@@ -213,14 +250,14 @@ function MembersBody({
     <Pagination
       page={page}
       pages={pages}
-      hrefFor={(target) => membersHref({ q, page: target })}
+      hrefFor={(target) => membersHref({ q, role, state, page: target })}
       messages={messages}
     />
   );
   if (data.users.length === 0) {
     return (
       <>
-        <MembersEmpty q={q} messages={messages} />
+        <MembersEmpty q={q} filtered={Boolean(role || state)} messages={messages} />
         {pagination}
       </>
     );
@@ -232,6 +269,120 @@ function MembersBody({
       <MembersCards rows={data.users} locale={locale} timeZone={timeZone} messages={messages} />
       {pagination}
     </>
+  );
+}
+
+function MembersFilterForm({
+  q,
+  role,
+  state,
+  messages,
+}: {
+  q: string;
+  role?: MemberRole;
+  state?: MemberState;
+  messages: TranslationMap;
+}) {
+  return (
+    <form method="get" className="flex flex-wrap items-end gap-2" role="search">
+      <label htmlFor="members-q" className="flex flex-col gap-1 text-xs text-muted-foreground">
+        {t("Search by name or email", messages)}
+        <input
+          id="members-q"
+          name="q"
+          type="search"
+          defaultValue={q}
+          maxLength={100}
+          className="min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        />
+      </label>
+      <label htmlFor="members-role" className="flex flex-col gap-1 text-xs font-semibold">
+        {t("Role", messages)}
+        <Select id="members-role" name="role" defaultValue={role ?? ""}>
+          <option value="">{t("All roles", messages)}</option>
+          <option value="super_admin">{t("Super admin", messages)}</option>
+          <option value="admin">{t("Admin", messages)}</option>
+          <option value="user">{t("User", messages)}</option>
+        </Select>
+      </label>
+      <label htmlFor="members-state" className="flex flex-col gap-1 text-xs font-semibold">
+        {t("State", messages)}
+        <Select id="members-state" name="state" defaultValue={state ?? ""}>
+          <option value="">{t("All states", messages)}</option>
+          <option value="active">{t("Active", messages)}</option>
+          <option value="deactivated">{t("Deactivated", messages)}</option>
+        </Select>
+      </label>
+      <button
+        type="submit"
+        className="inline-flex min-h-11 items-center rounded-control border border-border bg-muted px-3 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {t("Search", messages)}
+      </button>
+      {(q || role || state) && (
+        <Link href="/members" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
+          {t("Clear filters", messages)}
+        </Link>
+      )}
+    </form>
+  );
+}
+
+function memberFilters(
+  q: string,
+  role: MemberRole | undefined,
+  state: MemberState | undefined,
+  page: number,
+): Parameters<typeof loadMembers>[0] {
+  const filters: Parameters<typeof loadMembers>[0] = {
+    offset: (page - 1) * MEMBERS_PAGE_SIZE,
+  };
+  if (q) filters.q = q;
+  if (role) filters.role = role;
+  if (state) filters.state = state;
+  return filters;
+}
+
+function MembersContent({
+  data,
+  q,
+  role,
+  state,
+  page,
+  locale,
+  timeZone,
+  messages,
+}: {
+  data: Awaited<ReturnType<typeof loadMembers>>;
+  q: string;
+  role?: MemberRole;
+  state?: MemberState;
+  page: number;
+  locale: Locale;
+  timeZone: string;
+  messages: TranslationMap;
+}) {
+  if (!data.ok) {
+    return (
+      <PanelError
+        error={data}
+        heading={t("We couldn't load the members.", messages)}
+        retryHref={membersHref({ q, role, state, page })}
+        messages={messages}
+      />
+    );
+  }
+  return (
+    <MembersBody
+      data={data}
+      q={q}
+      role={role}
+      state={state}
+      page={page}
+      locale={locale}
+      timeZone={timeZone}
+      messages={messages}
+    />
   );
 }
 
@@ -251,8 +402,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
 
   const params = await searchParams;
   const q = (first(params.q) ?? "").trim().slice(0, 100);
+  const role = parseRole(first(params.role));
+  const state = parseState(first(params.state));
   const page = parsePage(first(params.page));
-  const data = await loadMembers({ ...(q ? { q } : {}), offset: (page - 1) * MEMBERS_PAGE_SIZE });
+  const data = await loadMembers(memberFilters(q, role, state, page));
 
   // An out-of-range page would otherwise read as "no members" while the
   // instance does have them; send the reader to the last real page instead.
@@ -260,7 +413,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   // happens to be empty (rows deleted meanwhile) is a real empty result.
   if (data.ok && data.users.length === 0) {
     const pages = Math.max(1, Math.ceil(data.total / MEMBERS_PAGE_SIZE));
-    if (page > pages) redirect(membersHref({ q, page: pages }));
+    if (page > pages) redirect(membersHref({ q, role, state, page: pages }));
   }
 
   return (
@@ -280,36 +433,18 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         </Link>
       </header>
 
-      <form method="get" className="flex flex-wrap items-end gap-2" role="search">
-        <label htmlFor="members-q" className="flex flex-col gap-1 text-xs text-muted-foreground">
-          {t("Search by name or email", messages)}
-          <input
-            id="members-q"
-            name="q"
-            type="search"
-            defaultValue={q}
-            maxLength={100}
-            className="min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          />
-        </label>
-        <button
-          type="submit"
-          className="inline-flex min-h-11 items-center rounded-control border border-border bg-muted px-3 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {t("Search", messages)}
-        </button>
-      </form>
+      <MembersFilterForm q={q} role={role} state={state} messages={messages} />
 
-      {data.ok ? (
-        <MembersBody data={data} q={q} page={page} locale={locale} timeZone={timeZone} messages={messages} />
-      ) : (
-        <PanelError
-          error={data}
-          heading={t("We couldn't load the members.", messages)}
-          retryHref={membersHref({ q, page })}
-          messages={messages}
-        />
-      )}
+      <MembersContent
+        data={data}
+        q={q}
+        role={role}
+        state={state}
+        page={page}
+        locale={locale}
+        timeZone={timeZone}
+        messages={messages}
+      />
     </section>
   );
 }

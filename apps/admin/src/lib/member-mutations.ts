@@ -42,3 +42,20 @@ export async function deactivateMember(
   }
   return readMutation(res);
 }
+
+/** POST /users/{id}/restore undoes that soft deactivation (super_admin). */
+export async function restoreMember(
+  id: string,
+  fetcher: typeof fetch = fetch,
+): Promise<MutationResult> {
+  let res: Response;
+  try {
+    res = await fetcher(`/api/v1/users/${encodeURIComponent(id)}/restore`, {
+      method: "POST",
+      credentials: "same-origin",
+    });
+  } catch {
+    return { ok: false };
+  }
+  return readMutation(res);
+}
