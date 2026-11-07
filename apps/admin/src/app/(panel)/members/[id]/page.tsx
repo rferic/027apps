@@ -94,6 +94,41 @@ function MemberHeader({
   );
 }
 
+function MemberCategories({
+  member,
+  messages,
+}: {
+  member: MemberDetail;
+  messages: TranslationMap;
+}) {
+  return (
+    <section className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4">
+      <h2 className="text-sm font-semibold">{t("Categories", messages)}</h2>
+      {member.categories.length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          {t("No categories assigned.", messages)}{" "}
+          <Link href="/categories" className="font-semibold text-accent hover:underline">
+            {t("Categories", messages)}
+          </Link>
+        </p>
+      ) : (
+        <ul className="flex flex-wrap gap-2">
+          {member.categories.map((category) => (
+            <li key={category.id}>
+              <Link
+                href={`/categories/${category.id}`}
+                className="inline-flex min-h-7 items-center rounded-full border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                {category.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export default async function MemberPage({ params }: { params: Promise<{ id: string }> }) {
   const gate = await requirePanel("admin");
 
@@ -133,6 +168,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
     <section className="flex flex-col gap-5">
       <MemberBreadcrumb name={memberName(member)} messages={messages} />
       <MemberHeader member={member} locale={locale} timeZone={timeZone} messages={messages} />
+      <MemberCategories member={member} messages={messages} />
       <MemberProfileForm
         member={member}
         viewerRole={gate.user.role}

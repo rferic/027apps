@@ -14,6 +14,9 @@ export type MemberState = "active" | "deactivated";
 /** `all` is sent explicitly; the list defaults to active when the key is absent. */
 export type MemberStateFilter = MemberState | "all";
 
+/** A category the member belongs to; the API orders them by name. */
+export type MemberCategory = { id: string; name: string };
+
 /** `UserView` plus the auth email the Core API deliberately does not expose. */
 export interface MemberRow {
   id: string;
@@ -27,6 +30,7 @@ export interface MemberRow {
   role: MemberRole;
   created_at: string;
   deactivated_at: string | null;
+  categories: MemberCategory[];
 }
 
 export type MemberDetail = MemberRow;
@@ -146,6 +150,20 @@ function readDate(value: unknown): string | null | undefined {
   return readString(value);
 }
 
+/** Categories are ordered by the API; a malformed entry invalidates the row. */
+function readCategories(value: unknown): MemberCategory[] | null {
+  if (!Array.isArray(value)) return null;
+  const categories: MemberCategory[] = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) return null;
+    const id = readString(entry.id);
+    const name = readString(entry.name);
+    if (!id || !name) return null;
+    categories.push({ id, name });
+  }
+  return categories;
+}
+
 function readUser(value: unknown): UserFields | null {
   if (!isRecord(value)) return null;
   const id = readString(value.id);
@@ -155,6 +173,7 @@ function readUser(value: unknown): UserFields | null {
   const timezone = readString(value.timezone);
   const createdAt = readString(value.created_at);
   const deactivatedAt = readDate(value.deactivated_at);
+  const categories = readCategories(value.categories);
   if (!id) return null;
   if (displayName === undefined) return null;
   if (!role) return null;
@@ -162,6 +181,7 @@ function readUser(value: unknown): UserFields | null {
   if (!timezone) return null;
   if (!createdAt) return null;
   if (deactivatedAt === undefined) return null;
+  if (!categories) return null;
   return {
     id,
     display_name: displayName,
@@ -170,6 +190,7 @@ function readUser(value: unknown): UserFields | null {
     role,
     created_at: createdAt,
     deactivated_at: deactivatedAt,
+    categories,
   };
 }
 
@@ -219,18 +240,25 @@ function withEmail(user: UserFields, lookup: EmailLookup): MemberRow {
   return { ...user, email: lookup.emails.get(user.id) ?? null, emailUnavailable: false };
 }
 
-/** GET /api/v1/users with `q`, `role`, `state` and an offset; the page size is fixed here. */
+/** GET /api/v1/users with `q`, `role`, `state`, `category` and an offset; the page size is fixed here. */
 export async function loadMembers(input: {
   q?: string;
   role?: MemberRole;
   state?: MemberStateFilter;
+  category?: string;
   offset: number;
 }): Promise<MemberList> {
   const token = await sessionToken();
   const params = new URLSearchParams();
-  if (input.q) params.set("q", input.q);
-  if (input.role) params.set("role", input.role);
-  if (input.state) params.set("state", input.state);
+  const optional: Array<[string, string | undefined]> = [
+    ["q", input.q],
+    ["role", input.role],
+    ["state", input.state],
+    ["category", input.category],
+  ];
+  for (const [key, value] of optional) {
+    if (value) params.set(key, value);
+  }
   params.set("limit", String(MEMBERS_PAGE_SIZE));
   params.set("offset", String(Math.max(0, input.offset)));
 

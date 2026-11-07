@@ -27,19 +27,18 @@ function profile(id: string, overrides: Partial<ProfileRow> = {}): ProfileRow {
   };
 }
 
+type CategoryLink = { id: string; name: string };
+
 /** In-memory database for the reads and writes the users service issues. */
-function dbFor(rows: ProfileRow[]) {
+function dbFor(rows: ProfileRow[], memberships: Record<string, CategoryLink[]> = {}) {
   const profiles = new Map(rows.map((row) => [row.id, { ...row }]));
+  const categoriesOf = (id: string): CategoryLink[] => memberships[id] ?? [];
   return {
     profiles,
     async query(sql: string, params: unknown[] = []) {
-      if (
-        sql.startsWith(
-          "select id, display_name, locale, timezone, role, created_at, deactivated_at from public.profiles where id = $1",
-        )
-      ) {
+      if (sql.startsWith("select p.id,") && sql.includes("where p.id = $1")) {
         const row = profiles.get(String(params[0]));
-        return { rows: row ? [row] : [] };
+        return { rows: row ? [{ ...row, categories: categoriesOf(row.id) }] : [] };
       }
       if (sql.includes("role = 'super_admin' and deactivated_at is null")) {
         const roots = [...profiles.values()]
@@ -60,10 +59,11 @@ function dbFor(rows: ProfileRow[]) {
         return { rows: [{ n }] };
       }
       if (sql.startsWith("select p.id")) {
-        const [pattern, role, state, limit, offset] = params as [
+        const [pattern, role, state, category, limit, offset] = params as [
           string | null,
           Role | null,
           boolean | null,
+          string | null,
           number,
           number,
         ];
@@ -71,14 +71,22 @@ function dbFor(rows: ProfileRow[]) {
           .filter((row) => !pattern || row.display_name.includes(pattern.replace(/%/g, "")))
           .filter((row) => !role || row.role === role)
           .filter((row) => state === null || (row.deactivated_at === null) === state)
-          .slice(offset, offset + limit);
+          .filter((row) => !category || categoriesOf(row.id).some((c) => c.id === category))
+          .slice(offset, offset + limit)
+          .map((row) => ({ ...row, categories: categoriesOf(row.id) }));
         return { rows: rowsOnPage };
       }
       if (sql.startsWith("select count(*) filter")) {
-        const [pattern, role, state] = params as [string | null, Role | null, boolean | null];
+        const [pattern, role, state, category] = params as [
+          string | null,
+          Role | null,
+          boolean | null,
+          string | null,
+        ];
         const matching = [...profiles.values()]
           .filter((row) => !pattern || row.display_name.includes(pattern.replace(/%/g, "")))
-          .filter((row) => !role || row.role === role);
+          .filter((row) => !role || row.role === role)
+          .filter((row) => !category || categoriesOf(row.id).some((c) => c.id === category));
         return {
           rows: [
             {
@@ -194,6 +202,54 @@ describe("GET /api/v1/users state", () => {
     const route = usersRoute(deps(db, { kind: "session", userId: "root", role: "admin" }));
 
     const res = await route(new Request("http://local/api/v1/users?state=disabled"));
+
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
+      "validation_failed",
+    );
+  });
+});
+
+describe("GET /api/v1/users category", () => {
+  const ALPHA = "11111111-1111-4111-8111-111111111111";
+  const BETA = "22222222-2222-4222-8222-222222222222";
+  const ANA = profile("ana", { role: "admin", created_at: "2026-01-02T00:00:00.000Z" });
+  const LUIS = profile("luis", { role: "user", created_at: "2026-01-03T00:00:00.000Z" });
+  const MEMBERSHIPS = {
+    ana: [{ id: ALPHA, name: "Alpha" }],
+    luis: [
+      { id: ALPHA, name: "Alpha" },
+      { id: BETA, name: "Beta" },
+    ],
+  };
+
+  it("returns only the members of the category with their categories and the correct total", async () => {
+    const db = dbFor([ROOT, ANA, LUIS], MEMBERSHIPS);
+    const route = usersRoute(deps(db, { kind: "session", userId: "root", role: "admin" }));
+
+    const res = await route(
+      new Request(`http://local/api/v1/users?category=${ALPHA}&state=all`),
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      users: { id: string; categories: CategoryLink[] }[];
+      total: number;
+    };
+    expect(body.users.map((user) => user.id)).toEqual(["ana", "luis"]);
+    expect(body.users[0]?.categories).toEqual([{ id: ALPHA, name: "Alpha" }]);
+    expect(body.users[1]?.categories).toEqual([
+      { id: ALPHA, name: "Alpha" },
+      { id: BETA, name: "Beta" },
+    ]);
+    expect(body.total).toBe(2);
+  });
+
+  it("rejects a category that is not a uuid", async () => {
+    const db = dbFor([ROOT]);
+    const route = usersRoute(deps(db, { kind: "session", userId: "root", role: "admin" }));
+
+    const res = await route(new Request("http://local/api/v1/users?category=alpha"));
 
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe(

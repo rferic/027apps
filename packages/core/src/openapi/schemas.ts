@@ -61,6 +61,16 @@ const isoDate = z.iso.datetime();
 const nullableDate = isoDate.nullable();
 const role = z.enum(["super_admin", "admin", "user"]);
 
+export const userCategoryRefSchema = component(
+  "UserCategoryRef",
+  z
+    .object({
+      id: z.uuid(),
+      name: z.string(),
+    })
+    .strict(),
+);
+
 export const userSchema = component(
   "User",
   z
@@ -72,6 +82,7 @@ export const userSchema = component(
       role,
       created_at: isoDate,
       deactivated_at: nullableDate,
+      categories: z.array(userCategoryRefSchema),
     })
     .strict() satisfies z.ZodType<UserView>,
 );
@@ -105,6 +116,10 @@ export const usersQuerySchema = paginationQuerySchema.extend({
     .enum(["active", "deactivated", "all"])
     .optional()
     .describe("Filter by activation state; omitted means active, all removes the filter."),
+  category: z
+    .uuid()
+    .optional()
+    .describe("Only members of this category id; the total reflects the filter."),
 });
 
 export const userResponseSchema = component(

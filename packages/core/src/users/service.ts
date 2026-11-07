@@ -28,6 +28,8 @@ export interface UsersDeps {
   withTransaction?: <T>(fn: (db: QueryClient) => Promise<T>) => Promise<T>;
 }
 
+export type UserCategory = { id: string; name: string };
+
 export type UserView = {
   id: string;
   display_name: string;
@@ -36,6 +38,8 @@ export type UserView = {
   role: Role;
   created_at: string;
   deactivated_at: string | null;
+  /** Categories the profile belongs to, ordered by name. */
+  categories: UserCategory[];
 };
 
 export interface UserListFilters {
@@ -46,6 +50,8 @@ export interface UserListFilters {
    * state filter. A list never shows deactivated profiles by accident.
    */
   state?: UserStateFilter;
+  /** Only profiles that belong to this category (already validated as a uuid). */
+  category?: string;
   limit: number;
   offset: number;
 }
@@ -75,6 +81,31 @@ const ROLE_LOCK = "select pg_advisory_xact_lock(hashtext('core_users_roles'))";
 const toIso = (value: unknown): string | null =>
   value instanceof Date ? value.toISOString() : typeof value === "string" ? value : null;
 
+/**
+ * `json_agg` arrives already parsed from the driver, but a text representation
+ * is tolerated as well. Anything malformed is dropped instead of failing the
+ * whole read; the order is guaranteed here so every caller sees the same list.
+ */
+function toCategories(value: unknown): UserCategory[] {
+  let entries: unknown = value;
+  if (typeof entries === "string") {
+    try {
+      entries = JSON.parse(entries);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(entries)) return [];
+  const categories: UserCategory[] = [];
+  for (const entry of entries) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const row = entry as Record<string, unknown>;
+    if (typeof row.id !== "string" || typeof row.name !== "string") continue;
+    categories.push({ id: row.id, name: row.name });
+  }
+  return categories.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function toView(row: Record<string, unknown>): UserView {
   return {
     id: String(row.id),
@@ -84,6 +115,7 @@ function toView(row: Record<string, unknown>): UserView {
     role: row.role as Role,
     created_at: toIso(row.created_at) ?? new Date(0).toISOString(),
     deactivated_at: toIso(row.deactivated_at),
+    categories: toCategories(row.categories),
   };
 }
 
@@ -92,9 +124,20 @@ function likePattern(q: string): string {
   return `%${q.replace(/[\\%_]/g, "\\$&")}%`;
 }
 
+/** One profile plus its categories, aggregated in the same query (no N+1). */
 async function getUserFrom(db: QueryClient, id: string): Promise<UserView> {
   const { rows } = await db.query(
-    "select id, display_name, locale, timezone, role, created_at, deactivated_at from public.profiles where id = $1",
+    `select p.id, p.display_name, p.locale, p.timezone, p.role, p.created_at, p.deactivated_at,
+            coalesce(
+              json_agg(json_build_object('id', c.id, 'name', c.name) order by c.name asc)
+                filter (where c.id is not null),
+              '[]'::json
+            ) as categories
+       from public.profiles p
+       left join public.user_category_members m on m.user_id = p.id
+       left join public.user_categories c on c.id = m.user_category_id
+      where p.id = $1
+      group by p.id`,
     [id],
   );
   if (!rows[0]) throw new DomainError("not_found");
@@ -133,16 +176,31 @@ export async function listUsers(deps: UsersDeps, filters: UserListFilters): Prom
   // Omitting the filter is the safe default: active profiles only.
   const state = filters.state ?? "active";
   const active = state === "all" ? null : state === "active";
+  const category = filters.category ?? null;
+  // Categories reach the page in the same query: one row per profile, never a
+  // read per user. The `exists` subquery keeps the membership filter separate
+  // from the join that feeds the aggregate.
   const { rows } = await deps.db.query(
-    `select p.id, p.display_name, p.locale, p.timezone, p.role, p.created_at, p.deactivated_at
+    `select p.id, p.display_name, p.locale, p.timezone, p.role, p.created_at, p.deactivated_at,
+            coalesce(
+              json_agg(json_build_object('id', c.id, 'name', c.name) order by c.name asc)
+                filter (where c.id is not null),
+              '[]'::json
+            ) as categories
        from public.profiles p
        join auth.users u on u.id = p.id
+       left join public.user_category_members m on m.user_id = p.id
+       left join public.user_categories c on c.id = m.user_category_id
       where ($1::text is null or p.display_name ilike $1 escape '\\' or u.email ilike $1 escape '\\')
         and ($2::text is null or p.role = $2)
         and ($3::boolean is null or (p.deactivated_at is null) = $3)
+        and ($4::uuid is null or exists (
+              select 1 from public.user_category_members cm
+               where cm.user_id = p.id and cm.user_category_id = $4))
+      group by p.id
       order by p.created_at asc, p.id asc
-      limit $4 offset $5`,
-    [pattern, filters.role ?? null, active, filters.limit, filters.offset],
+      limit $5 offset $6`,
+    [pattern, filters.role ?? null, active, category, filters.limit, filters.offset],
   );
   const { rows: countRows } = await deps.db.query(
     `select count(*) filter (where ($3::boolean is null or (p.deactivated_at is null) = $3))::int as n,
@@ -150,8 +208,11 @@ export async function listUsers(deps: UsersDeps, filters: UserListFilters): Prom
        from public.profiles p
        join auth.users u on u.id = p.id
       where ($1::text is null or p.display_name ilike $1 escape '\\' or u.email ilike $1 escape '\\')
-        and ($2::text is null or p.role = $2)`,
-    [pattern, filters.role ?? null, active],
+        and ($2::text is null or p.role = $2)
+        and ($4::uuid is null or exists (
+              select 1 from public.user_category_members cm
+               where cm.user_id = p.id and cm.user_category_id = $4))`,
+    [pattern, filters.role ?? null, active, category],
   );
   return {
     users: rows.map(toView),

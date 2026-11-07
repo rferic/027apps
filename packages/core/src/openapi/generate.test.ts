@@ -78,16 +78,26 @@ describe("OpenAPI generation", () => {
     }
   });
 
-  it("documents the role and state filters of GET /users", () => {
+  it("documents the role, state and category filters of GET /users", () => {
     const document = buildOpenApiDocument();
     const get = record(record(record(document.paths)["/users"]).get);
     const parameters = (get.parameters ?? []) as JsonRecord[];
     const byName = new Map(parameters.map((parameter) => [parameter.name, parameter]));
     expect(byName.has("role")).toBe(true);
     expect(byName.has("state")).toBe(true);
+    expect(byName.has("category")).toBe(true);
     expect(JSON.stringify(byName.get("role"))).toContain("super_admin");
     expect(JSON.stringify(byName.get("state"))).toContain("deactivated");
     expect(JSON.stringify(byName.get("state"))).toContain('"all"');
+    expect(JSON.stringify(byName.get("category"))).toContain("uuid");
+  });
+
+  it("publishes the categories of a user in the User schema", () => {
+    const document = buildOpenApiDocument();
+    const components = record(record(document.components).schemas);
+    expect(record(components.User).properties).toHaveProperty("categories");
+    expect(record(components.UserCategoryRef).properties).toHaveProperty("id");
+    expect(record(components.UserCategoryRef).properties).toHaveProperty("name");
   });
 
   it("documents POST /users/{id}/restore under the deactivation scope", () => {

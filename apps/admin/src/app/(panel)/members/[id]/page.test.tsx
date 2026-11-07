@@ -47,11 +47,20 @@ const MEMBER = {
   role: "super_admin" as const,
   created_at: "2026-01-01T00:00:00.000Z",
   deactivated_at: null,
+  categories: [
+    { id: "c1", name: "Alpha" },
+    { id: "c2", name: "Beta" },
+  ],
 };
 
 const DEACTIVATED = {
   ...MEMBER,
   deactivated_at: "2026-03-01T00:00:00.000Z",
+};
+
+const NO_CATEGORIES = {
+  ...MEMBER,
+  categories: [],
 };
 
 function render(id = "u1") {
@@ -191,5 +200,27 @@ describe("MemberPage", () => {
     expect(html).toContain("req-500");
     expect(html).toContain('href="/members/u1"');
     expect(html).not.toContain("Display name");
+  });
+
+  it("lists the categories of the member with links to each category", async () => {
+    loadMemberMock.mockResolvedValue({ ok: true, member: MEMBER });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("Categories");
+    expect(html).toContain("Alpha");
+    expect(html).toContain("Beta");
+    expect(html).toContain('href="/categories/c1"');
+    expect(html).toContain('href="/categories/c2"');
+  });
+
+  it("links to the categories page when the member has none", async () => {
+    loadMemberMock.mockResolvedValue({ ok: true, member: NO_CATEGORIES });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("Categories");
+    expect(html).toContain("No categories assigned.");
+    expect(html).toContain('href="/categories"');
   });
 });

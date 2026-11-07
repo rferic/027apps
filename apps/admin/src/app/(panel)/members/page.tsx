@@ -13,9 +13,11 @@ import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
+import { loadCategories } from "@/lib/panel-categories";
 import {
   loadMembers,
   MEMBERS_PAGE_SIZE,
+  type MemberCategory,
   type MemberListSuccess,
   type MemberRole,
   type MemberRow,
@@ -32,7 +34,18 @@ interface MembersSearchParams {
   q?: string | string[];
   role?: string | string[];
   state?: string | string[];
+  category?: string | string[];
   page?: string | string[];
+}
+
+type CategoryOption = { id: string; name: string };
+
+/** A category id must be a uuid; anything else is ignored like an unknown role. */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function parseCategory(value: string | undefined): string | undefined {
+  return value && UUID_PATTERN.test(value) ? value : undefined;
 }
 
 function first(value: string | string[] | undefined): string | undefined {
@@ -68,6 +81,7 @@ function membersHref(input: {
   q: string;
   role?: MemberRole;
   state: MemberStateFilter;
+  category?: string;
   page: number;
 }): string {
   const params = new URLSearchParams();
@@ -75,6 +89,7 @@ function membersHref(input: {
   if (input.role) params.set("role", input.role);
   const state = stateParam(input.state);
   if (state) params.set("state", state);
+  if (input.category) params.set("category", input.category);
   if (input.page > 1) params.set("page", String(input.page));
   const query = params.toString();
   return query ? `/members?${query}` : "/members";
@@ -125,6 +140,25 @@ function MemberBadges({ row, messages }: { row: MemberRow; messages: Translation
   );
 }
 
+/** At most three names; the rest collapse into a `+N` chip. */
+const MAX_VISIBLE_CATEGORIES = 3;
+
+function CategoryChips({ categories }: { categories: MemberCategory[] }) {
+  if (categories.length === 0) return <span className="text-muted-foreground">—</span>;
+  const visible = categories.slice(0, MAX_VISIBLE_CATEGORIES);
+  const hidden = categories.length - visible.length;
+  return (
+    <span className="flex flex-wrap items-center gap-1">
+      {visible.map((category) => (
+        <Badge key={category.id} variant="neutral">
+          {category.name}
+        </Badge>
+      ))}
+      {hidden > 0 && <Badge variant="neutral">{`+${hidden}`}</Badge>}
+    </span>
+  );
+}
+
 function MembersTable({ rows, locale, timeZone, messages }: { rows: MemberRow[]; locale: Locale; timeZone: string; messages: TranslationMap }) {
   return (
     <div className="hidden overflow-x-auto sm:block">
@@ -143,6 +177,9 @@ function MembersTable({ rows, locale, timeZone, messages }: { rows: MemberRow[];
             </th>
             <th scope="col" className="py-2 pr-3 font-semibold">
               {t("Status", messages)}
+            </th>
+            <th scope="col" className="py-2 pr-3 font-semibold">
+              {t("Categories", messages)}
             </th>
             <th scope="col" className="py-2 font-semibold">
               {t("Joined", messages)}
@@ -166,6 +203,9 @@ function MembersTable({ rows, locale, timeZone, messages }: { rows: MemberRow[];
               </td>
               <td className="py-2 pr-3">
                 <Badge variant={statusVariant(row)}>{statusLabel(row, messages)}</Badge>
+              </td>
+              <td className="py-2 pr-3">
+                <CategoryChips categories={row.categories} />
               </td>
               <td className="py-2">{formatDate(row.created_at, { locale, timeZone })}</td>
             </tr>
@@ -192,6 +232,10 @@ function MembersCards({ rows, locale, timeZone, messages }: { rows: MemberRow[];
             {(row.email || row.emailUnavailable) && (
               <span className="text-xs text-muted-foreground">{emailLabel(row, messages)}</span>
             )}
+            <span className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+              <span>{t("Categories", messages)}:</span>
+              <CategoryChips categories={row.categories} />
+            </span>
             <span className="text-xs text-muted-foreground">
               {t("Joined", messages)}: {formatDate(row.created_at, { locale, timeZone })}
             </span>
@@ -241,6 +285,7 @@ function MembersBody({
   q,
   role,
   state,
+  category,
   page,
   locale,
   timeZone,
@@ -250,6 +295,7 @@ function MembersBody({
   q: string;
   role?: MemberRole;
   state: MemberStateFilter;
+  category?: string;
   page: number;
   locale: Locale;
   timeZone: string;
@@ -260,14 +306,18 @@ function MembersBody({
     <Pagination
       page={page}
       pages={pages}
-      hrefFor={(target) => membersHref({ q, role, state, page: target })}
+      hrefFor={(target) => membersHref({ q, role, state, category, page: target })}
       messages={messages}
     />
   );
   if (data.users.length === 0) {
     return (
       <>
-        <MembersEmpty q={q} filtered={Boolean(role || state !== "active")} messages={messages} />
+        <MembersEmpty
+          q={q}
+          filtered={Boolean(role || category || state !== "active")}
+          messages={messages}
+        />
         {pagination}
       </>
     );
@@ -286,11 +336,13 @@ function MembersSearchForm({
   q,
   role,
   state,
+  category,
   messages,
 }: {
   q: string;
   role?: MemberRole;
   state: MemberStateFilter;
+  category?: string;
   messages: TranslationMap;
 }) {
   // Hidden fields keep the active select filters when a search is submitted.
@@ -299,6 +351,7 @@ function MembersSearchForm({
     <form method="get" className="flex flex-wrap items-end gap-2" role="search">
       {role && <input type="hidden" name="role" value={role} />}
       {stateValue && <input type="hidden" name="state" value={stateValue} />}
+      {category && <input type="hidden" name="category" value={category} />}
       <label htmlFor="members-q" className="flex flex-col gap-1 text-xs text-muted-foreground">
         {t("Search by name or email", messages)}
         <input
@@ -324,21 +377,27 @@ function MembersSelects({
   q,
   role,
   state,
+  category,
+  categories,
   messages,
 }: {
   q: string;
   role?: MemberRole;
   state: MemberStateFilter;
+  category?: string;
+  categories: CategoryOption[];
   messages: TranslationMap;
 }) {
   // The selects apply on change: each one keeps the other filters and the query.
   // The state select always has a value (active is the default) and "All" is an
-  // explicit `state=all`, never an omitted key.
+  // explicit `state=all`, never an omitted key. "All categories" is an empty
+  // value, so `filterHref` drops `category` from the canonical URL.
   const params: Record<string, string> = {};
   if (q) params.q = q;
   if (role) params.role = role;
   const stateValue = stateParam(state);
   if (stateValue) params.state = stateValue;
+  if (category) params.category = category;
   return (
     <>
       <FilterSelect
@@ -368,6 +427,18 @@ function MembersSelects({
           { value: "all", label: t("All states", messages) },
         ]}
       />
+      <FilterSelect
+        id="members-category"
+        name="category"
+        label={t("Category", messages)}
+        value={category ?? ""}
+        basePath="/members"
+        params={params}
+        options={[
+          { value: "", label: t("All categories", messages) },
+          ...categories.map((option) => ({ value: option.id, label: option.name })),
+        ]}
+      />
     </>
   );
 }
@@ -376,18 +447,35 @@ function MembersFilterForm({
   q,
   role,
   state,
+  category,
+  categories,
   messages,
 }: {
   q: string;
   role?: MemberRole;
   state: MemberStateFilter;
+  category?: string;
+  categories: CategoryOption[];
   messages: TranslationMap;
 }) {
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <MembersSearchForm q={q} role={role} state={state} messages={messages} />
-      <MembersSelects q={q} role={role} state={state} messages={messages} />
-      {(q || role || state !== "active") && (
+      <MembersSearchForm
+        q={q}
+        role={role}
+        state={state}
+        category={category}
+        messages={messages}
+      />
+      <MembersSelects
+        q={q}
+        role={role}
+        state={state}
+        category={category}
+        categories={categories}
+        messages={messages}
+      />
+      {(q || role || category || state !== "active") && (
         <Link href="/members" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
           {t("Clear filters", messages)}
         </Link>
@@ -396,18 +484,20 @@ function MembersFilterForm({
   );
 }
 
-function memberFilters(
-  q: string,
-  role: MemberRole | undefined,
-  state: MemberStateFilter,
-  page: number,
-): Parameters<typeof loadMembers>[0] {
+function memberFilters(input: {
+  q: string;
+  role?: MemberRole;
+  state: MemberStateFilter;
+  category?: string;
+  page: number;
+}): Parameters<typeof loadMembers>[0] {
   const filters: Parameters<typeof loadMembers>[0] = {
-    state,
-    offset: (page - 1) * MEMBERS_PAGE_SIZE,
+    state: input.state,
+    offset: (input.page - 1) * MEMBERS_PAGE_SIZE,
   };
-  if (q) filters.q = q;
-  if (role) filters.role = role;
+  if (input.q) filters.q = input.q;
+  if (input.role) filters.role = input.role;
+  if (input.category) filters.category = input.category;
   return filters;
 }
 
@@ -416,6 +506,7 @@ function MembersContent({
   q,
   role,
   state,
+  category,
   page,
   locale,
   timeZone,
@@ -425,6 +516,7 @@ function MembersContent({
   q: string;
   role?: MemberRole;
   state: MemberStateFilter;
+  category?: string;
   page: number;
   locale: Locale;
   timeZone: string;
@@ -435,7 +527,7 @@ function MembersContent({
       <PanelError
         error={data}
         heading={t("We couldn't load the members.", messages)}
-        retryHref={membersHref({ q, role, state, page })}
+        retryHref={membersHref({ q, role, state, category, page })}
         messages={messages}
       />
     );
@@ -446,6 +538,7 @@ function MembersContent({
       q={q}
       role={role}
       state={state}
+      category={category}
       page={page}
       locale={locale}
       timeZone={timeZone}
@@ -472,8 +565,19 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   const q = (first(params.q) ?? "").trim().slice(0, 100);
   const role = parseRole(first(params.role));
   const state = parseState(first(params.state));
+  const category = parseCategory(first(params.category));
   const page = parsePage(first(params.page));
-  const data = await loadMembers(memberFilters(q, role, state, page));
+  const [data, categoryList] = await Promise.all([
+    loadMembers(memberFilters({ q, role, state, category, page })),
+    loadCategories({ offset: 0, limit: 100 }),
+  ]);
+  // A failed category list never blocks the page: the select still offers
+  // "All categories" and every member stays visible.
+  const categories: CategoryOption[] = categoryList.ok
+    ? categoryList.categories
+        .map((row) => ({ id: row.id, name: row.name }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
 
   // An out-of-range page would otherwise read as "no members" while the
   // instance does have them; send the reader to the last real page instead.
@@ -481,7 +585,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   // happens to be empty (rows deleted meanwhile) is a real empty result.
   if (data.ok && data.users.length === 0) {
     const pages = Math.max(1, Math.ceil(data.total / MEMBERS_PAGE_SIZE));
-    if (page > pages) redirect(membersHref({ q, role, state, page: pages }));
+    if (page > pages) redirect(membersHref({ q, role, state, category, page: pages }));
   }
 
   return (
@@ -501,13 +605,21 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         </Link>
       </header>
 
-      <MembersFilterForm q={q} role={role} state={state} messages={messages} />
+      <MembersFilterForm
+        q={q}
+        role={role}
+        state={state}
+        category={category}
+        categories={categories}
+        messages={messages}
+      />
 
       <MembersContent
         data={data}
         q={q}
         role={role}
         state={state}
+        category={category}
         page={page}
         locale={locale}
         timeZone={timeZone}

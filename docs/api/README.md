@@ -128,11 +128,14 @@ GET /api/v1/users?q=&role=user&state=active&offset=0&limit=50
 ```
 
 `limit` is clamped to 1…100 and `offset` to ≥ 0. `/users` also accepts `q` (name or email),
-`role` (`super_admin|admin|user`) and `state` (`active|deactivated|all`); an unknown value is a
-`validation_failed` (400). **`state` defaults to `active`**: a request without the parameter never
-lists deactivated profiles by accident. `state=all` removes the filter explicitly. `total` counts
-every filter, while `active_total` counts active profiles matching `q` + `role` and deliberately
-ignores `state`. There is no generic `{ "data", "meta" }` envelope in v1.
+`role` (`super_admin|admin|user`), `state` (`active|deactivated|all`) and `category` (a category
+uuid); an unknown value is a `validation_failed` (400). **`state` defaults to `active`**: a request
+without the parameter never lists deactivated profiles by accident. `state=all` removes the filter
+explicitly. `category` keeps only the members of that category and combines with every other filter.
+`total` counts every filter, while `active_total` counts active profiles matching `q` + `role` +
+`category` and deliberately ignores `state`. Every user representation also carries
+`categories: [{ "id": "…", "name": "…" }]`, ordered by name. There is no generic
+`{ "data", "meta" }` envelope in v1.
 
 **Previsto: cursor pagination.** For large or live lists (declared per resource) the target is an opaque `next_cursor`; it is **not implemented** and no endpoint accepts `cursor=` today.
 
@@ -208,7 +211,7 @@ The table reflects the **54 operations currently documented** (the authoritative
 |---|---|---|
 | Health & instance | `GET /health`, `GET /instance`, `GET /openapi.json` | public, non-sensitive; `/health` answers 200 or 503 |
 | Setup | `GET /setup/environment`, `POST /setup/super-admin`, `POST /setup/test-email` | public while uninstalled (environment/super-admin); test-email is **session-only** super_admin |
-| Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}`, `POST /users/{id}/restore`, `DELETE /users/{id}/purge` | list defaults to `state=active`; soft-deactivate and restore (**super-admin**); purge is **irreversible, super-admin only, and requires a deactivated profile**; root protected; restore is idempotent |
+| Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}`, `POST /users/{id}/restore`, `DELETE /users/{id}/purge` | list defaults to `state=active`; `category` filters by category and every user carries `categories`; soft-deactivate and restore (**super-admin**); purge is **irreversible, super-admin only, and requires a deactivated profile**; root protected; restore is idempotent |
 | Categories (admin) | `/user-categories`, `/{id}/members`, `/{id}/modules` | assign module ∈ category materializes access |
 | Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin** |
 | Module docs | `GET /modules/{key}/docs/{doc}` | **previsto** |

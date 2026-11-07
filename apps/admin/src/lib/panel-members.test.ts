@@ -41,6 +41,10 @@ const USERS = [
     role: "super_admin",
     created_at: "2026-01-01T00:00:00.000Z",
     deactivated_at: null,
+    categories: [
+      { id: "c1", name: "Alpha" },
+      { id: "c2", name: "Beta" },
+    ],
   },
   {
     id: "u2",
@@ -50,6 +54,7 @@ const USERS = [
     role: "admin",
     created_at: "2026-02-01T00:00:00.000Z",
     deactivated_at: "2026-03-01T00:00:00.000Z",
+    categories: [],
   },
 ];
 
@@ -91,6 +96,10 @@ describe("loadMembers", () => {
       display_name: "Ana",
       email: "ana@example.com",
       role: "super_admin",
+      categories: [
+        { id: "c1", name: "Alpha" },
+        { id: "c2", name: "Beta" },
+      ],
     });
     expect(result.ok && result.users[1]?.email).toBe("luis@example.com");
 
@@ -130,6 +139,32 @@ describe("loadMembers", () => {
 
     const request = usersHandlerMock.mock.calls[0]?.[0] as Request;
     expect(request.url).toBe("http://panel.internal/api/v1/users?state=all&limit=20&offset=0");
+  });
+
+  it("sends the category filter to the API", async () => {
+    usersHandlerMock.mockResolvedValue(json({ users: USERS, total: 2, active_total: 1 }));
+
+    await loadMembers({
+      category: "11111111-1111-4111-8111-111111111111",
+      offset: 0,
+    });
+
+    const request = usersHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe(
+      "http://panel.internal/api/v1/users?category=11111111-1111-4111-8111-111111111111&limit=20&offset=0",
+    );
+  });
+
+  it("rejects a row whose categories are malformed", async () => {
+    usersHandlerMock.mockResolvedValue(
+      json({
+        users: [{ ...USERS[0], categories: [{ id: "c1" }] }],
+        total: 1,
+        active_total: 1,
+      }),
+    );
+
+    await expect(loadMembers({ offset: 0 })).resolves.toEqual({ ok: false });
   });
 
   it("keeps the instance-wide total when the page only holds 20 rows", async () => {
@@ -228,7 +263,15 @@ describe("loadMember", () => {
 
     expect(result).toMatchObject({
       ok: true,
-      member: { id: "u1", email: "ana@example.com", role: "super_admin" },
+      member: {
+        id: "u1",
+        email: "ana@example.com",
+        role: "super_admin",
+        categories: [
+          { id: "c1", name: "Alpha" },
+          { id: "c2", name: "Beta" },
+        ],
+      },
     });
     const request = userHandlerMock.mock.calls[0]?.[0] as Request;
     expect(request.url).toBe("http://panel.internal/api/v1/users/u1");

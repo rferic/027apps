@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requirePanelMock = vi.fn();
 const loadMembersMock = vi.fn();
+const loadCategoriesMock = vi.fn();
 const redirectMock = vi.fn((url: string) => {
   throw new Error(`NEXT_REDIRECT:${url}`);
 });
@@ -33,6 +34,10 @@ vi.mock("@/lib/panel-members", () => ({
   loadMembers: (input: unknown) => loadMembersMock(input),
 }));
 
+vi.mock("@/lib/panel-categories", () => ({
+  loadCategories: (input: unknown) => loadCategoriesMock(input),
+}));
+
 vi.mock("@/app/(auth)/actions", () => ({
   signOutAction: "sign-out",
 }));
@@ -49,6 +54,12 @@ const MEMBERS = [
     role: "super_admin" as const,
     created_at: "2026-01-01T00:00:00.000Z",
     deactivated_at: null,
+    categories: [
+      { id: "c1", name: "Alpha" },
+      { id: "c2", name: "Beta" },
+      { id: "c3", name: "Gamma" },
+      { id: "c4", name: "Delta" },
+    ],
   },
   {
     id: "u2",
@@ -59,7 +70,14 @@ const MEMBERS = [
     role: "user" as const,
     created_at: "2026-02-01T00:00:00.000Z",
     deactivated_at: "2026-03-01T00:00:00.000Z",
+    categories: [],
   },
+];
+
+const ALPHA = "11111111-1111-4111-8111-111111111111";
+
+const CATEGORIES = [
+  { id: ALPHA, name: "Alpha", slug: "alpha", created_at: "2026-01-01T00:00:00.000Z", member_count: 1, modules: [] },
 ];
 
 function render(searchParams: Record<string, string> = {}) {
@@ -72,6 +90,8 @@ beforeEach(() => {
     user: { id: "u1", email: "admin@example.com", displayName: "Admin", role: "admin" },
   });
   loadMembersMock.mockReset();
+  loadCategoriesMock.mockReset();
+  loadCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES, total: 1 });
   redirectMock.mockClear();
 });
 
@@ -291,5 +311,50 @@ describe("MembersPage filters", () => {
     expect(html).toContain('<input type="hidden" name="state" value="all"');
     expect(html).toContain('href="/members?state=all&amp;page=3"');
     expect(html).toContain('href="/members?state=all"');
+  });
+});
+
+describe("MembersPage categories", () => {
+  it("renders up to three category chips per member plus a +N counter", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("Categories");
+    expect(html).toContain("Alpha");
+    expect(html).toContain("Beta");
+    expect(html).toContain("Gamma");
+    expect(html).not.toContain(">Delta<");
+    expect(html).toContain("+1");
+    expect(html).toContain("—");
+  });
+
+  it("sends the category filter and keeps it in the pagination and the search form", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 45, activeTotal: 44 });
+
+    const html = renderToStaticMarkup(await render({ category: ALPHA, page: "2" }));
+
+    expect(loadMembersMock).toHaveBeenCalledWith({ category: ALPHA, state: "active", offset: 20 });
+    expect(html).toContain(`href="/members?category=${ALPHA}&amp;page=3"`);
+    expect(html).toContain(`<input type="hidden" name="category" value="${ALPHA}"`);
+  });
+
+  it("renders the category select with All categories and the loaded choices", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(loadCategoriesMock).toHaveBeenCalledWith({ limit: 100, offset: 0 });
+    expect(html).toContain('id="members-category"');
+    expect(html).toContain("All categories");
+    expect(html).toContain(`<option value="${ALPHA}">Alpha</option>`);
+  });
+
+  it("ignores a category that is not a uuid instead of sending it to the API", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    await render({ category: "alpha" });
+
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "active", offset: 0 });
   });
 });

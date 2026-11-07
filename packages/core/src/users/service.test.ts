@@ -3,6 +3,7 @@ import type { QueryClient } from '../api/rate-limit-storage.js';
 import type { Caller } from '../api/types.js';
 import {
   deactivateUser,
+  getUser,
   listUsers,
   purgeUser,
   restoreUser,
@@ -34,22 +35,28 @@ function profile(id: string, overrides: Partial<ProfileRow> = {}): ProfileRow {
   };
 }
 
-/** In-memory `profiles` backing the reads and writes the service uses. */
-function makeDeps(initial: ProfileRow[]): {
+type CategoryLink = { id: string; name: string };
+
+/** In-memory `profiles` and category memberships backing the service reads. */
+function makeDeps(
+  initial: ProfileRow[],
+  memberships: Record<string, CategoryLink[]> = {},
+): {
   deps: UsersDeps;
   profiles: Map<string, ProfileRow>;
   query: ReturnType<typeof vi.fn>;
 } {
   const profiles = new Map(initial.map((row) => [row.id, { ...row }]));
+  const categories = new Map(
+    Object.entries(memberships).map(([id, list]) => [id, list.map((category) => ({ ...category }))]),
+  );
+  const categoriesOf = (id: string): CategoryLink[] => [...(categories.get(id) ?? [])];
 
   const query = vi.fn(async (sql: string, params: unknown[] = []) => {
-    if (
-      sql.startsWith(
-        'select id, display_name, locale, timezone, role, created_at, deactivated_at from public.profiles where id = $1',
-      )
-    ) {
+    // Detail: one profile plus its categories in a single read.
+    if (sql.startsWith('select p.id,') && sql.includes('where p.id = $1')) {
       const row = profiles.get(String(params[0]));
-      return { rows: row ? [row] : [] };
+      return { rows: row ? [{ ...row, categories: categoriesOf(row.id) }] : [] };
     }
     if (
       sql.startsWith(
@@ -67,12 +74,13 @@ function makeDeps(initial: ProfileRow[]): {
         .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
       return { rows: roots[0] ? [{ id: roots[0].id }] : [] };
     }
-    // Paginated list: q, role, state, limit, offset.
+    // Paginated list: q, role, state, category, limit, offset.
     if (sql.startsWith('select p.id')) {
-      const [pattern, role, state, limit, offset] = params as [
+      const [pattern, role, state, category, limit, offset] = params as [
         string | null,
         Role | null,
         boolean | null,
+        string | null,
         number,
         number,
       ];
@@ -81,18 +89,26 @@ function makeDeps(initial: ProfileRow[]): {
         .filter((row) => !needle || row.display_name.toLowerCase().includes(needle))
         .filter((row) => !role || row.role === role)
         .filter((row) => state === null || (row.deactivated_at === null) === state)
+        .filter((row) => !category || categoriesOf(row.id).some((c) => c.id === category))
         .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
-        .slice(offset, offset + limit);
+        .slice(offset, offset + limit)
+        .map((row) => ({ ...row, categories: categoriesOf(row.id) }));
       return { rows };
     }
-    // Totals: q and role only; `state` filters the page and `total`, while
-    // `active_total` keeps counting active profiles among the q/role matches.
+    // Totals: q, role and category; `state` filters the page and `total`,
+    // while `active_total` keeps counting active profiles among the matches.
     if (sql.startsWith('select count(*) filter')) {
-      const [pattern, role, state] = params as [string | null, Role | null, boolean | null];
+      const [pattern, role, state, category] = params as [
+        string | null,
+        Role | null,
+        boolean | null,
+        string | null,
+      ];
       const needle = pattern ? pattern.replace(/[\\%_]/g, '').toLowerCase() : null;
       const matching = [...profiles.values()]
         .filter((row) => !needle || row.display_name.toLowerCase().includes(needle))
-        .filter((row) => !role || row.role === role);
+        .filter((row) => !role || row.role === role)
+        .filter((row) => !category || categoriesOf(row.id).some((c) => c.id === category));
       const filtered = matching.filter(
         (row) => state === null || (row.deactivated_at === null) === state,
       );
@@ -360,6 +376,113 @@ describe('listUsers — role and state filters', () => {
     expect(result.users.map((user) => user.id)).toEqual(['u2']);
     expect(result.total).toBe(2);
     expect(result.active_total).toBe(2);
+  });
+});
+
+describe('listUsers — categories', () => {
+  const PEOPLE = [
+    profile('ana', { role: 'admin', display_name: 'Ana', created_at: '2026-01-02T00:00:00.000Z' }),
+    profile('luis', { role: 'user', display_name: 'Luis', created_at: '2026-01-03T00:00:00.000Z' }),
+    profile('marta', {
+      role: 'user',
+      display_name: 'Marta',
+      created_at: '2026-01-04T00:00:00.000Z',
+      deactivated_at: '2026-02-01T00:00:00.000Z',
+    }),
+  ];
+  const MEMBERSHIPS: Record<string, CategoryLink[]> = {
+    ana: [
+      { id: 'zeta', name: 'Zeta' },
+      { id: 'alpha', name: 'Alpha' },
+    ],
+    luis: [{ id: 'alpha', name: 'Alpha' }],
+    marta: [{ id: 'beta', name: 'Beta' }],
+  };
+
+  it('returns every category of each user ordered by name', async () => {
+    const { deps } = makeDeps(PEOPLE, MEMBERSHIPS);
+
+    const result = await listUsers(deps, { state: 'all', limit: 20, offset: 0 });
+
+    expect(result.users.map((user) => user.id)).toEqual(['ana', 'luis', 'marta']);
+    expect(result.users[0]?.categories).toEqual([
+      { id: 'alpha', name: 'Alpha' },
+      { id: 'zeta', name: 'Zeta' },
+    ]);
+    expect(result.users[1]?.categories).toEqual([{ id: 'alpha', name: 'Alpha' }]);
+  });
+
+  it('returns an empty array for a user without categories', async () => {
+    const { deps } = makeDeps(PEOPLE);
+
+    const result = await listUsers(deps, { state: 'all', limit: 20, offset: 0 });
+
+    expect(result.users.every((user) => user.categories.length === 0)).toBe(true);
+  });
+
+  it('filters to the members of a category and keeps total and active_total consistent', async () => {
+    const { deps } = makeDeps(PEOPLE, MEMBERSHIPS);
+
+    const allStates = await listUsers(deps, {
+      category: 'alpha',
+      state: 'all',
+      limit: 20,
+      offset: 0,
+    });
+
+    expect(allStates.users.map((user) => user.id)).toEqual(['ana', 'luis']);
+    expect(allStates.total).toBe(2);
+    expect(allStates.active_total).toBe(2);
+
+    const active = await listUsers(deps, { category: 'beta', limit: 20, offset: 0 });
+
+    expect(active.users).toEqual([]);
+    expect(active.total).toBe(0);
+    expect(active.active_total).toBe(0);
+  });
+
+  it('combines the category with q, role and state', async () => {
+    const { deps } = makeDeps(PEOPLE, MEMBERSHIPS);
+
+    const result = await listUsers(deps, {
+      q: 'ana',
+      role: 'admin',
+      state: 'active',
+      category: 'alpha',
+      limit: 20,
+      offset: 0,
+    });
+
+    expect(result.users.map((user) => user.id)).toEqual(['ana']);
+    expect(result.total).toBe(1);
+    expect(result.active_total).toBe(1);
+  });
+});
+
+describe('getUser', () => {
+  it('returns the categories of the profile', async () => {
+    const { deps } = makeDeps(
+      [profile('ana')],
+      {
+        ana: [
+          { id: 'beta', name: 'Beta' },
+          { id: 'alpha', name: 'Alpha' },
+        ],
+      },
+    );
+
+    const user = await getUser(deps, 'ana');
+
+    expect(user.categories).toEqual([
+      { id: 'alpha', name: 'Alpha' },
+      { id: 'beta', name: 'Beta' },
+    ]);
+  });
+
+  it('answers not_found for a missing profile', async () => {
+    const { deps } = makeDeps([profile('ana')]);
+
+    await expect(getUser(deps, 'missing')).rejects.toMatchObject({ code: 'not_found' });
   });
 });
 

@@ -40,6 +40,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 13 | Reactivación de miembros desactivados y filtros de rol/estado en `/members` | hecho |
 | 14 | Borrado definitivo de un miembro desactivado (`DELETE /users/{id}/purge`) | hecho |
 | 15 | Filtro por defecto `active` en `/users` y `/members`; `all` explícito | hecho |
+| 16 | Categorías por usuario visibles y filtro por categoría en `/members` | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -252,3 +253,34 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 - Tests: Core (default activo, `all` incluye desactivados, valor desconocido → 400), Admin (select por
   defecto activo sin parámetro, `All` viaja como `state=all` y se conserva en paginación) y
   `panel-members` (URL `state=all`).
+
+### Iteración 16 — Categorías por usuario y filtro por categoría (hecho)
+
+- **Core `UserView`**: añade `categories: Array<{ id, name }>` **ordenado por nombre**. Tanto la lista
+  como el detalle (`getUser`) las agregan en la **misma consulta** con
+  `left join user_category_members + user_categories` y `json_agg(... order by c.name) filter (where
+  c.id is not null)` + `coalesce(..., '[]')`: sin N+1 y sin lecturas extra por usuario.
+- **Filtro `category`**: `GET /users` acepta `category` (uuid) y devuelve solo los miembros de esa
+  categoría. Se valida con zod en el borde (`z.uuid()`); un valor que no es uuid → `validation_failed`
+  (400). Se combina con `q`, `role`, `state` y la paginación; **`total` y `active_total` reflejan el
+  filtro** (el conteo usa el mismo `exists` de pertenencia).
+- **OpenAPI**: `User.categories` (componente `UserCategoryRef`) y el parámetro `category` de
+  `GET /users`; documento regenerado y paridad verificada.
+- **Admin `panel-members`**: `MemberRow` incorpora `categories` (una entrada malformada invalida la
+  fila) y `loadMembers` reenvía `category`.
+- **`/members`**: columna **Categorías** con chips del nombre, **máximo 3** y chip `+N` si hay más;
+  sin categorías → `—`. En móvil, la misma fila dentro de la tarjeta. Nuevo `FilterSelect`
+  **Categoría** alimentado por `GET /user-categories?limit=100`, combinable con rol, estado y `q`, y
+  conservado en paginación, búsqueda y reintento.
+- **Sentinela elegida**: "All categories" es el valor vacío del select; `filterHref` **elimina** la
+  clave `category` de la URL. No existe `category=all` (a diferencia de `state=all`) porque para
+  categorías la ausencia del parámetro ya significa "sin filtro" y el API solo acepta uuid.
+- **`/members/[id]`**: bloque **Categorías** con enlaces a `/categories/{id}` o, si no tiene, texto
+  vacío con enlace a Categorías.
+- **Naming**: la entidad se llama **Categorías** en toda la interfaz; no se introduce "grupos" como
+  sinónimo. Un eventual renombrado a "Grupos" requeriría su propia tarea de producto y no se hace aquí.
+- Tests: Core (usuario con 2 categorías y orden, sin categorías → `[]`, filtro por categoría con
+  `total`/`active_total`, combinado con `q`/`role`/`state`, detalle); Admin (chips y `+N`, `—`,
+  `category` enviado y conservado en paginación y búsqueda, opciones del select, uuid inválido
+  ignorado, detalle con enlaces y vacío); i18n (`All categories`, `No categories assigned.` en las 8
+  locales).
