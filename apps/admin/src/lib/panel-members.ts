@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { LogEntry } from "@027apps/core/api/types.js";
 import { userRoute, usersRoute, type UsersRouteDeps } from "@027apps/core/users/api.js";
 import { getInfra, withTransactionClient } from "@/lib/api/door";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -14,7 +15,10 @@ export type MemberRole = "super_admin" | "admin" | "user";
 export interface MemberRow {
   id: string;
   display_name: string;
-  email: string;
+  /** `null` when the account has no email on file. */
+  email: string | null;
+  /** The `auth.users` lookup failed; distinct from an account without email. */
+  emailUnavailable: boolean;
   locale: string;
   timezone: string;
   role: MemberRole;
@@ -38,7 +42,7 @@ export type MemberFailure = { ok: false; code?: string; requestId?: string };
 export type MemberList = MemberListSuccess | MemberFailure;
 export type MemberDetailResult = MemberDetailSuccess | MemberFailure;
 
-type UserFields = Omit<MemberRow, "email">;
+type UserFields = Omit<MemberRow, "email" | "emailUnavailable">;
 
 type RouteSuccess = { ok: true; body: Record<string, unknown>; requestId?: string };
 type RouteCall = RouteSuccess | MemberFailure;
@@ -166,17 +170,24 @@ function readUser(value: unknown): UserFields | null {
   };
 }
 
+type EmailLookup = { ok: true; emails: Map<string, string> } | { ok: false };
+
 /**
  * `UserView` omits the auth email and there is no Core route that returns it.
  * The panel reads it from `auth.users` with the service pool (the same source
  * the invitation adapter uses): one query per page, never from client headers.
- * A failure degrades to an empty email instead of hiding the whole list.
+ * A failure keeps the list visible and is distinguished from an account that
+ * simply has no email.
+ *
+ * Moving the email to a Core resource is tracked as debt (ADR 0004 §7).
  */
-async function emailsFor(ids: readonly string[]): Promise<Map<string, string>> {
-  if (ids.length === 0) return new Map();
+async function emailsFor(ids: readonly string[]): Promise<EmailLookup> {
+  if (ids.length === 0) return { ok: true, emails: new Map() };
+  let logger: ((entry: LogEntry) => void) | undefined;
   try {
-    const { settingsDeps } = await getInfra();
-    const { rows } = await settingsDeps.db.query(
+    const infra = await getInfra();
+    logger = infra.deps.logger;
+    const { rows } = await infra.settingsDeps.db.query(
       "select id, email from auth.users where id = any($1::uuid[])",
       [ids],
     );
@@ -186,14 +197,23 @@ async function emailsFor(ids: readonly string[]): Promise<Map<string, string>> {
       const email = readString(row.email);
       if (id && email) emails.set(id, email);
     }
-    return emails;
+    return { ok: true, emails };
   } catch {
-    return new Map();
+    // Correlation only: the line never carries ids or addresses.
+    logger?.({
+      level: "warn",
+      requestId: "panel-members",
+      route: "/members",
+      code: "email_lookup_failed",
+      message: "auth.users email lookup failed",
+    });
+    return { ok: false };
   }
 }
 
-function withEmail(user: UserFields, emails: Map<string, string>): MemberRow {
-  return { ...user, email: emails.get(user.id) ?? "" };
+function withEmail(user: UserFields, lookup: EmailLookup): MemberRow {
+  if (!lookup.ok) return { ...user, email: null, emailUnavailable: true };
+  return { ...user, email: lookup.emails.get(user.id) ?? null, emailUnavailable: false };
 }
 
 /** GET /api/v1/users with `q` and an offset; the page size is fixed here. */

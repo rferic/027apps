@@ -152,6 +152,24 @@ describe("MembersPage", () => {
     expect(html).toContain('href="/members?q=ana&amp;page=3"');
   });
 
+  it("redirects only when the requested page is past the last one", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: [], total: 40, activeTotal: 39 });
+
+    await expect(render({ page: "3" })).rejects.toThrow("NEXT_REDIRECT:/members?page=2");
+    expect(redirectMock).toHaveBeenCalledWith("/members?page=2");
+    expect(loadMembersMock).toHaveBeenCalledWith({ offset: 40 });
+  });
+
+  it("shows the empty state on the last page instead of redirecting in a loop", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: [], total: 40, activeTotal: 39 });
+
+    const html = renderToStaticMarkup(await render({ page: "2" }));
+
+    expect(html).toContain("No members yet.");
+    expect(redirectMock).not.toHaveBeenCalled();
+    expect(loadMembersMock).toHaveBeenCalledWith({ offset: 20 });
+  });
+
   it("renders a real GET filter form", async () => {
     loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
 

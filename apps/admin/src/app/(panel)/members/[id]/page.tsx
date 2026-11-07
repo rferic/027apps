@@ -45,8 +45,9 @@ function memberName(member: MemberDetail): string {
   return member.display_name || member.email || member.id;
 }
 
-function memberEmail(member: MemberDetail): string {
-  return member.email || "—";
+function memberEmail(member: MemberDetail, messages: TranslationMap): string {
+  if (member.emailUnavailable) return t("Email unavailable", messages);
+  return member.email ?? "—";
 }
 
 function formatJoined(value: string, locale: Locale): string {
@@ -89,7 +90,7 @@ function MemberHeader({
           {member.deactivated_at === null ? t("Active", messages) : t("Deactivated", messages)}
         </Badge>
       </span>
-      <p className="text-xs text-muted-foreground">{memberEmail(member)}</p>
+      <p className="text-xs text-muted-foreground">{memberEmail(member, messages)}</p>
       <p className="text-xs text-muted-foreground">
         {t("Joined", messages)}: {formatJoined(member.created_at, locale)}
       </p>

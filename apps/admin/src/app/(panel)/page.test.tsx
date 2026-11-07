@@ -171,6 +171,18 @@ describe("DashboardPage", () => {
     expect(html).toContain("Active members");
   });
 
+  it("labels the installed module state explicitly", async () => {
+    loadDashboardMock.mockResolvedValue({
+      ...READY,
+      modules: [{ key: "expenses", name: "Expenses", state: "installed", isPublic: true }],
+    });
+
+    const html = renderToStaticMarkup(await DashboardPage());
+
+    expect(html).toContain(">Installed<");
+    expect(html).not.toContain(">Unknown<");
+  });
+
   it("never labels an unknown module state as installed", async () => {
     loadDashboardMock.mockResolvedValue({
       ...READY,

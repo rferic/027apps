@@ -6,6 +6,7 @@ const redirectMock = vi.fn((url: string) => {
 const getSessionMock = vi.fn();
 const getInfraMock = vi.fn();
 const queryMock = vi.fn();
+const loggerMock = vi.fn();
 const usersHandlerMock = vi.fn();
 const userHandlerMock = vi.fn();
 
@@ -62,10 +63,11 @@ beforeEach(() => {
   getSessionMock.mockResolvedValue({ data: { session: { access_token: "token-123" } } });
   getInfraMock.mockReset();
   getInfraMock.mockResolvedValue({
-    deps: {},
+    deps: { logger: loggerMock },
     auth: {},
     settingsDeps: { db: { query: queryMock } },
   });
+  loggerMock.mockReset();
   queryMock.mockReset();
   queryMock.mockResolvedValue({
     rows: [
@@ -163,6 +165,31 @@ describe("loadMembers", () => {
       ok: false,
       requestId: "req-shape",
     });
+  });
+
+  it("distinguishes an account without email from a failed lookup", async () => {
+    usersHandlerMock.mockImplementation(async () => json({ users: USERS, total: 2, active_total: 1 }));
+    queryMock.mockResolvedValue({ rows: [{ id: "u1", email: "ana@example.com" }] });
+
+    const withMissing = await loadMembers({ offset: 0 });
+
+    expect(withMissing.ok && withMissing.users[1]).toMatchObject({
+      id: "u2",
+      email: null,
+      emailUnavailable: false,
+    });
+
+    queryMock.mockRejectedValue(new Error("database down"));
+    const failed = await loadMembers({ offset: 0 });
+
+    expect(failed.ok && failed.users[0]).toMatchObject({
+      id: "u1",
+      email: null,
+      emailUnavailable: true,
+    });
+    expect(loggerMock).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(loggerMock.mock.calls)).not.toContain("ana@example.com");
+    expect(JSON.stringify(loggerMock.mock.calls)).not.toContain("luis@example.com");
   });
 
   it("redirects to login when the session has no access token", async () => {

@@ -35,7 +35,10 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
   const logoUrl = typeof settings["instance.logo_url"] === "string" ? settings["instance.logo_url"] : null;
 
   return (
-    <div className="grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[220px_1fr]">
+    <div
+      lang={locale}
+      className="grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[220px_1fr]"
+    >
       <aside className="hidden border-r border-border bg-muted p-3 lg:block">
         <PanelNav messages={messages} variant="sidebar" />
       </aside>

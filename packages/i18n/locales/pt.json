@@ -218,5 +218,7 @@
   "failed": "falhou",
   "missing": "ausente",
   "ok": "ok",
-  "{name} will lose access immediately.": "{name} perderá o acesso imediatamente."
+  "{name} will lose access immediately.": "{name} perderá o acesso imediatamente.",
+  "Email unavailable": "E-mail indisponível",
+  "Your role change conflicts with the instance rules.": "A alteração da sua função entra em conflito com as regras da instância."
 }

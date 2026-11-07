@@ -75,6 +75,12 @@ function statusLabel(row: MemberRow, messages: TranslationMap): string {
   return row.deactivated_at === null ? t("Active", messages) : t("Deactivated", messages);
 }
 
+/** A failed lookup is not the same as an account without email. */
+function emailLabel(row: MemberRow, messages: TranslationMap): string {
+  if (row.emailUnavailable) return t("Email unavailable", messages);
+  return row.email ?? "—";
+}
+
 function formatJoined(value: string, locale: Locale): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
@@ -129,7 +135,7 @@ function MembersTable({ rows, locale, messages }: { rows: MemberRow[]; locale: L
                   {row.display_name || row.email || row.id}
                 </Link>
               </td>
-              <td className="py-2 pr-3">{row.email || "—"}</td>
+              <td className="py-2 pr-3">{emailLabel(row, messages)}</td>
               <td className="py-2 pr-3">
                 <Badge variant={roleVariant(row.role)}>{roleLabel(row.role, messages)}</Badge>
               </td>
@@ -158,7 +164,9 @@ function MembersCards({ rows, locale, messages }: { rows: MemberRow[]; locale: L
               <span className="text-sm font-semibold">{row.display_name || row.email || row.id}</span>
               <MemberBadges row={row} messages={messages} />
             </span>
-            {row.email && <span className="text-xs text-muted-foreground">{row.email}</span>}
+            {(row.email || row.emailUnavailable) && (
+              <span className="text-xs text-muted-foreground">{emailLabel(row, messages)}</span>
+            )}
             <span className="text-xs text-muted-foreground">
               {t("Joined", messages)}: {formatJoined(row.created_at, locale)}
             </span>
@@ -279,9 +287,11 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
 
   // An out-of-range page would otherwise read as "no members" while the
   // instance does have them; send the reader to the last real page instead.
-  if (data.ok && data.users.length === 0 && data.total > 0) {
+  // Only a page strictly past the last one redirects: a last page that
+  // happens to be empty (rows deleted meanwhile) is a real empty result.
+  if (data.ok && data.users.length === 0) {
     const pages = Math.max(1, Math.ceil(data.total / MEMBERS_PAGE_SIZE));
-    redirect(membersHref({ q, page: pages }));
+    if (page > pages) redirect(membersHref({ q, page: pages }));
   }
 
   return (

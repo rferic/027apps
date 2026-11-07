@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
+import { isSupportedLocale, localeCookie } from "@/lib/locale";
 
 export interface PreferencesValues {
   instanceName: string;
@@ -131,6 +132,12 @@ export async function savePreferences(
   }
 
   await patchUserPreferences(userId, { locale: form.locale, timezone: form.timezone });
+
+  // The panel picks its language from this cookie on the next request, before
+  // the profile mirror is visible there: write it as soon as the save is done.
+  if (typeof document !== "undefined" && isSupportedLocale(form.locale)) {
+    document.cookie = localeCookie(form.locale);
+  }
   return null;
 }
 

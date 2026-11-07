@@ -71,6 +71,10 @@ export function MemberDangerZone({ id, name, isSelf, messages }: MemberDangerZon
       <dialog
         ref={dialogRef}
         aria-labelledby="member-deactivate-title"
+        onCancel={(event) => {
+          // Escape must not dismiss the dialog while the request is in flight.
+          if (deleting) event.preventDefault();
+        }}
         className="w-full max-w-md rounded-card border border-border bg-surface p-4 backdrop:bg-foreground/40"
       >
         <h2 id="member-deactivate-title" className="text-sm font-semibold">

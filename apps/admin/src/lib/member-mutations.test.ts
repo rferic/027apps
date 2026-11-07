@@ -54,6 +54,63 @@ describe("patchMember", () => {
 
     await expect(patchMember("u1", { locale: "es" }, fetcher)).resolves.toEqual({ ok: false });
   });
+
+  it("propagates the field and form errors of a validation failure", async () => {
+    const fetcher = vi.fn(async () =>
+      json(
+        {
+          error: {
+            code: "validation_failed",
+            request_id: "req-400",
+            details: {
+              formErrors: [],
+              fieldErrors: { display_name: ["String must contain at most 80 character(s)"] },
+            },
+          },
+        },
+        400,
+      ),
+    );
+
+    await expect(patchMember("u1", { display_name: "x" }, fetcher)).resolves.toEqual({
+      ok: false,
+      code: "validation_failed",
+      requestId: "req-400",
+      details: {
+        formErrors: [],
+        fieldErrors: { display_name: ["String must contain at most 80 character(s)"] },
+      },
+    });
+  });
+
+  it("rejects a 2xx with a non-JSON body instead of treating it as success", async () => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response("<html>maintenance</html>", {
+          status: 200,
+          headers: { "content-type": "text/html", "x-request-id": "req-html" },
+        }),
+    );
+
+    await expect(patchMember("u1", { locale: "es" }, fetcher)).resolves.toEqual({
+      ok: false,
+      requestId: "req-html",
+    });
+  });
+
+  it("rejects a 2xx whose JSON body is not an object", async () => {
+    const fetcher = vi.fn(async () => json([{ id: "u1" }]));
+
+    await expect(patchMember("u1", { locale: "es" }, fetcher)).resolves.toEqual({
+      ok: false,
+    });
+  });
+
+  it("accepts a 204 without a body as success", async () => {
+    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+
+    await expect(patchMember("u1", { locale: "es" }, fetcher)).resolves.toEqual({ ok: true });
+  });
 });
 
 describe("deactivateMember", () => {

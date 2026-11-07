@@ -51,6 +51,8 @@ function stateLabel(state: string, messages: TranslationMap): string {
       return t("Active", messages);
     case "disabled":
       return t("Disabled", messages);
+    case "installed":
+      return t("Installed", messages);
     default:
       return t("Unknown", messages);
   }

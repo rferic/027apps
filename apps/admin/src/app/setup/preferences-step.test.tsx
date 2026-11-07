@@ -206,6 +206,49 @@ describe("PreferencesStep — batch save", () => {
     });
   });
 
+  it("writes the chosen locale cookie after both writes succeed", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<FetchLike>(async () => ({ ok: true, status: 200, json: async () => ({}) })),
+    );
+    const documentMock = { cookie: "" };
+    vi.stubGlobal("document", documentMock);
+
+    const failure = await savePreferences(
+      "user-1",
+      { ...FCM_VALUES, locale: "es", timezone: "Europe/Madrid" },
+      ["en"],
+      getDictionary("en"),
+    );
+
+    expect(failure).toBeNull();
+    expect(documentMock.cookie).toContain("027_locale=es");
+    expect(documentMock.cookie).toContain("Path=/");
+  });
+
+  it("does not write the locale cookie when the settings batch fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<FetchLike>(async () => ({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: { code: "validation_failed" } }),
+      })),
+    );
+    const documentMock = { cookie: "" };
+    vi.stubGlobal("document", documentMock);
+
+    const failure = await savePreferences(
+      "user-1",
+      { ...FCM_VALUES, locale: "es" },
+      ["en"],
+      getDictionary("en"),
+    );
+
+    expect(failure).not.toBeNull();
+    expect(documentMock.cookie).toBe("");
+  });
+
   it("does not fail the installation when the profile PATCH is rejected", async () => {
     vi.stubGlobal(
       "fetch",

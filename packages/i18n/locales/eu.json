@@ -218,5 +218,7 @@
   "failed": "huts egin du",
   "missing": "ez dago",
   "ok": "ados",
-  "{name} will lose access immediately.": "{name}k berehala galduko du sarbidea."
+  "{name} will lose access immediately.": "{name}k berehala galduko du sarbidea.",
+  "Email unavailable": "Helbide elektronikoa ez dago erabilgarri",
+  "Your role change conflicts with the instance rules.": "Zure rolen aldaketak instantziaren arauekin talka egiten du."
 }

@@ -218,5 +218,7 @@
   "failed": "fallit",
   "missing": "falta",
   "ok": "correcte",
-  "{name} will lose access immediately.": "{name} perdrà l'accés immediatament."
+  "{name} will lose access immediately.": "{name} perdrà l'accés immediatament.",
+  "Email unavailable": "Correu electrònic no disponible",
+  "Your role change conflicts with the instance rules.": "El teu canvi de rol entra en conflicte amb les regles de la instància."
 }

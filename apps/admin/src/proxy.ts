@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { entryGate } from "@/lib/instance-gate";
 import { readInstanceState } from "@/lib/instance-state";
 import { isPublicHelpPath } from "@/lib/public-paths";
+import { isSameOriginMutation } from "@/lib/same-origin";
+import { SESSION_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options";
 
 /** Paths whose access depends on the instance state (the gate's inputs). */
 const GATED_PATHS = new Set(["/", "/setup", "/login"]);
@@ -35,6 +37,17 @@ export async function proxy(request: NextRequest) {
     const response = NextResponse.next({ request: { headers: requestHeaders } });
     response.headers.set("Content-Security-Policy-Report-Only", contentSecurityPolicy);
     return response;
+  }
+
+  // The door accepts either a Bearer token or the session cookie. Browsers
+  // attach cookies to cross-site requests, so a cookie-authenticated mutation
+  // must prove its origin before the session is refreshed or the token
+  // forwarded. Bearer-only callers (API keys, mobile) are not affected.
+  if (request.nextUrl.pathname.startsWith("/api/v1") && !isSameOriginMutation(request)) {
+    return NextResponse.json(
+      { error: { code: "forbidden", message: "Cross-origin request rejected" } },
+      { status: 403 },
+    );
   }
 
   const { supabase, refreshedCookies } = sessionClient(request);
@@ -76,6 +89,7 @@ function sessionClient(request: NextRequest) {
 
   const refreshedCookies: Array<{ name: string; value: string; options?: CookieOptions }> = [];
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: SESSION_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();
