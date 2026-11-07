@@ -3,11 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const redirectMock = vi.fn((url: string) => {
   throw new Error(`NEXT_REDIRECT:${url}`);
 });
+const connectionMock = vi.fn(async () => {});
 const getUserMock = vi.fn();
 const queryMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => redirectMock(url),
+}));
+
+vi.mock("next/server", () => ({
+  connection: () => connectionMock(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -24,6 +29,7 @@ const ADMIN: PanelUser = { id: "u-1", email: "a@b.co", displayName: "Ana", role:
 
 beforeEach(() => {
   redirectMock.mockClear();
+  connectionMock.mockClear();
   getUserMock.mockReset();
   queryMock.mockReset();
 });
@@ -67,6 +73,18 @@ describe("hasPanelRole", () => {
 });
 
 describe("requirePanel", () => {
+  it("waits for the request before reading the session (never prerenders Date.now)", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "u-1", email: "a@b.co" } } });
+    queryMock.mockResolvedValue({ rows: [{ display_name: "Ana", role: "admin" }] });
+
+    await requirePanel("admin");
+
+    expect(connectionMock).toHaveBeenCalledTimes(1);
+    expect(connectionMock.mock.invocationCallOrder[0]).toBeLessThan(
+      getUserMock.mock.invocationCallOrder[0] ?? Infinity,
+    );
+  });
+
   it("redirects to /login without a session", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
 

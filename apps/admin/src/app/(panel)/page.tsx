@@ -14,6 +14,12 @@ import {
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
 
+/**
+ * The dashboard reads the session on every request; the layout's opt-out is
+ * not inherited, so each segment opts out of the static shell on its own.
+ */
+export const instant = false;
+
 function headline(dashboard: DashboardSuccess, messages: TranslationMap): string {
   if (dashboard.setupIncomplete) return t("Setup is incomplete.", messages);
   if (dashboard.health.status === "degraded") return t("The service is degraded.", messages);

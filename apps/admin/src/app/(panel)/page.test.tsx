@@ -30,7 +30,7 @@ vi.mock("@/app/(auth)/actions", () => ({
   signOutAction: "sign-out",
 }));
 
-import DashboardPage from "./page";
+import DashboardPage, { instant } from "./page";
 
 const READY = {
   ok: true as const,
@@ -60,6 +60,10 @@ beforeEach(() => {
 });
 
 describe("DashboardPage", () => {
+  it("opts the segment out of the static shell (the layout opt-out is not inherited)", () => {
+    expect(instant).toBe(false);
+  });
+
   it("leads with the ready state, the four KPIs and the module cards", async () => {
     const html = renderToStaticMarkup(await DashboardPage());
 

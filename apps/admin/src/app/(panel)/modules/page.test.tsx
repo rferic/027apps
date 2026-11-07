@@ -56,7 +56,7 @@ vi.mock("@027apps/core/modules/api.js", () => ({
   modulesRoute: (deps: unknown) => modulesRouteMock(deps),
 }));
 
-import ModulesPage from "./page";
+import ModulesPage, { instant } from "./page";
 
 const MODULES = [
   {
@@ -99,6 +99,10 @@ afterEach(() => {
 });
 
 describe("ModulesPage", () => {
+  it("opts the segment out of the static shell (the layout opt-out is not inherited)", () => {
+    expect(instant).toBe(false);
+  });
+
   it("lists the modules returned by the core route in process", async () => {
     routeHandlerMock.mockResolvedValue(json({ modules: MODULES }, 200, { "x-request-id": "req-ok" }));
 

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { getInfra } from "@/lib/api/door";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -61,6 +62,11 @@ export function hasPanelRole(user: PanelUser, min: PanelRole): boolean {
 export async function requirePanel(
   min: PanelRole,
 ): Promise<{ user: PanelUser } | { denied: true; user: PanelUser }> {
+  // The guard exists to resolve the request's session. Wait for a real request
+  // before touching the Supabase client: `GoTrueClient` reads `Date.now()` when
+  // it loads the session, and Cache Components forbids that while prerendering
+  // a static shell.
+  await connection();
   const user = await loadPanelUser();
   if (!user) redirect("/login");
 

@@ -11,6 +11,12 @@ import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+/**
+ * The page refreshes/reads the Supabase session while rendering; the layout's
+ * opt-out is not inherited, so this segment opts out of the static shell too.
+ */
+export const instant = false;
+
 /** Only the fields this page shows, taken from `listModules` (`ModuleView`). */
 interface ModuleRow {
   key: string;
