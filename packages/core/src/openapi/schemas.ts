@@ -102,9 +102,9 @@ export const usersQuerySchema = paginationQuerySchema.extend({
     .optional()
     .describe("Filter by role."),
   state: z
-    .enum(["active", "deactivated"])
+    .enum(["active", "deactivated", "all"])
     .optional()
-    .describe("Filter by activation state."),
+    .describe("Filter by activation state; omitted means active, all removes the filter."),
 });
 
 export const userResponseSchema = component(

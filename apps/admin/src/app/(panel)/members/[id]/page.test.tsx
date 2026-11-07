@@ -117,7 +117,9 @@ describe("MemberPage", () => {
     expect(asSuperAdmin).toContain("Reactivate member");
     expect(asSuperAdmin).toContain("Member access");
     expect(asSuperAdmin).toContain("Deactivated");
-    expect(asSuperAdmin).not.toContain("Danger zone");
+    expect(asSuperAdmin).toContain("Delete permanently");
+    expect(asSuperAdmin).toContain("Danger zone");
+    expect(asSuperAdmin).toContain("Type Ana to confirm");
     expect(asSuperAdmin).not.toContain("Deactivate member");
 
     requirePanelMock.mockResolvedValue({
@@ -125,7 +127,24 @@ describe("MemberPage", () => {
     });
     const asAdmin = renderToStaticMarkup(await render());
     expect(asAdmin).not.toContain("Reactivate member");
+    expect(asAdmin).not.toContain("Delete permanently");
     expect(asAdmin).not.toContain("Danger zone");
+  });
+
+  it("offers permanent deletion only for a deactivated member, never on an active one", async () => {
+    requirePanelMock.mockResolvedValue({
+      user: { id: "u2", email: "admin@example.com", displayName: "Admin", role: "super_admin" },
+    });
+    loadMemberMock.mockResolvedValue({ ok: true, member: MEMBER });
+
+    const active = renderToStaticMarkup(await render());
+    expect(active).toContain("Deactivate member");
+    expect(active).not.toContain("Delete permanently");
+
+    loadMemberMock.mockResolvedValue({ ok: true, member: DEACTIVATED });
+    const deactivated = renderToStaticMarkup(await render());
+    expect(deactivated).toContain("Delete permanently");
+    expect(deactivated).not.toContain("Deactivate member");
   });
 
   it("never offers self-destructive actions or a self role change", async () => {

@@ -220,7 +220,7 @@ describe("loadPanelDashboard", () => {
     );
 
     const usersRequest = handlers.users.mock.calls[0]?.[0] as Request;
-    expect(usersRequest.url).toBe("http://panel.internal/api/v1/users?limit=100");
+    expect(usersRequest.url).toBe("http://panel.internal/api/v1/users?state=all&limit=100");
     expect(usersRequest.headers.get("authorization")).toBe("Bearer token-123");
   });
 

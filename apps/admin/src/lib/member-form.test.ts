@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildProfilePatch,
   canAssignRole,
+  canConfirmPurge,
   deactivationCopy,
+  purgeCopy,
   restoreCopy,
   roleOptions,
 } from "./member-form";
@@ -87,5 +89,27 @@ describe("restoreCopy", () => {
     expect(copy.consequence).toContain("Sara");
     expect(copy.consequence).toContain("sign in again");
     expect(copy.confirm).toBe("Reactivate");
+  });
+});
+
+describe("purgeCopy", () => {
+  it("names the member, warns it cannot be undone and asks to type the name", () => {
+    const copy = purgeCopy("Sara", {});
+
+    expect(copy.trigger).toBe("Delete permanently");
+    expect(copy.title).toBe("Delete Sara permanently?");
+    expect(copy.consequence).toContain("Sara");
+    expect(copy.consequence).toContain("audit history");
+    expect(copy.note).toBe("This cannot be undone.");
+    expect(copy.prompt).toBe("Type Sara to confirm");
+  });
+});
+
+describe("canConfirmPurge", () => {
+  it("enables the destructive button only when the typed name matches", () => {
+    expect(canConfirmPurge("", "Sara")).toBe(false);
+    expect(canConfirmPurge("Sar", "Sara")).toBe(false);
+    expect(canConfirmPurge("Sara ", "Sara")).toBe(true);
+    expect(canConfirmPurge("Sara", "Sara")).toBe(true);
   });
 });

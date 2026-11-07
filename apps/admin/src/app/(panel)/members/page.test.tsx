@@ -118,7 +118,7 @@ describe("MembersPage", () => {
     expect(html).toContain("No members match nobody.");
     expect(html).toContain("Clear search");
     expect(html).toContain('href="/members"');
-    expect(loadMembersMock).toHaveBeenCalledWith({ q: "nobody", offset: 0 });
+    expect(loadMembersMock).toHaveBeenCalledWith({ q: "nobody", state: "active", offset: 0 });
   });
 
   it("shows the error with the translated code, the request id and a retry link", async () => {
@@ -150,7 +150,7 @@ describe("MembersPage", () => {
 
     const html = renderToStaticMarkup(await render({ q: "ana", page: "2" }));
 
-    expect(loadMembersMock).toHaveBeenCalledWith({ q: "ana", offset: 20 });
+    expect(loadMembersMock).toHaveBeenCalledWith({ q: "ana", state: "active", offset: 20 });
     expect(html).toContain("Page 2 of 3");
     expect(html).toContain('href="/members?q=ana"');
     expect(html).toContain('href="/members?q=ana&amp;page=3"');
@@ -161,7 +161,7 @@ describe("MembersPage", () => {
 
     await expect(render({ page: "3" })).rejects.toThrow("NEXT_REDIRECT:/members?page=2");
     expect(redirectMock).toHaveBeenCalledWith("/members?page=2");
-    expect(loadMembersMock).toHaveBeenCalledWith({ offset: 40 });
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "active", offset: 40 });
   });
 
   it("shows the empty state on the last page instead of redirecting in a loop", async () => {
@@ -171,7 +171,7 @@ describe("MembersPage", () => {
 
     expect(html).toContain("No members yet.");
     expect(redirectMock).not.toHaveBeenCalled();
-    expect(loadMembersMock).toHaveBeenCalledWith({ offset: 20 });
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "active", offset: 20 });
   });
 
   it("renders a real GET filter form", async () => {
@@ -219,9 +219,8 @@ describe("MembersPage", () => {
       state: "active",
       offset: 0,
     });
-    expect(html).toContain(
-      'href="/members?q=ana&amp;role=admin&amp;state=active&amp;page=2"',
-    );
+    // Active is the default, so it stays out of the canonical URL.
+    expect(html).toContain('href="/members?q=ana&amp;role=admin&amp;page=2"');
   });
 
   it("shows a filter-specific empty state and lets the reader clear every filter", async () => {
@@ -239,7 +238,7 @@ describe("MembersPage", () => {
 
     await render({ role: "owner", state: "disabled" });
 
-    expect(loadMembersMock).toHaveBeenCalledWith({ offset: 0 });
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "active", offset: 0 });
   });
 
   it("renders the generic 403 and never loads the list when the role is denied", async () => {
@@ -267,5 +266,30 @@ describe("MembersPage filters", () => {
     expect(html).not.toContain(">Apply<");
     expect(html.match(/type="submit"/g)).toHaveLength(1);
     expect(html).toContain('<input type="hidden" name="role" value="admin"');
+  });
+
+  it("defaults to active even without a state parameter", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "active", offset: 0 });
+    expect(html).toContain('id="members-state"');
+    expect(html).toContain('<option value="active" selected=""');
+    expect(html).toContain('<option value="all"');
+    expect(html).not.toContain('<input type="hidden" name="state"');
+  });
+
+  it("sends All as an explicit state=all and keeps it in the pagination", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 45, activeTotal: 44 });
+
+    const html = renderToStaticMarkup(await render({ state: "all", page: "2" }));
+
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "all", offset: 20 });
+    expect(html).toContain('<option value="all"');
+    expect(html).toContain("All states");
+    expect(html).toContain('<input type="hidden" name="state" value="all"');
+    expect(html).toContain('href="/members?state=all&amp;page=3"');
+    expect(html).toContain('href="/members?state=all"');
   });
 });

@@ -183,7 +183,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
   {
     method: "get",
     path: "/users",
-    summary: "List users (admins) with q/limit/offset.",
+    summary: "List users (admins) with q/role/state; state defaults to active, all removes it.",
     scopes: ["users:read"],
     query: usersQuerySchema,
     response: userListSchema,
@@ -221,6 +221,15 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: ["users:deactivate"],
     response: userResponseSchema,
     auth: "session",
+  },
+  {
+    method: "delete",
+    path: "/users/{id}/purge",
+    summary:
+      "Permanently delete a deactivated user (super_admin, irreversible; root protected).",
+    scopes: ["users:deactivate"],
+    auth: "session",
+    status: 204,
   },
   {
     method: "post",

@@ -19,7 +19,7 @@ import {
   type MemberListSuccess,
   type MemberRole,
   type MemberRow,
-  type MemberState,
+  type MemberStateFilter,
 } from "@/lib/panel-members";
 
 /**
@@ -50,21 +50,31 @@ function parseRole(value: string | undefined): MemberRole | undefined {
   return value === "super_admin" || value === "admin" || value === "user" ? value : undefined;
 }
 
-/** Only the two real states filter; anything else means "all". */
-function parseState(value: string | undefined): MemberState | undefined {
-  return value === "active" || value === "deactivated" ? value : undefined;
+/**
+ * The list defaults to active profiles even when the URL carries no `state`.
+ * `all` is a real filter value (sent explicitly), not the absence of one.
+ */
+function parseState(value: string | undefined): MemberStateFilter {
+  if (value === "deactivated" || value === "all") return value;
+  return "active";
+}
+
+/** The default `active` is omitted so the canonical URL stays clean. */
+function stateParam(state: MemberStateFilter): MemberStateFilter | undefined {
+  return state === "active" ? undefined : state;
 }
 
 function membersHref(input: {
   q: string;
   role?: MemberRole;
-  state?: MemberState;
+  state: MemberStateFilter;
   page: number;
 }): string {
   const params = new URLSearchParams();
   if (input.q) params.set("q", input.q);
   if (input.role) params.set("role", input.role);
-  if (input.state) params.set("state", input.state);
+  const state = stateParam(input.state);
+  if (state) params.set("state", state);
   if (input.page > 1) params.set("page", String(input.page));
   const query = params.toString();
   return query ? `/members?${query}` : "/members";
@@ -239,7 +249,7 @@ function MembersBody({
   data: MemberListSuccess;
   q: string;
   role?: MemberRole;
-  state?: MemberState;
+  state: MemberStateFilter;
   page: number;
   locale: Locale;
   timeZone: string;
@@ -257,7 +267,7 @@ function MembersBody({
   if (data.users.length === 0) {
     return (
       <>
-        <MembersEmpty q={q} filtered={Boolean(role || state)} messages={messages} />
+        <MembersEmpty q={q} filtered={Boolean(role || state !== "active")} messages={messages} />
         {pagination}
       </>
     );
@@ -280,14 +290,15 @@ function MembersSearchForm({
 }: {
   q: string;
   role?: MemberRole;
-  state?: MemberState;
+  state: MemberStateFilter;
   messages: TranslationMap;
 }) {
   // Hidden fields keep the active select filters when a search is submitted.
+  const stateValue = stateParam(state);
   return (
     <form method="get" className="flex flex-wrap items-end gap-2" role="search">
       {role && <input type="hidden" name="role" value={role} />}
-      {state && <input type="hidden" name="state" value={state} />}
+      {stateValue && <input type="hidden" name="state" value={stateValue} />}
       <label htmlFor="members-q" className="flex flex-col gap-1 text-xs text-muted-foreground">
         {t("Search by name or email", messages)}
         <input
@@ -317,14 +328,17 @@ function MembersSelects({
 }: {
   q: string;
   role?: MemberRole;
-  state?: MemberState;
+  state: MemberStateFilter;
   messages: TranslationMap;
 }) {
   // The selects apply on change: each one keeps the other filters and the query.
+  // The state select always has a value (active is the default) and "All" is an
+  // explicit `state=all`, never an omitted key.
   const params: Record<string, string> = {};
   if (q) params.q = q;
   if (role) params.role = role;
-  if (state) params.state = state;
+  const stateValue = stateParam(state);
+  if (stateValue) params.state = stateValue;
   return (
     <>
       <FilterSelect
@@ -345,13 +359,13 @@ function MembersSelects({
         id="members-state"
         name="state"
         label={t("State", messages)}
-        value={state ?? ""}
+        value={state}
         basePath="/members"
         params={params}
         options={[
-          { value: "", label: t("All states", messages) },
           { value: "active", label: t("Active", messages) },
           { value: "deactivated", label: t("Deactivated", messages) },
+          { value: "all", label: t("All states", messages) },
         ]}
       />
     </>
@@ -366,14 +380,14 @@ function MembersFilterForm({
 }: {
   q: string;
   role?: MemberRole;
-  state?: MemberState;
+  state: MemberStateFilter;
   messages: TranslationMap;
 }) {
   return (
     <div className="flex flex-wrap items-end gap-3">
       <MembersSearchForm q={q} role={role} state={state} messages={messages} />
       <MembersSelects q={q} role={role} state={state} messages={messages} />
-      {(q || role || state) && (
+      {(q || role || state !== "active") && (
         <Link href="/members" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
           {t("Clear filters", messages)}
         </Link>
@@ -385,15 +399,15 @@ function MembersFilterForm({
 function memberFilters(
   q: string,
   role: MemberRole | undefined,
-  state: MemberState | undefined,
+  state: MemberStateFilter,
   page: number,
 ): Parameters<typeof loadMembers>[0] {
   const filters: Parameters<typeof loadMembers>[0] = {
+    state,
     offset: (page - 1) * MEMBERS_PAGE_SIZE,
   };
   if (q) filters.q = q;
   if (role) filters.role = role;
-  if (state) filters.state = state;
   return filters;
 }
 
@@ -410,7 +424,7 @@ function MembersContent({
   data: Awaited<ReturnType<typeof loadMembers>>;
   q: string;
   role?: MemberRole;
-  state?: MemberState;
+  state: MemberStateFilter;
   page: number;
   locale: Locale;
   timeZone: string;

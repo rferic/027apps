@@ -128,10 +128,11 @@ GET /api/v1/users?q=&role=user&state=active&offset=0&limit=50
 ```
 
 `limit` is clamped to 1…100 and `offset` to ≥ 0. `/users` also accepts `q` (name or email),
-`role` (`super_admin|admin|user`) and `state` (`active|deactivated`); an unknown value is a
-`validation_failed` (400). `total` counts every filter, while `active_total` counts active profiles
-matching `q` + `role` and deliberately ignores `state`. There is no generic `{ "data", "meta" }`
-envelope in v1.
+`role` (`super_admin|admin|user`) and `state` (`active|deactivated|all`); an unknown value is a
+`validation_failed` (400). **`state` defaults to `active`**: a request without the parameter never
+lists deactivated profiles by accident. `state=all` removes the filter explicitly. `total` counts
+every filter, while `active_total` counts active profiles matching `q` + `role` and deliberately
+ignores `state`. There is no generic `{ "data", "meta" }` envelope in v1.
 
 **Previsto: cursor pagination.** For large or live lists (declared per resource) the target is an opaque `next_cursor`; it is **not implemented** and no endpoint accepts `cursor=` today.
 
@@ -201,13 +202,13 @@ The CI **fails** if a declared capability is not documented, and checks that eve
 
 ### Core endpoints (at a glance)
 
-The table reflects the **53 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
+The table reflects the **54 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
 
 | Area | Endpoints | Notes |
 |---|---|---|
 | Health & instance | `GET /health`, `GET /instance`, `GET /openapi.json` | public, non-sensitive; `/health` answers 200 or 503 |
 | Setup | `GET /setup/environment`, `POST /setup/super-admin`, `POST /setup/test-email` | public while uninstalled (environment/super-admin); test-email is **session-only** super_admin |
-| Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}`, `POST /users/{id}/restore` | soft-deactivate and restore (**super-admin**); root protected; restore is idempotent |
+| Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}`, `POST /users/{id}/restore`, `DELETE /users/{id}/purge` | list defaults to `state=active`; soft-deactivate and restore (**super-admin**); purge is **irreversible, super-admin only, and requires a deactivated profile**; root protected; restore is idempotent |
 | Categories (admin) | `/user-categories`, `/{id}/members`, `/{id}/modules` | assign module ∈ category materializes access |
 | Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin** |
 | Module docs | `GET /modules/{key}/docs/{doc}` | **previsto** |
@@ -306,7 +307,7 @@ The same data is exposed to **AI agents** over the **Model Context Protocol**. M
 | `settings_update` | `settings:write` | admin | Only settings marked writable for MCP (`security.*`, `connectivity.*` and `auth.*` are never exposed) |
 | `admin_actions_list` | `admin_actions:read` | **super_admin** | Sensitive mutations log |
 
-**Role invariants (always enforced):** the `/setup` owner (**root**) cannot be demoted or deactivated, and the instance always keeps **at least one active `super_admin`**. Violating either returns a domain error.
+**Role invariants (always enforced):** the `/setup` owner (**root**) cannot be demoted, deactivated or purged, and the instance always keeps **at least one active `super_admin`**. Nobody deletes their own account, and physical deletion (`DELETE /users/{id}/purge`) additionally requires the profile to be already deactivated. Violating any rule returns a domain error (`409` for state conflicts).
 
 **Not available over MCP, by design:** module install/uninstall (DDL needs a human reviewing the diff), API key management (secrets are shown once), any `is_secret` setting, and destructive deletion of money data.
 

@@ -123,6 +123,15 @@ describe("loadMembers", () => {
     );
   });
 
+  it("sends state=all explicitly when the reader chooses every state", async () => {
+    usersHandlerMock.mockResolvedValue(json({ users: USERS, total: 2, active_total: 1 }));
+
+    await loadMembers({ state: "all", offset: 0 });
+
+    const request = usersHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe("http://panel.internal/api/v1/users?state=all&limit=20&offset=0");
+  });
+
   it("keeps the instance-wide total when the page only holds 20 rows", async () => {
     const page = Array.from({ length: 20 }, (_, index) => ({
       ...USERS[0],

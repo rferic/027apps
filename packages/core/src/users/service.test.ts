@@ -4,6 +4,7 @@ import type { Caller } from '../api/types.js';
 import {
   deactivateUser,
   listUsers,
+  purgeUser,
   restoreUser,
   updateUser,
   type Role,
@@ -50,9 +51,19 @@ function makeDeps(initial: ProfileRow[]): {
       const row = profiles.get(String(params[0]));
       return { rows: row ? [row] : [] };
     }
-    if (sql.startsWith('select id from public.profiles where role = \'super_admin\'')) {
+    if (
+      sql.startsWith(
+        'select id from public.profiles where role = \'super_admin\' and deactivated_at is null',
+      )
+    ) {
       const roots = [...profiles.values()]
         .filter((row) => row.role === 'super_admin' && row.deactivated_at === null)
+        .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+      return { rows: roots[0] ? [{ id: roots[0].id }] : [] };
+    }
+    if (sql.startsWith('select id from public.profiles where role = \'super_admin\'')) {
+      const roots = [...profiles.values()]
+        .filter((row) => row.role === 'super_admin')
         .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
       return { rows: roots[0] ? [{ id: roots[0].id }] : [] };
     }
@@ -124,8 +135,18 @@ function makeDeps(initial: ProfileRow[]): {
     if (
       sql.startsWith('update public.api_keys') ||
       sql.startsWith('update public.devices') ||
+      sql.startsWith('update public.settings') ||
+      sql.startsWith('update public.invitations') ||
+      sql.startsWith('update public.translations') ||
+      sql.startsWith('update public.user_categories') ||
+      sql.startsWith('update public.user_modules') ||
+      sql.startsWith('update public.user_category_modules') ||
       sql.startsWith('insert into public.event_outbox')
     ) {
+      return { rows: [] };
+    }
+    if (sql.startsWith('delete from auth.users')) {
+      profiles.delete(String(params[0]));
       return { rows: [] };
     }
     throw new Error(`unexpected SQL: ${sql}`);
@@ -278,11 +299,31 @@ describe('listUsers — role and state filters', () => {
   it('filters by role and keeps the total consistent with the page', async () => {
     const { deps } = makeDeps(PEOPLE);
 
-    const result = await listUsers(deps, { role: 'user', limit: 20, offset: 0 });
+    const result = await listUsers(deps, { role: 'user', state: 'all', limit: 20, offset: 0 });
 
     expect(result.users.map((user) => user.id)).toEqual(['luis', 'marta']);
     expect(result.total).toBe(2);
     expect(result.active_total).toBe(1);
+  });
+
+  it('defaults to active profiles when state is omitted', async () => {
+    const { deps } = makeDeps(PEOPLE);
+
+    const result = await listUsers(deps, { limit: 20, offset: 0 });
+
+    expect(result.users.map((user) => user.id)).toEqual(['root', 'ana', 'luis']);
+    expect(result.total).toBe(3);
+    expect(result.active_total).toBe(3);
+  });
+
+  it('includes deactivated profiles only with state=all', async () => {
+    const { deps } = makeDeps(PEOPLE);
+
+    const result = await listUsers(deps, { state: 'all', limit: 20, offset: 0 });
+
+    expect(result.users.map((user) => user.id)).toEqual(['root', 'ana', 'luis', 'marta']);
+    expect(result.total).toBe(4);
+    expect(result.active_total).toBe(3);
   });
 
   it('filters by state without hiding the active total of the search', async () => {
@@ -319,5 +360,114 @@ describe('listUsers — role and state filters', () => {
     expect(result.users.map((user) => user.id)).toEqual(['u2']);
     expect(result.total).toBe(2);
     expect(result.active_total).toBe(2);
+  });
+});
+
+describe('purgeUser', () => {
+  const ROOT = profile('root', { role: 'super_admin', created_at: '2025-01-01T00:00:00.000Z' });
+  const OFF = profile('off', { role: 'user', deactivated_at: '2026-02-01T00:00:00.000Z' });
+
+  it('deletes a deactivated member and nulls every blocking reference', async () => {
+    const { deps, profiles, query } = makeDeps([ROOT, OFF]);
+
+    await purgeUser(deps, session('root', 'super_admin'), 'off');
+
+    expect(profiles.has('off')).toBe(false);
+    const statements = query.mock.calls.map(([sql]) => String(sql));
+    for (const table of [
+      'public.settings',
+      'public.api_keys',
+      'public.invitations',
+      'public.translations',
+      'public.user_categories',
+      'public.user_modules',
+      'public.user_category_modules',
+    ]) {
+      expect(statements.some((sql) => sql.includes(`update ${table} set`))).toBe(true);
+    }
+    expect(statements.some((sql) => sql.startsWith('delete from auth.users'))).toBe(true);
+    const attributeWrites = query.mock.calls.filter(([sql]) =>
+      String(sql).startsWith('update public.'),
+    );
+    expect(attributeWrites.every(([, params]) => (params as unknown[])[0] === 'off')).toBe(true);
+  });
+
+  it('refuses an active member: it must be deactivated first', async () => {
+    const { deps, profiles, query } = makeDeps([ROOT, profile('active', { role: 'user' })]);
+
+    await expect(purgeUser(deps, session('root', 'super_admin'), 'active')).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'Deactivate the member before deleting it',
+    });
+    expect(profiles.has('active')).toBe(true);
+    expect(query.mock.calls.some(([sql]) => String(sql).startsWith('delete from auth.users'))).toBe(
+      false,
+    );
+  });
+
+  it('protects the caller’s own account', async () => {
+    const { deps, profiles } = makeDeps([
+      ROOT,
+      profile('self', { role: 'super_admin', deactivated_at: '2026-02-01T00:00:00.000Z' }),
+    ]);
+
+    await expect(purgeUser(deps, session('self', 'super_admin'), 'self')).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'You cannot delete your own account',
+    });
+    expect(profiles.has('self')).toBe(true);
+  });
+
+  it('protects the root even when it is deactivated', async () => {
+    const { deps, profiles } = makeDeps([
+      profile('root', {
+        role: 'super_admin',
+        created_at: '2025-01-01T00:00:00.000Z',
+        deactivated_at: '2026-02-01T00:00:00.000Z',
+      }),
+      profile('other', { role: 'super_admin' }),
+    ]);
+
+    await expect(purgeUser(deps, session('other', 'super_admin'), 'root')).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'The root user cannot be deleted',
+    });
+    expect(profiles.has('root')).toBe(true);
+  });
+
+  it('protects the last active super_admin', async () => {
+    const { deps, profiles } = makeDeps([
+      ROOT,
+      profile('only', {
+        role: 'super_admin',
+        deactivated_at: '2026-02-01T00:00:00.000Z',
+      }),
+    ]);
+
+    await expect(purgeUser(deps, session('root', 'super_admin'), 'only')).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'The instance needs at least one active super_admin',
+    });
+    expect(profiles.has('only')).toBe(true);
+  });
+
+  it('answers not_found for a missing profile', async () => {
+    const { deps } = makeDeps([ROOT]);
+
+    await expect(purgeUser(deps, session('root', 'super_admin'), 'missing')).rejects.toMatchObject({
+      code: 'not_found',
+    });
+  });
+
+  it('rejects a caller that is not a session super_admin', async () => {
+    const { deps, profiles } = makeDeps([ROOT, OFF]);
+
+    await expect(purgeUser(deps, session('admin', 'admin'), 'off')).rejects.toMatchObject({
+      code: 'insufficient_scope',
+    });
+    await expect(
+      purgeUser(deps, { kind: 'service', keyId: 'k1', scopes: [], roleCap: 'super_admin' }, 'off'),
+    ).rejects.toMatchObject({ code: 'insufficient_scope' });
+    expect(profiles.has('off')).toBe(true);
   });
 });

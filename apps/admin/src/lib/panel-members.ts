@@ -11,6 +11,8 @@ const INTERNAL_ORIGIN = "http://panel.internal";
 
 export type MemberRole = "super_admin" | "admin" | "user";
 export type MemberState = "active" | "deactivated";
+/** `all` is sent explicitly; the list defaults to active when the key is absent. */
+export type MemberStateFilter = MemberState | "all";
 
 /** `UserView` plus the auth email the Core API deliberately does not expose. */
 export interface MemberRow {
@@ -221,7 +223,7 @@ function withEmail(user: UserFields, lookup: EmailLookup): MemberRow {
 export async function loadMembers(input: {
   q?: string;
   role?: MemberRole;
-  state?: MemberState;
+  state?: MemberStateFilter;
   offset: number;
 }): Promise<MemberList> {
   const token = await sessionToken();

@@ -77,3 +77,37 @@ export function restoreCopy(
     confirm: t("Reactivate", messages),
   };
 }
+
+/**
+ * Physical deletion copy: it names the member, states that nothing can be
+ * undone and that the audit history goes with the profile. Typing the name is
+ * the second barrier, not just a click.
+ */
+export function purgeCopy(
+  name: string,
+  messages: TranslationMap,
+): {
+  trigger: string;
+  title: string;
+  consequence: string;
+  note: string;
+  prompt: string;
+  confirm: string;
+} {
+  return {
+    trigger: t("Delete permanently", messages),
+    title: t("Delete {name} permanently?", messages, { name }),
+    consequence: t("{name} and their audit history will be deleted for good.", messages, { name }),
+    note: t("This cannot be undone.", messages),
+    prompt: t("Type {name} to confirm", messages, { name }),
+    confirm: t("Delete permanently", messages),
+  };
+}
+
+/** The typed name must match exactly (outer whitespace is ignored). */
+export function canConfirmPurge(typed: string, name: string): boolean {
+  return typed.trim() === name;
+}
+
+/** Where the page lands after a successful purge: the list no longer has it. */
+export const PURGE_REDIRECT = "/members";

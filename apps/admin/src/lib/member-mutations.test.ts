@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { deactivateMember, patchMember, restoreMember } from "./member-mutations";
+import { deactivateMember, patchMember, purgeMember, restoreMember } from "./member-mutations";
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), { status, headers });
@@ -159,6 +159,31 @@ describe("restoreMember", () => {
       ok: false,
       code: "insufficient_scope",
       requestId: "req-403",
+    });
+  });
+});
+
+describe("purgeMember", () => {
+  it("DELETEs the purge endpoint same-origin", async () => {
+    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+
+    await expect(purgeMember("u1", fetcher)).resolves.toEqual({ ok: true });
+
+    const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("/api/v1/users/u1/purge");
+    expect(init.method).toBe("DELETE");
+    expect(init.credentials).toBe("same-origin");
+  });
+
+  it("surfaces the conflict when the profile is still active", async () => {
+    const fetcher = vi.fn(async () =>
+      json({ error: { code: "conflict", request_id: "req-409" } }, 409),
+    );
+
+    await expect(purgeMember("u1", fetcher)).resolves.toEqual({
+      ok: false,
+      code: "conflict",
+      requestId: "req-409",
     });
   });
 });

@@ -87,6 +87,7 @@ describe("OpenAPI generation", () => {
     expect(byName.has("state")).toBe(true);
     expect(JSON.stringify(byName.get("role"))).toContain("super_admin");
     expect(JSON.stringify(byName.get("state"))).toContain("deactivated");
+    expect(JSON.stringify(byName.get("state"))).toContain('"all"');
   });
 
   it("documents POST /users/{id}/restore under the deactivation scope", () => {
@@ -96,6 +97,14 @@ describe("OpenAPI generation", () => {
     const success = record(record(restore.responses)["200"]);
     const schema = record(record(record(success.content)["application/json"]).schema);
     expect(schema.$ref).toBe("#/components/schemas/UserResponse");
+  });
+
+  it("documents DELETE /users/{id}/purge as a 204 under the deactivation scope", () => {
+    const document = buildOpenApiDocument();
+    const purge = record(record(record(document.paths)["/users/{id}/purge"]).delete);
+    expect(purge["x-027-scopes"]).toEqual(["users:deactivate"]);
+    expect(record(purge.responses)["204"]).toBeDefined();
+    expect(record(record(purge.responses)["204"]).content).toBeUndefined();
   });
 
   it("never publishes the API key secret in a list or detail representation", () => {

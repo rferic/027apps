@@ -28,8 +28,10 @@ const INTERNAL_ORIGIN = "http://panel.internal";
 /**
  * The users route caps `limit` at 100. The page only feeds the total/active KPIs,
  * which come from the route's instance-wide `total`/`active_total` aggregates.
+ * `state=all` is explicit: the list defaults to active, but the member KPI
+ * counts every profile.
  */
-const USERS_PAGE = "/api/v1/users?limit=100";
+const USERS_PAGE = "/api/v1/users?state=all&limit=100";
 const INVITATIONS_PAGE = "/api/v1/invitations?limit=100";
 const CATEGORIES_PAGE = "/api/v1/user-categories?limit=100";
 const MODULES_PAGE = "/api/v1/modules?limit=100";

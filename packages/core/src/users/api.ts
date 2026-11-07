@@ -8,6 +8,7 @@ import {
   deactivateUser,
   getUser,
   listUsers,
+  purgeUser,
   restoreUser,
   updateUser,
   type UserListFilters,
@@ -46,12 +47,13 @@ export const userPatchSchema = z
 /**
  * `GET /users` filters beyond `q`: role and activation state. Validated with
  * zod at the edge, like every other filter, so an unknown value is a 400
- * instead of silently returning the unfiltered list.
+ * instead of silently returning the unfiltered list. Omitting `state` means
+ * `active`; `all` is the explicit opt-out.
  */
 export const userListFiltersSchema = z
   .object({
     role: z.enum(["super_admin", "admin", "user"]).optional(),
-    state: z.enum(["active", "deactivated"]).optional(),
+    state: z.enum(["active", "deactivated", "all"]).optional(),
   })
   .strict();
 
@@ -166,5 +168,27 @@ export function restoreUserRoute(deps: UsersRouteDeps) {
       },
       deps.door,
       async (ctx) => ({ user: await restoreUser(deps.users, ctx.caller, id) }),
+    );
+}
+
+/**
+ * DELETE /api/v1/users/{id}/purge — irreversible physical deletion
+ * (super_admin only). The profile must already be deactivated; 204 has no body.
+ */
+export function purgeUserRoute(deps: UsersRouteDeps) {
+  return (req: Request, id: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:deactivate"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user", limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
+      },
+      deps.door,
+      async (ctx) => {
+        await purgeUser(deps.users, ctx.caller, id);
+        return new Response(null, { status: 204 });
+      },
     );
 }

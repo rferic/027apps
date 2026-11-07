@@ -38,6 +38,8 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 11 | Copiado del token de invitación y del secreto de API key en móvil (contexto no seguro por HTTP): fallback sin `navigator.clipboard` y aviso de copia manual | hecho |
 | 12 | Paginación en servidor de todas las listas del panel, componente compartido, filtros de cliente y regla escrita | hecho |
 | 13 | Reactivación de miembros desactivados y filtros de rol/estado en `/members` | hecho |
+| 14 | Borrado definitivo de un miembro desactivado (`DELETE /users/{id}/purge`) | hecho |
+| 15 | Filtro por defecto `active` en `/users` y `/members`; `all` explícito | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -200,12 +202,53 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 - `/members` añade dos `Select` (rol y estado) al formulario GET, combinados con `q`; los filtros se
   conservan en la paginación y en el enlace de reintento. Sin resultados hay vacío propio con
   "Clear filters".
-- **Borrado físico: no se implementa.** El diseño aprobado es desactivación soft porque preserva
-  historial y referencias (`settings.updated_by`, `api_keys.created_by`, autoría de eventos). Un
-  borrado físico requiere spec propia y decidir qué ocurre con ese historial (¿nullable?, ¿usuario
-  ficticio?, ¿cascada?), además de revocar antes todas las credenciales. La UI lo deja claro:
-  "deactivate" es reversible y no se ofrece "delete".
+- **Borrado físico:** se implementa en la iteración 14 como operación propia y separada de la
+  desactivación; nunca reutiliza el `DELETE` soft.
 - Tests: Core (restore ok, 404, idempotente, 403 no super_admin; filtro por rol, por estado, combinado
   con `q` + paginación y `total`), Admin (botón solo con desactivado + `super_admin`, `restoreMember`
   llama a `POST /users/{id}/restore`, envío y conservación de `role`/`state`, vacío de filtro) y
   OpenAPI (parámetros `role`/`state` y operación `restore`).
+
+### Iteración 14 — Borrado definitivo de un miembro (hecho)
+
+- **Operación propia**: `DELETE /api/v1/users/{id}/purge`, no el `DELETE /users/{id}` existente, que
+  sigue siendo soft. Scope `users:deactivate` (solo sesión `super_admin`), rate limit de escritura,
+  `204` sin cuerpo y `404` si el perfil no existe.
+- **La desactivación es requisito**: un perfil activo responde `409` ("Deactivate the member before
+  deleting it"). Así el borrado físico nunca es un clic accidental y la regla coincide con la UI, que
+  solo lo ofrece junto a "Reactivate". También responden `409` el propio actor, el root (aunque esté
+  desactivado: se comprueba el `super_admin` más antiguo, no solo los activos) y el último
+  `super_admin` activo.
+- **Atomicidad**: una transacción con el advisory lock de roles. Antes de borrar se anulan las
+  referencias de autoría que bloquearían el `delete from auth.users`: `settings.updated_by` +
+  `updated_by_key`, `api_keys.created_by`, `invitations.created_by`, `translations.updated_by`,
+  `user_categories.created_by`, y también `user_modules.granted_by` /
+  `user_category_modules.assigned_by` (el listado inicial no las incluía y también bloquean), más las
+  referencias `*_by_key` a sus propias claves delegadas (esas claves caen por cascada). El perfil y
+  sus dispositivos y claves delegadas caen por cascada.
+- **Historial que se pierde**: esas filas sobreviven, pero sin actor (la atribución de auditoría se
+  anula); las claves de servicio que creó quedan sin creador. La migración `0014_user_purge.sql`
+  relaja los `CHECK num_nonnulls(...) = 1` a `<= 1` y quita el `NOT NULL` de `api_keys.created_by`
+  para que una fila pueda sobrevivir a su actor.
+- **UI**: en `/members/[id]`, junto a **Reactivate** y solo con perfil desactivado + `super_admin`,
+  aparece **Delete permanently** en su propia tarjeta destructiva. El `<dialog>` exige escribir el
+  nombre del miembro para habilitar el botón, avisa de que no se puede deshacer y de que se pierde su
+  historial de auditoría; al borrar vuelve a `/members`.
+- Tests: Core (purge ok + referencias anuladas, activo/root/propio/último super_admin → 409, 404, 403
+  no super_admin, 204), Admin (botón solo si desactivado + super_admin, confirmación deshabilitada
+  hasta escribir el nombre, `purgeMember` llama a `DELETE /users/{id}/purge` y navegación a
+  `/members`) y OpenAPI (operación `purge` 204 bajo `users:deactivate`).
+
+### Iteración 15 — Filtro por defecto: activos (hecho)
+
+- **Core**: `GET /users` acepta `state = active | deactivated | all`; sin `state` filtra por
+  `active` (antes no filtraba). `all` es el opt-out explícito. El zod del borde, el `total` y la
+  documentación se alinean; `active_total` sigue ignorando `state`.
+- **Admin**: `/members` arranca en **activos** aunque la URL no traiga `state`; el selector no tiene
+  opción vacía y **All** se envía como `state=all` (no se omite). Búsqueda, filtro de rol,
+  paginación y reintento conservan `state`; el enlace "Clear filters" vuelve al valor por defecto.
+- **Dashboard**: el KPI de miembros pide `state=all&limit=100` porque cuenta todos los perfiles;
+  cualquier lectura de `/users` que necesite todos los estados debe hacerlo explícito.
+- Tests: Core (default activo, `all` incluye desactivados, valor desconocido → 400), Admin (select por
+  defecto activo sin parámetro, `All` viaja como `state=all` y se conserva en paginación) y
+  `panel-members` (URL `state=all`).

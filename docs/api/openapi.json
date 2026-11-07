@@ -6183,10 +6183,11 @@
             "name": "state",
             "required": false,
             "schema": {
-              "description": "Filter by activation state.",
+              "description": "Filter by activation state; omitted means active, all removes the filter.",
               "enum": [
                 "active",
-                "deactivated"
+                "deactivated",
+                "all"
               ],
               "type": "string"
             }
@@ -6222,7 +6223,7 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List users (admins) with q/limit/offset.",
+        "summary": "List users (admins) with q/role/state; state defaults to active, all removes it.",
         "x-027-scopes": [
           "users:read"
         ]
@@ -6471,6 +6472,47 @@
         "summary": "Grant module access to a user.",
         "x-027-scopes": [
           "modules:grant"
+        ]
+      }
+    },
+    "/users/{id}/purge": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Permanently delete a deactivated user (super_admin, irreversible; root protected).",
+        "x-027-scopes": [
+          "users:deactivate"
         ]
       }
     },

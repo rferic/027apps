@@ -59,3 +59,23 @@ export async function restoreMember(
   }
   return readMutation(res);
 }
+
+/**
+ * DELETE /users/{id}/purge physically deletes an already deactivated member
+ * (super_admin). The API rejects an active profile and answers 204.
+ */
+export async function purgeMember(
+  id: string,
+  fetcher: typeof fetch = fetch,
+): Promise<MutationResult> {
+  let res: Response;
+  try {
+    res = await fetcher(`/api/v1/users/${encodeURIComponent(id)}/purge`, {
+      method: "DELETE",
+      credentials: "same-origin",
+    });
+  } catch {
+    return { ok: false };
+  }
+  return readMutation(res);
+}

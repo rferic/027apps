@@ -19,6 +19,8 @@ import type { QueryClient } from "../api/rate-limit-storage";
  */
 export type Role = "super_admin" | "admin" | "user";
 export type UserState = "active" | "deactivated";
+/** `all` is an explicit opt-out; omitting the filter defaults to active. */
+export type UserStateFilter = UserState | "all";
 
 export interface UsersDeps {
   db: QueryClient;
@@ -39,7 +41,11 @@ export type UserView = {
 export interface UserListFilters {
   q?: string;
   role?: Role;
-  state?: UserState;
+  /**
+   * `active` (the default when omitted), `deactivated`, or `all` for no
+   * state filter. A list never shows deactivated profiles by accident.
+   */
+  state?: UserStateFilter;
   limit: number;
   offset: number;
 }
@@ -103,6 +109,17 @@ async function rootUserId(db: QueryClient): Promise<string | null> {
   return rows[0] ? String(rows[0].id) : null;
 }
 
+/**
+ * The root regardless of its state: purge accepts deactivated profiles, so the
+ * active-only definition would let a deactivated root be deleted.
+ */
+async function rootUserIdAnyState(db: QueryClient): Promise<string | null> {
+  const { rows } = await db.query(
+    "select id from public.profiles where role = 'super_admin' order by created_at asc, id asc limit 1",
+  );
+  return rows[0] ? String(rows[0].id) : null;
+}
+
 async function activeSuperAdmins(db: QueryClient): Promise<number> {
   const { rows } = await db.query(
     "select count(*)::int as n from public.profiles where role = 'super_admin' and deactivated_at is null",
@@ -113,7 +130,9 @@ async function activeSuperAdmins(db: QueryClient): Promise<number> {
 export async function listUsers(deps: UsersDeps, filters: UserListFilters): Promise<UserList> {
   const pattern = filters.q ? likePattern(filters.q) : null;
   // `null` means "no state filter"; a boolean lets both queries share the SQL.
-  const active = filters.state === undefined ? null : filters.state === "active";
+  // Omitting the filter is the safe default: active profiles only.
+  const state = filters.state ?? "active";
+  const active = state === "all" ? null : state === "active";
   const { rows } = await deps.db.query(
     `select p.id, p.display_name, p.locale, p.timezone, p.role, p.created_at, p.deactivated_at
        from public.profiles p
@@ -293,4 +312,87 @@ export async function restoreUser(
     [id],
   );
   return getUserFrom(deps.db, id);
+}
+
+/**
+ * DELETE /api/v1/users/{id}/purge — physical deletion (super_admin, irreversible).
+ *
+ * Only a deactivated profile can be purged: the explicit prior deactivation is
+ * what keeps this apart from a single accidental click. The root and the last
+ * active super_admin can never be purged, and nobody purges their own account.
+ *
+ * One transaction with the same role advisory lock as deactivation: the
+ * references that would block `delete from auth.users` are nulled first, so the
+ * profile, its devices and its own keys fall by cascade. The attribution of
+ * history (settings, translations, invitations, categories and module grants)
+ * survives without an actor; that is the audit trail this operation discards.
+ */
+export async function purgeUser(
+  deps: UsersDeps,
+  caller: Caller,
+  id: string,
+): Promise<void> {
+  if (caller.kind !== "session" || caller.role !== "super_admin") {
+    throw new DomainError("insufficient_scope");
+  }
+  await withRoleLock(deps, async (db) => {
+    const current = await getUserFrom(db, id);
+    // Self first: the diagnostic never says "the root…" to the root itself.
+    if (caller.kind === "session" && caller.userId === id) {
+      throw new DomainError("conflict", "You cannot delete your own account");
+    }
+    if ((await rootUserIdAnyState(db)) === current.id) {
+      throw new DomainError("conflict", "The root user cannot be deleted");
+    }
+    if (current.role === "super_admin" && (await activeSuperAdmins(db)) <= 1) {
+      throw new DomainError("conflict", "The instance needs at least one active super_admin");
+    }
+    if (current.deactivated_at === null) {
+      throw new DomainError("conflict", "Deactivate the member before deleting it");
+    }
+
+    // Null every actor reference that has no ON DELETE action. A single
+    // transaction keeps the database from being left half-purged on failure.
+    await db.query(
+      "update public.settings set updated_by = null, updated_by_key = null where updated_by = $1",
+      [id],
+    );
+    await db.query("update public.api_keys set created_by = null where created_by = $1", [id]);
+    await db.query("update public.invitations set created_by = null where created_by = $1", [id]);
+    await db.query("update public.translations set updated_by = null where updated_by = $1", [id]);
+    await db.query("update public.user_categories set created_by = null where created_by = $1", [id]);
+    await db.query("update public.user_modules set granted_by = null where granted_by = $1", [id]);
+    await db.query(
+      "update public.user_category_modules set assigned_by = null where assigned_by = $1",
+      [id],
+    );
+
+    // The profile's own delegated keys also fall by cascade; any history that
+    // points at those keys (a delegated admin key acted as the author) would
+    // otherwise block the delete after the profile is gone.
+    const ownKeys = "select id from public.api_keys where user_id = $1";
+    await db.query(
+      `update public.settings set updated_by_key = null where updated_by_key in (${ownKeys})`,
+      [id],
+    );
+    await db.query(
+      `update public.user_categories set created_by_key = null where created_by_key in (${ownKeys})`,
+      [id],
+    );
+    await db.query(
+      `update public.invitations set created_by_key = null where created_by_key in (${ownKeys})`,
+      [id],
+    );
+    await db.query(
+      `update public.user_modules set granted_by_key = null where granted_by_key in (${ownKeys})`,
+      [id],
+    );
+    await db.query(
+      `update public.user_category_modules set assigned_by_key = null where assigned_by_key in (${ownKeys})`,
+      [id],
+    );
+
+    // `profiles`, `devices` and the user's own (delegated) keys cascade.
+    await db.query("delete from auth.users where id = $1", [id]);
+  });
 }
