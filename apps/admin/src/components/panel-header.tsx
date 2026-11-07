@@ -48,7 +48,7 @@ export function PanelHeader({ user, locale, messages, theme, instanceName, logoU
         <BrandLogo
           logoUrl={logoUrl}
           name={instanceName.trim() || APP_NAME}
-          size="lg"
+          size="md"
           variant="mark"
           className="shrink-0"
         />

@@ -7,6 +7,9 @@ const SIZES = {
   xl: "h-12",
 } as const;
 
+/** The mark is sized by width: its SVG is wider than tall (48×26). */
+const MARK_WIDTHS = { sm: "w-6", md: "w-8", lg: "w-10", xl: "w-12" } as const;
+
 /**
  * Instance brand. The default is the official 027Apps wordmark (light/dark
  * variants, switched by the OS theme); `instance.logo_url` replaces it with a
@@ -40,9 +43,9 @@ export function BrandLogo({
 
   if (variant === "mark") {
     return (
-      <span className={cn("flex items-center text-brand", SIZES[size], className)}>
+      <span className={cn("flex items-center text-brand", MARK_WIDTHS[size], className)}>
         {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset */}
-        <img src="/brand/mark.svg" alt="027Apps" className="h-full w-auto" />
+        <img src="/brand/mark.svg" alt="027Apps" className="h-auto w-full" />
       </span>
     );
   }

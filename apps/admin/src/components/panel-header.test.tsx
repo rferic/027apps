@@ -20,6 +20,7 @@ describe("PanelHeader", () => {
     );
 
     expect(html).toContain("/brand/mark.svg");
+    expect(html).toContain("w-8");
     expect(html).toContain("Familia García");
   });
 

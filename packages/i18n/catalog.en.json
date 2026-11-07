@@ -1,4 +1,6 @@
 [
+  "Automatic",
+  "Follows your device setting.",
   "{name} leaves this category. Module access they already have does not change.",
   "{name} will lose access immediately.",
   "1. What FCM is for",

@@ -12,7 +12,7 @@ const OPTIONS: Theme[] = ["system", "light", "dark"];
 function optionLabel(theme: Theme, messages: TranslationMap): string {
   if (theme === "light") return t("Light", messages);
   if (theme === "dark") return t("Dark", messages);
-  return t("System", messages);
+  return t("Automatic", messages);
 }
 
 /**
@@ -33,6 +33,7 @@ export function ThemeSwitcher({
   return (
     <Select
       aria-label={t("Theme", messages)}
+      title={t("Follows your device setting.", messages)}
       value={theme}
       onChange={(event) => {
         const next = themeFromCookie(event.target.value);
