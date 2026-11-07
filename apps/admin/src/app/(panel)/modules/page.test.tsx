@@ -260,3 +260,18 @@ describe("ModulesPage", () => {
     ).rejects.toThrow("NEXT_REDIRECT:/modules?state=active&page=2");
   });
 });
+
+describe("ModulesPage filters", () => {
+  it("applies the state and public selects on change: no Apply button", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }, 200));
+
+    const html = renderToStaticMarkup(
+      await ModulesPage({ searchParams: Promise.resolve({}) }),
+    );
+
+    expect(html).toContain('name="state"');
+    expect(html).toContain('name="public"');
+    expect(html).not.toContain(">Apply<");
+    expect(html).not.toContain('type="submit"');
+  });
+});

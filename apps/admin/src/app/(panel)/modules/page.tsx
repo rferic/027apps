@@ -6,7 +6,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
-import { Select } from "@/components/ui/select";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { modulesRouteDeps } from "@/lib/modules-route-deps";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -200,33 +200,38 @@ function ModulesFilter({
   messages: TranslationMap;
 }) {
   const filtered = state !== "all" || visibility !== "all";
+  const params: Record<string, string> = {};
+  if (state !== "all") params.state = state;
+  if (visibility !== "all") params.public = visibility;
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <form method="get" className="flex flex-wrap items-end gap-2">
-        <label htmlFor="modules-state" className="flex flex-col gap-1 text-xs font-semibold">
-          {t("State", messages)}
-          <Select id="modules-state" name="state" defaultValue={state}>
-            <option value="all">{t("All", messages)}</option>
-            <option value="installed">{t("Installed", messages)}</option>
-            <option value="active">{t("Active", messages)}</option>
-            <option value="disabled">{t("Disabled", messages)}</option>
-          </Select>
-        </label>
-        <label htmlFor="modules-public" className="flex flex-col gap-1 text-xs font-semibold">
-          {t("Public", messages)}
-          <Select id="modules-public" name="public" defaultValue={visibility}>
-            <option value="all">{t("All", messages)}</option>
-            <option value="yes">{t("Yes", messages)}</option>
-            <option value="no">{t("No", messages)}</option>
-          </Select>
-        </label>
-        <button
-          type="submit"
-          className="min-h-11 rounded-control border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {t("Apply", messages)}
-        </button>
-      </form>
+      <FilterSelect
+        name="state"
+        id="modules-state"
+        label={t("State", messages)}
+        value={state === "all" ? "" : state}
+        basePath="/modules"
+        params={params}
+        options={[
+          { value: "", label: t("All", messages) },
+          { value: "installed", label: t("Installed", messages) },
+          { value: "active", label: t("Active", messages) },
+          { value: "disabled", label: t("Disabled", messages) },
+        ]}
+      />
+      <FilterSelect
+        name="public"
+        id="modules-public"
+        label={t("Public", messages)}
+        value={visibility === "all" ? "" : visibility}
+        basePath="/modules"
+        params={params}
+        options={[
+          { value: "", label: t("All", messages) },
+          { value: "yes", label: t("Yes", messages) },
+          { value: "no", label: t("No", messages) },
+        ]}
+      />
       {filtered && (
         <a href="/modules" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
           {t("Clear filter", messages)}

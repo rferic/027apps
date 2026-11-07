@@ -8,7 +8,7 @@ import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
-import { Select } from "@/components/ui/select";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -82,22 +82,19 @@ function revokeHref(filter: StateFilter): string {
 function KeysFilter({ filter, messages }: { filter: StateFilter; messages: TranslationMap }) {
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <form method="get" className="flex flex-wrap items-end gap-2">
-        <label htmlFor="keys-state" className="flex flex-col gap-1 text-xs font-semibold">
-          {t("Status", messages)}
-          <Select id="keys-state" name="state" defaultValue={filter}>
-            <option value="all">{t("All", messages)}</option>
-            <option value="active">{t("Active", messages)}</option>
-            <option value="revoked">{t("Revoked", messages)}</option>
-          </Select>
-        </label>
-        <button
-          type="submit"
-          className="min-h-11 rounded-control border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {t("Apply", messages)}
-        </button>
-      </form>
+      <FilterSelect
+        name="state"
+        id="keys-state"
+        label={t("Status", messages)}
+        value={filter === "all" ? "" : filter}
+        basePath="/keys"
+        params={filter === "all" ? {} : { state: filter }}
+        options={[
+          { value: "", label: t("All", messages) },
+          { value: "active", label: t("Active", messages) },
+          { value: "revoked", label: t("Revoked", messages) },
+        ]}
+      />
       {filter !== "all" && (
         <Link
           href="/keys"

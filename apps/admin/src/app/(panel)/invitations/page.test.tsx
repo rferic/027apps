@@ -280,3 +280,17 @@ describe("InvitationsPage", () => {
     ).rejects.toThrow("NEXT_REDIRECT:/invitations?status=used&page=2");
   });
 });
+
+describe("InvitationsPage filters", () => {
+  it("applies the status select on change: no Apply button and the select is named", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING], total: 1 });
+
+    const html = renderToStaticMarkup(
+      await InvitationsPage({ searchParams: Promise.resolve({}) }),
+    );
+
+    expect(html).toContain('name="status"');
+    expect(html).not.toContain(">Apply<");
+    expect(html).not.toContain("<button type=\"submit\"");
+  });
+});

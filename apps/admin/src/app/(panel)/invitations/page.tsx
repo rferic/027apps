@@ -8,7 +8,7 @@ import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
-import { Select } from "@/components/ui/select";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import { loadCategories, loadModuleChoices, type CategoryRow } from "@/lib/panel-categories";
@@ -60,24 +60,21 @@ function InvitationsFilter({
 }) {
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <form method="get" className="flex flex-wrap items-end gap-2">
-        <label htmlFor="invitations-status" className="flex flex-col gap-1 text-xs font-semibold">
-          {t("Status", messages)}
-          <Select id="invitations-status" name="status" defaultValue={filter}>
-            <option value="all">{t("All", messages)}</option>
-            <option value="pending">{t("Pending", messages)}</option>
-            <option value="used">{t("Used", messages)}</option>
-            <option value="expired">{t("Expired", messages)}</option>
-            <option value="revoked">{t("Revoked", messages)}</option>
-          </Select>
-        </label>
-        <button
-          type="submit"
-          className="min-h-11 rounded-control border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {t("Apply", messages)}
-        </button>
-      </form>
+      <FilterSelect
+        name="status"
+        id="invitations-status"
+        label={t("Status", messages)}
+        value={filter === "all" ? "" : filter}
+        basePath="/invitations"
+        params={filter === "all" ? {} : { status: filter }}
+        options={[
+          { value: "", label: t("All", messages) },
+          { value: "pending", label: t("Pending", messages) },
+          { value: "used", label: t("Used", messages) },
+          { value: "expired", label: t("Expired", messages) },
+          { value: "revoked", label: t("Revoked", messages) },
+        ]}
+      />
       {filter !== "all" && (
         <Link href="/invitations" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
           {t("Clear filter", messages)}

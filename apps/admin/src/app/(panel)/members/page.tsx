@@ -7,7 +7,7 @@ import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
-import { Select } from "@/components/ui/select";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -272,6 +272,92 @@ function MembersBody({
   );
 }
 
+function MembersSearchForm({
+  q,
+  role,
+  state,
+  messages,
+}: {
+  q: string;
+  role?: MemberRole;
+  state?: MemberState;
+  messages: TranslationMap;
+}) {
+  // Hidden fields keep the active select filters when a search is submitted.
+  return (
+    <form method="get" className="flex flex-wrap items-end gap-2" role="search">
+      {role && <input type="hidden" name="role" value={role} />}
+      {state && <input type="hidden" name="state" value={state} />}
+      <label htmlFor="members-q" className="flex flex-col gap-1 text-xs text-muted-foreground">
+        {t("Search by name or email", messages)}
+        <input
+          id="members-q"
+          name="q"
+          type="search"
+          defaultValue={q}
+          maxLength={100}
+          className="min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        />
+      </label>
+      <button
+        type="submit"
+        className="inline-flex min-h-11 items-center rounded-control border border-border bg-muted px-3 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {t("Search", messages)}
+      </button>
+    </form>
+  );
+}
+
+function MembersSelects({
+  q,
+  role,
+  state,
+  messages,
+}: {
+  q: string;
+  role?: MemberRole;
+  state?: MemberState;
+  messages: TranslationMap;
+}) {
+  // The selects apply on change: each one keeps the other filters and the query.
+  const params: Record<string, string> = {};
+  if (q) params.q = q;
+  if (role) params.role = role;
+  if (state) params.state = state;
+  return (
+    <>
+      <FilterSelect
+        id="members-role"
+        name="role"
+        label={t("Role", messages)}
+        value={role ?? ""}
+        basePath="/members"
+        params={params}
+        options={[
+          { value: "", label: t("All roles", messages) },
+          { value: "super_admin", label: t("Super admin", messages) },
+          { value: "admin", label: t("Admin", messages) },
+          { value: "user", label: t("User", messages) },
+        ]}
+      />
+      <FilterSelect
+        id="members-state"
+        name="state"
+        label={t("State", messages)}
+        value={state ?? ""}
+        basePath="/members"
+        params={params}
+        options={[
+          { value: "", label: t("All states", messages) },
+          { value: "active", label: t("Active", messages) },
+          { value: "deactivated", label: t("Deactivated", messages) },
+        ]}
+      />
+    </>
+  );
+}
+
 function MembersFilterForm({
   q,
   role,
@@ -284,47 +370,15 @@ function MembersFilterForm({
   messages: TranslationMap;
 }) {
   return (
-    <form method="get" className="flex flex-wrap items-end gap-2" role="search">
-      <label htmlFor="members-q" className="flex flex-col gap-1 text-xs text-muted-foreground">
-        {t("Search by name or email", messages)}
-        <input
-          id="members-q"
-          name="q"
-          type="search"
-          defaultValue={q}
-          maxLength={100}
-          className="min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        />
-      </label>
-      <label htmlFor="members-role" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Role", messages)}
-        <Select id="members-role" name="role" defaultValue={role ?? ""}>
-          <option value="">{t("All roles", messages)}</option>
-          <option value="super_admin">{t("Super admin", messages)}</option>
-          <option value="admin">{t("Admin", messages)}</option>
-          <option value="user">{t("User", messages)}</option>
-        </Select>
-      </label>
-      <label htmlFor="members-state" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("State", messages)}
-        <Select id="members-state" name="state" defaultValue={state ?? ""}>
-          <option value="">{t("All states", messages)}</option>
-          <option value="active">{t("Active", messages)}</option>
-          <option value="deactivated">{t("Deactivated", messages)}</option>
-        </Select>
-      </label>
-      <button
-        type="submit"
-        className="inline-flex min-h-11 items-center rounded-control border border-border bg-muted px-3 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
-        {t("Search", messages)}
-      </button>
+    <div className="flex flex-wrap items-end gap-3">
+      <MembersSearchForm q={q} role={role} state={state} messages={messages} />
+      <MembersSelects q={q} role={role} state={state} messages={messages} />
       {(q || role || state) && (
         <Link href="/members" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
           {t("Clear filters", messages)}
         </Link>
       )}
-    </form>
+    </div>
   );
 }
 

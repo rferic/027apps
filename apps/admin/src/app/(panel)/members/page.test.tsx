@@ -255,3 +255,17 @@ describe("MembersPage", () => {
     expect(loadMembersMock).not.toHaveBeenCalled();
   });
 });
+
+describe("MembersPage filters", () => {
+  it("applies role and state selects on change: only the text search keeps a submit button", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render({ role: "admin" }));
+
+    expect(html).toContain('name="role"');
+    expect(html).toContain('name="state"');
+    expect(html).not.toContain(">Apply<");
+    expect(html.match(/type="submit"/g)).toHaveLength(1);
+    expect(html).toContain('<input type="hidden" name="role" value="admin"');
+  });
+});

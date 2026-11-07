@@ -205,3 +205,15 @@ describe("KeysPage", () => {
     );
   });
 });
+
+describe("KeysPage filters", () => {
+  it("applies the state select on change: no Apply button and the select is named", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain('name="state"');
+    expect(html).not.toContain(">Apply<");
+    expect(html).not.toContain('type="submit"');
+  });
+});
