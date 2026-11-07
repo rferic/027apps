@@ -107,13 +107,14 @@ function resolveDefaultReads(): void {
   computeHealthMock.mockResolvedValue({ status: "ok", degradedReasons: [] });
   readInstanceStateMock.mockResolvedValue({ installed: true, setupIncomplete: false });
   handlers.users.mockResolvedValue(json({ users: USERS, total: 3, active_total: 2 }));
-  handlers.categories.mockResolvedValue(json({ categories: [{ id: "c1" }, { id: "c2" }] }));
+  handlers.categories.mockResolvedValue(json({ categories: [{ id: "c1" }, { id: "c2" }], total: 2 }));
   handlers.invitations.mockResolvedValue(
     json({
       invitations: [{ status: "pending" }, { status: "used" }, { status: "expired" }],
+      total: 3,
     }),
   );
-  handlers.modules.mockResolvedValue(json({ modules: MODULES }));
+  handlers.modules.mockResolvedValue(json({ modules: MODULES, total: 3 }));
 }
 
 beforeEach(() => {
@@ -166,17 +167,17 @@ describe("loadPanelDashboard", () => {
     handlers.categories.mockImplementation(async () => {
       started += 1;
       await gate;
-      return json({ categories: [] });
+      return json({ categories: [], total: 0 });
     });
     handlers.invitations.mockImplementation(async () => {
       started += 1;
       await gate;
-      return json({ invitations: [] });
+      return json({ invitations: [], total: 0 });
     });
     handlers.modules.mockImplementation(async () => {
       started += 1;
       await gate;
-      return json({ modules: MODULES });
+      return json({ modules: MODULES, total: 3 });
     });
 
     const pending = loadPanelDashboard();

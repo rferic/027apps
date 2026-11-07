@@ -6,6 +6,7 @@ import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -169,49 +170,6 @@ function MembersCards({ rows, locale, timeZone, messages }: { rows: MemberRow[];
   );
 }
 
-function Pagination({
-  q,
-  page,
-  pages,
-  messages,
-}: {
-  q: string;
-  page: number;
-  pages: number;
-  messages: TranslationMap;
-}) {
-  if (pages <= 1) return null;
-  const linkClass =
-    "inline-flex min-h-11 items-center rounded-control font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
-  const disabledClass = "text-muted-foreground";
-
-  return (
-    <nav aria-label={t("Pagination", messages)} className="flex items-center justify-between gap-3 text-xs">
-      {page > 1 ? (
-        <Link href={membersHref({ q, page: page - 1 })} className={linkClass}>
-          {t("Previous", messages)}
-        </Link>
-      ) : (
-        <span aria-disabled="true" className={disabledClass}>
-          {t("Previous", messages)}
-        </span>
-      )}
-      <span className="text-muted-foreground">
-        {t("Page {page} of {pages}", messages, { page, pages })}
-      </span>
-      {page < pages ? (
-        <Link href={membersHref({ q, page: page + 1 })} className={linkClass}>
-          {t("Next", messages)}
-        </Link>
-      ) : (
-        <span aria-disabled="true" className={disabledClass}>
-          {t("Next", messages)}
-        </span>
-      )}
-    </nav>
-  );
-}
-
 function MembersEmpty({ q, messages }: { q: string; messages: TranslationMap }) {
   return (
     <div className="rounded-card border border-border bg-surface p-6">
@@ -251,13 +209,28 @@ function MembersBody({
   messages: TranslationMap;
 }) {
   const pages = Math.max(1, Math.ceil(data.total / MEMBERS_PAGE_SIZE));
-  if (data.users.length === 0) return <MembersEmpty q={q} messages={messages} />;
+  const pagination = (
+    <Pagination
+      page={page}
+      pages={pages}
+      hrefFor={(target) => membersHref({ q, page: target })}
+      messages={messages}
+    />
+  );
+  if (data.users.length === 0) {
+    return (
+      <>
+        <MembersEmpty q={q} messages={messages} />
+        {pagination}
+      </>
+    );
+  }
 
   return (
     <>
       <MembersTable rows={data.users} locale={locale} timeZone={timeZone} messages={messages} />
       <MembersCards rows={data.users} locale={locale} timeZone={timeZone} messages={messages} />
-      <Pagination q={q} page={page} pages={pages} messages={messages} />
+      {pagination}
     </>
   );
 }

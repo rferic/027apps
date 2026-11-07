@@ -5,10 +5,20 @@ import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
+import { Select } from "@/components/ui/select";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { modulesRouteDeps } from "@/lib/modules-route-deps";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
+import {
+  firstParam,
+  PANEL_PAGE_SIZE,
+  pageCount,
+  pageHref,
+  pageOffset,
+  parsePage,
+} from "@/lib/panel-pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /**
@@ -27,7 +37,7 @@ interface ModuleRow {
 }
 
 type Catalogue =
-  | { ok: true; modules: ModuleRow[] }
+  | { ok: true; modules: ModuleRow[]; total: number }
   | { ok: false; code?: string; message?: string; requestId?: string };
 
 type CatalogueErrorFields = Omit<Extract<Catalogue, { ok: false }>, "ok">;
@@ -76,6 +86,18 @@ function readModules(value: unknown): ModuleRow[] | null {
   return modules;
 }
 
+function readCount(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function parseCatalogue(body: unknown): Catalogue | null {
+  if (!isRecord(body)) return null;
+  const modules = readModules(body);
+  const total = readCount(body.total);
+  if (!modules || total === null) return null;
+  return { ok: true, modules, total };
+}
+
 /**
  * In-process call to `/api/v1/modules`: the page never builds a URL from the
  * client's `x-forwarded-host`/`host` (that would let a forged header send the
@@ -84,17 +106,21 @@ function readModules(value: unknown): ModuleRow[] | null {
  * proxy would forward it, so the page still never reads the database for
  * catalogue content. Failures keep the envelope's public fields only.
  */
-async function loadCatalogue(): Promise<Catalogue> {
+async function loadCatalogue(input: { offset: number }): Promise<Catalogue> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) redirect("/login");
 
+  const params = new URLSearchParams();
+  params.set("limit", String(PANEL_PAGE_SIZE));
+  params.set("offset", String(Math.max(0, input.offset)));
+
   let res: Response;
   try {
     res = await modulesRoute(await modulesRouteDeps())(
       // Fixed internal origin: nothing from the incoming request is trusted.
-      new Request("http://panel.internal/api/v1/modules", {
+      new Request(`http://panel.internal/api/v1/modules?${params.toString()}`, {
         headers: { authorization: `Bearer ${token}` },
       }),
     );
@@ -112,9 +138,7 @@ async function loadCatalogue(): Promise<Catalogue> {
 
   if (!res.ok) return { ok: false, ...errorFields(body, headerRequestId) };
 
-  const modules = readModules(body);
-  if (!modules) return { ok: false };
-  return { ok: true, modules };
+  return parseCatalogue(body) ?? { ok: false };
 }
 
 function stateVariant(state: string): BadgeVariant {
@@ -134,6 +158,82 @@ function stateLabel(state: string, messages: TranslationMap): string {
 
 function publicLabel(isPublic: boolean, messages: TranslationMap): string {
   return isPublic ? t("Yes", messages) : t("No", messages);
+}
+
+type StateFilter = "all" | "installed" | "active" | "disabled";
+type PublicFilter = "all" | "yes" | "no";
+
+interface ModulesSearchParams {
+  state?: string | string[];
+  public?: string | string[];
+  page?: string | string[];
+}
+
+function parseStateFilter(value: string | undefined): StateFilter {
+  return value === "installed" || value === "active" || value === "disabled" ? value : "all";
+}
+
+function parsePublicFilter(value: string | undefined): PublicFilter {
+  return value === "yes" || value === "no" ? value : "all";
+}
+
+function filterModules(
+  modules: ModuleRow[],
+  state: StateFilter,
+  visibility: PublicFilter,
+): ModuleRow[] {
+  return modules.filter((module) => {
+    if (state !== "all" && module.state !== state) return false;
+    if (visibility === "yes" && !module.is_public) return false;
+    if (visibility === "no" && module.is_public) return false;
+    return true;
+  });
+}
+
+function ModulesFilter({
+  state,
+  visibility,
+  messages,
+}: {
+  state: StateFilter;
+  visibility: PublicFilter;
+  messages: TranslationMap;
+}) {
+  const filtered = state !== "all" || visibility !== "all";
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      <form method="get" className="flex flex-wrap items-end gap-2">
+        <label htmlFor="modules-state" className="flex flex-col gap-1 text-xs font-semibold">
+          {t("State", messages)}
+          <Select id="modules-state" name="state" defaultValue={state}>
+            <option value="all">{t("All", messages)}</option>
+            <option value="installed">{t("Installed", messages)}</option>
+            <option value="active">{t("Active", messages)}</option>
+            <option value="disabled">{t("Disabled", messages)}</option>
+          </Select>
+        </label>
+        <label htmlFor="modules-public" className="flex flex-col gap-1 text-xs font-semibold">
+          {t("Public", messages)}
+          <Select id="modules-public" name="public" defaultValue={visibility}>
+            <option value="all">{t("All", messages)}</option>
+            <option value="yes">{t("Yes", messages)}</option>
+            <option value="no">{t("No", messages)}</option>
+          </Select>
+        </label>
+        <button
+          type="submit"
+          className="min-h-11 rounded-control border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {t("Apply", messages)}
+        </button>
+      </form>
+      {filtered && (
+        <a href="/modules" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
+          {t("Clear filter", messages)}
+        </a>
+      )}
+    </div>
+  );
 }
 
 function ModulesTable({
@@ -267,7 +367,23 @@ function CatalogueError({
   );
 }
 
-function CatalogueEmpty({ messages }: { messages: TranslationMap }) {
+function CatalogueEmpty({
+  filtered,
+  messages,
+}: {
+  filtered: boolean;
+  messages: TranslationMap;
+}) {
+  if (filtered) {
+    return (
+      <div className="rounded-card border border-border bg-surface p-6">
+        <h2 className="text-sm font-semibold">{t("No modules match this filter.", messages)}</h2>
+        <a href="/modules" className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
+          {t("Clear filter", messages)}
+        </a>
+      </div>
+    );
+  }
   return (
     <div className="rounded-card border border-border bg-surface p-6">
       <h2 className="text-sm font-semibold">{t("No modules are installed yet.", messages)}</h2>
@@ -293,7 +409,51 @@ function CatalogueList({
   );
 }
 
-export default async function ModulesPage() {
+function ModulesBody({
+  catalogue,
+  state,
+  visibility,
+  page,
+  messages,
+}: {
+  catalogue: Catalogue;
+  state: StateFilter;
+  visibility: PublicFilter;
+  page: number;
+  messages: TranslationMap;
+}) {
+  if (!catalogue.ok) return <CatalogueError error={catalogue} messages={messages} />;
+
+  const filters = {
+    state: state === "all" ? undefined : state,
+    public: visibility === "all" ? undefined : visibility,
+  };
+  const modules = filterModules(catalogue.modules, state, visibility);
+  const filtered = state !== "all" || visibility !== "all";
+
+  return (
+    <>
+      <ModulesFilter state={state} visibility={visibility} messages={messages} />
+      {catalogue.total === 0 || modules.length === 0 ? (
+        <CatalogueEmpty filtered={filtered} messages={messages} />
+      ) : (
+        <CatalogueList modules={modules} messages={messages} />
+      )}
+      <Pagination
+        page={page}
+        pages={pageCount(catalogue.total)}
+        hrefFor={(target) => pageHref("/modules", filters, target)}
+        messages={messages}
+      />
+    </>
+  );
+}
+
+export default async function ModulesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<ModulesSearchParams>;
+} = {}) {
   const gate = await requirePanel("admin");
 
   const cookieStore = await cookies();
@@ -305,7 +465,25 @@ export default async function ModulesPage() {
     return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
   }
 
-  const catalogue = await loadCatalogue();
+  const params = (await searchParams) ?? {};
+  const state = parseStateFilter(firstParam(params.state));
+  const visibility = parsePublicFilter(firstParam(params.public));
+  const page = parsePage(firstParam(params.page));
+
+  const catalogue = await loadCatalogue({ offset: pageOffset(page) });
+  if (catalogue.ok && page > pageCount(catalogue.total)) {
+    const target = pageCount(catalogue.total);
+    redirect(
+      pageHref(
+        "/modules",
+        {
+          state: state === "all" ? undefined : state,
+          public: visibility === "all" ? undefined : visibility,
+        },
+        target,
+      ),
+    );
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -316,15 +494,13 @@ export default async function ModulesPage() {
         </p>
       </header>
 
-      {catalogue.ok ? (
-        catalogue.modules.length === 0 ? (
-          <CatalogueEmpty messages={messages} />
-        ) : (
-          <CatalogueList modules={catalogue.modules} messages={messages} />
-        )
-      ) : (
-        <CatalogueError error={catalogue} messages={messages} />
-      )}
+      <ModulesBody
+        catalogue={catalogue}
+        state={state}
+        visibility={visibility}
+        page={page}
+        messages={messages}
+      />
     </section>
   );
 }

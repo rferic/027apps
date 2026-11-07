@@ -44,7 +44,7 @@ export default async function NewInvitationPage() {
   }
 
   const [categories, moduleChoices] = await Promise.all([
-    loadCategories(),
+    loadCategories({ offset: 0, limit: 100 }),
     loadModuleChoices(),
   ]);
   const categoryRows = readCategories(categories);

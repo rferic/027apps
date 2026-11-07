@@ -66,6 +66,18 @@ describe("OpenAPI generation", () => {
     expect(record(revoke["204"]).content).toBeUndefined();
   });
 
+  it("documents limit/offset on every paginated list", () => {
+    const document = buildOpenApiDocument();
+    for (const path of ["/users", "/user-categories", "/invitations", "/api-keys", "/modules"]) {
+      const get = record(record(record(document.paths)[path]).get);
+      const parameters = (get.parameters ?? []) as JsonRecord[];
+      const names = parameters.filter((parameter) => parameter.in === "query").map((p) => p.name);
+      expect(names).toContain("limit");
+      expect(names).toContain("offset");
+      if (path === "/users") expect(names).toContain("q");
+    }
+  });
+
   it("never publishes the API key secret in a list or detail representation", () => {
     const document = buildOpenApiDocument();
     const schemas = record(record(document.components).schemas);

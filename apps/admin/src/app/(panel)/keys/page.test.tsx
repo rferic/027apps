@@ -3,13 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requirePanelMock = vi.fn();
 const loadApiKeysMock = vi.fn();
+const redirectMock = vi.fn((url: string) => {
+  throw new Error(`NEXT_REDIRECT:${url}`);
+});
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
 }));
 
 vi.mock("next/navigation", () => ({
-  redirect: vi.fn(),
+  redirect: (url: string) => redirectMock(url),
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 
@@ -26,7 +29,7 @@ vi.mock("@/lib/panel-settings", () => ({
 }));
 
 vi.mock("@/lib/panel-keys", () => ({
-  loadApiKeys: () => loadApiKeysMock(),
+  loadApiKeys: (input: unknown) => loadApiKeysMock(input),
 }));
 
 vi.mock("@/app/(auth)/actions", () => ({
@@ -73,6 +76,7 @@ beforeEach(() => {
     user: { id: "u1", email: "admin@example.com", displayName: "Admin", role: "admin" },
   });
   loadApiKeysMock.mockReset();
+  redirectMock.mockClear();
 });
 
 describe("KeysPage", () => {
@@ -81,7 +85,7 @@ describe("KeysPage", () => {
   });
 
   it("lists name, kind, owner, role cap, prefix, scopes, dates and status as text", async () => {
-    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY] });
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
 
     const html = renderToStaticMarkup(await render());
 
@@ -104,7 +108,7 @@ describe("KeysPage", () => {
   });
 
   it("marks the caller's own key and names its owner in the confirmation", async () => {
-    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY] });
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
 
     const html = renderToStaticMarkup(await render());
 
@@ -118,6 +122,7 @@ describe("KeysPage", () => {
     loadApiKeysMock.mockResolvedValue({
       ok: true,
       apiKeys: [{ ...SERVICE_KEY, revoked_at: null }],
+      total: 1,
     });
 
     const html = renderToStaticMarkup(await render());
@@ -128,7 +133,7 @@ describe("KeysPage", () => {
   });
 
   it("filters by state and offers to clear the filter", async () => {
-    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY] });
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
 
     const html = renderToStaticMarkup(await render({ state: "revoked" }));
 
@@ -139,7 +144,7 @@ describe("KeysPage", () => {
   });
 
   it("shows the empty state linked to the create page", async () => {
-    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [] });
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [], total: 0 });
 
     const html = renderToStaticMarkup(await render());
 
@@ -170,5 +175,33 @@ describe("KeysPage", () => {
 
     expect(html).toContain("You do not have access to this page.");
     expect(loadApiKeysMock).not.toHaveBeenCalled();
+  });
+
+  it("paginates with a fixed page size and keeps the state filter in the links", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [SERVICE_KEY], total: 45 });
+
+    const html = renderToStaticMarkup(await render({ page: "2", state: "revoked" }));
+
+    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 20 });
+    expect(html).toContain("Page 2 of 3");
+    expect(html).toContain('href="/keys?state=revoked"');
+    expect(html).toContain('href="/keys?state=revoked&amp;page=3"');
+  });
+
+  it("keeps the pagination visible and disabled on a single page", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY], total: 1 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("Page 1 of 1");
+    expect(html).toContain('aria-disabled="true"');
+  });
+
+  it("redirects only when the requested page is past the last one", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [], total: 40 });
+
+    await expect(render({ page: "3", state: "active" })).rejects.toThrow(
+      "NEXT_REDIRECT:/keys?state=active&page=2",
+    );
   });
 });

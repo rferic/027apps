@@ -18,6 +18,8 @@ import {
 import { sha256 } from "@027apps/core/modules/manifest.js";
 import type { Caller } from "@027apps/core/api/types.js";
 
+const PAGE = { limit: 100, offset: 0 };
+
 const email = (name: string) => `mod-${name}-${Date.now()}-${Math.random()}@test.local`;
 
 const UP = "create table items (id uuid primary key default gen_random_uuid(), name text not null);";
@@ -195,7 +197,7 @@ describe("modules installer", () => {
       await expect(activateModule(deps(c), admin, "demo-module")).resolves.toMatchObject({
         state: "active",
       });
-      expect(await listModules(deps(c), admin)).toHaveLength(1);
+      expect((await listModules(deps(c), admin, PAGE)).modules).toHaveLength(1);
     });
   });
 
@@ -286,14 +288,14 @@ describe("modules installer", () => {
       const d = deps(c);
       await installModule(d, admin, manifest());
 
-      expect(await listModules(d, admin)).toHaveLength(1);
-      expect(await listModules(d, user)).toHaveLength(0);
+      expect((await listModules(d, admin, PAGE)).modules).toHaveLength(1);
+      expect((await listModules(d, user, PAGE)).modules).toHaveLength(0);
 
       await activateModule(d, admin, "demo-module");
-      expect(await listModules(d, user)).toHaveLength(0);
+      expect((await listModules(d, user, PAGE)).modules).toHaveLength(0);
 
       await grantUserModule(d, admin, user.userId, "demo-module");
-      expect(await listModules(d, user)).toHaveLength(1);
+      expect((await listModules(d, user, PAGE)).modules).toHaveLength(1);
 
       await expect(
         installModule({ ...d, withTransaction: undefined }, admin, manifest()),

@@ -8,6 +8,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { LOCALE_LABELS } from "@/lib/locale";
 import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { Select } from "@/components/ui/select";
+import { TimeZoneInput } from "@/components/ui/time-zone-input";
 import {
   buildProfilePatch,
   canAssignRole,
@@ -173,15 +174,12 @@ function ProfileFormFields({
         hintId="member-timezone-help"
         error={fieldErrors.timezone?.[0]}
       >
-        <input
+        <TimeZoneInput
           id="member-timezone"
           name="timezone"
-          type="text"
           required
           defaultValue={member.timezone}
           {...fieldAria("timezone", fieldErrors.timezone?.[0], "member-timezone-help")}
-          autoComplete="off"
-          className={inputClass}
         />
       </FormField>
 

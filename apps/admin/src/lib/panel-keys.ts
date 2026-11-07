@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { apiKeysRoute } from "@027apps/core/api-keys/api.js";
 import type { QueryClient } from "@027apps/core/api/rate-limit-storage.js";
 import { apiKeysRouteDeps } from "@/lib/api-keys-route-deps";
+import { PANEL_PAGE_SIZE } from "@/lib/panel-pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const INTERNAL_ORIGIN = "http://panel.internal";
@@ -28,7 +29,7 @@ export interface ApiKeyRow {
 }
 
 export type ApiKeysFailure = { ok: false; code?: string; requestId?: string };
-export type ApiKeysList = { ok: true; apiKeys: ApiKeyRow[] } | ApiKeysFailure;
+export type ApiKeysList = { ok: true; apiKeys: ApiKeyRow[]; total: number } | ApiKeysFailure;
 
 type RouteSuccess = { ok: true; body: Record<string, unknown>; requestId?: string };
 type RouteCall = RouteSuccess | ApiKeysFailure;
@@ -39,6 +40,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function readCount(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
 }
 
 function readNullableString(value: unknown): string | null | undefined {
@@ -213,11 +218,17 @@ async function callRoute(
   return { ok: true, body, ...(headerRequestId ? { requestId: headerRequestId } : {}) };
 }
 
-/** GET /api/v1/api-keys — own keys, or every key for a super_admin. */
-export async function loadApiKeys(): Promise<ApiKeysList> {
+/** GET /api/v1/api-keys — own keys, or every key for a super_admin, one page. */
+export async function loadApiKeys(input: {
+  offset: number;
+  limit?: number;
+}): Promise<ApiKeysList> {
   const token = await sessionToken();
   const deps = await apiKeysRouteDeps();
-  const call = await callRoute(apiKeysRoute(deps), "/api/v1/api-keys", token);
+  const params = new URLSearchParams();
+  params.set("limit", String(input.limit ?? PANEL_PAGE_SIZE));
+  params.set("offset", String(Math.max(0, input.offset)));
+  const call = await callRoute(apiKeysRoute(deps), `/api/v1/api-keys?${params.toString()}`, token);
   if (!call.ok) return call;
   if (!Array.isArray(call.body.api_keys)) {
     return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
@@ -248,5 +259,7 @@ export async function loadApiKeys(): Promise<ApiKeysList> {
         ? "Instance"
         : ((row.user_id && ownerNames.get(row.user_id)) || row.user_id || "—"),
   }));
-  return { ok: true, apiKeys };
+  const total = readCount(call.body.total);
+  if (total === null) return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+  return { ok: true, apiKeys, total };
 }

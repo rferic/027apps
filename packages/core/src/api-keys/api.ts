@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { withDoor } from "../api/door";
+import { pageParams } from "../api/pagination";
 import { DEFAULT_READ_LIMIT, DEFAULT_WRITE_LIMIT } from "../api/rate-limits";
 import { DomainError } from "../errors";
 import type { Caller, CorsOptions, DoorDeps } from "../api/types";
@@ -62,9 +63,11 @@ function readOptions(deps: ApiKeysRouteDeps, scopes: string[]) {
 
 export function apiKeysRoute(deps: ApiKeysRouteDeps) {
   return (req: Request): Promise<Response> =>
-    withDoor(req, readOptions(deps, ["api_keys:read"]), deps.door, async (ctx) => ({
-      api_keys: await listApiKeys(deps.apiKeys, ctx.caller),
-    }));
+    withDoor(req, readOptions(deps, ["api_keys:read"]), deps.door, async (ctx) => {
+      const page = pageParams(ctx.searchParams);
+      const result = await listApiKeys(deps.apiKeys, ctx.caller, page);
+      return { ...result, limit: page.limit, offset: page.offset };
+    });
 }
 
 export function createApiKeyRoute(deps: ApiKeysRouteDeps) {

@@ -89,6 +89,16 @@ export const userListSchema = component(
     .strict(),
 );
 
+/** Query contract shared by every paginated list endpoint. */
+export const paginationQuerySchema = z.object({
+  limit: z.number().int().min(1).max(100).optional().describe("Page size (1..100, default 20)."),
+  offset: z.number().int().min(0).optional().describe("Rows to skip (default 0)."),
+});
+
+export const usersQuerySchema = paginationQuerySchema.extend({
+  q: z.string().max(100).optional().describe("Filter by name or email."),
+});
+
 export const userResponseSchema = component(
   "UserResponse",
   z.object({ user: userSchema }).strict(),
@@ -124,7 +134,14 @@ export const categoryDetailSchema = component(
 
 export const categoryListSchema = component(
   "CategoryList",
-  z.object({ categories: z.array(categorySchema) }).strict(),
+  z
+    .object({
+      categories: z.array(categorySchema),
+      total: z.number().int(),
+      limit: z.number().int(),
+      offset: z.number().int(),
+    })
+    .strict(),
 );
 
 export const categoryResponseSchema = component(
@@ -162,7 +179,14 @@ export const invitationSchema = component(
 
 export const invitationListSchema = component(
   "InvitationList",
-  z.object({ invitations: z.array(invitationSchema) }).strict(),
+  z
+    .object({
+      invitations: z.array(invitationSchema),
+      total: z.number().int(),
+      limit: z.number().int(),
+      offset: z.number().int(),
+    })
+    .strict(),
 );
 
 export const invitationCreatedSchema = component(
@@ -201,7 +225,14 @@ export const apiKeySchema = component(
 
 export const apiKeyListSchema = component(
   "ApiKeyList",
-  z.object({ api_keys: z.array(apiKeySchema) }).strict(),
+  z
+    .object({
+      api_keys: z.array(apiKeySchema),
+      total: z.number().int(),
+      limit: z.number().int(),
+      offset: z.number().int(),
+    })
+    .strict(),
 );
 
 export const apiKeyResponseSchema = component(
@@ -283,7 +314,14 @@ export const moduleDetailSchema = component(
 
 export const moduleListSchema = component(
   "ModuleList",
-  z.object({ modules: z.array(moduleSchema) }).strict(),
+  z
+    .object({
+      modules: z.array(moduleSchema),
+      total: z.number().int(),
+      limit: z.number().int(),
+      offset: z.number().int(),
+    })
+    .strict(),
 );
 
 export const moduleResponseSchema = component(

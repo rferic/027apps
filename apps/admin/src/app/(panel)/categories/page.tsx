@@ -1,19 +1,43 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
+import { Pagination } from "@/components/ui/pagination";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadCategories, type CategoryRow } from "@/lib/panel-categories";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
+import {
+  firstParam,
+  pageCount,
+  pageHref,
+  pageOffset,
+  parsePage,
+} from "@/lib/panel-pagination";
 
 /**
  * The page reads the session while rendering; the layout's opt-out is not
  * inherited, so this segment opts out of the static shell too.
  */
 export const instant = false;
+
+interface CategoriesSearchParams {
+  q?: string | string[];
+  page?: string | string[];
+}
+
+function filterCategories(rows: CategoryRow[], q: string): CategoryRow[] {
+  if (!q) return rows;
+  const needle = q.toLocaleLowerCase();
+  return rows.filter(
+    (row) =>
+      row.name.toLocaleLowerCase().includes(needle) ||
+      row.slug.toLocaleLowerCase().includes(needle),
+  );
+}
 
 function CategoriesTable({ rows, messages }: { rows: CategoryRow[]; messages: TranslationMap }) {
   return (
@@ -82,7 +106,19 @@ function CategoriesCards({ rows, messages }: { rows: CategoryRow[]; messages: Tr
   );
 }
 
-function CategoriesEmpty({ messages }: { messages: TranslationMap }) {
+function CategoriesEmpty({ q, messages }: { q: string; messages: TranslationMap }) {
+  if (q) {
+    return (
+      <div className="rounded-card border border-border bg-surface p-6">
+        <h2 className="text-sm font-semibold">
+          {t("No categories match {q}.", messages, { q })}
+        </h2>
+        <Link href="/categories" className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
+          {t("Clear search", messages)}
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="rounded-card border border-border bg-surface p-6">
       <h2 className="text-sm font-semibold">{t("No categories yet.", messages)}</h2>
@@ -93,7 +129,82 @@ function CategoriesEmpty({ messages }: { messages: TranslationMap }) {
   );
 }
 
-export default async function CategoriesPage() {
+function CategoriesBody({
+  data,
+  q,
+  page,
+  messages,
+}: {
+  data: Awaited<ReturnType<typeof loadCategories>>;
+  q: string;
+  page: number;
+  messages: TranslationMap;
+}) {
+  if (!data.ok) {
+    return (
+      <PanelError
+        error={data}
+        heading={t("We couldn't load the categories.", messages)}
+        retryHref={pageHref("/categories", { q }, page)}
+        messages={messages}
+      />
+    );
+  }
+
+  const rows = filterCategories(data.categories, q);
+  const empty = data.total === 0 || rows.length === 0;
+
+  return (
+    <>
+      <form method="get" className="flex flex-wrap items-end gap-2" role="search">
+        <label htmlFor="categories-q" className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {t("Search by name or slug", messages)}
+          <input
+            id="categories-q"
+            name="q"
+            type="search"
+            defaultValue={q}
+            maxLength={100}
+            className="min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          />
+        </label>
+        <button
+          type="submit"
+          className="inline-flex min-h-11 items-center rounded-control border border-border bg-muted px-3 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {t("Search", messages)}
+        </button>
+        {q && (
+          <Link href="/categories" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
+            {t("Clear search", messages)}
+          </Link>
+        )}
+      </form>
+
+      {empty ? (
+        <CategoriesEmpty q={q} messages={messages} />
+      ) : (
+        <>
+          <CategoriesTable rows={rows} messages={messages} />
+          <CategoriesCards rows={rows} messages={messages} />
+        </>
+      )}
+
+      <Pagination
+        page={page}
+        pages={pageCount(data.total)}
+        hrefFor={(target) => pageHref("/categories", { q }, target)}
+        messages={messages}
+      />
+    </>
+  );
+}
+
+export default async function CategoriesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<CategoriesSearchParams>;
+} = {}) {
   const gate = await requirePanel("admin");
 
   const cookieStore = await cookies();
@@ -105,7 +216,14 @@ export default async function CategoriesPage() {
     return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
   }
 
-  const data = await loadCategories();
+  const params = (await searchParams) ?? {};
+  const q = (firstParam(params.q) ?? "").trim().slice(0, 100);
+  const page = parsePage(firstParam(params.page));
+  const data = await loadCategories({ offset: pageOffset(page) });
+
+  if (data.ok && page > pageCount(data.total)) {
+    redirect(pageHref("/categories", { q }, pageCount(data.total)));
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -124,23 +242,7 @@ export default async function CategoriesPage() {
         </Link>
       </header>
 
-      {data.ok ? (
-        data.categories.length === 0 ? (
-          <CategoriesEmpty messages={messages} />
-        ) : (
-          <>
-            <CategoriesTable rows={data.categories} messages={messages} />
-            <CategoriesCards rows={data.categories} messages={messages} />
-          </>
-        )
-      ) : (
-        <PanelError
-          error={data}
-          heading={t("We couldn't load the categories.", messages)}
-          retryHref="/categories"
-          messages={messages}
-        />
-      )}
+      <CategoriesBody data={data} q={q} page={page} messages={messages} />
     </section>
   );
 }

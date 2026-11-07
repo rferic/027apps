@@ -85,22 +85,22 @@ beforeEach(() => {
 
 describe("loadApiKeys", () => {
   it("calls the API keys route in process with the session bearer", async () => {
-    handlerMock.mockResolvedValue(json({ api_keys: [KEY] }));
+    handlerMock.mockResolvedValue(json({ api_keys: [KEY], total: 1 }));
 
-    const result = await loadApiKeys();
+    const result = await loadApiKeys({ offset: 0 });
 
-    expect(result).toEqual({ ok: true, apiKeys: [ROW] });
+    expect(result).toEqual({ ok: true, apiKeys: [ROW], total: 1 });
     const request = handlerMock.mock.calls[0]?.[0] as Request;
-    expect(request.url).toBe("http://panel.internal/api/v1/api-keys");
+    expect(request.url).toBe("http://panel.internal/api/v1/api-keys?limit=20&offset=0");
     expect(request.method).toBe("GET");
     expect(request.headers.get("authorization")).toBe("Bearer token-123");
     expect(request.headers.get("host")).toBeNull();
   });
 
   it("resolves delegated owners in one profile query and labels service keys as the instance", async () => {
-    handlerMock.mockResolvedValue(json({ api_keys: [KEY, SERVICE_KEY] }));
+    handlerMock.mockResolvedValue(json({ api_keys: [KEY, SERVICE_KEY], total: 1 }));
 
-    const result = await loadApiKeys();
+    const result = await loadApiKeys({ offset: 0 });
 
     expect(result).toEqual({
       ok: true,
@@ -117,15 +117,16 @@ describe("loadApiKeys", () => {
           prefix: "027_svc_",
         },
       ],
+      total: 1,
     });
     expect(queryMock).toHaveBeenCalledTimes(1);
     expect(queryMock.mock.calls[0]?.[1]).toEqual([["u1"]]);
   });
 
   it("keeps a null role_cap and null dates distinguishable from a malformed row", async () => {
-    handlerMock.mockResolvedValue(json({ api_keys: [KEY] }));
+    handlerMock.mockResolvedValue(json({ api_keys: [KEY], total: 1 }));
 
-    const result = await loadApiKeys();
+    const result = await loadApiKeys({ offset: 0 });
 
     expect(result.ok && result.apiKeys[0]).toMatchObject({
       roleCap: null,
@@ -137,9 +138,9 @@ describe("loadApiKeys", () => {
 
   it("falls back to the user id when the profile read fails", async () => {
     queryMock.mockRejectedValue(new Error("db down"));
-    handlerMock.mockResolvedValue(json({ api_keys: [KEY] }));
+    handlerMock.mockResolvedValue(json({ api_keys: [KEY], total: 1 }));
 
-    const result = await loadApiKeys();
+    const result = await loadApiKeys({ offset: 0 });
 
     expect(result.ok && result.apiKeys[0]?.owner).toBe("u1");
   });
@@ -153,7 +154,7 @@ describe("loadApiKeys", () => {
       ),
     );
 
-    await expect(loadApiKeys()).resolves.toEqual({
+    await expect(loadApiKeys({ offset: 0 })).resolves.toEqual({
       ok: false,
       code: "internal",
       requestId: "req-500",
@@ -163,21 +164,21 @@ describe("loadApiKeys", () => {
   it("infers not_found from a bare 404", async () => {
     handlerMock.mockResolvedValue(new Response("", { status: 404 }));
 
-    await expect(loadApiKeys()).resolves.toEqual({ ok: false, code: "not_found" });
+    await expect(loadApiKeys({ offset: 0 })).resolves.toEqual({ ok: false, code: "not_found" });
   });
 
   it("rejects a malformed row instead of showing a partial table", async () => {
     handlerMock.mockResolvedValue(
-      json({ api_keys: [KEY, { id: "broken", name: "Broken", kind: "delegated" }] }),
+      json({ api_keys: [KEY, { id: "broken", name: "Broken", kind: "delegated" }], total: 1 }),
     );
 
-    await expect(loadApiKeys()).resolves.toEqual({ ok: false });
+    await expect(loadApiKeys({ offset: 0 })).resolves.toEqual({ ok: false });
   });
 
   it("rejects an unknown kind", async () => {
-    handlerMock.mockResolvedValue(json({ api_keys: [{ ...KEY, kind: "root" }] }));
+    handlerMock.mockResolvedValue(json({ api_keys: [{ ...KEY, kind: "root" }], total: 1 }));
 
-    await expect(loadApiKeys()).resolves.toEqual({ ok: false });
+    await expect(loadApiKeys({ offset: 0 })).resolves.toEqual({ ok: false });
   });
 
   it("keeps the header request id when a 2xx body has an invalid shape", async () => {
@@ -185,13 +186,13 @@ describe("loadApiKeys", () => {
       json({ api_keys: "not-an-array" }, 200, { "x-request-id": "req-shape" }),
     );
 
-    await expect(loadApiKeys()).resolves.toEqual({ ok: false, requestId: "req-shape" });
+    await expect(loadApiKeys({ offset: 0 })).resolves.toEqual({ ok: false, requestId: "req-shape" });
   });
 
   it("redirects to login when the session has no access token", async () => {
     getSessionMock.mockResolvedValue({ data: { session: null } });
 
-    await expect(loadApiKeys()).rejects.toThrow("NEXT_REDIRECT:/login");
+    await expect(loadApiKeys({ offset: 0 })).rejects.toThrow("NEXT_REDIRECT:/login");
     expect(handlerMock).not.toHaveBeenCalled();
   });
 });

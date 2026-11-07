@@ -96,6 +96,9 @@ Reglas:
 
 - **Lista**: título + acción primaria + filtro + tabla/tarjetas + paginación. Filas clicables, con
   foco visible. Acciones de fila en un menú de tres puntos, no en columnas de botones.
+- **Paginación**: toda lista se pagina en servidor (`limit`/`offset` + `total`); la UI usa
+  `components/ui/pagination.tsx`, pasa `page` por query y nunca carga todos los registros para paginar
+  o filtrar en cliente.
 - **Detalle**: breadcrumb, título con el nombre, badges de rol/estado, formulario en una columna y
   acciones destructivas separadas al final con confirmación explícita ("Desactivar a Sara: perderá el
   acceso al instante").

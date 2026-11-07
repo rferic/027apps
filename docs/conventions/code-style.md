@@ -38,6 +38,13 @@ Excepción: nada. Para un color nuevo, define el token en `globals.css` (claro y
 
 Excepción de plataforma: los elementos nativos (`<dialog>`, `<select>`, `<input>`) heredan colores del navegador (CanvasText/Canvas); si se usan, se les fija siempre el token correspondiente (`bg-surface text-foreground`).
 
+## Listas y paginación
+
+Toda lista del panel se pagina **en servidor**: el endpoint acepta `limit`/`offset` y devuelve
+`total`; la UI usa `components/ui/pagination.tsx` y pasa `page` por query. Nunca se cargan todos
+los registros para filtrar o paginar en cliente (los filtros de cliente solo acotan una página ya
+paginada). Una lista nueva sin paginación no pasa revisión.
+
 ## Naming
 
 - Ficheros y carpetas: `kebab-case` (`user-menu.tsx`). Excepciones impuestas por Next.js (`page.tsx`, `layout.tsx`, `route.ts`).

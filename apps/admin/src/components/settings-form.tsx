@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { FormActions, FormAlert, FormField, FormSection } from "@/components/ui/form";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Select } from "@/components/ui/select";
+import { TimeZoneInput } from "@/components/ui/time-zone-input";
 import { LOCALE_LABELS, localeOptions } from "@/lib/locale";
 import type { MutationFailure } from "@/lib/mutation-result";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
@@ -27,6 +28,9 @@ const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 const PANEL_LOCALES = Object.keys(LOCALE_LABELS) as Locale[];
+
+/** Setting whose free text gets IANA zone suggestions (see TimeZoneInput). */
+const TIME_ZONE_KEY = "localization.timezone";
 
 function fieldId(key: string): string {
   return `setting-${key.replaceAll(".", "-")}`;
@@ -226,27 +230,44 @@ function ScalarInput({
   setting,
   value,
   onChange,
+  error,
   messages,
 }: {
   setting: SettingRow;
   value: string;
   onChange: (value: string) => void;
+  error: MutationFailure | null;
   messages: TranslationMap;
 }) {
+  const id = fieldId(setting.key);
+  const hint = settingHelp(setting.key, messages, setting.help);
+  // Mirrors InlineError: the field is invalid when the failure names its key.
+  const hasError = error?.details?.key === setting.key;
   return (
-    <FormField
-      id={fieldId(setting.key)}
-      label={settingLabel(setting.key, messages, setting.label)}
-      hint={settingHelp(setting.key, messages, setting.help)}
-    >
-      <input
-        id={fieldId(setting.key)}
-        name={setting.key}
-        type={setting.type === "int" ? "number" : "text"}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={inputClass}
-      />
+    <FormField id={id} label={settingLabel(setting.key, messages, setting.label)} hint={hint}>
+      {setting.key === TIME_ZONE_KEY ? (
+        <TimeZoneInput
+          id={id}
+          name={setting.key}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          aria-describedby={
+            [hint ? `${id}-hint` : undefined, hasError ? `${id}-error` : undefined]
+              .filter(Boolean)
+              .join(" ") || undefined
+          }
+          aria-invalid={hasError ? true : undefined}
+        />
+      ) : (
+        <input
+          id={fieldId(setting.key)}
+          name={setting.key}
+          type={setting.type === "int" ? "number" : "text"}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={inputClass}
+        />
+      )}
     </FormField>
   );
 }
@@ -359,6 +380,7 @@ export function SettingField({
           setting={setting}
           value={value}
           onChange={(next) => onChange(setting.key, next)}
+          error={error}
           messages={messages}
         />
       )}

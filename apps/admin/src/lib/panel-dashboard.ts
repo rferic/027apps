@@ -30,6 +30,9 @@ const INTERNAL_ORIGIN = "http://panel.internal";
  * which come from the route's instance-wide `total`/`active_total` aggregates.
  */
 const USERS_PAGE = "/api/v1/users?limit=100";
+const INVITATIONS_PAGE = "/api/v1/invitations?limit=100";
+const CATEGORIES_PAGE = "/api/v1/user-categories?limit=100";
+const MODULES_PAGE = "/api/v1/modules?limit=100";
 
 export interface DashboardHealth {
   status: "ok" | "degraded";
@@ -201,7 +204,7 @@ function readPendingInvitations(body: Record<string, unknown>): number | null {
 function readCategoryCount(body: Record<string, unknown>): number | null {
   if (!Array.isArray(body.categories)) return null;
   if (!body.categories.every((entry) => isRecord(entry))) return null;
-  return body.categories.length;
+  return readNumber(body.total) ?? null;
 }
 
 function readModules(body: Record<string, unknown>): DashboardModule[] | null {
@@ -223,6 +226,51 @@ function readModules(body: Record<string, unknown>): DashboardModule[] | null {
  * A 2xx with an invalid shape still keeps its `x-request-id`, and when several
  * bodies are malformed the first one that carries a request id wins.
  */
+type DashboardInputs =
+  | {
+      ok: true;
+      userCounts: { members: number; activeMembers: number };
+      categoryCount: number;
+      pendingInvitations: number;
+      moduleList: DashboardModule[];
+      totalModules: number;
+    }
+  | { ok: false; requestId?: string };
+
+function readDashboardInputs(input: {
+  users: RouteSuccess;
+  categories: RouteSuccess;
+  invitations: RouteSuccess;
+  modules: RouteSuccess;
+}): DashboardInputs {
+  const userCounts = readUsers(input.users.body);
+  const categoryCount = readCategoryCount(input.categories.body);
+  const pendingInvitations = readPendingInvitations(input.invitations.body);
+  const moduleList = readModules(input.modules.body);
+  const totalModules = readNumber(input.modules.body.total);
+
+  const failures = [
+    { invalid: !userCounts, requestId: input.users.requestId },
+    { invalid: categoryCount === null, requestId: input.categories.requestId },
+    { invalid: pendingInvitations === null, requestId: input.invitations.requestId },
+    { invalid: !moduleList || totalModules === undefined, requestId: input.modules.requestId },
+  ].filter((failure) => failure.invalid);
+
+  if (failures.length > 0) {
+    const requestId = failures.map((failure) => failure.requestId).find((id) => id !== undefined);
+    return { ok: false, ...(requestId ? { requestId } : {}) };
+  }
+
+  return {
+    ok: true,
+    userCounts: userCounts!,
+    categoryCount: categoryCount!,
+    pendingInvitations: pendingInvitations!,
+    moduleList: moduleList!,
+    totalModules: totalModules!,
+  };
+}
+
 function composeDashboard(input: {
   health: DashboardHealth;
   setupIncomplete: boolean;
@@ -231,40 +279,22 @@ function composeDashboard(input: {
   invitations: RouteSuccess;
   modules: RouteSuccess;
 }): DashboardData {
-  const userCounts = readUsers(input.users.body);
-  const categoryCount = readCategoryCount(input.categories.body);
-  const pendingInvitations = readPendingInvitations(input.invitations.body);
-  const moduleList = readModules(input.modules.body);
-
-  if (
-    !userCounts ||
-    categoryCount === null ||
-    pendingInvitations === null ||
-    !moduleList
-  ) {
-    const failedRequestIds = [
-      ...(userCounts ? [] : [input.users.requestId]),
-      ...(categoryCount === null ? [input.categories.requestId] : []),
-      ...(pendingInvitations === null ? [input.invitations.requestId] : []),
-      ...(moduleList ? [] : [input.modules.requestId]),
-    ];
-    const requestId = failedRequestIds.find((id) => id !== undefined);
-    return { ok: false, ...(requestId ? { requestId } : {}) };
-  }
+  const data = readDashboardInputs(input);
+  if (!data.ok) return { ok: false, ...(data.requestId ? { requestId: data.requestId } : {}) };
 
   return {
     ok: true,
     health: input.health,
     setupIncomplete: input.setupIncomplete,
     kpis: {
-      members: userCounts.members,
-      activeMembers: userCounts.activeMembers,
-      pendingInvitations,
-      activeModules: moduleList.filter((module) => module.state === "active").length,
-      totalModules: moduleList.length,
-      categories: categoryCount,
+      members: data.userCounts.members,
+      activeMembers: data.userCounts.activeMembers,
+      pendingInvitations: data.pendingInvitations,
+      activeModules: data.moduleList.filter((module) => module.state === "active").length,
+      totalModules: data.totalModules,
+      categories: data.categoryCount,
     },
-    modules: moduleList,
+    modules: data.moduleList,
   };
 }
 
@@ -304,11 +334,11 @@ export async function loadPanelDashboard(): Promise<DashboardData> {
         auth: infra.auth,
         categories: { db: infra.settingsDeps.db, withTransaction: withTransactionClient },
       }),
-      "/api/v1/user-categories",
+      CATEGORIES_PAGE,
       token,
     ),
-    callRoute(invitationsRoute(invitationDeps), "/api/v1/invitations", token),
-    callRoute(modulesRoute(moduleDeps), "/api/v1/modules", token),
+    callRoute(invitationsRoute(invitationDeps), INVITATIONS_PAGE, token),
+    callRoute(modulesRoute(moduleDeps), MODULES_PAGE, token),
   ]);
 
   // The first failure wins: showing a partial dashboard would hide a broken source.

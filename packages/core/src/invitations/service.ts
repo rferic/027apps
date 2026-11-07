@@ -61,6 +61,17 @@ export type RedeemResult = {
   invitation_id: string;
 };
 
+/** One page of invitations plus the total across every page. */
+export interface InvitationList {
+  invitations: InvitationView[];
+  total: number;
+}
+
+export interface InvitationPage {
+  limit: number;
+  offset: number;
+}
+
 const TOKEN_PREFIX = "027_inv_";
 const DEFAULT_TTL_DAYS = 7;
 const MAX_TTL_DAYS = 365;
@@ -125,12 +136,16 @@ async function withTx<T>(
   });
 }
 
-async function modulesFor(db: QueryClient, invitationId?: string): Promise<Map<string, string[]>> {
-  const { rows } = invitationId
+async function modulesFor(
+  db: QueryClient,
+  invitationIds?: readonly string[],
+): Promise<Map<string, string[]>> {
+  if (invitationIds && invitationIds.length === 0) return new Map();
+  const { rows } = invitationIds
     ? await db.query(
         `select invitation_id, module_key from public.invitation_modules
-          where invitation_id = $1 order by module_key asc`,
-        [invitationId],
+          where invitation_id = any($1::uuid[]) order by module_key asc`,
+        [invitationIds],
       )
     : await db.query(
         "select invitation_id, module_key from public.invitation_modules order by module_key asc",
@@ -262,15 +277,34 @@ export async function createInvitation(
   return { invitation: toView(rows[0]!, modules, now), token };
 }
 
-export async function listInvitations(deps: InvitationsDeps): Promise<InvitationView[]> {
+export async function listInvitations(
+  deps: InvitationsDeps,
+  page: InvitationPage,
+): Promise<InvitationList> {
   const { rows } = await deps.db.query(
-    `select id, email, name, user_category_id, expires_at, used_at, revoked_at, created_at
-       from public.invitations
-      order by created_at desc, id desc`,
+    `with total as (select count(*)::int as n from public.invitations),
+          page as (
+            select id, email, name, user_category_id, expires_at, used_at, revoked_at, created_at
+              from public.invitations
+             order by created_at desc, id desc
+             limit $1 offset $2
+          )
+     select total.n as total, page.*
+       from total left join page on true`,
+    [page.limit, page.offset],
   );
-  const modules = await modulesFor(deps.db);
+  const invitations = rows.filter((row) => row.id !== null && row.id !== undefined);
+  const modules = await modulesFor(
+    deps.db,
+    invitations.map((row) => String(row.id)),
+  );
   const now = deps.now?.() ?? new Date();
-  return rows.map((row) => toView(row, modules.get(String(row.id)) ?? [], now));
+  return {
+    invitations: invitations.map((row) =>
+      toView(row, modules.get(String(row.id)) ?? [], now),
+    ),
+    total: Number(rows[0]?.total ?? 0),
+  };
 }
 
 export async function revokeInvitation(deps: InvitationsDeps, id: string): Promise<void> {

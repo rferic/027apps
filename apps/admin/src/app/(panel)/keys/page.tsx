@@ -1,17 +1,26 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { ApiKeyRevokeButton } from "@/components/api-key-revoke-button";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
+import {
+  firstParam,
+  pageCount,
+  pageHref,
+  pageOffset,
+  parsePage,
+} from "@/lib/panel-pagination";
 import { loadApiKeys, type ApiKeyKind, type ApiKeyRow } from "@/lib/panel-keys";
 
 /**
@@ -24,10 +33,7 @@ type StateFilter = "all" | "active" | "revoked";
 
 interface KeysSearchParams {
   state?: string | string[];
-}
-
-function first(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
+  page?: string | string[];
 }
 
 function parseFilter(value: string | undefined): StateFilter {
@@ -268,6 +274,70 @@ function KeysEmpty({ filtered, messages }: { filtered: boolean; messages: Transl
   );
 }
 
+function KeysBody({
+  data,
+  filter,
+  page,
+  locale,
+  timeZone,
+  currentUserId,
+  messages,
+}: {
+  data: Awaited<ReturnType<typeof loadApiKeys>>;
+  filter: StateFilter;
+  page: number;
+  locale: Locale;
+  timeZone: string;
+  currentUserId: string;
+  messages: TranslationMap;
+}) {
+  const filters = { state: filter === "all" ? undefined : filter };
+
+  if (!data.ok) {
+    return (
+      <PanelError
+        error={data}
+        heading={t("We couldn't load the API keys.", messages)}
+        retryHref={pageHref("/keys", filters, page)}
+        messages={messages}
+      />
+    );
+  }
+
+  const rows = filterKeys(data.apiKeys, filter);
+  return (
+    <>
+      <KeysFilter filter={filter} messages={messages} />
+      {rows.length === 0 ? (
+        <KeysEmpty filtered={filter !== "all" && data.total > 0} messages={messages} />
+      ) : (
+        <>
+          <KeysTable
+            rows={rows}
+            locale={locale}
+            timeZone={timeZone}
+            currentUserId={currentUserId}
+            messages={messages}
+          />
+          <KeysCards
+            rows={rows}
+            locale={locale}
+            timeZone={timeZone}
+            currentUserId={currentUserId}
+            messages={messages}
+          />
+        </>
+      )}
+      <Pagination
+        page={page}
+        pages={pageCount(data.total)}
+        hrefFor={(target) => pageHref("/keys", filters, target)}
+        messages={messages}
+      />
+    </>
+  );
+}
+
 export default async function KeysPage({
   searchParams,
 }: {
@@ -287,9 +357,14 @@ export default async function KeysPage({
   const timeZone = await loadPanelTimeZone();
 
   const params = await searchParams;
-  const filter = parseFilter(first(params.state));
-  const data = await loadApiKeys();
-  const rows = data.ok ? filterKeys(data.apiKeys, filter) : [];
+  const filter = parseFilter(firstParam(params.state));
+  const page = parsePage(firstParam(params.page));
+  const data = await loadApiKeys({ offset: pageOffset(page) });
+
+  if (data.ok && page > pageCount(data.total)) {
+    const target = pageCount(data.total);
+    redirect(pageHref("/keys", { state: filter === "all" ? undefined : filter }, target));
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -308,41 +383,15 @@ export default async function KeysPage({
         </Link>
       </header>
 
-      {data.ok ? (
-        <>
-          <KeysFilter filter={filter} messages={messages} />
-          {rows.length === 0 ? (
-            <KeysEmpty
-              filtered={filter !== "all" && data.apiKeys.length > 0}
-              messages={messages}
-            />
-          ) : (
-            <>
-              <KeysTable
-                rows={rows}
-                locale={locale}
-                timeZone={timeZone}
-                currentUserId={gate.user.id}
-                messages={messages}
-              />
-              <KeysCards
-                rows={rows}
-                locale={locale}
-                timeZone={timeZone}
-                currentUserId={gate.user.id}
-                messages={messages}
-              />
-            </>
-          )}
-        </>
-      ) : (
-        <PanelError
-          error={data}
-          heading={t("We couldn't load the API keys.", messages)}
-          retryHref={revokeHref(filter)}
-          messages={messages}
-        />
-      )}
+      <KeysBody
+        data={data}
+        filter={filter}
+        page={page}
+        locale={locale}
+        timeZone={timeZone}
+        currentUserId={gate.user.id}
+        messages={messages}
+      />
     </section>
   );
 }

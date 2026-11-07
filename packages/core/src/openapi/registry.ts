@@ -43,6 +43,7 @@ import {
   moduleSettingResponseSchema,
   openApiDocumentSchema,
   overrideComponent,
+  paginationQuerySchema,
   redeemResultSchema,
   settingListSchema,
   settingResponseSchema,
@@ -52,6 +53,7 @@ import {
   translationsSchema,
   userListSchema,
   userResponseSchema,
+  usersQuerySchema,
 } from "./schemas";
 
 /**
@@ -85,6 +87,8 @@ export interface OpenApiOperation {
   summary: string;
   scopes: readonly string[];
   request?: ZodType;
+  /** Query parameters (an object schema; every key is `in: query`). */
+  query?: ZodType;
   /** Omitted for responses with no body (204). */
   response?: ZodType;
   auth: OperationAuth;
@@ -181,6 +185,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     path: "/users",
     summary: "List users (admins) with q/limit/offset.",
     scopes: ["users:read"],
+    query: usersQuerySchema,
     response: userListSchema,
     auth: "session",
   },
@@ -230,6 +235,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     path: "/user-categories",
     summary: "List user categories.",
     scopes: ["user_categories:read"],
+    query: paginationQuerySchema,
     response: categoryListSchema,
     auth: "session",
   },
@@ -313,6 +319,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     path: "/invitations",
     summary: "List invitations.",
     scopes: ["invitations:read"],
+    query: paginationQuerySchema,
     response: invitationListSchema,
     auth: "session",
   },
@@ -349,6 +356,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     path: "/api-keys",
     summary: "List own keys, or all keys as super_admin.",
     scopes: ["api_keys:read"],
+    query: paginationQuerySchema,
     response: apiKeyListSchema,
     auth: "session",
   },
@@ -408,6 +416,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     path: "/modules",
     summary: "Instance module catalogue.",
     scopes: ["modules:read"],
+    query: paginationQuerySchema,
     response: moduleListSchema,
     auth: "session",
   },

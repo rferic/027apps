@@ -104,7 +104,7 @@ describe("ModulesPage", () => {
   });
 
   it("lists the modules returned by the core route in process", async () => {
-    routeHandlerMock.mockResolvedValue(json({ modules: MODULES }, 200, { "x-request-id": "req-ok" }));
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }, 200, { "x-request-id": "req-ok" }));
 
     const html = renderToStaticMarkup(await ModulesPage());
 
@@ -119,7 +119,7 @@ describe("ModulesPage", () => {
     expect(modulesRouteMock).toHaveBeenCalledTimes(1);
     expect(modulesRouteMock).toHaveBeenCalledWith(DEPS);
     const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
-    expect(request.url).toBe("http://panel.internal/api/v1/modules");
+    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=0");
     expect(request.method).toBe("GET");
     expect(request.headers.get("authorization")).toBe("Bearer token-123");
     // No network call and no client-controlled origin involved.
@@ -127,7 +127,7 @@ describe("ModulesPage", () => {
   });
 
   it("shows the empty state instead of a table when there are no modules", async () => {
-    routeHandlerMock.mockResolvedValue(json({ modules: [] }));
+    routeHandlerMock.mockResolvedValue(json({ modules: [], total: 0 }));
 
     const html = renderToStaticMarkup(await ModulesPage());
 
@@ -168,7 +168,7 @@ describe("ModulesPage", () => {
 
   it("treats a row that fails validation as an error, not as an empty catalogue", async () => {
     routeHandlerMock.mockResolvedValue(
-      json({ modules: [MODULES[0], { key: "broken", name: "Broken" }] }),
+      json({ modules: [MODULES[0], { key: "broken", name: "Broken" }], total: 2 }),
     );
 
     const html = renderToStaticMarkup(await ModulesPage());
@@ -192,14 +192,14 @@ describe("ModulesPage", () => {
 
   it("never derives the API call from client headers nor uses fetch", async () => {
     vi.stubGlobal("fetch", undefined);
-    routeHandlerMock.mockResolvedValue(json({ modules: [] }));
+    routeHandlerMock.mockResolvedValue(json({ modules: [], total: 0 }));
 
     const html = renderToStaticMarkup(await ModulesPage());
 
     expect(html).toContain("No modules are installed yet.");
     const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
     // Fixed internal origin: a forged x-forwarded-host/host cannot redirect it.
-    expect(request.url).toBe("http://panel.internal/api/v1/modules");
+    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=0");
     expect(request.headers.get("x-forwarded-host")).toBeNull();
     expect(request.headers.get("host")).toBeNull();
     // The session token travels in the header, never as a forwarded cookie.
@@ -213,5 +213,50 @@ describe("ModulesPage", () => {
     await expect(ModulesPage()).rejects.toThrow("NEXT_REDIRECT:/login");
 
     expect(modulesRouteMock).not.toHaveBeenCalled();
+  });
+
+  it("paginates with a fixed page size and keeps the filters in the links", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: [MODULES[0]], total: 45 }));
+
+    const html = renderToStaticMarkup(
+      await ModulesPage({
+        searchParams: Promise.resolve({ page: "2", state: "active", public: "yes" }),
+      }),
+    );
+
+    const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=20");
+    expect(html).toContain("Page 2 of 3");
+    expect(html).toContain('href="/modules?state=active&amp;public=yes"');
+    expect(html).toContain('href="/modules?state=active&amp;public=yes&amp;page=3"');
+  });
+
+  it("keeps the pagination visible and disabled on a single page", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }));
+
+    const html = renderToStaticMarkup(await ModulesPage());
+
+    expect(html).toContain("Page 1 of 1");
+    expect(html).toContain('aria-disabled="true"');
+  });
+
+  it("filters the current page by state and visibility", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }));
+
+    const html = renderToStaticMarkup(
+      await ModulesPage({ searchParams: Promise.resolve({ state: "disabled", public: "no" }) }),
+    );
+
+    expect(html).toContain("Notes");
+    expect(html).not.toContain("Expenses");
+    expect(routeHandlerMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("redirects only when the requested page is past the last one", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: [], total: 40 }));
+
+    await expect(
+      ModulesPage({ searchParams: Promise.resolve({ page: "3", state: "active" }) }),
+    ).rejects.toThrow("NEXT_REDIRECT:/modules?state=active&page=2");
   });
 });

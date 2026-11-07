@@ -3,12 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requirePanelMock = vi.fn();
 const loadCategoriesMock = vi.fn();
+const redirectMock = vi.fn((url: string) => {
+  throw new Error(`NEXT_REDIRECT:${url}`);
+});
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
 }));
 
 vi.mock("next/navigation", () => ({
+  redirect: (url: string) => redirectMock(url),
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 
@@ -21,7 +25,7 @@ vi.mock("@/lib/panel-i18n", () => ({
 }));
 
 vi.mock("@/lib/panel-categories", () => ({
-  loadCategories: () => loadCategoriesMock(),
+  loadCategories: (input: unknown) => loadCategoriesMock(input),
 }));
 
 vi.mock("@/app/(auth)/actions", () => ({
@@ -55,6 +59,7 @@ beforeEach(() => {
     user: { id: "u1", email: "admin@example.com", displayName: "Admin", role: "admin" },
   });
   loadCategoriesMock.mockReset();
+  redirectMock.mockClear();
 });
 
 describe("CategoriesPage", () => {
@@ -63,7 +68,7 @@ describe("CategoriesPage", () => {
   });
 
   it("lists name, slug, member count and module count with a link to the detail", async () => {
-    loadCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES });
+    loadCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES, total: 2 });
 
     const html = renderToStaticMarkup(await CategoriesPage());
 
@@ -80,7 +85,7 @@ describe("CategoriesPage", () => {
   });
 
   it("shows the empty state with the create action", async () => {
-    loadCategoriesMock.mockResolvedValue({ ok: true, categories: [] });
+    loadCategoriesMock.mockResolvedValue({ ok: true, categories: [], total: 0 });
 
     const html = renderToStaticMarkup(await CategoriesPage());
 
@@ -116,10 +121,54 @@ describe("CategoriesPage", () => {
   });
 
   it("asks for the admin role", async () => {
-    loadCategoriesMock.mockResolvedValue({ ok: true, categories: [] });
+    loadCategoriesMock.mockResolvedValue({ ok: true, categories: [], total: 0 });
 
     await CategoriesPage();
 
     expect(requirePanelMock).toHaveBeenCalledWith("admin");
+  });
+
+  it("paginates with a fixed page size and keeps the search in the links", async () => {
+    loadCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES, total: 45 });
+
+    const html = renderToStaticMarkup(
+      await CategoriesPage({ searchParams: Promise.resolve({ page: "2", q: "fam" }) }),
+    );
+
+    expect(loadCategoriesMock).toHaveBeenCalledWith({ offset: 20 });
+    expect(html).toContain("Page 2 of 3");
+    expect(html).toContain('href="/categories?q=fam"');
+    expect(html).toContain('href="/categories?q=fam&amp;page=3"');
+  });
+
+  it("keeps the pagination visible and disabled when there is a single page", async () => {
+    loadCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES, total: 2 });
+
+    const html = renderToStaticMarkup(await CategoriesPage());
+
+    expect(html).toContain("Page 1 of 1");
+    expect(html).toContain('aria-disabled="true"');
+  });
+
+  it("filters the current page by name or slug without another API call", async () => {
+    loadCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES, total: 2 });
+
+    const html = renderToStaticMarkup(
+      await CategoriesPage({ searchParams: Promise.resolve({ q: "amig" }) }),
+    );
+
+    expect(html).toContain("Amigos");
+    expect(html).not.toContain("Familia");
+    expect(loadCategoriesMock).toHaveBeenCalledTimes(1);
+    expect(loadCategoriesMock).toHaveBeenCalledWith({ offset: 0 });
+  });
+
+  it("redirects only when the requested page is past the last one", async () => {
+    loadCategoriesMock.mockResolvedValue({ ok: true, categories: [], total: 40 });
+
+    await expect(
+      CategoriesPage({ searchParams: Promise.resolve({ page: "3" }) }),
+    ).rejects.toThrow("NEXT_REDIRECT:/categories?page=2");
+    expect(redirectMock).toHaveBeenCalledWith("/categories?page=2");
   });
 });

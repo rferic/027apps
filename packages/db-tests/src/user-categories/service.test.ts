@@ -18,6 +18,8 @@ const deps = (c: ClientBase) => ({
   db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
 });
 
+const PAGE = { limit: 100, offset: 0 };
+
 const email = (name: string) => `cat-${name}-${Date.now()}-${Math.random()}@test.local`;
 
 async function inRollback(fn: (c: ClientBase) => Promise<void>): Promise<void> {
@@ -50,7 +52,7 @@ describe("user categories service", () => {
       expect(created.slug).toBe("familia");
       expect(created.member_count).toBe(0);
 
-      const list = await listCategories(deps(c));
+      const list = (await listCategories(deps(c), PAGE)).categories;
       expect(list.some((category) => category.id === created.id)).toBe(true);
 
       const renamed = await renameCategory(deps(c), created.id, "Casa");

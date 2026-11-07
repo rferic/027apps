@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { invitationsRoute } from "@027apps/core/invitations/api.js";
 import { invitationsRouteDeps } from "@/lib/invitations-route-deps";
+import { PANEL_PAGE_SIZE } from "@/lib/panel-pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const INTERNAL_ORIGIN = "http://panel.internal";
@@ -22,7 +23,9 @@ export interface InvitationRow {
 
 export type InvitationFailure = { ok: false; code?: string; requestId?: string };
 
-export type InvitationList = { ok: true; invitations: InvitationRow[] } | InvitationFailure;
+export type InvitationList =
+  | { ok: true; invitations: InvitationRow[]; total: number }
+  | InvitationFailure;
 
 type RouteSuccess = { ok: true; body: Record<string, unknown>; requestId?: string };
 type RouteCall = RouteSuccess | InvitationFailure;
@@ -33,6 +36,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function readCount(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
 }
 
 function readDate(value: unknown): string | null | undefined {
@@ -171,14 +178,21 @@ function readInvitation(value: unknown): InvitationRow | null {
 }
 
 /**
- * GET /api/v1/invitations. The route returns every invitation (no paging) and
- * never the token: the plaintext exists only in the creation response.
+ * GET /api/v1/invitations with a page window. The route never returns the
+ * token: the plaintext exists only in the creation response.
  */
-export async function loadInvitations(): Promise<InvitationList> {
+export async function loadInvitations(input: {
+  offset: number;
+  limit?: number;
+}): Promise<InvitationList> {
   const token = await sessionToken();
+  const params = new URLSearchParams();
+  params.set("limit", String(input.limit ?? PANEL_PAGE_SIZE));
+  params.set("offset", String(Math.max(0, input.offset)));
+
   const call = await callRoute(
     invitationsRoute(await invitationsRouteDeps()),
-    "/api/v1/invitations",
+    `/api/v1/invitations?${params.toString()}`,
     token,
   );
   if (!call.ok) return call;
@@ -196,5 +210,9 @@ export async function loadInvitations(): Promise<InvitationList> {
     }
     invitations.push(invitation);
   }
-  return { ok: true, invitations };
+  const total = readCount(call.body.total);
+  if (total === null) {
+    return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+  }
+  return { ok: true, invitations, total };
 }

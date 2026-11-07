@@ -28,6 +28,17 @@ export interface ModulesDeps {
 
 export type ModuleState = "installed" | "active" | "disabled";
 
+/** One page of modules plus the total across every page. */
+export interface ModuleList {
+  modules: ModuleView[];
+  total: number;
+}
+
+export interface ModulePage {
+  limit: number;
+  offset: number;
+}
+
 export type ModuleView = {
   key: string;
   name: string;
@@ -355,27 +366,53 @@ export async function installModule(
   return toModuleView(await getModuleRow(deps.db, manifest.key));
 }
 
-export async function listModules(deps: ModulesDeps, caller: Caller): Promise<ModuleView[]> {
+export async function listModules(
+  deps: ModulesDeps,
+  caller: Caller,
+  page: ModulePage,
+): Promise<ModuleList> {
   if (isAdmin(caller)) {
     const { rows } = await deps.db.query(
-      `select ${MODULE_COLUMNS} from public.module_registry order by name asc, key asc`,
+      `with total as (select count(*)::int as n from public.module_registry),
+            page as (
+              select ${MODULE_COLUMNS} from public.module_registry
+               order by installed_at desc, key desc
+               limit $1 offset $2
+            )
+       select total.n as total, page.* from total left join page on true`,
+      [page.limit, page.offset],
     );
-    return rows.map(toModuleView);
+    const modules = rows.filter((row) => row.key !== null && row.key !== undefined);
+    return { modules: modules.map(toModuleView), total: Number(rows[0]?.total ?? 0) };
   }
   const userId =
     caller.kind === "session" || caller.kind === "delegated" ? caller.userId : null;
-  if (!userId) return [];
+  if (!userId) return { modules: [], total: 0 };
   const { rows } = await deps.db.query(
-    `select ${MODULE_COLUMNS} from public.module_registry m
-      where m.state = 'active'
-        and (m.is_public = true or exists (
-          select 1 from public.user_modules u
-           where u.user_id = $1 and u.module_key = m.key and u.revoked_at is null
-        ))
-      order by m.name asc, m.key asc`,
-    [userId],
+    `with total as (
+       select count(*)::int as n
+         from public.module_registry m
+        where m.state = 'active'
+          and (m.is_public = true or exists (
+            select 1 from public.user_modules u
+             where u.user_id = $1 and u.module_key = m.key and u.revoked_at is null
+          ))
+     ),
+     page as (
+       select ${MODULE_COLUMNS} from public.module_registry m
+        where m.state = 'active'
+          and (m.is_public = true or exists (
+            select 1 from public.user_modules u
+             where u.user_id = $1 and u.module_key = m.key and u.revoked_at is null
+          ))
+        order by m.installed_at desc, m.key desc
+        limit $2 offset $3
+     )
+     select total.n as total, page.* from total left join page on true`,
+    [userId, page.limit, page.offset],
   );
-  return rows.map(toModuleView);
+  const modules = rows.filter((row) => row.key !== null && row.key !== undefined);
+  return { modules: modules.map(toModuleView), total: Number(rows[0]?.total ?? 0) };
 }
 
 async function hasAccess(

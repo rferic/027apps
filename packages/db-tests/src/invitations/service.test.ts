@@ -12,6 +12,8 @@ import {
 } from "@027apps/core/invitations/service.js";
 import type { Caller } from "@027apps/core/api/types.js";
 
+const PAGE = { limit: 100, offset: 0 };
+
 const email = (name: string) => `inv-${name}-${Date.now()}-${Math.random()}@test.local`;
 
 async function inRollback(fn: (c: ClientBase) => Promise<void>): Promise<void> {
@@ -156,10 +158,11 @@ describe("invitations service", () => {
       expect(rows[0]!.token_hash).toBe(hashInvitationToken(inv.token));
       expect(rows[0]!.token_hash).not.toContain("027_inv_");
 
-      const listed = await listInvitations(deps(c, auth.port));
-      expect(listed).toHaveLength(1);
-      expect(listed[0]).not.toHaveProperty("token");
-      expect(listed[0]!.modules).toEqual(["balances", "expenses"]);
+      const listed = (await listInvitations(deps(c, auth.port), PAGE)).invitations;
+      const created = listed.find((item) => item.id === inv.invitation.id);
+      expect(created).toBeDefined();
+      expect(created).not.toHaveProperty("token");
+      expect(created!.modules).toEqual(["balances", "expenses"]);
 
       const { rows: event } = await query(c, "select type, target from public.event_outbox where type = 'invitation.created'");
       expect(event).toEqual([{ type: "invitation.created", target: "admins" }]);
@@ -186,7 +189,7 @@ describe("invitations service", () => {
       await revokeInvitation(d, revoked.invitation.id);
 
       const states = Object.fromEntries(
-        (await listInvitations(d)).map((item) => [item.id, item.status]),
+        (await listInvitations(d, PAGE)).invitations.map((item) => [item.id, item.status]),
       );
       expect(states[pending.invitation.id]).toBe("pending");
       expect(states[used.invitation.id]).toBe("used");

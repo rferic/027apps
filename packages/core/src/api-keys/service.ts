@@ -48,6 +48,17 @@ export type ApiKeyResolution = {
   userId: string | null;
 };
 
+/** One page of API keys plus the total across every page. */
+export interface ApiKeyList {
+  api_keys: ApiKeyView[];
+  total: number;
+}
+
+export interface ApiKeyPage {
+  limit: number;
+  offset: number;
+}
+
 const SERVICE_PREFIX = "027_svc_";
 const DELEGATED_PREFIX = "027_usr_";
 const MAX_SCOPES = 100;
@@ -168,20 +179,43 @@ export async function createApiKey(
   return { api_key: toView(rows[0]!), secret };
 }
 
-export async function listApiKeys(deps: ApiKeysDeps, caller: Caller): Promise<ApiKeyView[]> {
+export async function listApiKeys(
+  deps: ApiKeysDeps,
+  caller: Caller,
+  page: ApiKeyPage,
+): Promise<ApiKeyList> {
   if (caller.kind === "service") throw new DomainError("insufficient_scope");
   const actor = actorUserId(caller);
 
   const { rows } = isSuperAdmin(caller)
     ? await deps.db.query(
-        `select ${VIEW_COLUMNS} from public.api_keys order by created_at desc, id desc`,
+        `with total as (select count(*)::int as n from public.api_keys),
+              page as (
+                select ${VIEW_COLUMNS} from public.api_keys
+                 order by created_at desc, id desc
+                 limit $1 offset $2
+              )
+         select total.n as total, page.* from total left join page on true`,
+        [page.limit, page.offset],
       )
     : await deps.db.query(
-        `select ${VIEW_COLUMNS} from public.api_keys
-          where user_id = $1 order by created_at desc, id desc`,
-        [actor],
+        `with total as (
+           select count(*)::int as n from public.api_keys where user_id = $1
+         ),
+         page as (
+           select ${VIEW_COLUMNS} from public.api_keys
+            where user_id = $1
+            order by created_at desc, id desc
+            limit $2 offset $3
+         )
+         select total.n as total, page.* from total left join page on true`,
+        [actor, page.limit, page.offset],
       );
-  return rows.map(toView);
+  const keys = rows.filter((row) => row.id !== null && row.id !== undefined);
+  return {
+    api_keys: keys.map(toView),
+    total: Number(rows[0]?.total ?? 0),
+  };
 }
 
 async function findVisibleKey(

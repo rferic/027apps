@@ -36,6 +36,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 9 | Idiomas habilitados con el mismo selector múltiple que las monedas | hecho |
 | 10 | Arquitectura de información final: Ajustes plano y grupo Documentación | hecho |
 | 11 | Copiado del token de invitación y del secreto de API key en móvil (contexto no seguro por HTTP): fallback sin `navigator.clipboard` y aviso de copia manual | hecho |
+| 12 | Paginación en servidor de todas las listas del panel, componente compartido, filtros de cliente y regla escrita | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -151,3 +152,26 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   `instance.logo_url` queda huérfana en la tabla `settings` a propósito (no hay migración que borre
   datos); `readSettingViews` ignora las filas sin metadata del catálogo y el sync check de db-tests las
   excluye.**
+
+### Iteración 12 — Paginación en servidor de todas las listas (hecho)
+
+- Core: `GET /api/v1/user-categories`, `/invitations`, `/api-keys` y `/modules` aceptan `limit`
+  (1..100, default 20) y `offset` (>=0, default 0), y devuelven `{ <recurso>, total, limit, offset }`.
+  `total` sale de un `count(*)` en la misma consulta (CTE `total` + `page`) y el orden es estable:
+  `created_at desc, id desc` (módulos: `installed_at desc, key desc`).
+- Los valores de query se capan con zod (`.coerce.number()`), no devuelven 400: `limit` fuera de rango
+  se recorta y el texto inválido cae al default. `packages/core/src/api/pagination.ts` centraliza la regla.
+- OpenAPI documenta `limit`/`offset` (y `q` en `/users`) mediante `query` en el registro, y los schemas
+  de lista publican `total`/`limit`/`offset`.
+- Admin: `components/ui/pagination.tsx` sustituye la paginación local de miembros y se usa en
+  `/members`, `/categories`, `/invitations`, `/keys` y `/modules`; siempre visible (deshabilitada si
+  hay una sola página), con `aria-current="page"`. Cada listado envía `page` por query y `limit=20`.
+- Filtros de cliente sobre la página ya paginada: categorías por nombre/slug, invitaciones por estado,
+  claves por estado (ya existía) y módulos por estado/público. Nunca se descargan todos los registros.
+- Página fuera de rango: redirige a la última solo si `page > pages`; la última página vacía se muestra
+  como vacío real, sin bucles. El dashboard usa `total` para categorías/módulos y pide `limit=100` a las
+  listas que alimentan sus KPIs.
+- Regla escrita en `docs/conventions/code-style.md` (§ Listas y paginación) y en la spec UX §6.
+- Tests: paginación por recurso en Core (página 1 con `limit=2`, página 2 con `offset=2`, `total`,
+  clamp de `limit`, 401 sin sesión), helper de query, componente `Pagination`, helpers de página y
+  página/filtros de cada listado del panel.

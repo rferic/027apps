@@ -127,6 +127,25 @@ function pathParameters(path: string): JsonObject[] {
   }));
 }
 
+/** `query` is an object schema: every property becomes an `in: query` parameter. */
+function queryParameters(operation: (typeof OPERATIONS)[number]): JsonObject[] {
+  if (!operation.query) return [];
+  const schema = z.toJSONSchema(operation.query, {
+    target: "openapi-3.1",
+    io: "input",
+  }) as JsonSchema;
+  const properties = (schema.properties ?? {}) as Record<string, JsonSchema>;
+  const required = new Set<string>(
+    Array.isArray(schema.required) ? (schema.required as string[]) : [],
+  );
+  return Object.entries(properties).map(([name, property]) => ({
+    name,
+    in: "query",
+    required: required.has(name),
+    schema: property,
+  }));
+}
+
 function buildOperation(operation: (typeof OPERATIONS)[number]): JsonObject {
   const status = operation.status ?? 200;
   const success: JsonObject = {
@@ -150,7 +169,7 @@ function buildOperation(operation: (typeof OPERATIONS)[number]): JsonObject {
     responses[code] = extraResponse(response);
   }
 
-  const parameters = pathParameters(operation.path);
+  const parameters = [...pathParameters(operation.path), ...queryParameters(operation)];
   const result: JsonObject = {
     summary: operation.summary,
     security: securityFor(operation.auth),

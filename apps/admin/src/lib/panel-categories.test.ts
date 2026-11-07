@@ -89,12 +89,12 @@ beforeEach(() => {
 
 describe("loadCategories", () => {
   it("calls the categories route in process with the session bearer", async () => {
-    categoriesHandlerMock.mockResolvedValue(json({ categories: [CATEGORY] }));
+    categoriesHandlerMock.mockResolvedValue(json({ categories: [CATEGORY], total: 1 }));
 
-    await expect(loadCategories()).resolves.toEqual({ ok: true, categories: [CATEGORY] });
+    await expect(loadCategories({ offset: 0 })).resolves.toEqual({ ok: true, categories: [CATEGORY], total: 1 });
 
     const req = request(categoriesHandlerMock);
-    expect(req.url).toBe("http://panel.internal/api/v1/user-categories");
+    expect(req.url).toBe("http://panel.internal/api/v1/user-categories?limit=20&offset=0");
     expect(req.method).toBe("GET");
     expect(req.headers.get("authorization")).toBe("Bearer token-123");
     expect(req.headers.get("host")).toBeNull();
@@ -109,7 +109,7 @@ describe("loadCategories", () => {
       ),
     );
 
-    await expect(loadCategories()).resolves.toEqual({
+    await expect(loadCategories({ offset: 0 })).resolves.toEqual({
       ok: false,
       code: "internal",
       requestId: "req-500",
@@ -118,22 +118,22 @@ describe("loadCategories", () => {
 
   it("rejects a malformed category instead of showing a partial list", async () => {
     categoriesHandlerMock.mockResolvedValue(
-      json({ categories: [CATEGORY, { id: "c2", name: "Broken" }] }),
+      json({ categories: [CATEGORY, { id: "c2", name: "Broken" }], total: 2 }),
     );
 
-    await expect(loadCategories()).resolves.toEqual({ ok: false });
+    await expect(loadCategories({ offset: 0 })).resolves.toEqual({ ok: false });
   });
 
   it("rejects a non-array payload", async () => {
-    categoriesHandlerMock.mockResolvedValue(json({ categories: "nope" }));
+    categoriesHandlerMock.mockResolvedValue(json({ categories: "nope", total: 0 }));
 
-    await expect(loadCategories()).resolves.toEqual({ ok: false });
+    await expect(loadCategories({ offset: 0 })).resolves.toEqual({ ok: false });
   });
 
   it("redirects to login without an access token", async () => {
     getSessionMock.mockResolvedValue({ data: { session: null } });
 
-    await expect(loadCategories()).rejects.toThrow("NEXT_REDIRECT:/login");
+    await expect(loadCategories({ offset: 0 })).rejects.toThrow("NEXT_REDIRECT:/login");
     expect(categoriesHandlerMock).not.toHaveBeenCalled();
   });
 });

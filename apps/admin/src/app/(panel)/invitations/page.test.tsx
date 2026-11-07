@@ -5,12 +5,16 @@ const requirePanelMock = vi.fn();
 const loadInvitationsMock = vi.fn();
 const loadCategoriesMock = vi.fn();
 const loadModuleChoicesMock = vi.fn();
+const redirectMock = vi.fn((url: string) => {
+  throw new Error(`NEXT_REDIRECT:${url}`);
+});
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
 }));
 
 vi.mock("next/navigation", () => ({
+  redirect: (url: string) => redirectMock(url),
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 
@@ -27,11 +31,11 @@ vi.mock("@/lib/panel-settings", () => ({
 }));
 
 vi.mock("@/lib/panel-invitations", () => ({
-  loadInvitations: () => loadInvitationsMock(),
+  loadInvitations: (input: unknown) => loadInvitationsMock(input),
 }));
 
 vi.mock("@/lib/panel-categories", () => ({
-  loadCategories: () => loadCategoriesMock(),
+  loadCategories: (input: unknown) => loadCategoriesMock(input),
   loadModuleChoices: () => loadModuleChoicesMock(),
 }));
 
@@ -84,12 +88,14 @@ beforeEach(() => {
         modules: ["expenses"],
       },
     ],
+    total: 1,
   });
   loadModuleChoicesMock.mockReset();
   loadModuleChoicesMock.mockResolvedValue({
     ok: true,
     modules: [{ key: "expenses", name: "Expenses" }],
   });
+  redirectMock.mockClear();
 });
 
 describe("InvitationsPage", () => {
@@ -98,7 +104,7 @@ describe("InvitationsPage", () => {
   });
 
   it("lists email, name, status, category, modules and expiry", async () => {
-    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING, USED] });
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING, USED], total: 2 });
 
     const html = renderToStaticMarkup(await InvitationsPage());
 
@@ -118,7 +124,7 @@ describe("InvitationsPage", () => {
   });
 
   it("renders a status as text, not only as a colour", async () => {
-    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING] });
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING], total: 1 });
 
     const html = renderToStaticMarkup(await InvitationsPage());
 
@@ -126,7 +132,7 @@ describe("InvitationsPage", () => {
   });
 
   it("offers revocation only for a pending invitation", async () => {
-    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING, USED] });
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING, USED], total: 2 });
 
     const html = renderToStaticMarkup(await InvitationsPage());
 
@@ -155,6 +161,7 @@ describe("InvitationsPage", () => {
           revoked_at: "2026-11-03T00:00:00.000Z",
         },
       ],
+      total: 2,
     });
 
     const html = renderToStaticMarkup(await InvitationsPage());
@@ -166,7 +173,7 @@ describe("InvitationsPage", () => {
   });
 
   it("shows an em dash for an invitation without a category", async () => {
-    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [USED] });
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [USED], total: 1 });
 
     const html = renderToStaticMarkup(await InvitationsPage());
 
@@ -174,7 +181,7 @@ describe("InvitationsPage", () => {
   });
 
   it("does not read a failed category list as 'no category'", async () => {
-    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING] });
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING], total: 1 });
     loadCategoriesMock.mockResolvedValue({ ok: false, code: "internal" });
 
     const html = renderToStaticMarkup(await InvitationsPage());
@@ -183,7 +190,7 @@ describe("InvitationsPage", () => {
   });
 
   it("shows the empty state with the create action", async () => {
-    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [] });
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [], total: 0 });
 
     const html = renderToStaticMarkup(await InvitationsPage());
 
@@ -218,7 +225,7 @@ describe("InvitationsPage", () => {
   });
 
   it("links the empty state to the create page instead of opening a dialog", async () => {
-    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [] });
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [], total: 0 });
     loadCategoriesMock.mockResolvedValue({ ok: false, code: "internal" });
     loadModuleChoicesMock.mockResolvedValue({ ok: false, code: "internal" });
 
@@ -227,5 +234,49 @@ describe("InvitationsPage", () => {
     expect(html).toContain("No invitations yet.");
     expect(html).toContain('href="/invitations/new"');
     expect(html).not.toContain("invitation-create-title");
+  });
+
+  it("paginates with a fixed page size and keeps the status filter in the links", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING], total: 45 });
+
+    const html = renderToStaticMarkup(
+      await InvitationsPage({ searchParams: Promise.resolve({ page: "2", status: "pending" }) }),
+    );
+
+    expect(loadInvitationsMock).toHaveBeenCalledWith({ offset: 20 });
+    expect(loadCategoriesMock).toHaveBeenCalledWith({ offset: 0, limit: 100 });
+    expect(html).toContain("Page 2 of 3");
+    expect(html).toContain('href="/invitations?status=pending"');
+    expect(html).toContain('href="/invitations?status=pending&amp;page=3"');
+  });
+
+  it("keeps the pagination visible and disabled on a single page", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING], total: 1 });
+
+    const html = renderToStaticMarkup(await InvitationsPage());
+
+    expect(html).toContain("Page 1 of 1");
+    expect(html).toContain('aria-disabled="true"');
+  });
+
+  it("filters the current page by status without another API call", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING, USED], total: 2 });
+
+    const html = renderToStaticMarkup(
+      await InvitationsPage({ searchParams: Promise.resolve({ status: "used" }) }),
+    );
+
+    expect(html).not.toContain("ana@example.com");
+    expect(html).toContain("luis@example.com");
+    expect(loadInvitationsMock).toHaveBeenCalledTimes(1);
+    expect(loadInvitationsMock).toHaveBeenCalledWith({ offset: 0 });
+  });
+
+  it("redirects only when the requested page is past the last one", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [], total: 40 });
+
+    await expect(
+      InvitationsPage({ searchParams: Promise.resolve({ page: "3", status: "used" }) }),
+    ).rejects.toThrow("NEXT_REDIRECT:/invitations?status=used&page=2");
   });
 });

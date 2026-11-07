@@ -1,11 +1,14 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { InvitationRevokeButton } from "@/components/invitation-revoke-button";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
+import { Select } from "@/components/ui/select";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import { loadCategories, loadModuleChoices, type CategoryRow } from "@/lib/panel-categories";
@@ -17,12 +20,72 @@ import {
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
+import {
+  firstParam,
+  pageCount,
+  pageHref,
+  pageOffset,
+  parsePage,
+} from "@/lib/panel-pagination";
 
 /**
  * The page reads the session while rendering; the layout's opt-out is not
  * inherited, so this segment opts out of the static shell too.
  */
 export const instant = false;
+
+type StatusFilter = "all" | InvitationStatus;
+
+interface InvitationsSearchParams {
+  status?: string | string[];
+  page?: string | string[];
+}
+
+function parseStatus(value: string | undefined): StatusFilter {
+  return value === "pending" || value === "used" || value === "expired" || value === "revoked"
+    ? value
+    : "all";
+}
+
+function filterInvitations(rows: InvitationRow[], filter: StatusFilter): InvitationRow[] {
+  return filter === "all" ? rows : rows.filter((row) => row.status === filter);
+}
+
+function InvitationsFilter({
+  filter,
+  messages,
+}: {
+  filter: StatusFilter;
+  messages: TranslationMap;
+}) {
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      <form method="get" className="flex flex-wrap items-end gap-2">
+        <label htmlFor="invitations-status" className="flex flex-col gap-1 text-xs font-semibold">
+          {t("Status", messages)}
+          <Select id="invitations-status" name="status" defaultValue={filter}>
+            <option value="all">{t("All", messages)}</option>
+            <option value="pending">{t("Pending", messages)}</option>
+            <option value="used">{t("Used", messages)}</option>
+            <option value="expired">{t("Expired", messages)}</option>
+            <option value="revoked">{t("Revoked", messages)}</option>
+          </Select>
+        </label>
+        <button
+          type="submit"
+          className="min-h-11 rounded-control border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {t("Apply", messages)}
+        </button>
+      </form>
+      {filter !== "all" && (
+        <Link href="/invitations" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
+          {t("Clear filter", messages)}
+        </Link>
+      )}
+    </div>
+  );
+}
 
 function statusVariant(status: InvitationStatus): BadgeVariant {
   switch (status) {
@@ -186,7 +249,26 @@ function InvitationsCards({
   );
 }
 
-function InvitationsEmpty({ messages }: { messages: TranslationMap }) {
+function InvitationsEmpty({
+  filtered,
+  messages,
+}: {
+  filtered: boolean;
+  messages: TranslationMap;
+}) {
+  if (filtered) {
+    return (
+      <div className="rounded-card border border-border bg-surface p-6">
+        <h2 className="text-sm font-semibold">{t("No invitations match this filter.", messages)}</h2>
+        <Link
+          href="/invitations"
+          className="mt-2 inline-block text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {t("Clear filter", messages)}
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="rounded-card border border-border bg-surface p-6">
       <h2 className="text-sm font-semibold">{t("No invitations yet.", messages)}</h2>
@@ -201,7 +283,88 @@ function readCategories(value: Awaited<ReturnType<typeof loadCategories>>): Cate
   return value.ok ? value.categories : [];
 }
 
-export default async function InvitationsPage() {
+function InvitationsBody({
+  data,
+  filter,
+  page,
+  locale,
+  timeZone,
+  categories,
+  moduleChoices,
+  messages,
+}: {
+  data: Awaited<ReturnType<typeof loadInvitations>>;
+  filter: StatusFilter;
+  page: number;
+  locale: Locale;
+  timeZone: string;
+  categories: Awaited<ReturnType<typeof loadCategories>>;
+  moduleChoices: Awaited<ReturnType<typeof loadModuleChoices>>;
+  messages: TranslationMap;
+}) {
+  const filters = { status: filter === "all" ? undefined : filter };
+
+  if (!data.ok) {
+    return (
+      <PanelError
+        error={data}
+        heading={t("We couldn't load the invitations.", messages)}
+        retryHref={pageHref("/invitations", filters, page)}
+        messages={messages}
+      />
+    );
+  }
+
+  const rows = filterInvitations(data.invitations, filter);
+  const categoryRows = readCategories(categories);
+  const categoryNames = new Map(categoryRows.map((category) => [category.id, category.name]));
+  const moduleNames = new Map(
+    (moduleChoices.ok ? moduleChoices.modules : []).map((module) => [module.key, module.name]),
+  );
+  const empty = data.total === 0 || rows.length === 0;
+
+  return (
+    <>
+      <InvitationsFilter filter={filter} messages={messages} />
+      {empty ? (
+        <InvitationsEmpty filtered={filter !== "all"} messages={messages} />
+      ) : (
+        <>
+          <InvitationsTable
+            rows={rows}
+            locale={locale}
+            timeZone={timeZone}
+            categories={categoryNames}
+            categoriesOk={categories.ok}
+            modules={moduleNames}
+            messages={messages}
+          />
+          <InvitationsCards
+            rows={rows}
+            locale={locale}
+            timeZone={timeZone}
+            categories={categoryNames}
+            categoriesOk={categories.ok}
+            modules={moduleNames}
+            messages={messages}
+          />
+        </>
+      )}
+      <Pagination
+        page={page}
+        pages={pageCount(data.total)}
+        hrefFor={(target) => pageHref("/invitations", filters, target)}
+        messages={messages}
+      />
+    </>
+  );
+}
+
+export default async function InvitationsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<InvitationsSearchParams>;
+} = {}) {
   const gate = await requirePanel("admin");
 
   const cookieStore = await cookies();
@@ -215,17 +378,20 @@ export default async function InvitationsPage() {
 
   const timeZone = await loadPanelTimeZone();
 
+  const params = (await searchParams) ?? {};
+  const filter = parseStatus(firstParam(params.status));
+  const page = parsePage(firstParam(params.page));
+
   const [invitations, categories, moduleChoices] = await Promise.all([
-    loadInvitations(),
-    loadCategories(),
+    loadInvitations({ offset: pageOffset(page) }),
+    loadCategories({ offset: 0, limit: 100 }),
     loadModuleChoices(),
   ]);
 
-  const categoryRows = readCategories(categories);
-  const categoryNames = new Map(categoryRows.map((category) => [category.id, category.name]));
-  const moduleNames = new Map(
-    (moduleChoices.ok ? moduleChoices.modules : []).map((module) => [module.key, module.name]),
-  );
+  if (invitations.ok && page > pageCount(invitations.total)) {
+    const target = pageCount(invitations.total);
+    redirect(pageHref("/invitations", { status: filter === "all" ? undefined : filter }, target));
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -244,39 +410,16 @@ export default async function InvitationsPage() {
         </Link>
       </header>
 
-      {invitations.ok ? (
-        invitations.invitations.length === 0 ? (
-          <InvitationsEmpty messages={messages} />
-        ) : (
-          <>
-            <InvitationsTable
-              rows={invitations.invitations}
-              locale={locale}
-              timeZone={timeZone}
-              categories={categoryNames}
-              categoriesOk={categories.ok}
-              modules={moduleNames}
-              messages={messages}
-            />
-            <InvitationsCards
-              rows={invitations.invitations}
-              locale={locale}
-              timeZone={timeZone}
-              categories={categoryNames}
-              categoriesOk={categories.ok}
-              modules={moduleNames}
-              messages={messages}
-            />
-          </>
-        )
-      ) : (
-        <PanelError
-          error={invitations}
-          heading={t("We couldn't load the invitations.", messages)}
-          retryHref="/invitations"
-          messages={messages}
-        />
-      )}
+      <InvitationsBody
+        data={invitations}
+        filter={filter}
+        page={page}
+        locale={locale}
+        timeZone={timeZone}
+        categories={categories}
+        moduleChoices={moduleChoices}
+        messages={messages}
+      />
     </section>
   );
 }

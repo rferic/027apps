@@ -8,6 +8,7 @@ import {
 import { usersRoute, type UsersRouteDeps } from "@027apps/core/users/api.js";
 import { getInfra, withTransactionClient } from "@/lib/api/door";
 import { modulesRouteDeps } from "@/lib/modules-route-deps";
+import { PANEL_PAGE_SIZE } from "@/lib/panel-pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const INTERNAL_ORIGIN = "http://panel.internal";
@@ -36,7 +37,7 @@ export type CategoryDetail = CategoryRow & { members: CategoryMemberRow[] };
 
 export type CategoryFailure = { ok: false; code?: string; requestId?: string };
 
-export type CategoryList = { ok: true; categories: CategoryRow[] } | CategoryFailure;
+export type CategoryList = { ok: true; categories: CategoryRow[]; total: number } | CategoryFailure;
 export type CategoryDetailResult = { ok: true; category: CategoryDetail } | CategoryFailure;
 
 export interface MemberChoice {
@@ -214,12 +215,22 @@ function readCategoryDetail(value: unknown): CategoryDetail | null {
   return { ...base, members };
 }
 
-/** GET /api/v1/user-categories. The API returns the full list (no pagination). */
-export async function loadCategories(): Promise<CategoryList> {
+/** Page size used by `/categories`, `/invitations` and `/keys`. */
+export const PANEL_LIST_PAGE_SIZE = PANEL_PAGE_SIZE;
+
+/** GET /api/v1/user-categories with a page window (the API returns the total). */
+export async function loadCategories(input: {
+  offset: number;
+  limit?: number;
+}): Promise<CategoryList> {
   const token = await sessionToken();
+  const params = new URLSearchParams();
+  params.set("limit", String(input.limit ?? PANEL_LIST_PAGE_SIZE));
+  params.set("offset", String(Math.max(0, input.offset)));
+
   const call = await callRoute(
     userCategoriesRoute(await categoriesRouteDeps()),
-    "/api/v1/user-categories",
+    `/api/v1/user-categories?${params.toString()}`,
     token,
   );
   if (!call.ok) return call;
@@ -231,7 +242,9 @@ export async function loadCategories(): Promise<CategoryList> {
     if (!category) return { ok: false, ...requestIdOf(call) };
     categories.push(category);
   }
-  return { ok: true, categories };
+  const total = readCount(call.body.total);
+  if (total === null) return { ok: false, ...requestIdOf(call) };
+  return { ok: true, categories, total };
 }
 
 /** GET /api/v1/user-categories/{id}. A 404 stays distinguishable for `notFound()`. */
@@ -309,9 +322,12 @@ function readModuleChoice(value: unknown): ModuleChoice | null {
 /** GET /api/v1/modules, reduced to the keys and names the pickers show. */
 export async function loadModuleChoices(): Promise<ModuleChoices> {
   const token = await sessionToken();
+  const params = new URLSearchParams();
+  params.set("limit", String(MEMBER_CHOICES_LIMIT));
+  params.set("offset", "0");
   const call = await callRoute(
     modulesRoute(await modulesRouteDeps()),
-    "/api/v1/modules",
+    `/api/v1/modules?${params.toString()}`,
     token,
   );
   if (!call.ok) return call;

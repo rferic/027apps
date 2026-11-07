@@ -52,15 +52,16 @@ beforeEach(() => {
 
 describe("loadInvitations", () => {
   it("calls the invitations route in process with the session bearer", async () => {
-    invitationsHandlerMock.mockResolvedValue(json({ invitations: [INVITATION] }));
+    invitationsHandlerMock.mockResolvedValue(json({ invitations: [INVITATION], total: 1 }));
 
-    await expect(loadInvitations()).resolves.toEqual({
+    await expect(loadInvitations({ offset: 0 })).resolves.toEqual({
       ok: true,
       invitations: [INVITATION],
+      total: 1,
     });
 
     const req = invitationsHandlerMock.mock.calls[0]?.[0] as Request;
-    expect(req.url).toBe("http://panel.internal/api/v1/invitations");
+    expect(req.url).toBe("http://panel.internal/api/v1/invitations?limit=20&offset=0");
     expect(req.method).toBe("GET");
     expect(req.headers.get("authorization")).toBe("Bearer token-123");
     expect(req.headers.get("host")).toBeNull();
@@ -68,10 +69,10 @@ describe("loadInvitations", () => {
 
   it("keeps a category-less invitation with a null category id", async () => {
     invitationsHandlerMock.mockResolvedValue(
-      json({ invitations: [{ ...INVITATION, user_category_id: null }] }),
+      json({ invitations: [{ ...INVITATION, user_category_id: null }], total: 1 }),
     );
 
-    const result = await loadInvitations();
+    const result = await loadInvitations({ offset: 0 });
 
     expect(result.ok && result.invitations[0]?.user_category_id).toBeNull();
   });
@@ -79,7 +80,7 @@ describe("loadInvitations", () => {
   it("maps a bare 404 to not_found", async () => {
     invitationsHandlerMock.mockResolvedValue(new Response("", { status: 404 }));
 
-    await expect(loadInvitations()).resolves.toEqual({ ok: false, code: "not_found" });
+    await expect(loadInvitations({ offset: 0 })).resolves.toEqual({ ok: false, code: "not_found" });
   });
 
   it("returns the public code and request id on a 500", async () => {
@@ -89,7 +90,7 @@ describe("loadInvitations", () => {
       }),
     );
 
-    await expect(loadInvitations()).resolves.toEqual({
+    await expect(loadInvitations({ offset: 0 })).resolves.toEqual({
       ok: false,
       code: "internal",
       requestId: "req-500",
@@ -98,28 +99,28 @@ describe("loadInvitations", () => {
 
   it("rejects an unknown status instead of guessing", async () => {
     invitationsHandlerMock.mockResolvedValue(
-      json({ invitations: [{ ...INVITATION, status: "unknown" }] }),
+      json({ invitations: [{ ...INVITATION, status: "unknown" }], total: 1 }),
     );
 
-    await expect(loadInvitations()).resolves.toEqual({ ok: false });
+    await expect(loadInvitations({ offset: 0 })).resolves.toEqual({ ok: false });
   });
 
   it("rejects malformed module lists and dates", async () => {
     invitationsHandlerMock.mockResolvedValue(
-      json({ invitations: [{ ...INVITATION, modules: "expenses" }] }),
+      json({ invitations: [{ ...INVITATION, modules: "expenses" }], total: 1 }),
     );
-    await expect(loadInvitations()).resolves.toEqual({ ok: false });
+    await expect(loadInvitations({ offset: 0 })).resolves.toEqual({ ok: false });
 
     invitationsHandlerMock.mockResolvedValue(
-      json({ invitations: [{ ...INVITATION, expires_at: undefined }] }),
+      json({ invitations: [{ ...INVITATION, expires_at: undefined }], total: 1 }),
     );
-    await expect(loadInvitations()).resolves.toEqual({ ok: false });
+    await expect(loadInvitations({ offset: 0 })).resolves.toEqual({ ok: false });
   });
 
   it("redirects to login without an access token", async () => {
     getSessionMock.mockResolvedValue({ data: { session: null } });
 
-    await expect(loadInvitations()).rejects.toThrow("NEXT_REDIRECT:/login");
+    await expect(loadInvitations({ offset: 0 })).rejects.toThrow("NEXT_REDIRECT:/login");
     expect(invitationsHandlerMock).not.toHaveBeenCalled();
   });
 });

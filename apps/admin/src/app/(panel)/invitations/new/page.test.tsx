@@ -46,6 +46,7 @@ beforeEach(() => {
         modules: ["expenses"],
       },
     ],
+    total: 1,
   });
   loadModuleChoicesMock.mockReset();
   loadModuleChoicesMock.mockResolvedValue({

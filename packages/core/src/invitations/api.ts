@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { withDoor } from "../api/door";
+import { pageParams } from "../api/pagination";
 import { DEFAULT_READ_LIMIT, DEFAULT_WRITE_LIMIT } from "../api/rate-limits";
 import { DomainError } from "../errors";
 import type { Caller, CorsOptions, DoorDeps, RequestContext } from "../api/types";
@@ -71,9 +72,11 @@ function readOptions(deps: InvitationsRouteDeps) {
 
 export function invitationsRoute(deps: InvitationsRouteDeps) {
   return (req: Request): Promise<Response> =>
-    withDoor(req, readOptions(deps), deps.door, async () => ({
-      invitations: await listInvitations(deps.invitations),
-    }));
+    withDoor(req, readOptions(deps), deps.door, async (ctx) => {
+      const page = pageParams(ctx.searchParams);
+      const result = await listInvitations(deps.invitations, page);
+      return { ...result, limit: page.limit, offset: page.offset };
+    });
 }
 
 export function createInvitationRoute(deps: InvitationsRouteDeps) {
