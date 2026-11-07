@@ -35,6 +35,16 @@ describe("PanelMobileMenu", () => {
     expect(html).toContain('href="/members"');
   });
 
+  it("shares the flat navigation: no Settings parent, expansion state or indentation", () => {
+    const html = renderToStaticMarkup(<PanelMobileMenu role="admin" messages={{}} />);
+
+    expect(html).not.toContain('href="/settings"');
+    expect(html).not.toContain("aria-expanded");
+    expect(html).not.toContain("pl-6");
+    expect(html).toContain('href="/settings/instance"');
+    expect(html).toContain('href="/help/firebase"');
+  });
+
   it("uses the sliding panel layout and the backdrop token", () => {
     const html = renderToStaticMarkup(<PanelMobileMenu role="admin" messages={{}} />);
 

@@ -49,17 +49,24 @@ Problemas observados en `apps/admin/src/app/page.tsx`:
 | **Inicio** | `/` (dashboard) | "¿Cómo está mi instancia?" |
 | **Personas** | `/members`, `/categories`, `/invitations` | Todo lo que describe quién entra y qué puede hacer |
 | **Plataforma** | `/modules`, `/keys` | Qué corre y con qué credenciales |
-| **Sistema** | `/settings` (padre), `/docs/api` | Configuración y contrato de la API |
+| **Ajustes** | `/settings/instance`, `/settings/localization`, `/settings/security`, `/settings/notifications`, `/settings/rate-limits` | Configuración de la instancia, una sección por destino |
+| **Documentación** | `/docs/api` (API), `/help/firebase` (guía de Firebase, externa) | Contrato de la API y guías de integración |
 
 Reglas:
 
 - **Máximo un nivel de anidación** (`/members/[id]`). En el detalle, breadcrumb "Miembros / Nombre".
 - **Settings no es una página única**: `/settings` redirige a la primera sección visible y cada
   categoría real tiene su ruta: `/settings/instance`, `/settings/localization`, `/settings/security`,
-  `/settings/notifications`, `/settings/rate-limits`. Cada página carga y guarda solo esa categoría;
-  en la navegación, Settings es el ítem padre de esos hijos.
+  `/settings/notifications`, `/settings/rate-limits`. Cada página carga y guarda solo esa categoría.
+  En la navegación **no hay ítem padre "Settings"**: las cinco secciones son destinos normales del
+  grupo **Ajustes**, sin `aria-expanded` ni indentación; el ítem activo es la sección y, mientras
+  `/settings` resuelve la redirección, se marca activa la primera sección visible del rol.
 - **Security solo para `super_admin`**: ni el menú ni la ruta se ofrecen a un `admin`, que recibe el
   403 genérico sin leer los ajustes.
+- **Documentación** es un grupo propio: **API** es un destino interno (`/docs/api`) y **Guía de
+  Firebase** es un enlace externo (`/help/firebase`) que abre en otra pestaña
+  (`target="_blank"` + `rel="noopener noreferrer"`), con el mismo estilo de ítem, un `aria-label`
+  que avisa de la nueva pestaña y sin `aria-current`.
 - El **selector de idioma** va en la cabecera, junto al menú de usuario (es preferencia global, no
   navegación).
 - El **menú de usuario** (avatar + nombre + rol) contiene "Cerrar sesión". Nunca un botón suelto.

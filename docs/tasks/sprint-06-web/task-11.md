@@ -9,9 +9,9 @@ spec: docs/superpowers/specs/2026-11-06-web-admin-ux-review.md
 ---
 
 **Alcance**: aplicar todas las decisiones de `docs/superpowers/specs/2026-11-06-web-admin-ux-review.md`
-(arquitectura de información Inicio/Personas/Plataforma/Sistema, cabecera con logo + nombre de instancia +
-idioma + menú de usuario, patrones de lista/detalle/formulario, confirmaciones destructivas y estados
-vacío/carga/error). Recorrer la checklist de aceptación UX de 10 puntos contra el panel en marcha, a
+(arquitectura de información Inicio/Personas/Plataforma/Ajustes/Documentación, cabecera con logo + nombre de
+instancia + idioma + menú de usuario, patrones de lista/detalle/formulario, confirmaciones destructivas y
+estados vacío/carga/error). Recorrer la checklist de aceptación UX de 10 puntos contra el panel en marcha, a
 375 px y 1280 px, y corregir los hallazgos.
 
 **TDD**: tests de estructura y accesibilidad donde aplique (ítem activo con `aria-current`, sin
@@ -34,8 +34,29 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 7 | Checklist UX de 10 puntos a 375 y 1280 px, revisión y auditoría | pendiente |
 | 8 | Fechas de presentación con la zona de la instancia (deuda M2d, ADR 0008 §2) | hecho |
 | 9 | Idiomas habilitados con el mismo selector múltiple que las monedas | hecho |
+| 10 | Arquitectura de información final: Ajustes plano y grupo Documentación | hecho |
 
-### Iteración 5 — Settings padre/hijos (hecho)
+### Iteración 10 — Arquitectura de información final (hecho)
+
+- La navegación queda en cinco grupos: **Inicio** (`/`), **Personas** (`/members`, `/categories`,
+  `/invitations`), **Plataforma** (`/modules`, `/keys`), **Ajustes** (las cinco secciones) y
+  **Documentación** (`/docs/api` y la guía externa de Firebase).
+- **Ajustes ya no tiene ítem padre**: cada sección (`/settings/instance`, `/settings/localization`,
+  `/settings/security`, `/settings/notifications`, `/settings/rate-limits`) es un destino normal del
+  grupo, con icono propio, sin `aria-expanded` ni indentación. El activo es la sección; en `/settings`
+  (redirección) se marca la primera sección visible del rol. `security` sigue oculto para `admin`.
+- **Documentación** separa el contrato interno (**API**, mismo patrón que el resto) de la **Guía de
+  Firebase** (`/help/firebase`), que es un enlace externo con `target="_blank"`,
+  `rel="noopener noreferrer"`, el mismo estilo de ítem, `aria-label` que avisa de la nueva pestaña y
+  nunca `aria-current`. Rutas sin cambios.
+- Etiquetas traducidas (`Ajustes`, `Documentación`, `API`, `Guía de Firebase`) con URLs en inglés;
+  claves nuevas en las 8 locales vía `i18n:scan` + `i18n:check`.
+- Tests: cinco grupos en orden, destinos por grupo, ausencia del padre Settings y de
+  `aria-expanded`/`pl-6`, `security` oculto para `admin` en sidebar y drawer, sección activa y
+  `/settings` marcando la primera visible, y el enlace de Firebase con `target`/`rel`/`aria-label`
+  sin `aria-current`.
+
+### Iteración 5 — Settings padre/hijos (hecho; navegación sustituida en la iteración 10)
 
 - `/settings` redirige a la primera categoría visible del rol (la del API; orden canónico como
   fallback). Rutas: `/settings/instance`, `/settings/localization`, `/settings/security`,
