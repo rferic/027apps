@@ -21,7 +21,6 @@ function renderHeader(instanceName: string) {
       locale="es"
       messages={{}}
       instanceName={instanceName}
-      logoUrl={null}
     />,
   );
 }

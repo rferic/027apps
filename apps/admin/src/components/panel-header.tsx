@@ -18,7 +18,6 @@ interface PanelHeaderProps {
   theme?: Theme;
   /** `instance.name`; empty falls back to the product name. */
   instanceName: string;
-  logoUrl: string | null;
   /** Mobile-only navigation trigger, placed before the brand. */
   menu?: ReactNode;
 }
@@ -41,13 +40,12 @@ function roleLabel(role: PanelUser["role"], messages: TranslationMap): string {
  * is the only place "Log out", the theme and the language live; keeping the
  * preferences compact gives the brand more room on mobile.
  */
-export function PanelHeader({ user, locale, messages, theme, instanceName, logoUrl, menu }: PanelHeaderProps) {
+export function PanelHeader({ user, locale, messages, theme, instanceName, menu }: PanelHeaderProps) {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4">
       <div className="flex min-w-0 items-center gap-3">
         {menu}
         <BrandLogo
-          logoUrl={logoUrl}
           name={instanceName.trim() || APP_NAME}
           size="md"
           variant="mark"

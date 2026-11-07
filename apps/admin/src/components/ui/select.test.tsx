@@ -40,6 +40,17 @@ describe("Select", () => {
     expect(html).toContain("text-muted-foreground");
   });
 
+  it("hides the chevron for a multiple select", () => {
+    const html = renderToStaticMarkup(
+      <Select aria-label="Módulos" multiple>
+        <option value="a">A</option>
+      </Select>,
+    );
+
+    expect(html).toContain("multiple");
+    expect(html).not.toContain("<svg");
+  });
+
   it("forwards aria attributes and native props", () => {
     const html = renderToStaticMarkup(
       <Select

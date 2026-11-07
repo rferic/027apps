@@ -6,9 +6,10 @@ import { cn } from "@/lib/cn";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
 /**
- * Form primitives shared by modal and inline forms. They fix the visual and
- * accessibility pattern in one place: a `<label htmlFor>` tied to the control,
- * a muted hint, a destructive error message and a right-aligned action row.
+ * Form primitives shared by page forms and destructive confirmations. They fix
+ * the visual and accessibility pattern in one place: a `<label htmlFor>` tied
+ * to the control, a muted hint, a destructive error message and a right-aligned
+ * action row.
  *
  * The consumer owns the control and its `aria-invalid`/`aria-describedby`, as
  * the ids depend on the field name it reports to the API. Pass `hintId` and
@@ -76,8 +77,8 @@ export interface FormAlertProps {
 }
 
 /**
- * Mutation failure banner, same pattern as `MemberError`/`PanelError`: role
- * alert, translated code, copyable request id and an optional retry link.
+ * Mutation failure banner, same pattern as `PanelError`: role alert,
+ * translated code, copyable request id and an optional retry link.
  */
 export function FormAlert({
   message,

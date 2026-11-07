@@ -73,12 +73,20 @@ Excepción de plataforma: los elementos nativos (`<dialog>`, `<select>`, `<input
 
 Los formularios y diálogos del admin siguen **un único patrón**; no se improvisa por pantalla.
 
-- **Diálogos**: siempre el `Dialog` compartido (`apps/admin/src/components/ui/dialog.tsx`). Nunca un
+- **Páginas, no modales de creación**: todo formulario con campos vive en su propia ruta
+  (`/categories/new`, `/invitations/new`, `/keys/new`), con `requirePanel`, `instant = false`,
+  breadcrumb, `h1` y enlace "Back". El listado enlaza con un `Link` primario; no hay triggers modales
+  ni formularios de creación dentro de un diálogo. Un token o secreto de un solo uso se muestra en esa
+  página con "Copy" y "Done" al listado.
+- **Diálogos**: solo para confirmar acciones destructivas (y el drawer móvil, que necesita layout
+  lateral). Siempre el `Dialog` compartido (`apps/admin/src/components/ui/dialog.tsx`). Nunca un
   `<dialog>` suelto. El elemento nativo hereda `color: CanvasText` y `background: Canvas` del navegador,
   así que **siempre** lleva `bg-surface text-foreground`; sin eso, el texto sale negro en tema oscuro
   (bug real que apareció en todos los modales del panel).
+- **Marca**: la instancia no tiene logo configurable (`instance.logo_url` ya no existe). `BrandLogo`
+  solo acepta `variant` (`wordmark`/`mark`) y `name`; no vuelvas a añadir una URL de logo.
 - **Formularios**: `FormField`, `FieldError`, `FormAlert`, `FormActions` y `FormSection`
-  (`apps/admin/src/components/ui/form.tsx`), tanto en modal como en página. Etiqueta asociada por
+  (`apps/admin/src/components/ui/form.tsx`), tanto en página como en confirmaciones. Etiqueta asociada por
   `htmlFor`/`id`, ayuda en `text-muted-foreground`, error en `text-destructive` con `aria-describedby`
   y `aria-invalid`, y acciones a la derecha con `min-h-11`.
 - **Controles**: los campos usan las primitivas del DS (`ui/select.tsx`, `ui/button.tsx`, etc.); nada de

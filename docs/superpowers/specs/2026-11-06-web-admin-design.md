@@ -78,7 +78,7 @@ Toda lista/detalle muestra vacío, cargando y error (con `code` traducido, `requ
 
 Antes de implementar el shell se hace una revisión de diseño y UX con dos sombreros (diseñador y
 especialista en UX): `docs/superpowers/specs/2026-11-06-web-admin-ux-review.md`. Fija la arquitectura
-de información (Inicio / Personas / Plataforma / Sistema), la cabecera (logo + nombre de instancia +
+de información (Inicio / Personas / Plataforma / Sistema), la cabecera (marca + nombre de instancia +
 idioma + menú de usuario), los patrones de lista/detalle/formulario, las confirmaciones destructivas,
 los estados reales y una checklist de aceptación de 10 puntos. Es **bloqueante**: la implementación de
 task-05 no empieza sin aplicar sus decisiones y task-11 no cierra sin pasar su checklist.

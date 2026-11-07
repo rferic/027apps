@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
-import { ApiKeyCreateForm } from "@/components/api-key-create-form";
 import { ApiKeyRevokeButton } from "@/components/api-key-revoke-button";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
@@ -301,10 +300,12 @@ export default async function KeysPage({
             {t("Credentials for integrations and automated clients.", messages)}
           </p>
         </div>
-        <ApiKeyCreateForm
-          canCreateService={gate.user.role === "super_admin"}
-          messages={messages}
-        />
+        <Link
+          href="/keys/new"
+          className="inline-flex min-h-11 items-center rounded-control border border-transparent bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {t("Create API key", messages)}
+        </Link>
       </header>
 
       {data.ok ? (

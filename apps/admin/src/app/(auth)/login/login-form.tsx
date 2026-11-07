@@ -13,7 +13,7 @@ const INVALID_CREDENTIALS_MESSAGE = "Wrong email or password";
  * component so `useSearchParams()` sits inside a Suspense boundary during
  * prerendering.
  */
-export function LoginForm({ logoUrl }: { logoUrl?: string | null }) {
+export function LoginForm() {
   const searchParams = useSearchParams();
   const hasError = searchParams.get("error") === "invalid_credentials";
 
@@ -22,7 +22,7 @@ export function LoginForm({ logoUrl }: { logoUrl?: string | null }) {
       action={signInAction}
       className="flex w-full max-w-md flex-col gap-3 rounded-card border border-border bg-surface p-6"
     >
-      <BrandLogo logoUrl={logoUrl} size="lg" className="mx-auto" />
+      <BrandLogo size="lg" className="mx-auto" />
       <label className="flex flex-col gap-1">
         <span className="text-sm font-medium">Email</span>
         <input

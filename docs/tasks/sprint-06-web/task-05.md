@@ -48,7 +48,7 @@ siguientes:
   lectura de sesión, traducciones y ajustes públicos por request.
 - **Bajos**: claves de `packages/i18n/locales/*.json` y `catalog.en.json`
   ordenadas alfabéticamente; `BrandLogo` usa el nombre de la instancia como
-  `alt` cuando hay logo personalizado (el wizard conserva su comportamiento).
+  `alt` del mark cuando se pasa `name`.
 
 **Desviaciones aceptadas con motivo**:
 

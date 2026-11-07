@@ -34,7 +34,6 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
 
   const settings = await loadPanelSettings();
   const instanceName = typeof settings["instance.name"] === "string" ? settings["instance.name"] : "";
-  const logoUrl = typeof settings["instance.logo_url"] === "string" ? settings["instance.logo_url"] : null;
   const role = gate.user.role === "super_admin" ? "super_admin" : "admin";
 
   return (
@@ -52,7 +51,6 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
           messages={messages}
           theme={theme}
           instanceName={instanceName}
-          logoUrl={logoUrl}
           menu={<PanelMobileMenu role={role} messages={messages} />}
         />
         <main id="content" className="flex-1 p-4">

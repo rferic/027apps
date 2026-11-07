@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { isSupportedLocale, localeCookie } from "@/lib/locale";
 
 export interface PreferencesValues {
@@ -281,17 +282,16 @@ export function PreferencesStep({
 
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">{t("Default language", messages)}</span>
-          <select
+          <Select
             value={form.locale}
             onChange={(event) => update("locale", event.target.value)}
-            className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
           >
             {locales.map((locale) => (
               <option key={locale} value={locale}>
                 {locale}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <label className="flex flex-col gap-1">
@@ -313,17 +313,16 @@ export function PreferencesStep({
 
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">{t("Default currency", messages)}</span>
-          <select
+          <Select
             value={form.currency}
             onChange={(event) => update("currency", event.target.value)}
-            className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
           >
             {currencies.map((currency) => (
               <option key={currency} value={currency}>
                 {currency}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <fieldset className="mt-2 flex flex-col gap-3 border-t border-border pt-3">
@@ -340,14 +339,13 @@ export function PreferencesStep({
           </legend>
           <label className="flex flex-col gap-1">
             <span className="text-sm font-medium">{t("Provider", messages)}</span>
-            <select
+            <Select
               value={form.pushProvider}
               onChange={(event) => update("pushProvider", event.target.value as "none" | "fcm")}
-              className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
             >
               <option value="none">{t("None for now", messages)}</option>
               <option value="fcm">{t("Firebase Cloud Messaging", messages)}</option>
-            </select>
+            </Select>
           </label>
 
           {form.pushProvider === "fcm" && (

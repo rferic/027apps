@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState, type FormEvent, type RefObject, type SyntheticEvent } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
 import { FieldError, FormActions, FormAlert, FormField } from "@/components/ui/form";
+import { Select } from "@/components/ui/select";
 import { createApiKey, type CreateApiKeyInput } from "@/lib/api-key-mutations";
 import {
   API_KEY_SCOPE_GROUPS,
@@ -18,6 +19,12 @@ import type { MutationFailure } from "@/lib/mutation-result";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
+const secondaryLinkClass =
+  "inline-flex min-h-11 items-center justify-center rounded-control border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
+const cancelClass =
+  "inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 type KeyKind = "service" | "delegated";
 
@@ -121,7 +128,42 @@ function SecretPanel({
   );
 }
 
-function ScopeChoices({
+/**
+ * Success state. Once the secret exists the form is not rendered: creating a
+ * second key on the same page would hide the only copy of the first secret
+ * (the Core returns it once). The only way out is "Done".
+ */
+export function ApiKeyCreatedPanel({
+  secret,
+  copied,
+  onCopy,
+  messages,
+}: {
+  secret: string | null;
+  copied: boolean;
+  onCopy: () => void;
+  messages: TranslationMap;
+}) {
+  return (
+    <section role="status" className="flex max-w-xl flex-col gap-3">
+      <h2 className="text-sm font-semibold">{t("API key created", messages)}</h2>
+      {secret ? (
+        <SecretPanel secret={secret} copied={copied} onCopy={onCopy} messages={messages} />
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {t("The key was created but the API did not return the secret.", messages)}
+        </p>
+      )}
+      <FormActions>
+        <Link href="/keys" className={secondaryLinkClass}>
+          {t("Done", messages)}
+        </Link>
+      </FormActions>
+    </section>
+  );
+}
+
+export function ApiKeyScopeChoices({
   kind,
   roleCap,
   fieldErrors,
@@ -164,7 +206,7 @@ function ScopeChoices({
   );
 }
 
-function KindFields({
+export function ApiKeyKindFields({
   canCreateService,
   kind,
   roleCap,
@@ -195,17 +237,16 @@ function KindFields({
         error={fieldErrors.kind?.[0]}
         errorId="api-key-kind-error"
       >
-        <select
+        <Select
           id="api-key-kind"
           name="kind"
           value={kind}
           onChange={(event) => onKindChange(event.target.value === "service" ? "service" : "delegated")}
           {...fieldState("kind", fieldErrors.kind, "api-key-kind-help")}
-          className={inputClass}
         >
           <option value="delegated">{t("Delegated", messages)}</option>
           {canCreateService && <option value="service">{t("Service", messages)}</option>}
-        </select>
+        </Select>
       </FormField>
 
       {kind === "service" && canCreateService && (
@@ -215,7 +256,7 @@ function KindFields({
           error={fieldErrors.role_cap?.[0]}
           errorId="api-key-role-cap-error"
         >
-          <select
+          <Select
             id="api-key-role-cap"
             name="role_cap"
             value={roleCap}
@@ -223,163 +264,27 @@ function KindFields({
               onRoleCapChange(event.target.value === "super_admin" ? "super_admin" : "admin")
             }
             {...fieldState("role_cap", fieldErrors.role_cap)}
-            className={inputClass}
           >
             <option value="admin">{t("Administrator", messages)}</option>
             <option value="super_admin">{t("Super administrator", messages)}</option>
-          </select>
+          </Select>
         </FormField>
       )}
     </>
   );
 }
 
-interface ApiKeyCreateDialogProps {
-  dialogRef: RefObject<HTMLDialogElement | null>;
+interface ApiKeyCreateFormProps {
   canCreateService: boolean;
-  kind: KeyKind;
-  roleCap: ApiKeyScopeRoleCap;
-  creating: boolean;
-  created: boolean;
-  secret: string | null;
-  copied: boolean;
-  error: MutationFailure | null;
-  fieldErrors: Record<string, string[]>;
-  onKindChange: (kind: KeyKind) => void;
-  onRoleCapChange: (roleCap: ApiKeyScopeRoleCap) => void;
-  onCancel: (event: SyntheticEvent<HTMLDialogElement>) => void;
-  onDismiss: () => void;
-  onClosed: () => void;
-  onCopy: () => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   messages: TranslationMap;
 }
 
 /**
- * The dialog body. Once the secret exists the form is not rendered: creating
- * a second key in the same dialog would hide the only copy of the first secret
- * (the Core returns it once), so the only way out is "Done".
+ * Creation form on its own page. The plaintext secret lives only in component
+ * state and is shown once: never a URL, a cookie, storage or a log.
  */
-export function ApiKeyCreateDialog({
-  dialogRef,
-  canCreateService,
-  kind,
-  roleCap,
-  creating,
-  created,
-  secret,
-  copied,
-  error,
-  fieldErrors,
-  onKindChange,
-  onRoleCapChange,
-  onCancel,
-  onDismiss,
-  onClosed,
-  onCopy,
-  onSubmit,
-  messages,
-}: ApiKeyCreateDialogProps) {
-  const finished = created || secret !== null;
-
-  return (
-    <Dialog
-      labelledBy="api-key-create-title"
-      ref={dialogRef}
-      onCancel={onCancel}
-      onClose={onClosed}
-      onBackdropClick={creating ? undefined : onDismiss}
-    >
-      <h2 id="api-key-create-title" className="text-sm font-semibold">
-        {created ? t("API key created", messages) : t("New API key", messages)}
-      </h2>
-
-      {finished ? (
-        <>
-          {secret ? (
-            <SecretPanel
-              secret={secret}
-              copied={copied}
-              onCopy={onCopy}
-              messages={messages}
-            />
-          ) : (
-            <p role="status" className="mt-3 text-xs text-muted-foreground">
-              {t("The key was created but the API did not return the secret.", messages)}
-            </p>
-          )}
-          <FormActions>
-            <Button variant="secondary" className="min-h-11" onClick={onDismiss}>
-              {t("Done", messages)}
-            </Button>
-          </FormActions>
-        </>
-      ) : (
-        <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-3">
-          <FormField
-            id="api-key-name"
-            label={t("Name", messages)}
-            error={fieldErrors.name?.[0]}
-            errorId="api-key-name-error"
-          >
-            <input
-              id="api-key-name"
-              name="name"
-              type="text"
-              required
-              maxLength={80}
-              autoComplete="off"
-              {...fieldState("name", fieldErrors.name)}
-              className={inputClass}
-            />
-          </FormField>
-
-          <KindFields
-            canCreateService={canCreateService}
-            kind={kind}
-            roleCap={roleCap}
-            onKindChange={onKindChange}
-            onRoleCapChange={onRoleCapChange}
-            fieldErrors={fieldErrors}
-            messages={messages}
-          />
-
-          <ScopeChoices
-            kind={kind}
-            roleCap={roleCap}
-            fieldErrors={fieldErrors}
-            messages={messages}
-          />
-
-          {error && <CreateErrorAlert error={error} messages={messages} />}
-
-          <FormActions>
-            <Button variant="secondary" className="min-h-11" onClick={onDismiss} disabled={creating}>
-              {t("Cancel", messages)}
-            </Button>
-            <Button type="submit" variant="primary" className="min-h-11" disabled={creating}>
-              {creating ? t("Creating…", messages) : t("Create API key", messages)}
-            </Button>
-          </FormActions>
-        </form>
-      )}
-    </Dialog>
-  );
-}
-
-/**
- * Creation form. The plaintext secret lives only in component state and is
- * cleared when the dialog closes: never a URL, a cookie, storage or a log.
- */
-export function ApiKeyCreateForm({
-  canCreateService,
-  messages,
-}: {
-  canCreateService: boolean;
-  messages: TranslationMap;
-}) {
+export function ApiKeyCreateForm({ canCreateService, messages }: ApiKeyCreateFormProps) {
   const router = useRouter();
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [kind, setKind] = useState<KeyKind>("delegated");
   const [roleCap, setRoleCap] = useState<ApiKeyScopeRoleCap>("admin");
   const [creating, setCreating] = useState(false);
@@ -388,16 +293,6 @@ export function ApiKeyCreateForm({
   const [secret, setSecret] = useState<string | null>(null);
   const [created, setCreated] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  function resetState() {
-    setKind("delegated");
-    setRoleCap("admin");
-    setError(null);
-    setFieldErrors({});
-    setSecret(null);
-    setCreated(false);
-    setCopied(false);
-  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -433,47 +328,54 @@ export function ApiKeyCreateForm({
     }
   }
 
-  function closeDialog() {
-    dialogRef.current?.close();
-    resetState();
+  if (created) {
+    return (
+      <ApiKeyCreatedPanel secret={secret} copied={copied} onCopy={handleCopy} messages={messages} />
+    );
   }
 
   return (
-    <>
-      <Button
-        variant="primary"
-        className="min-h-11"
-        onClick={() => {
-          resetState();
-          dialogRef.current?.showModal();
-        }}
+    <form onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-3">
+      <FormField
+        id="api-key-name"
+        label={t("Name", messages)}
+        error={fieldErrors.name?.[0]}
+        errorId="api-key-name-error"
       >
-        {t("Create API key", messages)}
-      </Button>
+        <input
+          id="api-key-name"
+          name="name"
+          type="text"
+          required
+          maxLength={80}
+          autoComplete="off"
+          {...fieldState("name", fieldErrors.name)}
+          className={inputClass}
+        />
+      </FormField>
 
-      <ApiKeyCreateDialog
-        dialogRef={dialogRef}
+      <ApiKeyKindFields
         canCreateService={canCreateService}
         kind={kind}
         roleCap={roleCap}
-        creating={creating}
-        created={created}
-        secret={secret}
-        copied={copied}
-        error={error}
-        fieldErrors={fieldErrors}
         onKindChange={setKind}
         onRoleCapChange={setRoleCap}
-        onCancel={(event) => {
-          // Escape must not dismiss the dialog while the request is in flight.
-          if (creating) event.preventDefault();
-        }}
-        onDismiss={closeDialog}
-        onClosed={resetState}
-        onCopy={handleCopy}
-        onSubmit={handleSubmit}
+        fieldErrors={fieldErrors}
         messages={messages}
       />
-    </>
+
+      <ApiKeyScopeChoices kind={kind} roleCap={roleCap} fieldErrors={fieldErrors} messages={messages} />
+
+      {error && <CreateErrorAlert error={error} messages={messages} />}
+
+      <FormActions>
+        <Link href="/keys" className={cancelClass}>
+          {t("Cancel", messages)}
+        </Link>
+        <Button type="submit" variant="primary" className="min-h-11" disabled={creating}>
+          {creating ? t("Creating…", messages) : t("Create API key", messages)}
+        </Button>
+      </FormActions>
+    </form>
   );
 }

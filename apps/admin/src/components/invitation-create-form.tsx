@@ -1,21 +1,25 @@
 "use client";
 
-import { useRef, useState, type FormEvent, type RefObject, type SyntheticEvent } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
 import { FormActions, FormAlert, FormField } from "@/components/ui/form";
-import {
-  createInvitation,
-  type CreateInvitationInput,
-} from "@/lib/invitation-mutations";
+import { Select } from "@/components/ui/select";
+import { createInvitation, type CreateInvitationInput } from "@/lib/invitation-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
 import type { ModuleChoice } from "@/lib/panel-categories";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
+const secondaryLinkClass =
+  "inline-flex min-h-11 items-center justify-center rounded-control border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
+const cancelClass =
+  "inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 function fieldState(
   field: string,
@@ -100,6 +104,41 @@ function TokenPanel({
   );
 }
 
+/**
+ * Success state. Once the token exists the form is not rendered: a second
+ * creation on the same page would overwrite the only copy of the first token
+ * (the Core returns the plaintext token once). The only way out is "Done".
+ */
+export function InvitationCreatedPanel({
+  token,
+  copied,
+  onCopy,
+  messages,
+}: {
+  token: string | null;
+  copied: boolean;
+  onCopy: () => void;
+  messages: TranslationMap;
+}) {
+  return (
+    <section role="status" className="flex max-w-xl flex-col gap-3">
+      <h2 className="text-sm font-semibold">{t("Invitation created", messages)}</h2>
+      {token ? (
+        <TokenPanel token={token} copied={copied} onCopy={onCopy} messages={messages} />
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {t("The invitation was created but the API did not return a token.", messages)}
+        </p>
+      )}
+      <FormActions>
+        <Link href="/invitations" className={secondaryLinkClass}>
+          {t("Done", messages)}
+        </Link>
+      </FormActions>
+    </section>
+  );
+}
+
 function InvitationFields({
   categories,
   modules,
@@ -155,14 +194,14 @@ function InvitationFields({
         error={fieldErrors.user_category_id?.[0]}
         errorId="invitation-category-error"
       >
-        <select id="invitation-category" name="user_category_id" className={inputClass}>
+        <Select id="invitation-category" name="user_category_id">
           <option value="">{t("No category", messages)}</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <FormField
@@ -171,19 +210,19 @@ function InvitationFields({
         error={fieldErrors.modules?.[0]}
         errorId="invitation-modules-error"
       >
-        <select
+        <Select
           id="invitation-modules"
           name="modules"
           multiple
           size={Math.max(2, Math.min(6, modules.length))}
-          className={`${inputClass} py-1`}
+          className="h-auto py-1 sm:h-auto"
         >
           {modules.map((module) => (
             <option key={module.key} value={module.key}>
               {module.name} ({module.key})
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <FormField
@@ -215,113 +254,10 @@ interface InvitationCreateFormProps {
   messages: TranslationMap;
 }
 
-interface InvitationCreateDialogProps extends InvitationCreateFormProps {
-  dialogRef: RefObject<HTMLDialogElement | null>;
-  creating: boolean;
-  created: boolean;
-  token: string | null;
-  copied: boolean;
-  error: MutationFailure | null;
-  fieldErrors: Record<string, string[]>;
-  onCancel: (event: SyntheticEvent<HTMLDialogElement>) => void;
-  /** Closes the dialog; the `onClose` event then clears the state. */
-  onDismiss: () => void;
-  /** Fired on `close`, including Escape, so the token never survives. */
-  onClosed: () => void;
-  onCopy: () => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-}
-
 /**
- * The dialog body. Once the token exists the form is not rendered: a second
- * creation in the same dialog would overwrite the only copy of the first token
- * (the Core returns the plaintext token once), so the only way out is "Done".
- */
-export function InvitationCreateDialog({
-  dialogRef,
-  categories,
-  modules,
-  optionsUnavailable = false,
-  creating,
-  created,
-  token,
-  copied,
-  error,
-  fieldErrors,
-  onCancel,
-  onDismiss,
-  onClosed,
-  onCopy,
-  onSubmit,
-  messages,
-}: InvitationCreateDialogProps) {
-  return (
-    <Dialog
-      labelledBy="invitation-create-title"
-      ref={dialogRef}
-      onCancel={onCancel}
-      onClose={onClosed}
-      onBackdropClick={creating ? undefined : onDismiss}
-    >
-      <h2 id="invitation-create-title" className="text-sm font-semibold">
-        {created ? t("Invitation created", messages) : t("New invitation", messages)}
-      </h2>
-
-      {token ? (
-        <>
-          <TokenPanel token={token} copied={copied} onCopy={onCopy} messages={messages} />
-          <FormActions>
-            <Button variant="secondary" className="min-h-11" onClick={onDismiss}>
-              {t("Done", messages)}
-            </Button>
-          </FormActions>
-        </>
-      ) : (
-        <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-3">
-          {created && (
-            <p role="status" className="text-xs text-muted-foreground">
-              {t("The invitation was created but the API did not return a token.", messages)}
-            </p>
-          )}
-
-          <InvitationFields
-            categories={categories}
-            modules={modules}
-            fieldErrors={fieldErrors}
-            messages={messages}
-          />
-
-          {optionsUnavailable && (
-            <p className="text-xs text-muted-foreground">
-              {t("Some category or module options are unavailable right now.", messages)}
-            </p>
-          )}
-
-          {error && <InvitationCreateError error={error} messages={messages} />}
-
-          <FormActions>
-            <Button
-              variant="secondary"
-              className="min-h-11"
-              onClick={onDismiss}
-              disabled={creating}
-            >
-              {created ? t("Done", messages) : t("Cancel", messages)}
-            </Button>
-            <Button type="submit" variant="primary" className="min-h-11" disabled={creating}>
-              {creating ? t("Creating…", messages) : t("Create invitation", messages)}
-            </Button>
-          </FormActions>
-        </form>
-      )}
-    </Dialog>
-  );
-}
-
-/**
- * Creation form. The Core returns the plaintext token only in this response
- * (`createInvitation` contract), so it is kept in component state and cleared
- * when the dialog closes: never a URL, a cookie, storage or a log.
+ * Creation form on its own page. The Core returns the plaintext token only in
+ * this response (`createInvitation` contract), so it is kept in component state
+ * and shown once: never a URL, a cookie, storage or a log.
  */
 export function InvitationCreateForm({
   categories,
@@ -330,21 +266,12 @@ export function InvitationCreateForm({
   messages,
 }: InvitationCreateFormProps) {
   const router = useRouter();
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<MutationFailure | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [token, setToken] = useState<string | null>(null);
   const [created, setCreated] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  function resetState() {
-    setError(null);
-    setFieldErrors({});
-    setToken(null);
-    setCreated(false);
-    setCopied(false);
-  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -380,45 +307,42 @@ export function InvitationCreateForm({
     }
   }
 
-  function closeDialog() {
-    dialogRef.current?.close();
-    resetState();
+  if (created) {
+    return (
+      <InvitationCreatedPanel
+        token={token}
+        copied={copied}
+        onCopy={handleCopy}
+        messages={messages}
+      />
+    );
   }
 
   return (
-    <>
-      <Button
-        variant="primary"
-        className="min-h-11"
-        onClick={() => {
-          resetState();
-          dialogRef.current?.showModal();
-        }}
-      >
-        {t("Create invitation", messages)}
-      </Button>
-
-      <InvitationCreateDialog
-        dialogRef={dialogRef}
+    <form onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-3">
+      <InvitationFields
         categories={categories}
         modules={modules}
-        optionsUnavailable={optionsUnavailable}
-        creating={creating}
-        created={created}
-        token={token}
-        copied={copied}
-        error={error}
         fieldErrors={fieldErrors}
-        onCancel={(event) => {
-          // Escape must not dismiss the dialog while the request is in flight.
-          if (creating) event.preventDefault();
-        }}
-        onDismiss={closeDialog}
-        onClosed={resetState}
-        onCopy={handleCopy}
-        onSubmit={handleSubmit}
         messages={messages}
       />
-    </>
+
+      {optionsUnavailable && (
+        <p className="text-xs text-muted-foreground">
+          {t("Some category or module options are unavailable right now.", messages)}
+        </p>
+      )}
+
+      {error && <InvitationCreateError error={error} messages={messages} />}
+
+      <FormActions>
+        <Link href="/invitations" className={cancelClass}>
+          {t("Cancel", messages)}
+        </Link>
+        <Button type="submit" variant="primary" className="min-h-11" disabled={creating}>
+          {creating ? t("Creating…", messages) : t("Create invitation", messages)}
+        </Button>
+      </FormActions>
+    </form>
   );
 }

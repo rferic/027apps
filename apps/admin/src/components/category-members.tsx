@@ -7,6 +7,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { FormActions, FormAlert, FormField } from "@/components/ui/form";
+import { Select } from "@/components/ui/select";
 import { PanelError } from "@/components/panel-error";
 import { addCategoryMember, removeCategoryMember } from "@/lib/category-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
@@ -129,13 +130,13 @@ function AddMemberForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-2">
       <FormField id="category-member-add" label={t("Add member", messages)}>
-        <select id="category-member-add" name="userId" required className={inputClass}>
+        <Select id="category-member-add" name="userId" required>
           {available.map((choice) => (
             <option key={choice.id} value={choice.id}>
               {choice.displayName || choice.id}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
       <Button type="submit" variant="primary" className="min-h-11" disabled={adding}>
         {adding ? t("Adding…", messages) : t("Add member", messages)}

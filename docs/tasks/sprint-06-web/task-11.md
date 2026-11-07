@@ -25,10 +25,10 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 
 | # | Alcance | Estado |
 |---|---|---|
-| 1 | Inventario de la arquitectura de información y la navegación frente a la spec | pendiente |
-| 2 | Cabecera, identidad de instancia, idioma y menú de usuario | pendiente |
-| 3 | Patrones de lista, detalle y formulario | pendiente |
-| 4 | Estados vacío/carga/error y comportamiento móvil (375 px) | pendiente |
+| 1 | Inventario de la arquitectura de información y la navegación frente a la spec | hecho |
+| 2 | Cabecera, identidad de instancia, idioma y menú de usuario | hecho |
+| 3 | Patrones de lista, detalle y formulario | hecho |
+| 4 | Estados vacío/carga/error y comportamiento móvil (375 px) | hecho |
 | 5 | Settings como padre con una página por categoría y guard por sección | hecho |
 | 6 | Monedas como selector múltiple con búsqueda, nombre y símbolo derivados | hecho |
 | 7 | Checklist UX de 10 puntos a 375 y 1280 px, revisión y auditoría | pendiente |
@@ -101,3 +101,31 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   valor guardado (el resto de ediciones sin guardar se conserva).
 - Tests: render con chips y `en` fija, filtro por nombre/código, guardado con el array y alert de
   coherencia con `request_id`; el helper de reversión deja la selección guardada.
+
+### Iteración 3 — Formularios en página (hecho)
+
+- Los formularios de creación dejan el `<dialog>` y pasan a ruta propia:
+  `/categories/new`, `/invitations/new` y `/keys/new`. Cada página exige `admin`, fija `instant = false`,
+  muestra breadcrumb (`Categorías / Nueva`, etc.), `h1`, enlace "Back" y reutiliza el cuerpo del
+  formulario.
+- El listado usa un `Link` primario (`/…/new`); ya no hay triggers modales ni el código muerto de los
+  diálogos de creación. Las confirmaciones destructivas (borrar categoría, desactivar miembro, revocar
+  clave/invitación, quitar miembro) y el drawer móvil conservan su `<Dialog>`.
+- El token de invitación y el secreto de la clave se muestran **una sola vez** en la propia página, con
+  copiar y "Done" al listado. Mientras se ve el secreto no se puede crear otro sin salir.
+- Los `<select>` ad-hoc restantes (3 del wizard, alta de miembro, invitación, clave y selector de
+  idioma) pasan a `ui/select.tsx`.
+- Tests: render y 403 de las tres páginas, campos y token/secreto en página, enlace `/…/new` en cada
+  listado y ausencia del diálogo de creación.
+
+### Iteración 4 — Un solo componente de error (hecho)
+
+- `PanelError` es el único componente de error de carga (código traducido + `request_id` + reintento).
+  `MemberError` desaparece y sus usos en `/members` y `/members/[id]` pasan a `PanelError`.
+- `panel-errors.ts` unifica el mapa de códigos antes repartido entre `panel-errors.ts` y
+  `member-errors.ts`: un import, un mapa, con `slugConflictError` y `panelErrorCodeLabel`.
+- `instance.logo_url` desaparece del catálogo y de `CATALOG_DEFAULTS`: deja de publicarse en
+  `GET /api/v1/instance` y de poder editarse. `BrandLogo` solo acepta `variant` y `name`. **La fila
+  `instance.logo_url` queda huérfana en la tabla `settings` a propósito (no hay migración que borre
+  datos); `readSettingViews` ignora las filas sin metadata del catálogo y el sync check de db-tests las
+  excluye.**

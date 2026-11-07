@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
 import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { createCategory } from "@/lib/category-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
@@ -13,6 +13,9 @@ import { slugConflictError } from "@/lib/panel-errors";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
+const cancelClass =
+  "inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 function fieldAria(
   field: string,
@@ -46,14 +49,17 @@ function CategoryFormError({
   );
 }
 
+/** Where the create form lands: the new detail, or the list without an id. */
+export function categoryCreatedHref(id: string | undefined): string {
+  return id ? `/categories/${encodeURIComponent(id)}` : "/categories";
+}
+
 /**
- * Create action for the list (§6): a native `<dialog>` supplies the focus trap
- * and the top layer without a dependency. On success the API returns the new
- * id, so the reader lands on the detail that still needs members or modules.
+ * Create form on its own page (§6). On success the API returns the new id, so
+ * the reader lands on the detail that still needs members or modules.
  */
 export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
   const router = useRouter();
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<MutationFailure | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
@@ -81,98 +87,63 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
     }
 
     form.reset();
-    dialogRef.current?.close();
-    if (result.id) {
-      router.push(`/categories/${encodeURIComponent(result.id)}`);
-    }
+    router.push(categoryCreatedHref(result.id));
     router.refresh();
   }
 
   return (
-    <>
-      <Button
-        variant="primary"
-        className="min-h-11"
-        onClick={() => {
-          setError(null);
-          setFieldErrors({});
-          dialogRef.current?.showModal();
-        }}
+    <form onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-3">
+      <FormField
+        id="category-name"
+        label={t("Name", messages)}
+        hint={t("Use a name between 1 and 80 characters.", messages)}
+        hintId="category-name-help"
+        error={fieldErrors.name?.[0]}
+        errorId="category-name-error"
       >
-        {t("Create category", messages)}
-      </Button>
+        <input
+          id="category-name"
+          name="name"
+          type="text"
+          required
+          maxLength={80}
+          {...fieldAria("name", fieldErrors.name?.[0], "category-name-help")}
+          className={inputClass}
+        />
+      </FormField>
 
-      <Dialog
-        labelledBy="category-create-title"
-        ref={dialogRef}
-        onCancel={(event) => {
-          // Escape must not dismiss the dialog while the request is in flight.
-          if (saving) event.preventDefault();
-        }}
-        onBackdropClick={saving ? undefined : () => dialogRef.current?.close()}
+      <FormField
+        id="category-slug"
+        label={t("Slug", messages)}
+        hint={t(
+          "Lowercase letters, numbers and hyphens. Derived from the name when left empty.",
+          messages,
+        )}
+        hintId="category-slug-help"
+        error={slugError}
+        errorId="category-slug-error"
       >
-        <h2 id="category-create-title" className="text-sm font-semibold">
-          {t("New category", messages)}
-        </h2>
-        <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-3">
-          <FormField
-            id="category-name"
-            label={t("Name", messages)}
-            hint={t("Use a name between 1 and 80 characters.", messages)}
-            hintId="category-name-help"
-            error={fieldErrors.name?.[0]}
-            errorId="category-name-error"
-          >
-            <input
-              id="category-name"
-              name="name"
-              type="text"
-              required
-              maxLength={80}
-              {...fieldAria("name", fieldErrors.name?.[0], "category-name-help")}
-              className={inputClass}
-            />
-          </FormField>
+        <input
+          id="category-slug"
+          name="slug"
+          type="text"
+          maxLength={80}
+          autoComplete="off"
+          {...fieldAria("slug", slugError, "category-slug-help")}
+          className={inputClass}
+        />
+      </FormField>
 
-          <FormField
-            id="category-slug"
-            label={t("Slug", messages)}
-            hint={t(
-              "Lowercase letters, numbers and hyphens. Derived from the name when left empty.",
-              messages,
-            )}
-            hintId="category-slug-help"
-            error={slugError}
-            errorId="category-slug-error"
-          >
-            <input
-              id="category-slug"
-              name="slug"
-              type="text"
-              maxLength={80}
-              autoComplete="off"
-              {...fieldAria("slug", slugError, "category-slug-help")}
-              className={inputClass}
-            />
-          </FormField>
+      {error && <CategoryFormError error={error} messages={messages} />}
 
-          {error && <CategoryFormError error={error} messages={messages} />}
-
-          <FormActions>
-            <Button
-              variant="secondary"
-              className="min-h-11"
-              onClick={() => dialogRef.current?.close()}
-              disabled={saving}
-            >
-              {t("Cancel", messages)}
-            </Button>
-            <Button type="submit" variant="primary" className="min-h-11" disabled={saving}>
-              {saving ? t("Creating…", messages) : t("Create category", messages)}
-            </Button>
-          </FormActions>
-        </form>
-      </Dialog>
-    </>
+      <FormActions>
+        <Link href="/categories" className={cancelClass}>
+          {t("Cancel", messages)}
+        </Link>
+        <Button type="submit" variant="primary" className="min-h-11" disabled={saving}>
+          {saving ? t("Creating…", messages) : t("Create category", messages)}
+        </Button>
+      </FormActions>
+    </form>
   );
 }

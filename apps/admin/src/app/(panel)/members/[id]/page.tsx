@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { MemberDangerZone } from "@/components/member-danger-zone";
-import { MemberError } from "@/components/member-error";
 import { MemberProfileForm } from "@/components/member-profile-form";
+import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
@@ -115,7 +115,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
   if (!result.ok) {
     return (
       <section className="flex flex-col gap-4">
-        <MemberError
+        <PanelError
           error={result}
           heading={t("We couldn't load this member.", messages)}
           retryHref={`/members/${encodeURIComponent(id)}`}

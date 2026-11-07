@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
-import { CategoryCreateForm } from "@/components/category-create-form";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
@@ -117,7 +116,12 @@ export default async function CategoriesPage() {
             {t("Groups of members and module access.", messages)}
           </p>
         </div>
-        <CategoryCreateForm messages={messages} />
+        <Link
+          href="/categories/new"
+          className="inline-flex min-h-11 items-center rounded-control border border-transparent bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {t("Create category", messages)}
+        </Link>
       </header>
 
       {data.ok ? (

@@ -7,7 +7,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { FormActions, FormAlert } from "@/components/ui/form";
-import { memberErrorCodeLabel } from "@/lib/member-errors";
+import { panelErrorCodeLabel } from "@/lib/panel-errors";
 import { deactivationCopy } from "@/lib/member-form";
 import { deactivateMember, type MutationResult } from "@/lib/member-mutations";
 
@@ -90,7 +90,7 @@ export function MemberDangerZone({ id, name, isSelf, messages }: MemberDangerZon
             className="mt-3"
             message={t("We couldn't deactivate this member.", messages)}
             code={error.code}
-            codeLabel={error.code ? memberErrorCodeLabel(error.code, messages) : undefined}
+            codeLabel={error.code ? panelErrorCodeLabel(error.code, messages) : undefined}
             requestId={error.requestId}
             messages={messages}
           />

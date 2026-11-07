@@ -75,6 +75,8 @@ describe("CategoriesPage", () => {
     expect(html).toContain('href="/categories/c2"');
     expect(html).toContain("<table");
     expect(html).toContain("<caption");
+    expect(html).toContain('href="/categories/new"');
+    expect(html).not.toContain("category-create-title");
   });
 
   it("shows the empty state with the create action", async () => {

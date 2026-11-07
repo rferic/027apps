@@ -99,6 +99,8 @@ describe("KeysPage", () => {
     expect(html).toContain("Never");
     expect(html).toContain("<table");
     expect(html).toContain("<caption");
+    expect(html).toContain('href="/keys/new"');
+    expect(html).not.toContain("api-key-create-title");
   });
 
   it("marks the caller's own key and names its owner in the confirmation", async () => {
@@ -125,25 +127,6 @@ describe("KeysPage", () => {
     expect(html).toContain("Super administrator");
   });
 
-  it("never shows service creation to an admin", async () => {
-    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [] });
-
-    const html = renderToStaticMarkup(await render());
-
-    expect(html).not.toContain('value="service"');
-  });
-
-  it("shows service creation to a super_admin", async () => {
-    requirePanelMock.mockResolvedValue({
-      user: { id: "u1", email: "root@example.com", displayName: "Root", role: "super_admin" },
-    });
-    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [] });
-
-    const html = renderToStaticMarkup(await render());
-
-    expect(html).toContain('value="service"');
-  });
-
   it("filters by state and offers to clear the filter", async () => {
     loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY] });
 
@@ -155,12 +138,13 @@ describe("KeysPage", () => {
     expect(html).toContain('href="/keys"');
   });
 
-  it("shows the empty state when there are no keys", async () => {
+  it("shows the empty state linked to the create page", async () => {
     loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [] });
 
     const html = renderToStaticMarkup(await render());
 
     expect(html).toContain("No API keys yet.");
+    expect(html).toContain('href="/keys/new"');
     expect(html).not.toContain("<table");
   });
 

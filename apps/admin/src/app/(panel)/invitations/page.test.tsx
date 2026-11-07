@@ -113,6 +113,8 @@ describe("InvitationsPage", () => {
     expect(html).toContain("Expires");
     expect(html).toContain("<caption");
     expect(html).toContain("Invitations you have created.");
+    expect(html).toContain('href="/invitations/new"');
+    expect(html).not.toContain("invitation-create-title");
   });
 
   it("renders a status as text, not only as a colour", async () => {
@@ -215,7 +217,7 @@ describe("InvitationsPage", () => {
     expect(loadInvitationsMock).not.toHaveBeenCalled();
   });
 
-  it("keeps the create form usable when the category or module pickers fail", async () => {
+  it("links the empty state to the create page instead of opening a dialog", async () => {
     loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [] });
     loadCategoriesMock.mockResolvedValue({ ok: false, code: "internal" });
     loadModuleChoicesMock.mockResolvedValue({ ok: false, code: "internal" });
@@ -223,7 +225,7 @@ describe("InvitationsPage", () => {
     const html = renderToStaticMarkup(await InvitationsPage());
 
     expect(html).toContain("No invitations yet.");
-    expect(html).toContain("Create invitation");
-    expect(html).toContain("Some category or module options are unavailable right now.");
+    expect(html).toContain('href="/invitations/new"');
+    expect(html).not.toContain("invitation-create-title");
   });
 });

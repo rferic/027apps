@@ -3,9 +3,6 @@ import type { SettingRow } from "@/lib/setting-types";
 /** Form state: one text field per catalog key. Secrets never store their value. */
 export type SettingsDraft = Record<string, string>;
 
-/** The catalog key whose value is nullable in the schema (empty means "none"). */
-const NULLABLE_ON_EMPTY = new Set(["instance.logo_url"]);
-
 function listToText(value: unknown, separator: string): string {
   if (!Array.isArray(value)) return "";
   return value.filter((entry): entry is string => typeof entry === "string").join(separator);
@@ -52,7 +49,6 @@ export function parseSettingValue(setting: SettingRow, raw: string): unknown {
     const parsed = Number(raw);
     return raw.trim() !== "" && Number.isFinite(parsed) ? parsed : raw;
   }
-  if (raw === "" && NULLABLE_ON_EMPTY.has(setting.key)) return null;
   return raw;
 }
 

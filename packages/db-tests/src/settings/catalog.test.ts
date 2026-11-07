@@ -22,11 +22,23 @@ interface DbSetting {
   sort_order: number;
 }
 
+/**
+ * `instance.logo_url` was removed from the catalog in sprint 06 (the instance
+ * always uses the 027Apps mark). Migration `0005_instance_logo.sql` seeded it
+ * and the row is intentionally left in place: no migration deletes user data.
+ * It is not in the catalog, so `readPublicSettings` no longer publishes it.
+ */
+const ORPHAN_KEYS = new Set(['instance.logo_url']);
+
 describe('settings catalog seed (migration 0002)', () => {
   it('seeds exactly the catalog keys with matching metadata', async () => {
     await withClient(async (c) => {
       const { rows } = await query(c, 'select * from public.settings order by category_key, sort_order');
-      const db = new Map(rows.map((r) => [r.key, r as unknown as DbSetting]));
+      const db = new Map(
+        rows
+          .filter((r) => !ORPHAN_KEYS.has(String(r.key)))
+          .map((r) => [r.key, r as unknown as DbSetting]),
+      );
 
       expect(db.size).toBe(SETTINGS_CATALOG.length);
 
@@ -79,6 +91,7 @@ describe('settings catalog seed (migration 0002)', () => {
         const { rows } = await query(c, 'select category_key, key, value, is_secret, value_encrypted from public.settings');
       for (const row of rows as { key: string; value: unknown; is_secret: boolean; value_encrypted: string | null }[]) {
         const fullKey = row.key; // `key` stores the full canonical key (e.g. "instance.name")
+        if (ORPHAN_KEYS.has(fullKey)) continue;
         const meta = getSettingMeta(fullKey);
         expect(meta, `catalog has no meta for ${fullKey}`).toBeDefined();
         const expected = CATALOG_DEFAULTS[fullKey];

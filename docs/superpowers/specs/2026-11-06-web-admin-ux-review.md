@@ -68,12 +68,12 @@ Reglas:
 
 ## 4. Marca y cabecera
 
-- Cabecera de 56–64 px: logo de instancia (o wordmark) + **nombre de la instancia** como texto; a la
+- Cabecera de 56–64 px: marca de 027Apps (wordmark o mark) + **nombre de la instancia** como texto; a la
   derecha, idioma y menú de usuario.
-- El logo no se centra en el panel: el centro es para el contenido. La identidad va a la izquierda,
+- La marca no se centra en el panel: el centro es para el contenido. La identidad va a la izquierda,
   como en cualquier consola de administración.
-- Tamaño del logo: `md` (h-8) en cabecera; nunca `xl` (eso es del wizard, que es una pantalla de marca).
-- Si `instance.logo_url` no está definido, se usa el wordmark y no se deja hueco vacío.
+- Tamaño de la marca: `md` (h-8) en cabecera; nunca `xl` (eso es del wizard, que es una pantalla de marca).
+- La marca es siempre la de 027Apps (wordmark o mark): no hay logo de instancia configurable.
 
 ## 5. Dashboard
 
@@ -93,7 +93,10 @@ Reglas:
   acciones destructivas separadas al final con confirmación explícita ("Desactivar a Sara: perderá el
   acceso al instante").
 - **Formularios**: etiqueta arriba, ayuda debajo, error junto al campo. Un botón primario; "Cancelar"
-  como enlace.
+  como enlace. **Todo formulario con campos vive en su propia página** (`/…/new`), con breadcrumb,
+  `h1` y enlace "Back"; los `<dialog>` quedan solo para confirmar acciones destructivas y para el drawer
+  móvil. Un secreto que se muestra una sola vez (token de invitación, clave de API) se queda en esa
+  página con "Copy" y "Done" hacia el listado, sin ofrecer una segunda creación sin salir.
 - **Selección múltiple (monedas)**: combobox con chips estilo react-select (`ui/multi-select.tsx`), sin
   dependencias nuevas. El trigger muestra una chip por moneda `enabled` (`símbolo · Nombre`) y el
   desplegable lleva buscador que filtra por nombre, código o símbolo (insensible a mayúsculas y
@@ -106,7 +109,7 @@ Reglas:
 - **Confirmaciones destructivas**: nombrar el objeto y la consecuencia; nunca solo "¿Estás seguro?".
 - **Feedback**: cambio guardado → mensaje breve junto a la acción; error → inline + `request_id`.
 
-Diálogos y formularios usan las primitivas compartidas (ui/dialog.tsx, ui/form.tsx); ver code-style.md § Diálogos y formularios.
+Formularios y confirmaciones usan las primitivas compartidas (ui/form.tsx, ui/dialog.tsx); ver code-style.md § Diálogos y formularios.
 
 ## 7. Accesibilidad y calidad
 
@@ -132,7 +135,7 @@ Diálogos y formularios usan las primitivas compartidas (ui/dialog.tsx, ui/form.
 
 1. Las 8 rutas existen; ningún `href="#"` en la navegación.
 2. Ítem activo visible en todas las páginas y breadcrumb en los detalles.
-3. Cabecera con logo + nombre de instancia + idioma + menú de usuario con "Cerrar sesión".
+3. Cabecera con marca + nombre de instancia + idioma + menú de usuario con "Cerrar sesión".
 4. Cada lista tiene vacío, carga y error; el error muestra `request_id`.
 5. Cada página tiene una acción primaria clara y las destructivas están separadas y confirmadas.
 6. En 375 px no hay scroll horizontal; las tablas pasan a tarjetas.

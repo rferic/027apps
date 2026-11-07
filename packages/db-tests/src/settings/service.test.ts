@@ -272,7 +272,6 @@ describe('settings service — reads', () => {
     await inRollback(async (c) => {
       const pub = await readPublicSettings(settingsDeps(c));
       expect(Object.keys(pub).sort()).toEqual([
-        'instance.logo_url',
         'instance.name',
         'instance.public_url',
         'localization.default_currency',

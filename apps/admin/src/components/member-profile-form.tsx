@@ -16,7 +16,7 @@ import {
 } from "@/lib/member-form";
 import type { MutationResult } from "@/lib/member-mutations";
 import { patchMember } from "@/lib/member-mutations";
-import { memberErrorCodeLabel } from "@/lib/member-errors";
+import { panelErrorCodeLabel } from "@/lib/panel-errors";
 import type { MemberRow } from "@/lib/panel-members";
 
 type SaveFailure = Extract<MutationResult, { ok: false }>;
@@ -54,7 +54,7 @@ function SaveErrorAlert({
         error.code === "conflict"
           ? t("Your role change conflicts with the instance rules.", messages)
           : error.code
-            ? memberErrorCodeLabel(error.code, messages)
+            ? panelErrorCodeLabel(error.code, messages)
             : undefined
       }
       requestId={error.requestId}

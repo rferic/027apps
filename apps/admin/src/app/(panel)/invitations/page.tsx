@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
-import { InvitationCreateForm } from "@/components/invitation-create-form";
 import { InvitationRevokeButton } from "@/components/invitation-revoke-button";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
@@ -236,12 +236,12 @@ export default async function InvitationsPage() {
             {t("Invitations you have created.", messages)}
           </p>
         </div>
-        <InvitationCreateForm
-          categories={categoryRows.map((category) => ({ id: category.id, name: category.name }))}
-          modules={moduleChoices.ok ? moduleChoices.modules : []}
-          optionsUnavailable={!categories.ok || !moduleChoices.ok}
-          messages={messages}
-        />
+        <Link
+          href="/invitations/new"
+          className="inline-flex min-h-11 items-center rounded-control border border-transparent bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {t("Create invitation", messages)}
+        </Link>
       </header>
 
       {invitations.ok ? (

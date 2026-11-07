@@ -29,7 +29,6 @@ function setting(overrides: Partial<SettingRow>): SettingRow {
 }
 
 const NAME = setting({});
-const LOGO = setting({ key: "instance.logo_url", type: "url", value: "https://x.test/logo.png", sortOrder: 15 });
 const TIMEOUT = setting({
   key: "security.jwt_expiry",
   category: "security",
@@ -60,7 +59,7 @@ const SECRET = setting({
   configured: true,
 });
 
-const ALL = [NAME, LOGO, TIMEOUT, LOCALES, CORS, SECRET];
+const ALL = [NAME, TIMEOUT, LOCALES, CORS, SECRET];
 
 describe("initialSettingsDraft / encodeSettingValue", () => {
   it("encodes every type into the text the form edits", () => {
@@ -72,7 +71,6 @@ describe("initialSettingsDraft / encodeSettingValue", () => {
     expect(encodeSettingValue(SECRET)).toBe("");
     expect(initialSettingsDraft(ALL)).toEqual({
       "instance.name": "027Apps",
-      "instance.logo_url": "https://x.test/logo.png",
       "security.jwt_expiry": "900",
       "localization.enabled_locales": "en, es",
       "security.cors_allowlist": "https://a.test",
@@ -81,7 +79,7 @@ describe("initialSettingsDraft / encodeSettingValue", () => {
   });
 
   it("renders a null value as an empty field", () => {
-    expect(encodeSettingValue(setting({ key: "instance.logo_url", type: "url", value: null }))).toBe("");
+    expect(encodeSettingValue(setting({ key: "instance.public_url", type: "url", value: null }))).toBe("");
   });
 });
 
@@ -93,10 +91,6 @@ describe("parseSettingValue", () => {
       "https://a.test",
       "https://b.test",
     ]);
-  });
-
-  it("maps an empty nullable logo back to null", () => {
-    expect(parseSettingValue(LOGO, "")).toBeNull();
   });
 
   it("keeps a non-numeric int as text so the API rejects it with the key", () => {
@@ -139,15 +133,6 @@ describe("updatesFromDraft", () => {
     draft["security.cors_allowlist"] = "https://a.test\n";
 
     expect(updatesFromDraft([LOCALES, CORS], draft)).toEqual([]);
-  });
-
-  it("sends a cleared nullable logo as null", () => {
-    const draft = initialSettingsDraft(ALL);
-    draft["instance.logo_url"] = "";
-
-    expect(updatesFromDraft([LOGO], draft)).toEqual([
-      { key: "instance.logo_url", value: null },
-    ]);
   });
 
   it("sends the enabled locales as an array in the batch", () => {
