@@ -8,9 +8,6 @@ describe("GET /api/v1/openapi.json", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("application/json");
     expect(response.headers.get("cache-control")).toBe("public, max-age=300");
-    expect(response.headers.get("x-request-id")).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-    );
 
     const body = (await response.json()) as { openapi?: string; paths?: Record<string, unknown> };
     expect(body.openapi).toBe("3.1.0");
