@@ -10,6 +10,7 @@ import { SettingsForm } from "@/components/settings-form";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
+import { categoryHelp, categoryLabel } from "@/lib/setting-text";
 import {
   loadCurrencies,
   loadSettingsCategories,
@@ -118,7 +119,8 @@ async function SectionContent({
   );
   if (!category) notFound();
 
-  const label = category.label || fallbackLabel;
+  const label = categoryLabel(section.categoryKey, messages, category.label || fallbackLabel);
+  const help = categoryHelp(section.categoryKey, messages, category.help);
   const restricted = settingsVisibility(role).restricted.filter(
     (setting) => setting.category === section.categoryKey,
   );
@@ -128,7 +130,7 @@ async function SectionContent({
       <SectionBreadcrumb section={section} messages={messages} />
       <header className="flex flex-col gap-1">
         <h1 className="text-base font-bold">{label}</h1>
-        <p className="text-xs text-muted-foreground">{category.help}</p>
+        <p className="text-xs text-muted-foreground">{help}</p>
       </header>
 
       <SettingsForm categories={[category]} restricted={restricted} messages={messages} />

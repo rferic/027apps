@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { getDictionary } from "@027apps/i18n/dictionary.js";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
@@ -121,6 +122,33 @@ describe("SettingsForm", () => {
     expect(html).toContain("Localization");
     expect(html).toContain("Notifications");
     expect(html).toContain("Save changes");
+  });
+
+  it("translates the catalog labels and help that arrive from the API", () => {
+    const html = renderToStaticMarkup(
+      <SettingsForm categories={CATEGORIES} restricted={[]} messages={getDictionary("it")} />,
+    );
+
+    expect(html).toContain("Istanza");
+    expect(html).toContain("Nome istanza");
+    expect(html).toContain("Nome pubblico di questa istanza di 027Apps.");
+    expect(html).not.toContain(">Instance name<");
+    expect(html).not.toContain("Instance identity and public links.");
+  });
+
+  it("keeps the API text for a key that is not in the catalog", () => {
+    const html = renderToStaticMarkup(
+      <SettingField
+        setting={{ ...NAME, key: "custom.key", label: "API label", help: "API help" }}
+        draft={{ "custom.key": "value" }}
+        onChange={() => {}}
+        error={null}
+        messages={getDictionary("it")}
+      />,
+    );
+
+    expect(html).toContain("API label");
+    expect(html).toContain("API help");
   });
 
   it("shows only configured for a secret and never renders its value", () => {

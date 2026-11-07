@@ -12,6 +12,7 @@ import { Select } from "@/components/ui/select";
 import { LOCALE_LABELS, localeOptions } from "@/lib/locale";
 import type { MutationFailure } from "@/lib/mutation-result";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
+import { categoryHelp, categoryLabel, settingHelp, settingLabel } from "@/lib/setting-text";
 import type { RestrictedSetting, SettingRow, SettingsCategoryRow } from "@/lib/setting-types";
 import {
   encodeSettingValue,
@@ -87,6 +88,8 @@ function SecretInput({
   messages: TranslationMap;
 }) {
   const id = fieldId(setting.key);
+  const label = settingLabel(setting.key, messages, setting.label);
+  const help = settingHelp(setting.key, messages, setting.help);
   const placeholder = setting.configured
     ? t("Leave empty to keep the current value.", messages)
     : t("Paste the secret value.", messages);
@@ -95,7 +98,7 @@ function SecretInput({
       id={id}
       label={
         <>
-          {setting.label}
+          {label}
           <Badge variant={setting.configured ? "success" : "neutral"}>
             {setting.configured ? t("Configured", messages) : t("Not configured", messages)}
           </Badge>
@@ -103,7 +106,7 @@ function SecretInput({
       }
       hint={
         <>
-          {setting.help}
+          {help}
           {setting.configured && (
             <span className="block">
               {t("The saved secret is never shown. Type a new value only to replace it.", messages)}
@@ -156,6 +159,8 @@ function LocaleInput({
     .split(",")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
+  const label = settingLabel(setting.key, messages, setting.label);
+  const help = settingHelp(setting.key, messages, setting.help);
 
   function toggle(locale: string) {
     const next = new Set(values);
@@ -167,8 +172,8 @@ function LocaleInput({
   return (
     <div className="flex flex-col gap-1">
       <MultiSelect
-        label={setting.label}
-        placeholder={setting.label}
+        label={label}
+        placeholder={label}
         searchPlaceholder={t("Search by name, code or symbol.", messages)}
         options={localeOptions()}
         values={values}
@@ -177,7 +182,7 @@ function LocaleInput({
         emptyLabel={t("No locales match", messages)}
         messages={messages}
       />
-      <p className="text-xs text-muted-foreground">{setting.help}</p>
+      <p className="text-xs text-muted-foreground">{help}</p>
       <InlineError keyName={setting.key} error={error} messages={messages} />
     </div>
   );
@@ -187,14 +192,20 @@ function EnumInput({
   setting,
   value,
   onChange,
+  messages,
 }: {
   setting: SettingRow;
   value: string;
   onChange: (value: string) => void;
+  messages: TranslationMap;
 }) {
   const options = setting.key === "notifications.push.provider" ? ["fcm", "none"] : [value];
   return (
-    <FormField id={fieldId(setting.key)} label={setting.label} hint={setting.help}>
+    <FormField
+      id={fieldId(setting.key)}
+      label={settingLabel(setting.key, messages, setting.label)}
+      hint={settingHelp(setting.key, messages, setting.help)}
+    >
       <Select
         id={fieldId(setting.key)}
         name={setting.key}
@@ -215,13 +226,19 @@ function ScalarInput({
   setting,
   value,
   onChange,
+  messages,
 }: {
   setting: SettingRow;
   value: string;
   onChange: (value: string) => void;
+  messages: TranslationMap;
 }) {
   return (
-    <FormField id={fieldId(setting.key)} label={setting.label} hint={setting.help}>
+    <FormField
+      id={fieldId(setting.key)}
+      label={settingLabel(setting.key, messages, setting.label)}
+      hint={settingHelp(setting.key, messages, setting.help)}
+    >
       <input
         id={fieldId(setting.key)}
         name={setting.key}
@@ -248,10 +265,10 @@ function ArrayInput({
   return (
     <FormField
       id={fieldId(setting.key)}
-      label={setting.label}
+      label={settingLabel(setting.key, messages, setting.label)}
       hint={
         <>
-          {setting.help}
+          {settingHelp(setting.key, messages, setting.help)}
           <span className="block">{t("One entry per line.", messages)}</span>
         </>
       }
@@ -271,9 +288,13 @@ function ArrayInput({
 function ReadOnlySetting({ setting, messages }: { setting: SettingRow; messages: TranslationMap }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-xs font-semibold">{setting.label}</span>
+      <span className="text-xs font-semibold">
+        {settingLabel(setting.key, messages, setting.label)}
+      </span>
       <p className="font-mono text-xs text-foreground">{encodeSettingValue(setting)}</p>
-      <p className="text-xs text-muted-foreground">{setting.help}</p>
+      <p className="text-xs text-muted-foreground">
+        {settingHelp(setting.key, messages, setting.help)}
+      </p>
       <p className="text-xs font-semibold text-muted-foreground">{t("This value is read-only.", messages)}</p>
     </div>
   );
@@ -327,9 +348,19 @@ export function SettingField({
           messages={messages}
         />
       ) : setting.type === "enum" ? (
-        <EnumInput setting={setting} value={value} onChange={(next) => onChange(setting.key, next)} />
+        <EnumInput
+          setting={setting}
+          value={value}
+          onChange={(next) => onChange(setting.key, next)}
+          messages={messages}
+        />
       ) : (
-        <ScalarInput setting={setting} value={value} onChange={(next) => onChange(setting.key, next)} />
+        <ScalarInput
+          setting={setting}
+          value={value}
+          onChange={(next) => onChange(setting.key, next)}
+          messages={messages}
+        />
       )}
       {setting.type !== "locales" && (
         <InlineError keyName={setting.key} error={error} messages={messages} />
@@ -341,8 +372,12 @@ export function SettingField({
 function RestrictedSettingRow({ setting, messages }: { setting: RestrictedSetting; messages: TranslationMap }) {
   return (
     <div className="flex flex-col gap-1 rounded-control border border-border bg-muted p-2">
-      <span className="text-xs font-semibold">{setting.label}</span>
-      <p className="text-xs text-muted-foreground">{setting.help}</p>
+      <span className="text-xs font-semibold">
+        {settingLabel(setting.key, messages, setting.label)}
+      </span>
+      <p className="text-xs text-muted-foreground">
+        {settingHelp(setting.key, messages, setting.help)}
+      </p>
       <p className="text-xs font-semibold text-muted-foreground">
         {t("Only a super administrator can view this value.", messages)}
       </p>
@@ -395,7 +430,10 @@ function CategorySection({
   }
 
   return (
-    <FormSection title={category.label} description={category.help}>
+    <FormSection
+      title={categoryLabel(category.categoryKey, messages, category.label)}
+      description={categoryHelp(category.categoryKey, messages, category.help)}
+    >
       {fields}
     </FormSection>
   );

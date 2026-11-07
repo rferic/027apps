@@ -8,6 +8,7 @@ import type { Theme } from "@/lib/theme";
 import { BrandLogo } from "./brand-logo";
 import { LocaleSwitcher } from "./locale-switcher";
 import { ThemeSwitcher } from "./theme-switcher";
+import { UserMenu } from "./user-menu";
 import { Button } from "./ui/button";
 
 interface PanelHeaderProps {
@@ -53,12 +54,15 @@ export function PanelHeader({ user, locale, messages, theme, instanceName, menu 
         />
         <span className="truncate text-sm font-semibold">{instanceName.trim() || APP_NAME}</span>
       </div>
-      <details className="relative min-w-0">
-        <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-control border border-border px-2.5 py-1.5 text-xs focus-visible:ring-2 focus-visible:ring-accent">
-          <span className="max-w-24 truncate font-semibold sm:max-w-36">
-            {user.displayName || user.email}
-          </span>
-        </summary>
+      <UserMenu
+        summary={
+          <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-control border border-border px-2.5 py-1.5 text-xs focus-visible:ring-2 focus-visible:ring-accent">
+            <span className="max-w-24 truncate font-semibold sm:max-w-36">
+              {user.displayName || user.email}
+            </span>
+          </summary>
+        }
+      >
         <div
           data-user-menu
           className="absolute right-0 z-10 mt-1 flex w-64 flex-col gap-3 rounded-card border border-border bg-surface p-3 shadow-lg"
@@ -79,8 +83,8 @@ export function PanelHeader({ user, locale, messages, theme, instanceName, menu 
             </span>
             {/*
               Choosing a language calls router.refresh(), which re-renders the
-              server tree; the native <details> then closes because it is not
-              controlled state. Acceptable: the new locale is already applied.
+              server tree; the route stays the same, so the menu itself decides
+              when to close. The new locale is already applied either way.
             */}
             <LocaleSwitcher locale={locale} label={t("Language", messages)} className="min-h-11" />
           </div>
@@ -91,7 +95,7 @@ export function PanelHeader({ user, locale, messages, theme, instanceName, menu 
             </Button>
           </form>
         </div>
-      </details>
+      </UserMenu>
     </header>
   );
 }
