@@ -1,4 +1,4 @@
-import { setCurrencyEnabled } from "@/lib/currency-mutations";
+import { patchCurrencies } from "@/lib/currency-mutations";
 import type { MutationResult } from "@/lib/mutation-result";
 import type { CurrencyRow } from "@/lib/setting-types";
 
@@ -15,11 +15,6 @@ export interface CurrencyOption extends CurrencyRow {
 export interface CurrencyChange {
   code: string;
   enabled: boolean;
-}
-
-export interface CurrencyChangeResult {
-  code: string;
-  result: MutationResult;
 }
 
 export function normalizeSearch(value: string): string {
@@ -98,15 +93,13 @@ export function bulkDisableChanges(currencies: readonly CurrencyRow[]): Currency
     .map((currency) => ({ code: currency.code, enabled: false }));
 }
 
-/** One PATCH per changed currency; callers refresh once after the whole batch. */
+/**
+ * Sends every change in one PATCH so clearing the list never burns one
+ * rate-limit slot per currency. Callers refresh once after the batch.
+ */
 export async function applyCurrencyChanges(
   changes: readonly CurrencyChange[],
   fetcher: typeof fetch = fetch,
-): Promise<CurrencyChangeResult[]> {
-  return Promise.all(
-    changes.map(async (change) => ({
-      code: change.code,
-      result: await setCurrencyEnabled(change.code, change.enabled, fetcher),
-    })),
-  );
+): Promise<MutationResult> {
+  return patchCurrencies(changes, fetcher);
 }

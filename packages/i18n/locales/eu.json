@@ -191,6 +191,7 @@
   "No currencies match": "Ez dator bat moneta ez",
   "No default currency is configured.": "Ez dago moneta lehenetsirik konfiguratuta.",
   "No invitations yet.": "Oraindik ez dago gonbidapenik.",
+  "No locales match": "Ez dago hizkuntza bat datorrenik",
   "No members match {q}.": "Ez dago {q} bilaketarekin bat datorren kiderik.",
   "No members or modules yet.": "Oraindik ez dago kiderik edo modulurik.",
   "No members yet.": "Oraindik ez dago kiderik.",

@@ -16,19 +16,17 @@ import type { MutationFailure } from "@/lib/mutation-result";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
 import type { CurrencyRow } from "@/lib/setting-types";
 
-function CurrencyRowError({
-  code,
+function CurrencyBatchError({
   error,
   messages,
 }: {
-  code: string;
   error: MutationFailure;
   messages: TranslationMap;
 }) {
   return (
     <div role="alert" className="rounded-control border border-destructive p-2 text-xs">
       <p className="font-semibold text-destructive">
-        {t("We couldn't change the currency.", messages)} <span className="font-mono">{code}</span>
+        {t("We couldn't change the currency.", messages)}
       </p>
       {error.code && (
         <p className="mt-1 text-muted-foreground">{panelErrorCodeLabel(error.code, messages)}</p>
@@ -45,7 +43,8 @@ function CurrencyRowError({
 /**
  * Multi-select currency picker. The database stores only `code`, `enabled` and
  * `isDefault`, so the visible name and symbol are derived from Intl with the
- * UI locale. Each toggle is its own PATCH; a batch refreshes once at the end.
+ * UI locale. Every interaction—including "Clear all"—is one batch PATCH, so a
+ * single request and one write slot cover the whole change.
  */
 export function CurrencySettings({
   defaultCode,
@@ -59,8 +58,8 @@ export function CurrencySettings({
   messages: TranslationMap;
 }) {
   const router = useRouter();
-  const [saving, setSaving] = useState<Record<string, boolean>>({});
-  const [errors, setErrors] = useState<Record<string, MutationFailure>>({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<MutationFailure | null>(null);
   const [confirmingBulk, setConfirmingBulk] = useState(false);
 
   const options = useMemo<MultiSelectOption[]>(
@@ -78,37 +77,18 @@ export function CurrencySettings({
     [currencies],
   );
   const bulkChanges = bulkDisableChanges(currencies);
-  const busy = Object.keys(saving).length > 0;
-  const pendingValue = Object.keys(saving)[0] ?? null;
 
   async function runChanges(changes: CurrencyChange[]) {
     if (changes.length === 0) return;
 
-    const codes = changes.map((change) => change.code);
-    setSaving((current) => {
-      const next = { ...current };
-      for (const code of codes) next[code] = true;
-      return next;
-    });
-    setErrors((current) => {
-      const next = { ...current };
-      for (const code of codes) delete next[code];
-      return next;
-    });
+    setSaving(true);
+    setError(null);
 
     // The combobox is controlled by the server props: once the batch ends,
     // the refresh brings the authoritative enabled flags back.
-    const results = await applyCurrencyChanges(changes);
-    const failures: Record<string, MutationFailure> = {};
-    for (const entry of results) {
-      if (!entry.result.ok) failures[entry.code] = entry.result;
-    }
-    setErrors((current) => ({ ...current, ...failures }));
-    setSaving((current) => {
-      const next = { ...current };
-      for (const code of codes) delete next[code];
-      return next;
-    });
+    const result = await applyCurrencyChanges(changes);
+    setSaving(false);
+    if (!result.ok) setError(result);
     router.refresh();
   }
 
@@ -134,10 +114,10 @@ export function CurrencySettings({
         values={values}
         onToggle={toggle}
         onClear={() => setConfirmingBulk(true)}
-        pendingValue={pendingValue}
+        pendingValue={null}
         emptyLabel={t("No currencies match", messages)}
         messages={messages}
-        disabled={busy}
+        disabled={saving}
       />
 
       {confirmingBulk && (
@@ -165,9 +145,7 @@ export function CurrencySettings({
         </div>
       )}
 
-      {Object.entries(errors).map(([code, error]) => (
-        <CurrencyRowError key={code} code={code} error={error} messages={messages} />
-      ))}
+      {error && <CurrencyBatchError error={error} messages={messages} />}
 
       {defaultCode === null && (
         <p className="text-xs text-muted-foreground">

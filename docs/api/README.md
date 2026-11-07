@@ -2,7 +2,7 @@
 
 Public guide for integrating with a 027Apps instance. This document is the **human entry point**; the normative contract is the generated **OpenAPI** document.
 
-> **Status (2026-11-06): partial — 51 operations documented.** The OpenAPI document is generated from the same zod schemas that validate requests and responses, and today it covers the Core routes in `apps/admin/src/app/api/v1/**`. Sections or endpoints marked **Previsto** describe the v1 target and are **not implemented yet**; the rest reflects the code that runs. If something here disagrees with the OpenAPI, **the OpenAPI wins**.
+> **Status (2026-11-06): partial — 52 operations documented.** The OpenAPI document is generated from the same zod schemas that validate requests and responses, and today it covers the Core routes in `apps/admin/src/app/api/v1/**`. Sections or endpoints marked **Previsto** describe the v1 target and are **not implemented yet**; the rest reflects the code that runs. If something here disagrees with the OpenAPI, **the OpenAPI wins**.
 
 ## Contents
 
@@ -197,7 +197,7 @@ The CI **fails** if a declared capability is not documented, and checks that eve
 
 ### Core endpoints (at a glance)
 
-The table reflects the **51 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
+The table reflects the **52 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
 
 | Area | Endpoints | Notes |
 |---|---|---|
@@ -212,13 +212,32 @@ The table reflects the **51 operations currently documented** (the authoritative
 | Invitations | `POST/GET /invitations`, `DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | redeem is the public join step (single use) |
 | API keys | `POST/GET /api-keys`, `GET/DELETE /api-keys/{id}` | secret returned once |
 | Devices | `POST/GET /devices`, `DELETE /devices/{id}` | push registration and revocation |
-| Settings & currency | `GET /settings`, `PATCH /settings`, `PATCH /settings/{category}/{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
+| Settings & currency | `GET /settings`, `PATCH /settings`, `PATCH /settings/{category}/{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
 | i18n | `GET /translations?locale=` | ETag-cached (304 on `If-None-Match`) |
 | i18n admin | `GET /translations/status`, `POST /translations/import`, `PUT /translations/{locale}/{hash}` | **previsto** |
 | Operations | `GET /maintenance/status` (**session-only**, super_admin); `POST /maintenance/run` (**service key**, `maintenance:run`) | `maintenance/run` needs an instance key with `role_cap=super_admin` |
 | Audit | `GET /admin-actions`, `GET /audit` | **previsto** |
 
 Full request/response shapes: the generated OpenAPI (§11) or the normative spec while it is not published.
+
+### Currency batch
+
+`PATCH /api/v1/currencies` enables or disables up to **200** currencies in a **single transaction**
+(`currencies:write`, one write slot):
+
+```bash
+curl -sS -X PATCH "$INSTANCE_URL/api/v1/currencies" \
+  -H "Authorization: Bearer $CREDENTIAL" -H 'Content-Type: application/json' \
+  -d '{"updates":[{"code":"USD","enabled":false},{"code":"JPY","enabled":false}]}'
+```
+
+- `updates` is required, has **1…200** entries, and each `code` may appear only once (duplicates are
+  `400 validation_failed`).
+- The default currency (`localization.default_currency`) **cannot be disabled**; a batch that tries
+  returns `409 currency_is_default` and **applies nothing**.
+- An unknown code returns `404 not_found` and also rolls the whole batch back.
+- The response has the same shape as `GET /currencies`: `{ "default": "EUR", "currencies": [ … ] }`
+  with the final state. Prefer this endpoint over one `PATCH /currencies/{code}` per currency.
 
 Module endpoints and tools live in the module's own documentation, not here (the Core does not duplicate them).
 
@@ -350,7 +369,7 @@ One shared budget per key (30 req/min by default, writes 10 req/min), audited pe
 
 - The **OpenAPI document is generated** from the same schemas that validate requests and responses — it cannot drift from the implementation (delta 2026-10-27 in the API spec). Generation uses zod 4's native `z.toJSONSchema()`; the registry in `packages/core/src/openapi/registry.ts` maps each route handler to its shared schemas and scopes.
 - Each instance **serves it** at `GET /api/v1/openapi.json` (no auth needed to read the schema; the API itself still requires credentials).
-- A copy is committed to the repository at `docs/api/openapi.json` for review (**51 operations** today); CI fails if it is out of date or if a route handler has no operation (and also if a `route.ts` exports no HTTP method).
+- A copy is committed to the repository at `docs/api/openapi.json` for review (**52 operations** today); CI fails if it is out of date or if a route handler has no operation (and also if a `route.ts` exports no HTTP method).
 - Every operation publishes the credentials it actually accepts: `session` routes list `sessionAuth` and `apiKeyAuth`; `/setup/test-email` and `/maintenance/status` are `sessionAuth` only; `/maintenance/run` is `apiKeyAuth` only.
 - A browsable rendering is available in the admin panel at `/docs/api` (Scalar, bundled locally so the CSP needs no CDN; the client/agent/MCP toolbars are disabled).
 

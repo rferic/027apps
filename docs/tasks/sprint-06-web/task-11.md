@@ -33,6 +33,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 6 | Monedas como selector múltiple con búsqueda, nombre y símbolo derivados | hecho |
 | 7 | Checklist UX de 10 puntos a 375 y 1280 px, revisión y auditoría | pendiente |
 | 8 | Fechas de presentación con la zona de la instancia (deuda M2d, ADR 0008 §2) | hecho |
+| 9 | Idiomas habilitados con el mismo selector múltiple que las monedas | hecho |
 
 ### Iteración 5 — Settings padre/hijos (hecho)
 
@@ -52,23 +53,26 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 
 ### Iteración 6 — Monedas multi-select (hecho)
 
-- Sin cambios de BD ni de API: el nombre y el símbolo se derivan en cliente con
+- Sin cambios de BD: el nombre y el símbolo se derivan en cliente con
   `Intl.DisplayNames` y `Intl.NumberFormat.formatToParts`, con el `code` como fallback.
 - Combobox con chips (`ui/multi-select.tsx`), sin dependencias nuevas: el trigger muestra una chip por
   moneda `enabled` (`símbolo · Nombre`) y el desplegable lleva buscador que filtra por nombre, código o
   símbolo, insensible a mayúsculas y diacríticos (`normalize("NFD")` + `\p{Diacritic}`).
 - La moneda por defecto es una chip fija sin botón de quitar y el toggle de su opción se ignora.
+- **Cambios en lote**: `PATCH /api/v1/currencies` acepta `{ updates: [{ code, enabled }] }` (1…200, sin
+  duplicados) y los aplica en una sola transacción con un único slot de escritura. La moneda por
+  defecto sigue protegida (`currency_is_default`) y cualquier fallo revierte todo el lote.
 - Pie con contador "{selected} of {total} selected" y "Clear all except the default": pide confirmación
-  inline y luego aplica un `PATCH` por moneda no-default. Cada toggle individual también es un `PATCH`;
-  hay `pendingValue` atenuado, error inline con `request_id` y un `router.refresh()` al terminar el lote.
+  inline y luego envía **una sola** petición con todas las monedas que se desactivan. Cada toggle
+  individual reutiliza el mismo lote con una entrada. Hay un estado `saving` global, un único error con
+  su `request_id` y un `router.refresh()` al terminar.
 - Teclado: flechas mueven el activo, Enter/Espacio alternan, Escape cierra y devuelve el foco al trigger;
   cierre por clic fuera. `aria-expanded`, `aria-selected`, `aria-multiselectable` y vacío
   "No currencies match".
 - Tests: chips y placeholder, filtro por nombre/símbolo/código y diacríticos, chip fija sin botón de
-  quitar, `onClear` sin la default, `aria-selected`, contador y opción pendiente atenuada.
-- **Pendiente (rate limit)**: "Clear all except the default" dispara un `PATCH` por moneda; limpiar
-  más de 60 en un minuto agota el límite de escritura por usuario (60/min) y devuelve 429. Opciones:
-  endpoint de lote para monedas o subir el límite solo en esa ruta.
+  quitar, `onClear` sin la default, `aria-selected`, contador; el clear-all emite una petición con N
+  entradas y nunca una por moneda. En Core: tres cambios en una petición, un solo slot consumido,
+  default protegida y atomicidad ante un código inexistente o duplicado.
 
 ### Iteración 8 — Fechas con la zona de la instancia (hecho)
 
@@ -82,3 +86,18 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 - Tests: `2026-11-06T23:30:00Z` es día 7 en `Europe/Madrid` y día 6 en `UTC`; espía sobre
   `Intl.DateTimeFormat` que exige `timeZone` en la llamada de formato; fallback a `UTC` y `—` para
   valores inválidos.
+
+### Iteración 9 — Idiomas habilitados con MultiSelect (hecho)
+
+- `localization.enabled_locales` deja de ser una lista de checkboxes y usa `ui/multi-select.tsx`.
+  Opciones: las 9 locales con su **nombre nativo** (`English, Español, Català, Italiano, Français,
+  Deutsch, Português, Galego, Euskara`) y el código (`en`, `es`…) como `hint`, de modo que el buscador
+  filtra por nombre o por código.
+- `en` es fija: no se puede quitar, porque el Core exige que esté siempre presente.
+- Al guardar la sección, el borrador se convierte en array y viaja en el lote de settings
+  (`updates` con `localization.enabled_locales`).
+- Si el usuario quita el idioma que es `default_locale`, la API responde `validation_failed` con
+  `formErrors` de coherencia: el alert muestra el mensaje y el `request_id`, y la selección revierte al
+  valor guardado (el resto de ediciones sin guardar se conserva).
+- Tests: render con chips y `en` fija, filtro por nombre/código, guardado con el array y alert de
+  coherencia con `request_id`; el helper de reversión deja la selección guardada.

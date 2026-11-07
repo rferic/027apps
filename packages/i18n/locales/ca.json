@@ -191,6 +191,7 @@
   "No currencies match": "Cap moneda coincideix",
   "No default currency is configured.": "No hi ha cap moneda predeterminada configurada.",
   "No invitations yet.": "Encara no hi ha invitacions.",
+  "No locales match": "Cap idioma coincideix",
   "No members match {q}.": "Cap membre coincideix amb {q}.",
   "No members or modules yet.": "Encara no hi ha membres ni mòduls.",
   "No members yet.": "Encara no hi ha membres.",

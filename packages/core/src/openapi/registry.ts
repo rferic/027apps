@@ -1,6 +1,6 @@
 import type { ZodType } from "zod";
 import { createApiKeySchema } from "../api-keys/api";
-import { patchCurrencyBodySchema } from "../currencies/api";
+import { patchCurrenciesBodySchema, patchCurrencyBodySchema } from "../currencies/api";
 import { registerDeviceSchema } from "../devices/api";
 import { createInvitationSchema, redeemInvitationSchema } from "../invitations/api";
 import { maintenanceRunSchema } from "../maintenance/api";
@@ -112,6 +112,7 @@ const moduleSettingWrite = component("ModuleSettingWrite", moduleSettingSchema);
 const settingsPatch = component("SettingsPatch", patchSettingBodySchema);
 const settingsBatchPatch = component("SettingsBatchPatch", patchSettingsBodySchema);
 const currencyPatch = component("CurrencyPatch", patchCurrencyBodySchema);
+const currenciesPatch = component("CurrenciesPatch", patchCurrenciesBodySchema);
 const maintenanceRun = component("MaintenanceRunInput", maintenanceRunSchema);
 const setupSuperAdmin = component("SetupSuperAdmin", setupSuperAdminSchema);
 
@@ -517,6 +518,15 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     path: "/currencies",
     summary: "Currencies with their enabled flag and the default.",
     scopes: ["currencies:read"],
+    response: currencyListSchema,
+    auth: "session",
+  },
+  {
+    method: "patch",
+    path: "/currencies",
+    summary: "Enable or disable up to 200 currencies in one transaction.",
+    scopes: ["currencies:write"],
+    request: currenciesPatch,
     response: currencyListSchema,
     auth: "session",
   },

@@ -42,6 +42,39 @@ export async function listCurrencies(deps: CurrenciesDeps): Promise<{
   return { default: defaultCurrency, currencies };
 }
 
+function assertCode(code: string): void {
+  if (!/^[A-Z]{3}$/.test(code)) throw new DomainError('not_found');
+}
+
+/**
+ * Applies one enabled flag on an open transaction. The caller already resolved
+ * the default currency, so a batch never re-reads it per entry.
+ */
+async function applyCurrencyEnabled(
+  db: QueryClient,
+  code: string,
+  enabled: boolean,
+  defaultCurrency: string | null,
+): Promise<CurrencyView> {
+  if (!enabled && defaultCurrency === code) throw new DomainError('currency_is_default');
+
+  const result = await db.query(
+    'update public.currencies set enabled = $2, updated_at = now() where code = $1 returning code, enabled',
+    [code, enabled],
+  );
+  if (result.rows.length === 0) throw new DomainError('not_found');
+  const row = result.rows[0]!;
+  return {
+    code: String(row.code),
+    enabled: row.enabled === true,
+    isDefault: String(row.code) === defaultCurrency,
+  };
+}
+
+function transactionRunner(deps: CurrenciesDeps): TransactionRunner {
+  return deps.withTransaction ?? (<T>(fn: (db: QueryClient) => Promise<T>) => fn(deps.db));
+}
+
 /** PATCH /api/v1/currencies/{code} — enable/disable; the default never disables. */
 export async function setCurrencyEnabled(
   deps: CurrenciesDeps,
@@ -50,28 +83,52 @@ export async function setCurrencyEnabled(
   enabled: boolean,
 ): Promise<CurrencyView> {
   void caller;
-  if (!/^[A-Z]{3}$/.test(code)) throw new DomainError('not_found');
+  assertCode(code);
 
   // The "is this the default?" read and the update must share one transaction;
   // otherwise a concurrent default switch can slip between them.
-  const run = deps.withTransaction ?? (<T>(fn: (db: QueryClient) => Promise<T>) => fn(deps.db));
+  return transactionRunner(deps)(async (db) => {
+    const defaultCurrency = await deps.defaultCurrency(db);
+    return applyCurrencyEnabled(db, code, enabled, defaultCurrency);
+  });
+}
 
-  return run(async (db) => {
-    if (!enabled) {
-      const current = await deps.defaultCurrency(db);
-      if (current === code) throw new DomainError('currency_is_default');
+export type CurrencyUpdate = { code: string; enabled: boolean };
+
+/**
+ * PATCH /api/v1/currencies — applies up to 200 enable/disable changes in one
+ * transaction. Any failure (default currency, unknown code) rolls the whole
+ * batch back, and the response carries the final list like GET.
+ */
+export async function setCurrenciesEnabled(
+  deps: CurrenciesDeps,
+  caller: Caller,
+  updates: readonly CurrencyUpdate[],
+): Promise<{ default: string | null; currencies: CurrencyView[] }> {
+  void caller;
+
+  const seen = new Set<string>();
+  for (const { code } of updates) {
+    assertCode(code);
+    if (seen.has(code)) {
+      throw new DomainError('validation_failed', 'Duplicate currency code', { code });
+    }
+    seen.add(code);
+  }
+
+  return transactionRunner(deps)(async (db) => {
+    // A single read keeps every guard consistent with one default currency.
+    const defaultCurrency = await deps.defaultCurrency(db);
+    for (const { code, enabled } of updates) {
+      await applyCurrencyEnabled(db, code, enabled, defaultCurrency);
     }
 
-    const result = await db.query(
-      'update public.currencies set enabled = $2, updated_at = now() where code = $1 returning code, enabled',
-      [code, enabled],
-    );
-    if (result.rows.length === 0) throw new DomainError('not_found');
-    const row = result.rows[0]!;
-    return {
+    const rows = await db.query('select code, enabled from public.currencies order by code');
+    const currencies = rows.rows.map((row) => ({
       code: String(row.code),
       enabled: row.enabled === true,
-      isDefault: String(row.code) === (await deps.defaultCurrency(db)),
-    };
+      isDefault: String(row.code) === defaultCurrency,
+    }));
+    return { default: defaultCurrency, currencies };
   });
 }

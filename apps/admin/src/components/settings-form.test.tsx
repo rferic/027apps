@@ -5,7 +5,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 
-import { SettingField, SettingsForm } from "./settings-form";
+import { SettingField, SettingsForm, SaveError } from "./settings-form";
 import type { SettingRow, SettingsCategoryRow } from "@/lib/setting-types";
 
 const NAME: SettingRow = {
@@ -195,5 +195,46 @@ describe("SettingsForm", () => {
 
     expect(matching).toContain("not a valid IANA timezone");
     expect(other).not.toContain("not a valid IANA timezone");
+  });
+
+  it("renders enabled locales as combobox chips with English fixed", () => {
+    const html = renderToStaticMarkup(
+      <SettingField
+        setting={LOCALES}
+        draft={{ "localization.enabled_locales": "en, es" }}
+        onChange={() => {}}
+        error={null}
+        messages={{}}
+      />,
+    );
+
+    expect(html).toContain('role="combobox"');
+    expect(html).not.toContain('type="checkbox"');
+    expect(html).toContain('data-fixed="true"');
+    expect(html).toContain("English");
+    expect(html).toContain("Español");
+    expect(html).not.toContain('data-remove="en"');
+    expect(html).toContain('data-remove="es"');
+  });
+
+  it("shows the coherence error in the alert with its request id", () => {
+    const html = renderToStaticMarkup(
+      <SaveError
+        error={{
+          ok: false,
+          code: "validation_failed",
+          requestId: "req-coherence",
+          details: {
+            formErrors: ["default_locale must be in enabled_locales"],
+            fieldErrors: {},
+          },
+        }}
+        messages={{}}
+      />,
+    );
+
+    expect(html).toContain("default_locale must be in enabled_locales");
+    expect(html).toContain("Request ID");
+    expect(html).toContain("req-coherence");
   });
 });

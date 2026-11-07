@@ -61,6 +61,21 @@ function sameValue(a: unknown, b: unknown): boolean {
 }
 
 /**
+ * Puts the saved locale selection back after the API rejects it (for example
+ * when removing the current default_locale). Other unsaved edits are kept.
+ */
+export function revertEnabledLocales(
+  settings: readonly SettingRow[],
+  draft: SettingsDraft,
+): SettingsDraft {
+  const next = { ...draft };
+  for (const setting of settings) {
+    if (setting.type === "locales") next[setting.key] = encodeSettingValue(setting);
+  }
+  return next;
+}
+
+/**
  * The batch body: only changed keys, never a read-only key, and a secret only
  * when its field is non-empty (empty = keep the configured one).
  */

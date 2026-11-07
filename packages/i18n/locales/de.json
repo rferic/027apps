@@ -191,6 +191,7 @@
   "No currencies match": "Keine Währung entspricht der Suche",
   "No default currency is configured.": "Es ist keine Standardwährung konfiguriert.",
   "No invitations yet.": "Noch keine Einladungen.",
+  "No locales match": "Keine Sprache entspricht",
   "No members match {q}.": "Kein Mitglied entspricht {q}.",
   "No members or modules yet.": "Noch keine Mitglieder oder Module.",
   "No members yet.": "Noch keine Mitglieder.",

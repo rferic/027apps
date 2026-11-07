@@ -842,6 +842,36 @@
         ],
         "type": "object"
       },
+      "CurrenciesPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "updates": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "code",
+                "enabled"
+              ],
+              "type": "object"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "updates"
+        ],
+        "type": "object"
+      },
       "Currency": {
         "additionalProperties": false,
         "properties": {
@@ -4108,6 +4138,52 @@
         "summary": "Currencies with their enabled flag and the default.",
         "x-027-scopes": [
           "currencies:read"
+        ]
+      },
+      "patch": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CurrenciesPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrencyList"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Enable or disable up to 200 currencies in one transaction.",
+        "x-027-scopes": [
+          "currencies:write"
         ]
       }
     },

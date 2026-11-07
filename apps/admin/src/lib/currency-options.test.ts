@@ -71,17 +71,42 @@ describe("selection", () => {
     ]);
   });
 
-  it("sends one PATCH per toggle with the new flag", async () => {
+  it("sends the whole clear-all batch as one PATCH with one entry per currency", async () => {
     const fetcher = vi.fn(async () =>
-      new Response(JSON.stringify({ currency: { code: "USD", enabled: true } }), { status: 200 }),
+      new Response(
+        JSON.stringify({
+          default: "EUR",
+          currencies: [
+            { code: "EUR", enabled: true, isDefault: true },
+            { code: "USD", enabled: false, isDefault: false },
+            { code: "SEK", enabled: false, isDefault: false },
+          ],
+        }),
+        { status: 200 },
+      ),
     );
 
-    const results = await applyCurrencyChanges([{ code: "USD", enabled: true }], fetcher);
+    const changes = bulkDisableChanges(CURRENCIES);
+    const result = await applyCurrencyChanges(changes, fetcher);
 
-    expect(results).toEqual([{ code: "USD", result: { ok: true } }]);
+    expect(result).toEqual({ ok: true });
+    expect(fetcher).toHaveBeenCalledTimes(1);
     const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe("/api/v1/currencies/USD");
+    expect(url).toBe("/api/v1/currencies");
     expect(init.method).toBe("PATCH");
-    expect(JSON.parse(String(init.body))).toEqual({ enabled: true });
+    expect(JSON.parse(String(init.body))).toEqual({
+      updates: [
+        { code: "USD", enabled: false },
+        { code: "SEK", enabled: false },
+      ],
+    });
+  });
+
+  it("does not call the API when there is nothing to clear", async () => {
+    const fetcher = vi.fn();
+
+    await expect(applyCurrencyChanges([], fetcher)).resolves.toEqual({ ok: true });
+
+    expect(fetcher).not.toHaveBeenCalled();
   });
 });

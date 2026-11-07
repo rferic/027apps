@@ -191,6 +191,7 @@
   "No currencies match": "Aucune devise ne correspond",
   "No default currency is configured.": "Aucune devise par défaut n'est configurée.",
   "No invitations yet.": "Aucune invitation pour le moment.",
+  "No locales match": "Aucune langue ne correspond",
   "No members match {q}.": "Aucun membre ne correspond à {q}.",
   "No members or modules yet.": "Aucun membre ni module pour le moment.",
   "No members yet.": "Aucun membre pour l'instant.",

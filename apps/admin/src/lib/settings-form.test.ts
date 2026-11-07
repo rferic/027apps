@@ -5,6 +5,7 @@ import {
   encodeSettingValue,
   initialSettingsDraft,
   parseSettingValue,
+  revertEnabledLocales,
   updatesFromDraft,
 } from "./settings-form";
 
@@ -147,6 +148,28 @@ describe("updatesFromDraft", () => {
     expect(updatesFromDraft([LOGO], draft)).toEqual([
       { key: "instance.logo_url", value: null },
     ]);
+  });
+
+  it("sends the enabled locales as an array in the batch", () => {
+    const draft = initialSettingsDraft(ALL);
+    draft["localization.enabled_locales"] = "en, es, gl";
+
+    expect(updatesFromDraft([LOCALES], draft)).toEqual([
+      { key: "localization.enabled_locales", value: ["en", "es", "gl"] },
+    ]);
+  });
+});
+
+describe("revertEnabledLocales", () => {
+  it("restores the saved selection after a coherence failure", () => {
+    const draft = initialSettingsDraft(ALL);
+    draft["localization.enabled_locales"] = "en";
+
+    const reverted = revertEnabledLocales([LOCALES], draft);
+
+    expect(reverted["localization.enabled_locales"]).toBe("en, es");
+    // Other unsaved edits stay untouched.
+    expect(reverted["instance.name"]).toBe(draft["instance.name"]);
   });
 });
 

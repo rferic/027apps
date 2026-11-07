@@ -7,14 +7,16 @@ import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FormActions, FormAlert, FormField, FormSection } from "@/components/ui/form";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { Select } from "@/components/ui/select";
-import { LOCALE_LABELS } from "@/lib/locale";
+import { LOCALE_LABELS, localeOptions } from "@/lib/locale";
 import type { MutationFailure } from "@/lib/mutation-result";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
 import type { RestrictedSetting, SettingRow, SettingsCategoryRow } from "@/lib/setting-types";
 import {
   encodeSettingValue,
   initialSettingsDraft,
+  revertEnabledLocales,
   updatesFromDraft,
   type SettingsDraft,
 } from "@/lib/settings-form";
@@ -46,7 +48,7 @@ function errorFor(
   return failure.code ? panelErrorCodeLabel(failure.code, messages) : undefined;
 }
 
-function SaveError({
+export function SaveError({
   error,
   messages,
 }: {
@@ -150,39 +152,34 @@ function LocaleInput({
   error: MutationFailure | null;
   messages: TranslationMap;
 }) {
-  const selected = new Set(
-    value
-      .split(",")
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 0),
-  );
+  const values = value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
 
-  function toggle(locale: Locale) {
-    const next = new Set(selected);
+  function toggle(locale: string) {
+    const next = new Set(values);
     if (next.has(locale)) next.delete(locale);
     else next.add(locale);
     onChange(PANEL_LOCALES.filter((entry) => next.has(entry)).join(", "));
   }
 
   return (
-    <fieldset className="flex flex-col gap-1">
-      <legend className="text-xs font-semibold">{setting.label}</legend>
-      <div className="flex flex-wrap gap-x-4">
-        {PANEL_LOCALES.map((locale) => (
-          <label key={locale} className="flex min-h-11 items-center gap-2 text-xs">
-            <input
-              type="checkbox"
-              checked={selected.has(locale)}
-              disabled={locale === "en"}
-              onChange={() => toggle(locale)}
-            />
-            {LOCALE_LABELS[locale]}
-          </label>
-        ))}
-      </div>
+    <div className="flex flex-col gap-1">
+      <MultiSelect
+        label={setting.label}
+        placeholder={setting.label}
+        searchPlaceholder={t("Search by name, code or symbol.", messages)}
+        options={localeOptions()}
+        values={values}
+        onToggle={toggle}
+        onClear={() => onChange("en")}
+        emptyLabel={t("No locales match", messages)}
+        messages={messages}
+      />
       <p className="text-xs text-muted-foreground">{setting.help}</p>
       <InlineError keyName={setting.key} error={error} messages={messages} />
-    </fieldset>
+    </div>
   );
 }
 
@@ -441,6 +438,12 @@ export function SettingsForm({
     setSaving(false);
     if (!result.ok) {
       setError(result);
+      // A coherence failure (default_locale removed from enabled_locales) is
+      // reported as formErrors, not on a field: put the saved selection back so
+      // the selector never shows a list the Core refused.
+      if (result.details?.formErrors && result.details.formErrors.length > 0) {
+        setDraft((current) => revertEnabledLocales(settings, current));
+      }
       return;
     }
     // A replaced secret must not stay in client state after the Core accepts it.
