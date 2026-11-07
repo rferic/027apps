@@ -38,7 +38,8 @@ describe("BrandLogo", () => {
       <BrandLogo variant="mark" size="md" name="Familia García" />,
     );
 
-    expect(html).toMatch(/<span class="[^"]*text-brand[^"]*"><svg/);
+    expect(html).toMatch(/<span class="[^"]*text-\[color:var\(--brand\)\][^"]*"><svg/);
+    expect(html).not.toContain("text-brand");
     expect(html).toContain('stroke="currentColor"');
     expect(html).toContain('role="img"');
     expect(html).toContain('aria-label="Familia García"');

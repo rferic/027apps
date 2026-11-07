@@ -44,7 +44,7 @@ export function BrandLogo({
 
   if (variant === "mark") {
     return (
-      <span className={cn("flex items-center text-brand", MARK_WIDTHS[size], className)}>
+      <span className={cn("flex items-center text-[color:var(--brand)]", MARK_WIDTHS[size], className)}>
         <BrandMark className="h-auto w-full" label={name?.trim() || "027Apps"} />
       </span>
     );
