@@ -27,9 +27,10 @@ const varsOf = (block: string) =>
   );
 
 const lightVars = varsOf(css.match(/:root\s*\{([^}]*)\}/)?.[1] ?? "");
-const darkVars = varsOf(
-  css.match(/prefers-color-scheme:\s*dark\s*\)\s*\{\s*:root\s*\{([^}]*)\}/)?.[1] ?? "",
+const systemDarkVars = varsOf(
+  css.match(/prefers-color-scheme:\s*dark\s*\)\s*\{\s*:root:not\(\.light\)\s*\{([^}]*)\}/)?.[1] ?? "",
 );
+const darkVars = varsOf(css.match(/\.dark\s*\{([^}]*)\}/)?.[1] ?? "");
 
 const colorRoles = Object.keys(mirror.light);
 const nonColorRoles = ["card-radius", "control-radius"];
@@ -37,6 +38,10 @@ const nonColorRoles = ["card-radius", "control-radius"];
 describe("tokens.json mirrors design-tokens.css", () => {
   it("defines the dark block", () => {
     expect(darkVars).not.toEqual({});
+  });
+
+  it("keeps the system and explicit dark blocks identical", () => {
+    expect(systemDarkVars).toEqual(darkVars);
   });
 
   it.each(["light", "dark"] as const)("matches every pair in %s", (theme) => {

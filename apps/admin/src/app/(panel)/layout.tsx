@@ -8,6 +8,7 @@ import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
 import { loadPanelSettings } from "@/lib/panel-settings";
+import { THEME_COOKIE, themeFromCookie } from "@/lib/theme";
 
 /**
  * The panel reads the session, the role and the instance settings on every
@@ -20,6 +21,7 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
 
   const cookieStore = await cookies();
   const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
+  const theme = themeFromCookie(cookieStore.get(THEME_COOKIE)?.value);
   const messages = await loadPanelMessages(locale);
   if ("denied" in gate) {
     return (
@@ -47,6 +49,7 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
           user={gate.user}
           locale={locale}
           messages={messages}
+          theme={theme}
           instanceName={instanceName}
           logoUrl={logoUrl}
           menu={<PanelMobileMenu messages={messages} />}

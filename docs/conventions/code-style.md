@@ -21,6 +21,8 @@ Si una regla de revisión falla de forma repetida, conviértela en regla de ESLi
 
 La UI solo usa **tokens semánticos** (`bg-background`, `text-foreground`...), definidos en `apps/admin/src/design-tokens.css` (único sitio con valores de color crudos; ahí viven los valores claro/oscuro) y mapeados a utilidades de Tailwind en `apps/admin/src/app/globals.css`. El espejo `apps/admin/tokens.json` lo mantiene un test de paridad (`src/design-tokens.test.ts`).
 
+Dos roles de marca con propósitos distintos: **`--accent`** es para texto y estado (enlaces, foco, mensajes), y **`--brand`** es solo para la marca gráfica (el latido del logo); no los intercambies.
+
 **Mecánico** (error de lint en `apps/admin/src/**/*.{ts,tsx}`, sobre cualquier string o plantilla literal, así que cubre `className`, `cn(...)`, `clsx(...)`, constantes):
 
 - Utilidades Tailwind con paleta cruda: `bg|text|border|ring|ring-offset|outline|fill|stroke|from|via|to|divide|decoration|accent|caret|shadow|placeholder` + `slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose` + `-<50..950>` (con o sin variantes `dark:`/`hover:` y opacidad `/50`). Ej.: `bg-gray-100`, `dark:text-slate-50`.
@@ -79,6 +81,8 @@ Los formularios y diálogos del admin siguen **un único patrón**; no se improv
   (`apps/admin/src/components/ui/form.tsx`), tanto en modal como en página. Etiqueta asociada por
   `htmlFor`/`id`, ayuda en `text-muted-foreground`, error en `text-destructive` con `aria-describedby`
   y `aria-invalid`, y acciones a la derecha con `min-h-11`.
+- **Controles**: los campos usan las primitivas del DS (`ui/select.tsx`, `ui/button.tsx`, etc.); nada de
+  `<select>` con clases sueltas ni de repetir el estilo del control en cada pantalla.
 - **Excepciones** (documentadas en el código): el drawer móvil necesita layout lateral y no usa `Dialog`;
   un grupo de checkboxes usa `fieldset`/`legend` con las primitivas de ayuda y error.
 - **Verificación**: cualquier modal o formulario nuevo se mira en claro y oscuro, y a 375 px. Hay un test

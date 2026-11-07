@@ -7,6 +7,7 @@ import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { LOCALE_LABELS } from "@/lib/locale";
 import { FormActions, FormAlert, FormField } from "@/components/ui/form";
+import { Select } from "@/components/ui/select";
 import {
   buildProfilePatch,
   canAssignRole,
@@ -85,12 +86,11 @@ function RoleField({
 
   return (
     <FormField id="member-role" label={t("Role", messages)} error={error}>
-      <select
+      <Select
         id="member-role"
         name="role"
         defaultValue={currentRole}
         {...fieldAria("role", error)}
-        className={inputClass}
       >
         {roleOptions(viewerRole).map((role) => (
           <option key={role} value={role}>
@@ -101,7 +101,7 @@ function RoleField({
                 : t("User", messages)}
           </option>
         ))}
-      </select>
+      </Select>
     </FormField>
   );
 }
@@ -152,19 +152,18 @@ function ProfileFormFields({
         label={t("Language", messages)}
         error={fieldErrors.locale?.[0]}
       >
-        <select
+        <Select
           id="member-locale"
           name="locale"
           defaultValue={member.locale}
           {...fieldAria("locale", fieldErrors.locale?.[0])}
-          className={inputClass}
         >
           {SUPPORTED_LOCALES.map((locale) => (
             <option key={locale} value={locale}>
               {LOCALE_LABELS[locale]}
             </option>
           ))}
-        </select>
+        </Select>
       </FormField>
 
       <FormField

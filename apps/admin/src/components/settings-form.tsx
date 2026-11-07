@@ -7,6 +7,7 @@ import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FormActions, FormAlert, FormField, FormSection } from "@/components/ui/form";
+import { Select } from "@/components/ui/select";
 import { LOCALE_LABELS } from "@/lib/locale";
 import type { MutationFailure } from "@/lib/mutation-result";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
@@ -197,19 +198,18 @@ function EnumInput({
   const options = setting.key === "notifications.push.provider" ? ["fcm", "none"] : [value];
   return (
     <FormField id={fieldId(setting.key)} label={setting.label} hint={setting.help}>
-      <select
+      <Select
         id={fieldId(setting.key)}
         name={setting.key}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={inputClass}
       >
         {options.map((option) => (
           <option key={option} value={option}>
             {option}
           </option>
         ))}
-      </select>
+      </Select>
     </FormField>
   );
 }

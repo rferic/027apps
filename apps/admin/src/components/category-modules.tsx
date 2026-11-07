@@ -5,14 +5,12 @@ import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { PanelError } from "@/components/panel-error";
 import { assignCategoryModule, unassignCategoryModule } from "@/lib/category-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
 import type { CategoryFailure, ModuleChoice } from "@/lib/panel-categories";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
-
-const inputClass =
-  "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 function ModuleAlert({
   title,
@@ -148,13 +146,13 @@ export function CategoryModules({
         <form onSubmit={handleAssign} className="flex flex-wrap items-end gap-2">
           <label htmlFor="category-module-add" className="flex flex-col gap-1 text-xs font-semibold">
             {t("Assign module", messages)}
-            <select id="category-module-add" name="moduleKey" required className={inputClass}>
+            <Select id="category-module-add" name="moduleKey" required>
               {assignable.map((module) => (
                 <option key={module.key} value={module.key}>
                   {module.name} ({module.key})
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <Button type="submit" variant="primary" className="min-h-11" disabled={assigning}>
             {assigning ? t("Assigning…", messages) : t("Assign module", messages)}

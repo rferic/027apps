@@ -97,6 +97,8 @@ Diálogos y formularios usan las primitivas compartidas (ui/dialog.tsx, ui/form.
 
 - Foco visible en todos los interactivos; `aria-current="page"` en el ítem activo.
 - Objetivos táctiles ≥ 44 px; contraste AA en ambos temas.
+- El tema es una preferencia del usuario, no solo del SO: se guarda en la cookie `027_theme`
+  (`system|light|dark`) y la cabecera ofrece el selector; sin cookie manda `prefers-color-scheme`.
 - Etiquetas reales (`<label>`), no `placeholder` como única etiqueta.
 - Tablas con `<caption>` o título asociado; cabeceras `th`.
 - Textos de menú cortos y estables: el alemán crece ~30 %; no usar frases en la navegación.

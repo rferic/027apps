@@ -12,7 +12,7 @@ const SIZES = {
  * variants, switched by the OS theme); `instance.logo_url` replaces it with a
  * custom logo, whose alternative text is the instance name.
  *
- * `variant="mark"` renders the heartbeat glyph alone, in the accent colour, for
+ * `variant="mark"` renders the heartbeat glyph alone, in the brand colour, for
  * the panel header where the instance name sits next to it (ADR 0003, L4).
  */
 export function BrandLogo({
@@ -40,7 +40,7 @@ export function BrandLogo({
 
   if (variant === "mark") {
     return (
-      <span className={cn("flex items-center text-accent", SIZES[size], className)}>
+      <span className={cn("flex items-center text-brand", SIZES[size], className)}>
         {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset */}
         <img src="/brand/mark.svg" alt="027Apps" className="h-full w-auto" />
       </span>

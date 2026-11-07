@@ -7,6 +7,7 @@ import { ApiKeyRevokeButton } from "@/components/api-key-revoke-button";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
@@ -87,16 +88,11 @@ function KeysFilter({ filter, messages }: { filter: StateFilter; messages: Trans
       <form method="get" className="flex flex-wrap items-end gap-2">
         <label htmlFor="keys-state" className="flex flex-col gap-1 text-xs font-semibold">
           {t("Status", messages)}
-          <select
-            id="keys-state"
-            name="state"
-            defaultValue={filter}
-            className="min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
+          <Select id="keys-state" name="state" defaultValue={filter}>
             <option value="all">{t("All", messages)}</option>
             <option value="active">{t("Active", messages)}</option>
             <option value="revoked">{t("Revoked", messages)}</option>
-          </select>
+          </Select>
         </label>
         <button
           type="submit"
