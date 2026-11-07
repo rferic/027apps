@@ -5,21 +5,14 @@ import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { createCategory } from "@/lib/category-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
-import { panelErrorCodeLabel, slugConflictError } from "@/lib/panel-errors";
+import { slugConflictError } from "@/lib/panel-errors";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
-
-function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) return null;
-  return (
-    <p id={id} className="text-xs font-semibold text-destructive">
-      {message}
-    </p>
-  );
-}
 
 function fieldAria(
   field: string,
@@ -43,24 +36,13 @@ function CategoryFormError({
   messages: TranslationMap;
 }) {
   return (
-    <div role="alert" className="rounded-card border border-destructive p-3 text-xs">
-      <p className="font-semibold text-destructive">
-        {t("We couldn't create the category.", messages)}
-      </p>
-      {error.code && error.code !== "conflict" && (
-        <p className="mt-1 text-muted-foreground">{panelErrorCodeLabel(error.code, messages)}</p>
-      )}
-      {error.details?.formErrors?.map((message) => (
-        <p key={message} className="mt-1 text-muted-foreground">
-          {message}
-        </p>
-      ))}
-      {error.requestId && (
-        <p className="mt-1 text-muted-foreground">
-          {t("Request ID", messages)}: <code className="select-all font-mono">{error.requestId}</code>
-        </p>
-      )}
-    </div>
+    <FormAlert
+      message={t("We couldn't create the category.", messages)}
+      code={error.code === "conflict" ? undefined : error.code}
+      details={error.details?.formErrors}
+      requestId={error.requestId}
+      messages={messages}
+    />
   );
 }
 
@@ -120,21 +102,27 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
         {t("Create category", messages)}
       </Button>
 
-      <dialog
+      <Dialog
+        labelledBy="category-create-title"
         ref={dialogRef}
-        aria-labelledby="category-create-title"
         onCancel={(event) => {
           // Escape must not dismiss the dialog while the request is in flight.
           if (saving) event.preventDefault();
         }}
-        className="w-full max-w-md rounded-card border border-border bg-surface p-4 backdrop:bg-foreground/40"
+        onBackdropClick={saving ? undefined : () => dialogRef.current?.close()}
       >
         <h2 id="category-create-title" className="text-sm font-semibold">
           {t("New category", messages)}
         </h2>
         <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-3">
-          <label htmlFor="category-name" className="flex flex-col gap-1 text-xs font-semibold">
-            {t("Name", messages)}
+          <FormField
+            id="category-name"
+            label={t("Name", messages)}
+            hint={t("Use a name between 1 and 80 characters.", messages)}
+            hintId="category-name-help"
+            error={fieldErrors.name?.[0]}
+            errorId="category-name-error"
+          >
             <input
               id="category-name"
               name="name"
@@ -144,14 +132,19 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
               {...fieldAria("name", fieldErrors.name?.[0], "category-name-help")}
               className={inputClass}
             />
-          </label>
-          <p id="category-name-help" className="text-xs text-muted-foreground">
-            {t("Use a name between 1 and 80 characters.", messages)}
-          </p>
-          <FieldError id="category-name-error" message={fieldErrors.name?.[0]} />
+          </FormField>
 
-          <label htmlFor="category-slug" className="flex flex-col gap-1 text-xs font-semibold">
-            {t("Slug", messages)}
+          <FormField
+            id="category-slug"
+            label={t("Slug", messages)}
+            hint={t(
+              "Lowercase letters, numbers and hyphens. Derived from the name when left empty.",
+              messages,
+            )}
+            hintId="category-slug-help"
+            error={slugError}
+            errorId="category-slug-error"
+          >
             <input
               id="category-slug"
               name="slug"
@@ -161,18 +154,11 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
               {...fieldAria("slug", slugError, "category-slug-help")}
               className={inputClass}
             />
-          </label>
-          <p id="category-slug-help" className="text-xs text-muted-foreground">
-            {t(
-              "Lowercase letters, numbers and hyphens. Derived from the name when left empty.",
-              messages,
-            )}
-          </p>
-          <FieldError id="category-slug-error" message={slugError} />
+          </FormField>
 
           {error && <CategoryFormError error={error} messages={messages} />}
 
-          <div className="flex flex-wrap justify-end gap-2">
+          <FormActions>
             <Button
               variant="secondary"
               className="min-h-11"
@@ -184,9 +170,9 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
             <Button type="submit" variant="primary" className="min-h-11" disabled={saving}>
               {saving ? t("Creating…", messages) : t("Create category", messages)}
             </Button>
-          </div>
+          </FormActions>
         </form>
-      </dialog>
+      </Dialog>
     </>
   );
 }

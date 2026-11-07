@@ -6,9 +6,10 @@ import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { FormActions, FormAlert } from "@/components/ui/form";
 import { revokeApiKey } from "@/lib/api-key-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
-import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
 /**
  * Revocation is immediate and irreversible, so the confirmation names the key
@@ -62,13 +63,13 @@ export function ApiKeyRevokeButton({
         {t("Revoke", messages)}
       </Button>
 
-      <dialog
+      <Dialog
+        labelledBy={`api-key-revoke-title-${id}`}
         ref={dialogRef}
-        aria-labelledby={`api-key-revoke-title-${id}`}
         onCancel={(event) => {
           if (revoking) event.preventDefault();
         }}
-        className="w-full max-w-md rounded-card border border-border bg-surface p-4 backdrop:bg-foreground/40"
+        onBackdropClick={revoking ? undefined : () => dialogRef.current?.close()}
       >
         <h2 id={`api-key-revoke-title-${id}`} className="text-sm font-semibold">
           {t("Revoke the API key {name}?", messages, { name })}
@@ -94,25 +95,16 @@ export function ApiKeyRevokeButton({
         </p>
 
         {error && (
-          <div role="alert" className="mt-3 rounded-card border border-destructive p-3 text-xs">
-            <p className="font-semibold text-destructive">
-              {t("We couldn't revoke the API key.", messages)}
-            </p>
-            {error.code && (
-              <p className="mt-1 text-muted-foreground">
-                {panelErrorCodeLabel(error.code, messages)}
-              </p>
-            )}
-            {error.requestId && (
-              <p className="mt-1 text-muted-foreground">
-                {t("Request ID", messages)}:{" "}
-                <code className="select-all font-mono">{error.requestId}</code>
-              </p>
-            )}
-          </div>
+          <FormAlert
+            className="mt-3"
+            message={t("We couldn't revoke the API key.", messages)}
+            code={error.code}
+            requestId={error.requestId}
+            messages={messages}
+          />
         )}
 
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <FormActions className="mt-3">
           <Button
             variant="secondary"
             className="min-h-11"
@@ -124,8 +116,8 @@ export function ApiKeyRevokeButton({
           <Button variant="destructive" className="min-h-11" onClick={handleRevoke} disabled={revoking}>
             {revoking ? t("Revoking…", messages) : t("Revoke key", messages)}
           </Button>
-        </div>
-      </dialog>
+        </FormActions>
+      </Dialog>
     </>
   );
 }

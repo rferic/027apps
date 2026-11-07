@@ -5,25 +5,17 @@ import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import {
   createInvitation,
   type CreateInvitationInput,
 } from "@/lib/invitation-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
 import type { ModuleChoice } from "@/lib/panel-categories";
-import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
-
-function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) return null;
-  return (
-    <p id={id} className="text-xs font-semibold text-destructive">
-      {message}
-    </p>
-  );
-}
 
 function fieldState(
   field: string,
@@ -53,7 +45,7 @@ function buildCreateInput(data: FormData): CreateInvitationInput {
   return input;
 }
 
-function InvitationErrorAlert({
+function InvitationCreateError({
   error,
   messages,
 }: {
@@ -61,24 +53,13 @@ function InvitationErrorAlert({
   messages: TranslationMap;
 }) {
   return (
-    <div role="alert" className="rounded-card border border-destructive p-3 text-xs">
-      <p className="font-semibold text-destructive">
-        {t("We couldn't create the invitation.", messages)}
-      </p>
-      {error.code && (
-        <p className="mt-1 text-muted-foreground">{panelErrorCodeLabel(error.code, messages)}</p>
-      )}
-      {error.details?.formErrors?.map((message) => (
-        <p key={message} className="mt-1 text-muted-foreground">
-          {message}
-        </p>
-      ))}
-      {error.requestId && (
-        <p className="mt-1 text-muted-foreground">
-          {t("Request ID", messages)}: <code className="select-all font-mono">{error.requestId}</code>
-        </p>
-      )}
-    </div>
+    <FormAlert
+      message={t("We couldn't create the invitation.", messages)}
+      code={error.code}
+      details={error.details?.formErrors}
+      requestId={error.requestId}
+      messages={messages}
+    />
   );
 }
 
@@ -132,8 +113,12 @@ function InvitationFields({
 }) {
   return (
     <>
-      <label htmlFor="invitation-email" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Email", messages)}
+      <FormField
+        id="invitation-email"
+        label={t("Email", messages)}
+        error={fieldErrors.email?.[0]}
+        errorId="invitation-email-error"
+      >
         <input
           id="invitation-email"
           name="email"
@@ -144,11 +129,14 @@ function InvitationFields({
           {...fieldState("email", fieldErrors.email)}
           className={inputClass}
         />
-      </label>
-      <FieldError id="invitation-email-error" message={fieldErrors.email?.[0]} />
+      </FormField>
 
-      <label htmlFor="invitation-name" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Name", messages)}
+      <FormField
+        id="invitation-name"
+        label={t("Name", messages)}
+        error={fieldErrors.name?.[0]}
+        errorId="invitation-name-error"
+      >
         <input
           id="invitation-name"
           name="name"
@@ -159,11 +147,14 @@ function InvitationFields({
           {...fieldState("name", fieldErrors.name)}
           className={inputClass}
         />
-      </label>
-      <FieldError id="invitation-name-error" message={fieldErrors.name?.[0]} />
+      </FormField>
 
-      <label htmlFor="invitation-category" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Category", messages)}
+      <FormField
+        id="invitation-category"
+        label={t("Category", messages)}
+        error={fieldErrors.user_category_id?.[0]}
+        errorId="invitation-category-error"
+      >
         <select id="invitation-category" name="user_category_id" className={inputClass}>
           <option value="">{t("No category", messages)}</option>
           {categories.map((category) => (
@@ -172,11 +163,14 @@ function InvitationFields({
             </option>
           ))}
         </select>
-      </label>
-      <FieldError id="invitation-category-error" message={fieldErrors.user_category_id?.[0]} />
+      </FormField>
 
-      <label htmlFor="invitation-modules" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Modules", messages)}
+      <FormField
+        id="invitation-modules"
+        label={t("Modules", messages)}
+        error={fieldErrors.modules?.[0]}
+        errorId="invitation-modules-error"
+      >
         <select
           id="invitation-modules"
           name="modules"
@@ -190,11 +184,14 @@ function InvitationFields({
             </option>
           ))}
         </select>
-      </label>
-      <FieldError id="invitation-modules-error" message={fieldErrors.modules?.[0]} />
+      </FormField>
 
-      <label htmlFor="invitation-days" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Expires in days", messages)}
+      <FormField
+        id="invitation-days"
+        label={t("Expires in days", messages)}
+        error={fieldErrors.expires_in_days?.[0]}
+        errorId="invitation-days-error"
+      >
         <input
           id="invitation-days"
           name="expires_in_days"
@@ -205,8 +202,7 @@ function InvitationFields({
           {...fieldState("days", fieldErrors.expires_in_days)}
           className={inputClass}
         />
-      </label>
-      <FieldError id="invitation-days-error" message={fieldErrors.expires_in_days?.[0]} />
+      </FormField>
     </>
   );
 }
@@ -260,12 +256,12 @@ export function InvitationCreateDialog({
   messages,
 }: InvitationCreateDialogProps) {
   return (
-    <dialog
+    <Dialog
+      labelledBy="invitation-create-title"
       ref={dialogRef}
-      aria-labelledby="invitation-create-title"
       onCancel={onCancel}
       onClose={onClosed}
-      className="w-full max-w-lg rounded-card border border-border bg-surface p-4 backdrop:bg-foreground/40"
+      onBackdropClick={creating ? undefined : onDismiss}
     >
       <h2 id="invitation-create-title" className="text-sm font-semibold">
         {created ? t("Invitation created", messages) : t("New invitation", messages)}
@@ -274,11 +270,11 @@ export function InvitationCreateDialog({
       {token ? (
         <>
           <TokenPanel token={token} copied={copied} onCopy={onCopy} messages={messages} />
-          <div className="mt-3 flex flex-wrap justify-end gap-2">
+          <FormActions>
             <Button variant="secondary" className="min-h-11" onClick={onDismiss}>
               {t("Done", messages)}
             </Button>
-          </div>
+          </FormActions>
         </>
       ) : (
         <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-3">
@@ -301,9 +297,9 @@ export function InvitationCreateDialog({
             </p>
           )}
 
-          {error && <InvitationErrorAlert error={error} messages={messages} />}
+          {error && <InvitationCreateError error={error} messages={messages} />}
 
-          <div className="flex flex-wrap justify-end gap-2">
+          <FormActions>
             <Button
               variant="secondary"
               className="min-h-11"
@@ -315,10 +311,10 @@ export function InvitationCreateDialog({
             <Button type="submit" variant="primary" className="min-h-11" disabled={creating}>
               {creating ? t("Creating…", messages) : t("Create invitation", messages)}
             </Button>
-          </div>
+          </FormActions>
         </form>
       )}
-    </dialog>
+    </Dialog>
   );
 }
 

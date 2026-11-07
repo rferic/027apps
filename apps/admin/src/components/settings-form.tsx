@@ -6,6 +6,7 @@ import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FormActions, FormAlert, FormField, FormSection } from "@/components/ui/form";
 import { LOCALE_LABELS } from "@/lib/locale";
 import type { MutationFailure } from "@/lib/mutation-result";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
@@ -52,24 +53,13 @@ function SaveError({
   messages: TranslationMap;
 }) {
   return (
-    <div role="alert" className="rounded-card border border-destructive p-3 text-xs">
-      <p className="font-semibold text-destructive">
-        {t("We couldn't save the settings.", messages)}
-      </p>
-      {error.code && (
-        <p className="mt-1 text-muted-foreground">{panelErrorCodeLabel(error.code, messages)}</p>
-      )}
-      {error.details?.formErrors?.map((message) => (
-        <p key={message} className="mt-1 text-muted-foreground">
-          {message}
-        </p>
-      ))}
-      {error.requestId && (
-        <p className="mt-1 text-muted-foreground">
-          {t("Request ID", messages)}: <code className="select-all font-mono">{error.requestId}</code>
-        </p>
-      )}
-    </div>
+    <FormAlert
+      message={t("We couldn't save the settings.", messages)}
+      code={error.code}
+      details={error.details?.formErrors}
+      requestId={error.requestId}
+      messages={messages}
+    />
   );
 }
 
@@ -98,15 +88,27 @@ function SecretInput({
     ? t("Leave empty to keep the current value.", messages)
     : t("Paste the secret value.", messages);
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex flex-wrap items-center gap-2">
-        <label htmlFor={id} className="text-xs font-semibold">
+    <FormField
+      id={id}
+      label={
+        <>
           {setting.label}
-        </label>
-        <Badge variant={setting.configured ? "success" : "neutral"}>
-          {setting.configured ? t("Configured", messages) : t("Not configured", messages)}
-        </Badge>
-      </div>
+          <Badge variant={setting.configured ? "success" : "neutral"}>
+            {setting.configured ? t("Configured", messages) : t("Not configured", messages)}
+          </Badge>
+        </>
+      }
+      hint={
+        <>
+          {setting.help}
+          {setting.configured && (
+            <span className="block">
+              {t("The saved secret is never shown. Type a new value only to replace it.", messages)}
+            </span>
+          )}
+        </>
+      }
+    >
       {setting.type === "json" ? (
         <textarea
           id={id}
@@ -130,13 +132,7 @@ function SecretInput({
           className={inputClass}
         />
       )}
-      <p className="text-xs text-muted-foreground">{setting.help}</p>
-      {setting.configured && (
-        <p className="text-xs text-muted-foreground">
-          {t("The saved secret is never shown. Type a new value only to replace it.", messages)}
-        </p>
-      )}
-    </div>
+    </FormField>
   );
 }
 
@@ -200,8 +196,7 @@ function EnumInput({
 }) {
   const options = setting.key === "notifications.push.provider" ? ["fcm", "none"] : [value];
   return (
-    <label htmlFor={fieldId(setting.key)} className="flex flex-col gap-1 text-xs font-semibold">
-      {setting.label}
+    <FormField id={fieldId(setting.key)} label={setting.label} hint={setting.help}>
       <select
         id={fieldId(setting.key)}
         name={setting.key}
@@ -215,8 +210,7 @@ function EnumInput({
           </option>
         ))}
       </select>
-      <span className="font-normal text-muted-foreground">{setting.help}</span>
-    </label>
+    </FormField>
   );
 }
 
@@ -230,8 +224,7 @@ function ScalarInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <label htmlFor={fieldId(setting.key)} className="flex flex-col gap-1 text-xs font-semibold">
-      {setting.label}
+    <FormField id={fieldId(setting.key)} label={setting.label} hint={setting.help}>
       <input
         id={fieldId(setting.key)}
         name={setting.key}
@@ -240,8 +233,7 @@ function ScalarInput({
         onChange={(event) => onChange(event.target.value)}
         className={inputClass}
       />
-      <span className="font-normal text-muted-foreground">{setting.help}</span>
-    </label>
+    </FormField>
   );
 }
 
@@ -257,8 +249,16 @@ function ArrayInput({
   messages: TranslationMap;
 }) {
   return (
-    <label htmlFor={fieldId(setting.key)} className="flex flex-col gap-1 text-xs font-semibold">
-      {setting.label}
+    <FormField
+      id={fieldId(setting.key)}
+      label={setting.label}
+      hint={
+        <>
+          {setting.help}
+          <span className="block">{t("One entry per line.", messages)}</span>
+        </>
+      }
+    >
       <textarea
         id={fieldId(setting.key)}
         name={setting.key}
@@ -267,11 +267,7 @@ function ArrayInput({
         onChange={(event) => onChange(event.target.value)}
         className={`${inputClass} py-2 font-mono text-xs`}
       />
-      <span className="font-normal text-muted-foreground">{setting.help}</span>
-      <span className="font-normal text-xs text-muted-foreground">
-        {t("One entry per line.", messages)}
-      </span>
-    </label>
+    </FormField>
   );
 }
 
@@ -374,11 +370,7 @@ function CategorySection({
 }) {
   const hidden = restricted.filter((setting) => setting.category === category.categoryKey);
   return (
-    <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-sm font-semibold">{category.label}</h2>
-        <p className="text-xs text-muted-foreground">{category.help}</p>
-      </div>
+    <FormSection title={category.label} description={category.help}>
       {category.settings.map((setting) => (
         <SettingField
           key={setting.key}
@@ -392,7 +384,7 @@ function CategorySection({
       {hidden.map((setting) => (
         <RestrictedSettingRow key={setting.key} setting={setting} messages={messages} />
       ))}
-    </section>
+    </FormSection>
   );
 }
 
@@ -466,11 +458,11 @@ export function SettingsForm({
         </p>
       )}
 
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <FormActions>
         <Button type="submit" variant="primary" className="min-h-11" disabled={saving || updates.length === 0}>
           {saving ? t("Saving…", messages) : t("Save changes", messages)}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

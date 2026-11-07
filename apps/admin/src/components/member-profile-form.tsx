@@ -6,6 +6,7 @@ import { SUPPORTED_LOCALES } from "@027apps/core/settings/catalog.js";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { LOCALE_LABELS } from "@/lib/locale";
+import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import {
   buildProfilePatch,
   canAssignRole,
@@ -37,15 +38,6 @@ function fieldAria(
   };
 }
 
-function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) return null;
-  return (
-    <p id={id} className="text-xs font-semibold text-destructive">
-      {message}
-    </p>
-  );
-}
-
 function SaveErrorAlert({
   error,
   messages,
@@ -54,24 +46,19 @@ function SaveErrorAlert({
   messages: TranslationMap;
 }) {
   return (
-    <div role="alert" className="rounded-card border border-destructive p-3 text-xs">
-      <p className="font-semibold text-destructive">
-        {t("We couldn't save the changes.", messages)}
-      </p>
-      {error.code && (
-        <p className="mt-1 text-muted-foreground">
-          {error.code === "conflict"
-            ? t("Your role change conflicts with the instance rules.", messages)
-            : memberErrorCodeLabel(error.code, messages)}
-        </p>
-      )}
-      {error.requestId && (
-        <p className="mt-1 text-muted-foreground">
-          {t("Request ID", messages)}:{" "}
-          <code className="select-all font-mono">{error.requestId}</code>
-        </p>
-      )}
-    </div>
+    <FormAlert
+      message={t("We couldn't save the changes.", messages)}
+      code={error.code}
+      codeLabel={
+        error.code === "conflict"
+          ? t("Your role change conflicts with the instance rules.", messages)
+          : error.code
+            ? memberErrorCodeLabel(error.code, messages)
+            : undefined
+      }
+      requestId={error.requestId}
+      messages={messages}
+    />
   );
 }
 
@@ -97,29 +84,25 @@ function RoleField({
   }
 
   return (
-    <>
-      <label htmlFor="member-role" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Role", messages)}
-        <select
-          id="member-role"
-          name="role"
-          defaultValue={currentRole}
-          {...fieldAria("role", error)}
-          className={inputClass}
-        >
-          {roleOptions(viewerRole).map((role) => (
-            <option key={role} value={role}>
-              {role === "super_admin"
-                ? t("Super admin", messages)
-                : role === "admin"
-                  ? t("Admin", messages)
-                  : t("User", messages)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <FieldError id="member-role-error" message={error} />
-    </>
+    <FormField id="member-role" label={t("Role", messages)} error={error}>
+      <select
+        id="member-role"
+        name="role"
+        defaultValue={currentRole}
+        {...fieldAria("role", error)}
+        className={inputClass}
+      >
+        {roleOptions(viewerRole).map((role) => (
+          <option key={role} value={role}>
+            {role === "super_admin"
+              ? t("Super admin", messages)
+              : role === "admin"
+                ? t("Admin", messages)
+                : t("User", messages)}
+          </option>
+        ))}
+      </select>
+    </FormField>
   );
 }
 
@@ -140,8 +123,14 @@ function ProfileFormFields({
 }) {
   return (
     <>
-      <label htmlFor="member-display-name" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Display name", messages)}
+      <FormField
+        id="member-display-name"
+        label={t("Display name", messages)}
+        hint={t("Add a display name between 1 and 80 characters.", messages)}
+        hintId="member-display-name-help"
+        error={fieldErrors.display_name?.[0]}
+        errorId="member-display_name-error"
+      >
         <input
           id="member-display-name"
           name="display_name"
@@ -156,14 +145,13 @@ function ProfileFormFields({
           )}
           className={inputClass}
         />
-      </label>
-      <p id="member-display-name-help" className="text-xs text-muted-foreground">
-        {t("Add a display name between 1 and 80 characters.", messages)}
-      </p>
-      <FieldError id="member-display_name-error" message={fieldErrors.display_name?.[0]} />
+      </FormField>
 
-      <label htmlFor="member-locale" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Language", messages)}
+      <FormField
+        id="member-locale"
+        label={t("Language", messages)}
+        error={fieldErrors.locale?.[0]}
+      >
         <select
           id="member-locale"
           name="locale"
@@ -177,11 +165,15 @@ function ProfileFormFields({
             </option>
           ))}
         </select>
-      </label>
-      <FieldError id="member-locale-error" message={fieldErrors.locale?.[0]} />
+      </FormField>
 
-      <label htmlFor="member-timezone" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Time zone", messages)}
+      <FormField
+        id="member-timezone"
+        label={t("Time zone", messages)}
+        hint={t("Use an IANA time zone, for example Europe/Madrid.", messages)}
+        hintId="member-timezone-help"
+        error={fieldErrors.timezone?.[0]}
+      >
         <input
           id="member-timezone"
           name="timezone"
@@ -192,11 +184,7 @@ function ProfileFormFields({
           autoComplete="off"
           className={inputClass}
         />
-      </label>
-      <p id="member-timezone-help" className="text-xs text-muted-foreground">
-        {t("Use an IANA time zone, for example Europe/Madrid.", messages)}
-      </p>
-      <FieldError id="member-timezone-error" message={fieldErrors.timezone?.[0]} />
+      </FormField>
 
       {!isSelf && (
         <RoleField
@@ -283,7 +271,12 @@ export function MemberProfileForm({
         messages={messages}
       />
 
-      <div className="flex flex-wrap items-center gap-3">
+      <FormActions>
+        {saved && (
+          <p role="status" className="mr-auto text-xs font-semibold text-success">
+            {t("Changes saved.", messages)}
+          </p>
+        )}
         <button
           type="submit"
           disabled={saving}
@@ -291,12 +284,7 @@ export function MemberProfileForm({
         >
           {saving ? t("Saving…", messages) : t("Save changes", messages)}
         </button>
-        {saved && (
-          <p role="status" className="text-xs font-semibold text-success">
-            {t("Changes saved.", messages)}
-          </p>
-        )}
-      </div>
+      </FormActions>
 
       {error && <SaveErrorAlert error={error} messages={messages} />}
     </form>

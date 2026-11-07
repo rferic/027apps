@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { PanelError } from "@/components/panel-error";
 import { addCategoryMember, removeCategoryMember } from "@/lib/category-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
 import type { CategoryFailure, CategoryMemberRow, MemberChoice } from "@/lib/panel-categories";
-import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -43,18 +44,12 @@ function MutationAlert({
   messages: TranslationMap;
 }) {
   return (
-    <div role="alert" className="rounded-card border border-destructive p-3 text-xs">
-      <p className="font-semibold text-destructive">{title}</p>
-      {error.code && (
-        <p className="mt-1 text-muted-foreground">{panelErrorCodeLabel(error.code, messages)}</p>
-      )}
-      {error.requestId && (
-        <p className="mt-1 text-muted-foreground">
-          {t("Request ID", messages)}:{" "}
-          <code className="select-all font-mono">{error.requestId}</code>
-        </p>
-      )}
-    </div>
+    <FormAlert
+      message={title}
+      code={error.code}
+      requestId={error.requestId}
+      messages={messages}
+    />
   );
 }
 
@@ -133,8 +128,7 @@ function AddMemberForm({
   }
   return (
     <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-2">
-      <label htmlFor="category-member-add" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Add member", messages)}
+      <FormField id="category-member-add" label={t("Add member", messages)}>
         <select id="category-member-add" name="userId" required className={inputClass}>
           {available.map((choice) => (
             <option key={choice.id} value={choice.id}>
@@ -142,7 +136,7 @@ function AddMemberForm({
             </option>
           ))}
         </select>
-      </label>
+      </FormField>
       <Button type="submit" variant="primary" className="min-h-11" disabled={adding}>
         {adding ? t("Adding…", messages) : t("Add member", messages)}
       </Button>
@@ -171,13 +165,13 @@ function RemoveMemberDialog({
 }) {
   const name = memberLabel(pending);
   return (
-    <dialog
+    <Dialog
+      labelledBy="category-member-remove-title"
       ref={dialogRef}
-      aria-labelledby="category-member-remove-title"
       onCancel={(event) => {
         if (removing) event.preventDefault();
       }}
-      className="w-full max-w-md rounded-card border border-border bg-surface p-4 backdrop:bg-foreground/40"
+      onBackdropClick={removing ? undefined : onCancel}
     >
       <h2 id="category-member-remove-title" className="text-sm font-semibold">
         {t("Remove {name} from {category}?", messages, { name, category: categoryName })}
@@ -191,24 +185,22 @@ function RemoveMemberDialog({
       </p>
 
       {error && (
-        <div className="mt-3">
-          <MutationAlert
-            title={t("We couldn't remove the member.", messages)}
-            error={error}
-            messages={messages}
-          />
-        </div>
+        <MutationAlert
+          title={t("We couldn't remove the member.", messages)}
+          error={error}
+          messages={messages}
+        />
       )}
 
-      <div className="mt-4 flex flex-wrap justify-end gap-2">
+      <FormActions className="mt-3">
         <Button variant="secondary" className="min-h-11" onClick={onCancel} disabled={removing}>
           {t("Cancel", messages)}
         </Button>
         <Button variant="destructive" className="min-h-11" onClick={onConfirm} disabled={removing}>
           {removing ? t("Removing…", messages) : t("Remove", messages)}
         </Button>
-      </div>
-    </dialog>
+      </FormActions>
+    </Dialog>
   );
 }
 

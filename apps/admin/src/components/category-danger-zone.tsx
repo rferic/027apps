@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { FormActions, FormAlert } from "@/components/ui/form";
 import { deleteCategory } from "@/lib/category-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
-import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
 /**
  * Destructive action kept apart from the primary save (§6). The confirmation
@@ -73,14 +74,14 @@ export function CategoryDangerZone({
         {t("Delete category", messages)}
       </Button>
 
-      <dialog
+      <Dialog
+        labelledBy="category-delete-title"
         ref={dialogRef}
-        aria-labelledby="category-delete-title"
         onCancel={(event) => {
           // Escape must not dismiss the dialog while the request is in flight.
           if (deleting) event.preventDefault();
         }}
-        className="w-full max-w-md rounded-card border border-border bg-surface p-4 backdrop:bg-foreground/40"
+        onBackdropClick={deleting ? undefined : () => dialogRef.current?.close()}
       >
         <h2 id="category-delete-title" className="text-sm font-semibold">
           {t("Delete {name}?", messages, { name })}
@@ -93,25 +94,16 @@ export function CategoryDangerZone({
         </p>
 
         {error && (
-          <div role="alert" className="mt-3 rounded-card border border-destructive p-3 text-xs">
-            <p className="font-semibold text-destructive">
-              {t("We couldn't delete the category.", messages)}
-            </p>
-            {error.code && (
-              <p className="mt-1 text-muted-foreground">
-                {panelErrorCodeLabel(error.code, messages)}
-              </p>
-            )}
-            {error.requestId && (
-              <p className="mt-1 text-muted-foreground">
-                {t("Request ID", messages)}:{" "}
-                <code className="select-all font-mono">{error.requestId}</code>
-              </p>
-            )}
-          </div>
+          <FormAlert
+            className="mt-3"
+            message={t("We couldn't delete the category.", messages)}
+            code={error.code}
+            requestId={error.requestId}
+            messages={messages}
+          />
         )}
 
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <FormActions className="mt-3">
           <Button
             variant="secondary"
             className="min-h-11"
@@ -128,8 +120,8 @@ export function CategoryDangerZone({
           >
             {deleting ? t("Deleting…", messages) : t("Delete category", messages)}
           </Button>
-        </div>
-      </dialog>
+        </FormActions>
+      </Dialog>
     </section>
   );
 }

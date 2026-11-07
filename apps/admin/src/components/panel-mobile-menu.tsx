@@ -27,11 +27,14 @@ export function PanelMobileMenu({ messages }: { messages: TranslationMap }) {
       >
         <MenuIcon className="h-5 w-5" />
       </button>
+      {/* Documented exception: the drawer is not a `Dialog`. It needs a fixed
+          full-height side layout instead of the centered modal box, so it
+          repeats the modal text/background tokens here. */}
       <dialog
         ref={dialogRef}
         aria-label={t("Menu", messages)}
         className={cn(
-          "fixed inset-y-0 left-0 m-0 h-full max-h-none w-72 max-w-[85vw] overflow-y-auto border-0 bg-surface p-4",
+          "fixed inset-y-0 left-0 m-0 h-full max-h-none w-72 max-w-[85vw] overflow-y-auto border-0 bg-surface p-4 text-foreground",
           "backdrop:bg-foreground/40",
         )}
         onClick={(event) => {

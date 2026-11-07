@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { FieldError, FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { createApiKey, type CreateApiKeyInput } from "@/lib/api-key-mutations";
 import {
   API_KEY_SCOPE_GROUPS,
@@ -13,7 +15,6 @@ import {
   type ScopeGroupId,
 } from "@/lib/api-key-scopes";
 import type { MutationFailure } from "@/lib/mutation-result";
-import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -37,20 +38,14 @@ function scopeGroupLabel(id: ScopeGroupId, messages: TranslationMap): string {
   return SCOPE_GROUP_LABEL[id](messages);
 }
 
-function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) return null;
-  return (
-    <p id={id} className="text-xs font-semibold text-destructive">
-      {message}
-    </p>
-  );
-}
-
-function fieldState(field: string, errors: string[] | undefined) {
+function fieldState(field: string, errors: string[] | undefined, hintId?: string) {
   const message = errors?.[0];
+  const ids = [hintId, message ? `api-key-${field}-error` : undefined].filter(
+    (id): id is string => Boolean(id),
+  );
   return {
     "aria-invalid": message ? true : undefined,
-    ...(message ? { "aria-describedby": `api-key-${field}-error` } : {}),
+    ...(ids.length > 0 ? { "aria-describedby": ids.join(" ") } : {}),
   };
 }
 
@@ -79,24 +74,13 @@ function CreateErrorAlert({
   messages: TranslationMap;
 }) {
   return (
-    <div role="alert" className="rounded-card border border-destructive p-3 text-xs">
-      <p className="font-semibold text-destructive">
-        {t("We couldn't create the API key.", messages)}
-      </p>
-      {error.code && (
-        <p className="mt-1 text-muted-foreground">{panelErrorCodeLabel(error.code, messages)}</p>
-      )}
-      {error.details?.formErrors?.map((message) => (
-        <p key={message} className="mt-1 text-muted-foreground">
-          {message}
-        </p>
-      ))}
-      {error.requestId && (
-        <p className="mt-1 text-muted-foreground">
-          {t("Request ID", messages)}: <code className="select-all font-mono">{error.requestId}</code>
-        </p>
-      )}
-    </div>
+    <FormAlert
+      message={t("We couldn't create the API key.", messages)}
+      code={error.code}
+      details={error.details?.formErrors}
+      requestId={error.requestId}
+      messages={messages}
+    />
   );
 }
 
@@ -199,29 +183,38 @@ function KindFields({
 }) {
   return (
     <>
-      <label htmlFor="api-key-kind" className="flex flex-col gap-1 text-xs font-semibold">
-        {t("Kind", messages)}
+      <FormField
+        id="api-key-kind"
+        label={t("Kind", messages)}
+        hint={
+          kind === "service"
+            ? t("A service key acts for the instance, capped by the role you choose.", messages)
+            : t("A delegated key acts for you and never exceeds your own permissions.", messages)
+        }
+        hintId="api-key-kind-help"
+        error={fieldErrors.kind?.[0]}
+        errorId="api-key-kind-error"
+      >
         <select
           id="api-key-kind"
           name="kind"
           value={kind}
           onChange={(event) => onKindChange(event.target.value === "service" ? "service" : "delegated")}
+          {...fieldState("kind", fieldErrors.kind, "api-key-kind-help")}
           className={inputClass}
         >
           <option value="delegated">{t("Delegated", messages)}</option>
           {canCreateService && <option value="service">{t("Service", messages)}</option>}
         </select>
-      </label>
-      <p className="text-xs text-muted-foreground">
-        {kind === "service"
-          ? t("A service key acts for the instance, capped by the role you choose.", messages)
-          : t("A delegated key acts for you and never exceeds your own permissions.", messages)}
-      </p>
-      <FieldError id="api-key-kind-error" message={fieldErrors.kind?.[0]} />
+      </FormField>
 
       {kind === "service" && canCreateService && (
-        <label htmlFor="api-key-role-cap" className="flex flex-col gap-1 text-xs font-semibold">
-          {t("Role cap", messages)}
+        <FormField
+          id="api-key-role-cap"
+          label={t("Role cap", messages)}
+          error={fieldErrors.role_cap?.[0]}
+          errorId="api-key-role-cap-error"
+        >
           <select
             id="api-key-role-cap"
             name="role_cap"
@@ -229,14 +222,14 @@ function KindFields({
             onChange={(event) =>
               onRoleCapChange(event.target.value === "super_admin" ? "super_admin" : "admin")
             }
+            {...fieldState("role_cap", fieldErrors.role_cap)}
             className={inputClass}
           >
             <option value="admin">{t("Administrator", messages)}</option>
             <option value="super_admin">{t("Super administrator", messages)}</option>
           </select>
-        </label>
+        </FormField>
       )}
-      <FieldError id="api-key-role-cap-error" message={fieldErrors.role_cap?.[0]} />
     </>
   );
 }
@@ -290,12 +283,12 @@ export function ApiKeyCreateDialog({
   const finished = created || secret !== null;
 
   return (
-    <dialog
+    <Dialog
+      labelledBy="api-key-create-title"
       ref={dialogRef}
-      aria-labelledby="api-key-create-title"
       onCancel={onCancel}
       onClose={onClosed}
-      className="w-full max-w-lg rounded-card border border-border bg-surface p-4 backdrop:bg-foreground/40"
+      onBackdropClick={creating ? undefined : onDismiss}
     >
       <h2 id="api-key-create-title" className="text-sm font-semibold">
         {created ? t("API key created", messages) : t("New API key", messages)}
@@ -315,16 +308,20 @@ export function ApiKeyCreateDialog({
               {t("The key was created but the API did not return the secret.", messages)}
             </p>
           )}
-          <div className="mt-3 flex flex-wrap justify-end gap-2">
+          <FormActions>
             <Button variant="secondary" className="min-h-11" onClick={onDismiss}>
               {t("Done", messages)}
             </Button>
-          </div>
+          </FormActions>
         </>
       ) : (
         <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-3">
-          <label htmlFor="api-key-name" className="flex flex-col gap-1 text-xs font-semibold">
-            {t("Name", messages)}
+          <FormField
+            id="api-key-name"
+            label={t("Name", messages)}
+            error={fieldErrors.name?.[0]}
+            errorId="api-key-name-error"
+          >
             <input
               id="api-key-name"
               name="name"
@@ -335,8 +332,7 @@ export function ApiKeyCreateDialog({
               {...fieldState("name", fieldErrors.name)}
               className={inputClass}
             />
-          </label>
-          <FieldError id="api-key-name-error" message={fieldErrors.name?.[0]} />
+          </FormField>
 
           <KindFields
             canCreateService={canCreateService}
@@ -357,17 +353,17 @@ export function ApiKeyCreateDialog({
 
           {error && <CreateErrorAlert error={error} messages={messages} />}
 
-          <div className="flex flex-wrap justify-end gap-2">
+          <FormActions>
             <Button variant="secondary" className="min-h-11" onClick={onDismiss} disabled={creating}>
               {t("Cancel", messages)}
             </Button>
             <Button type="submit" variant="primary" className="min-h-11" disabled={creating}>
               {creating ? t("Creating…", messages) : t("Create API key", messages)}
             </Button>
-          </div>
+          </FormActions>
         </form>
       )}
-    </dialog>
+    </Dialog>
   );
 }
 
