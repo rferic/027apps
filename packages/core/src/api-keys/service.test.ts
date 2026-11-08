@@ -145,9 +145,23 @@ function apiKeyTable(profiles: Profile[] = []) {
           const userMatch = sql.match(/user_id = \$(\d+)/);
           const kind = kindMatch ? String(params[Number(kindMatch[1]) - 1]) : null;
           const userId = userMatch ? String(params[Number(userMatch[1]) - 1]) : null;
-          const visible = rows.filter(
-            (row) => (!kind || row.kind === kind) && (!userId || row.user_id === userId),
-          );
+          const state = sql.includes("expires_at is null or expires_at > now()")
+            ? "active"
+            : sql.includes("expires_at <= now()")
+              ? "expired"
+              : sql.includes("revoked_at is not null")
+                ? "revoked"
+                : null;
+          const visible = rows.filter((row) => {
+            if (kind && row.kind !== kind) return false;
+            if (userId && row.user_id !== userId) return false;
+            if (state === "revoked") return row.revoked_at !== null;
+            if (state === "active") return active(row);
+            if (state === "expired") {
+              return row.revoked_at === null && !active(row);
+            }
+            return true;
+          });
           const page = visible.slice(offset, offset + limit);
           const total = visible.length;
           if (page.length === 0) return { rows: [{ total }] };
@@ -166,6 +180,8 @@ function apiKeyTable(profiles: Profile[] = []) {
             const field = match[1] as keyof StoredKey;
             (row as unknown as Record<string, unknown>)[field] = params[Number(match[2]) - 1];
           }
+          // `expires_at = null` carries no placeholder.
+          if (/\bexpires_at = null\b/.test(sql)) row.expires_at = null;
           return { rows: [view(row)] };
         }
         if (sql.startsWith("update public.api_keys")) {
@@ -618,6 +634,89 @@ describe("api key list filters", () => {
   });
 });
 
+describe("api key list state filter", () => {
+  const past = new Date(NOW.getTime() - 60_000).toISOString();
+  const future = new Date(NOW.getTime() + 3_600_000).toISOString();
+
+  function seedStates(): void {
+    table.seed({ name: "Never expires", expires_at: null });
+    table.seed({ name: "Future", expires_at: future });
+    table.seed({ name: "Expired", expires_at: past });
+    table.seed({ name: "Revoked", revoked_at: NOW.toISOString() });
+    table.seed({ name: "Revoked and expired", expires_at: past, revoked_at: NOW.toISOString() });
+  }
+
+  it("state=active keeps non-revoked keys with no expiry or a future one", async () => {
+    seedStates();
+
+    const listed = await listApiKeys(table.deps, session("root", "super_admin"), {
+      ...PAGE,
+      state: "active",
+    });
+
+    expect(listed.api_keys.map((row) => row.name).sort()).toEqual(["Future", "Never expires"]);
+    expect(listed.total).toBe(2);
+  });
+
+  it("state=expired keeps only non-revoked keys with a past expiry", async () => {
+    seedStates();
+
+    const listed = await listApiKeys(table.deps, session("root", "super_admin"), {
+      ...PAGE,
+      state: "expired",
+    });
+
+    expect(listed.api_keys.map((row) => row.name)).toEqual(["Expired"]);
+    expect(listed.total).toBe(1);
+  });
+
+  it("state=revoked keeps revoked keys even when they are also expired", async () => {
+    seedStates();
+
+    const listed = await listApiKeys(table.deps, session("root", "super_admin"), {
+      ...PAGE,
+      state: "revoked",
+    });
+
+    expect(listed.api_keys.map((row) => row.name).sort()).toEqual([
+      "Revoked",
+      "Revoked and expired",
+    ]);
+    expect(listed.total).toBe(2);
+  });
+
+  it("state=all and an omitted state both return every key", async () => {
+    seedStates();
+
+    const all = await listApiKeys(table.deps, session("root", "super_admin"), {
+      ...PAGE,
+      state: "all",
+    });
+    const none = await listApiKeys(table.deps, session("root", "super_admin"), PAGE);
+
+    expect(all.total).toBe(5);
+    expect(none.total).toBe(5);
+    expect(none.api_keys).toHaveLength(5);
+  });
+
+  it("keeps the filtered total when combined with kind and user", async () => {
+    table.seed({ kind: "service", name: "Instance" });
+    table.seed({ kind: "delegated", user_id: "user", name: "Mine" });
+    table.seed({ kind: "delegated", user_id: "user", name: "Mine expired", expires_at: past });
+    table.seed({ kind: "delegated", user_id: "other", name: "Theirs" });
+
+    const listed = await listApiKeys(table.deps, session("root", "super_admin"), {
+      ...PAGE,
+      kind: "delegated",
+      user: "user",
+      state: "active",
+    });
+
+    expect(listed.api_keys.map((row) => row.name)).toEqual(["Mine"]);
+    expect(listed.total).toBe(1);
+  });
+});
+
 describe("api key ownership and visibility", () => {
   it("hides another user's key from non-super_admin callers as not_found", async () => {
     const { api_key } = await createApiKey(table.deps, session("user", "user"), {
@@ -855,6 +954,70 @@ describe("updateApiKey", () => {
     });
 
     expect(updated.expires_at).toBe(extended);
+  });
+
+  it("removes the expiry with expires_at: null so the key never expires", async () => {
+    const row = table.seed({
+      kind: "delegated",
+      user_id: "user",
+      expires_at: new Date(NOW.getTime() + 3_600_000).toISOString(),
+    });
+
+    const updated = await updateApiKey(table.deps, session("user", "user"), row.id, {
+      expires_at: null,
+    });
+
+    expect(updated.expires_at).toBeNull();
+    expect(row.expires_at).toBeNull();
+  });
+
+  it("counts removing the expiry from an expired key against the five-key limit", async () => {
+    for (let index = 0; index < 5; index += 1) {
+      table.seed({ kind: "delegated", user_id: "user", name: `Active ${index}` });
+    }
+    const expired = table.seed({
+      kind: "delegated",
+      user_id: "user",
+      name: "Expired",
+      expires_at: new Date(NOW.getTime() - 60_000).toISOString(),
+    });
+
+    await expect(
+      updateApiKey(table.deps, session("user", "user"), expired.id, { expires_at: null }),
+    ).rejects.toMatchObject({ code: "conflict", details: { code: "key_limit" } });
+    expect(expired.expires_at).toBe(new Date(NOW.getTime() - 60_000).toISOString());
+  });
+
+  it("removes the expiry from an expired key when the owner has room for one more", async () => {
+    for (let index = 0; index < 4; index += 1) {
+      table.seed({ kind: "delegated", user_id: "user", name: `Active ${index}` });
+    }
+    const expired = table.seed({
+      kind: "delegated",
+      user_id: "user",
+      name: "Expired",
+      expires_at: new Date(NOW.getTime() - 60_000).toISOString(),
+    });
+
+    const updated = await updateApiKey(table.deps, session("user", "user"), expired.id, {
+      expires_at: null,
+    });
+
+    expect(updated.expires_at).toBeNull();
+  });
+
+  it("keeps refusing a revoked key when removing its expiry", async () => {
+    const row = table.seed({
+      kind: "delegated",
+      user_id: "user",
+      name: "Revoked",
+      expires_at: new Date(NOW.getTime() - 60_000).toISOString(),
+      revoked_at: NOW.toISOString(),
+    });
+
+    await expect(
+      updateApiKey(table.deps, session("user", "user"), row.id, { expires_at: null }),
+    ).rejects.toMatchObject({ code: "conflict", details: { code: "revoked" } });
   });
 
   it("keeps the scopes a super_admin granted when the owner edits the key", async () => {

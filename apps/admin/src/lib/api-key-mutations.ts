@@ -14,6 +14,8 @@ export interface CreateApiKeyInput {
   role_cap?: "admin" | "super_admin";
   /** Owner of a delegated key; only a super_admin session may send it. */
   user_id?: string;
+  /** Absolute instant; a key without it never expires. */
+  expires_at?: string;
 }
 
 export type CreateApiKeyResult = { ok: true; secret?: string } | MutationFailure;

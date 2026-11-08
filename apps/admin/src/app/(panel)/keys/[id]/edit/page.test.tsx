@@ -30,6 +30,10 @@ vi.mock("@/lib/panel-i18n", () => ({
   loadPanelMessages: async () => ({}),
 }));
 
+vi.mock("@/lib/panel-settings", () => ({
+  loadPanelTimeZone: async () => "UTC",
+}));
+
 vi.mock("@/lib/panel-keys", () => ({
   loadKey: (id: string) => loadKeyMock(id),
 }));
@@ -236,6 +240,17 @@ describe("EditApiKeyPage", () => {
 
     expect(html).toContain("load the owner&#x27;s modules.");
     expect(html).toContain("req-modules");
+  });
+
+  it("passes the formatted current expiry to the form", async () => {
+    loadKeyMock.mockResolvedValue({
+      ok: true,
+      apiKey: { ...DELEGATED_KEY, expiresAt: "2027-01-01T00:00:00.000Z" },
+    });
+
+    const form = await mountForm();
+
+    expect((form.props as { currentLabel: string }).currentLabel).toBe("Jan 1, 2027");
   });
 
   it("treats a missing key as a real 404", async () => {

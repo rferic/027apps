@@ -8,6 +8,7 @@ import {
   splitKeyScopes,
   type ApiKeyEditState,
 } from "@/lib/api-key-edit";
+import { expiresAtFrom, parseExpiryFormData } from "@/lib/api-key-expiry";
 import { apiKeyOfferedScopes } from "@/lib/api-key-module-scopes";
 import { requirePanel } from "@/lib/panel-guard";
 import { loadKey, updateKey, type ApiKeyUpdate } from "@/lib/panel-keys";
@@ -16,6 +17,24 @@ import {
   modulesFailure,
   offeredModuleList,
 } from "@/lib/panel-user-modules";
+
+/**
+ * Expiry the form submits: `keep` (or a payload without the field) sends
+ * nothing, `never` clears it and `relative` stores an instant. An invalid
+ * amount or mode is a validation failure, never a silent no-op.
+ */
+function expiryPatch(formData: FormData): Pick<ApiKeyUpdate, "expires_at"> | null {
+  if (!formData.has("expiry_mode")) return {};
+  const choice = parseExpiryFormData(formData);
+  if (!choice) return null;
+  try {
+    const expiresAt = expiresAtFrom(choice);
+    return expiresAt === undefined ? {} : { expires_at: expiresAt };
+  } catch (error) {
+    if (error instanceof RangeError) return null;
+    throw error;
+  }
+}
 
 /**
  * The patch the form submits: the stored scopes the form cannot offer travel
@@ -27,12 +46,15 @@ function patchFromFormData(
   formData: FormData,
 ): ApiKeyUpdate | null {
   const selected = formData.getAll("scopes").map((value) => String(value));
-  return buildApiKeyUpdateInput({
+  const patch = buildApiKeyUpdateInput({
     name: String(formData.get("name") ?? ""),
     scopes: mergeKeyScopes(preserved, selected, offered),
-    expiresAt: String(formData.get("expires_at") ?? ""),
-    currentExpiresAt: String(formData.get("current_expires_at") ?? ""),
   });
+  if (!patch) return null;
+
+  const expiry = expiryPatch(formData);
+  if (!expiry) return null;
+  return { ...patch, ...expiry };
 }
 
 /**

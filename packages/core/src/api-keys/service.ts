@@ -45,12 +45,13 @@ export type CreateApiKeyInput = {
 
 /**
  * Editable fields of an existing key. `kind`, `role_cap` and `user_id` are
- * immutable: re-scoping is bounded by the stored cap and owner.
+ * immutable: re-scoping is bounded by the stored cap and owner. `expires_at:
+ * null` removes the expiry so the key never expires.
  */
 export type UpdateApiKeyInput = {
   name?: string;
   scopes?: string[];
-  expires_at?: string;
+  expires_at?: string | null;
 };
 
 export type ApiKeyResolution = {
@@ -71,12 +72,19 @@ export interface ApiKeyList {
 export type ApiKeyKindFilter = "all" | "service" | "delegated";
 
 /**
+ * Derived lifecycle state: `expired` requires a live key with a past expiry,
+ * so a revoked key never counts as expired. `all` is the explicit opt-out.
+ */
+export type ApiKeyStateFilter = "all" | "active" | "revoked" | "expired";
+
+/**
  * Filters accepted by the list. `user` narrows the owner of delegated keys
  * and is only meaningful to a super_admin (anyone else only sees their own).
  */
 export interface ApiKeyListFilters {
   kind?: ApiKeyKindFilter;
   user?: string;
+  state?: ApiKeyStateFilter;
 }
 
 export interface ApiKeyPage extends ApiKeyListFilters {
@@ -404,6 +412,16 @@ export async function listApiKeys(
     params.push(page.kind);
     conditions.push(`kind = $${params.length}`);
   }
+  // Derived state; `now()` keeps the decision in the database so the list and
+  // the `total` count can never disagree about what "expired" means.
+  if (page.state === "active") {
+    conditions.push("revoked_at is null and (expires_at is null or expires_at > now())");
+  } else if (page.state === "expired") {
+    // A revoked key never counts as expired.
+    conditions.push("revoked_at is null and expires_at is not null and expires_at <= now()");
+  } else if (page.state === "revoked") {
+    conditions.push("revoked_at is not null");
+  }
   const where = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
   params.push(page.limit, page.offset);
 
@@ -464,7 +482,9 @@ export async function revokeApiKey(deps: ApiKeysDeps, caller: Caller, id: string
  * `role_cap` or `user_id`, and never the secret or `last_used_at`). Re-scoping
  * is bounded by what the key itself may hold: a service key stays inside its
  * stored cap and a delegated key is trimmed to the owner's allowlist and live
- * module grants, never to the editor's own scopes. Reactivating an expired key
+ * module grants, never to the editor's own scopes. The expiry can be extended
+ * or removed (`expires_at: null`); removing it makes the key one that never
+ * expires. Reactivating an expired key (extending it or removing its expiry)
  * counts against the owner's five-key limit.
  */
 export async function updateApiKey(
@@ -524,33 +544,43 @@ export async function updateApiKey(
   }
 
   if (patch.expires_at !== undefined) {
-    const expiresAt = new Date(patch.expires_at);
-    if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) {
-      throw new DomainError("validation_failed", "expires_at must be in the future");
+    if (patch.expires_at === null) {
+      // Removing the expiry always makes sense, even on an expired key: it
+      // turns the key back into one that never expires.
+      assignments.push("expires_at = null");
+    } else {
+      const expiresAt = new Date(patch.expires_at);
+      if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) {
+        throw new DomainError("validation_failed", "expires_at must be in the future");
+      }
+      // An expired key can only be extended: the new value is in the future by
+      // the check above, so it always lands after the stored one.
+      if (
+        currentExpiresAt &&
+        currentExpiresAt.getTime() <= now.getTime() &&
+        expiresAt.getTime() <= currentExpiresAt.getTime()
+      ) {
+        throw new DomainError("validation_failed", "an expired key can only be extended");
+      }
+      params.push(expiresAt.toISOString());
+      assignments.push(`expires_at = $${params.length}`);
     }
-    // An expired key can only be extended: the new value is in the future by
-    // the check above, so it always lands after the stored one.
-    if (
-      currentExpiresAt &&
-      currentExpiresAt.getTime() <= now.getTime() &&
-      expiresAt.getTime() <= currentExpiresAt.getTime()
-    ) {
-      throw new DomainError("validation_failed", "an expired key can only be extended");
-    }
-    params.push(expiresAt.toISOString());
-    assignments.push(`expires_at = $${params.length}`);
   }
 
   // Nothing to change: the route schema already requires a field.
   if (assignments.length === 0) return toView(row);
 
   const nextExpiresAt =
-    patch.expires_at !== undefined ? new Date(patch.expires_at) : currentExpiresAt;
+    patch.expires_at === undefined
+      ? currentExpiresAt
+      : patch.expires_at === null
+        ? null
+        : new Date(patch.expires_at);
   const willBeActive = nextExpiresAt === null || nextExpiresAt.getTime() > now.getTime();
-  // Extending an expired key brings it back to the active set, so it must pass
-  // the same per-owner limit as a creation. Both the count and the write share
-  // one transaction and one advisory lock: two concurrent edits cannot both
-  // take the fifth slot.
+  // Extending an expired key (or removing its expiry) brings it back to the
+  // active set, so it must pass the same per-owner limit as a creation. Both
+  // the count and the write share one transaction and one advisory lock: two
+  // concurrent edits cannot both take the fifth slot.
   const reactivates = !wasActive && willBeActive && kind === "delegated";
   const ownerId = row.user_id === null ? null : String(row.user_id);
 

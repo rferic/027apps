@@ -6,7 +6,6 @@ import {
   mergeKeyScopes,
   selectAllKeyScopes,
   splitKeyScopes,
-  toDateTimeLocal,
   toggleKeyScope,
 } from "./api-key-edit";
 
@@ -79,21 +78,6 @@ describe("selectAllKeyScopes", () => {
   });
 });
 
-describe("toDateTimeLocal", () => {
-  it("keeps the instant down to the minute", () => {
-    const iso = "2027-01-02T03:04:00.000Z";
-
-    const local = toDateTimeLocal(iso);
-
-    expect(local).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
-    expect(new Date(local).toISOString()).toBe(iso);
-  });
-
-  it("is empty when the key never expires", () => {
-    expect(toDateTimeLocal(null)).toBe("");
-  });
-});
-
 describe("apiKeyFingerprint", () => {
   const KEY = {
     id: "k1",
@@ -144,49 +128,8 @@ describe("buildApiKeyUpdateInput", () => {
     ).toEqual({ name: "Renamed", scopes: ["recetas:read_write", "profile:read"] });
   });
 
-  it("omits an expiry the user did not change", () => {
-    expect(
-      buildApiKeyUpdateInput({
-        name: "Renamed",
-        scopes: ["profile:read"],
-        expiresAt: "2027-05-01T10:00",
-        currentExpiresAt: "2027-05-01T10:00",
-      }),
-    ).toEqual({ name: "Renamed", scopes: ["profile:read"] });
-  });
-
-  it("converts a changed expiry to the ISO instant the API expects", () => {
-    const patch = buildApiKeyUpdateInput({
-      name: "Renamed",
-      scopes: ["profile:read"],
-      expiresAt: "2027-05-01T10:00",
-      currentExpiresAt: "",
-    });
-
-    expect(patch?.expires_at).toBe(new Date("2027-05-01T10:00").toISOString());
-  });
-
-  it("omits the expiry when the field is empty", () => {
-    const patch = buildApiKeyUpdateInput({
-      name: "Renamed",
-      scopes: ["profile:read"],
-      expiresAt: "",
-      currentExpiresAt: "2027-05-01T10:00",
-    });
-
-    expect(patch).not.toHaveProperty("expires_at");
-  });
-
-  it("rejects an empty name, no scopes or an unparseable expiry", () => {
+  it("rejects an empty name or no scopes", () => {
     expect(buildApiKeyUpdateInput({ name: "   ", scopes: ["profile:read"] })).toBeNull();
     expect(buildApiKeyUpdateInput({ name: "Renamed", scopes: [] })).toBeNull();
-    expect(
-      buildApiKeyUpdateInput({
-        name: "Renamed",
-        scopes: ["profile:read"],
-        expiresAt: "not-a-date",
-        currentExpiresAt: "",
-      }),
-    ).toBeNull();
   });
 });

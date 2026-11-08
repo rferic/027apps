@@ -128,11 +128,12 @@ describe("KeysPage", () => {
     expect(html.match(/href="\/keys\/k2"/g)).toHaveLength(2);
   });
 
-  it("filters by state and offers to clear the filter", async () => {
-    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
+  it("filters by state through the API and offers to clear the filter", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [SERVICE_KEY], total: 1 });
 
     const html = renderToStaticMarkup(await render({ state: "revoked" }));
 
+    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 0, state: "revoked" });
     expect(html).toContain("Backup");
     expect(html).not.toContain("Zapier");
     expect(html).toContain("Clear filters");
@@ -179,7 +180,7 @@ describe("KeysPage", () => {
 
     const html = renderToStaticMarkup(await render({ page: "2", state: "revoked" }));
 
-    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 20 });
+    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 20, state: "revoked" });
     expect(html).toContain("Page 2 of 3");
     expect(html).toContain('href="/keys?state=revoked"');
     expect(html).toContain('href="/keys?state=revoked&amp;page=3"');
@@ -205,10 +206,11 @@ describe("KeysPage", () => {
 
 describe("KeysPage default filter", () => {
   it("starts on active even without a state parameter and omits it from the URL", async () => {
-    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 45 });
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY], total: 45 });
 
     const html = renderToStaticMarkup(await render({ page: "2" }));
 
+    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 20, state: "active" });
     expect(html).toContain("Zapier");
     expect(html).not.toContain("Backup");
     expect(html).toContain('<option value="active" selected=""');
@@ -254,6 +256,7 @@ describe("KeysPage kind and owner filters", () => {
 
     expect(loadApiKeysMock).toHaveBeenCalledWith({
       offset: 20,
+      state: "active",
       kind: "delegated",
       user: OWNER_ID,
     });
@@ -271,6 +274,7 @@ describe("KeysPage kind and owner filters", () => {
 
     expect(loadApiKeysMock).toHaveBeenCalledWith({
       offset: 20,
+      state: "all",
       kind: "delegated",
       user: OWNER_ID,
     });
@@ -303,7 +307,7 @@ describe("KeysPage kind and owner filters", () => {
 
     const html = renderToStaticMarkup(await render());
 
-    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 0 });
+    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 0, state: "active" });
     expect(html).toContain('<option value="all" selected=""');
     expect(html).toContain('<option value="" selected=""');
     expect(html).not.toContain("Clear filters");
@@ -321,7 +325,7 @@ describe("KeysPage kind and owner filters", () => {
 
     expect(html).not.toContain('name="user"');
     expect(html).toContain('name="kind"');
-    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 0, kind: "service" });
+    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 0, state: "active", kind: "service" });
   });
 
   it("clears state, kind and owner with Clear filters", async () => {
@@ -352,5 +356,64 @@ describe("KeysPage kind and owner filters", () => {
 
     expect(html).toContain("No API keys match this filter.");
     expect(html).not.toContain("No API keys yet.");
+  });
+});
+
+describe("KeysPage expired state", () => {
+  const EXPIRED_KEY = {
+    ...OWN_KEY,
+    id: "k3",
+    name: "Old automation",
+    expiresAt: "2020-01-01T00:00:00.000Z",
+  };
+
+  it("sends state=expired to the API and shows the Expired badge", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [EXPIRED_KEY], total: 1 });
+
+    const html = renderToStaticMarkup(await render({ state: "expired" }));
+
+    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 0, state: "expired" });
+    expect(html).toContain('<option value="expired" selected=""');
+    expect(html).toContain("Old automation");
+    // The option label plus the row badge, in the table and the mobile card.
+    expect((html.match(/>Expired</g) ?? []).length).toBe(3);
+  });
+
+  it("offers Expired between Active and Revoked in the state filter", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY], total: 1 });
+
+    const html = renderToStaticMarkup(await render());
+
+    const active = html.indexOf('<option value="active"');
+    const expired = html.indexOf('<option value="expired"');
+    const revoked = html.indexOf('<option value="revoked"');
+    const all = html.indexOf('<option value="all"');
+
+    expect(active).toBeGreaterThan(-1);
+    expect(expired).toBeGreaterThan(active);
+    expect(revoked).toBeGreaterThan(expired);
+    expect(all).toBeGreaterThan(revoked);
+  });
+
+  it("keeps the API total, never the number of rows it received", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [EXPIRED_KEY], total: 45 });
+
+    const html = renderToStaticMarkup(await render({ state: "expired" }));
+
+    expect(html).toContain("Page 1 of 3");
+  });
+
+  it("marks a revoked key as revoked even when its expiry is in the past", async () => {
+    loadApiKeysMock.mockResolvedValue({
+      ok: true,
+      apiKeys: [{ ...EXPIRED_KEY, revoked_at: "2026-01-01T00:00:00.000Z" }],
+      total: 1,
+    });
+
+    const html = renderToStaticMarkup(await render({ state: "all" }));
+
+    expect((html.match(/>Revoked</g) ?? []).length).toBe(3);
+    // Only the state select mentions Expired: the row is revoked, not expired.
+    expect((html.match(/>Expired</g) ?? []).length).toBe(1);
   });
 });

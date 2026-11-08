@@ -12,6 +12,8 @@ const INTERNAL_ORIGIN = "http://panel.internal";
 export type ApiKeyKind = "service" | "delegated";
 /** `all` is the explicit opt-out of the kind filter in the list. */
 export type ApiKeyKindFilter = "all" | ApiKeyKind;
+/** Derived lifecycle state; the Core applies it, the panel never re-filters. */
+export type ApiKeyStateFilter = "all" | "active" | "revoked" | "expired";
 export type ApiKeyRoleCap = "admin" | "super_admin";
 
 /** `ApiKeyView` from `packages/core/src/api-keys/service.ts` (never the secret). */
@@ -246,12 +248,14 @@ function listParams(input: {
   limit?: number;
   kind?: ApiKeyKindFilter;
   user?: string;
+  state?: ApiKeyStateFilter;
 }): URLSearchParams {
   const params = new URLSearchParams();
   params.set("limit", String(input.limit ?? PANEL_PAGE_SIZE));
   params.set("offset", String(Math.max(0, input.offset)));
   if (input.kind && input.kind !== "all") params.set("kind", input.kind);
   if (input.user) params.set("user", input.user);
+  if (input.state) params.set("state", input.state);
   return params;
 }
 
@@ -261,6 +265,7 @@ export async function loadApiKeys(input: {
   limit?: number;
   kind?: ApiKeyKindFilter;
   user?: string;
+  state?: ApiKeyStateFilter;
 }): Promise<ApiKeysList> {
   const token = await sessionToken();
   const deps = await apiKeysRouteDeps();
@@ -309,7 +314,8 @@ export type ApiKeyDetail = { ok: true; apiKey: ApiKeyRow } | ApiKeysFailure;
 export interface ApiKeyUpdate {
   name?: string;
   scopes?: string[];
-  expires_at?: string;
+  /** `null` removes the expiry: the key then never expires. */
+  expires_at?: string | null;
 }
 
 /**

@@ -320,7 +320,40 @@ describe("updateKeyAction", () => {
     expect(updateKeyMock).not.toHaveBeenCalled();
   });
 
-  it("sends an expiry only when it changed", async () => {
+  it("keeps the current expiry when the keep mode is selected", async () => {
+    await expect(
+      updateKeyAction(
+        "k1",
+        INITIAL_API_KEY_EDIT_STATE,
+        formData({ name: "Renamed", scopes: ["profile:read"], expiry_mode: "keep" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(updateKeyMock).toHaveBeenCalledWith("k1", {
+      name: "Renamed",
+      scopes: ["profile:read"],
+    });
+  });
+
+  it("clears the expiry with the never mode", async () => {
+    await expect(
+      updateKeyAction(
+        "k1",
+        INITIAL_API_KEY_EDIT_STATE,
+        formData({ name: "Renamed", scopes: ["profile:read"], expiry_mode: "never" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(updateKeyMock).toHaveBeenCalledWith("k1", {
+      name: "Renamed",
+      scopes: ["profile:read"],
+      expires_at: null,
+    });
+  });
+
+  it("computes a relative expiry in the future", async () => {
+    const before = Date.now();
+
     await expect(
       updateKeyAction(
         "k1",
@@ -328,17 +361,34 @@ describe("updateKeyAction", () => {
         formData({
           name: "Renamed",
           scopes: ["profile:read"],
-          expires_at: "2027-05-01T10:00",
-          current_expires_at: "",
+          expiry_mode: "relative",
+          expiry_amount: "30",
+          expiry_unit: "days",
         }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(updateKeyMock).toHaveBeenCalledWith("k1", {
-      name: "Renamed",
-      scopes: ["profile:read"],
-      expires_at: new Date("2027-05-01T10:00").toISOString(),
-    });
+    const patch = updateKeyMock.mock.calls[0]?.[1] as { expires_at?: string };
+    const offset = new Date(patch.expires_at ?? "").getTime() - before;
+    expect(offset).toBeGreaterThanOrEqual(30 * 86_400_000);
+    expect(offset).toBeLessThan(30 * 86_400_000 + 5_000);
+  });
+
+  it("rejects an invalid relative amount without calling the API", async () => {
+    await expect(
+      updateKeyAction(
+        "k1",
+        INITIAL_API_KEY_EDIT_STATE,
+        formData({
+          name: "Renamed",
+          scopes: ["profile:read"],
+          expiry_mode: "relative",
+          expiry_amount: "0",
+          expiry_unit: "days",
+        }),
+      ),
+    ).resolves.toEqual({ error: { ok: false, code: "validation_failed" } });
+    expect(updateKeyMock).not.toHaveBeenCalled();
   });
 
   it("keeps the API failure as state instead of leaving the page", async () => {

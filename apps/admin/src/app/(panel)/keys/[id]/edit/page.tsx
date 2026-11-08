@@ -8,7 +8,9 @@ import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { apiKeyFingerprint } from "@/lib/api-key-edit";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
+import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
+import { loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
 import { loadKey } from "@/lib/panel-keys";
 import {
@@ -78,6 +80,11 @@ export default async function EditApiKeyPage({ params }: { params: Promise<{ id:
   // Revocation is final: the detail page is the only read-only view for it.
   if (apiKey.revoked_at !== null) redirect(`/keys/${encodeURIComponent(id)}`);
 
+  const timeZone = await loadPanelTimeZone();
+  const currentLabel = apiKey.expiresAt
+    ? formatDate(apiKey.expiresAt, { locale, timeZone })
+    : "";
+
   // The owner's modules decide which module permissions the form may offer. A
   // refusal is shown, never hidden: silently rendering none would turn every
   // stored module permission into an immutable chip.
@@ -111,6 +118,7 @@ export default async function EditApiKeyPage({ params }: { params: Promise<{ id:
         apiKey={apiKey}
         modules={offeredModuleList(modules)}
         action={updateKeyAction.bind(null, apiKey.id)}
+        currentLabel={currentLabel}
         messages={messages}
       />
     </section>

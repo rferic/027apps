@@ -26,6 +26,7 @@ import {
   type ApiKeyKind,
   type ApiKeyOwner,
   type ApiKeyRow,
+  type ApiKeyStateFilter,
 } from "@/lib/panel-keys";
 
 /**
@@ -34,7 +35,7 @@ import {
  */
 export const instant = false;
 
-type StateFilter = "all" | "active" | "revoked";
+type StateFilter = ApiKeyStateFilter;
 type KindFilter = "all" | "service" | "delegated";
 
 interface KeysFilters {
@@ -60,7 +61,9 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function parseFilter(value: string | undefined): StateFilter {
-  return value === "revoked" || value === "all" || value === "active" ? value : DEFAULT_STATE;
+  return value === "revoked" || value === "expired" || value === "all" || value === "active"
+    ? value
+    : DEFAULT_STATE;
 }
 
 function parseKind(value: string | undefined): KindFilter {
@@ -105,18 +108,35 @@ function hasActiveFilters(filters: KeysFilters): boolean {
   );
 }
 
-function filterKeys(rows: ApiKeyRow[], filter: StateFilter): ApiKeyRow[] {
-  if (filter === "active") return rows.filter((row) => row.revoked_at === null);
-  if (filter === "revoked") return rows.filter((row) => row.revoked_at !== null);
-  return rows;
-}
-
 function kindLabel(kind: ApiKeyKind, messages: TranslationMap): string {
   return kind === "service" ? t("Service", messages) : t("Delegated", messages);
 }
 
 function kindVariant(kind: ApiKeyKind): BadgeVariant {
   return kind === "service" ? "success" : "neutral";
+}
+
+/**
+ * Derived lifecycle status: revocation wins over expiry, so a revoked key is
+ * never shown as expired. The Core filters with `now()` in the database; the
+ * badge only needs a consistent instant for the rows it receives.
+ */
+function KeyStatusBadge({
+  row,
+  now,
+  messages,
+}: {
+  row: ApiKeyRow;
+  now: number;
+  messages: TranslationMap;
+}) {
+  if (row.revoked_at) {
+    return <Badge variant="destructive">{t("Revoked", messages)}</Badge>;
+  }
+  if (row.expiresAt && new Date(row.expiresAt).getTime() <= now) {
+    return <Badge variant="neutral">{t("Expired", messages)}</Badge>;
+  }
+  return <Badge variant="success">{t("Active", messages)}</Badge>;
 }
 
 function ownerLabel(row: ApiKeyRow, messages: TranslationMap): string {
@@ -176,6 +196,7 @@ function KeysFilter({
         params={params}
         options={[
           { value: "active", label: t("Active", messages) },
+          { value: "expired", label: t("Expired", messages) },
           { value: "revoked", label: t("Revoked", messages) },
           // A real value: "All" is an explicit `state=all`, never a missing key.
           { value: "all", label: t("All", messages) },
@@ -227,6 +248,7 @@ function KeysFilter({
 
 interface KeysViewProps {
   rows: ApiKeyRow[];
+  now: number;
   locale: Locale;
   timeZone: string;
   messages: TranslationMap;
@@ -243,7 +265,7 @@ function KeyNameLink({ row }: { row: ApiKeyRow }) {
   );
 }
 
-function KeysTable({ rows, locale, timeZone, messages }: KeysViewProps) {
+function KeysTable({ rows, now, locale, timeZone, messages }: KeysViewProps) {
   return (
     <div className="hidden overflow-x-auto sm:block">
       <table className="w-full border-collapse text-left text-xs">
@@ -289,9 +311,7 @@ function KeysTable({ rows, locale, timeZone, messages }: KeysViewProps) {
                 {row.last_used_at ? formatDate(row.last_used_at, { locale, timeZone }) : t("Never", messages)}
               </td>
               <td className="py-2 pr-3">
-                <Badge variant={row.revoked_at ? "destructive" : "success"}>
-                  {row.revoked_at ? t("Revoked", messages) : t("Active", messages)}
-                </Badge>
+                <KeyStatusBadge row={row} now={now} messages={messages} />
               </td>
             </tr>
           ))}
@@ -301,7 +321,7 @@ function KeysTable({ rows, locale, timeZone, messages }: KeysViewProps) {
   );
 }
 
-function KeysCards({ rows, locale, timeZone, messages }: KeysViewProps) {
+function KeysCards({ rows, now, locale, timeZone, messages }: KeysViewProps) {
   return (
     <ul className="flex flex-col gap-2 sm:hidden">
       {rows.map((row) => (
@@ -309,9 +329,7 @@ function KeysCards({ rows, locale, timeZone, messages }: KeysViewProps) {
           <div className="flex flex-wrap items-center gap-2">
             <KeyNameLink row={row} />
             <Badge variant={kindVariant(row.kind)}>{kindLabel(row.kind, messages)}</Badge>
-            <Badge variant={row.revoked_at ? "destructive" : "success"}>
-              {row.revoked_at ? t("Revoked", messages) : t("Active", messages)}
-            </Badge>
+            <KeyStatusBadge row={row} now={now} messages={messages} />
           </div>
           <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
             <dt className="text-muted-foreground">{t("Owner", messages)}</dt>
@@ -381,13 +399,14 @@ function KeysBody({
     );
   }
 
-  const rows = filterKeys(data.apiKeys, filters.state);
-  // `kind` and `user` are applied by the API, so an empty page with them is a
-  // real "no match", not an empty instance.
+  const rows = data.apiKeys;
+  const now = new Date().getTime();
+  // Every filter is applied by the API, so an empty page with one is a real
+  // "no match", not an empty instance.
   const filtered =
+    filters.state !== DEFAULT_STATE ||
     filters.kind !== DEFAULT_KIND ||
-    ownerParam(filters) !== undefined ||
-    (filters.state !== DEFAULT_STATE && data.total > 0);
+    ownerParam(filters) !== undefined;
   return (
     <>
       <KeysFilter filters={filters} owners={owners} messages={messages} />
@@ -397,12 +416,14 @@ function KeysBody({
         <>
           <KeysTable
             rows={rows}
+            now={now}
             locale={locale}
             timeZone={timeZone}
             messages={messages}
           />
           <KeysCards
             rows={rows}
+            now={now}
             locale={locale}
             timeZone={timeZone}
             messages={messages}
@@ -435,6 +456,7 @@ async function loadKeysView(
   const user = ownerParam(filters);
   const data = await loadApiKeys({
     offset: pageOffset(page),
+    state: filters.state,
     ...(filters.kind !== DEFAULT_KIND ? { kind: filters.kind } : {}),
     ...(user ? { user } : {}),
   });

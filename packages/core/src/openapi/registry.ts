@@ -386,7 +386,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
   {
     method: "get",
     path: "/api-keys",
-    summary: "List own keys, or all keys as super_admin; filter by kind and owner.",
+    summary: "List own keys, or all keys as super_admin; filter by kind, owner and state.",
     scopes: ["api_keys:read"],
     query: apiKeysQuerySchema,
     response: apiKeyListSchema,

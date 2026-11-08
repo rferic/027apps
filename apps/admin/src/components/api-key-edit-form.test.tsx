@@ -38,6 +38,7 @@ function form(
       apiKey={apiKey}
       modules={modules}
       action={async () => ({ error: null })}
+      currentLabel={apiKey.expiresAt ? "Jan 1, 2027" : ""}
       messages={messages}
     />,
   );
@@ -124,5 +125,34 @@ describe("ApiKeyEditForm module permissions", () => {
     });
 
     expect(patch?.scopes).toEqual(["recetas:read_write"]);
+  });
+});
+
+describe("ApiKeyEditForm expiry", () => {
+  it("starts on never and hides keep when the key has no expiry", () => {
+    const html = form();
+
+    expect(html).toContain('checked="" value="never"');
+    expect(html).not.toContain('value="keep"');
+    expect(html).toContain("A key without an expiry never stops working.");
+  });
+
+  it("starts on keep and shows the formatted current expiry", () => {
+    const html = form({ ...KEY, expiresAt: "2027-01-01T00:00:00.000Z" });
+
+    expect(html).toContain('checked="" value="keep"');
+    expect(html).toContain("Currently expires on Jan 1, 2027");
+    expect(html).toContain('value="never"');
+    expect(html).toContain('value="relative"');
+  });
+
+  it("replaces the datetime-local input with the relative field", () => {
+    const html = form({ ...KEY, expiresAt: "2027-01-01T00:00:00.000Z" });
+
+    expect(html).not.toContain('type="datetime-local"');
+    expect(html).not.toContain('name="current_expires_at"');
+    expect(html).toContain('name="expiry_mode"');
+    expect(html).toContain('name="expiry_amount"');
+    expect(html).toContain('name="expiry_unit"');
   });
 });

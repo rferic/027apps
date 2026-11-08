@@ -32,12 +32,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /**
  * `GET /api-keys` filters beyond pagination. `kind` defaults to `all` when
  * omitted; `user` selects the owner of delegated keys and cannot be combined
- * with `kind=service` (that pair could only return an empty list).
+ * with `kind=service` (that pair could only return an empty list). `state`
+ * is derived, not stored: a revoked key never counts as expired. It also
+ * defaults to `all` because the API is generic; the panel always sends its own.
  */
 export const apiKeyListFiltersSchema = z
   .object({
     kind: z.enum(["all", "service", "delegated"]).optional(),
     user: z.uuid().optional(),
+    state: z.enum(["all", "active", "revoked", "expired"]).optional(),
   })
   .strict()
   .refine((value) => !(value.kind === "service" && value.user), {
@@ -48,9 +51,10 @@ function listFilters(searchParams: URLSearchParams) {
   const filters = apiKeyListFiltersSchema.safeParse({
     kind: searchParams.get("kind") || undefined,
     user: searchParams.get("user") || undefined,
+    state: searchParams.get("state") || undefined,
   });
   if (!filters.success) {
-    throw new DomainError("validation_failed", "invalid kind or user filter");
+    throw new DomainError("validation_failed", "invalid kind, user or state filter");
   }
   return filters.data;
 }
@@ -70,12 +74,13 @@ export const createApiKeySchema = z
 /**
  * `PATCH /api-keys/{id}`. `kind`, `role_cap` and `user_id` are immutable, so
  * `.strict()` rejects them; at least one editable field is required.
+ * `expires_at: null` removes the expiry, making the key one that never expires.
  */
 export const updateApiKeySchema = z
   .object({
     name: z.string().trim().min(1).max(80).optional(),
     scopes: z.array(z.string()).min(1).max(100).optional(),
-    expires_at: z.string().datetime().optional(),
+    expires_at: z.union([z.string().datetime(), z.null()]).optional(),
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, {

@@ -87,36 +87,15 @@ export function selectAllKeyScopes(allowed: readonly string[]): readonly string[
   return [...allowed];
 }
 
-/** `YYYY-MM-DDTHH:mm` for a `datetime-local` input, in the browser's zone. */
-export function toDateTimeLocal(iso: string | null): string {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-/**
- * `undefined` keeps the stored expiry, `null` means the value is unusable.
- * The API cannot clear an expiry, so an unchanged or empty field never travels.
- */
-function changedExpiry(expiresAt: string, currentExpiresAt: string): string | null | undefined {
-  const value = expiresAt.trim();
-  if (!value || value === currentExpiresAt.trim()) return undefined;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
 /**
  * Patch the Core accepts. `name` and `scopes` always travel with the exact set
- * the caller already merged (editable allowlist + preserved module scopes);
- * `expires_at` only travels when it actually changed.
+ * the caller already merged (editable allowlist + preserved module scopes).
+ * The expiry is not part of this builder: the form action resolves it from the
+ * expiry field and merges it, so an untouched expiry never travels.
  */
 export function buildApiKeyUpdateInput(fields: {
   name: string;
   scopes: readonly string[];
-  expiresAt?: string;
-  currentExpiresAt?: string;
 }): ApiKeyUpdate | null {
   const name = fields.name.trim();
   if (name.length < 1 || name.length > 80) return null;
@@ -124,8 +103,5 @@ export function buildApiKeyUpdateInput(fields: {
   const scopes = [...fields.scopes];
   if (scopes.length === 0) return null;
 
-  const expiresAt = changedExpiry(fields.expiresAt ?? "", fields.currentExpiresAt ?? "");
-  if (expiresAt === null) return null;
-
-  return { name, scopes, ...(expiresAt ? { expires_at: expiresAt } : {}) };
+  return { name, scopes };
 }

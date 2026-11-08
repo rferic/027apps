@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
+import { ApiKeyExpiryField } from "@/components/api-key-expiry-field";
 import { ApiKeyScopeFieldset } from "@/components/api-key-scope-fieldset";
 import { Button } from "@/components/ui/button";
 import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { Select } from "@/components/ui/select";
+import { expiresAtFrom, type ExpiryChoice } from "@/lib/api-key-expiry";
 import { apiKeyOfferedScopes, withModuleImplication } from "@/lib/api-key-module-scopes";
 import { createApiKey, type CreateApiKeyInput } from "@/lib/api-key-mutations";
 import { copyText } from "@/lib/clipboard";
@@ -174,6 +176,7 @@ export function buildApiKeyCreateInput(
     roleCap?: ApiKeyRoleCap;
     ownerId?: string;
     modules?: readonly UserModule[];
+    expiry?: ExpiryChoice;
   },
   currentUserId: string,
 ): CreateApiKeyInput {
@@ -189,6 +192,11 @@ export function buildApiKeyCreateInput(
     if (fields.roleCap) input.role_cap = fields.roleCap;
   } else if (fields.ownerId && fields.ownerId !== currentUserId) {
     input.user_id = fields.ownerId;
+  }
+  // `never` and `keep` add nothing; only a relative choice stores an instant.
+  if (fields.expiry) {
+    const expiresAt = expiresAtFrom(fields.expiry);
+    if (expiresAt) input.expires_at = expiresAt;
   }
   return input;
 }
@@ -545,6 +553,7 @@ function ApiKeyCreateFormBody({
   messages,
 }: ApiKeyCreateFormBodyProps) {
   const [state, dispatch] = useReducer(apiKeyFormReducer, INITIAL_API_KEY_FORM_STATE);
+  const [expiry, setExpiry] = useState<ExpiryChoice>({ mode: "never" });
   const ownerId = state.ownerId || currentUserId;
   const { loading: loadingModules, error: modulesError } = useOwnerModules({
     kind: state.kind,
@@ -578,8 +587,9 @@ function ApiKeyCreateFormBody({
     }
     if (atLimit) return;
     const data = new FormData(event.currentTarget);
-    onSubmit(
-      buildApiKeyCreateInput(
+    let input: CreateApiKeyInput;
+    try {
+      input = buildApiKeyCreateInput(
         {
           kind: state.kind,
           name: String(data.get("name") ?? ""),
@@ -587,10 +597,22 @@ function ApiKeyCreateFormBody({
           roleCap: state.roleCap,
           ownerId: state.ownerId,
           modules: state.modules,
+          expiry,
         },
         currentUserId,
-      ),
-    );
+      );
+    } catch (error) {
+      // The browser already blocks an empty or out-of-range amount, but the
+      // state can still carry one: report it on the field, never submit.
+      if (error instanceof RangeError) {
+        onInvalid({
+          expiry_amount: [t("Enter a whole number between 1 and 10000.", messages)],
+        });
+        return;
+      }
+      throw error;
+    }
+    onSubmit(input);
   }
 
   return (
@@ -634,6 +656,18 @@ function ApiKeyCreateFormBody({
           messages={messages}
         />
       )}
+
+      <ApiKeyExpiryField
+        currentExpiresAt={null}
+        currentLabel=""
+        value={expiry}
+        onChange={(choice) => {
+          setExpiry(choice);
+          onClearFieldError("expiry_amount");
+        }}
+        fieldErrors={fieldErrors}
+        messages={messages}
+      />
 
       <ModuleLoadStatus loading={loadingModules} error={modulesError} messages={messages} />
 

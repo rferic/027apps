@@ -12,10 +12,27 @@ interface KeyRow {
   scopes: string[];
   user_id: string | null;
   role_cap: null;
-  expires_at: null;
-  revoked_at: null;
+  expires_at: string | null;
+  revoked_at: string | null;
   last_used_at: null;
   created_at: string;
+}
+
+/** Mirrors the SQL predicate `listApiKeys` adds for `?state=`. */
+function matchesState(row: KeyRow, state: "active" | "expired" | "revoked" | null): boolean {
+  const now = Date.now();
+  const expired = row.expires_at !== null && new Date(row.expires_at).getTime() <= now;
+  if (state === "revoked") return row.revoked_at !== null;
+  if (state === "expired") return row.revoked_at === null && expired;
+  if (state === "active") return row.revoked_at === null && !expired;
+  return true;
+}
+
+function stateOf(sql: string): "active" | "expired" | "revoked" | null {
+  if (sql.includes("expires_at is null or expires_at > now()")) return "active";
+  if (sql.includes("expires_at <= now()")) return "expired";
+  if (sql.includes("revoked_at is not null")) return "revoked";
+  return null;
 }
 
 function countingStorage(): RateLimitStorage {
@@ -42,8 +59,12 @@ function pagedDeps(rows: KeyRow[], who: Caller = admin): ApiKeysRouteDeps {
           const userMatch = sql.match(/user_id = \$(\d+)/);
           const kind = kindMatch ? String(params[Number(kindMatch[1]) - 1]) : null;
           const userId = userMatch ? String(params[Number(userMatch[1]) - 1]) : null;
+          const state = stateOf(sql);
           const visible = rows.filter(
-            (row) => (!kind || row.kind === kind) && (!userId || row.user_id === userId),
+            (row) =>
+              (!kind || row.kind === kind) &&
+              (!userId || row.user_id === userId) &&
+              matchesState(row, state),
           );
           const page = visible.slice(offset, offset + limit);
           const total = visible.length;
@@ -247,6 +268,8 @@ describe("api keys update route", () => {
                 for (const match of sql.matchAll(/(\w+) = \$(\d+)/g)) {
                   patch[match[1]!] = params[Number(match[2]) - 1];
                 }
+                // `expires_at = null` carries no placeholder.
+                if (/\bexpires_at = null\b/.test(sql)) patch.expires_at = null;
                 updates.push(patch);
                 return { rows: [{ ...stored, ...patch }] };
               }
@@ -311,6 +334,20 @@ describe("api keys update route", () => {
     expect((await res.json()) as { error: { code: string } }).toMatchObject({
       error: { code: "validation_failed" },
     });
+  });
+
+  it("accepts expires_at: null to remove the expiry", async () => {
+    const who: Caller = {
+      kind: "session",
+      userId: "22222222-2222-4222-8222-222222222222",
+      role: "user",
+    };
+    const { deps, updates } = updateDeps(who);
+
+    const res = await updateApiKeyRoute(deps)(patch({ expires_at: null }), ID);
+
+    expect(res.status).toBe(200);
+    expect(updates).toEqual([{ expires_at: null, id: ID }]);
   });
 
   it("rejects kind, role_cap and user_id as immutable", async () => {
@@ -459,5 +496,108 @@ describe("api keys route filters", () => {
 
     expect(status).toBe(404);
     expect(body.error?.code).toBe("not_found");
+  });
+});
+
+function stateRows(): KeyRow[] {
+  const base = rows(1)[0]!;
+  return [
+    { ...base, id: "active-null", name: "Active null" },
+    {
+      ...base,
+      id: "active-future",
+      name: "Active future",
+      expires_at: "2099-01-01T00:00:00.000Z",
+    },
+    {
+      ...base,
+      id: "expired",
+      name: "Expired",
+      expires_at: "2000-01-01T00:00:00.000Z",
+    },
+    {
+      ...base,
+      id: "revoked",
+      name: "Revoked",
+      revoked_at: "2026-01-01T00:00:00.000Z",
+    },
+    {
+      ...base,
+      id: "revoked-expired",
+      name: "Revoked expired",
+      expires_at: "2000-01-01T00:00:00.000Z",
+      revoked_at: "2026-01-01T00:00:00.000Z",
+    },
+  ];
+}
+
+describe("api keys route state filter", () => {
+  it("keeps only active keys (no expiry, or a future one)", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(stateRows())),
+      "/api/v1/api-keys?state=active",
+    );
+
+    expect(status).toBe(200);
+    expect(body.api_keys.map((row) => row.id).sort()).toEqual(["active-future", "active-null"]);
+    expect(body.total).toBe(2);
+  });
+
+  it("keeps only non-revoked keys with a past expiry for state=expired", async () => {
+    const { body } = await list(apiKeysRoute(pagedDeps(stateRows())), "/api/v1/api-keys?state=expired");
+
+    expect(body.api_keys.map((row) => row.id)).toEqual(["expired"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("keeps only revoked keys for state=revoked, even when also expired", async () => {
+    const { body } = await list(apiKeysRoute(pagedDeps(stateRows())), "/api/v1/api-keys?state=revoked");
+
+    expect(body.api_keys.map((row) => row.id).sort()).toEqual(["revoked", "revoked-expired"]);
+    expect(body.total).toBe(2);
+  });
+
+  it("treats state=all and an omitted state like no filter", async () => {
+    const all = await list(apiKeysRoute(pagedDeps(stateRows())), "/api/v1/api-keys?state=all");
+    const none = await list(apiKeysRoute(pagedDeps(stateRows())), "/api/v1/api-keys");
+
+    expect(all.body.total).toBe(5);
+    expect(none.body.total).toBe(5);
+    expect(none.body.api_keys).toHaveLength(5);
+  });
+
+  it("combines state with kind and user", async () => {
+    const base = rows(1)[0]!;
+    const ownerRows: KeyRow[] = [
+      { ...base, id: "mine", kind: "delegated", user_id: OWNER, name: "Mine" },
+      {
+        ...base,
+        id: "mine-expired",
+        kind: "delegated",
+        user_id: OWNER,
+        name: "Mine expired",
+        expires_at: "2000-01-01T00:00:00.000Z",
+      },
+      { ...base, id: "svc", kind: "service", name: "Service" },
+    ];
+
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(ownerRows)),
+      `/api/v1/api-keys?kind=delegated&user=${OWNER}&state=active`,
+    );
+
+    expect(status).toBe(200);
+    expect(body.api_keys.map((row) => row.id)).toEqual(["mine"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("rejects an unknown state", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(stateRows())),
+      "/api/v1/api-keys?state=stale",
+    );
+
+    expect(status).toBe(400);
+    expect(body.error?.code).toBe("validation_failed");
   });
 });

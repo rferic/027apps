@@ -4,15 +4,16 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
+import { ApiKeyExpiryField } from "@/components/api-key-expiry-field";
 import { ApiKeyScopeFieldset } from "@/components/api-key-scope-fieldset";
 import { Button } from "@/components/ui/button";
 import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { apiKeyOfferedScopes } from "@/lib/api-key-module-scopes";
+import type { ExpiryChoice } from "@/lib/api-key-expiry";
 import {
   INITIAL_API_KEY_EDIT_STATE,
   selectAllKeyScopes,
   splitKeyScopes,
-  toDateTimeLocal,
   toggleKeyScope,
   type ApiKeyEditState,
 } from "@/lib/api-key-edit";
@@ -44,15 +45,6 @@ function roleCapLabel(apiKey: ApiKeyRow, messages: TranslationMap): string | nul
   return apiKey.roleCap === "super_admin"
     ? t("Super administrator", messages)
     : t("Administrator", messages);
-}
-
-/**
- * The API refuses an expiry in the past and cannot clear one, so the rule is
- * explained up front instead of after a failed save.
- */
-function expiryHint(apiKey: ApiKeyRow, messages: TranslationMap): string {
-  if (!apiKey.expiresAt) return t("Leave empty for a key that never expires.", messages);
-  return `${t("An expired key can only be extended.", messages)} ${t("Leave empty to keep the current expiry.", messages)}`;
 }
 
 function saveErrorMessage(
@@ -120,46 +112,6 @@ function NameField({ apiKey, error, messages }: {
         className={inputClass}
       />
     </FormField>
-  );
-}
-
-interface ExpiresFieldProps {
-  apiKey: ApiKeyRow;
-  value: string;
-  currentValue: string;
-  error?: string;
-  onChange: (value: string) => void;
-  messages: TranslationMap;
-}
-
-function ExpiresField({
-  apiKey,
-  value,
-  currentValue,
-  error,
-  onChange,
-  messages,
-}: ExpiresFieldProps) {
-  return (
-    <>
-      <FormField
-        id="api-key-edit-expires"
-        label={t("Expires", messages)}
-        hint={expiryHint(apiKey, messages)}
-        error={error}
-        errorId="api-key-edit-expires-error"
-      >
-        <input
-          id="api-key-edit-expires"
-          name="expires_at"
-          type="datetime-local"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className={inputClass}
-        />
-      </FormField>
-      <input type="hidden" name="current_expires_at" value={currentValue} />
-    </>
   );
 }
 
@@ -286,19 +238,23 @@ export function ApiKeyEditForm({
   apiKey,
   modules = [],
   action,
+  currentLabel,
   messages,
 }: {
   apiKey: ApiKeyRow;
   /** Modules granted to the owner; only delegated keys receive them. */
   modules?: readonly UserModule[];
   action: ApiKeyEditAction;
+  /** The stored expiry, already formatted with the panel locale and zone. */
+  currentLabel: string;
   messages: TranslationMap;
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL_API_KEY_EDIT_STATE);
   const { offered, editable, preserved, visibleModules } = editOffer(apiKey, modules);
   const [scopes, setScopes] = useState<readonly string[]>(editable);
-  const currentExpiresAt = toDateTimeLocal(apiKey.expiresAt);
-  const [expiresAt, setExpiresAt] = useState(currentExpiresAt);
+  const [expiry, setExpiry] = useState<ExpiryChoice>(
+    apiKey.expiresAt ? { mode: "keep" } : { mode: "never" },
+  );
 
   const fieldErrors = state.error?.details?.fieldErrors ?? {};
   // A key with only module permissions is still a valid key: the server
@@ -311,14 +267,18 @@ export function ApiKeyEditForm({
 
       <NameField apiKey={apiKey} error={fieldErrors.name?.[0]} messages={messages} />
 
-      <ExpiresField
-        apiKey={apiKey}
-        value={expiresAt}
-        currentValue={currentExpiresAt}
-        error={fieldErrors.expires_at?.[0]}
-        onChange={setExpiresAt}
+      <ApiKeyExpiryField
+        currentExpiresAt={apiKey.expiresAt}
+        currentLabel={currentLabel}
+        value={expiry}
+        onChange={setExpiry}
+        fieldErrors={fieldErrors}
         messages={messages}
       />
+
+      <p className="text-xs text-muted-foreground">
+        {t("A key without an expiry never stops working.", messages)}
+      </p>
 
       <ScopeSelector
         apiKey={apiKey}

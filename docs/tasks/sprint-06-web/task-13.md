@@ -349,3 +349,27 @@ render.
 **Resolución:** ambas empiezan con `await requirePanel("super_admin")`; denegado devuelve
 `insufficient_scope` sin tocar el API. Tests: un `admin` recibe el error y no se llama a
 `loadKey`/`updateKey` ni a `loadUserModules`.
+
+## Caducidad relative en alta y edición, filtro `expired` en servidor
+
+El Core ya acepta `expires_at` en `POST`, `expires_at: string | null` en `PATCH` y `state` en el
+listado. El panel los usa así:
+
+- **Alta**: `ApiKeyExpiryField` (nunca / en X horas, días, meses o años) con estado
+  `ExpiryChoice` y `never` por defecto. `buildApiKeyCreateInput` añade `expires_at` solo para
+  `relative`; un importe fuera de `1..10000` lanza `RangeError` y se muestra como error del campo
+  `expiry_amount` sin enviar la petición.
+- **Edición**: el `datetime-local` y el hidden `current_expires_at` desaparecen. El formulario
+  ofrece `never`, `keep` (solo si la clave caduca) y `relative`; la acción parsea
+  `expiry_mode`/`expiry_amount`/`expiry_unit`, calcula el instante en UTC con `expiresAtFrom` y
+  envía `null` al quitar la caducidad o nada al mantenerla. `toDateTimeLocal` y `changedExpiry`
+  se eliminan.
+- **Lista**: `loadApiKeys` reenvía `state` al API (`all`, `active`, `revoked`, `expired`) y la
+  página deja de filtrar en cliente: la paginación y `total` salen del servidor. El selector
+  ofrece Active, Expired, Revoked y All, y el badge deriva tres estados (revocada → destructive,
+  caducada → neutral, activa → success) en tabla y tarjeta móvil.
+
+Tests: aritmética UTC por unidad y límites en `api-key-expiry.test.ts`; render de los tres modos y
+error accesible en `api-key-expiry-field.test.tsx`; alta, edición y acción de los tres modos;
+listado con `state=expired` llegando al API, badge caducado, orden del filtro y `total` sin
+recortes.

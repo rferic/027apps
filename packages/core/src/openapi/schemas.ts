@@ -140,6 +140,12 @@ export const apiKeysQuerySchema = paginationQuerySchema.extend({
     .describe(
       "Owner of delegated keys (super_admin only); rejected together with kind=service.",
     ),
+  state: z
+    .enum(["all", "active", "revoked", "expired"])
+    .optional()
+    .describe(
+      "Filter by derived state; omitted or all removes the filter. A revoked key never counts as expired. total reflects it.",
+    ),
 });
 
 export const userResponseSchema = component(

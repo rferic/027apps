@@ -89,6 +89,16 @@ describe("ApiKeyCreateForm", () => {
     expect(html).toContain("Create API key");
   });
 
+  it("starts on a key that never expires", () => {
+    const html = renderToStaticMarkup(form());
+
+    expect(html).toContain("Expiry");
+    expect(html).toContain("Never expires");
+    expect(html).toContain('checked="" value="never"');
+    expect(html).not.toContain('value="keep"');
+    expect(html).toContain("Expires in");
+  });
+
   it("does not offer service keys to an actor who cannot create them", () => {
     const html = renderToStaticMarkup(form({ canCreateService: false, canChooseOwner: false }));
 
@@ -505,6 +515,52 @@ describe("buildApiKeyCreateInput", () => {
       name: "Key",
       scopes: ["profile:read", "recetas:read"],
     });
+  });
+
+  it("does not send an expiry for a key that never expires or keeps it", () => {
+    const base = { kind: "delegated" as const, name: "Key", scopes: ["profile:read"] };
+
+    expect(buildApiKeyCreateInput({ ...base, expiry: { mode: "never" } }, "u1")).toEqual({
+      kind: "delegated",
+      name: "Key",
+      scopes: ["profile:read"],
+    });
+    expect(buildApiKeyCreateInput({ ...base, expiry: { mode: "keep" } }, "u1")).toEqual({
+      kind: "delegated",
+      name: "Key",
+      scopes: ["profile:read"],
+    });
+  });
+
+  it("sends the instant of a relative expiry", () => {
+    const before = Date.now();
+    const input = buildApiKeyCreateInput(
+      {
+        kind: "delegated",
+        name: "Key",
+        scopes: ["profile:read"],
+        expiry: { mode: "relative", amount: 30, unit: "days" },
+      },
+      "u1",
+    );
+
+    const offset = new Date(input.expires_at ?? "").getTime() - before;
+    expect(offset).toBeGreaterThanOrEqual(30 * 86_400_000);
+    expect(offset).toBeLessThan(30 * 86_400_000 + 5_000);
+  });
+
+  it("refuses an invalid relative amount instead of sending it", () => {
+    expect(() =>
+      buildApiKeyCreateInput(
+        {
+          kind: "delegated",
+          name: "Key",
+          scopes: ["profile:read"],
+          expiry: { mode: "relative", amount: 0, unit: "days" },
+        },
+        "u1",
+      ),
+    ).toThrow(RangeError);
   });
 });
 
