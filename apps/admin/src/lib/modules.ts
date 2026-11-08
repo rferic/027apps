@@ -8,7 +8,7 @@ import { join, resolve } from "node:path";
  * On a serverless deploy the packages must be bundled with the app; the
  * packaging step lands with the first real module (task-11).
  */
-function modulesRoot(): string {
+export function modulesRoot(): string {
   return process.env.MODULES_ROOT ?? resolve(process.cwd(), "../../packages");
 }
 

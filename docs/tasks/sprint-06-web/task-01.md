@@ -34,6 +34,7 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 | 12 | Canje público de invitaciones | pendiente |
 | 13 | Scopes de claves API y claves delegadas por propietario | finalizada |
 | 14 | Fichas de detalle de invitaciones y módulos | finalizada |
+| 15 | Instalar módulos desde el panel | en curso |
 
 ## Dependencias
 
@@ -50,4 +51,4 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 
 ## Cierre
 
-Un solo PR, squash a `main` por orden del usuario, cuando 05–14 estén `finalizada` con DoD completo (TDD, gates, revisión de segundo agente y auditoría OWASP).
+Un solo PR, squash a `main` por orden del usuario, cuando 05–15 estén `finalizada` con DoD completo (TDD, gates, revisión de segundo agente y auditoría OWASP).

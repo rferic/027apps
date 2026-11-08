@@ -3,8 +3,10 @@ import type { JsonValue } from "@027apps/core/api/types.js";
 import {
   moduleGrantsRoute,
   moduleRoute,
+  modulesRoute,
   moduleSettingsRoute,
 } from "@027apps/core/modules/api.js";
+import { PANEL_PAGE_SIZE } from "@/lib/panel-pagination";
 import { modulesRouteDeps } from "@/lib/modules-route-deps";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -67,6 +69,7 @@ export type ModuleFailure = {
 };
 
 export type ModuleDetailResult = { ok: true; module: ModuleDetail } | ModuleFailure;
+export type ModuleListResult = { ok: true; modules: ModuleDetail[]; total: number } | ModuleFailure;
 export type ModuleSettingsResult = { ok: true; settings: ModuleSetting[] } | ModuleFailure;
 export type ModuleGrantsResult = { ok: true; grants: ModuleGrants } | ModuleFailure;
 
@@ -335,6 +338,44 @@ async function callRoute(
 
 function pathFor(key: string, suffix = ""): string {
   return `/api/v1/modules/${encodeURIComponent(key)}${suffix}`;
+}
+
+/**
+ * GET /api/v1/modules — one page of the installed catalogue. The install page
+ * uses it to know which packages are already present (and therefore hidden).
+ */
+export async function loadModules(input: {
+  offset: number;
+  limit?: number;
+}): Promise<ModuleListResult> {
+  const token = await sessionToken();
+  const params = new URLSearchParams();
+  params.set("limit", String(input.limit ?? PANEL_PAGE_SIZE));
+  params.set("offset", String(Math.max(0, input.offset)));
+
+  const call = await callRoute(
+    modulesRoute(await modulesRouteDeps()),
+    `/api/v1/modules?${params.toString()}`,
+    token,
+  );
+  if (!call.ok) return call;
+  if (!Array.isArray(call.body.modules)) {
+    return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+  }
+
+  const modules: ModuleDetail[] = [];
+  for (const entry of call.body.modules) {
+    const detail = readModuleDetail(entry);
+    // One malformed row invalidates the list: a partial page would look
+    // complete while hiding modules that are already installed.
+    if (!detail) return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+    modules.push(detail);
+  }
+  const total = readInteger(call.body.total);
+  if (total === undefined) {
+    return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+  }
+  return { ok: true, modules, total };
 }
 
 /** GET /api/v1/modules/{key} — the module row, never its settings. */

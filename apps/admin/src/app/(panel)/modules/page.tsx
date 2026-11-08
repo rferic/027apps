@@ -524,11 +524,19 @@ export default async function ModulesPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-base font-bold">{t("Modules", messages)}</h1>
-        <p className="text-xs text-muted-foreground">
-          {t("Modules installed on this instance. This page is read-only.", messages)}
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-base font-bold">{t("Modules", messages)}</h1>
+          <p className="text-xs text-muted-foreground">
+            {t("Modules installed on this instance. This page is read-only.", messages)}
+          </p>
+        </div>
+        <Link
+          href="/modules/install"
+          className="inline-flex min-h-11 items-center rounded-control border border-transparent bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {t("Install module", messages)}
+        </Link>
       </header>
 
       <ModulesBody

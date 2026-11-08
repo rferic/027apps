@@ -6,6 +6,7 @@ const redirectMock = vi.fn((url: string) => {
 const getSessionMock = vi.fn();
 const depsMock = vi.fn();
 const detailHandlerMock = vi.fn();
+const listHandlerMock = vi.fn();
 const settingsHandlerMock = vi.fn();
 const grantsHandlerMock = vi.fn();
 
@@ -25,11 +26,12 @@ vi.mock("@/lib/modules-route-deps", () => ({
 
 vi.mock("@027apps/core/modules/api.js", () => ({
   moduleRoute: () => detailHandlerMock,
+  modulesRoute: () => listHandlerMock,
   moduleSettingsRoute: () => settingsHandlerMock,
   moduleGrantsRoute: () => grantsHandlerMock,
 }));
 
-import { loadModuleDetail, loadModuleGrants, loadModuleSettings } from "./panel-modules";
+import { loadModuleDetail, loadModuleGrants, loadModules, loadModuleSettings } from "./panel-modules";
 
 const MODULE = {
   key: "inventory",
@@ -68,6 +70,7 @@ beforeEach(() => {
   depsMock.mockReset();
   depsMock.mockResolvedValue({});
   detailHandlerMock.mockReset();
+  listHandlerMock.mockReset();
   settingsHandlerMock.mockReset();
   grantsHandlerMock.mockReset();
 });
@@ -259,5 +262,36 @@ describe("loadModuleGrants", () => {
     grantsHandlerMock.mockResolvedValue(new Response("", { status: 404 }));
 
     await expect(loadModuleGrants("missing")).resolves.toEqual({ ok: false, code: "not_found" });
+  });
+});
+
+describe("loadModules", () => {
+  it("reads one page in process with the session bearer", async () => {
+    listHandlerMock.mockResolvedValue(json({ modules: [MODULE], total: 1 }));
+
+    await expect(loadModules({ offset: 20, limit: 100 })).resolves.toEqual({
+      ok: true,
+      modules: [MODULE],
+      total: 1,
+    });
+
+    const request = listHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=100&offset=20");
+    expect(request.method).toBe("GET");
+    expect(request.headers.get("authorization")).toBe("Bearer token-123");
+  });
+
+  it("defaults the page size and rejects a malformed row", async () => {
+    listHandlerMock.mockResolvedValue(
+      json({ modules: [{ key: "broken" }], total: 1 }, 200, { "x-request-id": "req-list" }),
+    );
+
+    await expect(loadModules({ offset: 0 })).resolves.toEqual({
+      ok: false,
+      requestId: "req-list",
+    });
+
+    const request = listHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=0");
   });
 });

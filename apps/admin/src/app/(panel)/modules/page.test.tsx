@@ -153,6 +153,17 @@ describe("ModulesPage", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("offers the install page as the primary action, visible on mobile", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: [], total: 0 }));
+
+    const html = renderToStaticMarkup(await ModulesPage());
+
+    expect(html).toContain('href="/modules/install"');
+    expect(html).toContain("Install module");
+    expect(html).toContain("bg-primary");
+    expect(html).not.toContain('href="/modules/install" class="hidden');
+  });
+
   it("shows the error state with the translated code, the request id and a retry link", async () => {
     routeHandlerMock.mockResolvedValue(
       json(
