@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { entryGate } from "@/lib/instance-gate";
 import { readInstanceState } from "@/lib/instance-state";
-import { isPublicHelpPath } from "@/lib/public-paths";
+import { isPublicPath } from "@/lib/public-paths";
 import { isSameOriginMutation } from "@/lib/same-origin";
 import { SESSION_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options";
 
@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
 
-  if (isPublicHelpPath(request.nextUrl.pathname)) {
+  if (isPublicPath(request.nextUrl.pathname)) {
     const response = NextResponse.next({ request: { headers: requestHeaders } });
     response.headers.set("Content-Security-Policy-Report-Only", contentSecurityPolicy);
     return response;

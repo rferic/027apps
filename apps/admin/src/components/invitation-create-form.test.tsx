@@ -75,6 +75,9 @@ describe("InvitationCreatedPanel", () => {
     expect(html).toContain("tok-123");
     expect(html).toContain("Copy this token now. It will not be shown again.");
     expect(html).toContain("Copy token");
+    expect(html).toContain(
+      "The invitee opens the invitation link in the browser or redeems the token from the mobile app to join the instance.",
+    );
     expect(html).toContain('href="/invitations"');
     expect(html).toContain("Done");
     expect(html).not.toContain("<form");

@@ -2,7 +2,7 @@
 id: sprint-06-task-12
 titulo: Canje público de invitaciones
 area: web
-estado: pendiente
+estado: test
 adrs: [0004, 0007]
 plan: docs/superpowers/plans/2026-11-07-invitation-redemption.md
 spec: docs/superpowers/specs/2026-11-07-invitation-redemption-design.md

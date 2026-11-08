@@ -30,6 +30,40 @@ describe("proxy public help", () => {
   });
 });
 
+describe("proxy public invitation", () => {
+  it("renders an invitation page without a Supabase client", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+
+    const response = await proxy(new NextRequest("http://localhost/invite/027_inv_abc123"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-security-policy-report-only")).toContain(
+      "frame-ancestors 'none'",
+    );
+    expect(createServerClientMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps /invite with more than one segment on the private path", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+
+    await expect(proxy(new NextRequest("http://localhost/invite/a/b"))).rejects.toThrow(
+      "Supabase env vars are not configured",
+    );
+    expect(createServerClientMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps a panel route on the private path", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+
+    await expect(proxy(new NextRequest("http://localhost/members"))).rejects.toThrow(
+      "Supabase env vars are not configured",
+    );
+  });
+});
+
 describe("proxy session cookies", () => {
   it("hardens the session cookie on the proxy client too", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");

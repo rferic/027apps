@@ -108,7 +108,10 @@ function TokenPanel({
         </p>
       )}
       <p className="text-xs text-muted-foreground">
-        {t("The invitee redeems this token from the mobile app to join the instance.", messages)}
+        {t(
+          "The invitee opens the invitation link in the browser or redeems the token from the mobile app to join the instance.",
+          messages,
+        )}
       </p>
     </div>
   );

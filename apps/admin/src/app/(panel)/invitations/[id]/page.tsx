@@ -217,7 +217,10 @@ function InvitationDangerZone({
         {t("Danger zone", messages)}
       </h2>
       <p className="text-xs text-muted-foreground">
-        {t("The invitation link is only shown once, when the invitation is created.", messages)}
+        {t(
+          "The invitation link is only shown once, when the invitation is created. The invitee opens it in the browser or in the mobile app.",
+          messages,
+        )}
       </p>
       <p className="text-xs text-muted-foreground">
         {t("If you lost it, revoke this invitation and create a new one.", messages)}
