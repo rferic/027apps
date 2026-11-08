@@ -8,7 +8,7 @@
   },
   "version": "1.0.0",
   "is_public": false,
-  "migraciones": [
+  "migrations": [
     {
       "version": "1.0.0",
       "up": "./sql/1.0.0-up.sql",
@@ -71,7 +71,7 @@
       "members_fn": "split_expenses_expense_group_members"
     }
   ],
-  "eventos": [
+  "events": [
     {
       "type": "expense.created",
       "target": "channel:expense-group-{id}",
@@ -87,7 +87,7 @@
     }
   ],
   "hooks": {
-    "user.deactivated": "handleUserDeactivated"
+    "user.deactivated": "handle_user_deactivated"
   },
   "admin_pages": [
     {
