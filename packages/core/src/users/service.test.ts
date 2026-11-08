@@ -16,6 +16,7 @@ import {
 type ProfileRow = {
   id: string;
   display_name: string;
+  email: string;
   locale: string;
   timezone: string;
   role: Role;
@@ -27,6 +28,7 @@ function profile(id: string, overrides: Partial<ProfileRow> = {}): ProfileRow {
   return {
     id,
     display_name: id,
+    email: `${id}@example.test`,
     locale: 'en',
     timezone: 'UTC',
     role: 'user',
@@ -75,19 +77,25 @@ function makeDeps(
         .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
       return { rows: roots[0] ? [{ id: roots[0].id }] : [] };
     }
-    // Paginated list: q, role, state, category, limit, offset.
+    // Paginated list: q, role, state, category, limit, offset, email search.
     if (sql.startsWith('select p.id')) {
-      const [pattern, role, state, category, limit, offset] = params as [
+      const [pattern, role, state, category, limit, offset, emailSearch] = params as [
         string | null,
         Role | null,
         boolean | null,
         string | null,
         number,
         number,
+        boolean,
       ];
       const needle = pattern ? pattern.replace(/[\\%_]/g, '').toLowerCase() : null;
       const rows = [...profiles.values()]
-        .filter((row) => !needle || row.display_name.toLowerCase().includes(needle))
+        .filter(
+          (row) =>
+            !needle ||
+            row.display_name.toLowerCase().includes(needle) ||
+            (emailSearch && row.email.toLowerCase().includes(needle)),
+        )
         .filter((row) => !role || row.role === role)
         .filter((row) => state === null || (row.deactivated_at === null) === state)
         .filter((row) => !category || categoriesOf(row.id).some((c) => c.id === category))
@@ -99,15 +107,21 @@ function makeDeps(
     // Totals: q, role and category; `state` filters the page and `total`,
     // while `active_total` keeps counting active profiles among the matches.
     if (sql.startsWith('select count(*) filter')) {
-      const [pattern, role, state, category] = params as [
+      const [pattern, role, state, category, emailSearch] = params as [
         string | null,
         Role | null,
         boolean | null,
         string | null,
+        boolean,
       ];
       const needle = pattern ? pattern.replace(/[\\%_]/g, '').toLowerCase() : null;
       const matching = [...profiles.values()]
-        .filter((row) => !needle || row.display_name.toLowerCase().includes(needle))
+        .filter(
+          (row) =>
+            !needle ||
+            row.display_name.toLowerCase().includes(needle) ||
+            (emailSearch && row.email.toLowerCase().includes(needle)),
+        )
         .filter((row) => !role || row.role === role)
         .filter((row) => !category || categoriesOf(row.id).some((c) => c.id === category));
       const filtered = matching.filter(
@@ -316,7 +330,7 @@ describe('listUsers — role and state filters', () => {
   it('filters by role and keeps the total consistent with the page', async () => {
     const { deps } = makeDeps(PEOPLE);
 
-    const result = await listUsers(deps, { role: 'user', state: 'all', limit: 20, offset: 0 });
+    const result = await listUsers(deps, session('root', 'super_admin'), { role: 'user', state: 'all', limit: 20, offset: 0 });
 
     expect(result.users.map((user) => user.id)).toEqual(['luis', 'marta']);
     expect(result.total).toBe(2);
@@ -326,7 +340,7 @@ describe('listUsers — role and state filters', () => {
   it('defaults to active profiles when state is omitted', async () => {
     const { deps } = makeDeps(PEOPLE);
 
-    const result = await listUsers(deps, { limit: 20, offset: 0 });
+    const result = await listUsers(deps, session('root', 'super_admin'), { limit: 20, offset: 0 });
 
     expect(result.users.map((user) => user.id)).toEqual(['root', 'ana', 'luis']);
     expect(result.total).toBe(3);
@@ -336,7 +350,7 @@ describe('listUsers — role and state filters', () => {
   it('includes deactivated profiles only with state=all', async () => {
     const { deps } = makeDeps(PEOPLE);
 
-    const result = await listUsers(deps, { state: 'all', limit: 20, offset: 0 });
+    const result = await listUsers(deps, session('root', 'super_admin'), { state: 'all', limit: 20, offset: 0 });
 
     expect(result.users.map((user) => user.id)).toEqual(['root', 'ana', 'luis', 'marta']);
     expect(result.total).toBe(4);
@@ -346,7 +360,7 @@ describe('listUsers — role and state filters', () => {
   it('filters by state without hiding the active total of the search', async () => {
     const { deps } = makeDeps(PEOPLE);
 
-    const result = await listUsers(deps, { state: 'deactivated', limit: 20, offset: 0 });
+    const result = await listUsers(deps, session('root', 'super_admin'), { state: 'deactivated', limit: 20, offset: 0 });
 
     expect(result.users.map((user) => user.id)).toEqual(['marta']);
     expect(result.total).toBe(1);
@@ -366,7 +380,7 @@ describe('listUsers — role and state filters', () => {
       }),
     ]);
 
-    const result = await listUsers(deps, {
+    const result = await listUsers(deps, session('root', 'super_admin'), {
       q: 'ana',
       role: 'user',
       state: 'active',
@@ -403,7 +417,7 @@ describe('listUsers — categories', () => {
   it('returns every category of each user ordered by name', async () => {
     const { deps } = makeDeps(PEOPLE, MEMBERSHIPS);
 
-    const result = await listUsers(deps, { state: 'all', limit: 20, offset: 0 });
+    const result = await listUsers(deps, session('root', 'super_admin'), { state: 'all', limit: 20, offset: 0 });
 
     expect(result.users.map((user) => user.id)).toEqual(['ana', 'luis', 'marta']);
     expect(result.users[0]?.categories).toEqual([
@@ -416,7 +430,7 @@ describe('listUsers — categories', () => {
   it('returns an empty array for a user without categories', async () => {
     const { deps } = makeDeps(PEOPLE);
 
-    const result = await listUsers(deps, { state: 'all', limit: 20, offset: 0 });
+    const result = await listUsers(deps, session('root', 'super_admin'), { state: 'all', limit: 20, offset: 0 });
 
     expect(result.users.every((user) => user.categories.length === 0)).toBe(true);
   });
@@ -424,7 +438,7 @@ describe('listUsers — categories', () => {
   it('filters to the members of a category and keeps total and active_total consistent', async () => {
     const { deps } = makeDeps(PEOPLE, MEMBERSHIPS);
 
-    const allStates = await listUsers(deps, {
+    const allStates = await listUsers(deps, session('root', 'super_admin'), {
       category: 'alpha',
       state: 'all',
       limit: 20,
@@ -435,7 +449,7 @@ describe('listUsers — categories', () => {
     expect(allStates.total).toBe(2);
     expect(allStates.active_total).toBe(2);
 
-    const active = await listUsers(deps, { category: 'beta', limit: 20, offset: 0 });
+    const active = await listUsers(deps, session('root', 'super_admin'), { category: 'beta', limit: 20, offset: 0 });
 
     expect(active.users).toEqual([]);
     expect(active.total).toBe(0);
@@ -445,7 +459,7 @@ describe('listUsers — categories', () => {
   it('combines the category with q, role and state', async () => {
     const { deps } = makeDeps(PEOPLE, MEMBERSHIPS);
 
-    const result = await listUsers(deps, {
+    const result = await listUsers(deps, session('root', 'super_admin'), {
       q: 'ana',
       role: 'admin',
       state: 'active',
@@ -457,6 +471,65 @@ describe('listUsers — categories', () => {
     expect(result.users.map((user) => user.id)).toEqual(['ana']);
     expect(result.total).toBe(1);
     expect(result.active_total).toBe(1);
+  });
+});
+
+describe('listUsers — email search', () => {
+  const PEOPLE = [
+    profile('root', { role: 'super_admin', display_name: 'Root', email: 'root@example.test' }),
+    profile('ana', { display_name: 'Ana', email: 'ana.secret@example.test' }),
+  ];
+  const FILTERS = { state: 'all' as const, limit: 20, offset: 0 };
+
+  it('lets a super_admin find a member by email', async () => {
+    const { deps } = makeDeps(PEOPLE);
+
+    const result = await listUsers(deps, session('root', 'super_admin'), {
+      ...FILTERS,
+      q: 'ana.secret@example.test',
+    });
+
+    expect(result.users.map((user) => user.id)).toEqual(['ana']);
+    expect(result.total).toBe(1);
+  });
+
+  it('does not turn q into an email oracle for a delegated key', async () => {
+    const { deps } = makeDeps(PEOPLE);
+    const delegated: Caller = {
+      kind: 'delegated',
+      keyId: 'k1',
+      scopes: ['users:read'],
+      roleCap: 'user',
+      userId: 'ana',
+    };
+
+    const byEmail = await listUsers(deps, delegated, {
+      ...FILTERS,
+      q: 'ana.secret@example.test',
+    });
+    expect(byEmail.users).toEqual([]);
+    expect(byEmail.total).toBe(0);
+
+    const byName = await listUsers(deps, delegated, { ...FILTERS, q: 'Ana' });
+    expect(byName.users.map((user) => user.id)).toEqual(['ana']);
+  });
+
+  it('does not turn q into an email oracle for a service key', async () => {
+    const { deps } = makeDeps(PEOPLE);
+    const service: Caller = {
+      kind: 'service',
+      keyId: 'k1',
+      scopes: ['users:read'],
+      roleCap: 'admin',
+    };
+
+    const result = await listUsers(deps, service, {
+      ...FILTERS,
+      q: 'ana.secret@example.test',
+    });
+
+    expect(result.users).toEqual([]);
+    expect(result.total).toBe(0);
   });
 });
 

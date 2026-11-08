@@ -43,7 +43,7 @@ Leyenda: ✓ permitido · ✗ denegado · «propias» solo sobre claves del mism
 | `modules:read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `<módulo>:read` / `<módulo>:read_write` | ✓ si el dueño tiene el módulo asignado | ✗ | ✗ | — | — | — |
 | `modules:grant` / `modules:manage` | ✗ | ✓ | ✓ | ✓ | ✓ | ✗ |
-| `api_keys:read` / `write` / `revoke` | ✓ (propias) | ✓ | ✓ | ✓ (propias) | ✓ | ✓ (propias) |
+| `api_keys:read` / `write` / `revoke` | ✓ (propias) | ✗ | ✗ | ✓ (propias) | ✓ | ✓ (propias) |
 | `users:read` | ✓ (instancia completa, sin email) | ✓ | ✓ | ✓ | ✓ | ✗ |
 | `users:write` | ✗ | ✓ | ✓ | ✓ | ✓ | ✗ |
 | `users:deactivate` | ✗ | ✗ | ✓ | ✗ | ✓ | ✗ |
@@ -57,8 +57,9 @@ Leyenda: ✓ permitido · ✗ denegado · «propias» solo sobre claves del mism
 Notas de interpretación (para aprobar junto con la política):
 
 - El **cap** de una service key es radio de daño, no un rol: reduce `users:deactivate` y
-  `maintenance:run`, pero no retira `api_keys:*` porque la clave solo la mintea un super_admin.
-  `role_cap` sigue siendo obligatorio para `service`.
+  `maintenance:run`. Una service key **no** lleva `api_keys:*`: una credencial no debe acuñar ni
+  gestionar credenciales, así que la gestión de claves queda en sesiones humanas. `role_cap` sigue
+  siendo obligatorio para `service`.
 - El allowlist delegado es **independiente del cap**: una delegada actúa **siempre como `user`**,
   aunque su dueño sea admin o super_admin. El rol guardado (`role_cap`) se ignora en runtime y la
   desactivación del perfil sigue surtiendo efecto inmediato (401); perder un grant de módulo retira
@@ -77,11 +78,13 @@ Notas de interpretación (para aprobar junto con la política):
 
 1. **Sesión**: set fijo del rol; el guard no cambia de forma.
 2. **Service**: `scopes ∩ servicio(cap)`. Nunca `profile:*` ni `devices:*`.
-3. **Delegada**: `scopes ∩ delegado`, más el grant de módulo del dueño (`user_modules` vigente)
-   para scopes de módulo; `modules:hasAccess` sigue siendo la última comprobación por petición.
-4. **Scopes efectivos al validar**, no al crear: el guard calcula la intersección en cada petición.
-   Un scope almacenado fuera del allowlist se ignora; si la acción lo exige, responde 403
-   `insufficient_scope`. No se reescriben filas.
+3. **Delegada**: `scopes ∩ delegado`. Los scopes de módulo se validan **al crear o editar** contra
+   los grants vigentes del dueño (`user_modules`); hoy no hay comprobación por petición: llegará con
+   los endpoints de módulo (`modules:hasAccess`).
+4. **Scopes efectivos al validar**, no al crear: el guard calcula la intersección con el allowlist en
+   cada petición. Un scope almacenado fuera del allowlist se ignora; si la acción lo exige, responde
+   403 `insufficient_scope`. No se reescriben filas. La excepción son los scopes de módulo, que se
+   validan contra `user_modules` al crear/editar (punto 3).
 5. **No escalada**: quien crea una clave (sesión o clave propia) solo puede pedir scopes incluidos
    en sus scopes efectivos. Una delegada con `api_keys:write` no puede mintear una clave más amplia
    que ella misma. Además, una delegada solo guarda scopes de su allowlist: lo que quede fuera se
@@ -98,7 +101,7 @@ Notas de interpretación (para aprobar junto con la política):
 | Sesión `admin` | crea, lista y revoca **las suyas** vía API; nunca service. El panel `/keys` es super_admin, así que no lo ve | ✗ |
 | Clave delegada con `api_keys:*` | solo las del dueño, y sin superar sus propios scopes | ✗ |
 | Sesión `super_admin` | todas; crea para cualquier usuario activo con `user_id` (selector de propietario) | todas; crea con `role_cap` |
-| Clave `service` cap super_admin | revoca cualquier clave por id | revoca las suyas por id; no lista |
+| Clave `service` (ambos caps) | ✗ | ✗ |
 
 - `POST /api/v1/api-keys` gana `user_id` (uuid, opcional). Solo una **sesión super_admin** puede
   enviarlo; para cualquier otro caller → 403. Propietario inexistente o desactivado → 404
@@ -109,8 +112,8 @@ Notas de interpretación (para aprobar junto con la política):
   nunca es super_admin a efectos de propiedad**, aunque su dueño lo sea: ve solo las del dueño.
   `DELETE` de una clave ajena por un no-super_admin responde **404**, indistinguible de «no existe»,
   para no enumerar.
-- El listado de claves sigue siendo una acción de panel: `listApiKeys` rechaza a un caller `service`
-  incluso con `api_keys:read`, porque no es dueño de nada (§10).
+- El listado de claves sigue siendo una acción de panel: `listApiKeys` rechaza a un caller `service`,
+  que además ya no lleva `api_keys:*` (una credencial no gestiona credenciales; §10).
 - **Panel**: solo super_admin. `/keys` y `/keys/new` → `requirePanel("super_admin")` (403 genérico
   para admin); el ítem «Claves» desaparece para admin; el formulario añade selector de propietario
   (usuarios activos, vía `GET /api/v1/users?state=active`).
@@ -168,8 +171,8 @@ anota en el PR y la respuesta de error no dice qué scope falta (solo `insuffici
    respuesta no incluye email.
 5. Una clave delegada con `devices:*`, `profile:*`, `currencies:read`, `modules:read` y sus scopes
    de módulo asignados funciona igual que hoy; un módulo no asignado no es accesible.
-6. Una clave `service` con `profile:read` o `devices:read` recibe 403; con `api_keys:read` funciona
-   en ambos caps; con cap admin no puede `maintenance:run` ni `users:deactivate`.
+6. Una clave `service` con `profile:read`, `devices:read` o `api_keys:read` recibe 403 en ambos caps;
+   con cap admin no puede `maintenance:run` ni `users:deactivate`.
 7. Un super_admin crea una delegada para otro usuario con `user_id` y aparece como propietario en
    `GET` y en el panel; sin `user_id` se atribuye al actor.
 8. Un caller que no es sesión super_admin que envía `user_id` recibe 403; una clave delegada no
@@ -184,7 +187,8 @@ anota en el PR y la respuesta de error no dice qué scope falta (solo `insuffici
 
 ## 10. Fuera de alcance
 
-- Runtime de módulos y empaquetado de sus scopes (solo se validan y se comprueba el grant).
+- Runtime de módulos y empaquetado de sus scopes (se validan contra el grant del dueño al crear o
+  editar; la comprobación por petición llegará con los endpoints de módulo).
 - Cliente Android: consume el contrato (`user_id` opcional, 409 del límite) en una tarea posterior;
   esta spec no toca `apps/android`.
 - Listado de claves por una service key (sigue siendo acción de panel con dueño).
@@ -204,8 +208,9 @@ Ajustes decididos por el usuario sobre el borrador, ya implementados:
 3. **Recorte al crear.** Una delegada no rechaza la creación por scopes de más: los recorta
    (allowlist + scopes efectivos del creador + grant de módulo) y falla con `validation_failed` solo
    si no queda ninguno. Una service key sí rechaza scopes fuera de su set con `validation_failed`.
-4. **Service sin datos personales.** Los dos caps mantienen `role_cap` obligatorio y excluyen
-   `profile:*`/`devices:*`; `maintenance:run` y `users:deactivate` siguen solo en cap super_admin.
+4. **Service sin datos personales y sin gestión de claves.** Los dos caps mantienen `role_cap`
+   obligatorio, excluyen `profile:*`/`devices:*` y no incluyen `api_keys:*`; `maintenance:run` y
+   `users:deactivate` siguen solo en cap super_admin.
 5. **Límite transaccional.** Cinco delegadas activas por propietario; la sexta responde 409
    `conflict` con `details.code = "key_limit"` desde la misma transacción con
    `pg_advisory_xact_lock`.

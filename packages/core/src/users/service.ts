@@ -173,13 +173,29 @@ async function activeSuperAdmins(db: QueryClient): Promise<number> {
   return Number(rows[0]?.n ?? 0);
 }
 
-export async function listUsers(deps: UsersDeps, filters: UserListFilters): Promise<UserList> {
+/**
+ * Only a super_admin may search by email. A delegated (or service) caller with
+ * `users:read` must not be able to confirm whether an address belongs to the
+ * instance, so for everyone else `q` matches the display name only.
+ */
+function callerIsSuperAdmin(caller: Caller): boolean {
+  if (caller.kind === "session") return caller.role === "super_admin";
+  if (caller.kind === "service") return caller.roleCap === "super_admin";
+  return false;
+}
+
+export async function listUsers(
+  deps: UsersDeps,
+  caller: Caller,
+  filters: UserListFilters,
+): Promise<UserList> {
   const pattern = filters.q ? likePattern(filters.q) : null;
   // `null` means "no state filter"; a boolean lets both queries share the SQL.
   // Omitting the filter is the safe default: active profiles only.
   const state = filters.state ?? "active";
   const active = state === "all" ? null : state === "active";
   const category = filters.category ?? null;
+  const emailSearch = callerIsSuperAdmin(caller);
   // Categories reach the page in the same query: one row per profile, never a
   // read per user. The `exists` subquery keeps the membership filter separate
   // from the join that feeds the aggregate.
@@ -194,7 +210,8 @@ export async function listUsers(deps: UsersDeps, filters: UserListFilters): Prom
        join auth.users u on u.id = p.id
        left join public.user_category_members m on m.user_id = p.id
        left join public.user_categories c on c.id = m.user_category_id
-      where ($1::text is null or p.display_name ilike $1 escape '\\' or u.email ilike $1 escape '\\')
+      where ($1::text is null or p.display_name ilike $1 escape '\\'
+              or ($7::boolean and u.email ilike $1 escape '\\'))
         and ($2::text is null or p.role = $2)
         and ($3::boolean is null or (p.deactivated_at is null) = $3)
         and ($4::uuid is null or exists (
@@ -203,19 +220,20 @@ export async function listUsers(deps: UsersDeps, filters: UserListFilters): Prom
       group by p.id
       order by p.created_at asc, p.id asc
       limit $5 offset $6`,
-    [pattern, filters.role ?? null, active, category, filters.limit, filters.offset],
+    [pattern, filters.role ?? null, active, category, filters.limit, filters.offset, emailSearch],
   );
   const { rows: countRows } = await deps.db.query(
     `select count(*) filter (where ($3::boolean is null or (p.deactivated_at is null) = $3))::int as n,
             count(*) filter (where p.deactivated_at is null)::int as active_total
        from public.profiles p
        join auth.users u on u.id = p.id
-      where ($1::text is null or p.display_name ilike $1 escape '\\' or u.email ilike $1 escape '\\')
+      where ($1::text is null or p.display_name ilike $1 escape '\\'
+              or ($5::boolean and u.email ilike $1 escape '\\'))
         and ($2::text is null or p.role = $2)
         and ($4::uuid is null or exists (
               select 1 from public.user_category_members cm
                where cm.user_id = p.id and cm.user_category_id = $4))`,
-    [pattern, filters.role ?? null, active, category],
+    [pattern, filters.role ?? null, active, category, emailSearch],
   );
   return {
     users: rows.map(toView),

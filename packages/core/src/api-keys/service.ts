@@ -163,10 +163,27 @@ async function grantedModuleScopes(
 }
 
 /**
- * Scopes a delegated key may actually store: the fixed allowlist plus the
- * owner's live module grants, intersected with the creator's own effective
- * scopes. A session's module capability comes from `user_modules`, not from a
- * scope string, so granted module scopes are not trimmed for sessions.
+ * Scopes a delegated key may store at all: the fixed allowlist plus the
+ * owner's live module grants. Creation intersects this with the creator's own
+ * effective scopes; editing does not, because ownership already bounds the
+ * edit to the owner (or a super_admin) and an editor must never strip scopes
+ * that were granted to the key by someone else.
+ */
+async function delegatedKeyScopes(
+  db: QueryClient,
+  ownerId: string,
+  requested: readonly string[],
+): Promise<string[]> {
+  const granted = await grantedModuleScopes(db, ownerId, requested);
+  const allowed = new Set<string>([...DELEGATED_SCOPES, ...granted]);
+  return requested.filter((scope) => allowed.has(scope));
+}
+
+/**
+ * Scopes a delegated key may be created with: the key allowlist trimmed to the
+ * creator's own effective scopes. A session's module capability comes from
+ * `user_modules`, not from a scope string, so granted module scopes are not
+ * trimmed for sessions.
  */
 async function delegatedCreationScopes(
   db: QueryClient,
@@ -174,12 +191,9 @@ async function delegatedCreationScopes(
   ownerId: string,
   requested: readonly string[],
 ): Promise<string[]> {
-  const granted = await grantedModuleScopes(db, ownerId, requested);
-  const allowed = new Set<string>([...DELEGATED_SCOPES, ...granted]);
+  const permitted = await delegatedKeyScopes(db, ownerId, requested);
   const own = new Set(effectiveScopes(caller));
-  return requested.filter(
-    (scope) => allowed.has(scope) && (own.has(scope) || isModuleScope(scope)),
-  );
+  return permitted.filter((scope) => own.has(scope) || isModuleScope(scope));
 }
 
 function assertServiceScopes(scopes: readonly string[], cap: ApiKeyRoleCap): void {
@@ -434,9 +448,9 @@ export async function getApiKey(deps: ApiKeysDeps, caller: Caller, id: string): 
 }
 
 export async function revokeApiKey(deps: ApiKeysDeps, caller: Caller, id: string): Promise<void> {
-  if (caller.kind === "service" && caller.roleCap !== "super_admin") {
-    throw new DomainError("insufficient_scope");
-  }
+  // Key management is a human/delegated action; a service credential cannot
+  // manage credentials (B3).
+  if (caller.kind === "service") throw new DomainError("insufficient_scope");
   const row = await findVisibleKey(deps, caller, id);
   if (row.revoked_at !== null && row.revoked_at !== undefined) return;
   await deps.db.query(
@@ -448,8 +462,10 @@ export async function revokeApiKey(deps: ApiKeysDeps, caller: Caller, id: string
 /**
  * Edits `name`, `scopes` or `expires_at` of an existing key (never `kind`,
  * `role_cap` or `user_id`, and never the secret or `last_used_at`). Re-scoping
- * repeats the creation rules: a service key stays inside its stored cap and a
- * delegated key is trimmed to the owner's allowlist and live module grants.
+ * is bounded by what the key itself may hold: a service key stays inside its
+ * stored cap and a delegated key is trimmed to the owner's allowlist and live
+ * module grants, never to the editor's own scopes. Reactivating an expired key
+ * counts against the owner's five-key limit.
  */
 export async function updateApiKey(
   deps: ApiKeysDeps,
@@ -472,6 +488,11 @@ export async function updateApiKey(
   const now = deps.now?.() ?? new Date();
   const assignments: string[] = [];
   const params: unknown[] = [];
+  const currentExpiresAt =
+    row.expires_at === null || row.expires_at === undefined
+      ? null
+      : new Date(toIso(row.expires_at));
+  const wasActive = currentExpiresAt === null || currentExpiresAt.getTime() > now.getTime();
 
   if (patch.name !== undefined) {
     const name = patch.name.trim();
@@ -490,7 +511,7 @@ export async function updateApiKey(
       assertServiceScopes(scopes, cap);
       effective = scopes;
     } else {
-      effective = await delegatedCreationScopes(deps.db, caller, String(row.user_id), scopes);
+      effective = await delegatedKeyScopes(deps.db, String(row.user_id), scopes);
       if (effective.length === 0) {
         throw new DomainError(
           "validation_failed",
@@ -509,10 +530,11 @@ export async function updateApiKey(
     }
     // An expired key can only be extended: the new value is in the future by
     // the check above, so it always lands after the stored one.
-    const current = row.expires_at === null || row.expires_at === undefined
-      ? null
-      : new Date(toIso(row.expires_at));
-    if (current && current.getTime() <= now.getTime() && expiresAt.getTime() <= current.getTime()) {
+    if (
+      currentExpiresAt &&
+      currentExpiresAt.getTime() <= now.getTime() &&
+      expiresAt.getTime() <= currentExpiresAt.getTime()
+    ) {
       throw new DomainError("validation_failed", "an expired key can only be extended");
     }
     params.push(expiresAt.toISOString());
@@ -522,14 +544,37 @@ export async function updateApiKey(
   // Nothing to change: the route schema already requires a field.
   if (assignments.length === 0) return toView(row);
 
+  const nextExpiresAt =
+    patch.expires_at !== undefined ? new Date(patch.expires_at) : currentExpiresAt;
+  const willBeActive = nextExpiresAt === null || nextExpiresAt.getTime() > now.getTime();
+  // Extending an expired key brings it back to the active set, so it must pass
+  // the same per-owner limit as a creation. Both the count and the write share
+  // one transaction and one advisory lock: two concurrent edits cannot both
+  // take the fifth slot.
+  const reactivates = !wasActive && willBeActive && kind === "delegated";
+  const ownerId = row.user_id === null ? null : String(row.user_id);
+
   params.push(id);
-  const { rows } = await deps.db.query(
-    `update public.api_keys set ${assignments.join(", ")}
-      where id = $${params.length} and revoked_at is null
-      returning ${VIEW_COLUMNS}`,
-    params,
-  );
-  const updated = rows[0];
+  const updated = await withTx(deps, async (db) => {
+    if (reactivates && ownerId !== null) {
+      await db.query("select pg_advisory_xact_lock(hashtext($1))", [`api_keys:${ownerId}`]);
+      const { rows: countRows } = await db.query(
+        `select count(*)::int as n from public.api_keys
+          where user_id = $1 and kind = 'delegated' and id <> $2
+            and revoked_at is null
+            and (expires_at is null or expires_at > now())`,
+        [ownerId, id],
+      );
+      if (Number(countRows[0]?.n ?? 0) >= MAX_ACTIVE_DELEGATED_KEYS) throw keyLimitError();
+    }
+    const { rows } = await db.query(
+      `update public.api_keys set ${assignments.join(", ")}
+        where id = $${params.length} and revoked_at is null
+        returning ${VIEW_COLUMNS}`,
+      params,
+    );
+    return rows[0];
+  });
   // The key was visible above, so a vanished row means it was revoked in
   // between: report the same conflict as the pre-check.
   if (!updated) {

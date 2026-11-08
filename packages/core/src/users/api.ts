@@ -108,7 +108,7 @@ export function usersRoute(deps: UsersRouteDeps) {
       deps.door,
       async (ctx) => {
         const page = pageParams(ctx.searchParams);
-        const result = await listUsers(deps.users, page);
+        const result = await listUsers(deps.users, ctx.caller, page);
         return { ...result, limit: page.limit, offset: page.offset };
       },
     );

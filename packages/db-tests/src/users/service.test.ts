@@ -43,7 +43,7 @@ describe("users service — reads", () => {
         displayName: "List Me",
       });
 
-      const list = await listUsers(deps(c), { q: "List Me", limit: 10, offset: 0 });
+      const list = await listUsers(deps(c), caller("super_admin"), { q: "List Me", limit: 10, offset: 0 });
       expect(list.users.some((user) => user.id === id)).toBe(true);
       expect(list.total).toBeGreaterThanOrEqual(1);
 
@@ -67,7 +67,7 @@ describe("users service — reads", () => {
         deactivated.id,
       ]);
 
-      const list = await listUsers(deps(c), { q: prefix, limit: 2, offset: 0 });
+      const list = await listUsers(deps(c), caller("super_admin"), { q: prefix, limit: 2, offset: 0 });
 
       expect(list.total).toBe(3);
       expect(list.active_total).toBe(2);

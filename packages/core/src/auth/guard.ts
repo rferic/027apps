@@ -54,9 +54,10 @@ const SESSION_SCOPES: Record<'super_admin' | 'admin' | 'user', readonly string[]
 
 /**
  * Delegated keys: a closed allowlist that never includes administration. A
- * delegated key acts for its owner but only as a plain user; its optional
- * module scopes are validated against the owner's grants on every request by
- * the modules guard.
+ * delegated key acts for its owner but only as a plain user. Its optional
+ * module scopes are validated against the owner's `user_modules` grants when
+ * the key is created or edited; there is no per-request module guard yet (that
+ * check arrives with the module endpoints).
  */
 export const DELEGATED_SCOPES = [
   ...PROFILE_SCOPES,
@@ -71,7 +72,8 @@ export const DELEGATED_SCOPES = [
 /**
  * Service keys: administration without personal data or devices. The cap is
  * blast radius, not a role: `users:deactivate` and `maintenance:run` stay on
- * the super_admin cap only.
+ * the super_admin cap only. No `api_keys:*`: a credential must not mint or
+ * manage credentials, so key management stays on human sessions.
  */
 const SERVICE_ADMIN_SCOPES = [
   'currencies:read',
@@ -79,7 +81,6 @@ const SERVICE_ADMIN_SCOPES = [
   'modules:read',
   'modules:manage',
   'modules:grant',
-  ...API_KEY_SCOPES,
   'users:read',
   'users:write',
   'roles:assign',

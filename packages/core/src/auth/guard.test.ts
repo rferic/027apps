@@ -142,10 +142,11 @@ describe('authorize — service keys', () => {
     }
   });
 
-  it('keeps api_keys:* on both caps', () => {
+  it('never lets a service key manage API keys', () => {
     for (const roleCap of ['admin', 'super_admin'] as const) {
-      const caller = serviceCaller(['api_keys:read'], roleCap);
-      expect(() => authorize(caller, ['api_keys:read'])).not.toThrow();
+      for (const scope of ['api_keys:read', 'api_keys:write', 'api_keys:revoke']) {
+        expectForbidden(serviceCaller([scope], roleCap), scope);
+      }
     }
   });
 

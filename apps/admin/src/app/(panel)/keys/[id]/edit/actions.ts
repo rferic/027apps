@@ -8,6 +8,7 @@ import {
   type ApiKeyEditState,
 } from "@/lib/api-key-edit";
 import { apiKeyOfferedScopes } from "@/lib/api-key-module-scopes";
+import { requirePanel } from "@/lib/panel-guard";
 import { loadKey, updateKey, type ApiKeyUpdate } from "@/lib/panel-keys";
 import {
   loadModulesForOwner,
@@ -47,6 +48,12 @@ export async function updateKeyAction(
   _previous: ApiKeyEditState,
   formData: FormData,
 ): Promise<ApiKeyEditState> {
+  // Server actions are callable outside the page render, so the page guard is
+  // repeated here: key management is a super_admin surface, exactly like the
+  // Core route this action calls.
+  const gate = await requirePanel("super_admin");
+  if ("denied" in gate) return { error: { ok: false, code: "insufficient_scope" } };
+
   const stored = await loadKey(id);
   if (!stored.ok) return { error: stored };
 

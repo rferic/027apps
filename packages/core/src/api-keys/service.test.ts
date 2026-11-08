@@ -98,8 +98,13 @@ function apiKeyTable(profiles: Profile[] = []) {
         }
         if (sql.includes("count(*)::int as n") && sql.includes("kind = 'delegated'")) {
           const owner = String(params[0]);
+          const excluded = sql.includes("id <> $2") ? String(params[1]) : null;
           const count = rows.filter(
-            (row) => row.kind === "delegated" && row.user_id === owner && active(row),
+            (row) =>
+              row.kind === "delegated" &&
+              row.user_id === owner &&
+              row.id !== excluded &&
+              active(row),
           ).length;
           return { rows: [{ n: count }] };
         }
@@ -671,12 +676,18 @@ describe("api key ownership and visibility", () => {
   });
 
   it("keeps a service key out of the key-management panel actions", async () => {
+    const row = table.seed({ kind: "delegated", user_id: "user" });
+
     await expect(listApiKeys(table.deps, service(["api_keys:read"], "super_admin"), PAGE)).rejects.toMatchObject(
       { code: "insufficient_scope" },
     );
-    await expect(getApiKey(table.deps, service(["api_keys:read"], "super_admin"), "k-1")).rejects.toMatchObject(
+    await expect(getApiKey(table.deps, service(["api_keys:read"], "super_admin"), row.id)).rejects.toMatchObject(
       { code: "insufficient_scope" },
     );
+    await expect(
+      revokeApiKey(table.deps, service(["api_keys:revoke"], "super_admin"), row.id),
+    ).rejects.toMatchObject({ code: "insufficient_scope" });
+    expect(row.revoked_at).toBeNull();
   });
 });
 
@@ -806,6 +817,63 @@ describe("updateApiKey", () => {
       expires_at: extended,
     });
     expect(updated.expires_at).toBe(extended);
+  });
+
+  it("rejects reactivating an expired key when the owner already has five active", async () => {
+    for (let index = 0; index < 5; index += 1) {
+      table.seed({ kind: "delegated", user_id: "user", name: `Active ${index}` });
+    }
+    const expired = table.seed({
+      kind: "delegated",
+      user_id: "user",
+      name: "Expired",
+      expires_at: new Date(NOW.getTime() - 60_000).toISOString(),
+    });
+
+    await expect(
+      updateApiKey(table.deps, session("user", "user"), expired.id, {
+        expires_at: new Date(NOW.getTime() + 3_600_000).toISOString(),
+      }),
+    ).rejects.toMatchObject({ code: "conflict", details: { code: "key_limit" } });
+    expect(expired.expires_at).toBe(new Date(NOW.getTime() - 60_000).toISOString());
+  });
+
+  it("reactivates an expired key when the owner has room for one more", async () => {
+    for (let index = 0; index < 4; index += 1) {
+      table.seed({ kind: "delegated", user_id: "user", name: `Active ${index}` });
+    }
+    const expired = table.seed({
+      kind: "delegated",
+      user_id: "user",
+      name: "Expired",
+      expires_at: new Date(NOW.getTime() - 60_000).toISOString(),
+    });
+    const extended = new Date(NOW.getTime() + 3_600_000).toISOString();
+
+    const updated = await updateApiKey(table.deps, session("user", "user"), expired.id, {
+      expires_at: extended,
+    });
+
+    expect(updated.expires_at).toBe(extended);
+  });
+
+  it("keeps the scopes a super_admin granted when the owner edits the key", async () => {
+    const { api_key } = await createApiKey(table.deps, session("root", "super_admin"), {
+      kind: "delegated",
+      name: "Granted",
+      user_id: "user",
+      scopes: ["profile:read", "users:read"],
+    });
+    expect(api_key.scopes).toEqual(["profile:read", "users:read"]);
+
+    // The owner's own session has no `users:read`; editing must not strip a
+    // scope that was granted to the key by someone else.
+    const updated = await updateApiKey(table.deps, session("user", "user"), api_key.id, {
+      name: "Renamed",
+      scopes: ["profile:read", "users:read"],
+    });
+
+    expect(updated.scopes).toEqual(["profile:read", "users:read"]);
   });
 
   it("refuses any service caller with insufficient_scope", async () => {

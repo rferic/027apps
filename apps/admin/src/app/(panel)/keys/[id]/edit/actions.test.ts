@@ -3,12 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const updateKeyMock = vi.fn();
 const loadKeyMock = vi.fn();
 const loadUserModulesMock = vi.fn();
+const requirePanelMock = vi.fn();
 const redirectMock = vi.fn((url: string) => {
   throw new Error(`NEXT_REDIRECT:${url}`);
 });
 
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => redirectMock(url),
+}));
+
+vi.mock("@/lib/panel-guard", () => ({
+  requirePanel: (min: string) => requirePanelMock(min),
 }));
 
 vi.mock("@/lib/panel-keys", () => ({
@@ -50,10 +55,33 @@ beforeEach(() => {
   loadKeyMock.mockResolvedValue(STORED_KEY);
   loadUserModulesMock.mockReset();
   loadUserModulesMock.mockResolvedValue({ ok: true, modules: [] });
+  requirePanelMock.mockReset();
+  requirePanelMock.mockResolvedValue({
+    user: { id: "root", email: "root@example.test", displayName: "Root", role: "super_admin" },
+  });
   redirectMock.mockClear();
 });
 
 describe("updateKeyAction", () => {
+  it("refuses a panel admin before reaching the API", async () => {
+    requirePanelMock.mockResolvedValue({
+      denied: true,
+      user: { id: "admin", email: "a@example.test", displayName: "Ana", role: "admin" },
+    });
+
+    await expect(
+      updateKeyAction(
+        "k1",
+        INITIAL_API_KEY_EDIT_STATE,
+        formData({ name: "Renamed", scopes: ["profile:read"] }),
+      ),
+    ).resolves.toEqual({ error: { ok: false, code: "insufficient_scope" } });
+
+    expect(requirePanelMock).toHaveBeenCalledWith("super_admin");
+    expect(loadKeyMock).not.toHaveBeenCalled();
+    expect(updateKeyMock).not.toHaveBeenCalled();
+  });
+
   it("sends the name and every selected scope, then returns to the key", async () => {
     await expect(
       updateKeyAction(

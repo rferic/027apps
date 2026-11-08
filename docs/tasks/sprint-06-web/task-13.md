@@ -266,3 +266,86 @@ falta. Las filas no se reescriben; el valor guardado queda como pista de auditor
 
 **Pendiente antes de `finalizada`:** QA de un segundo agente y auditoría de seguridad OWASP
 (A01/A02/A03/A04/A05/A07/A08/A09) con informe en esta tarea.
+
+## Hallazgos de la auditoría
+
+Auditoría de autorización de API keys sobre la implementación anterior. Todos los hallazgos con
+código corregido llevan test que falla antes del cambio y pasa después.
+
+### M1 — `authenticated` podía escribir en `public.api_keys` (crítico)
+
+`0009_api_keys_devices.sql` concedía `insert, update, delete` a `authenticated` y
+`api_keys_write for all` lo permitía sobre las claves propias. Con su JWT, un usuario podía insertar
+filas con `key_hash` a su gusto, `scopes` arbitrarios y el `user_id` de otra persona, saltándose el
+límite de 5 y la propiedad.
+
+**Resolución:** `supabase/migrations/0016_api_keys_no_direct_write.sql` elimina `api_keys_write` y
+revoca `insert, update, delete` a `authenticated`; `api_keys_select` queda intacta. Las escrituras
+van siempre por el Core (pool de servicio) tras el guard. Verificado con
+`grep 'from("api_keys")'` sobre `apps/admin/src`: no hay ninguna escritura con el cliente de usuario
+(el único acceso directo es la lectura agregada de contadores en `panel-keys.ts`, que usa el pool de
+servicio).
+
+### M2 — el comentario del guard prometía un guard de módulos inexistente
+
+`guard.ts` afirmaba que los scopes de módulo se validaban «on every request by the modules guard».
+
+**Resolución:** el comentario ahora dice la verdad: el scope de módulo se valida al crear/editar
+contra `user_modules`; la comprobación por petición llegará con los endpoints de módulo. Corregida
+también la spec (`2026-11-08-api-key-scopes-design.md` §4 y fuera de alcance).
+
+### M3 — `PATCH` se saltaba el límite de 5
+
+`updateApiKey` permitía alargar la caducidad de una clave caducada. Como las caducadas no cuentan
+para el límite, se podían acumular y resucitar sin tope.
+
+**Resolución:** si el patch deja la clave activa (`revoked_at is null` y `expires_at` nulo o futuro)
+y antes no lo estaba, `updateApiKey` recontra dentro de la misma transacción, con
+`pg_advisory_xact_lock(hashtext('api_keys:<owner>'))`, las delegadas activas del dueño excluyendo el
+id editado; con 5 responde 409 `conflict` con `details.code = "key_limit"` (mismo `keyLimitError()`
+que la creación). Tests: con 5 activas, extender una caducada → 409; con 4 → 200.
+
+### M4 — oráculo de email con `users:read`
+
+`listUsers` buscaba `q` también en `profiles.email` para cualquier caller con `users:read`, así que
+una clave delegada podía confirmar si un email pertenecía a la instancia.
+
+**Resolución:** `listUsers` recibe el `caller`; el término de email solo se aplica a un super_admin
+(sesión o service con cap `super_admin`). Para el resto, `q` busca solo por nombre. Tests: una
+delegada con `users:read` no encuentra por email y sí por nombre; una service cap admin tampoco; un
+super_admin sí. Ruta `usersRoute` actualizada.
+
+### B1 — editar dependía de los scopes del editor
+
+`updateApiKey` revalidaba los scopes de una delegada con `delegatedCreationScopes`, que además
+interseca con `effectiveScopes(caller)`: un usuario que editaba su propia clave perdía en silencio
+scopes concedidos por un super_admin.
+
+**Resolución:** en `PATCH` la allowlist es la de la clave (`DELEGATED_SCOPES` + módulos vigentes del
+dueño), sin intersecar con los del editor; la propiedad ya limita la edición al dueño o a un
+super_admin. Test: un super_admin crea una delegada con `users:read` y el dueño (sesión `user`) la
+edita sin perderlo.
+
+### B2 — `withTx` cae al cliente sin transacción si no se inyecta (riesgo aceptado)
+
+Sin `withTransaction`, `withTx` ejecuta sobre `deps.db` y el conteo + escritura dejan de ser
+atómicos. **Riesgo aceptado:** en producción siempre se inyecta `withTransaction`
+(`withTransactionClient`); el fallback existe solo para tests y composiciones simples.
+
+### B3 — la service key llevaba `api_keys:*` pero las acciones la rechazaban
+
+`MACHINE_SCOPES.service` incluía `api_keys:*`, mientras las cuatro acciones de claves rechazan a un
+caller `service`. Contrato incoherente y superficie innecesaria.
+
+**Resolución:** `api_keys:*` sale de los scopes de service (una credencial no acuña credenciales).
+La gestión de claves queda en las sesiones humanas y en las delegadas del dueño. Tests de guard
+actualizados a 403 en ambos caps y test de servicio que ya esperaba `insufficient_scope`.
+
+### B4 — server actions sin gate de panel
+
+`updateKeyAction` y `loadUserModulesAction` no repetían el gate de página y eran invocables fuera del
+render.
+
+**Resolución:** ambas empiezan con `await requirePanel("super_admin")`; denegado devuelve
+`insufficient_scope` sin tocar el API. Tests: un `admin` recibe el error y no se llama a
+`loadKey`/`updateKey` ni a `loadUserModules`.
