@@ -22,7 +22,7 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 |---|---|---|
 | 01 | README del sprint | en curso |
 | 02 | Setup i18n y ayuda Firebase | finalizada |
-| 03 | Dominio local de desarrollo | test |
+| 03 | Dominio local de desarrollo | finalizada |
 | 04 | Settings batch write | finalizada |
 | 05 | Shell y navegación + `/modules` | finalizada |
 | 06 | Dashboard con datos reales | finalizada |
@@ -54,5 +54,5 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 Un solo PR, squash a `main` por orden del usuario, cuando 05–15 estén `finalizada` con DoD completo (TDD, gates, revisión de segundo agente y auditoría OWASP).
 
 **Estado de cierre (2026-11-08):** todo el sprint está `finalizada` salvo `task-01` (`en curso` mientras
-existe este PR) y `task-03` (`test`). Solo queda el PR: el cuerpo está en `docs/flows/pr-sprint-06-web.md`
+existe este PR), que espera el merge. Solo queda el PR: el cuerpo está en `docs/flows/pr-sprint-06-web.md`
 y el squash lo ordena el usuario.
