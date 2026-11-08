@@ -67,7 +67,13 @@ describe("users service — reads", () => {
         deactivated.id,
       ]);
 
-      const list = await listUsers(deps(c), caller("super_admin"), { q: prefix, limit: 2, offset: 0 });
+      // `state: "all"` es explícito porque el defecto del filtro es `active`.
+      const list = await listUsers(deps(c), caller("super_admin"), {
+        q: prefix,
+        state: "all",
+        limit: 2,
+        offset: 0,
+      });
 
       expect(list.total).toBe(3);
       expect(list.active_total).toBe(2);
