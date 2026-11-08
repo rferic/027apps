@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { enforcedCsp, strictReportOnlyCsp } from "@/lib/content-security-policy";
 import { entryGate } from "@/lib/instance-gate";
 import { readInstanceState } from "@/lib/instance-state";
 import { isPublicPath } from "@/lib/public-paths";
@@ -18,16 +19,19 @@ const GATED_PATHS = new Set(["/", "/setup", "/login"]);
  * is how the door authenticates (ADR 0004): the browser keeps the session in
  * HttpOnly cookies and never sees the token. The door verifies it again.
  *
- * It also emits a nonce-based Content-Security-Policy in REPORT-ONLY mode
- * (docs: `next/dist/docs/01-app/02-guides/content-security-policy.md`). With
- * Cache Components every route prerenders a static shell whose inline scripts
- * cannot carry a per-request nonce, so an enforcing CSP would break the app;
- * report-only surfaces violations in the browser console while enforcement
- * stays gated on a real-browser verification pass.
+ * It also emits two Content-Security-Policy headers. The enforced one is
+ * pragmatic: it pins scripts, frames, forms and connections to our own origin
+ * while still allowing inline scripts, because with Cache Components every route
+ * prerenders a static shell that cannot carry a per-request nonce. The strict
+ * nonce-based policy runs alongside it in Report-Only mode, so violations show
+ * up in the browser console as observation; hardening the enforced policy means
+ * dropping the prerendered shells first (`lib/content-security-policy.ts`).
  */
 export async function proxy(request: NextRequest) {
+  const isDev = process.env.NODE_ENV === "development";
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  const contentSecurityPolicy = reportOnlyCsp(nonce, process.env.NODE_ENV === "development");
+  const contentSecurityPolicy = enforcedCsp(isDev);
+  const reportOnlyPolicy = strictReportOnlyCsp(nonce, isDev);
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
@@ -35,8 +39,7 @@ export async function proxy(request: NextRequest) {
 
   if (isPublicPath(request.nextUrl.pathname)) {
     const response = NextResponse.next({ request: { headers: requestHeaders } });
-    // Report-Only only: enforcing it needs a real-browser pass (panel, /docs/api, /invite/<token>).
-    response.headers.set("Content-Security-Policy-Report-Only", contentSecurityPolicy);
+    applyContentSecurityPolicies(response, contentSecurityPolicy, reportOnlyPolicy);
     return response;
   }
 
@@ -60,8 +63,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
-  // Report-Only only: enforcing it needs a real-browser pass (panel, /docs/api, /invite/<token>).
-  response.headers.set("Content-Security-Policy-Report-Only", contentSecurityPolicy);
+  applyContentSecurityPolicies(response, contentSecurityPolicy, reportOnlyPolicy);
   for (const { name, value, options } of refreshedCookies) response.cookies.set(name, value, options);
 
   // Entry gate: setup wizard, login and the panel are only reachable in the
@@ -115,45 +117,27 @@ async function forwardSessionToken(
   if (token) headers.set("authorization", `Bearer ${token}`);
 }
 
-/** Redirect while keeping the refreshed session cookies and the CSP header. */
+/** Redirect while keeping the refreshed session cookies and both CSP headers. */
 function redirectWithSession(request: NextRequest, from: NextResponse, target: string) {
   const redirect = NextResponse.redirect(new URL(target, request.url));
   for (const cookie of from.headers.getSetCookie()) {
     redirect.headers.append("set-cookie", cookie);
   }
-  const csp = from.headers.get("content-security-policy-report-only");
-  if (csp) redirect.headers.set("Content-Security-Policy-Report-Only", csp);
+  for (const name of ["content-security-policy", "content-security-policy-report-only"]) {
+    const value = from.headers.get(name);
+    if (value) redirect.headers.set(name, value);
+  }
   return redirect;
 }
 
-/** Nonce-based CSP in report-only mode (enforcement awaits a browser pass). */
-function reportOnlyCsp(nonce: string, isDev: boolean): string {
-  const origin = supabaseOrigin();
-  return `
-    default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""};
-    style-src 'self' 'nonce-${nonce}';
-    img-src 'self' blob: data:;
-    font-src 'self';
-    connect-src 'self'${origin ? ` ${origin}` : ""};
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-    frame-ancestors 'none';
-    upgrade-insecure-requests;
-`
-    .replace(/\s{2,}/g, " ")
-    .trim();
-}
-
-/** Origin of the Supabase project, allowed in `connect-src` for auth flows. */
-function supabaseOrigin(): string | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  try {
-    return new URL(url).origin;
-  } catch {
-    return null;
-  }
+/** Emits the enforced policy and the strict one in Report-Only mode. */
+function applyContentSecurityPolicies(
+  response: NextResponse,
+  enforced: string,
+  reportOnly: string,
+): void {
+  response.headers.set("Content-Security-Policy", enforced);
+  response.headers.set("Content-Security-Policy-Report-Only", reportOnly);
 }
 
 export const config = {

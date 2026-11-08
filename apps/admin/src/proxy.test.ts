@@ -18,13 +18,15 @@ afterEach(() => {
 });
 
 describe("proxy public help", () => {
-  it("keeps the CSP without creating a Supabase client", async () => {
+  it("keeps both CSP headers without creating a Supabase client", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
 
     const response = await proxy(new NextRequest("http://localhost/help/firebase"));
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("content-security-policy")).toContain("default-src 'self'");
+    expect(response.headers.get("content-security-policy")).toContain("object-src 'none'");
     expect(response.headers.get("content-security-policy-report-only")).toContain("default-src");
     expect(createServerClientMock).not.toHaveBeenCalled();
   });
@@ -38,6 +40,7 @@ describe("proxy public invitation", () => {
     const response = await proxy(new NextRequest("http://localhost/invite/027_inv_abc123"));
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
     expect(response.headers.get("content-security-policy-report-only")).toContain(
       "frame-ancestors 'none'",
     );
@@ -75,8 +78,12 @@ describe("proxy session cookies", () => {
       },
     });
 
-    await proxy(new NextRequest("http://localhost:3003/members"));
+    const response = await proxy(new NextRequest("http://localhost:3003/members"));
 
+    expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
+    expect(response.headers.get("content-security-policy-report-only")).toContain(
+      "connect-src 'self' https://project.supabase.co",
+    );
     expect(createServerClientMock).toHaveBeenCalledTimes(1);
     const [, , options] = createServerClientMock.mock.calls[0] as [string, string, {
       cookieOptions: Record<string, unknown>;

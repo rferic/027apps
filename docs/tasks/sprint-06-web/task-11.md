@@ -571,9 +571,12 @@ como **necesita ojo humano** con la instrucción concreta.
 
 ## Pendiente para cerrar
 
-- **CSP en Report-Only (riesgo aceptado)**: activar la cabecera enforcing requiere una pasada por navegador
-  real (panel, `/docs/api`, `/invite/<token>`) y, si algo se rompe, acotar `'unsafe-inline'` a estilos.
-  Condición del riesgo aceptado: esa pasada antes de pasar a enforcing.
+- **CSP**: activa una política **pragmática** enforcing (`lib/content-security-policy.ts`), que acota
+  orígenes externos de scripts, frames, formularios, conexiones, imágenes y fuentes a `'self'` y deja
+  `'unsafe-inline'` porque los shells prerenderizados no pueden llevar nonce por petición;
+  `upgrade-insecure-requests` solo fuera de desarrollo. La política **estricta** con nonce sigue
+  emitiéndose en `Content-Security-Policy-Report-Only` como observación. **Deuda**: endurecer la
+  enforcing (quitar `'unsafe-inline'`) exige abandonar el shell prerenderizado de Cache Components.
 
 ## Cierre (2026-11-08)
 
