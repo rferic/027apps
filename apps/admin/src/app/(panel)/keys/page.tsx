@@ -8,6 +8,7 @@ import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { RowLink, clickableRowClass } from "@/components/ui/row-link";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -256,61 +257,61 @@ interface KeysViewProps {
 
 function KeyNameLink({ row }: { row: ApiKeyRow }) {
   return (
-    <Link
+    <RowLink
       href={`/keys/${encodeURIComponent(row.id)}`}
-      className="font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      className="font-semibold text-accent"
     >
       {row.name}
-    </Link>
+    </RowLink>
   );
 }
 
 function KeysTable({ rows, now, locale, timeZone, messages }: KeysViewProps) {
   return (
     <div className="hidden overflow-x-auto sm:block">
-      <table className="w-full border-collapse text-left text-xs">
+      <table className="w-full border-separate border-spacing-0 text-left text-xs">
         <caption className="sr-only">{t("API keys", messages)}</caption>
         <thead>
-          <tr className="border-b border-border text-muted-foreground">
-            <th scope="col" className="py-2 pr-3 font-semibold">
+          <tr className="text-muted-foreground">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Name", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Kind", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Owner", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Expires", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Last used", messages)}
             </th>
-            <th scope="col" className="py-2 font-semibold">
+            <th scope="col" className="border-b border-border py-2 font-semibold">
               {t("Status", messages)}
             </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-b border-border align-top">
-              <td className="py-2 pr-3">
+            <tr key={row.id} className={clickableRowClass}>
+              <td className="border-b border-border py-2 pr-3">
                 <KeyNameLink row={row} />
               </td>
-              <td className="py-2 pr-3">
+              <td className="border-b border-border py-2 pr-3">
                 <Badge variant={kindVariant(row.kind)}>{kindLabel(row.kind, messages)}</Badge>
               </td>
-              <td className="py-2 pr-3">
+              <td className="border-b border-border py-2 pr-3">
                 <OwnerCell row={row} messages={messages} />
               </td>
-              <td className="py-2 pr-3">
+              <td className="border-b border-border py-2 pr-3">
                 {row.expiresAt ? formatDate(row.expiresAt, { locale, timeZone }) : t("Never", messages)}
               </td>
-              <td className="py-2 pr-3">
+              <td className="border-b border-border py-2 pr-3">
                 {row.last_used_at ? formatDate(row.last_used_at, { locale, timeZone }) : t("Never", messages)}
               </td>
-              <td className="py-2 pr-3">
+              <td className="border-b border-border py-2 pr-3">
                 <KeyStatusBadge row={row} now={now} messages={messages} />
               </td>
             </tr>
@@ -325,22 +326,27 @@ function KeysCards({ rows, now, locale, timeZone, messages }: KeysViewProps) {
   return (
     <ul className="flex flex-col gap-2 sm:hidden">
       {rows.map((row) => (
-        <li key={row.id} className="rounded-card border border-border bg-surface p-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <KeyNameLink row={row} />
-            <Badge variant={kindVariant(row.kind)}>{kindLabel(row.kind, messages)}</Badge>
-            <KeyStatusBadge row={row} now={now} messages={messages} />
-          </div>
-          <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-            <dt className="text-muted-foreground">{t("Owner", messages)}</dt>
-            <dd>
-              <OwnerCell row={row} messages={messages} />
-            </dd>
-            <dt className="text-muted-foreground">{t("Expires", messages)}</dt>
-            <dd>{row.expiresAt ? formatDate(row.expiresAt, { locale, timeZone }) : t("Never", messages)}</dd>
-            <dt className="text-muted-foreground">{t("Last used", messages)}</dt>
-            <dd>{row.last_used_at ? formatDate(row.last_used_at, { locale, timeZone }) : t("Never", messages)}</dd>
-          </dl>
+        <li key={row.id}>
+          <Link
+            href={`/keys/${encodeURIComponent(row.id)}`}
+            className="flex min-h-11 flex-col gap-1 rounded-card border border-border bg-surface p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold">{row.name}</span>
+              <Badge variant={kindVariant(row.kind)}>{kindLabel(row.kind, messages)}</Badge>
+              <KeyStatusBadge row={row} now={now} messages={messages} />
+            </span>
+            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+              <dt className="text-muted-foreground">{t("Owner", messages)}</dt>
+              <dd>
+                <OwnerCell row={row} messages={messages} />
+              </dd>
+              <dt className="text-muted-foreground">{t("Expires", messages)}</dt>
+              <dd>{row.expiresAt ? formatDate(row.expiresAt, { locale, timeZone }) : t("Never", messages)}</dd>
+              <dt className="text-muted-foreground">{t("Last used", messages)}</dt>
+              <dd>{row.last_used_at ? formatDate(row.last_used_at, { locale, timeZone }) : t("Never", messages)}</dd>
+            </dl>
+          </Link>
         </li>
       ))}
     </ul>

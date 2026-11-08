@@ -84,6 +84,11 @@ function render(searchParams: Record<string, string> = {}) {
   return MembersPage({ searchParams: Promise.resolve(searchParams) });
 }
 
+/** Every anchor tag of a rendered fragment, to assert on attributes alone. */
+function anchors(html: string): string[] {
+  return [...html.matchAll(/<a\b[^>]*>/g)].map((match) => match[0]);
+}
+
 beforeEach(() => {
   requirePanelMock.mockReset();
   requirePanelMock.mockResolvedValue({
@@ -117,6 +122,30 @@ describe("MembersPage", () => {
     expect(html).toContain("<caption");
     expect(html).toContain('href="/members/u1"');
     expect(html).toContain('href="/members/u2"');
+  });
+
+  it("stretches the row link over the whole row of a separate-border table", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+    const table = html.slice(html.indexOf("<table"), html.indexOf("</table>"));
+    const rowLinks = anchors(table).filter((tag) => tag.includes("after:absolute"));
+
+    expect(table).toContain("border-separate");
+    expect(rowLinks).toHaveLength(2);
+    expect(rowLinks[0]).toContain('href="/members/u1"');
+    expect(rowLinks[1]).toContain('href="/members/u2"');
+  });
+
+  it("keeps the mobile card as a single block link", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: [MEMBERS[0]], total: 1, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+    const cards = html.slice(html.indexOf("</table>"));
+    const card = anchors(cards).find((tag) => tag.includes('href="/members/u1"'));
+
+    expect(card).toBeDefined();
+    expect(card).toContain("flex min-h-11 flex-col");
   });
 
   it("shows the empty state with the invitation action when there are no members", async () => {

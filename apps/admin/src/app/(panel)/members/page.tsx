@@ -9,6 +9,7 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { SearchInput } from "@/components/ui/search-input";
+import { RowLink, clickableRowClass } from "@/components/ui/row-link";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -163,52 +164,49 @@ function CategoryChips({ categories }: { categories: MemberCategory[] }) {
 function MembersTable({ rows, locale, timeZone, messages }: { rows: MemberRow[]; locale: Locale; timeZone: string; messages: TranslationMap }) {
   return (
     <div className="hidden overflow-x-auto sm:block">
-      <table className="w-full border-collapse text-left text-xs">
+      <table className="w-full border-separate border-spacing-0 text-left text-xs">
         <caption className="sr-only">{t("Members", messages)}</caption>
         <thead>
-          <tr className="border-b border-border text-muted-foreground">
-            <th scope="col" className="py-2 pr-3 font-semibold">
+          <tr className="text-muted-foreground">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Name", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Email", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Role", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Status", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Categories", messages)}
             </th>
-            <th scope="col" className="py-2 font-semibold">
+            <th scope="col" className="border-b border-border py-2 font-semibold">
               {t("Joined", messages)}
             </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="relative border-b border-border">
-              <td className="py-2 pr-3 font-semibold">
-                <Link
-                  href={`/members/${row.id}`}
-                  className="after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                >
+            <tr key={row.id} className={clickableRowClass}>
+              <td className="border-b border-border py-2 pr-3 font-semibold">
+                <RowLink href={`/members/${row.id}`}>
                   {row.display_name || row.email || row.id}
-                </Link>
+                </RowLink>
               </td>
-              <td className="py-2 pr-3">{emailLabel(row, messages)}</td>
-              <td className="py-2 pr-3">
+              <td className="border-b border-border py-2 pr-3">{emailLabel(row, messages)}</td>
+              <td className="border-b border-border py-2 pr-3">
                 <Badge variant={roleVariant(row.role)}>{roleLabel(row.role, messages)}</Badge>
               </td>
-              <td className="py-2 pr-3">
+              <td className="border-b border-border py-2 pr-3">
                 <Badge variant={statusVariant(row)}>{statusLabel(row, messages)}</Badge>
               </td>
-              <td className="py-2 pr-3">
+              <td className="border-b border-border py-2 pr-3">
                 <CategoryChips categories={row.categories} />
               </td>
-              <td className="py-2">{formatDate(row.created_at, { locale, timeZone })}</td>
+              <td className="border-b border-border py-2">{formatDate(row.created_at, { locale, timeZone })}</td>
             </tr>
           ))}
         </tbody>

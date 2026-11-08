@@ -72,6 +72,11 @@ function render(searchParams: Record<string, string> = {}) {
   return KeysPage({ searchParams: Promise.resolve(searchParams) });
 }
 
+/** Every anchor tag of a rendered fragment, to assert on attributes alone. */
+function anchors(html: string): string[] {
+  return [...html.matchAll(/<a\b[^>]*>/g)].map((match) => match[0]);
+}
+
 beforeEach(() => {
   requirePanelMock.mockReset();
   requirePanelMock.mockResolvedValue({
@@ -126,6 +131,31 @@ describe("KeysPage", () => {
     // The table and the mobile card both render the name as a link.
     expect(html.match(/href="\/keys\/k1"/g)).toHaveLength(2);
     expect(html.match(/href="\/keys\/k2"/g)).toHaveLength(2);
+  });
+
+  it("stretches the row link over the whole table row", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
+
+    const html = renderToStaticMarkup(await render({ state: "all" }));
+    const table = html.slice(html.indexOf("<table"), html.indexOf("</table>"));
+    const rowLinks = anchors(table).filter((tag) => tag.includes("after:absolute"));
+
+    expect(table).toContain("border-separate");
+    expect(rowLinks).toHaveLength(2);
+    expect(rowLinks[0]).toContain('href="/keys/k1"');
+    expect(rowLinks[1]).toContain('href="/keys/k2"');
+  });
+
+  it("wraps the whole mobile card in a link to the key detail", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY], total: 1 });
+
+    const html = renderToStaticMarkup(await render());
+    const cards = html.slice(html.indexOf("</table>"));
+    const card = anchors(cards).find((tag) => tag.includes('href="/keys/k1"'));
+
+    expect(card).toBeDefined();
+    expect(card).toContain("flex min-h-11 flex-col");
+    expect(card).toContain("focus-visible:outline-2");
   });
 
   it("filters by state through the API and offers to clear the filter", async () => {

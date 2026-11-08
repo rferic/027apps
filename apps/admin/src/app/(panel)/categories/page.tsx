@@ -7,6 +7,7 @@ import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Pagination } from "@/components/ui/pagination";
 import { SearchInput } from "@/components/ui/search-input";
+import { RowLink, clickableRowClass } from "@/components/ui/row-link";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadCategories, type CategoryRow } from "@/lib/panel-categories";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -43,38 +44,33 @@ function filterCategories(rows: CategoryRow[], q: string): CategoryRow[] {
 function CategoriesTable({ rows, messages }: { rows: CategoryRow[]; messages: TranslationMap }) {
   return (
     <div className="hidden overflow-x-auto sm:block">
-      <table className="w-full border-collapse text-left text-xs">
+      <table className="w-full border-separate border-spacing-0 text-left text-xs">
         <caption className="sr-only">{t("Categories", messages)}</caption>
         <thead>
-          <tr className="border-b border-border text-muted-foreground">
-            <th scope="col" className="py-2 pr-3 font-semibold">
+          <tr className="text-muted-foreground">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Name", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Slug", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Members", messages)}
             </th>
-            <th scope="col" className="py-2 font-semibold">
+            <th scope="col" className="border-b border-border py-2 font-semibold">
               {t("Modules", messages)}
             </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="relative border-b border-border">
-              <td className="py-2 pr-3 font-semibold">
-                <Link
-                  href={`/categories/${row.id}`}
-                  className="after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                >
-                  {row.name}
-                </Link>
+            <tr key={row.id} className={clickableRowClass}>
+              <td className="border-b border-border py-2 pr-3 font-semibold">
+                <RowLink href={`/categories/${row.id}`}>{row.name}</RowLink>
               </td>
-              <td className="py-2 pr-3 font-mono text-[11px]">{row.slug}</td>
-              <td className="py-2 pr-3">{row.member_count}</td>
-              <td className="py-2">{row.modules.length}</td>
+              <td className="border-b border-border py-2 pr-3 font-mono text-[11px]">{row.slug}</td>
+              <td className="border-b border-border py-2 pr-3">{row.member_count}</td>
+              <td className="border-b border-border py-2">{row.modules.length}</td>
             </tr>
           ))}
         </tbody>

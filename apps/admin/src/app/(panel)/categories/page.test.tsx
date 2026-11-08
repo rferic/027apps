@@ -34,6 +34,11 @@ vi.mock("@/app/(auth)/actions", () => ({
 
 import CategoriesPage, { instant } from "./page";
 
+/** Every anchor tag of a rendered fragment, to assert on attributes alone. */
+function anchors(html: string): string[] {
+  return [...html.matchAll(/<a\b[^>]*>/g)].map((match) => match[0]);
+}
+
 const CATEGORIES = [
   {
     id: "c1",
@@ -82,6 +87,30 @@ describe("CategoriesPage", () => {
     expect(html).toContain("<caption");
     expect(html).toContain('href="/categories/new"');
     expect(html).not.toContain("category-create-title");
+  });
+
+  it("stretches the row link over the whole row of a separate-border table", async () => {
+    loadCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES, total: 2 });
+
+    const html = renderToStaticMarkup(await CategoriesPage());
+    const table = html.slice(html.indexOf("<table"), html.indexOf("</table>"));
+    const rowLinks = anchors(table).filter((tag) => tag.includes("after:absolute"));
+
+    expect(table).toContain("border-separate");
+    expect(rowLinks).toHaveLength(2);
+    expect(rowLinks[0]).toContain('href="/categories/c1"');
+    expect(rowLinks[1]).toContain('href="/categories/c2"');
+  });
+
+  it("keeps the mobile card as a single block link", async () => {
+    loadCategoriesMock.mockResolvedValue({ ok: true, categories: [CATEGORIES[0]], total: 1 });
+
+    const html = renderToStaticMarkup(await CategoriesPage());
+    const cards = html.slice(html.indexOf("</table>"));
+    const card = anchors(cards).find((tag) => tag.includes('href="/categories/c1"'));
+
+    expect(card).toBeDefined();
+    expect(card).toContain("flex min-h-11 flex-col");
   });
 
   it("shows the empty state with the create action", async () => {
