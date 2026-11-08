@@ -61,6 +61,15 @@ describe("installModuleAction", () => {
     expect(installModuleMock).not.toHaveBeenCalled();
   });
 
+  it("rejects a key longer than the 64-character limit", async () => {
+    await expect(installModuleAction("a".repeat(65))).resolves.toEqual({
+      ok: false,
+      reason: "failed",
+    });
+
+    expect(installModuleMock).not.toHaveBeenCalled();
+  });
+
   it("installs, revalidates the list and redirects to the module detail", async () => {
     await expect(installModuleAction("debug")).rejects.toThrow(
       "NEXT_REDIRECT:/modules/debug",

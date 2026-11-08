@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { installModuleAction } from "@/app/(panel)/modules/install/actions";
@@ -22,10 +22,73 @@ function reasonLabel(reason: InstallFailureReason, messages: TranslationMap): st
   }
 }
 
-interface InstallFailure {
+export interface InstallFailure {
   reason: InstallFailureReason;
   message: string;
   requestId?: string;
+}
+
+/** What the action returns: nothing means the install redirected to the module. */
+type InstallOutcome =
+  | { ok: false; reason: InstallFailureReason; requestId?: string }
+  | undefined
+  | void;
+
+/**
+ * One install at a time. The guard is read before React re-renders the
+ * disabled button, so a second click in the same tick is dropped; the Core's
+ * 409 remains the safety net if two requests still race.
+ */
+export async function installOnce(
+  gate: { current: boolean },
+  request: () => Promise<InstallOutcome>,
+  onFailure: (failure: InstallFailure) => void,
+  messages: TranslationMap,
+): Promise<void> {
+  if (gate.current) return;
+  gate.current = true;
+  try {
+    const result = await request();
+    // A successful install redirects; only a returned state is a failure.
+    if (!result) return;
+    onFailure({
+      reason: result.reason,
+      message: reasonLabel(result.reason, messages),
+      ...(result.requestId ? { requestId: result.requestId } : {}),
+    });
+  } finally {
+    gate.current = false;
+  }
+}
+
+/** Presentational half: the markup of both states, testable without a DOM. */
+export function InstallButtonView({
+  pending,
+  failure,
+  messages,
+  onInstall,
+}: {
+  pending: boolean;
+  failure: InstallFailure | null;
+  messages: TranslationMap;
+  onInstall: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-start gap-2">
+      <Button type="button" className="min-h-11" onClick={onInstall} disabled={pending}>
+        {pending ? t("Installing…", messages) : t("Install", messages)}
+      </Button>
+      {failure && (
+        <FormAlert
+          message={t("We couldn't install the module.", messages)}
+          code={failure.reason}
+          codeLabel={failure.message}
+          requestId={failure.requestId}
+          messages={messages}
+        />
+      )}
+    </div>
+  );
 }
 
 /**
@@ -42,35 +105,23 @@ export function ModuleInstallButton({
 }) {
   const [pending, startTransition] = useTransition();
   const [failure, setFailure] = useState<InstallFailure | null>(null);
+  const gate = useRef(false);
 
   function handleInstall() {
+    // Reject the click before the transition, so it does not clear the alert either.
+    if (gate.current) return;
     setFailure(null);
     startTransition(async () => {
-      const result = await installModuleAction(moduleKey);
-      // A successful install redirects; only a returned state is a failure.
-      if (!result) return;
-      setFailure({
-        reason: result.reason,
-        message: reasonLabel(result.reason, messages),
-        ...(result.requestId ? { requestId: result.requestId } : {}),
-      });
+      await installOnce(gate, () => installModuleAction(moduleKey), setFailure, messages);
     });
   }
 
   return (
-    <div className="flex flex-col items-start gap-2">
-      <Button type="button" className="min-h-11" onClick={handleInstall} disabled={pending}>
-        {pending ? t("Installing…", messages) : t("Install", messages)}
-      </Button>
-      {failure && (
-        <FormAlert
-          message={t("We couldn't install the module.", messages)}
-          code={failure.reason}
-          codeLabel={failure.message}
-          requestId={failure.requestId}
-          messages={messages}
-        />
-      )}
-    </div>
+    <InstallButtonView
+      pending={pending}
+      failure={failure}
+      messages={messages}
+      onInstall={handleInstall}
+    />
   );
 }

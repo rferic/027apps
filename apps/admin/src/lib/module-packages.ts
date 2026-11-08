@@ -8,6 +8,13 @@ export type ModulePackageReason = "invalid_manifest" | "key_mismatch";
 
 /** Listing metadata only: no absolute path and no manifest content leaves this module. */
 export interface ModulePackage {
+  /**
+   * First-level folder name. It is the package's identity in the panel: the
+   * React key and the join against the installed list. The manifest's `key` is
+   * only a claim until it matches this folder.
+   */
+  id: string;
+  /** Manifest key, or the best-effort field when the manifest cannot be trusted. */
   key: string;
   name: string;
   version: string;
@@ -49,30 +56,52 @@ function readFields(value: unknown, fallback: string): PackageFields {
   };
 }
 
-/** Reads one package folder; any disk or manifest error becomes `valid: false`. */
-async function readPackage(directory: string): Promise<ModulePackage> {
+/** A package folder we cannot trust: every field falls back to the folder name. */
+function invalidPackage(directory: string): ModulePackage {
+  return {
+    id: directory,
+    key: directory,
+    name: directory,
+    version: directory,
+    description: directory,
+    valid: false,
+    reason: "invalid_manifest",
+  };
+}
+
+/** `ENOENT` means the folder is not a package; every other error is a broken one. */
+function isMissingFile(error: unknown): boolean {
+  return error instanceof Error && (error as NodeJS.ErrnoException).code === "ENOENT";
+}
+
+/**
+ * Reads one package folder. A folder without `manifest.json` is not a package
+ * and returns `null`: the default root holds workspace folders such as `core`
+ * or `test-utils` next to the real packages.
+ */
+async function readPackage(directory: string): Promise<ModulePackage | null> {
+  let text: string;
+  try {
+    text = await readFile(join(modulesRoot(), directory, "manifest.json"), "utf8");
+  } catch (error) {
+    return isMissingFile(error) ? null : invalidPackage(directory);
+  }
+
   let raw: unknown;
   try {
-    const text = await readFile(join(modulesRoot(), directory, "manifest.json"), "utf8");
     raw = JSON.parse(text) as unknown;
   } catch {
-    return {
-      key: directory,
-      name: directory,
-      version: directory,
-      description: directory,
-      valid: false,
-      reason: "invalid_manifest",
-    };
+    return invalidPackage(directory);
   }
 
   const fields = readFields(raw, directory);
   try {
     const manifest = validateManifest(raw);
     if (manifest.key !== directory) {
-      return { ...fields, valid: false, reason: "key_mismatch" };
+      return { id: directory, ...fields, valid: false, reason: "key_mismatch" };
     }
     return {
+      id: directory,
       key: manifest.key,
       name: manifest.name,
       version: manifest.version,
@@ -80,15 +109,16 @@ async function readPackage(directory: string): Promise<ModulePackage> {
       valid: true,
     };
   } catch {
-    return { ...fields, valid: false, reason: "invalid_manifest" };
+    return { id: directory, ...fields, valid: false, reason: "invalid_manifest" };
   }
 }
 
 /**
- * Trusted packages present under `MODULES_ROOT`, one entry per first-level
- * directory. The manifest is validated with the Core schema so the panel and
- * the installer cannot disagree about what is installable. A missing or
- * unreadable root is an empty list: the page shows no offers, not an error.
+ * Trusted packages present under `MODULES_ROOT`: the first-level directories
+ * that ship a `manifest.json`. The manifest is validated with the Core schema
+ * so the panel and the installer cannot disagree about what is installable. A
+ * missing or unreadable root is an empty list: the page shows no offers, not an
+ * error.
  */
 export async function listModulePackages(): Promise<ModulePackage[]> {
   let entries;
@@ -103,5 +133,7 @@ export async function listModulePackages(): Promise<ModulePackage[]> {
     .map((entry) => entry.name)
     .sort((a, b) => a.localeCompare(b));
 
-  return Promise.all(directories.map((directory) => readPackage(directory)));
+  const packages = await Promise.all(directories.map((directory) => readPackage(directory)));
+
+  return packages.filter((pkg): pkg is ModulePackage => pkg !== null);
 }

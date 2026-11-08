@@ -15,7 +15,7 @@ export interface InstallActionState {
 }
 
 /** The key is the only input and it crosses the wire, so it is validated here. */
-const installSchema = z.object({ key: z.string().regex(MODULE_KEY) });
+const installSchema = z.object({ key: z.string().max(64).regex(MODULE_KEY) }).strict();
 
 /**
  * Installs a trusted package and opens its detail page. The panel gate is

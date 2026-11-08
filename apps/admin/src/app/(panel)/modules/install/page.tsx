@@ -94,7 +94,7 @@ function PackagesTable({
         </thead>
         <tbody>
           {packages.map((pkg) => (
-            <tr key={pkg.key}>
+            <tr key={pkg.id}>
               <td className="border-b border-border py-2 pr-3 font-semibold">{pkg.name}</td>
               <td className="border-b border-border py-2 pr-3 font-mono text-[11px]">{pkg.key}</td>
               <td className="border-b border-border py-2 pr-3">{pkg.version}</td>
@@ -121,7 +121,7 @@ function PackagesCards({
     <ul className="flex flex-col gap-2 sm:hidden">
       {packages.map((pkg) => (
         <li
-          key={pkg.key}
+          key={pkg.id}
           className="flex flex-col gap-3 rounded-card border border-border bg-surface p-3"
         >
           <div className="flex flex-wrap items-center gap-2">
@@ -161,7 +161,8 @@ function availablePackages(
   installed: ModuleDetail[],
 ): ModulePackage[] {
   const installedKeys = new Set(installed.map((module) => module.key));
-  return packages.filter((pkg) => !installedKeys.has(pkg.key));
+  // The folder is the package's identity: a manifest key is only a claim until it matches.
+  return packages.filter((pkg) => !installedKeys.has(pkg.id));
 }
 
 export default async function InstallModulePage() {

@@ -54,6 +54,7 @@ describe("listModulePackages", () => {
 
     await expect(listModulePackages()).resolves.toEqual([
       {
+        id: "inventory",
         key: "inventory",
         name: "Inventory",
         version: "1.0.0",
@@ -68,10 +69,28 @@ describe("listModulePackages", () => {
 
     await expect(listModulePackages()).resolves.toEqual([
       {
+        id: "broken",
         key: "broken",
         name: "Broken",
         version: "broken",
         description: "broken",
+        valid: false,
+        reason: "invalid_manifest",
+      },
+    ]);
+  });
+
+  it("marks a manifest that is not JSON as invalid", async () => {
+    await mkdir(join(root, "unparsable"), { recursive: true });
+    await writeFile(join(root, "unparsable", "manifest.json"), "{", "utf8");
+
+    await expect(listModulePackages()).resolves.toEqual([
+      {
+        id: "unparsable",
+        key: "unparsable",
+        name: "unparsable",
+        version: "unparsable",
+        description: "unparsable",
         valid: false,
         reason: "invalid_manifest",
       },
@@ -83,6 +102,7 @@ describe("listModulePackages", () => {
 
     await expect(listModulePackages()).resolves.toEqual([
       {
+        id: "inventory",
         key: "stock",
         name: "Inventory",
         version: "1.0.0",
@@ -93,17 +113,25 @@ describe("listModulePackages", () => {
     ]);
   });
 
-  it("reports a directory without a manifest instead of throwing", async () => {
+  it("omits a directory without a manifest", async () => {
     await mkdir(join(root, "not-a-package"), { recursive: true });
+
+    await expect(listModulePackages()).resolves.toEqual([]);
+  });
+
+  it("omits the plain workspace folders that share the default root", async () => {
+    await mkdir(join(root, "core"), { recursive: true });
+    await mkdir(join(root, "test-utils"), { recursive: true });
+    await writeManifest("inventory", VALID_MANIFEST);
 
     await expect(listModulePackages()).resolves.toEqual([
       {
-        key: "not-a-package",
-        name: "not-a-package",
-        version: "not-a-package",
-        description: "not-a-package",
-        valid: false,
-        reason: "invalid_manifest",
+        id: "inventory",
+        key: "inventory",
+        name: "Inventory",
+        version: "1.0.0",
+        description: "Stock control for the household",
+        valid: true,
       },
     ]);
   });
@@ -132,6 +160,6 @@ describe("listModulePackages", () => {
 
     const packages = await listModulePackages();
 
-    expect(packages.map((entry) => entry.key)).toEqual(["alpha", "zebra"]);
+    expect(packages.map((entry) => entry.id)).toEqual(["alpha", "zebra"]);
   });
 });

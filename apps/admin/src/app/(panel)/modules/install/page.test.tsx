@@ -41,6 +41,7 @@ import InstallModulePage, { instant } from "./page";
 
 const PACKAGES = [
   {
+    id: "notes",
     key: "notes",
     name: "Notes",
     version: "1.2.0",
@@ -48,6 +49,7 @@ const PACKAGES = [
     valid: true,
   },
   {
+    id: "debug",
     key: "debug",
     name: "Debug",
     version: "0.1.0",
@@ -55,6 +57,7 @@ const PACKAGES = [
     valid: true,
   },
   {
+    id: "broken",
     key: "broken",
     name: "Broken",
     version: "broken",
@@ -63,7 +66,8 @@ const PACKAGES = [
     reason: "invalid_manifest",
   },
   {
-    key: "stock",
+    id: "stock",
+    key: "stock-inventory",
     name: "Stock",
     version: "1.0.0",
     description: "Stock control",
@@ -124,6 +128,15 @@ describe("InstallModulePage", () => {
 
     expect(html).not.toContain("Debug");
     expect(html).not.toContain(">debug<");
+    expect(html).toContain("Notes");
+  });
+
+  it("matches an installed module by folder, not by the folder's manifest claim", async () => {
+    loadModulesMock.mockResolvedValue(installed(["stock"]));
+
+    const html = renderToStaticMarkup(await InstallModulePage());
+
+    expect(html).not.toContain("stock-inventory");
     expect(html).toContain("Notes");
   });
 
