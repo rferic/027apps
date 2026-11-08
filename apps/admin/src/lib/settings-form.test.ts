@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { failureFrom } from "./mutation-result";
 import type { SettingRow } from "./setting-types";
 import {
+  CORS_SETTING_KEY,
+  corsChangeLocksOut,
+  corsKeepsOrigin,
+  corsUpdateLocksOut,
   encodeSettingValue,
   initialSettingsDraft,
   parseSettingValue,
@@ -155,6 +159,67 @@ describe("revertEnabledLocales", () => {
     expect(reverted["localization.enabled_locales"]).toBe("en, es");
     // Other unsaved edits stay untouched.
     expect(reverted["instance.name"]).toBe(draft["instance.name"]);
+  });
+});
+
+describe("cors guard", () => {
+  const PANEL = "https://panel.example.com";
+
+  it("keeps the origin only on an exact match of the stored list", () => {
+    expect(corsKeepsOrigin([PANEL, "https://other.test"], PANEL)).toBe(true);
+    expect(corsKeepsOrigin([`${PANEL}/`], PANEL)).toBe(false);
+    expect(corsKeepsOrigin([], PANEL)).toBe(false);
+    expect(corsKeepsOrigin(undefined, PANEL)).toBe(false);
+  });
+
+  it("does not lock out when the list was not changed", () => {
+    // Saving instance.name or a list the user did not touch never warns.
+    expect(corsUpdateLocksOut(ALL, [{ key: "instance.name", value: "Familia" }], PANEL)).toBe(false);
+    expect(corsUpdateLocksOut(ALL, [], PANEL)).toBe(false);
+  });
+
+  it("warns when the change removes the origin the panel uses", () => {
+    const saved = setting({
+      key: CORS_SETTING_KEY,
+      category: "security",
+      type: "array",
+      value: ["https://a.test", "https://b.test"],
+    });
+
+    expect(
+      corsUpdateLocksOut([saved], [{ key: CORS_SETTING_KEY, value: ["https://a.test"] }], "https://b.test"),
+    ).toBe(true);
+  });
+
+  it("does not warn when the new list still contains the panel origin", () => {
+    expect(
+      corsChangeLocksOut([PANEL], [PANEL, "https://a.test"], PANEL),
+    ).toBe(false);
+    expect(
+      corsUpdateLocksOut(
+        [setting({ key: CORS_SETTING_KEY, category: "security", type: "array", value: [PANEL] })],
+        [{ key: CORS_SETTING_KEY, value: [PANEL, "https://b.test"] }],
+        PANEL,
+      ),
+    ).toBe(false);
+  });
+
+  it("does not warn for an origin that was never allowed", () => {
+    // Empty allowlist (the default): editing it cannot take away API access
+    // this browser did not have.
+    expect(
+      corsUpdateLocksOut(ALL, [{ key: CORS_SETTING_KEY, value: ["https://b.test"] }], PANEL),
+    ).toBe(false);
+  });
+});
+
+describe("corsKeepsOrigin with the parsed draft", () => {
+  it("compares against the JSON array the batch sends, not the textarea text", () => {
+    const draft = initialSettingsDraft(ALL);
+    draft[CORS_SETTING_KEY] = "https://a.test\nhttps://panel.example.com";
+    const updates = updatesFromDraft(ALL, draft);
+
+    expect(corsUpdateLocksOut(ALL, updates, "https://panel.example.com")).toBe(false);
   });
 });
 

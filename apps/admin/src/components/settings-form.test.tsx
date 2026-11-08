@@ -265,6 +265,39 @@ describe("SettingsForm", () => {
     expect(html).toContain('data-remove="es"');
   });
 
+  it("keeps the CORS confirmation dialog closed until a save would lock the panel out", () => {
+    const html = renderToStaticMarkup(
+      <SettingsForm categories={CATEGORIES} restricted={[]} messages={{}} />,
+    );
+
+    expect(html).toContain("<dialog");
+    expect(html).toContain("Remove the current origin?");
+    expect(html).toContain("the panel stops working from this address");
+    expect(html).toContain("Save anyway");
+    expect(html).not.toContain('<dialog open');
+  });
+
+  it("warns on the CORS field that the panel origin must stay in the list", () => {
+    const html = renderToStaticMarkup(
+      <SettingField
+        setting={{
+          ...NAME,
+          key: "security.cors_allowlist",
+          category: "security",
+          type: "array",
+          help: "Origins allowed by the API door (max 20, no wildcard, no paths).",
+          value: ["https://panel.example.com"],
+        }}
+        draft={{ "security.cors_allowlist": "https://panel.example.com" }}
+        onChange={() => {}}
+        error={null}
+        messages={{}}
+      />,
+    );
+
+    expect(html).toContain("The origin of this panel must be in this list or it loses access to the API.");
+  });
+
   it("shows the coherence error in the alert with its request id", () => {
     const html = renderToStaticMarkup(
       <SaveError

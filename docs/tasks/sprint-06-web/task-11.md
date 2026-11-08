@@ -52,6 +52,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 25 | Claves: caducidad relativa (horas/días/meses/años) en alta y edición, y state=expired filtrado en servidor | hecho |
 | 26 | Filas de lista clicables en claves, miembros y categorías (patrón compartido, border-separate para que el relative del tr sea fiable) | hecho |
 | 27 | Revisión de estilo de la tarea 13 y extracción de las primitivas compartidas de los formularios de clave | hecho |
+| 28 | Guardia de CORS al guardar la lista de orígenes y limpieza de la fila `instance.logo_url` | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -428,6 +429,30 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   `not_found`/`internal` con `request_id`; `completeRevoke` vuelve a `/keys` solo cuando se le pide.
 - i18n: 26 claves nuevas (etiquetas de scope, «Details», «Permissions» y el error de carga de la
   ficha) en las 9 locales vía `i18n:scan` + edición de catálogos.
+
+### Iteración 28 — Guardia de CORS al guardar y limpieza de `instance.logo_url` (hecho)
+
+- `security.cors_allowlist` se guarda como **array JSON de orígenes exactos** (el textarea del panel acepta
+  uno por línea o separados por coma; el door compara el header `Origin` por igualdad estricta, con
+  puerto y sin barra final). Quitar el origen desde el que se sirve el panel dejaba al navegador sin
+  API, así que el guardado de Ajustes ahora comprueba el lote antes de enviarlo
+  (`corsChangeLocksOut`/`corsUpdateLocksOut` en `lib/settings-form.ts`).
+- Si el origen actual estaba permitido y el nuevo valor lo deja fuera, no se llama al API: se abre el
+  `<dialog>` de confirmación y explica la consecuencia (el panel deja de funcionar desde esa dirección y
+  solo se recupera editando la lista desde otro origen permitido). «Save anyway» envía el lote; «Cancel»
+  no guarda nada. Un origen que nunca estuvo en la lista no dispara el aviso (no hay acceso que perder),
+  y sin cambios en CORS el guardado es directo.
+- Texto de ayuda nuevo en el propio campo: el origen del panel tiene que estar en la lista o pierde el
+  acceso a la API. Todas las cadenas nuevas, en las 9 locales.
+- `0017_drop_instance_logo_setting.sql` borra la fila huérfana `instance.logo_url` que sembró
+  `0005_instance_logo.sql`: la clave salió del catálogo en este sprint y no debe sobrevivir a un restore
+  como si fuera configurable. El test de catálogo sigue tolerando la clave en bases restauradas con
+  migraciones pendientes y ahora ignora los ajustes de módulos instalados (categorías y filas con
+  `source = 'module:<key>'`), que no forman parte del seed de `0002`.
+- Tests: el guardia no abre confirmación sin cambios de CORS, la abre al quitar el origen actual y no
+  envía el lote, no la abre si el nuevo valor conserva el origen ni si el origen nunca estuvo permitido;
+  el diálogo se renderiza cerrado y el campo CORS muestra su aviso. `db-tests`: catálogo verde tras la
+  migración (la fila `instance.logo_url` ya no existe).
 
 ## Checklist por páginas (revisión con el usuario)
 

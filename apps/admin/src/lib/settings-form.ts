@@ -3,6 +3,9 @@ import type { SettingRow } from "@/lib/setting-types";
 /** Form state: one text field per catalog key. Secrets never store their value. */
 export type SettingsDraft = Record<string, string>;
 
+/** Origins the API door accepts, as an exact-match string array. */
+export const CORS_SETTING_KEY = "security.cors_allowlist";
+
 function listToText(value: unknown, separator: string): string {
   if (!Array.isArray(value)) return "";
   return value.filter((entry): entry is string => typeof entry === "string").join(separator);
@@ -93,4 +96,35 @@ export function updatesFromDraft(
     if (!sameValue(next, setting.value)) updates.push({ key: setting.key, value: next });
   }
   return updates;
+}
+
+/**
+ * The door compares `Origin` headers against the stored array by exact string
+ * (`packages/core/src/api/door.ts`), so a trailing slash or a different port is
+ * a different origin.
+ */
+export function corsKeepsOrigin(value: unknown, origin: string): boolean {
+  return Array.isArray(value) && value.some((entry) => entry === origin);
+}
+
+/**
+ * Saving this change would take away the origin the panel is being used from:
+ * it was allowed before and it would not be allowed after. Only then is the
+ * warning honest — an origin that was never listed is not a CORS client today,
+ * so editing the list cannot lock it out.
+ */
+export function corsChangeLocksOut(saved: unknown, next: unknown, origin: string): boolean {
+  return corsKeepsOrigin(saved, origin) && !corsKeepsOrigin(next, origin);
+}
+
+/** Same decision, from the batch the form is about to send. */
+export function corsUpdateLocksOut(
+  settings: readonly SettingRow[],
+  updates: readonly { key: string; value: unknown }[],
+  origin: string,
+): boolean {
+  const saved = settings.find((setting) => setting.key === CORS_SETTING_KEY);
+  const changed = updates.find((update) => update.key === CORS_SETTING_KEY);
+  if (!saved || !changed) return false;
+  return corsChangeLocksOut(saved.value, changed.value, origin);
 }

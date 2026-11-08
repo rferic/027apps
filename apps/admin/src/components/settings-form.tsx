@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { FormActions, FormAlert, FormField, FormSection } from "@/components/ui/form";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Select } from "@/components/ui/select";
@@ -16,6 +17,8 @@ import { panelErrorCodeLabel } from "@/lib/panel-errors";
 import { categoryHelp, categoryLabel, settingHelp, settingLabel } from "@/lib/setting-text";
 import type { RestrictedSetting, SettingRow, SettingsCategoryRow } from "@/lib/setting-types";
 import {
+  CORS_SETTING_KEY,
+  corsUpdateLocksOut,
   encodeSettingValue,
   initialSettingsDraft,
   revertEnabledLocales,
@@ -292,6 +295,11 @@ function ArrayInput({
         <>
           {settingHelp(setting.key, messages, setting.help)}
           <span className="block">{t("One entry per line.", messages)}</span>
+          {setting.key === CORS_SETTING_KEY && (
+            <span className="block">
+              {t("The origin of this panel must be in this list or it loses access to the API.", messages)}
+            </span>
+          )}
         </>
       }
     >
@@ -482,6 +490,8 @@ export function SettingsForm({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<MutationFailure | null>(null);
+  const corsDialogRef = useRef<HTMLDialogElement>(null);
+  const [corsOrigin, setCorsOrigin] = useState("");
 
   // Activity keeps this form mounted while the user visits another route: the
   // unsaved draft would come back as if the server had accepted it. Re-seed it
@@ -501,10 +511,22 @@ export function SettingsForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Losing the origin this panel is served from would take the API away from
+    // this browser: ask first, and never send the batch on this pass.
+    const origin = window.location.origin;
+    if (corsUpdateLocksOut(settings, updates, origin)) {
+      setCorsOrigin(origin);
+      corsDialogRef.current?.showModal();
+      return;
+    }
+    await save(updates);
+  }
+
+  async function save(changes: Array<{ key: string; value: unknown }>) {
     setSaving(true);
     setError(null);
     setSaved(false);
-    const result = await patchSettingsBatch(updates);
+    const result = await patchSettingsBatch(changes);
     setSaving(false);
     if (!result.ok) {
       setError(result);
@@ -524,6 +546,11 @@ export function SettingsForm({
     setDraft(cleared);
     setSaved(true);
     router.refresh();
+  }
+
+  async function confirmCorsSave() {
+    corsDialogRef.current?.close();
+    await save(updatesFromDraft(settings, draft));
   }
 
   return (
@@ -553,6 +580,42 @@ export function SettingsForm({
           {saving ? t("Saving…", messages) : t("Save changes", messages)}
         </Button>
       </FormActions>
+
+      <Dialog
+        labelledBy="cors-confirm-title"
+        ref={corsDialogRef}
+        onBackdropClick={() => corsDialogRef.current?.close()}
+      >
+        <h2 id="cors-confirm-title" className="text-sm font-semibold">
+          {t("Remove the current origin?", messages)}
+        </h2>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {t(
+            "This browser will no longer reach the API once you save, so the panel stops working from this address.",
+            messages,
+          )}
+        </p>
+        <p className="mt-1 font-mono text-xs text-foreground">{corsOrigin}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t(
+            "To recover it, edit the allowlist from another origin that is still allowed.",
+            messages,
+          )}
+        </p>
+        <FormActions className="mt-3">
+          <Button
+            type="button"
+            variant="secondary"
+            className="min-h-11"
+            onClick={() => corsDialogRef.current?.close()}
+          >
+            {t("Cancel", messages)}
+          </Button>
+          <Button type="button" variant="destructive" className="min-h-11" onClick={confirmCorsSave}>
+            {t("Save anyway", messages)}
+          </Button>
+        </FormActions>
+      </Dialog>
     </form>
   );
 }
