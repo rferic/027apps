@@ -45,6 +45,11 @@ Toda lista del panel se pagina **en servidor**: el endpoint acepta `limit`/`offs
 los registros para filtrar o paginar en cliente (los filtros de cliente solo acotan una página ya
 paginada). Una lista nueva sin paginación no pasa revisión.
 
+El texto se busca **mientras se escribe** con `components/ui/search-input.tsx` (debounce de 300 ms;
+Enter aplica al instante y Escape limpia), **nunca con un botón de buscar** ni con un formulario GET.
+Los selectores se aplican al cambiar. Búsqueda y selectores conservan el resto de filtros y reinician
+`page`.
+
 ## Naming
 
 - Ficheros y carpetas: `kebab-case` (`user-menu.tsx`). Excepciones impuestas por Next.js (`page.tsx`, `layout.tsx`, `route.ts`).

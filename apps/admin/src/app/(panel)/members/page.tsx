@@ -8,6 +8,7 @@ import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { SearchInput } from "@/components/ui/search-input";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -332,47 +333,6 @@ function MembersBody({
   );
 }
 
-function MembersSearchForm({
-  q,
-  role,
-  state,
-  category,
-  messages,
-}: {
-  q: string;
-  role?: MemberRole;
-  state: MemberStateFilter;
-  category?: string;
-  messages: TranslationMap;
-}) {
-  // Hidden fields keep the active select filters when a search is submitted.
-  const stateValue = stateParam(state);
-  return (
-    <form method="get" className="flex flex-wrap items-end gap-2" role="search">
-      {role && <input type="hidden" name="role" value={role} />}
-      {stateValue && <input type="hidden" name="state" value={stateValue} />}
-      {category && <input type="hidden" name="category" value={category} />}
-      <label htmlFor="members-q" className="flex flex-col gap-1 text-xs text-muted-foreground">
-        {t("Search by name or email", messages)}
-        <input
-          id="members-q"
-          name="q"
-          type="search"
-          defaultValue={q}
-          maxLength={100}
-          className="min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        />
-      </label>
-      <button
-        type="submit"
-        className="inline-flex min-h-11 items-center rounded-control border border-border bg-muted px-3 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
-        {t("Search", messages)}
-      </button>
-    </form>
-  );
-}
-
 function MembersSelects({
   q,
   role,
@@ -458,13 +418,22 @@ function MembersFilterForm({
   categories: CategoryOption[];
   messages: TranslationMap;
 }) {
+  // The selects and the search share these params, so each change keeps the
+  // rest of the filters and restarts the list at its first page.
+  const params: Record<string, string> = {};
+  if (role) params.role = role;
+  const stateValue = stateParam(state);
+  if (stateValue) params.state = stateValue;
+  if (category) params.category = category;
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <MembersSearchForm
-        q={q}
-        role={role}
-        state={state}
-        category={category}
+      <SearchInput
+        name="q"
+        value={q}
+        basePath="/members"
+        params={params}
+        label={t("Search by name or email", messages)}
+        placeholder={t("Search", messages)}
         messages={messages}
       />
       <MembersSelects

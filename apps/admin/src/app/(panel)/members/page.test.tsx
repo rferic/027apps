@@ -194,14 +194,13 @@ describe("MembersPage", () => {
     expect(loadMembersMock).toHaveBeenCalledWith({ state: "active", offset: 20 });
   });
 
-  it("renders a real GET filter form", async () => {
+  it("renders the live search field and the filter selects without a search button", async () => {
     loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
 
     const html = renderToStaticMarkup(await render());
 
-    expect(html).toContain('method="get"');
     expect(html).toContain('name="q"');
-    expect(html).toContain('id="members-q"');
+    expect(html).toContain('role="search"');
     expect(html).toContain('name="role"');
     expect(html).toContain('id="members-role"');
     expect(html).toContain('name="state"');
@@ -209,7 +208,9 @@ describe("MembersPage", () => {
     expect(html).toContain("All roles");
     expect(html).toContain("All states");
     expect(html).toContain("Search by name or email");
-    expect(html).toContain(">Search<");
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain('type="submit"');
+    expect(html).not.toContain(">Search<");
   });
 
   it("sends the role and state filters and keeps them in the pagination links", async () => {
@@ -276,7 +277,7 @@ describe("MembersPage", () => {
 });
 
 describe("MembersPage filters", () => {
-  it("applies role and state selects on change: only the text search keeps a submit button", async () => {
+  it("applies every filter on change: no submit button and no hidden fields", async () => {
     loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
 
     const html = renderToStaticMarkup(await render({ role: "admin" }));
@@ -284,8 +285,8 @@ describe("MembersPage filters", () => {
     expect(html).toContain('name="role"');
     expect(html).toContain('name="state"');
     expect(html).not.toContain(">Apply<");
-    expect(html.match(/type="submit"/g)).toHaveLength(1);
-    expect(html).toContain('<input type="hidden" name="role" value="admin"');
+    expect(html).not.toContain('type="submit"');
+    expect(html).not.toContain('type="hidden"');
   });
 
   it("defaults to active even without a state parameter", async () => {
@@ -308,7 +309,8 @@ describe("MembersPage filters", () => {
     expect(loadMembersMock).toHaveBeenCalledWith({ state: "all", offset: 20 });
     expect(html).toContain('<option value="all"');
     expect(html).toContain("All states");
-    expect(html).toContain('<input type="hidden" name="state" value="all"');
+    expect(html).toContain('<option value="all" selected=""');
+    expect(html).not.toContain('type="hidden"');
     expect(html).toContain('href="/members?state=all&amp;page=3"');
     expect(html).toContain('href="/members?state=all"');
   });
@@ -336,7 +338,8 @@ describe("MembersPage categories", () => {
 
     expect(loadMembersMock).toHaveBeenCalledWith({ category: ALPHA, state: "active", offset: 20 });
     expect(html).toContain(`href="/members?category=${ALPHA}&amp;page=3"`);
-    expect(html).toContain(`<input type="hidden" name="category" value="${ALPHA}"`);
+    expect(html).not.toContain('type="hidden"');
+    expect(html).toContain('name="q"');
   });
 
   it("renders the category select with All categories and the loaded choices", async () => {

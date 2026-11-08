@@ -163,6 +163,23 @@ describe("CategoriesPage", () => {
     expect(loadCategoriesMock).toHaveBeenCalledWith({ offset: 0 });
   });
 
+  it("searches while typing: the field keeps its name and there is no search button", async () => {
+    loadCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES, total: 2 });
+
+    const html = renderToStaticMarkup(
+      await CategoriesPage({ searchParams: Promise.resolve({ q: "fam" }) }),
+    );
+
+    expect(html).toContain('name="q"');
+    expect(html).toContain('value="fam"');
+    expect(html).toContain('role="search"');
+    expect(html).toContain("Search by name or slug");
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain('type="submit"');
+    expect(html).not.toContain(">Search<");
+    expect(html).toContain('aria-label="Clear search"');
+  });
+
   it("redirects only when the requested page is past the last one", async () => {
     loadCategoriesMock.mockResolvedValue({ ok: true, categories: [], total: 40 });
 

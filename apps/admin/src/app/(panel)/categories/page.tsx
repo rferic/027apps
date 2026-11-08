@@ -6,6 +6,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Pagination } from "@/components/ui/pagination";
+import { SearchInput } from "@/components/ui/search-input";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadCategories, type CategoryRow } from "@/lib/panel-categories";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -156,30 +157,15 @@ function CategoriesBody({
 
   return (
     <>
-      <form method="get" className="flex flex-wrap items-end gap-2" role="search">
-        <label htmlFor="categories-q" className="flex flex-col gap-1 text-xs text-muted-foreground">
-          {t("Search by name or slug", messages)}
-          <input
-            id="categories-q"
-            name="q"
-            type="search"
-            defaultValue={q}
-            maxLength={100}
-            className="min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          />
-        </label>
-        <button
-          type="submit"
-          className="inline-flex min-h-11 items-center rounded-control border border-border bg-muted px-3 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {t("Search", messages)}
-        </button>
-        {q && (
-          <Link href="/categories" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
-            {t("Clear search", messages)}
-          </Link>
-        )}
-      </form>
+      <SearchInput
+        name="q"
+        value={q}
+        basePath="/categories"
+        params={{}}
+        label={t("Search by name or slug", messages)}
+        placeholder={t("Search", messages)}
+        messages={messages}
+      />
 
       {empty ? (
         <CategoriesEmpty q={q} messages={messages} />

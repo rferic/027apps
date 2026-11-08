@@ -99,6 +99,9 @@ Reglas:
 - **Paginación**: toda lista se pagina en servidor (`limit`/`offset` + `total`); la UI usa
   `components/ui/pagination.tsx`, pasa `page` por query y nunca carga todos los registros para paginar
   o filtrar en cliente.
+- **Búsqueda**: el texto se filtra con `components/ui/search-input.tsx` al dejar de escribir (300 ms),
+  sin botón "Search" (Enter aplica al instante, Escape limpia); los selectores se aplican al cambiar y
+  ambos conservan el resto de filtros y reinician `page`.
 - **Detalle**: breadcrumb, título con el nombre, badges de rol/estado, formulario en una columna y
   acciones destructivas separadas al final con confirmación explícita ("Desactivar a Sara: perderá el
   acceso al instante").
