@@ -10,6 +10,31 @@ export interface ApiKeyEditState {
 export const INITIAL_API_KEY_EDIT_STATE: ApiKeyEditState = { error: null };
 
 /**
+ * Stable identity of the stored values the edit form seeds from. Mounting the
+ * form with this as its React `key` remounts it when the server data changes
+ * (a scope removed, a rename), so `useState` is seeded again from the fresh
+ * RSC. Without it the client keeps its previous selection even though the
+ * page was re-rendered with new data.
+ *
+ * The scope order is normalised because the API does not promise one; the
+ * parts are JSON-encoded so a scope or a name containing the separator cannot
+ * make two different keys collide.
+ */
+export function apiKeyFingerprint(apiKey: {
+  id: string;
+  name: string;
+  expiresAt: string | null;
+  scopes: readonly string[];
+}): string {
+  return JSON.stringify([
+    apiKey.id,
+    apiKey.name,
+    apiKey.expiresAt ?? "",
+    [...apiKey.scopes].sort(),
+  ]);
+}
+
+/**
  * Splits the stored scopes into the ones the form offers (`editable`) and the
  * ones it cannot represent (`preserved`): a module permission that is no longer
  * granted to the owner, or a legacy scope outside the Core allowlist. The form

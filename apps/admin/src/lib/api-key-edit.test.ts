@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { allowedApiKeyScopes } from "@/lib/api-key-scopes";
 import {
+  apiKeyFingerprint,
   buildApiKeyUpdateInput,
   mergeKeyScopes,
   selectAllKeyScopes,
@@ -90,6 +91,46 @@ describe("toDateTimeLocal", () => {
 
   it("is empty when the key never expires", () => {
     expect(toDateTimeLocal(null)).toBe("");
+  });
+});
+
+describe("apiKeyFingerprint", () => {
+  const KEY = {
+    id: "k1",
+    name: "Zapier",
+    expiresAt: null,
+    scopes: ["users:read", "profile:read"],
+  };
+
+  it("is stable, whatever the stored scope order is", () => {
+    expect(apiKeyFingerprint(KEY)).toBe(
+      apiKeyFingerprint({ ...KEY, scopes: ["profile:read", "users:read"] }),
+    );
+    expect(apiKeyFingerprint(KEY)).toBe(apiKeyFingerprint(KEY));
+  });
+
+  it("does not reorder or mutate the scopes it was given", () => {
+    const scopes = ["users:read", "profile:read"];
+
+    apiKeyFingerprint({ ...KEY, scopes });
+
+    expect(scopes).toEqual(["users:read", "profile:read"]);
+  });
+
+  it("changes when a scope, the name, the expiry or the key changes", () => {
+    const base = apiKeyFingerprint(KEY);
+
+    expect(apiKeyFingerprint({ ...KEY, scopes: ["users:read"] })).not.toBe(base);
+    expect(apiKeyFingerprint({ ...KEY, scopes: [...KEY.scopes, "modules:read"] })).not.toBe(base);
+    expect(apiKeyFingerprint({ ...KEY, name: "Zapier 2" })).not.toBe(base);
+    expect(apiKeyFingerprint({ ...KEY, expiresAt: "2027-05-01T10:00:00.000Z" })).not.toBe(base);
+    expect(apiKeyFingerprint({ ...KEY, id: "k2" })).not.toBe(base);
+  });
+
+  it("never lets two different fields collide when one contains the separator", () => {
+    expect(apiKeyFingerprint({ ...KEY, name: "a:b", scopes: ["c"] })).not.toBe(
+      apiKeyFingerprint({ ...KEY, name: "a", scopes: ["b:c"] }),
+    );
   });
 });
 

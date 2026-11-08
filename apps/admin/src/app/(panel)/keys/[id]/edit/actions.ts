@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import {
   buildApiKeyUpdateInput,
   mergeKeyScopes,
@@ -72,6 +73,13 @@ export async function updateKeyAction(
 
   const result = await updateKey(id, patch);
   if (!result.ok) return { error: result };
+
+  // Without this the client Router Cache keeps the previous RSC of these
+  // pages, so reopening the form shows the scopes that were just removed.
+  // Revalidate before redirecting: `redirect` throws and ends the action.
+  revalidatePath("/keys");
+  revalidatePath(`/keys/${encodeURIComponent(id)}`);
+  revalidatePath(`/keys/${encodeURIComponent(id)}/edit`);
 
   redirect(`/keys/${encodeURIComponent(id)}`);
 }

@@ -5,11 +5,21 @@ const loadKeyMock = vi.fn();
 const loadUserModulesMock = vi.fn();
 const requirePanelMock = vi.fn();
 const redirectMock = vi.fn((url: string) => {
+  order.push(`redirect:${url}`);
   throw new Error(`NEXT_REDIRECT:${url}`);
 });
+const revalidatePathMock = vi.fn((path: string) => {
+  order.push(`revalidate:${path}`);
+});
+/** Records the call order: `revalidatePath` must run before the redirect. */
+const order: string[] = [];
 
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => redirectMock(url),
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: (path: string) => revalidatePathMock(path),
 }));
 
 vi.mock("@/lib/panel-guard", () => ({
@@ -60,6 +70,8 @@ beforeEach(() => {
     user: { id: "root", email: "root@example.test", displayName: "Root", role: "super_admin" },
   });
   redirectMock.mockClear();
+  revalidatePathMock.mockClear();
+  order.length = 0;
 });
 
 describe("updateKeyAction", () => {
@@ -96,6 +108,43 @@ describe("updateKeyAction", () => {
       scopes: ["profile:read", "modules:read"],
     });
     expect(redirectMock).toHaveBeenCalledWith("/keys/k1");
+  });
+
+  it("invalidates the list, the detail and the edit form before redirecting", async () => {
+    await expect(
+      updateKeyAction(
+        "k1",
+        INITIAL_API_KEY_EDIT_STATE,
+        formData({ name: "Renamed", scopes: ["profile:read"] }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT:/keys/k1");
+
+    // Without this the client Router Cache keeps serving the previous RSC, so
+    // reopening the form shows the scopes that were just removed.
+    expect(revalidatePathMock.mock.calls).toEqual([["/keys"], ["/keys/k1"], ["/keys/k1/edit"]]);
+    expect(order).toEqual([
+      "revalidate:/keys",
+      "revalidate:/keys/k1",
+      "revalidate:/keys/k1/edit",
+      "redirect:/keys/k1",
+    ]);
+  });
+
+  it("encodes the id in the invalidated paths", async () => {
+    loadKeyMock.mockResolvedValue({
+      ok: true,
+      apiKey: { ...STORED_KEY.apiKey, id: "a/b" },
+    });
+
+    await expect(
+      updateKeyAction("a/b", INITIAL_API_KEY_EDIT_STATE, formData({ name: "Renamed", scopes: ["profile:read"] })),
+    ).rejects.toThrow("NEXT_REDIRECT:/keys/a%2Fb");
+
+    expect(revalidatePathMock.mock.calls).toEqual([
+      ["/keys"],
+      ["/keys/a%2Fb"],
+      ["/keys/a%2Fb/edit"],
+    ]);
   });
 
   it("sends the stored module scopes alongside the core selection", async () => {
@@ -305,6 +354,7 @@ describe("updateKeyAction", () => {
       error: { ok: false, code: "conflict", details: { code: "revoked" } },
     });
     expect(redirectMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
   it("rejects an empty name or an empty scope set without calling the API", async () => {

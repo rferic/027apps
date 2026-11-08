@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requirePanelMock = vi.fn();
@@ -49,6 +50,8 @@ vi.mock("@/app/(auth)/actions", () => ({
 }));
 
 import EditKeyPage, { instant } from "./page";
+import { ApiKeyEditForm } from "@/components/api-key-edit-form";
+import { apiKeyFingerprint } from "@/lib/api-key-edit";
 
 const DELEGATED_KEY = {
   id: "k1",
@@ -80,6 +83,26 @@ const SERVICE_KEY = {
 
 function render(id = "k1") {
   return EditKeyPage({ params: Promise.resolve({ id }) });
+}
+
+/** The form element the page mounts, so its React `key` can be inspected. */
+function findEditForm(node: ReactNode): ReactElement | null {
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = findEditForm(child);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (!isValidElement(node)) return null;
+  if (node.type === ApiKeyEditForm) return node;
+  return findEditForm((node.props as { children?: ReactNode }).children);
+}
+
+async function mountForm(id = "k1"): Promise<ReactElement> {
+  const form = findEditForm(await render(id));
+  if (!form) throw new Error("the page did not mount the edit form");
+  return form;
 }
 
 beforeEach(() => {
@@ -136,6 +159,30 @@ describe("EditApiKeyPage", () => {
     expect(html).toContain('value="maintenance:run"');
     expect(html).toContain('value="settings:write"');
     expect(html).toContain("Super administrator");
+  });
+
+  it("remounts the form when the stored scopes change", async () => {
+    loadKeyMock.mockResolvedValue({ ok: true, apiKey: DELEGATED_KEY });
+    const before = await mountForm();
+
+    loadKeyMock.mockResolvedValue({
+      ok: true,
+      apiKey: { ...DELEGATED_KEY, scopes: ["users:read"] },
+    });
+    const after = await mountForm();
+
+    // A fresh RSC with different data must remount the client form: its scope
+    // and expiry state is seeded from props only on mount.
+    expect(before.key).toBe(apiKeyFingerprint(DELEGATED_KEY));
+    expect(after.key).not.toBe(before.key);
+  });
+
+  it("keeps the form mounted when the data did not change", async () => {
+    loadKeyMock.mockResolvedValue({ ok: true, apiKey: DELEGATED_KEY });
+    const first = await mountForm();
+    const second = await mountForm();
+
+    expect(second.key).toBe(first.key);
   });
 
   it("never offers kind, owner or role cap as editable fields", async () => {

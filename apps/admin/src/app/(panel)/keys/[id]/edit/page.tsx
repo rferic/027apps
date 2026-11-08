@@ -6,6 +6,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { ApiKeyEditForm } from "@/components/api-key-edit-form";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
+import { apiKeyFingerprint } from "@/lib/api-key-edit";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
@@ -106,6 +107,7 @@ export default async function EditApiKeyPage({ params }: { params: Promise<{ id:
         </p>
       </header>
       <ApiKeyEditForm
+        key={apiKeyFingerprint(apiKey)}
         apiKey={apiKey}
         modules={offeredModuleList(modules)}
         action={updateKeyAction.bind(null, apiKey.id)}
