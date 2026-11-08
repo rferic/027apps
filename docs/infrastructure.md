@@ -39,10 +39,15 @@ y [`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-
   sprint-08-core-base se cambia a `main`.
 - **Protección**: Vercel Authentication activa en todas las URLs de deployment menos
   dominios custom (los previews solo se ven autenticado).
-- **Env vars** (nunca valores aquí; solo nombres): 4 con scope **Preview** —
+- **Env vars** (nunca valores aquí; solo nombres): 5 con scope **Preview** —
   `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (publicas por diseño),
-  `SUPABASE_SERVICE_ROLE_KEY` y `SETTINGS_ENCRYPTION_KEY` (tipo *sensitive*).
+  `SUPABASE_SERVICE_ROLE_KEY`, `SETTINGS_ENCRYPTION_KEY` y `SUPABASE_DB_URL` (tipo *sensitive*/*Secret*;
+  las tres últimas se guardan como sensitive, nunca como variables públicas).
   Scope Production cuando exista `027apps-prod`.
+- **`SUPABASE_DB_URL` es obligatoria desde el sprint 06**: el Core habla Postgres directo, no solo la API
+  REST. Estaba con scope Preview limitado a la rama `sprint/05-core-base`, lo que dejaba el resto de
+  previews en 500 (`SUPABASE_DB_URL is not configured`). El 2026-11-08 se amplió a todas las ramas de
+  Preview.
 
 ### Correo transaccional (Resend)
 
@@ -269,6 +274,10 @@ Solo existe `027apps-dev` (Supabase) y el proyecto Vercel con env vars de scope 
 
 Checklist para activarla al cierre del sprint-08-core-base (en este orden):
 
+0. **Verificar el nivel de migraciones de la base cloud** con `supabase migration list --linked`. A fecha
+   del cierre del sprint 06 **no está verificado** que `0015`–`0019` estén aplicadas. `0018` y `0019`
+   cierran una escalada de privilegios (cualquier miembro podía escribir su propio `role`), así que
+   deben aplicarse antes de abrir producción.
 1. **Crear `027apps-prod`** en Supabase con contraseña nueva generada en el dashboard (nunca
    por chat ni en git) y anotar el project ref en este documento.
 2. **Añadir las env vars de scope Production en Vercel**: `NEXT_PUBLIC_SUPABASE_URL`,
