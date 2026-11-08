@@ -10,15 +10,9 @@ export interface ApiKeyEditState {
 export const INITIAL_API_KEY_EDIT_STATE: ApiKeyEditState = { error: null };
 
 /**
- * Stable identity of the stored values the edit form seeds from. Mounting the
- * form with this as its React `key` remounts it when the server data changes
- * (a scope removed, a rename), so `useState` is seeded again from the fresh
- * RSC. Without it the client keeps its previous selection even though the
- * page was re-rendered with new data.
- *
- * The scope order is normalised because the API does not promise one; the
- * parts are JSON-encoded so a scope or a name containing the separator cannot
- * make two different keys collide.
+ * Stable identity of the stored values the edit form seeds from: mount the form
+ * with it as its React `key` so a server-side change re-seeds `useState`. The
+ * scope order is normalised because the API does not promise one.
  */
 export function apiKeyFingerprint(apiKey: {
   id: string;

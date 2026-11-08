@@ -439,7 +439,7 @@
   "This is your key": "Hau zure gakoa da",
   "This key belongs to {owner}.": "Gako hau {owner} erabiltzaileari dagokio.",
   "This key is already revoked.": "Gako hau jada baliogabetuta dago.",
-  "This user has reached the limit of 5 active keys.": "Erabiltzaile honek 5 gako aktiboen muga iritsi du.",
+  "This user has reached the limit of {count} active keys.": "Erabiltzaile honek {count} gako aktiboen muga iritsi du.",
   "This value is not valid.": "Balio hau ez da baliozkoa.",
   "This value is read-only.": "Balio hau irakurtzeko soilik da.",
   "Time zone": "Ordu-zona",

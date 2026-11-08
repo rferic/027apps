@@ -2,7 +2,7 @@
 id: sprint-06-task-13
 titulo: Scopes de claves API y claves delegadas por propietario
 area: web
-estado: test
+estado: finalizada
 adrs: [0004, 0007]
 plan: docs/superpowers/plans/2026-11-08-api-key-scopes.md
 spec: docs/superpowers/specs/2026-11-08-api-key-scopes-design.md
@@ -373,3 +373,27 @@ Tests: aritmética UTC por unidad y límites en `api-key-expiry.test.ts`; render
 error accesible en `api-key-expiry-field.test.tsx`; alta, edición y acción de los tres modos;
 listado con `state=expired` llegando al API, badge caducado, orden del filtro y `total` sin
 recortes.
+
+## Cierre (2026-11-08)
+
+- **Evidencia**: `pnpm lint` ✓, `pnpm tsc` ✓, `pnpm --filter admin build` ✓ (ejecutado con el
+  dev server parado y su salida leída), `pnpm --filter core test` ✓ (363), `pnpm --filter admin
+  test` ✓ (836), `pnpm --filter @027apps/i18n test` ✓ (26), `pnpm i18n:check` ✓ (518 cadenas, 9
+  locales), `pnpm check:openapi` ✓ (56/56 operaciones).
+- **Migraciones**: `0015` y `0016` aplicadas en local con `npx supabase migration up`.
+- **db-tests**: `src/api/api-keys.test.ts`, `src/api-keys/service.test.ts` y
+  `src/rls/api-keys-devices.test.ts` en verde. Los 8 fallos del resto de la suite son previos y
+  ambientales, por datos residuales en la base compartida (tabla de monedas con 2 filas en vez de
+  155, invitaciones y categorías sobrantes, ajustes de instancia y FCM modificados a mano) y una
+  expectativa obsoleta de `total` en `users/service.test.ts`. Ninguno toca claves API.
+- **Auditoría OWASP**: veredicto **APTO CON RESERVAS**. M1, M3, M4, B1, B3 y B4 resueltos en
+  `a025d36`; M2 corregido en el comentario del guard; B2 aceptado como riesgo documentado (en
+  producción siempre se inyecta `withTransaction`).
+- **Revisión de estilo**: sin bloqueantes. Aplicados: `inputClass` y `cancelClass` compartidos en
+  `components/ui/form.tsx`, reutilización de `toggleKeyScope`/`selectAllKeyScopes` de `lib` en el
+  alta, `ownerAtLimit` en el selector de propietario, límite con `MAX_ACTIVE_DELEGATED_KEYS` como
+  única fuente (mensaje con `{count}` y una sola clave i18n), `case "reset"` explícito, orden de
+  imports y docblock de `apiKeyFingerprint` en dos frases. Diferido: extraer la lógica pura de
+  `api-key-create-form.tsx` (782 líneas) a `lib/`; queda anotado como deuda técnica y no bloquea.
+- **Fuera de alcance, anotado**: `state` se filtra en servidor desde `3912d90`; las fichas de
+  detalle de invitaciones y módulos no existen (sin destino para filas clicables).

@@ -8,26 +8,21 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { ApiKeyExpiryField } from "@/components/api-key-expiry-field";
 import { ApiKeyScopeFieldset } from "@/components/api-key-scope-fieldset";
 import { Button } from "@/components/ui/button";
-import { FormActions, FormAlert, FormField } from "@/components/ui/form";
+import { FormActions, FormAlert, FormField, cancelClass, inputClass } from "@/components/ui/form";
 import { Select } from "@/components/ui/select";
+import { selectAllKeyScopes, toggleKeyScope } from "@/lib/api-key-edit";
 import { expiresAtFrom, type ExpiryChoice } from "@/lib/api-key-expiry";
-import { apiKeyOfferedScopes, withModuleImplication } from "@/lib/api-key-module-scopes";
+import { apiKeyOfferedScopes } from "@/lib/api-key-module-scopes";
 import { createApiKey, type CreateApiKeyInput } from "@/lib/api-key-mutations";
-import { copyText } from "@/lib/clipboard";
 import type { ApiKeyScopeRoleCap } from "@/lib/api-key-scopes";
+import { copyText } from "@/lib/clipboard";
 import type { MutationFailure } from "@/lib/mutation-result";
 import type { ApiKeyOwner } from "@/lib/panel-keys";
 import type { UserModule, UserModulesResult } from "@/lib/panel-user-modules";
 import { useCreateForm } from "@/lib/use-create-form";
 
-const inputClass =
-  "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
-
 const secondaryLinkClass =
   "inline-flex min-h-11 items-center justify-center rounded-control border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
-
-const cancelClass =
-  "inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 type KeyKind = "service" | "delegated";
 
@@ -36,6 +31,15 @@ export type ApiKeyRoleCap = ApiKeyScopeRoleCap | "";
 
 /** Mirrors the Core limit; the API still enforces it inside a transaction. */
 export const MAX_ACTIVE_DELEGATED_KEYS = 5;
+
+/** A delegated key cannot be created for an owner already at the limit. */
+function ownerAtLimit(
+  kind: KeyKind,
+  ownerId: string,
+  activeCounts: Readonly<Record<string, number>>,
+): boolean {
+  return kind === "delegated" && (activeCounts[ownerId] ?? 0) >= MAX_ACTIVE_DELEGATED_KEYS;
+}
 
 function fieldState(field: string, errors: string[] | undefined, hintId?: string) {
   const message = errors?.[0];
@@ -92,25 +96,23 @@ function pruneScopes(
   return scopes.filter((scope) => allowed.has(scope));
 }
 
-function toggleScope(
+/** Applies one checkbox against the scopes offered for the current kind and cap. */
+function withScopeToggled(
   state: ApiKeyFormState,
   scope: string,
   checked: boolean,
 ): ApiKeyFormState {
-  if (checked && !apiKeyOfferedScopes(state.kind, state.roleCap, state.modules).includes(scope)) {
-    return state;
-  }
-  const scopes = withModuleImplication(state.scopes, scope, checked);
+  const allowed = apiKeyOfferedScopes(state.kind, state.roleCap, state.modules);
+  const scopes = toggleKeyScope(state.scopes, scope, checked, allowed);
   return scopes === state.scopes ? state : { ...state, scopes };
 }
 
-function selectAllScopes(state: ApiKeyFormState): ApiKeyFormState {
-  // A service key without a cap cannot be created yet, so there is no
-  // meaningful "all" until the cap resolves the allowlist.
+/** A service key without a cap cannot be created yet, so there is no "all" to pick. */
+function withAllScopes(state: ApiKeyFormState): ApiKeyFormState {
   if (state.kind === "service" && !state.roleCap) return state;
   const offered = apiKeyOfferedScopes(state.kind, state.roleCap, state.modules);
   if (offered.length === 0) return state;
-  return { ...state, scopes: [...offered] };
+  return { ...state, scopes: selectAllKeyScopes(offered) };
 }
 
 /**
@@ -157,12 +159,12 @@ export function apiKeyFormReducer(
         scopes: pruneScopes(state.kind, state.roleCap, state.scopes, action.modules),
       };
     case "scope":
-      return toggleScope(state, action.scope, action.checked);
+      return withScopeToggled(state, action.scope, action.checked);
     case "select-all-scopes":
-      return selectAllScopes(state);
+      return withAllScopes(state);
     case "clear-scopes":
       return state.scopes.length === 0 ? state : { ...state, scopes: [] };
-    default:
+    case "reset":
       return INITIAL_API_KEY_FORM_STATE;
   }
 }
@@ -212,7 +214,9 @@ export function ApiKeyCreateError({
   if (error.code === "conflict" && error.details?.code === "key_limit") {
     return (
       <FormAlert
-        message={t("This user has reached the limit of 5 active keys.", messages)}
+        message={t("This user has reached the limit of {count} active keys.", messages, {
+          count: MAX_ACTIVE_DELEGATED_KEYS,
+        })}
         details={[t("Revoke one key to create another.", messages)]}
         requestId={error.requestId}
         messages={messages}
@@ -404,7 +408,7 @@ export function ApiKeyOwnerField({
   messages: TranslationMap;
 }) {
   const selected = ownerId || currentUserId;
-  const atLimit = (activeCounts[selected] ?? 0) >= MAX_ACTIVE_DELEGATED_KEYS;
+  const atLimit = ownerAtLimit("delegated", selected, activeCounts);
   const currentListed = owners.some((owner) => owner.id === currentUserId);
 
   return (
@@ -432,7 +436,9 @@ export function ApiKeyOwnerField({
       </Select>
       {atLimit && (
         <p role="status" className="text-xs font-semibold text-destructive">
-          {t("This user has reached the limit of 5 active keys.", messages)}
+          {t("This user has reached the limit of {count} active keys.", messages, {
+            count: MAX_ACTIVE_DELEGATED_KEYS,
+          })}
         </p>
       )}
     </FormField>
@@ -495,18 +501,6 @@ function useOwnerModules(options: {
 
   const error = failure?.ownerId === modulesOwnerId ? failure.error : null;
   return { loading, error };
-}
-
-/** A delegated key cannot be created for an owner already at the limit. */
-function ownerAtLimit(
-  kind: KeyKind,
-  ownerId: string,
-  activeCounts: Readonly<Record<string, number>>,
-): boolean {
-  return (
-    kind === "delegated" &&
-    (activeCounts[ownerId] ?? 0) >= MAX_ACTIVE_DELEGATED_KEYS
-  );
 }
 
 /** Loading hint and failure banner for the owner's module permissions. */

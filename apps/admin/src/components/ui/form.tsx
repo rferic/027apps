@@ -5,6 +5,14 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { cn } from "@/lib/cn";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
+/** Native control classes shared by the panel forms: 44 px tall, token colours. */
+export const inputClass =
+  "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
+/** Cancel link of a form: same 44 px target and focus ring as its submit. */
+export const cancelClass =
+  "inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
 /**
  * Form primitives shared by page forms and destructive confirmations. They fix
  * the visual and accessibility pattern in one place: a `<label htmlFor>` tied

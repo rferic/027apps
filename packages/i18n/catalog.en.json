@@ -439,7 +439,7 @@
   "This is your key",
   "This key belongs to {owner}.",
   "This key is already revoked.",
-  "This user has reached the limit of 5 active keys.",
+  "This user has reached the limit of {count} active keys.",
   "This value is not valid.",
   "This value is read-only.",
   "Time zone",

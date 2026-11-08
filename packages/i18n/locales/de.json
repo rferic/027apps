@@ -439,7 +439,7 @@
   "This is your key": "Das ist dein Schlüssel",
   "This key belongs to {owner}.": "Dieser Schlüssel gehört {owner}.",
   "This key is already revoked.": "Dieser Schlüssel ist bereits widerrufen.",
-  "This user has reached the limit of 5 active keys.": "Dieser Benutzer hat das Limit von 5 aktiven Schlüsseln erreicht.",
+  "This user has reached the limit of {count} active keys.": "Dieser Benutzer hat das Limit von {count} aktiven Schlüsseln erreicht.",
   "This value is not valid.": "Dieser Wert ist ungültig.",
   "This value is read-only.": "Dieser Wert ist schreibgeschützt.",
   "Time zone": "Zeitzone",

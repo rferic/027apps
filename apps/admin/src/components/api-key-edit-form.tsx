@@ -7,9 +7,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { ApiKeyExpiryField } from "@/components/api-key-expiry-field";
 import { ApiKeyScopeFieldset } from "@/components/api-key-scope-fieldset";
 import { Button } from "@/components/ui/button";
-import { FormActions, FormAlert, FormField } from "@/components/ui/form";
-import { apiKeyOfferedScopes } from "@/lib/api-key-module-scopes";
-import type { ExpiryChoice } from "@/lib/api-key-expiry";
+import { FormActions, FormAlert, FormField, cancelClass, inputClass } from "@/components/ui/form";
 import {
   INITIAL_API_KEY_EDIT_STATE,
   selectAllKeyScopes,
@@ -17,14 +15,10 @@ import {
   toggleKeyScope,
   type ApiKeyEditState,
 } from "@/lib/api-key-edit";
+import type { ExpiryChoice } from "@/lib/api-key-expiry";
+import { apiKeyOfferedScopes } from "@/lib/api-key-module-scopes";
 import type { ApiKeyRow } from "@/lib/panel-keys";
 import type { UserModule } from "@/lib/panel-user-modules";
-
-const inputClass =
-  "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
-
-const cancelClass =
-  "inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 /** Submit handler bound to the key id by the page (server action). */
 export type ApiKeyEditAction = (
