@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Caller, DoorDeps } from "../api/types";
 import type { RateLimitStorage } from "../api/rate-limit-storage";
-import { apiKeysRoute, createApiKeyRoute, type ApiKeysRouteDeps } from "./api.js";
+import { apiKeysRoute, createApiKeyRoute, updateApiKeyRoute, type ApiKeysRouteDeps } from "./api.js";
 
 const admin: Caller = { kind: "session", userId: "admin-1", role: "super_admin" };
 
@@ -210,7 +210,133 @@ describe("api keys create route", () => {
   });
 });
 
-describe("api keys route pagination", () => {  it("returns the first page with limit=2 and the total", async () => {
+describe("api keys update route", () => {
+  const ID = "11111111-1111-4111-8111-111111111111";
+  const stored = {
+    id: ID,
+    kind: "delegated" as const,
+    name: "Old name",
+    scopes: ["profile:read"],
+    user_id: "22222222-2222-4222-8222-222222222222",
+    role_cap: null,
+    expires_at: null,
+    revoked_at: null,
+    last_used_at: null,
+    created_at: "2026-11-08T00:00:00.000Z",
+  };
+
+  function updateDeps(who: Caller): {
+    deps: ApiKeysRouteDeps;
+    updates: Record<string, unknown>[];
+  } {
+    const updates: Record<string, unknown>[] = [];
+    const door: DoorDeps = { rateLimitStorage: countingStorage(), logger: () => {} };
+    return {
+      updates,
+      deps: {
+        door,
+        auth: async () => who,
+        apiKeys: {
+          db: {
+            async query(sql: string, params: unknown[] = []) {
+              if (sql.includes("from public.api_keys where id = $1")) {
+                return { rows: [{ ...stored, scopes: [...stored.scopes] }] };
+              }
+              if (sql.startsWith("update public.api_keys set") && sql.includes("returning")) {
+                const patch: Record<string, unknown> = {};
+                for (const match of sql.matchAll(/(\w+) = \$(\d+)/g)) {
+                  patch[match[1]!] = params[Number(match[2]) - 1];
+                }
+                updates.push(patch);
+                return { rows: [{ ...stored, ...patch }] };
+              }
+              return { rows: [] };
+            },
+          },
+        },
+      },
+    };
+  }
+
+  function patch(body: unknown): Request {
+    return new Request(`http://local/api/v1/api-keys/${ID}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("updates only the name and returns the key", async () => {
+    const who: Caller = {
+      kind: "session",
+      userId: "22222222-2222-4222-8222-222222222222",
+      role: "user",
+    };
+    const { deps, updates } = updateDeps(who);
+
+    const res = await updateApiKeyRoute(deps)(patch({ name: "New name" }), ID);
+
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { api_key: { name: string } }).toMatchObject({
+      api_key: { name: "New name" },
+    });
+    expect(updates).toEqual([{ name: "New name", id: ID }]);
+  });
+
+  it("passes scopes and expires_at through", async () => {
+    const who: Caller = {
+      kind: "session",
+      userId: "22222222-2222-4222-8222-222222222222",
+      role: "user",
+    };
+    const { deps, updates } = updateDeps(who);
+    const expires = "2027-01-01T00:00:00.000Z";
+
+    const res = await updateApiKeyRoute(deps)(
+      patch({ scopes: ["profile:read"], expires_at: expires }),
+      ID,
+    );
+
+    expect(res.status).toBe(200);
+    expect(updates).toEqual([{ scopes: ["profile:read"], expires_at: expires, id: ID }]);
+  });
+
+  it("rejects an empty patch", async () => {
+    const who: Caller = { kind: "session", userId: "root", role: "super_admin" };
+    const { deps } = updateDeps(who);
+
+    const res = await updateApiKeyRoute(deps)(patch({}), ID);
+
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { error: { code: string } }).toMatchObject({
+      error: { code: "validation_failed" },
+    });
+  });
+
+  it("rejects kind, role_cap and user_id as immutable", async () => {
+    const who: Caller = { kind: "session", userId: "root", role: "super_admin" };
+    for (const body of [{ kind: "service" }, { role_cap: "admin" }, { user_id: null }]) {
+      const { deps, updates } = updateDeps(who);
+
+      const res = await updateApiKeyRoute(deps)(patch(body), ID);
+
+      expect(res.status).toBe(400);
+      expect(updates).toHaveLength(0);
+    }
+  });
+
+  it("denies a caller without api_keys:write", async () => {
+    const who: Caller = { kind: "service", keyId: "svc", scopes: [], roleCap: "admin" };
+    const { deps } = updateDeps(who);
+
+    const res = await updateApiKeyRoute(deps)(patch({ name: "Nope" }), ID);
+
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("api keys route pagination", () => {
+  it("returns the first page with limit=2 and the total", async () => {
     const { status, body } = await list(apiKeysRoute(pagedDeps(rows(3))), "/api/v1/api-keys?limit=2");
 
     expect(status).toBe(200);

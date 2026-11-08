@@ -11,12 +11,12 @@ import {
   ApiKeyCreatedPanel,
   ApiKeyKindFields,
   ApiKeyOwnerField,
-  ApiKeyScopeChoices,
   apiKeyFormReducer,
   buildApiKeyCreateInput,
   INITIAL_API_KEY_FORM_STATE,
 } from "./api-key-create-form";
 import { allowedApiKeyScopes } from "@/lib/api-key-scopes";
+import { ApiKeyScopeFieldset } from "./api-key-scope-fieldset";
 
 const OWNERS = [
   { id: "u1", name: "Sara" },
@@ -55,7 +55,7 @@ function fields(
         fieldErrors={{}}
         messages={{}}
       />
-      <ApiKeyScopeChoices
+      <ApiKeyScopeFieldset
         kind={kind}
         roleCap={roleCap}
         selected={selected}

@@ -43,6 +43,16 @@ export type CreateApiKeyInput = {
   expires_at?: string;
 };
 
+/**
+ * Editable fields of an existing key. `kind`, `role_cap` and `user_id` are
+ * immutable: re-scoping is bounded by the stored cap and owner.
+ */
+export type UpdateApiKeyInput = {
+  name?: string;
+  scopes?: string[];
+  expires_at?: string;
+};
+
 export type ApiKeyResolution = {
   id: string;
   kind: ApiKeyKind;
@@ -433,6 +443,99 @@ export async function revokeApiKey(deps: ApiKeysDeps, caller: Caller, id: string
     "update public.api_keys set revoked_at = now() where id = $1 and revoked_at is null",
     [id],
   );
+}
+
+/**
+ * Edits `name`, `scopes` or `expires_at` of an existing key (never `kind`,
+ * `role_cap` or `user_id`, and never the secret or `last_used_at`). Re-scoping
+ * repeats the creation rules: a service key stays inside its stored cap and a
+ * delegated key is trimmed to the owner's allowlist and live module grants.
+ */
+export async function updateApiKey(
+  deps: ApiKeysDeps,
+  caller: Caller,
+  id: string,
+  patch: UpdateApiKeyInput,
+): Promise<ApiKeyView> {
+  if (caller.kind === "service") throw new DomainError("insufficient_scope");
+
+  const row = await findVisibleKey(deps, caller, id);
+  const kind = String(row.kind) as ApiKeyKind;
+
+  if (row.revoked_at !== null && row.revoked_at !== undefined) {
+    throw new DomainError("conflict", "a revoked API key cannot be edited", { code: "revoked" });
+  }
+  // Ownership already hid it; this keeps a future looser lookup from letting a
+  // plain admin edit the instance credential.
+  if (kind === "service" && !isSuperAdmin(caller)) throw new DomainError("not_found");
+
+  const now = deps.now?.() ?? new Date();
+  const assignments: string[] = [];
+  const params: unknown[] = [];
+
+  if (patch.name !== undefined) {
+    const name = patch.name.trim();
+    if (name.length < 1 || name.length > 80) {
+      throw new DomainError("validation_failed", "name must be 1..80 characters");
+    }
+    params.push(name);
+    assignments.push(`name = $${params.length}`);
+  }
+
+  if (patch.scopes !== undefined) {
+    const scopes = validateScopes(patch.scopes);
+    let effective: string[];
+    if (kind === "service") {
+      const cap = (row.role_cap ?? "admin") as ApiKeyRoleCap;
+      assertServiceScopes(scopes, cap);
+      effective = scopes;
+    } else {
+      effective = await delegatedCreationScopes(deps.db, caller, String(row.user_id), scopes);
+      if (effective.length === 0) {
+        throw new DomainError(
+          "validation_failed",
+          "no requested scope is allowed for a delegated key",
+        );
+      }
+    }
+    params.push(effective);
+    assignments.push(`scopes = $${params.length}`);
+  }
+
+  if (patch.expires_at !== undefined) {
+    const expiresAt = new Date(patch.expires_at);
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) {
+      throw new DomainError("validation_failed", "expires_at must be in the future");
+    }
+    // An expired key can only be extended: the new value is in the future by
+    // the check above, so it always lands after the stored one.
+    const current = row.expires_at === null || row.expires_at === undefined
+      ? null
+      : new Date(toIso(row.expires_at));
+    if (current && current.getTime() <= now.getTime() && expiresAt.getTime() <= current.getTime()) {
+      throw new DomainError("validation_failed", "an expired key can only be extended");
+    }
+    params.push(expiresAt.toISOString());
+    assignments.push(`expires_at = $${params.length}`);
+  }
+
+  // Nothing to change: the route schema already requires a field.
+  if (assignments.length === 0) return toView(row);
+
+  params.push(id);
+  const { rows } = await deps.db.query(
+    `update public.api_keys set ${assignments.join(", ")}
+      where id = $${params.length} and revoked_at is null
+      returning ${VIEW_COLUMNS}`,
+    params,
+  );
+  const updated = rows[0];
+  // The key was visible above, so a vanished row means it was revoked in
+  // between: report the same conflict as the pre-check.
+  if (!updated) {
+    throw new DomainError("conflict", "a revoked API key cannot be edited", { code: "revoked" });
+  }
+  return toView(updated);
 }
 
 /**

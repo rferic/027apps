@@ -199,14 +199,22 @@ export default async function KeyPage({ params }: { params: Promise<{ id: string
           <h2 id="api-key-revoke-title" className="text-sm font-semibold">
             {t("Danger zone", messages)}
           </h2>
-          <ApiKeyRevokeButton
-            id={apiKey.id}
-            name={apiKey.name}
-            owner={apiKey.kind === "service" ? null : apiKey.owner}
-            isOwnKey={apiKey.kind === "delegated" && apiKey.user_id === gate.user.id}
-            redirectTo="/keys"
-            messages={messages}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/keys/${encodeURIComponent(apiKey.id)}/edit`}
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-control border border-transparent bg-primary px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-primary-foreground transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              {t("Edit", messages)}
+            </Link>
+            <ApiKeyRevokeButton
+              id={apiKey.id}
+              name={apiKey.name}
+              owner={apiKey.kind === "service" ? null : apiKey.owner}
+              isOwnKey={apiKey.kind === "delegated" && apiKey.user_id === gate.user.id}
+              redirectTo="/keys"
+              messages={messages}
+            />
+          </div>
         </section>
       )}
     </section>

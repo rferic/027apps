@@ -187,6 +187,46 @@ error con `request_id` y botón solo con la clave viva (`(panel)/keys/[id]/page.
 `loadKey` con owner resuelto, `Instance`, 404, 500 y cuerpo malformado (`panel-keys.test.ts`);
 etiqueta conocida y fallback de módulo (`api-key-scopes.test.ts`); `completeRevoke`.
 
+### Edición de la clave (2026-11-08)
+
+`PATCH /api/v1/api-keys/{id}` ya existía en el Core (nombre, scopes y caducidad; `kind`,
+`role_cap` y `user_id` inmutables; 409 con `details.code = "revoked"`). El panel estrena su UI:
+
+- `panel-keys.ts` añade `updateKey(id, patch)`: llamada en proceso a la ruta del Core con Bearer,
+  el mismo parseo defensivo que `loadKey` y `details.code` propagado para explicar el 409.
+- `/keys/{id}` muestra un **Edit** primario junto a Revoke; una clave revocada no ofrece ninguno
+  de los dos.
+- `/keys/{id}/edit` (`requirePanel("super_admin")`, `instant = false`, `notFound()` si no existe,
+  y redirección a la ficha si la clave está revocada) edita **nombre** y **caducidad**, y ofrece
+  los permisos con el mismo selector del alta (`kind` + `role_cap`, "Select all"/"Clear all").
+  Tipo, propietario, `role_cap` y prefijo son de solo lectura. Un aviso indica que los cambios se
+  aplican en la siguiente petición.
+- El fieldset de permisos se extrae a `components/api-key-scope-fieldset.tsx` y lo comparten alta
+  y edición.
+- El envío usa `useActionState` sobre la server action `updateKeyAction`: 400/404/409 vuelven como
+  estado del formulario (el 409 `revoked` con su mensaje propio) y el éxito redirige a la ficha.
+
+El selector solo ofrece los scopes del allowlist del Core; los scopes de módulo
+(`<módulo>:read|read_write`) **no son editables desde el panel**. El motivo es que dependen de los
+módulos concedidos al propietario y se gestionan por concesión del módulo y por la app, no por esta
+pantalla. Para que una edición no los borre:
+
+- El formulario separa `apiKey.scopes` en editables (allowlist del Core) y preservados (módulo). Los
+  checkboxes, "Select all" y "Clear all" operan solo sobre los editables.
+- Los preservados se muestran bajo el fieldset como chips de solo lectura, con la etiqueta «Module
+  permissions» y una nota que explica su origen; no tienen checkbox ni forma de quitarlos.
+- `updateKeyAction` recarga la clave con `loadKey(id)` antes de construir el patch y reinyecta
+  cualquier scope almacenado fuera de la allowlist, así que el patch siempre los incluye aunque el
+  cliente no los envíe (o intente quitarlos).
+- El botón de guardar no se bloquea por un set editable vacío si aún quedan preservados; solo se
+  bloquea cuando no queda ningún scope en absoluto.
+
+Tests: Edit visible/oculto en la ficha, valores actuales y solo el allowlist del tipo en `/edit`,
+"Select all" sin permisos no permitidos, patch exacto y errores del `updateKeyAction`, y el propio
+`updateKey` (método, cuerpo, Bearer, 409 y 404). Además `api-key-edit-form.test.tsx` cubre el chip
+de módulo como solo lectura y que desmarcar todo lo editable conserva el scope de módulo en el
+patch, y `actions.test.ts` cubre la reinyección de los preservados y el fallo de `loadKey`.
+
 **Verificación ejecutada**
 
 - `pnpm --filter @027apps/core test` — 305 tests en verde.

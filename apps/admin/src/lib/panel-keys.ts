@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { apiKeyRoute, apiKeysRoute } from "@027apps/core/api-keys/api.js";
+import { apiKeyRoute, apiKeysRoute, updateApiKeyRoute } from "@027apps/core/api-keys/api.js";
 import type { QueryClient } from "@027apps/core/api/rate-limit-storage.js";
 import { usersRoute, type UsersRouteDeps } from "@027apps/core/users/api.js";
 import { getInfra, withTransactionClient } from "@/lib/api/door";
@@ -32,7 +32,13 @@ export interface ApiKeyRow {
   created_at: string;
 }
 
-export type ApiKeysFailure = { ok: false; code?: string; requestId?: string };
+export type ApiKeysFailure = {
+  ok: false;
+  code?: string;
+  requestId?: string;
+  /** Domain detail the panel needs to explain a conflict (`revoked`). */
+  details?: { code?: string };
+};
 export type ApiKeysList = { ok: true; apiKeys: ApiKeyRow[]; total: number } | ApiKeysFailure;
 
 type RouteSuccess = { ok: true; body: Record<string, unknown>; requestId?: string };
@@ -167,10 +173,13 @@ function errorFields(
   const error = isRecord(value) && isRecord(value.error) ? value.error : {};
   const code = readString(error.code) ?? (status === 404 ? "not_found" : undefined);
   const requestId = readString(error.request_id) ?? headerRequestId;
+  const details = isRecord(error.details) ? error.details : {};
+  const detailCode = readString(details.code);
   return {
     ok: false,
     ...(code ? { code } : {}),
     ...(requestId ? { requestId } : {}),
+    ...(detailCode ? { details: { code: detailCode } } : {}),
   };
 }
 
@@ -187,18 +196,28 @@ async function sessionToken(): Promise<string> {
  * the client's `host`), the session as Bearer, and no secret anywhere in the
  * request or the parsed result.
  */
+function routeRequest(
+  path: string,
+  token: string,
+  write?: { method: "PATCH"; body: string },
+): Request {
+  const headers: Record<string, string> = { authorization: `Bearer ${token}` };
+  if (write) headers["content-type"] = "application/json";
+  return new Request(`${INTERNAL_ORIGIN}${path}`, {
+    ...(write ? { method: write.method, body: write.body } : {}),
+    headers,
+  });
+}
+
 async function callRoute(
   handler: (req: Request) => Promise<Response>,
   path: string,
   token: string,
+  write?: { method: "PATCH"; body: string },
 ): Promise<RouteCall> {
   let res: Response;
   try {
-    res = await handler(
-      new Request(`${INTERNAL_ORIGIN}${path}`, {
-        headers: { authorization: `Bearer ${token}` },
-      }),
-    );
+    res = await handler(routeRequest(path, token, write));
   } catch {
     return { ok: false };
   }
@@ -286,6 +305,23 @@ function ownerLabel(row: ParsedApiKey, names: ReadonlyMap<string, string>): stri
 
 export type ApiKeyDetail = { ok: true; apiKey: ApiKeyRow } | ApiKeysFailure;
 
+/** Editable fields of a key; the kind, cap and owner are immutable. */
+export interface ApiKeyUpdate {
+  name?: string;
+  scopes?: string[];
+  expires_at?: string;
+}
+
+/**
+ * Resolves the owner of a single parsed row. The profile read is best effort:
+ * it never turns a readable key into an error.
+ */
+async function withOwner(db: QueryClient, row: ParsedApiKey): Promise<ApiKeyRow> {
+  const userIds = row.kind === "delegated" && row.user_id ? [row.user_id] : [];
+  const ownerNames = await loadOwnerNames(db, userIds);
+  return { ...row, owner: ownerLabel(row, ownerNames) };
+}
+
 /**
  * GET /api/v1/api-keys/{id} — the same in-process route as the list, so the
  * role gate and the guard cannot disagree. The secret never comes back.
@@ -303,10 +339,29 @@ export async function loadKey(id: string): Promise<ApiKeyDetail> {
 
   const row = readApiKey(call.body.api_key);
   if (!row) return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+  return { ok: true, apiKey: await withOwner(deps.apiKeys.db, row) };
+}
 
-  const userIds = row.kind === "delegated" && row.user_id ? [row.user_id] : [];
-  const ownerNames = await loadOwnerNames(deps.apiKeys.db, userIds);
-  return { ok: true, apiKey: { ...row, owner: ownerLabel(row, ownerNames) } };
+/**
+ * PATCH /api/v1/api-keys/{id} — the route owns validation, immutability and
+ * revocation (`409 conflict` with `details.code = "revoked"`), so the panel
+ * only forwards the patch and maps the envelope back.
+ */
+export async function updateKey(id: string, patch: ApiKeyUpdate): Promise<ApiKeyDetail> {
+  const token = await sessionToken();
+  const deps = await apiKeysRouteDeps();
+  const handler = updateApiKeyRoute(deps);
+  const call = await callRoute(
+    (req) => handler(req, id),
+    `/api/v1/api-keys/${encodeURIComponent(id)}`,
+    token,
+    { method: "PATCH", body: JSON.stringify(patch) },
+  );
+  if (!call.ok) return call;
+
+  const row = readApiKey(call.body.api_key);
+  if (!row) return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+  return { ok: true, apiKey: await withOwner(deps.apiKeys.db, row) };
 }
 
 /** A selectable owner for a delegated key; active users only. */

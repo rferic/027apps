@@ -161,7 +161,16 @@ describe("KeyDetailPage", () => {
     expect(html).toContain("This key belongs to Sara.");
   });
 
-  it("never offers Revoke for a revoked key", async () => {
+  it("offers an Edit link next to Revoke while the key is active", async () => {
+    loadKeyMock.mockResolvedValue({ ok: true, apiKey: KEY });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain('href="/keys/k1/edit"');
+    expect(html).toContain(">Edit<");
+  });
+
+  it("never offers Revoke or Edit for a revoked key", async () => {
     loadKeyMock.mockResolvedValue({ ok: true, apiKey: REVOKED_KEY });
 
     const html = renderToStaticMarkup(await render());
@@ -169,6 +178,8 @@ describe("KeyDetailPage", () => {
     expect(html).toContain("Revoked");
     expect(html).not.toContain(">Revoke</button>");
     expect(html).not.toContain("Revoke the API key Zapier?");
+    expect(html).not.toContain('href="/keys/k1/edit"');
+    expect(html).not.toContain(">Edit<");
   });
 
   it("treats a missing key as a real 404", async () => {

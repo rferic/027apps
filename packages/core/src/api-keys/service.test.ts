@@ -7,6 +7,7 @@ import {
   getApiKey,
   listApiKeys,
   revokeApiKey,
+  updateApiKey,
   type ApiKeysDeps,
   type ApiKeyKind,
   type ApiKeyRoleCap,
@@ -150,6 +151,17 @@ function apiKeyTable(profiles: Profile[] = []) {
         if (sql.includes("from public.api_keys where id = $1")) {
           const row = rows.find((entry) => entry.id === params[0]);
           return { rows: row ? [view(row)] : [] };
+        }
+        if (sql.startsWith("update public.api_keys set") && sql.includes("returning")) {
+          const row = rows.find(
+            (entry) => entry.id === params[params.length - 1] && entry.revoked_at === null,
+          );
+          if (!row) return { rows: [] };
+          for (const match of sql.matchAll(/(\w+) = \$(\d+)/g)) {
+            const field = match[1] as keyof StoredKey;
+            (row as unknown as Record<string, unknown>)[field] = params[Number(match[2]) - 1];
+          }
+          return { rows: [view(row)] };
         }
         if (sql.startsWith("update public.api_keys")) {
           const row = rows.find((entry) => entry.id === params[0]);
@@ -665,5 +677,144 @@ describe("api key ownership and visibility", () => {
     await expect(getApiKey(table.deps, service(["api_keys:read"], "super_admin"), "k-1")).rejects.toMatchObject(
       { code: "insufficient_scope" },
     );
+  });
+});
+
+describe("updateApiKey", () => {
+  it("renames a key without touching anything else", async () => {
+    const { api_key } = await createApiKey(table.deps, session("user", "user"), {
+      kind: "delegated",
+      name: "Old name",
+      scopes: ["profile:read"],
+    });
+    const hash = table.rows[0]!.key_hash;
+
+    const updated = await updateApiKey(table.deps, session("user", "user"), api_key.id, {
+      name: "New name",
+    });
+
+    expect(updated).toMatchObject({
+      id: api_key.id,
+      name: "New name",
+      kind: "delegated",
+      scopes: ["profile:read"],
+      user_id: "user",
+    });
+    expect(table.rows[0]!.name).toBe("New name");
+    expect(table.rows[0]!.key_hash).toBe(hash);
+    expect(table.rows[0]!.last_used_at).toBeNull();
+  });
+
+  it("hides another owner's key as not_found", async () => {
+    const { api_key } = await createApiKey(table.deps, session("user", "user"), {
+      kind: "delegated",
+      name: "Mine",
+      scopes: ["profile:read"],
+    });
+
+    await expect(
+      updateApiKey(table.deps, session("other", "user"), api_key.id, { name: "Hijacked" }),
+    ).rejects.toMatchObject({ code: "not_found" });
+    expect(table.rows[0]!.name).toBe("Mine");
+  });
+
+  it("hides a service key from a non-super_admin as not_found", async () => {
+    const row = table.seed({ kind: "service", name: "Instance", role_cap: "admin" });
+
+    await expect(
+      updateApiKey(table.deps, session("admin", "admin"), row.id, { name: "Renamed" }),
+    ).rejects.toMatchObject({ code: "not_found" });
+    expect(row.name).toBe("Instance");
+  });
+
+  it("rejects a revoked key with conflict and details.code revoked", async () => {
+    const row = table.seed({
+      kind: "delegated",
+      user_id: "user",
+      name: "Revoked",
+      revoked_at: NOW.toISOString(),
+    });
+
+    await expect(
+      updateApiKey(table.deps, session("user", "user"), row.id, { name: "Back" }),
+    ).rejects.toMatchObject({ code: "conflict", details: { code: "revoked" } });
+  });
+
+  it("trims delegated scopes to the allowlist and rejects an empty result", async () => {
+    const row = table.seed({ kind: "delegated", user_id: "admin" });
+
+    const updated = await updateApiKey(table.deps, session("admin", "admin"), row.id, {
+      scopes: ["profile:read", "settings:write", "users:read"],
+    });
+    expect(updated.scopes).toEqual(["profile:read", "users:read"]);
+
+    await expect(
+      updateApiKey(table.deps, session("admin", "admin"), row.id, { scopes: ["settings:write"] }),
+    ).rejects.toMatchObject({ code: "validation_failed" });
+    expect(row.scopes).toEqual(["profile:read", "users:read"]);
+  });
+
+  it("rejects a module scope the owner does not hold", async () => {
+    const row = table.seed({ kind: "delegated", user_id: "user" });
+
+    await expect(
+      updateApiKey(table.deps, session("user", "user"), row.id, { scopes: ["expenses:read"] }),
+    ).rejects.toMatchObject({ code: "validation_failed" });
+
+    table.grants.set("user", new Set(["expenses"]));
+    const updated = await updateApiKey(table.deps, session("user", "user"), row.id, {
+      scopes: ["expenses:read"],
+    });
+    expect(updated.scopes).toEqual(["expenses:read"]);
+  });
+
+  it("keeps the stored role cap as the ceiling for a service key", async () => {
+    const row = table.seed({ kind: "service", name: "Service", role_cap: "admin" });
+
+    await expect(
+      updateApiKey(table.deps, session("root", "super_admin"), row.id, {
+        scopes: ["users:deactivate"],
+      }),
+    ).rejects.toMatchObject({ code: "validation_failed" });
+
+    const updated = await updateApiKey(table.deps, session("root", "super_admin"), row.id, {
+      scopes: ["users:read", "settings:write"],
+    });
+    expect(updated.scopes).toEqual(["settings:write", "users:read"]);
+  });
+
+  it("rejects an expires_at in the past", async () => {
+    const row = table.seed({ kind: "delegated", user_id: "user" });
+
+    await expect(
+      updateApiKey(table.deps, session("user", "user"), row.id, {
+        expires_at: new Date(NOW.getTime() - 60_000).toISOString(),
+      }),
+    ).rejects.toMatchObject({ code: "validation_failed" });
+    expect(row.expires_at).toBeNull();
+  });
+
+  it("lets an already expired key be extended", async () => {
+    const row = table.seed({
+      kind: "delegated",
+      user_id: "user",
+      expires_at: new Date(NOW.getTime() - 60_000).toISOString(),
+    });
+    const extended = new Date(NOW.getTime() + 3_600_000).toISOString();
+
+    const updated = await updateApiKey(table.deps, session("user", "user"), row.id, {
+      expires_at: extended,
+    });
+    expect(updated.expires_at).toBe(extended);
+  });
+
+  it("refuses any service caller with insufficient_scope", async () => {
+    const row = table.seed({ kind: "delegated", user_id: "user" });
+
+    await expect(
+      updateApiKey(table.deps, service(["api_keys:write"], "super_admin"), row.id, {
+        name: "Nope",
+      }),
+    ).rejects.toMatchObject({ code: "insufficient_scope" });
   });
 });

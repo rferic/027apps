@@ -7,6 +7,7 @@ const getSessionMock = vi.fn();
 const depsMock = vi.fn();
 const handlerMock = vi.fn();
 const detailHandlerMock = vi.fn();
+const updateHandlerMock = vi.fn();
 const usersHandlerMock = vi.fn();
 const queryMock = vi.fn();
 
@@ -37,13 +38,20 @@ vi.mock("@/lib/api/door", () => ({
 vi.mock("@027apps/core/api-keys/api.js", () => ({
   apiKeysRoute: () => handlerMock,
   apiKeyRoute: () => detailHandlerMock,
+  updateApiKeyRoute: () => updateHandlerMock,
 }));
 
 vi.mock("@027apps/core/users/api.js", () => ({
   usersRoute: () => usersHandlerMock,
 }));
 
-import { loadActiveDelegatedCounts, loadApiKeyOwners, loadApiKeys, loadKey } from "./panel-keys";
+import {
+  loadActiveDelegatedCounts,
+  loadApiKeyOwners,
+  loadApiKeys,
+  loadKey,
+  updateKey,
+} from "./panel-keys";
 
 const KEY = {
   id: "k1",
@@ -99,6 +107,7 @@ beforeEach(() => {
   queryMock.mockResolvedValue({ rows: [{ id: "u1", display_name: "Sara" }] });
   handlerMock.mockReset();
   detailHandlerMock.mockReset();
+  updateHandlerMock.mockReset();
   usersHandlerMock.mockReset();
 });
 
@@ -220,6 +229,66 @@ describe("loadKey", () => {
     );
 
     await expect(loadKey("k1")).resolves.toEqual({ ok: false, requestId: "req-shape" });
+  });
+});
+
+describe("updateKey", () => {
+  it("patches the key in process with the session bearer and the given patch", async () => {
+    updateHandlerMock.mockResolvedValue(json({ api_key: KEY }));
+
+    await expect(
+      updateKey("k1", { name: "Renamed", scopes: ["users:read"] }),
+    ).resolves.toEqual({ ok: true, apiKey: ROW });
+
+    const request = updateHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe("http://panel.internal/api/v1/api-keys/k1");
+    expect(request.method).toBe("PATCH");
+    expect(request.headers.get("authorization")).toBe("Bearer token-123");
+    expect(request.headers.get("content-type")).toBe("application/json");
+    await expect(request.json()).resolves.toEqual({ name: "Renamed", scopes: ["users:read"] });
+    expect(updateHandlerMock.mock.calls[0]?.[1]).toBe("k1");
+  });
+
+  it("keeps the revoked detail code so the page can explain the conflict", async () => {
+    updateHandlerMock.mockResolvedValue(
+      json(
+        {
+          error: {
+            code: "conflict",
+            request_id: "req-409",
+            details: { code: "revoked" },
+          },
+        },
+        409,
+      ),
+    );
+
+    await expect(updateKey("k1", { name: "Renamed" })).resolves.toEqual({
+      ok: false,
+      code: "conflict",
+      requestId: "req-409",
+      details: { code: "revoked" },
+    });
+  });
+
+  it("infers not_found from a bare 404", async () => {
+    updateHandlerMock.mockResolvedValue(new Response("", { status: 404 }));
+
+    await expect(updateKey("missing", { name: "Renamed" })).resolves.toEqual({
+      ok: false,
+      code: "not_found",
+    });
+  });
+
+  it("rejects a malformed updated key instead of showing a partial record", async () => {
+    updateHandlerMock.mockResolvedValue(
+      json({ api_key: { id: "k1", name: "Renamed" } }, 200, { "x-request-id": "req-shape" }),
+    );
+
+    await expect(updateKey("k1", { name: "Renamed" })).resolves.toEqual({
+      ok: false,
+      requestId: "req-shape",
+    });
   });
 });
 

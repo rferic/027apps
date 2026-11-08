@@ -212,7 +212,7 @@ The CI **fails** if a declared capability is not documented, and checks that eve
 
 ### Core endpoints (at a glance)
 
-The table reflects the **54 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
+The table reflects the **55 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
 
 | Area | Endpoints | Notes |
 |---|---|---|
@@ -225,7 +225,7 @@ The table reflects the **54 operations currently documented** (the authoritative
 | You | `GET/PATCH /me`, `GET /me/modules` | **previsto** |
 | Access (admin) | `POST/DELETE /users/{id}/modules/{key}` | per-user grant/revoke |
 | Invitations | `POST/GET /invitations`, `DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | redeem is the public join step (single use) |
-| API keys | `POST/GET /api-keys`, `GET/DELETE /api-keys/{id}` | secret returned once; delegated keys act as a plain user; `user_id` optional for a super_admin; list filters `kind` and `user` (`user` + `kind=service` → 400, another owner for a non-super_admin → 404); 5 active delegated keys per owner (409 `conflict`, `details.code = "key_limit"`); `/keys` panel is super_admin only |
+| API keys | `POST/GET /api-keys`, `GET/PATCH/DELETE /api-keys/{id}` | secret returned once; delegated keys act as a plain user; `user_id` optional for a super_admin; list filters `kind` and `user` (`user` + `kind=service` → 400, another owner for a non-super_admin → 404); 5 active delegated keys per owner (409 `conflict`, `details.code = "key_limit"`); `PATCH` edits `name`, `scopes` and `expires_at` only (`kind`/`role_cap`/`user_id` → 400), re-scopes inside the stored cap/owner grants and never resurrects a revoked key (409, `details.code = "revoked"`); `/keys` panel is super_admin only |
 | Devices | `POST/GET /devices`, `DELETE /devices/{id}` | push registration and revocation |
 | Settings & currency | `GET /settings`, `PATCH /settings`, `PATCH /settings/{category}/{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
 | i18n | `GET /translations?locale=` | ETag-cached (304 on `If-None-Match`) |

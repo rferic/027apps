@@ -9,7 +9,9 @@ import {
   getApiKey,
   listApiKeys,
   revokeApiKey,
+  updateApiKey,
   type ApiKeysDeps,
+  type UpdateApiKeyInput,
 } from "./service";
 
 /**
@@ -64,6 +66,21 @@ export const createApiKeySchema = z
     expires_at: z.string().datetime().optional(),
   })
   .strict();
+
+/**
+ * `PATCH /api-keys/{id}`. `kind`, `role_cap` and `user_id` are immutable, so
+ * `.strict()` rejects them; at least one editable field is required.
+ */
+export const updateApiKeySchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).optional(),
+    scopes: z.array(z.string()).min(1).max(100).optional(),
+    expires_at: z.string().datetime().optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "at least one field is required",
+  });
 
 function uuid(value: string): string {
   if (!UUID.test(value)) throw new DomainError("validation_failed", "invalid api key id");
@@ -136,4 +153,21 @@ export function revokeApiKeyRoute(deps: ApiKeysRouteDeps) {
       await revokeApiKey(deps.apiKeys, ctx.caller, uuid(rawId));
       return new Response(null, { status: 204 });
     });
+}
+
+export function updateApiKeyRoute(deps: ApiKeysRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(
+      req,
+      options(deps, ["api_keys:write"], updateApiKeySchema),
+      deps.door,
+      async (ctx) => ({
+        api_key: await updateApiKey(
+          deps.apiKeys,
+          ctx.caller,
+          uuid(rawId),
+          ctx.body as UpdateApiKeyInput,
+        ),
+      }),
+    );
 }

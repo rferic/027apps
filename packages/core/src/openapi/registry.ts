@@ -1,5 +1,5 @@
 import type { ZodType } from "zod";
-import { createApiKeySchema } from "../api-keys/api";
+import { createApiKeySchema, updateApiKeySchema } from "../api-keys/api";
 import { patchCurrenciesBodySchema, patchCurrencyBodySchema } from "../currencies/api";
 import { registerDeviceSchema } from "../devices/api";
 import { createInvitationSchema, redeemInvitationSchema } from "../invitations/api";
@@ -111,6 +111,10 @@ const categoryRename = component("UserCategoryRename", userCategoryRenameSchema)
 const invitationCreate = component("InvitationCreate", createInvitationSchema);
 const invitationRedeem = component("InvitationRedeem", redeemInvitationSchema);
 const apiKeyCreate = component("ApiKeyCreate", createApiKeySchema);
+const apiKeyUpdate = component("ApiKeyUpdate", updateApiKeySchema);
+// `updateApiKeySchema` refines "at least one field"; publish the equivalent
+// `minProperties` because JSON Schema does not carry the refinement.
+overrideComponent("ApiKeyUpdate", { minProperties: 1 });
 const deviceRegister = component("DeviceRegister", registerDeviceSchema);
 const moduleUpdate = component("ModuleUpdate", moduleUpdateSchema);
 const moduleUninstall = component("ModuleUninstall", moduleUninstallSchema);
@@ -404,6 +408,15 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: ["api_keys:revoke"],
     auth: "session",
     status: 204,
+  },
+  {
+    method: "patch",
+    path: "/api-keys/{id}",
+    summary: "Rename, re-scope or extend a key; kind, role cap and owner are immutable.",
+    scopes: ["api_keys:write"],
+    request: apiKeyUpdate,
+    response: apiKeyResponseSchema,
+    auth: "session",
   },
   {
     method: "get",
