@@ -3973,6 +3973,50 @@
         ],
         "type": "object"
       },
+      "UserModule": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name"
+        ],
+        "type": "object"
+      },
+      "UserModulesResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "modules": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "modules"
+        ],
+        "type": "object"
+      },
       "UserPatch": {
         "additionalProperties": false,
         "minProperties": 1,
@@ -6598,6 +6642,54 @@
         "summary": "Edit profile fields; role changes additionally require roles:assign.",
         "x-027-scopes": [
           "users:write"
+        ]
+      }
+    },
+    "/users/{id}/modules": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserModulesResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Modules currently granted to a user (live grants on installed/active modules).",
+        "x-027-scopes": [
+          "users:read"
         ]
       }
     },

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requirePanelMock = vi.fn();
 const loadKeyMock = vi.fn();
+const loadUserModulesMock = vi.fn();
 const notFoundMock = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
@@ -30,6 +31,17 @@ vi.mock("@/lib/panel-i18n", () => ({
 
 vi.mock("@/lib/panel-keys", () => ({
   loadKey: (id: string) => loadKeyMock(id),
+}));
+
+vi.mock("@/lib/panel-user-modules", () => ({
+  loadUserModules: (id: string) => loadUserModulesMock(id),
+  loadModulesForOwner: (apiKey: { kind: string; user_id: string | null }) =>
+    apiKey.kind === "delegated" && apiKey.user_id
+      ? loadUserModulesMock(apiKey.user_id)
+      : Promise.resolve(null),
+  offeredModuleList: (result: { ok: boolean; modules?: unknown[] } | null) =>
+    result?.ok ? result.modules : [],
+  modulesFailure: (result: { ok: boolean } | null) => (result && !result.ok ? result : null),
 }));
 
 vi.mock("@/app/(auth)/actions", () => ({
@@ -76,6 +88,8 @@ beforeEach(() => {
     user: { id: "u1", email: "root@example.com", displayName: "Root", role: "super_admin" },
   });
   loadKeyMock.mockReset();
+  loadUserModulesMock.mockReset();
+  loadUserModulesMock.mockResolvedValue({ ok: true, modules: [] });
   notFoundMock.mockClear();
   redirectMock.mockClear();
 });
@@ -133,6 +147,48 @@ describe("EditApiKeyPage", () => {
     expect(html).not.toContain('name="owner_id"');
     expect(html).not.toContain('name="role_cap"');
     expect(html).not.toContain('name="user_id"');
+  });
+
+  it("offers the modules granted to the owner as editable permissions", async () => {
+    loadKeyMock.mockResolvedValue({
+      ok: true,
+      apiKey: { ...DELEGATED_KEY, scopes: ["profile:read", "recetas:read_write"] },
+    });
+    loadUserModulesMock.mockResolvedValue({
+      ok: true,
+      modules: [{ key: "recetas", name: "Recetas" }],
+    });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(loadUserModulesMock).toHaveBeenCalledWith("u1");
+    expect(html).toContain("Recetas");
+    expect(html).toContain('value="recetas:read"');
+    expect(html).toContain('checked="" value="recetas:read_write"');
+    expect(html).not.toContain("Not available");
+  });
+
+  it("does not load or offer modules for a service key", async () => {
+    loadKeyMock.mockResolvedValue({ ok: true, apiKey: SERVICE_KEY });
+
+    const html = renderToStaticMarkup(await render("k2"));
+
+    expect(loadUserModulesMock).not.toHaveBeenCalled();
+    expect(html).not.toContain('value="recetas:read"');
+  });
+
+  it("shows the owner's module load failure instead of silently dropping them", async () => {
+    loadKeyMock.mockResolvedValue({ ok: true, apiKey: DELEGATED_KEY });
+    loadUserModulesMock.mockResolvedValue({
+      ok: false,
+      code: "internal",
+      requestId: "req-modules",
+    });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("load the owner&#x27;s modules.");
+    expect(html).toContain("req-modules");
   });
 
   it("treats a missing key as a real 404", async () => {

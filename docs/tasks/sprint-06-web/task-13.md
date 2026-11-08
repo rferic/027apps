@@ -206,34 +206,58 @@ etiqueta conocida y fallback de módulo (`api-key-scopes.test.ts`); `completeRev
 - El envío usa `useActionState` sobre la server action `updateKeyAction`: 400/404/409 vuelven como
   estado del formulario (el 409 `revoked` con su mensaje propio) y el éxito redirige a la ficha.
 
-El selector solo ofrece los scopes del allowlist del Core; los scopes de módulo
-(`<módulo>:read|read_write`) **no son editables desde el panel**. El motivo es que dependen de los
-módulos concedidos al propietario y se gestionan por concesión del módulo y por la app, no por esta
-pantalla. Para que una edición no los borre:
-
-- El formulario separa `apiKey.scopes` en editables (allowlist del Core) y preservados (módulo). Los
-  checkboxes, "Select all" y "Clear all" operan solo sobre los editables.
-- Los preservados se muestran bajo el fieldset como chips de solo lectura, con la etiqueta «Module
-  permissions» y una nota que explica su origen; no tienen checkbox ni forma de quitarlos.
-- `updateKeyAction` recarga la clave con `loadKey(id)` antes de construir el patch y reinyecta
-  cualquier scope almacenado fuera de la allowlist, así que el patch siempre los incluye aunque el
-  cliente no los envíe (o intente quitarlos).
-- El botón de guardar no se bloquea por un set editable vacío si aún quedan preservados; solo se
-  bloquea cuando no queda ningún scope en absoluto.
+El selector ofrece los scopes del allowlist del Core y, en claves delegadas, los permisos de los
+módulos concedidos al propietario (ver «Permisos de módulo en el panel» más abajo).
 
 Tests: Edit visible/oculto en la ficha, valores actuales y solo el allowlist del tipo en `/edit`,
 "Select all" sin permisos no permitidos, patch exacto y errores del `updateKeyAction`, y el propio
-`updateKey` (método, cuerpo, Bearer, 409 y 404). Además `api-key-edit-form.test.tsx` cubre el chip
-de módulo como solo lectura y que desmarcar todo lo editable conserva el scope de módulo en el
-patch, y `actions.test.ts` cubre la reinyección de los preservados y el fallo de `loadKey`.
+`updateKey` (método, cuerpo, Bearer, 409 y 404). Además `api-key-edit-form.test.tsx` cubre los chips
+de módulo no disponibles y que desmarcar todo lo editable conserva esos scopes en el patch, y
+`actions.test.ts` cubre la reinyección de los preservados y el fallo de `loadKey`.
+
+### Permisos de módulo en el panel (2026-11-08)
+
+`GET /api/v1/users/{id}/modules` ya devolvía los módulos concedidos y activos del propietario. El
+panel la consume con `loadUserModules(userId)` (`apps/admin/src/lib/panel-user-modules.ts`, llamada
+en proceso con Bearer y el mismo parseo defensivo que `loadKey`). La degradación es estrecha: un
+fallo de transporte devuelve lista vacía para que el formulario siga renderizando; un 403/404/500 se
+propaga como error del formulario y nunca se silencia.
+
+- **Alta**: al elegir propietario en una clave delegada, el formulario pide sus módulos con la server
+  action `loadUserModulesAction` dentro de `useTransition` (con aviso de carga y error visible). Por
+  cada módulo ofrece `<key>:read` y `<key>:read_write`. "Select all" incluye los módulos ofrecidos y,
+  al cambiar de propietario, el reducer descarta los scopes de módulo del anterior antes de que
+  llegue la lista nueva: nunca viajan en el alta. Una service key no ofrece módulos.
+- **Edición**: la página carga los módulos del dueño y los pasa al formulario; los scopes de módulo
+  concedidos pasan de chips a checkboxes editables. `updateKeyAction` recarga la clave **y** los
+  módulos antes de construir el patch, y usa el mismo conjunto ofrecido para separar editable de
+  preservado.
+- **Read and write implica read**: lo aplica `withModuleImplication` en el reducer del alta y en
+  `toggleKeyScope`, no el DOM. Marcar "Read and write" marca también "Read"; desmarcar "Read"
+  desmarca "Read and write"; desmarcar "Read and write" deja "Read".
+- **Módulo retirado o scope legado**: cualquier scope almacenado que no esté entre los ofrecidos
+  (módulo ya no concedido, scope fuera del allowlist) no tiene checkbox; se muestra bajo
+  «Not available» como chip de solo lectura y el patch lo conserva. Nunca se borra en silencio; el
+  único modo de quitarlo es revocar la clave.
+- **Service keys**: no se ofrecen módulos; sus scopes de módulo almacenados, si los hubiera, quedan
+  en «Not available» y se conservan igual.
+
+Tests: `panel-user-modules.test.ts` (200 con Bearer, 500/403/404 propagados, degradación solo en
+fallo de transporte y cuerpo malformado), `api-key-module-scopes.test.ts` (scopes ofrecidos por
+módulo, implicación read/read-write, nunca módulos en service), `api-key-scope-fieldset.test.tsx`
+(dos checkboxes por módulo, "Select all" con módulos, `aria-describedby` del error),
+`api-key-create-form.test.tsx` (el propietario carga módulos, cambiar de dueño descarta los del
+anterior, "Select all" los incluye y el input los filtra), `api-key-edit-form.test.tsx` y
+`(panel)/keys/[id]/edit/{page,actions}.test.tsx` (módulos del dueño editables, quitarlos, chip
+«Not available» conservado en el patch y fallo de carga sin escritura parcial).
 
 **Verificación ejecutada**
 
-- `pnpm --filter @027apps/core test` — 305 tests en verde.
-- `pnpm --filter admin test` — 698 tests en verde.
+- `pnpm --filter admin test` — 773 tests en verde.
+- `pnpm --filter @027apps/core test` — 341 tests en verde.
 - `pnpm --filter db-tests exec vitest run src/api/api-keys.test.ts` — 4 en verde.
 - `pnpm --filter db-tests exec vitest run src/api-keys/service.test.ts` y `src/rls/api-keys-devices.test.ts` — verdes tras aplicar `0015` al stack local y aislar el conteo global de datos preexistentes.
-- `pnpm lint`, `pnpm tsc`, `pnpm i18n:check` — en verde (486 cadenas, 9 locales).
+- `pnpm lint`, `pnpm tsc`, `pnpm i18n:check` — en verde (505 cadenas, 9 locales).
 - No se ejecutó `next build` (orden explícita); el dev server se reinició al terminar.
 
 **Consecuencia aceptada:** una integración antigua con scopes hoy retirados (p. ej. `settings:write`

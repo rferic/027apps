@@ -33,6 +33,7 @@ function form(
       currentUserId="u1"
       owners={OWNERS}
       activeCounts={{}}
+      loadModules={async () => ({ ok: true, modules: [] })}
       messages={{}}
       {...overrides}
     />
@@ -242,18 +243,19 @@ describe("apiKeyFormReducer", () => {
     { type: "role-cap", roleCap: "super_admin" },
   );
 
-  it("starts delegated, owned by the actor, with no role cap and no scopes", () => {
+  it("starts delegated, owned by the actor, with no role cap, no scopes and no modules", () => {
     expect(INITIAL_API_KEY_FORM_STATE).toEqual({
       kind: "delegated",
       roleCap: "",
       ownerId: "",
       scopes: [],
+      modules: [],
     });
   });
 
   it("requires a role cap again when the kind becomes service", () => {
     const service = apiKeyFormReducer(
-      { kind: "delegated", roleCap: "admin", ownerId: "u2", scopes: ["users:read"] },
+      { kind: "delegated", roleCap: "admin", ownerId: "u2", scopes: ["users:read"], modules: [] },
       { type: "kind", kind: "service" },
     );
 
@@ -366,6 +368,103 @@ describe("apiKeyFormReducer", () => {
 
     expect(state.ownerId).toBe("u2");
   });
+
+  it("records the owner's modules so their scopes can be selected", () => {
+    const state = apiKeyFormReducer(INITIAL_API_KEY_FORM_STATE, {
+      type: "modules",
+      modules: [{ key: "recetas", name: "Recetas" }],
+    });
+
+    expect(state.modules).toEqual([{ key: "recetas", name: "Recetas" }]);
+
+    const checked = apiKeyFormReducer(state, {
+      type: "scope",
+      scope: "recetas:read",
+      checked: true,
+    });
+    expect(checked.scopes).toEqual(["recetas:read"]);
+  });
+
+  it("drops the previous owner's module scopes when the owner changes", () => {
+    const withModules = apiKeyFormReducer(INITIAL_API_KEY_FORM_STATE, {
+      type: "modules",
+      modules: [{ key: "recetas", name: "Recetas" }],
+    });
+    const selected = apiKeyFormReducer(withModules, {
+      type: "scope",
+      scope: "recetas:read",
+      checked: true,
+    });
+    const core = apiKeyFormReducer(selected, {
+      type: "scope",
+      scope: "profile:read",
+      checked: true,
+    });
+
+    const changed = apiKeyFormReducer(core, { type: "owner", ownerId: "u2" });
+    expect(changed.ownerId).toBe("u2");
+    expect(changed.modules).toEqual([]);
+    expect(changed.scopes).toEqual(["profile:read"]);
+
+    // The new owner's modules never resurrect the previous selection.
+    const next = apiKeyFormReducer(changed, {
+      type: "modules",
+      modules: [{ key: "fotos", name: "Fotos" }],
+    });
+    expect(next.scopes).toEqual(["profile:read"]);
+  });
+
+  it("drops module scopes when the kind becomes service", () => {
+    const withModules = apiKeyFormReducer(INITIAL_API_KEY_FORM_STATE, {
+      type: "modules",
+      modules: [{ key: "recetas", name: "Recetas" }],
+    });
+    const selected = apiKeyFormReducer(withModules, {
+      type: "scope",
+      scope: "recetas:read",
+      checked: true,
+    });
+
+    const service = apiKeyFormReducer(selected, { type: "kind", kind: "service" });
+
+    expect(service.modules).toEqual([]);
+    expect(service.scopes).toEqual([]);
+  });
+
+  it("select-all includes the module scopes of the owner", () => {
+    const withModules = apiKeyFormReducer(INITIAL_API_KEY_FORM_STATE, {
+      type: "modules",
+      modules: [{ key: "recetas", name: "Recetas" }],
+    });
+
+    const all = apiKeyFormReducer(withModules, { type: "select-all-scopes" });
+
+    expect(all.scopes).toContain("recetas:read");
+    expect(all.scopes).toContain("recetas:read_write");
+    expect(all.scopes).toContain("profile:read");
+  });
+
+  it("selecting read-and-write also selects read", () => {
+    const withModules = apiKeyFormReducer(INITIAL_API_KEY_FORM_STATE, {
+      type: "modules",
+      modules: [{ key: "recetas", name: "Recetas" }],
+    });
+
+    const state = apiKeyFormReducer(withModules, {
+      type: "scope",
+      scope: "recetas:read_write",
+      checked: true,
+    });
+
+    expect(state.scopes).toEqual(["recetas:read", "recetas:read_write"]);
+
+    const withoutRead = apiKeyFormReducer(state, {
+      type: "scope",
+      scope: "recetas:read",
+      checked: false,
+    });
+    expect(withoutRead.scopes).toEqual([]);
+  });
 });
 
 describe("buildApiKeyCreateInput", () => {
@@ -388,6 +487,24 @@ describe("buildApiKeyCreateInput", () => {
         "u1",
       ),
     ).toEqual({ kind: "service", name: "Service", scopes: ["users:read"], role_cap: "admin" });
+  });
+
+  it("sends the module scopes of the owner's modules and drops the rest", () => {
+    expect(
+      buildApiKeyCreateInput(
+        {
+          kind: "delegated",
+          name: "Key",
+          scopes: ["profile:read", "recetas:read", "fotos:read"],
+          modules: [{ key: "recetas", name: "Recetas" }],
+        },
+        "u1",
+      ),
+    ).toEqual({
+      kind: "delegated",
+      name: "Key",
+      scopes: ["profile:read", "recetas:read"],
+    });
   });
 });
 

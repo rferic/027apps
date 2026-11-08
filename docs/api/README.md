@@ -2,7 +2,7 @@
 
 Public guide for integrating with a 027Apps instance. This document is the **human entry point**; the normative contract is the generated **OpenAPI** document.
 
-> **Status (2026-11-06): partial — 53 operations documented.** The OpenAPI document is generated from the same zod schemas that validate requests and responses, and today it covers the Core routes in `apps/admin/src/app/api/v1/**`. Sections or endpoints marked **Previsto** describe the v1 target and are **not implemented yet**; the rest reflects the code that runs. If something here disagrees with the OpenAPI, **the OpenAPI wins**.
+> **Status (2026-11-08): partial — 56 operations documented.** The OpenAPI document is generated from the same zod schemas that validate requests and responses, and today it covers the Core routes in `apps/admin/src/app/api/v1/**`. Sections or endpoints marked **Previsto** describe the v1 target and are **not implemented yet**; the rest reflects the code that runs. If something here disagrees with the OpenAPI, **the OpenAPI wins**.
 
 ## Contents
 
@@ -212,7 +212,7 @@ The CI **fails** if a declared capability is not documented, and checks that eve
 
 ### Core endpoints (at a glance)
 
-The table reflects the **55 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
+The table reflects the **56 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
 
 | Area | Endpoints | Notes |
 |---|---|---|
@@ -223,7 +223,7 @@ The table reflects the **55 operations currently documented** (the authoritative
 | Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin** |
 | Module docs | `GET /modules/{key}/docs/{doc}` | **previsto** |
 | You | `GET/PATCH /me`, `GET /me/modules` | **previsto** |
-| Access (admin) | `POST/DELETE /users/{id}/modules/{key}` | per-user grant/revoke |
+| Access (admin) | `GET /users/{id}/modules`, `POST/DELETE /users/{id}/modules/{key}` | per-user grants: `GET` lists the live grants on installed/active modules (`key` + `name`, empty list when none); grant/revoke |
 | Invitations | `POST/GET /invitations`, `DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | redeem is the public join step (single use) |
 | API keys | `POST/GET /api-keys`, `GET/PATCH/DELETE /api-keys/{id}` | secret returned once; delegated keys act as a plain user; `user_id` optional for a super_admin; list filters `kind` and `user` (`user` + `kind=service` → 400, another owner for a non-super_admin → 404); 5 active delegated keys per owner (409 `conflict`, `details.code = "key_limit"`); `PATCH` edits `name`, `scopes` and `expires_at` only (`kind`/`role_cap`/`user_id` → 400), re-scopes inside the stored cap/owner grants and never resurrects a revoked key (409, `details.code = "revoked"`); `/keys` panel is super_admin only |
 | Devices | `POST/GET /devices`, `DELETE /devices/{id}` | push registration and revocation |
@@ -258,7 +258,7 @@ Module endpoints and tools live in the module's own documentation, not here (the
 
 ## 10. MCP (previsto)
 
-> **Not implemented yet.** This section describes the target integration surface; the current Core exposes **no `/mcp` route** and the 51 documented operations are REST only. It stays here so clients and module authors can see the intended contract.
+> **Not implemented yet.** This section describes the target integration surface; the current Core exposes **no `/mcp` route** and the 56 documented operations are REST only. It stays here so clients and module authors can see the intended contract.
 
 The same data is exposed to **AI agents** over the **Model Context Protocol**. MCP is **JSON-RPC over HTTP**, so it has its own endpoints and error model.
 
@@ -384,7 +384,7 @@ One shared budget per key (30 req/min by default, writes 10 req/min), audited pe
 
 - The **OpenAPI document is generated** from the same schemas that validate requests and responses — it cannot drift from the implementation (delta 2026-10-27 in the API spec). Generation uses zod 4's native `z.toJSONSchema()`; the registry in `packages/core/src/openapi/registry.ts` maps each route handler to its shared schemas and scopes.
 - Each instance **serves it** at `GET /api/v1/openapi.json` (no auth needed to read the schema; the API itself still requires credentials).
-- A copy is committed to the repository at `docs/api/openapi.json` for review (**53 operations** today); CI fails if it is out of date or if a route handler has no operation (and also if a `route.ts` exports no HTTP method).
+- A copy is committed to the repository at `docs/api/openapi.json` for review (**56 operations** today); CI fails if it is out of date or if a route handler has no operation (and also if a `route.ts` exports no HTTP method).
 - Every operation publishes the credentials it actually accepts: `session` routes list `sessionAuth` and `apiKeyAuth`; `/setup/test-email` and `/maintenance/status` are `sessionAuth` only; `/maintenance/run` is `apiKeyAuth` only.
 - A browsable rendering is available in the admin panel at `/docs/api` (Scalar, bundled locally so the CSP needs no CDN; the client/agent/MCP toolbars are disabled).
 

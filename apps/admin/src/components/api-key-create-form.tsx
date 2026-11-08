@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, type FormEvent } from "react";
+import { useEffect, useReducer, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
@@ -9,11 +9,13 @@ import { ApiKeyScopeFieldset } from "@/components/api-key-scope-fieldset";
 import { Button } from "@/components/ui/button";
 import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { Select } from "@/components/ui/select";
+import { apiKeyOfferedScopes, withModuleImplication } from "@/lib/api-key-module-scopes";
 import { createApiKey, type CreateApiKeyInput } from "@/lib/api-key-mutations";
 import { copyText } from "@/lib/clipboard";
-import { allowedApiKeyScopes, type ApiKeyScopeRoleCap } from "@/lib/api-key-scopes";
+import type { ApiKeyScopeRoleCap } from "@/lib/api-key-scopes";
 import type { MutationFailure } from "@/lib/mutation-result";
 import type { ApiKeyOwner } from "@/lib/panel-keys";
+import type { UserModule, UserModulesResult } from "@/lib/panel-user-modules";
 import { useCreateForm } from "@/lib/use-create-form";
 
 const inputClass =
@@ -51,6 +53,8 @@ export interface ApiKeyFormState {
   /** Empty means the current user; only a super_admin can pick another. */
   ownerId: string;
   scopes: readonly string[];
+  /** Modules granted to the effective owner; always empty for a service key. */
+  modules: readonly UserModule[];
 }
 
 export const INITIAL_API_KEY_FORM_STATE: ApiKeyFormState = {
@@ -58,12 +62,14 @@ export const INITIAL_API_KEY_FORM_STATE: ApiKeyFormState = {
   roleCap: "",
   ownerId: "",
   scopes: [],
+  modules: [],
 };
 
 export type ApiKeyFormAction =
   | { type: "kind"; kind: KeyKind }
   | { type: "role-cap"; roleCap: ApiKeyRoleCap }
   | { type: "owner"; ownerId: string }
+  | { type: "modules"; modules: readonly UserModule[] }
   | { type: "scope"; scope: string; checked: boolean }
   | { type: "select-all-scopes" }
   | { type: "clear-scopes" }
@@ -78,8 +84,9 @@ function pruneScopes(
   kind: KeyKind,
   roleCap: ApiKeyRoleCap,
   scopes: readonly string[],
+  modules: readonly UserModule[],
 ): readonly string[] {
-  const allowed = new Set(allowedApiKeyScopes(kind, roleCap));
+  const allowed = new Set(apiKeyOfferedScopes(kind, roleCap, modules));
   return scopes.filter((scope) => allowed.has(scope));
 }
 
@@ -88,27 +95,28 @@ function toggleScope(
   scope: string,
   checked: boolean,
 ): ApiKeyFormState {
-  if (!checked) {
-    return { ...state, scopes: state.scopes.filter((entry) => entry !== scope) };
+  if (checked && !apiKeyOfferedScopes(state.kind, state.roleCap, state.modules).includes(scope)) {
+    return state;
   }
-  if (!allowedApiKeyScopes(state.kind, state.roleCap).includes(scope)) return state;
-  if (state.scopes.includes(scope)) return state;
-  return { ...state, scopes: [...state.scopes, scope] };
+  const scopes = withModuleImplication(state.scopes, scope, checked);
+  return scopes === state.scopes ? state : { ...state, scopes };
 }
 
 function selectAllScopes(state: ApiKeyFormState): ApiKeyFormState {
   // A service key without a cap cannot be created yet, so there is no
   // meaningful "all" until the cap resolves the allowlist.
   if (state.kind === "service" && !state.roleCap) return state;
-  const offered = allowedApiKeyScopes(state.kind, state.roleCap);
+  const offered = apiKeyOfferedScopes(state.kind, state.roleCap, state.modules);
   if (offered.length === 0) return state;
   return { ...state, scopes: [...offered] };
 }
 
 /**
- * Scopes are always derived from `(kind, roleCap)`: changing either drops any
- * selection the new pair no longer allows, so a stale checkbox can never be
- * submitted and switching back never resurrects it.
+ * Scopes are always derived from `(kind, roleCap, modules)`: changing any of
+ * them drops a selection the new set no longer allows, so a stale checkbox can
+ * never be submitted and switching back never resurrects it. A new owner starts
+ * with no modules, so the previous owner's module scopes are discarded before
+ * the new list arrives.
  */
 export function apiKeyFormReducer(
   state: ApiKeyFormState,
@@ -122,14 +130,30 @@ export function apiKeyFormReducer(
         kind: action.kind,
         roleCap: "",
         ownerId: "",
-        scopes: pruneScopes(action.kind, "", state.scopes),
+        scopes: pruneScopes(action.kind, "", state.scopes, []),
+        modules: [],
       };
     case "role-cap": {
       const roleCap = normalizeRoleCap(action.roleCap);
-      return { ...state, roleCap, scopes: pruneScopes(state.kind, roleCap, state.scopes) };
+      return {
+        ...state,
+        roleCap,
+        scopes: pruneScopes(state.kind, roleCap, state.scopes, state.modules),
+      };
     }
     case "owner":
-      return { ...state, ownerId: action.ownerId };
+      return {
+        ...state,
+        ownerId: action.ownerId,
+        modules: [],
+        scopes: pruneScopes(state.kind, state.roleCap, state.scopes, []),
+      };
+    case "modules":
+      return {
+        ...state,
+        modules: action.modules,
+        scopes: pruneScopes(state.kind, state.roleCap, state.scopes, action.modules),
+      };
     case "scope":
       return toggleScope(state, action.scope, action.checked);
     case "select-all-scopes":
@@ -149,10 +173,13 @@ export function buildApiKeyCreateInput(
     scopes: readonly string[];
     roleCap?: ApiKeyRoleCap;
     ownerId?: string;
+    modules?: readonly UserModule[];
   },
   currentUserId: string,
 ): CreateApiKeyInput {
-  const allowed = new Set(allowedApiKeyScopes(fields.kind, fields.roleCap ?? ""));
+  const allowed = new Set(
+    apiKeyOfferedScopes(fields.kind, fields.roleCap ?? "", fields.modules ?? []),
+  );
   const input: CreateApiKeyInput = {
     kind: fields.kind,
     name: fields.name.trim(),
@@ -410,6 +437,7 @@ interface ApiKeyCreateFormBodyProps {
   currentUserId: string;
   owners: readonly ApiKeyOwner[];
   activeCounts: Readonly<Record<string, number>>;
+  loadModules: (userId: string) => Promise<UserModulesResult>;
   submitting: boolean;
   error: MutationFailure | null;
   fieldErrors: Record<string, string[]>;
@@ -419,12 +447,95 @@ interface ApiKeyCreateFormBodyProps {
   messages: TranslationMap;
 }
 
+interface OwnerModuleLoad {
+  loading: boolean;
+  error: MutationFailure | null;
+}
+
+/**
+ * Loads the modules granted to the effective owner. The reducer drops the
+ * previous owner's module scopes as soon as the owner changes; an error is
+ * tagged with the owner it belongs to, so a stale failure never shows against
+ * the new one.
+ */
+function useOwnerModules(options: {
+  kind: KeyKind;
+  ownerId: string;
+  loadModules: (userId: string) => Promise<UserModulesResult>;
+  dispatch: (action: ApiKeyFormAction) => void;
+}): OwnerModuleLoad {
+  const { kind, ownerId, loadModules, dispatch } = options;
+  const [loading, startLoad] = useTransition();
+  const [failure, setFailure] = useState<{ ownerId: string; error: MutationFailure } | null>(
+    null,
+  );
+  const modulesOwnerId = kind === "delegated" ? ownerId : "";
+
+  useEffect(() => {
+    if (!modulesOwnerId) return;
+    let active = true;
+    startLoad(async () => {
+      const result = await loadModules(modulesOwnerId);
+      if (!active) return;
+      dispatch({ type: "modules", modules: result.ok ? result.modules : [] });
+      setFailure(result.ok ? null : { ownerId: modulesOwnerId, error: result });
+    });
+    return () => {
+      active = false;
+    };
+  }, [modulesOwnerId, loadModules, dispatch]);
+
+  const error = failure?.ownerId === modulesOwnerId ? failure.error : null;
+  return { loading, error };
+}
+
+/** A delegated key cannot be created for an owner already at the limit. */
+function ownerAtLimit(
+  kind: KeyKind,
+  ownerId: string,
+  activeCounts: Readonly<Record<string, number>>,
+): boolean {
+  return (
+    kind === "delegated" &&
+    (activeCounts[ownerId] ?? 0) >= MAX_ACTIVE_DELEGATED_KEYS
+  );
+}
+
+/** Loading hint and failure banner for the owner's module permissions. */
+function ModuleLoadStatus({
+  loading,
+  error,
+  messages,
+}: {
+  loading: boolean;
+  error: MutationFailure | null;
+  messages: TranslationMap;
+}) {
+  if (loading) {
+    return (
+      <p role="status" className="text-xs text-muted-foreground">
+        {t("Loading modules…", messages)}
+      </p>
+    );
+  }
+  if (!error) return null;
+  return (
+    <FormAlert
+      message={t("We couldn't load the owner's modules.", messages)}
+      code={error.code}
+      requestId={error.requestId}
+      messages={messages}
+    />
+  );
+}
+
 function ApiKeyCreateFormBody({
   canCreateService,
   canChooseOwner,
   currentUserId,
   owners,
   activeCounts,
+  loadModules,
   submitting,
   error,
   fieldErrors,
@@ -435,9 +546,13 @@ function ApiKeyCreateFormBody({
 }: ApiKeyCreateFormBodyProps) {
   const [state, dispatch] = useReducer(apiKeyFormReducer, INITIAL_API_KEY_FORM_STATE);
   const ownerId = state.ownerId || currentUserId;
-  const atLimit =
-    state.kind === "delegated" &&
-    (activeCounts[ownerId] ?? 0) >= MAX_ACTIVE_DELEGATED_KEYS;
+  const { loading: loadingModules, error: modulesError } = useOwnerModules({
+    kind: state.kind,
+    ownerId,
+    loadModules,
+    dispatch,
+  });
+  const atLimit = ownerAtLimit(state.kind, ownerId, activeCounts);
 
   function handleKindChange(kind: KeyKind) {
     dispatch({ type: "kind", kind });
@@ -471,6 +586,7 @@ function ApiKeyCreateFormBody({
           scopes: state.scopes,
           roleCap: state.roleCap,
           ownerId: state.ownerId,
+          modules: state.modules,
         },
         currentUserId,
       ),
@@ -519,6 +635,8 @@ function ApiKeyCreateFormBody({
         />
       )}
 
+      <ModuleLoadStatus loading={loadingModules} error={modulesError} messages={messages} />
+
       <ApiKeyScopeFieldset
         kind={state.kind}
         roleCap={state.roleCap}
@@ -526,6 +644,7 @@ function ApiKeyCreateFormBody({
         onToggle={(scope, checked) => dispatch({ type: "scope", scope, checked })}
         onSelectAll={() => dispatch({ type: "select-all-scopes" })}
         onClearAll={() => dispatch({ type: "clear-scopes" })}
+        modules={state.kind === "delegated" ? state.modules : []}
         fieldErrors={fieldErrors}
         messages={messages}
       />
@@ -555,6 +674,8 @@ interface ApiKeyCreateFormProps {
   currentUserId: string;
   owners: readonly ApiKeyOwner[];
   activeCounts: Readonly<Record<string, number>>;
+  /** Loads the modules granted to a delegated key's owner (server action). */
+  loadModules: (userId: string) => Promise<UserModulesResult>;
   messages: TranslationMap;
 }
 
@@ -570,6 +691,7 @@ export function ApiKeyCreateForm({
   currentUserId,
   owners,
   activeCounts,
+  loadModules,
   messages,
 }: ApiKeyCreateFormProps) {
   const router = useRouter();
@@ -619,6 +741,7 @@ export function ApiKeyCreateForm({
       currentUserId={currentUserId}
       owners={owners}
       activeCounts={activeCounts}
+      loadModules={loadModules}
       submitting={createForm.submitting}
       error={createForm.error}
       fieldErrors={createForm.fieldErrors}

@@ -1,3 +1,4 @@
+import { withModuleImplication } from "@/lib/api-key-module-scopes";
 import type { MutationFailure } from "@/lib/mutation-result";
 import type { ApiKeyUpdate } from "@/lib/panel-keys";
 
@@ -9,9 +10,10 @@ export interface ApiKeyEditState {
 export const INITIAL_API_KEY_EDIT_STATE: ApiKeyEditState = { error: null };
 
 /**
- * Splits the stored scopes into the ones the panel offers (`editable`) and the
- * ones it cannot represent (`preserved`, i.e. module permissions granted by a
- * module). The form never owns the preserved set: it must travel untouched.
+ * Splits the stored scopes into the ones the form offers (`editable`) and the
+ * ones it cannot represent (`preserved`): a module permission that is no longer
+ * granted to the owner, or a legacy scope outside the Core allowlist. The form
+ * never owns the preserved set: it must travel untouched.
  */
 export function splitKeyScopes(
   scopes: readonly string[],
@@ -40,8 +42,10 @@ export function mergeKeyScopes(
 }
 
 /**
- * Keeps the selected scopes inside the allowlist of the key. A legacy key can
- * carry scopes the policy no longer grants: they never enter the editable set.
+ * Keeps the selected scopes inside the offered set (Core allowlist plus the
+ * owner's module scopes). A legacy key can carry scopes the policy no longer
+ * grants: they never enter the editable set. Module scopes follow the
+ * read-and-write/read implication.
  */
 export function toggleKeyScope(
   selected: readonly string[],
@@ -49,13 +53,11 @@ export function toggleKeyScope(
   checked: boolean,
   allowed: readonly string[],
 ): readonly string[] {
-  if (!checked) return selected.filter((entry) => entry !== scope);
-  if (!allowed.includes(scope)) return selected;
-  if (selected.includes(scope)) return selected;
-  return [...selected, scope];
+  if (checked && !allowed.includes(scope)) return selected;
+  return withModuleImplication(selected, scope, checked);
 }
 
-/** Bulk selection is exactly the allowlist: never a scope the key cannot use. */
+/** Bulk selection is exactly the offered scopes: never a scope the key cannot use. */
 export function selectAllKeyScopes(allowed: readonly string[]): readonly string[] {
   return [...allowed];
 }

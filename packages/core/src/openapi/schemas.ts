@@ -147,6 +147,16 @@ export const userResponseSchema = component(
   z.object({ user: userSchema }).strict(),
 );
 
+export const userModuleSchema = component(
+  "UserModule",
+  z.object({ key: z.string(), name: z.string() }).strict(),
+);
+
+export const userModulesResponseSchema = component(
+  "UserModulesResponse",
+  z.object({ modules: z.array(userModuleSchema) }).strict(),
+);
+
 export const categoryMemberSchema = component(
   "CategoryMember",
   z

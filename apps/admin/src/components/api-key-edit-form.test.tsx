@@ -6,7 +6,7 @@ import {
   mergeKeyScopes,
   splitKeyScopes,
 } from "@/lib/api-key-edit";
-import { allowedApiKeyScopes } from "@/lib/api-key-scopes";
+import { apiKeyOfferedScopes } from "@/lib/api-key-module-scopes";
 import type { ApiKeyRow } from "@/lib/panel-keys";
 
 vi.mock("next/navigation", () => ({
@@ -28,12 +28,17 @@ const KEY: ApiKeyRow = {
   created_at: "2026-11-01T10:00:00.000Z",
 };
 
-function form(apiKey: ApiKeyRow = KEY) {
+function form(
+  apiKey: ApiKeyRow = KEY,
+  modules: readonly { key: string; name: string }[] = [],
+  messages: Record<string, string> = {},
+) {
   return renderToStaticMarkup(
     <ApiKeyEditForm
       apiKey={apiKey}
+      modules={modules}
       action={async () => ({ error: null })}
-      messages={{}}
+      messages={messages}
     />,
   );
 }
@@ -45,18 +50,49 @@ function buttonMarkup(html: string, label: string): string {
 }
 
 describe("ApiKeyEditForm module permissions", () => {
-  it("shows a stored module scope as a read-only chip with its own explanation", () => {
-    const html = form();
+  it("offers the owner's modules as editable checkboxes", () => {
+    const html = form(KEY, [{ key: "recetas", name: "Recetas" }]);
 
     expect(html).toContain("Module permissions");
+    expect(html).toContain("Recetas");
+    expect(html).toContain('value="recetas:read"');
+    expect(html).toContain('checked="" value="recetas:read_write"');
+    expect(html).not.toContain("Not available");
+  });
+
+  it("allows removing a module permission the owner still has", () => {
+    const html = form({ ...KEY, scopes: ["recetas:read_write"] }, [
+      { key: "recetas", name: "Recetas" },
+    ]);
+
+    expect(html).toContain('value="recetas:read_write"');
+    expect(html).not.toContain("Not available");
+    expect(buttonMarkup(html, "Save changes")).not.toContain("disabled");
+  });
+
+  it("shows a module scope the owner no longer has as read-only under Not available", () => {
+    const html = form();
+
+    expect(html).toContain("Not available");
     expect(html).toContain(
-      "Module permissions depend on the modules granted to the owner and are managed from the app.",
+      "These permissions are no longer offered, so they are kept as they are.",
     );
     expect(html).toContain("recetas:read_write");
-    // No checkbox and no hidden field: the panel never submits it.
+    // No checkbox and no hidden field: the panel never submits it from the form.
     expect(html).not.toContain('value="recetas:read_write"');
     // The Core scope keeps its editable checkbox.
     expect(html).toContain('checked="" value="profile:read"');
+  });
+
+  it("never offers modules for a service key", () => {
+    const html = form(
+      { ...KEY, kind: "service", user_id: null, roleCap: "super_admin" },
+      [{ key: "recetas", name: "Recetas" }],
+    );
+
+    expect(html).not.toContain('value="recetas:read"');
+    expect(html).not.toContain('value="recetas:read_write"');
+    expect(html).toContain("Not available");
   });
 
   it("keeps saving available when only module permissions remain", () => {
@@ -73,9 +109,9 @@ describe("ApiKeyEditForm module permissions", () => {
     expect(html).toContain("Choose at least one scope.");
   });
 
-  it("keeps the module scope in the patch after clearing every editable scope", () => {
-    const allowed = allowedApiKeyScopes("delegated", "");
-    const { editable, preserved } = splitKeyScopes(KEY.scopes, allowed);
+  it("keeps an unavailable module scope in the patch after clearing every editable scope", () => {
+    const offered = apiKeyOfferedScopes("delegated", "", []);
+    const { editable, preserved } = splitKeyScopes(KEY.scopes, offered);
 
     expect(editable).toEqual(["profile:read"]);
     expect(preserved).toEqual(["recetas:read_write"]);
@@ -84,7 +120,7 @@ describe("ApiKeyEditForm module permissions", () => {
     const cleared: readonly string[] = [];
     const patch = buildApiKeyUpdateInput({
       name: KEY.name,
-      scopes: mergeKeyScopes(preserved, cleared, allowed),
+      scopes: mergeKeyScopes(preserved, cleared, offered),
     });
 
     expect(patch?.scopes).toEqual(["recetas:read_write"]);

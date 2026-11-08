@@ -7,6 +7,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { ApiKeyScopeFieldset } from "@/components/api-key-scope-fieldset";
 import { Button } from "@/components/ui/button";
 import { FormActions, FormAlert, FormField } from "@/components/ui/form";
+import { apiKeyOfferedScopes } from "@/lib/api-key-module-scopes";
 import {
   INITIAL_API_KEY_EDIT_STATE,
   selectAllKeyScopes,
@@ -15,8 +16,8 @@ import {
   toggleKeyScope,
   type ApiKeyEditState,
 } from "@/lib/api-key-edit";
-import { allowedApiKeyScopes } from "@/lib/api-key-scopes";
 import type { ApiKeyRow } from "@/lib/panel-keys";
+import type { UserModule } from "@/lib/panel-user-modules";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -163,11 +164,12 @@ function ExpiresField({
 }
 
 /**
- * Module permissions live outside the Core allowlist: they depend on the
- * modules granted to the owner and are managed from the app, so the panel only
- * shows them as read-only chips and never offers a way to remove them.
+ * Stored scopes the form cannot offer: a module permission that is no longer
+ * granted to the owner, or a legacy scope outside the Core allowlist. They are
+ * read-only chips, and the server action re-injects them so saving never drops
+ * them silently.
  */
-function PreservedScopes({
+function UnavailableScopes({
   scopes,
   messages,
 }: {
@@ -175,13 +177,13 @@ function PreservedScopes({
   messages: TranslationMap;
 }) {
   if (scopes.length === 0) return null;
-  const label = t("Module permissions", messages);
+  const label = t("Not available", messages);
   return (
     <div className="flex flex-col gap-1">
       <p className="text-xs font-semibold">{label}</p>
       <p className="text-xs text-muted-foreground">
         {t(
-          "Module permissions depend on the modules granted to the owner and are managed from the app.",
+          "These permissions are no longer offered, so they are kept as they are.",
           messages,
         )}
       </p>
@@ -201,7 +203,8 @@ function PreservedScopes({
 
 function ScopeSelector({
   apiKey,
-  allowed,
+  offered,
+  modules,
   scopes,
   preserved,
   onChange,
@@ -210,7 +213,8 @@ function ScopeSelector({
   messages,
 }: {
   apiKey: ApiKeyRow;
-  allowed: readonly string[];
+  offered: readonly string[];
+  modules: readonly UserModule[];
   scopes: readonly string[];
   preserved: readonly string[];
   onChange: (scopes: readonly string[]) => void;
@@ -225,14 +229,15 @@ function ScopeSelector({
         roleCap={apiKey.roleCap ?? ""}
         selected={scopes}
         onToggle={(scope, checked) =>
-          onChange(toggleKeyScope(scopes, scope, checked, allowed))
+          onChange(toggleKeyScope(scopes, scope, checked, offered))
         }
-        onSelectAll={() => onChange(selectAllKeyScopes(allowed))}
+        onSelectAll={() => onChange(selectAllKeyScopes(offered))}
         onClearAll={() => onChange([])}
+        modules={modules}
         fieldErrors={fieldErrors}
         messages={messages}
       />
-      <PreservedScopes scopes={preserved} messages={messages} />
+      <UnavailableScopes scopes={preserved} messages={messages} />
       {showEmptyError && (
         <p role="status" className="text-xs font-semibold text-destructive">
           {t("Choose at least one scope.", messages)}
@@ -265,18 +270,32 @@ function FormFooter({
   );
 }
 
+/** Scopes the form may offer, plus the stored ones it cannot represent. */
+function editOffer(apiKey: ApiKeyRow, modules: readonly UserModule[]) {
+  const offered = apiKeyOfferedScopes(apiKey.kind, apiKey.roleCap ?? "", modules);
+  const { editable, preserved } = splitKeyScopes(apiKey.scopes, offered);
+  return {
+    offered,
+    editable,
+    preserved,
+    visibleModules: apiKey.kind === "delegated" ? modules : [],
+  };
+}
+
 export function ApiKeyEditForm({
   apiKey,
+  modules = [],
   action,
   messages,
 }: {
   apiKey: ApiKeyRow;
+  /** Modules granted to the owner; only delegated keys receive them. */
+  modules?: readonly UserModule[];
   action: ApiKeyEditAction;
   messages: TranslationMap;
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL_API_KEY_EDIT_STATE);
-  const allowed = allowedApiKeyScopes(apiKey.kind, apiKey.roleCap ?? "");
-  const { editable, preserved } = splitKeyScopes(apiKey.scopes, allowed);
+  const { offered, editable, preserved, visibleModules } = editOffer(apiKey, modules);
   const [scopes, setScopes] = useState<readonly string[]>(editable);
   const currentExpiresAt = toDateTimeLocal(apiKey.expiresAt);
   const [expiresAt, setExpiresAt] = useState(currentExpiresAt);
@@ -303,7 +322,8 @@ export function ApiKeyEditForm({
 
       <ScopeSelector
         apiKey={apiKey}
-        allowed={allowed}
+        offered={offered}
+        modules={visibleModules}
         scopes={scopes}
         preserved={preserved}
         onChange={setScopes}

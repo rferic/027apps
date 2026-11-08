@@ -8,6 +8,7 @@ import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
 import { loadActiveDelegatedCounts, loadApiKeyOwners } from "@/lib/panel-keys";
+import { loadUserModulesAction } from "./actions";
 
 /** The page reads the session while rendering; opt out of the static shell. */
 export const instant = false;
@@ -68,6 +69,7 @@ export default async function NewApiKeyPage() {
         currentUserId={gate.user.id}
         owners={ownersResult.ok ? ownersResult.owners : []}
         activeCounts={activeCounts}
+        loadModules={loadUserModulesAction}
         messages={messages}
       />
     </section>

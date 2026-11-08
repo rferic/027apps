@@ -4,6 +4,7 @@ import type { Caller } from '../api/types.js';
 import {
   deactivateUser,
   getUser,
+  listUserModules,
   listUsers,
   purgeUser,
   restoreUser,
@@ -483,6 +484,94 @@ describe('getUser', () => {
     const { deps } = makeDeps([profile('ana')]);
 
     await expect(getUser(deps, 'missing')).rejects.toMatchObject({ code: 'not_found' });
+  });
+});
+
+describe('listUserModules', () => {
+  type ModuleGrant = {
+    user: string;
+    key: string;
+    name: string;
+    state?: 'installed' | 'active' | 'disabled';
+    revoked?: boolean;
+  };
+
+  /** Joins profiles, live grants and installed/active modules like the SQL does. */
+  function modulesDeps(profiles: string[], grants: ModuleGrant[]): UsersDeps {
+    return {
+      db: {
+        query: async (sql: string, params: unknown[] = []) => {
+          if (!sql.startsWith('select m.key, m.name')) throw new Error(`unexpected SQL: ${sql}`);
+          const [id, ownId] = params as [string, string | null];
+          if (!profiles.includes(id) || (ownId !== null && ownId !== id)) return { rows: [] };
+          const live = grants
+            .filter((grant) => grant.user === id && grant.revoked !== true)
+            .filter((grant) => (grant.state ?? 'active') !== 'disabled')
+            .map((grant) => ({ key: grant.key, name: grant.name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+          return { rows: live.length > 0 ? live : [{ key: null, name: null }] };
+        },
+      },
+    };
+  }
+
+  const ADMIN = session('root', 'admin');
+
+  it('returns the live modules ordered by name', async () => {
+    const deps = modulesDeps(['ana'], [
+      { user: 'ana', key: 'recetas', name: 'Recetas' },
+      { user: 'ana', key: 'compras', name: 'Compras' },
+    ]);
+
+    await expect(listUserModules(deps, ADMIN, 'ana')).resolves.toEqual([
+      { key: 'compras', name: 'Compras' },
+      { key: 'recetas', name: 'Recetas' },
+    ]);
+  });
+
+  it('skips revoked grants and modules that are not installed/active', async () => {
+    const deps = modulesDeps(['ana'], [
+      { user: 'ana', key: 'recetas', name: 'Recetas' },
+      { user: 'ana', key: 'old', name: 'Old', revoked: true },
+      { user: 'ana', key: 'off', name: 'Off', state: 'disabled' },
+      { user: 'ana', key: 'fresh', name: 'Fresh', state: 'installed' },
+    ]);
+
+    await expect(listUserModules(deps, ADMIN, 'ana')).resolves.toEqual([
+      { key: 'fresh', name: 'Fresh' },
+      { key: 'recetas', name: 'Recetas' },
+    ]);
+  });
+
+  it('returns an empty list for a profile without modules', async () => {
+    const deps = modulesDeps(['ana'], []);
+
+    await expect(listUserModules(deps, ADMIN, 'ana')).resolves.toEqual([]);
+  });
+
+  it('hides another profile from a delegated caller as not_found', async () => {
+    const deps = modulesDeps(['ana', 'luis'], [
+      { user: 'luis', key: 'recetas', name: 'Recetas' },
+    ]);
+    const delegated: Caller = {
+      kind: 'delegated',
+      keyId: 'k1',
+      scopes: ['users:read'],
+      roleCap: 'user',
+      userId: 'ana',
+    };
+
+    await expect(listUserModules(deps, delegated, 'luis')).rejects.toMatchObject({
+      code: 'not_found',
+    });
+  });
+
+  it('answers not_found for a missing profile', async () => {
+    const deps = modulesDeps(['ana'], []);
+
+    await expect(listUserModules(deps, ADMIN, 'missing')).rejects.toMatchObject({
+      code: 'not_found',
+    });
   });
 });
 

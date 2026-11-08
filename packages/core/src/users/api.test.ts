@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Caller, DoorDeps } from "../api/types";
 import type { RateLimitStorage } from "../api/rate-limit-storage";
-import { purgeUserRoute, usersRoute, type UsersRouteDeps } from "./api.js";
+import { purgeUserRoute, userModulesRoute, usersRoute, type UsersRouteDeps } from "./api.js";
 import type { Role } from "./service.js";
 
 interface ProfileRow {
@@ -29,8 +29,14 @@ function profile(id: string, overrides: Partial<ProfileRow> = {}): ProfileRow {
 
 type CategoryLink = { id: string; name: string };
 
+type ModuleGrant = { user: string; key: string; name: string; revoked?: boolean; state?: string };
+
 /** In-memory database for the reads and writes the users service issues. */
-function dbFor(rows: ProfileRow[], memberships: Record<string, CategoryLink[]> = {}) {
+function dbFor(
+  rows: ProfileRow[],
+  memberships: Record<string, CategoryLink[]> = {},
+  grants: ModuleGrant[] = [],
+) {
   const profiles = new Map(rows.map((row) => [row.id, { ...row }]));
   const categoriesOf = (id: string): CategoryLink[] => memberships[id] ?? [];
   return {
@@ -97,6 +103,16 @@ function dbFor(rows: ProfileRow[], memberships: Record<string, CategoryLink[]> =
             },
           ],
         };
+      }
+      if (sql.startsWith("select m.key, m.name")) {
+        const [id, ownId] = params as [string, string | null];
+        if (!profiles.has(id) || (ownId !== null && ownId !== id)) return { rows: [] };
+        const live = grants
+          .filter((grant) => grant.user === id && grant.revoked !== true)
+          .filter((grant) => (grant.state ?? "active") !== "disabled")
+          .map((grant) => ({ key: grant.key, name: grant.name }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        return { rows: live.length > 0 ? live : [{ key: null, name: null }] };
       }
       if (sql.startsWith("delete from auth.users")) {
         profiles.delete(String(params[0]));
@@ -207,6 +223,78 @@ describe("GET /api/v1/users state", () => {
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
       "validation_failed",
     );
+  });
+});
+
+describe("GET /api/v1/users/{id}/modules", () => {
+  const ANA = "11111111-1111-4111-8111-111111111111";
+  const MISSING = "33333333-3333-4333-8333-333333333333";
+  const ANA_PROFILE = profile(ANA, { created_at: "2026-01-02T00:00:00.000Z" });
+  const ADMIN = { kind: "session", userId: "root", role: "admin" } as const;
+
+  it("returns the live granted modules ordered by name", async () => {
+    const db = dbFor(
+      [ROOT, ANA_PROFILE],
+      {},
+      [
+        { user: ANA, key: "recetas", name: "Recetas" },
+        { user: ANA, key: "compras", name: "Compras" },
+        { user: ANA, key: "old", name: "Old", revoked: true },
+        { user: ANA, key: "off", name: "Off", state: "disabled" },
+      ],
+    );
+    const route = userModulesRoute(deps(db, ADMIN));
+
+    const res = await route(new Request(`http://local/api/v1/users/${ANA}/modules`), ANA);
+
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { modules: unknown }).toMatchObject({
+      modules: [
+        { key: "compras", name: "Compras" },
+        { key: "recetas", name: "Recetas" },
+      ],
+    });
+  });
+
+  it("returns an empty list for a profile without modules", async () => {
+    const db = dbFor([ROOT, ANA_PROFILE]);
+    const route = userModulesRoute(deps(db, ADMIN));
+
+    const res = await route(new Request(`http://local/api/v1/users/${ANA}/modules`), ANA);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ modules: [] });
+  });
+
+  it("answers 404 for a profile that does not exist", async () => {
+    const db = dbFor([ROOT]);
+    const route = userModulesRoute(deps(db, ADMIN));
+
+    const res = await route(new Request(`http://local/api/v1/users/${MISSING}/modules`), MISSING);
+
+    expect(res.status).toBe(404);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe("not_found");
+  });
+
+  it("rejects an id that is not a uuid", async () => {
+    const db = dbFor([ROOT]);
+    const route = userModulesRoute(deps(db, ADMIN));
+
+    const res = await route(new Request("http://local/api/v1/users/ana/modules"), "ana");
+
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
+      "validation_failed",
+    );
+  });
+
+  it("forbids a caller without users:read", async () => {
+    const db = dbFor([ROOT, ANA_PROFILE]);
+    const route = userModulesRoute(deps(db, { kind: "session", userId: "ana", role: "user" }));
+
+    const res = await route(new Request(`http://local/api/v1/users/${ANA}/modules`), ANA);
+
+    expect(res.status).toBe(403);
   });
 });
 

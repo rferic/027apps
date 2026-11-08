@@ -53,6 +53,7 @@ import {
   setupTestEmailResponseSchema,
   translationsSchema,
   userListSchema,
+  userModulesResponseSchema,
   userResponseSchema,
   usersQuerySchema,
   apiKeysQuerySchema,
@@ -236,6 +237,14 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: ["users:deactivate"],
     auth: "session",
     status: 204,
+  },
+  {
+    method: "get",
+    path: "/users/{id}/modules",
+    summary: "Modules currently granted to a user (live grants on installed/active modules).",
+    scopes: ["users:read"],
+    response: userModulesResponseSchema,
+    auth: "session",
   },
   {
     method: "post",

@@ -7,6 +7,7 @@ import { SUPPORTED_LOCALES } from "../settings/catalog";
 import {
   deactivateUser,
   getUser,
+  listUserModules,
   listUsers,
   purgeUser,
   restoreUser,
@@ -85,6 +86,14 @@ function pageParams(searchParams: URLSearchParams): UserListFilters {
   };
 }
 
+/** Path ids are uuids, like every other profile reference in the API. */
+function userId(value: string): string {
+  if (!z.uuid().safeParse(value).success) {
+    throw new DomainError("validation_failed", "invalid user id");
+  }
+  return value;
+}
+
 /** GET /api/v1/users — list with `q`, `role`, `state`, `category`, `limit`, `offset`. */
 export function usersRoute(deps: UsersRouteDeps) {
   return (req: Request): Promise<Response> =>
@@ -118,6 +127,28 @@ export function userRoute(deps: UsersRouteDeps) {
       },
       deps.door,
       async () => ({ user: await getUser(deps.users, id) }),
+    );
+}
+
+/**
+ * GET /api/v1/users/{id}/modules — modules granted to a profile (live grants
+ * only). The panel uses it to offer per-module permissions when it creates or
+ * edits a delegated API key.
+ */
+export function userModulesRoute(deps: UsersRouteDeps) {
+  return (req: Request, id: string): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["users:read"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user", limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
+      },
+      deps.door,
+      async (ctx) => ({
+        modules: await listUserModules(deps.users, ctx.caller, userId(id)),
+      }),
     );
 }
 

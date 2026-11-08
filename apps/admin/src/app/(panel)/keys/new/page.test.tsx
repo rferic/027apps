@@ -26,6 +26,10 @@ vi.mock("@/lib/panel-keys", () => ({
   loadActiveDelegatedCounts: () => countsMock(),
 }));
 
+vi.mock("./actions", () => ({
+  loadUserModulesAction: async () => ({ ok: true, modules: [] }),
+}));
+
 import NewApiKeyPage, { instant } from "./page";
 
 beforeEach(() => {

@@ -69,6 +69,9 @@ export interface UserList {
   active_total: number;
 }
 
+/** A module the profile may use, as the API key form needs it: key + display name. */
+export type UserModule = { key: string; name: string };
+
 export interface UserPatch {
   display_name?: string;
   locale?: string;
@@ -223,6 +226,55 @@ export async function listUsers(deps: UsersDeps, filters: UserListFilters): Prom
 
 export async function getUser(deps: UsersDeps, id: string): Promise<UserView> {
   return getUserFrom(deps.db, id);
+}
+
+/**
+ * Profiles a caller may read: admins and instance keys see any profile, while
+ * a delegated key (a machine credential for its owner) only sees its own.
+ * `null` means "no restriction"; the SQL treats it as such.
+ */
+function callerProfileId(caller: Caller): string | null {
+  if (caller.kind === "session") {
+    return caller.role === "admin" || caller.role === "super_admin" ? null : caller.userId;
+  }
+  if (caller.kind === "service") return null;
+  if (caller.kind === "delegated") return caller.userId;
+  return null;
+}
+
+/**
+ * GET /api/v1/users/{id}/modules — live module grants of a profile.
+ *
+ * One read: the profile drives the join, so a missing (or hidden) profile and
+ * a profile without grants are distinguishable without a second query. Only
+ * grants that are alive and point at an installed/active module count; a
+ * profile with none answers an empty list, never 404.
+ */
+export async function listUserModules(
+  deps: UsersDeps,
+  caller: Caller,
+  id: string,
+): Promise<UserModule[]> {
+  const ownId = callerProfileId(caller);
+  const { rows } = await deps.db.query(
+    `select m.key, m.name
+       from public.profiles p
+       left join public.user_modules u
+         on u.user_id = p.id and u.revoked_at is null
+       left join public.module_registry m
+         on m.key = u.module_key and m.state in ('active', 'installed')
+      where p.id = $1
+        and ($2::uuid is null or p.id = $2)
+      order by m.name asc`,
+    [id, ownId],
+  );
+  if (rows.length === 0) throw new DomainError("not_found");
+  const modules: UserModule[] = [];
+  for (const row of rows) {
+    if (typeof row.key !== "string" || typeof row.name !== "string") continue;
+    modules.push({ key: row.key, name: row.name });
+  }
+  return modules;
 }
 
 async function assertRoleChangeAllowed(
