@@ -52,3 +52,8 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 ## Cierre
 
 Un solo PR, squash a `main` por orden del usuario, cuando 05–15 estén `finalizada` con DoD completo (TDD, gates, revisión de segundo agente y auditoría OWASP).
+
+**Estado de cierre (2026-11-08):** `task-11` sigue `en curso` a la espera del visto bueno del usuario
+sobre los puntos 8, 9 y 10 de la checklist UX §9 (revisados en código y en `test`; ver
+`docs/tasks/sprint-06-web/task-11.md`). `task-12` sigue en `test`. El cuerpo del PR está redactado en
+`docs/flows/pr-sprint-06-web.md`; el PR **no** se ha abierto.
