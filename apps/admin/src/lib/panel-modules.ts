@@ -340,22 +340,35 @@ function pathFor(key: string, suffix = ""): string {
   return `/api/v1/modules/${encodeURIComponent(key)}${suffix}`;
 }
 
+export interface ModulesQuery {
+  offset: number;
+  limit?: number;
+  /** Omitted or `all` keeps every lifecycle state. */
+  state?: ModuleState | "all";
+  /** Omitted or `all` keeps public and private modules alike. */
+  public?: "all" | "yes" | "no";
+}
+
+/** Query for `GET /modules`: the page plus the filters the Core applies. */
+function modulesQuery(input: ModulesQuery): string {
+  const params = new URLSearchParams();
+  params.set("limit", String(input.limit ?? PANEL_PAGE_SIZE));
+  params.set("offset", String(Math.max(0, input.offset)));
+  if (input.state) params.set("state", input.state);
+  // `all` is the default: never widen the URL with a value that filters nothing.
+  if (input.public && input.public !== "all") params.set("public", input.public);
+  return params.toString();
+}
+
 /**
  * GET /api/v1/modules — one page of the installed catalogue. The install page
  * uses it to know which packages are already present (and therefore hidden).
  */
-export async function loadModules(input: {
-  offset: number;
-  limit?: number;
-}): Promise<ModuleListResult> {
+export async function loadModules(input: ModulesQuery): Promise<ModuleListResult> {
   const token = await sessionToken();
-  const params = new URLSearchParams();
-  params.set("limit", String(input.limit ?? PANEL_PAGE_SIZE));
-  params.set("offset", String(Math.max(0, input.offset)));
-
   const call = await callRoute(
     modulesRoute(await modulesRouteDeps()),
-    `/api/v1/modules?${params.toString()}`,
+    `/api/v1/modules?${modulesQuery(input)}`,
     token,
   );
   if (!call.ok) return call;

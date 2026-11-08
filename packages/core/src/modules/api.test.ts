@@ -27,6 +27,7 @@ function countingStorage(): RateLimitStorage {
   };
 }
 
+/** A fake registry that applies the same filters the SQL applies. */
 function pagedDeps(rows: ModuleRow[], who: Caller = admin): ModulesRouteDeps {
   const door: DoorDeps = { rateLimitStorage: countingStorage(), logger: () => {} };
   return {
@@ -36,15 +37,39 @@ function pagedDeps(rows: ModuleRow[], who: Caller = admin): ModulesRouteDeps {
     modules: {
       db: {
         async query(_sql: string, params: unknown[] = []) {
-          const [limit, offset] = params.slice(-2) as [number, number];
-          const page = rows.slice(offset, offset + limit);
-          const total = rows.length;
+          const [limit, offset] = params.filter(
+            (value): value is number => typeof value === "number",
+          ) as [number, number];
+          const state = params.find(
+            (value): value is string =>
+              value === "installed" || value === "active" || value === "disabled",
+          );
+          const visibility = params.find((value): value is boolean => typeof value === "boolean");
+          const filtered = rows.filter(
+            (row) =>
+              (!state || row.state === state) &&
+              (visibility === undefined || row.is_public === visibility),
+          );
+          const page = filtered.slice(offset, offset + limit);
+          const total = filtered.length;
           if (page.length === 0) return { rows: [{ total }] };
           return { rows: page.map((row) => ({ ...row, total })) };
         },
       },
     },
   };
+}
+
+/** A catalogue with one module of each state and both visibilities. */
+function mixedRows(): ModuleRow[] {
+  const base = rows(1)[0];
+  return [
+    { ...base, key: "installed-public", state: "installed", is_public: true },
+    { ...base, key: "active-public", state: "active", is_public: true },
+    { ...base, key: "active-private", state: "active", is_public: false },
+    { ...base, key: "disabled-private", state: "disabled", is_public: false },
+    { ...base, key: "disabled-public", state: "disabled", is_public: true },
+  ];
 }
 
 function rows(count: number): ModuleRow[] {
@@ -183,5 +208,100 @@ describe("modules route pagination", () => {
     );
 
     expect(res.status).toBe(401);
+  });
+});
+
+describe("modules route filters", () => {
+  it("returns the whole catalogue when neither filter is set", async () => {
+    const { status, body } = await list(modulesRoute(pagedDeps(mixedRows())), "/api/v1/modules");
+
+    expect(status).toBe(200);
+    expect(body.modules).toHaveLength(5);
+    expect(body.total).toBe(5);
+  });
+
+  it.each(["installed", "active", "disabled"] as const)(
+    "filters by state=%s and the total counts only those rows",
+    async (state) => {
+      const { status, body } = await list(
+        modulesRoute(pagedDeps(mixedRows())),
+        `/api/v1/modules?state=${state}`,
+      );
+
+      expect(status).toBe(200);
+      expect(body.modules.every((row) => row.key.includes(state))).toBe(true);
+      const expected = { installed: 1, active: 2, disabled: 2 }[state];
+      expect(body.modules).toHaveLength(expected);
+      expect(body.total).toBe(expected);
+    },
+  );
+
+  it("filters public=yes", async () => {
+    const { body } = await list(modulesRoute(pagedDeps(mixedRows())), "/api/v1/modules?public=yes");
+
+    expect(body.modules.map((row) => row.key)).toEqual([
+      "installed-public",
+      "active-public",
+      "disabled-public",
+    ]);
+    expect(body.total).toBe(3);
+  });
+
+  it("filters public=no", async () => {
+    const { body } = await list(modulesRoute(pagedDeps(mixedRows())), "/api/v1/modules?public=no");
+
+    expect(body.modules.map((row) => row.key)).toEqual(["active-private", "disabled-private"]);
+    expect(body.total).toBe(2);
+  });
+
+  it("combines state and public into the same count", async () => {
+    const { body } = await list(
+      modulesRoute(pagedDeps(mixedRows())),
+      "/api/v1/modules?state=active&public=no",
+    );
+
+    expect(body.modules.map((row) => row.key)).toEqual(["active-private"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("keeps total on the filtered set across pages", async () => {
+    const { body } = await list(
+      modulesRoute(pagedDeps(mixedRows())),
+      "/api/v1/modules?state=active&limit=1&offset=1",
+    );
+
+    expect(body.modules.map((row) => row.key)).toEqual(["active-private"]);
+    expect(body.total).toBe(2);
+    expect(body.offset).toBe(1);
+  });
+
+  it("treats state=all and public=all as no filter", async () => {
+    const { body } = await list(
+      modulesRoute(pagedDeps(mixedRows())),
+      "/api/v1/modules?state=all&public=all",
+    );
+
+    expect(body.modules).toHaveLength(5);
+    expect(body.total).toBe(5);
+  });
+
+  it("rejects an unknown state with validation_failed", async () => {
+    const res = await modulesRoute(pagedDeps(mixedRows()))(
+      new Request("http://local/api/v1/modules?state=broken"),
+    );
+
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("validation_failed");
+  });
+
+  it("rejects an unknown public value with validation_failed", async () => {
+    const res = await modulesRoute(pagedDeps(mixedRows()))(
+      new Request("http://local/api/v1/modules?public=maybe"),
+    );
+
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("validation_failed");
   });
 });

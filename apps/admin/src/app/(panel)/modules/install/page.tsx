@@ -52,12 +52,16 @@ function PackageActions({
   messages: TranslationMap;
 }) {
   if (pkg.valid) return <ModuleInstallButton moduleKey={pkg.key} messages={messages} />;
+  // A disabled control must say why: tie the visible reason to the button.
+  const reasonId = `module-package-reason-${pkg.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   return (
     <div className="flex flex-col items-start gap-2">
-      <Button type="button" className="min-h-11" disabled>
+      <Button type="button" className="min-h-11" disabled aria-describedby={reasonId}>
         {t("Install", messages)}
       </Button>
-      <p className="text-xs text-muted-foreground">{invalidReason(pkg, messages)}</p>
+      <p id={reasonId} className="text-xs text-muted-foreground">
+        {invalidReason(pkg, messages)}
+      </p>
     </div>
   );
 }

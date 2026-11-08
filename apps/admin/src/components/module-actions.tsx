@@ -200,7 +200,7 @@ export function ModuleActions({
       <h2 id="module-actions-title" className="text-sm font-semibold">
         {t("Actions", messages)}
       </h2>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2" aria-busy={pending}>
         <Button variant="secondary" className="min-h-11" onClick={handleToggle} disabled={pending}>
           {deactivating ? t("Deactivate", messages) : t("Activate", messages)}
         </Button>

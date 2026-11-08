@@ -53,6 +53,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 26 | Filas de lista clicables en claves, miembros y categorías (patrón compartido, border-separate para que el relative del tr sea fiable) | hecho |
 | 27 | Revisión de estilo de la tarea 13 y extracción de las primitivas compartidas de los formularios de clave | hecho |
 | 28 | Guardia de CORS al guardar la lista de orígenes y limpieza de la fila `instance.logo_url` | hecho |
+| 29 | Filtros de módulos en servidor y retirada del componente muerto `LayoutShell` | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -453,6 +454,30 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   envía el lote, no la abre si el nuevo valor conserva el origen ni si el origen nunca estuvo permitido;
   el diálogo se renderiza cerrado y el campo CORS muestra su aviso. `db-tests`: catálogo verde tras la
   migración (la fila `instance.logo_url` ya no existe).
+
+### Iteración 29 — Filtros de módulos en servidor y retirada del componente muerto (hecho)
+
+- **El fallo:** `/modules` filtraba `state` y `public` en el cliente sobre la página ya descargada,
+  mientras `total` y la paginación venían del servidor sin filtrar. Una página podía quedar vacía con
+  resultados en otra y `total` mentía; violaba la regla de listas paginadas de `docs/conventions/code-style.md`.
+- **Core:** `GET /api/v1/modules` acepta `state` (`all|installed|active|disabled`, sin valor = `all`) y
+  `public` (`all|yes|no`, sin valor = `all`). `moduleListFiltersSchema` los valida con zod en el borde
+  (`validation_failed`, 400). `listModules` recibe los filtros y los aplica en el mismo CTE que alimenta
+  el `count` y la página (rama admin y rama de usuario), así que `total` es el de las filas filtradas.
+- **Panel:** `loadModules` (`lib/panel-modules.ts`) acepta `state` y `public` y los reenvía (omite
+  `public=all`). La página envía siempre `state` (por defecto `all`) y `public` solo cuando no es `all`;
+  se retiran `filterModules` y el filtrado en cliente, y la tabla/paginación usan directamente las filas
+  y el `total` del Core. Se conservan la UI de filtros, `FilterSelect`, la paginación, el reintento y
+  `Clear filters`.
+- **Componente muerto:** `components/layout-shell.tsx` (con su `href="#"` en la navegación, prohibido por
+  la checklist §9) no lo importaba nadie; se borra junto con `layout-shell.test.tsx`.
+- **OpenAPI:** `modulesQuerySchema` documenta ambos query params en `GET /modules`; `openapi.json`
+  regenerado y `pnpm check:openapi` en verde. `docs/api/README.md` explica los dos filtros y que `total`
+  cuenta el conjunto filtrado.
+- **Tests:** cada estado, cada valor de `public`, combinados, `total` filtrado entre páginas, `all`
+  explícito y valores inválidos → 400 en el Core; en el panel, los filtros viajan al Core, una página
+  del servidor no se vuelve a filtrar en cliente y la paginación usa el total filtrado.
+- **Deuda aceptada:** `/docs/api` (Scalar) no muestra `request_id` si falla la carga del documento.
 
 ## Checklist por páginas (revisión con el usuario)
 

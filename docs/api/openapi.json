@@ -5496,6 +5496,35 @@
               "minimum": 0,
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "description": "Filter by lifecycle state; omitted or all removes the filter. total reflects it.",
+              "enum": [
+                "all",
+                "installed",
+                "active",
+                "disabled"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "public",
+            "required": false,
+            "schema": {
+              "description": "Filter by public visibility; omitted or all removes the filter. total reflects it.",
+              "enum": [
+                "all",
+                "yes",
+                "no"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5528,7 +5557,7 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Instance module catalogue.",
+        "summary": "Instance module catalogue, filterable by state and visibility.",
         "x-027-scopes": [
           "modules:read"
         ]

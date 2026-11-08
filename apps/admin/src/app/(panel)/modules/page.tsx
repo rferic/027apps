@@ -108,7 +108,11 @@ function parseCatalogue(body: unknown): Catalogue | null {
  * proxy would forward it, so the page still never reads the database for
  * catalogue content. Failures keep the envelope's public fields only.
  */
-async function loadCatalogue(input: { offset: number }): Promise<Catalogue> {
+async function loadCatalogue(input: {
+  offset: number;
+  state: StateFilter;
+  visibility: PublicFilter;
+}): Promise<Catalogue> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -117,6 +121,9 @@ async function loadCatalogue(input: { offset: number }): Promise<Catalogue> {
   const params = new URLSearchParams();
   params.set("limit", String(PANEL_PAGE_SIZE));
   params.set("offset", String(Math.max(0, input.offset)));
+  // The filter travels to the Core, which filters and counts the same set.
+  params.set("state", input.state);
+  if (input.visibility !== "all") params.set("public", input.visibility);
 
   let res: Response;
   try {
@@ -190,19 +197,6 @@ function stateParam(state: StateFilter): StateFilter | undefined {
 
 function parsePublicFilter(value: string | undefined): PublicFilter {
   return value === "yes" || value === "no" ? value : "all";
-}
-
-function filterModules(
-  modules: ModuleRow[],
-  state: StateFilter,
-  visibility: PublicFilter,
-): ModuleRow[] {
-  return modules.filter((module) => {
-    if (state !== "all" && module.state !== state) return false;
-    if (visibility === "yes" && !module.is_public) return false;
-    if (visibility === "no" && module.is_public) return false;
-    return true;
-  });
 }
 
 function ModulesFilter({
@@ -431,6 +425,12 @@ function CatalogueEmpty({
       <p className="mt-1 text-xs text-muted-foreground">
         {t("Install a module to make its features available to the instance.", messages)}
       </p>
+      <Link
+        href="/modules/install"
+        className="mt-3 inline-flex min-h-11 items-center rounded-control border border-transparent bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {t("Install module", messages)}
+      </Link>
     </div>
   );
 }
@@ -469,16 +469,16 @@ function ModulesBody({
     state: stateParam(state),
     public: visibility === "all" ? undefined : visibility,
   };
-  const modules = filterModules(catalogue.modules, state, visibility);
+  // The Core already filtered (and counted) this page: filter nothing here.
   const filtered = state !== DEFAULT_STATE || visibility !== "all";
 
   return (
     <>
       <ModulesFilter state={state} visibility={visibility} messages={messages} />
-      {catalogue.total === 0 || modules.length === 0 ? (
+      {catalogue.total === 0 || catalogue.modules.length === 0 ? (
         <CatalogueEmpty filtered={filtered} messages={messages} />
       ) : (
-        <CatalogueList modules={modules} messages={messages} />
+        <CatalogueList modules={catalogue.modules} messages={messages} />
       )}
       <Pagination
         page={page}
@@ -511,7 +511,7 @@ export default async function ModulesPage({
   const visibility = parsePublicFilter(firstParam(params.public));
   const page = parsePage(firstParam(params.page));
 
-  const catalogue = await loadCatalogue({ offset: pageOffset(page) });
+  const catalogue = await loadCatalogue({ offset: pageOffset(page), state, visibility });
   if (catalogue.ok && page > pageCount(catalogue.total)) {
     const target = pageCount(catalogue.total);
     redirect(

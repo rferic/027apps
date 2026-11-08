@@ -148,6 +148,11 @@ may filter by another owner; for any other caller `user` must be their own id, a
 is a `not_found` (404) so the list cannot be used to enumerate users. Every filter narrows
 `total`.
 
+`/modules` accepts `state` (`all|installed|active|disabled`, omitted means `all`) and `public`
+(`all|yes|no`, omitted means `all`) on top of `limit`/`offset`; an unknown value is a
+`validation_failed` (400). Both filters run in the same query as the count, so `total` is the
+filtered total across every page, never the size of the page you received.
+
 **Previsto: cursor pagination.** For large or live lists (declared per resource) the target is an opaque `next_cursor`; it is **not implemented** and no endpoint accepts `cursor=` today.
 
 ## 6. Rate limiting
@@ -195,7 +200,7 @@ An instance has a **catalogue of modules** (e.g. Split Expenses). A module is in
 
 | Endpoint | Status | What it returns |
 |---|---|---|
-| `GET /api/v1/modules` | **implemented** | Catalogue: `key`, `name`, `version`, `state`, `is_public` and `manifest_digest` (the list and the detail share the module schema) |
+| `GET /api/v1/modules` | **implemented** | Catalogue: `key`, `name`, `version`, `state`, `is_public` and `manifest_digest` (the list and the detail share the module schema); paginated and filterable by `state` and `public`, with `total` counting the filtered set |
 | `GET /api/v1/modules/{key}` | **implemented** | Detail: state, version, `is_public`, `manifest_digest` and its **public settings** |
 | `GET /api/v1/modules/{key}/grants` | **implemented** | Who has the module: active `users` (`id` + `display_name`) and assigned `categories` (`id` + `name`); admins only (`modules:manage`), empty arrays when there are no grants |
 | `GET /api/v1/me/modules` | **previsto** | **Your** modules (public + granted); admins see all |

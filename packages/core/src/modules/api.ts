@@ -48,6 +48,18 @@ export const moduleUpdateSchema = z
   .strict();
 export const moduleSettingSchema = z.object({ key: z.string().trim().min(1).max(200), value: z.unknown() }).strict();
 
+/**
+ * `GET /modules` filters. Validated at the edge like every other filter, so an
+ * unknown value is a 400 instead of a silently unfiltered list. The filter is
+ * applied in SQL together with the count; omitting it means `all`.
+ */
+export const moduleListFiltersSchema = z
+  .object({
+    state: z.enum(["all", "installed", "active", "disabled"]).optional(),
+    public: z.enum(["all", "yes", "no"]).optional(),
+  })
+  .strict();
+
 function moduleKey(value: string): string {
   if (!MODULE_KEY.test(value)) throw new DomainError("validation_failed", "invalid module key");
   return value;
@@ -86,8 +98,15 @@ async function loadManifest(deps: ModulesRouteDeps, key: string): Promise<unknow
 export function modulesRoute(deps: ModulesRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(req, readOptions(deps, ["modules:read"]), deps.door, async (ctx) => {
+      const filters = moduleListFiltersSchema.safeParse({
+        state: ctx.searchParams.get("state") || undefined,
+        public: ctx.searchParams.get("public") || undefined,
+      });
+      if (!filters.success) {
+        throw new DomainError("validation_failed", "invalid state or public filter");
+      }
       const page = pageParams(ctx.searchParams);
-      const result = await listModules(deps.modules, ctx.caller, page);
+      const result = await listModules(deps.modules, ctx.caller, page, filters.data);
       return { ...result, limit: page.limit, offset: page.offset };
     });
 }

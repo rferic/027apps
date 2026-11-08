@@ -294,4 +294,26 @@ describe("loadModules", () => {
     const request = listHandlerMock.mock.calls[0]?.[0] as Request;
     expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=0");
   });
+
+  it("forwards the state and public filters to the core route", async () => {
+    listHandlerMock.mockResolvedValue(json({ modules: [MODULE], total: 1 }));
+
+    await expect(
+      loadModules({ offset: 0, state: "active", public: "yes" }),
+    ).resolves.toEqual({ ok: true, modules: [MODULE], total: 1 });
+
+    const request = listHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe(
+      "http://panel.internal/api/v1/modules?limit=20&offset=0&state=active&public=yes",
+    );
+  });
+
+  it("sends state=all explicitly and omits public when it means all", async () => {
+    listHandlerMock.mockResolvedValue(json({ modules: [], total: 0 }));
+
+    await loadModules({ offset: 0, state: "all", public: "all" });
+
+    const request = listHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=0&state=all");
+  });
 });

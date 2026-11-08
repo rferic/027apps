@@ -64,10 +64,11 @@ function settingValue(setting: ModuleSetting, messages: TranslationMap): string 
     return setting.configured ? t("Configured", messages) : t("Not configured", messages);
   }
   const value = setting.value;
-  if (value === null) return "—";
+  // An unset value is a real state, never an em dash that reads as a value.
+  if (value === null) return t("Not configured", messages);
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
-  return JSON.stringify(value) ?? "—";
+  return JSON.stringify(value) ?? t("Not available", messages);
 }
 
 function ModuleBreadcrumb({ name, messages }: { name: string; messages: TranslationMap }) {
@@ -141,7 +142,7 @@ function ModuleDetails({
         <MetaItem label={t("Manifest digest", messages)} mono>
           {/* Visually clipped, complete in the tooltip and in the DOM. */}
           <span title={module.manifest_digest} className="block max-w-[14rem] truncate">
-            {module.manifest_digest || "—"}
+            {module.manifest_digest || t("Not available", messages)}
           </span>
         </MetaItem>
         <MetaItem label={t("Installed", messages)}>
@@ -155,6 +156,32 @@ function ModuleDetails({
         </MetaItem>
       </dl>
     </section>
+  );
+}
+
+function ModuleSettingCards({
+  settings,
+  messages,
+}: {
+  settings: ModuleSetting[];
+  messages: TranslationMap;
+}) {
+  return (
+    <ul className="flex flex-col gap-2 sm:hidden">
+      {settings.map((setting) => (
+        <li key={setting.key} className="rounded-card border border-border p-3">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+            <dt className="text-muted-foreground">{t("Key", messages)}</dt>
+            <dd>
+              <span className="block font-semibold">{setting.label}</span>
+              <code className="font-mono text-[11px] text-muted-foreground">{setting.key}</code>
+            </dd>
+            <dt className="text-muted-foreground">{t("Value", messages)}</dt>
+            <dd>{settingValue(setting, messages)}</dd>
+          </dl>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -176,32 +203,35 @@ function ModuleSettings({
       {settings.length === 0 ? (
         <p className="text-xs text-muted-foreground">{t("This module has no settings.", messages)}</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <caption className="sr-only">{t("Settings", messages)}</caption>
-            <thead>
-              <tr className="border-b border-border text-muted-foreground">
-                <th scope="col" className="py-2 pr-3 font-semibold">
-                  {t("Key", messages)}
-                </th>
-                <th scope="col" className="py-2 font-semibold">
-                  {t("Value", messages)}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {settings.map((setting) => (
-                <tr key={setting.key} className="border-b border-border">
-                  <th scope="row" className="py-2 pr-3 text-left font-normal">
-                    <span className="block font-semibold">{setting.label}</span>
-                    <code className="font-mono text-[11px] text-muted-foreground">{setting.key}</code>
+        <>
+          <div className="hidden overflow-x-auto sm:block">
+            <table className="w-full text-left text-xs">
+              <caption className="sr-only">{t("Settings", messages)}</caption>
+              <thead>
+                <tr className="border-b border-border text-muted-foreground">
+                  <th scope="col" className="py-2 pr-3 font-semibold">
+                    {t("Key", messages)}
                   </th>
-                  <td className="py-2 align-top">{settingValue(setting, messages)}</td>
+                  <th scope="col" className="py-2 font-semibold">
+                    {t("Value", messages)}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {settings.map((setting) => (
+                  <tr key={setting.key} className="border-b border-border">
+                    <th scope="row" className="py-2 pr-3 text-left font-normal">
+                      <span className="block font-semibold">{setting.label}</span>
+                      <code className="font-mono text-[11px] text-muted-foreground">{setting.key}</code>
+                    </th>
+                    <td className="py-2 align-top">{settingValue(setting, messages)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <ModuleSettingCards settings={settings} messages={messages} />
+        </>
       )}
     </section>
   );
@@ -227,7 +257,7 @@ function ModuleGrants({ grants, messages }: { grants: ModuleGrants; messages: Tr
           <div className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold text-muted-foreground">{t("Users", messages)}</h3>
             {grants.users.length === 0 ? (
-              <p className="text-xs text-muted-foreground">—</p>
+              <p className="text-xs text-muted-foreground">{t("None", messages)}</p>
             ) : (
               <ul className="flex flex-wrap gap-2">
                 {grants.users.map((user) => (
@@ -243,7 +273,7 @@ function ModuleGrants({ grants, messages }: { grants: ModuleGrants; messages: Tr
           <div className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold text-muted-foreground">{t("Categories", messages)}</h3>
             {grants.categories.length === 0 ? (
-              <p className="text-xs text-muted-foreground">—</p>
+              <p className="text-xs text-muted-foreground">{t("None", messages)}</p>
             ) : (
               <ul className="flex flex-wrap gap-2">
                 {grants.categories.map((category) => (

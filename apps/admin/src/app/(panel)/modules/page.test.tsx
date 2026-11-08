@@ -121,7 +121,7 @@ describe("ModulesPage", () => {
     expect(modulesRouteMock).toHaveBeenCalledTimes(1);
     expect(modulesRouteMock).toHaveBeenCalledWith(DEPS);
     const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
-    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=0");
+    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=0&state=all");
     expect(request.method).toBe("GET");
     expect(request.headers.get("authorization")).toBe("Bearer token-123");
     // No network call and no client-controlled origin involved.
@@ -226,7 +226,7 @@ describe("ModulesPage", () => {
     expect(html).toContain("No modules are installed yet.");
     const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
     // Fixed internal origin: a forged x-forwarded-host/host cannot redirect it.
-    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=0");
+    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=0&state=all");
     expect(request.headers.get("x-forwarded-host")).toBeNull();
     expect(request.headers.get("host")).toBeNull();
     // The session token travels in the header, never as a forwarded cookie.
@@ -252,7 +252,9 @@ describe("ModulesPage", () => {
     );
 
     const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
-    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=20");
+    expect(request.url).toBe(
+      "http://panel.internal/api/v1/modules?limit=20&offset=20&state=active&public=yes",
+    );
     expect(html).toContain("Page 2 of 3");
     expect(html).toContain('href="/modules?state=active&amp;public=yes"');
     expect(html).toContain('href="/modules?state=active&amp;public=yes&amp;page=3"');
@@ -267,16 +269,33 @@ describe("ModulesPage", () => {
     expect(html).toContain('aria-disabled="true"');
   });
 
-  it("filters the current page by state and visibility", async () => {
-    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }));
+  it("sends state and visibility to the core route instead of filtering the page", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: [MODULES[1]], total: 1 }));
 
     const html = renderToStaticMarkup(
       await ModulesPage({ searchParams: Promise.resolve({ state: "disabled", public: "no" }) }),
     );
 
+    const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe(
+      "http://panel.internal/api/v1/modules?limit=20&offset=0&state=disabled&public=no",
+    );
     expect(html).toContain("Notes");
     expect(html).not.toContain("Expenses");
     expect(routeHandlerMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("never filters a server page in the client, even when a row would not match", async () => {
+    // The Core decides; a page can legitimately mix rows of the filter's state
+    // (the filter is applied there). Filtering again here would hide rows.
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }));
+
+    const html = renderToStaticMarkup(
+      await ModulesPage({ searchParams: Promise.resolve({ state: "active" }) }),
+    );
+
+    expect(html).toContain("Expenses");
+    expect(html).toContain("Notes");
   });
 
   it("redirects only when the requested page is past the last one", async () => {
@@ -302,6 +321,10 @@ describe("ModulesPage default filter", () => {
     expect(html).not.toContain('<option value="active" selected=""');
     expect(html).toContain('href="/modules"');
     expect(html).toContain('href="/modules?page=3"');
+    const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe(
+      "http://panel.internal/api/v1/modules?limit=20&offset=20&state=all",
+    );
   });
 
   it("lists All first in the state select", async () => {
@@ -340,19 +363,21 @@ describe("ModulesPage default filter", () => {
     expect(html).toContain('href="/modules?state=active"');
     expect(html).toContain('href="/modules?state=active&amp;page=3"');
     const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
-    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=20");
+    expect(request.url).toBe(
+      "http://panel.internal/api/v1/modules?limit=20&offset=20&state=active",
+    );
   });
 
-  it("shows only the active module when state=active is selected", async () => {
-    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }));
+  it("paginates the filtered total, not the unfiltered catalogue", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: [MODULES[0]], total: 21 }));
 
     const html = renderToStaticMarkup(
       await ModulesPage({ searchParams: Promise.resolve({ state: "active" }) }),
     );
 
-    expect(html).toContain("Expenses");
-    expect(html).not.toContain("Notes");
-    expect(html).toContain('href="/modules"');
+    // 21 filtered rows over a 20-row page is two pages; the total comes from the Core.
+    expect(html).toContain("Page 1 of 2");
+    expect(html).toContain('href="/modules?state=active&amp;page=2"');
   });
 
   it("the clear link resets every filter to its default", async () => {

@@ -127,6 +127,17 @@ export const usersQuerySchema = paginationQuerySchema.extend({
     .describe("Only members of this category id; the total reflects the filter."),
 });
 
+export const modulesQuerySchema = paginationQuerySchema.extend({
+  state: z
+    .enum(["all", "installed", "active", "disabled"])
+    .optional()
+    .describe("Filter by lifecycle state; omitted or all removes the filter. total reflects it."),
+  public: z
+    .enum(["all", "yes", "no"])
+    .optional()
+    .describe("Filter by public visibility; omitted or all removes the filter. total reflects it."),
+});
+
 export const invitationsQuerySchema = paginationQuerySchema.extend({
   status: z
     .enum(["pending", "used", "expired", "revoked", "all"])

@@ -28,6 +28,17 @@ export interface ModulesDeps {
 
 export type ModuleState = "installed" | "active" | "disabled";
 
+/** Filters applied in SQL, so `total` counts the filtered set and not one page. */
+export type ModuleStateFilter = "all" | ModuleState;
+export type ModulePublicFilter = "all" | "yes" | "no";
+
+export interface ModuleListFilters {
+  /** Omitted or `all` keeps every lifecycle state. */
+  state?: ModuleStateFilter;
+  /** Omitted or `all` keeps public and private modules alike. */
+  public?: ModulePublicFilter;
+}
+
 /** One page of modules plus the total across every page. */
 export interface ModuleList {
   modules: ModuleView[];
@@ -384,17 +395,28 @@ export async function listModules(
   deps: ModulesDeps,
   caller: Caller,
   page: ModulePage,
+  filters: ModuleListFilters = {},
 ): Promise<ModuleList> {
+  // `null` means "no filter"; the filter lives in the same CTE that feeds the
+  // count, so `total` is the filtered total and never lies about the page.
+  const state = filters.state && filters.state !== "all" ? filters.state : null;
+  const isPublic =
+    filters.public === "yes" ? true : filters.public === "no" ? false : null;
   if (isAdmin(caller)) {
     const { rows } = await deps.db.query(
-      `with total as (select count(*)::int as n from public.module_registry),
-            page as (
-              select ${MODULE_COLUMNS} from public.module_registry
-               order by installed_at desc, key desc
-               limit $1 offset $2
-            )
+      `with filtered as (
+         select ${MODULE_COLUMNS} from public.module_registry
+          where ($3::text is null or state = $3)
+            and ($4::boolean is null or is_public = $4)
+       ),
+       total as (select count(*)::int as n from filtered),
+       page as (
+         select * from filtered
+          order by installed_at desc, key desc
+          limit $1 offset $2
+       )
        select total.n as total, page.* from total left join page on true`,
-      [page.limit, page.offset],
+      [page.limit, page.offset, state, isPublic],
     );
     const modules = rows.filter((row) => row.key !== null && row.key !== undefined);
     return { modules: modules.map(toModuleView), total: Number(rows[0]?.total ?? 0) };
@@ -403,27 +425,24 @@ export async function listModules(
     caller.kind === "session" || caller.kind === "delegated" ? caller.userId : null;
   if (!userId) return { modules: [], total: 0 };
   const { rows } = await deps.db.query(
-    `with total as (
-       select count(*)::int as n
-         from public.module_registry m
-        where m.state = 'active'
-          and (m.is_public = true or exists (
-            select 1 from public.user_modules u
-             where u.user_id = $1 and u.module_key = m.key and u.revoked_at is null
-          ))
-     ),
-     page as (
+    `with filtered as (
        select ${MODULE_COLUMNS} from public.module_registry m
         where m.state = 'active'
           and (m.is_public = true or exists (
             select 1 from public.user_modules u
              where u.user_id = $1 and u.module_key = m.key and u.revoked_at is null
           ))
-        order by m.installed_at desc, m.key desc
+          and ($4::text is null or m.state = $4)
+          and ($5::boolean is null or m.is_public = $5)
+     ),
+     total as (select count(*)::int as n from filtered),
+     page as (
+       select * from filtered
+        order by installed_at desc, key desc
         limit $2 offset $3
      )
      select total.n as total, page.* from total left join page on true`,
-    [userId, page.limit, page.offset],
+    [userId, page.limit, page.offset, state, isPublic],
   );
   const modules = rows.filter((row) => row.key !== null && row.key !== undefined);
   return { modules: modules.map(toModuleView), total: Number(rows[0]?.total ?? 0) };
