@@ -5,7 +5,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 
-import { InviteFailureAlert, InviteForm } from "./invite-form";
+import { InviteFailureAlert, InviteForm, fieldProps } from "./invite-form";
 
 const TOKEN = "027_inv_abc123";
 
@@ -41,6 +41,28 @@ describe("InviteForm", () => {
     const html = renderToStaticMarkup(form());
 
     expect(html).toContain('href="/login"');
+  });
+});
+
+describe("fieldProps", () => {
+  it("announces the hint and the error together when both apply", () => {
+    expect(fieldProps("password", { password: "password_short" }, "invite-password-hint")).toEqual({
+      "aria-invalid": true,
+      "aria-describedby": "invite-password-hint invite-password-error",
+    });
+  });
+
+  it("keeps the hint reachable before the error appears", () => {
+    expect(fieldProps("password", {}, "invite-password-hint")).toEqual({
+      "aria-describedby": "invite-password-hint",
+    });
+  });
+
+  it("marks a field without a hint as invalid and points at its error", () => {
+    expect(fieldProps("email", { email: "email_invalid" })).toEqual({
+      "aria-invalid": true,
+      "aria-describedby": "invite-email-error",
+    });
   });
 });
 

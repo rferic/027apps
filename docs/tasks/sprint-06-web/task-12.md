@@ -123,6 +123,49 @@ añade contrato de API ni toca el Core.
 - Informe en esta tarea: hallazgos, severidad y resolución; los críticos o altos bloquean
   `finalizada`.
 
+## Hallazgos de la auditoría (2026-11-08)
+
+Auditoría OWASP por un agente distinto del autor. Sin hallazgos críticos ni altos.
+
+### Corregidos
+
+- **MEDIUM — el `Referrer-Policy` del invitar no se aplicaba.** `next.config.ts`
+  enviaba `strict-origin-when-cross-origin` para `/:path*`, y una cabecera HTTP anula
+  la `<meta name="referrer">`: al pulsar "Sign in" el navegador mandaba el `Referer` con
+  el token. Se añade la regla `/invite/:token` **después** de la global (la última gana)
+  con `Referrer-Policy: no-referrer` y `X-Robots-Tag: noindex, nofollow`. La meta se
+  conserva como defensa en profundidad y `next.config.test.ts` fija las dos cabeceras y
+  el orden de las reglas.
+- **MEDIUM — la spec de auth contradecía el código.**
+  `docs/superpowers/specs/2026-10-25-auth.md` §3.3 afirmaba que la contraseña se fija
+  "en la app, no en el navegador". Se corrige: el canje ocurre en la app **o** en la
+  página pública, la contraseña se envía por `POST` al mismo endpoint y el token nunca
+  se comparte con terceros.
+
+### Bajas corregidas
+
+- Doble envío: guarda síncrona con `useRef` (`lib/submit-guard.ts`) además del estado,
+  porque dos eventos en el mismo tick leen el estado anterior. Test: dos submits
+  seguidos → una sola petición.
+- `aria-describedby` une `hintId` y el id de error (`fieldProps`), así que
+  "Use at least 12 characters." se anuncia; sin error, la ayuda también se anuncia.
+- `cancelClass` se importa de `components/ui/form.tsx` en `invite-form.tsx` y
+  `page.tsx`, en vez de repetir la cadena.
+- `invite-redeem.ts` justifica en el comentario por qué no usa `readMutation` (el canje
+  solo crea con 201 o 204; `readMutation` acepta cualquier 2xx con JSON) y un test fija
+  que un 200 con JSON no es éxito.
+
+### Deuda aceptada
+
+- Test DOM de los errores inline: el entorno de tests del admin es `node` sin jsdom y no
+  se añaden dependencias; la validación de cliente está cubierta en `lib/invite-form.test.ts`
+  y el mapeo de fallos en `invite-form.test.tsx`, pero no la inyección de estado en el
+  formulario.
+- `db-tests`: falta cubrir revocada → `not_found` y "cuenta existente conserva la
+  contraseña" (deuda de task-08, no de esta tarea).
+- `i18n:scan` solo extrae `t()`: el aviso inglés de `/login` (cadena literal, sin catálogo)
+  no se detecta. Localizar `/login` queda fuera de esta tarea.
+
 ## Notas y dependencias
 
 - La spec de auth (`docs/superpowers/specs/2026-10-25-auth.md` §3) reservaba confirmar email y

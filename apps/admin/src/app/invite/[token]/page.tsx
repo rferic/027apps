@@ -5,6 +5,7 @@ import { getDictionary } from "@027apps/i18n/dictionary.js";
 import { t } from "@027apps/i18n/t.js";
 import { BrandLogo } from "@/components/brand-logo";
 import { DocumentLang } from "@/components/document-lang";
+import { cancelClass } from "@/components/ui/form";
 import { APP_NAME } from "@/lib/brand";
 import { isValidInviteToken } from "@/lib/invite-form";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
@@ -54,10 +55,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
             <p className="text-sm text-muted-foreground">
               {t("Ask an administrator for a new invitation.", messages)}
             </p>
-            <Link
-              href="/login"
-              className="inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
+            <Link href="/login" className={cancelClass}>
               {t("Sign in", messages)}
             </Link>
           </section>

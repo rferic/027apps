@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
-import { FormActions, FormAlert, FormField, inputClass } from "@/components/ui/form";
+import { FormActions, FormAlert, FormField, cancelClass, inputClass } from "@/components/ui/form";
 import { inviteErrorHeading } from "@/lib/invite-errors";
 import {
   MAX_PASSWORD,
@@ -16,6 +16,7 @@ import {
 } from "@/lib/invite-form";
 import { submitInvite } from "@/lib/invite-submit";
 import type { MutationFailure } from "@/lib/mutation-result";
+import { submitOnce } from "@/lib/submit-guard";
 
 function fieldMessage(
   error: InviteFieldError | undefined,
@@ -37,13 +38,23 @@ function fieldMessage(
   }
 }
 
-function fieldProps(
+/**
+ * `aria-describedby` must list every description in DOM order: the hint first
+ * (`FormField` renders it before the error), then the field error. Without the
+ * hint, a screen reader never announces "At least 12 characters.".
+ */
+export function fieldProps(
   field: "email" | "password" | "confirmation",
   errors: InviteFieldErrors,
+  hintId?: string,
 ): { "aria-invalid"?: true; "aria-describedby"?: string } {
-  return errors[field]
-    ? { "aria-invalid": true, "aria-describedby": `invite-${field}-error` }
-    : {};
+  const ids = [hintId, errors[field] ? `invite-${field}-error` : undefined].filter(
+    (id): id is string => id !== undefined,
+  );
+  return {
+    ...(errors[field] ? { "aria-invalid": true as const } : {}),
+    ...(ids.length > 0 ? { "aria-describedby": ids.join(" ") } : {}),
+  };
 }
 
 /** Translated failure banner; an already used invitation points at login. */
@@ -62,10 +73,7 @@ export function InviteFailureAlert({
         messages={messages}
       />
       {failure.code === "invitation_used" && (
-        <Link
-          href="/login"
-          className="inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
+        <Link href="/login" className={cancelClass}>
           {t("Sign in", messages)}
         </Link>
       )}
@@ -80,33 +88,36 @@ export function InviteFailureAlert({
  */
 export function InviteForm({ token, messages }: { token: string; messages: TranslationMap }) {
   const router = useRouter();
+  const inFlight = useRef(false);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<MutationFailure | null>(null);
   const [fieldErrors, setFieldErrors] = useState<InviteFieldErrors>({});
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting) return;
+    if (inFlight.current) return;
 
     const data = new FormData(event.currentTarget);
     setFailure(null);
     setFieldErrors({});
     setSubmitting(true);
 
-    const outcome = await submitInvite(
-      {
-        token,
-        email: String(data.get("email") ?? ""),
-        password: String(data.get("password") ?? ""),
-        confirmation: String(data.get("confirmation") ?? ""),
-      },
-      { replace: (href) => router.replace(href) },
+    const outcome = await submitOnce(inFlight, () =>
+      submitInvite(
+        {
+          token,
+          email: String(data.get("email") ?? ""),
+          password: String(data.get("password") ?? ""),
+          confirmation: String(data.get("confirmation") ?? ""),
+        },
+        { replace: (href) => router.replace(href) },
+      ),
     );
 
-    if (outcome.kind === "redeemed") return;
+    if (outcome?.kind === "redeemed") return;
     setSubmitting(false);
-    if (outcome.kind === "invalid") setFieldErrors(outcome.fieldErrors);
-    else setFailure(outcome.failure);
+    if (outcome?.kind === "invalid") setFieldErrors(outcome.fieldErrors);
+    else if (outcome) setFailure(outcome.failure);
   }
 
   return (
@@ -149,7 +160,7 @@ export function InviteForm({ token, messages }: { token: string; messages: Trans
           minLength={MIN_PASSWORD}
           maxLength={MAX_PASSWORD}
           autoComplete="new-password"
-          {...fieldProps("password", fieldErrors)}
+          {...fieldProps("password", fieldErrors, "invite-password-hint")}
           className={inputClass}
         />
       </FormField>
@@ -176,10 +187,7 @@ export function InviteForm({ token, messages }: { token: string; messages: Trans
       {failure && <InviteFailureAlert failure={failure} messages={messages} />}
 
       <FormActions>
-        <Link
-          href="/login"
-          className="inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
+        <Link href="/login" className={cancelClass}>
           {t("Sign in", messages)}
         </Link>
         <Button type="submit" variant="primary" className="min-h-11" disabled={submitting}>

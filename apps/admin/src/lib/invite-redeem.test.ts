@@ -97,6 +97,12 @@ describe("redeemInvitation", () => {
     await expect(redeemInvitation(INPUT, fetcher)).resolves.toEqual({ ok: false });
   });
 
+  it("rejects a 200 JSON object because the contract only creates with 201", async () => {
+    const fetcher = vi.fn(async () => jsonResponse({ user: { id: "u1" } }, 200));
+
+    await expect(redeemInvitation(INPUT, fetcher)).resolves.toEqual({ ok: false });
+  });
+
   it("rejects a 201 with a non-object body", async () => {
     const fetcher = vi.fn(async () => jsonResponse([1, 2], 201));
 

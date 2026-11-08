@@ -12,9 +12,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Public redemption call. The token is the capability: it travels in the path
- * only, never in the body, storage or a log. A success is `201` with a JSON
- * object (or `204`), the same rule as `readMutation`: a 2xx HTML page from a
- * proxy does not prove the account was created.
+ * only, never in the body, storage or a log.
+ *
+ * It deliberately does not use `readMutation`: that helper accepts any 2xx
+ * response whose body is a JSON object, but this endpoint's contract creates
+ * the account with `201` (JSON object) or, if ever changed, `204`. A `200`
+ * with a JSON body is not proof of creation (a proxy or a future gateway could
+ * answer it), so success here is narrower than the generic rule.
  */
 export async function redeemInvitation(
   input: RedeemInvitationInput,

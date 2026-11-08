@@ -31,6 +31,19 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
         ],
       },
+      {
+        // An HTTP header overrides the page's `<meta name="referrer">`, so the
+        // metadata alone would still leak the invitation token in the Referer
+        // when the user follows an outbound link. Declared after the global
+        // rule because Next applies the last matching entry: with
+        // `no-referrer` the token never leaves the URL. `X-Robots-Tag` mirrors
+        // `metadata.robots` for crawlers that ignore the meta tag.
+        source: "/invite/:token",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
     ];
   },
 };
