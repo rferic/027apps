@@ -12,6 +12,8 @@ export interface CreateApiKeyInput {
   scopes: string[];
   /** Only meaningful for service keys; the API defaults it to `admin`. */
   role_cap?: "admin" | "super_admin";
+  /** Owner of a delegated key; only a super_admin session may send it. */
+  user_id?: string;
 }
 
 export type CreateApiKeyResult = { ok: true; secret?: string } | MutationFailure;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Caller, DoorDeps } from "../api/types";
 import type { RateLimitStorage } from "../api/rate-limit-storage";
-import { apiKeysRoute, type ApiKeysRouteDeps } from "./api.js";
+import { apiKeysRoute, createApiKeyRoute, type ApiKeysRouteDeps } from "./api.js";
 
 const admin: Caller = { kind: "session", userId: "admin-1", role: "super_admin" };
 
@@ -77,8 +77,133 @@ async function list(route: ReturnType<typeof apiKeysRoute>, url: string) {
   };
 }
 
-describe("api keys route pagination", () => {
-  it("returns the first page with limit=2 and the total", async () => {
+interface InsertedKey {
+  kind: string;
+  scopes: string[];
+  user_id: string | null;
+  role_cap: string | null;
+}
+
+function createDeps(who: Caller): { deps: ApiKeysRouteDeps; inserts: InsertedKey[] } {
+  const inserts: InsertedKey[] = [];
+  const door: DoorDeps = { rateLimitStorage: countingStorage(), logger: () => {} };
+  const deps: ApiKeysRouteDeps = {
+    door,
+    auth: async () => who,
+    apiKeys: {
+      db: {
+        async query(sql: string, params: unknown[] = []) {
+          if (sql.includes("from public.profiles")) return { rows: [{ role: "user" }] };
+          if (sql.includes("count(*)::int as n")) return { rows: [{ n: 0 }] };
+          if (sql.startsWith("insert into public.api_keys")) {
+            const [hash, kind, name, scopes, userId, roleCap, actor, expiresAt] = params as [
+              string,
+              string,
+              string,
+              string[],
+              string | null,
+              string | null,
+              string,
+              string | null,
+            ];
+            inserts.push({ kind, scopes, user_id: userId, role_cap: roleCap });
+            return {
+              rows: [
+                {
+                  id: "k-new",
+                  key_hash: hash,
+                  kind,
+                  name,
+                  scopes,
+                  user_id: userId,
+                  role_cap: roleCap,
+                  created_by: actor,
+                  expires_at: expiresAt,
+                  revoked_at: null,
+                  last_used_at: null,
+                  created_at: "2026-11-08T00:00:00.000Z",
+                },
+              ],
+            };
+          }
+          return { rows: [] };
+        },
+      },
+    },
+  };
+  return { deps, inserts };
+}
+
+describe("api keys create route", () => {
+  it("passes user_id through to the service for a super_admin session", async () => {
+    const { deps, inserts } = createDeps({
+      kind: "session",
+      userId: "root",
+      role: "super_admin",
+    });
+
+    const res = await createApiKeyRoute(deps)(
+      new Request("http://local/api/v1/api-keys", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          kind: "delegated",
+          name: "For another user",
+          scopes: ["profile:read"],
+          user_id: "11111111-1111-4111-8111-111111111111",
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    expect(inserts).toEqual([
+      {
+        kind: "delegated",
+        scopes: ["profile:read"],
+        user_id: "11111111-1111-4111-8111-111111111111",
+        role_cap: null,
+      },
+    ]);
+  });
+
+  it("rejects a user_id that is not a uuid with validation_failed", async () => {
+    const { deps } = createDeps({ kind: "session", userId: "root", role: "super_admin" });
+
+    const res = await createApiKeyRoute(deps)(
+      new Request("http://local/api/v1/api-keys", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          kind: "delegated",
+          name: "Bad owner",
+          scopes: ["profile:read"],
+          user_id: "not-a-uuid",
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { error: { code: string } }).toMatchObject({
+      error: { code: "validation_failed" },
+    });
+  });
+
+  it("denies a caller without api_keys:write", async () => {
+    const { deps } = createDeps({ kind: "service", keyId: "svc", scopes: [], roleCap: "admin" });
+
+    const res = await createApiKeyRoute(deps)(
+      new Request("http://local/api/v1/api-keys", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: "delegated", name: "Nope", scopes: ["profile:read"] }),
+      }),
+    );
+
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("api keys route pagination", () => {  it("returns the first page with limit=2 and the total", async () => {
     const { status, body } = await list(apiKeysRoute(pagedDeps(rows(3))), "/api/v1/api-keys?limit=2");
 
     expect(status).toBe(200);

@@ -17,6 +17,7 @@ import {
   type ScopeGroupId,
 } from "@/lib/api-key-scopes";
 import type { MutationFailure } from "@/lib/mutation-result";
+import type { ApiKeyOwner } from "@/lib/panel-keys";
 import { useCreateForm } from "@/lib/use-create-form";
 
 const inputClass =
@@ -32,6 +33,9 @@ type KeyKind = "service" | "delegated";
 
 /** Empty until the user picks a cap; a service key cannot be created without it. */
 export type ApiKeyRoleCap = ApiKeyScopeRoleCap | "";
+
+/** Mirrors the Core limit; the API still enforces it inside a transaction. */
+export const MAX_ACTIVE_DELEGATED_KEYS = 5;
 
 const SCOPE_GROUP_LABEL: Record<ScopeGroupId, (messages: TranslationMap) => string> = {
   profile: (messages) => t("Profile", messages),
@@ -65,18 +69,22 @@ function fieldState(field: string, errors: string[] | undefined, hintId?: string
 export interface ApiKeyFormState {
   kind: KeyKind;
   roleCap: ApiKeyRoleCap;
+  /** Empty means the current user; only a super_admin can pick another. */
+  ownerId: string;
   scopes: readonly string[];
 }
 
 export const INITIAL_API_KEY_FORM_STATE: ApiKeyFormState = {
   kind: "delegated",
   roleCap: "",
+  ownerId: "",
   scopes: [],
 };
 
 export type ApiKeyFormAction =
   | { type: "kind"; kind: KeyKind }
   | { type: "role-cap"; roleCap: ApiKeyRoleCap }
+  | { type: "owner"; ownerId: string }
   | { type: "scope"; scope: string; checked: boolean }
   | { type: "reset" };
 
@@ -105,16 +113,20 @@ export function apiKeyFormReducer(
 ): ApiKeyFormState {
   switch (action.type) {
     case "kind":
-      // The cap belongs to the service kind: it must be chosen again.
+      // The cap belongs to the service kind: it must be chosen again. The
+      // owner belongs to the delegated kind and falls back to the actor.
       return {
         kind: action.kind,
         roleCap: "",
+        ownerId: "",
         scopes: pruneScopes(action.kind, "", state.scopes),
       };
     case "role-cap": {
       const roleCap = normalizeRoleCap(action.roleCap);
       return { ...state, roleCap, scopes: pruneScopes(state.kind, roleCap, state.scopes) };
     }
+    case "owner":
+      return { ...state, ownerId: action.ownerId };
     case "scope": {
       if (!action.checked) {
         return { ...state, scopes: state.scopes.filter((scope) => scope !== action.scope) };
@@ -128,29 +140,49 @@ export function apiKeyFormReducer(
   }
 }
 
-function buildCreateInput(
-  data: FormData,
-  kind: KeyKind,
-  roleCap: ApiKeyRoleCap,
-  selected: readonly string[],
+/** Input the API accepts: the owner is only sent when it is not the actor. */
+export function buildApiKeyCreateInput(
+  fields: {
+    kind: KeyKind;
+    name: string;
+    scopes: readonly string[];
+    roleCap?: ApiKeyRoleCap;
+    ownerId?: string;
+  },
+  currentUserId: string,
 ): CreateApiKeyInput {
-  const allowed = new Set(allowedApiKeyScopes(kind, roleCap));
+  const allowed = new Set(allowedApiKeyScopes(fields.kind, fields.roleCap ?? ""));
   const input: CreateApiKeyInput = {
-    kind,
-    name: String(data.get("name") ?? "").trim(),
-    scopes: selected.filter((scope) => allowed.has(scope)),
+    kind: fields.kind,
+    name: fields.name.trim(),
+    scopes: fields.scopes.filter((scope) => allowed.has(scope)),
   };
-  if (kind === "service" && roleCap) input.role_cap = roleCap;
+  if (fields.kind === "service") {
+    if (fields.roleCap) input.role_cap = fields.roleCap;
+  } else if (fields.ownerId && fields.ownerId !== currentUserId) {
+    input.user_id = fields.ownerId;
+  }
   return input;
 }
 
-function CreateErrorAlert({
+/** Failure banner: the five-key limit gets its own explanation. */
+export function ApiKeyCreateError({
   error,
   messages,
 }: {
   error: MutationFailure;
   messages: TranslationMap;
 }) {
+  if (error.code === "conflict" && error.details?.code === "key_limit") {
+    return (
+      <FormAlert
+        message={t("This user has reached the limit of 5 active keys.", messages)}
+        details={[t("Revoke one key to create another.", messages)]}
+        requestId={error.requestId}
+        messages={messages}
+      />
+    );
+  }
   return (
     <FormAlert
       message={t("We couldn't create the API key.", messages)}
@@ -370,8 +402,66 @@ export function ApiKeyKindFields({
   );
 }
 
+/** Owner selector for a delegated key; only a super_admin sees it. */
+export function ApiKeyOwnerField({
+  owners,
+  currentUserId,
+  ownerId,
+  activeCounts,
+  onOwnerChange,
+  fieldErrors,
+  messages,
+}: {
+  owners: readonly ApiKeyOwner[];
+  currentUserId: string;
+  ownerId: string;
+  activeCounts: Readonly<Record<string, number>>;
+  onOwnerChange: (ownerId: string) => void;
+  fieldErrors: Record<string, string[]>;
+  messages: TranslationMap;
+}) {
+  const selected = ownerId || currentUserId;
+  const atLimit = (activeCounts[selected] ?? 0) >= MAX_ACTIVE_DELEGATED_KEYS;
+  const currentListed = owners.some((owner) => owner.id === currentUserId);
+
+  return (
+    <FormField
+      id="api-key-owner"
+      label={t("Owner", messages)}
+      hint={t("The key acts for the selected user.", messages)}
+      hintId="api-key-owner-help"
+      error={fieldErrors.owner_id?.[0] ?? fieldErrors.user_id?.[0]}
+      errorId="api-key-owner-error"
+    >
+      <Select
+        id="api-key-owner"
+        name="owner_id"
+        value={selected}
+        onChange={(event) => onOwnerChange(event.target.value)}
+        {...fieldState("owner_id", fieldErrors.owner_id, "api-key-owner-help")}
+      >
+        {!currentListed && <option value={currentUserId}>{t("Me", messages)}</option>}
+        {owners.map((owner) => (
+          <option key={owner.id} value={owner.id}>
+            {owner.name}
+          </option>
+        ))}
+      </Select>
+      {atLimit && (
+        <p role="status" className="text-xs font-semibold text-destructive">
+          {t("This user has reached the limit of 5 active keys.", messages)}
+        </p>
+      )}
+    </FormField>
+  );
+}
+
 interface ApiKeyCreateFormBodyProps {
   canCreateService: boolean;
+  canChooseOwner: boolean;
+  currentUserId: string;
+  owners: readonly ApiKeyOwner[];
+  activeCounts: Readonly<Record<string, number>>;
   submitting: boolean;
   error: MutationFailure | null;
   fieldErrors: Record<string, string[]>;
@@ -383,6 +473,10 @@ interface ApiKeyCreateFormBodyProps {
 
 function ApiKeyCreateFormBody({
   canCreateService,
+  canChooseOwner,
+  currentUserId,
+  owners,
+  activeCounts,
   submitting,
   error,
   fieldErrors,
@@ -392,6 +486,10 @@ function ApiKeyCreateFormBody({
   messages,
 }: ApiKeyCreateFormBodyProps) {
   const [state, dispatch] = useReducer(apiKeyFormReducer, INITIAL_API_KEY_FORM_STATE);
+  const ownerId = state.ownerId || currentUserId;
+  const atLimit =
+    state.kind === "delegated" &&
+    (activeCounts[ownerId] ?? 0) >= MAX_ACTIVE_DELEGATED_KEYS;
 
   function handleKindChange(kind: KeyKind) {
     dispatch({ type: "kind", kind });
@@ -403,13 +501,32 @@ function ApiKeyCreateFormBody({
     onClearFieldError("role_cap");
   }
 
+  function handleOwnerChange(nextOwnerId: string) {
+    dispatch({ type: "owner", ownerId: nextOwnerId });
+    onClearFieldError("owner_id");
+    onClearFieldError("user_id");
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (state.kind === "service" && !state.roleCap) {
       onInvalid({ role_cap: [t("Choose a role cap.", messages)] });
       return;
     }
-    onSubmit(buildCreateInput(new FormData(event.currentTarget), state.kind, state.roleCap, state.scopes));
+    if (atLimit) return;
+    const data = new FormData(event.currentTarget);
+    onSubmit(
+      buildApiKeyCreateInput(
+        {
+          kind: state.kind,
+          name: String(data.get("name") ?? ""),
+          scopes: state.scopes,
+          roleCap: state.roleCap,
+          ownerId: state.ownerId,
+        },
+        currentUserId,
+      ),
+    );
   }
 
   return (
@@ -442,6 +559,18 @@ function ApiKeyCreateFormBody({
         messages={messages}
       />
 
+      {canChooseOwner && state.kind === "delegated" && (
+        <ApiKeyOwnerField
+          owners={owners}
+          currentUserId={currentUserId}
+          ownerId={state.ownerId}
+          activeCounts={activeCounts}
+          onOwnerChange={handleOwnerChange}
+          fieldErrors={fieldErrors}
+          messages={messages}
+        />
+      )}
+
       <ApiKeyScopeChoices
         kind={state.kind}
         roleCap={state.roleCap}
@@ -451,13 +580,18 @@ function ApiKeyCreateFormBody({
         messages={messages}
       />
 
-      {error && <CreateErrorAlert error={error} messages={messages} />}
+      {error && <ApiKeyCreateError error={error} messages={messages} />}
 
       <FormActions>
         <Link href="/keys" className={cancelClass}>
           {t("Cancel", messages)}
         </Link>
-        <Button type="submit" variant="primary" className="min-h-11" disabled={submitting}>
+        <Button
+          type="submit"
+          variant="primary"
+          className="min-h-11"
+          disabled={submitting || atLimit}
+        >
           {submitting ? t("Creating…", messages) : t("Create API key", messages)}
         </Button>
       </FormActions>
@@ -467,6 +601,10 @@ function ApiKeyCreateFormBody({
 
 interface ApiKeyCreateFormProps {
   canCreateService: boolean;
+  canChooseOwner: boolean;
+  currentUserId: string;
+  owners: readonly ApiKeyOwner[];
+  activeCounts: Readonly<Record<string, number>>;
   messages: TranslationMap;
 }
 
@@ -476,7 +614,14 @@ interface ApiKeyCreateFormProps {
  * create-form flow resets on every visit, so "Done" and a new "New" never show
  * the previous secret.
  */
-export function ApiKeyCreateForm({ canCreateService, messages }: ApiKeyCreateFormProps) {
+export function ApiKeyCreateForm({
+  canCreateService,
+  canChooseOwner,
+  currentUserId,
+  owners,
+  activeCounts,
+  messages,
+}: ApiKeyCreateFormProps) {
   const router = useRouter();
   const createForm = useCreateForm();
 
@@ -520,6 +665,10 @@ export function ApiKeyCreateForm({ canCreateService, messages }: ApiKeyCreateFor
     <ApiKeyCreateFormBody
       key={createForm.formKey}
       canCreateService={canCreateService}
+      canChooseOwner={canChooseOwner}
+      currentUserId={currentUserId}
+      owners={owners}
+      activeCounts={activeCounts}
       submitting={createForm.submitting}
       error={createForm.error}
       fieldErrors={createForm.fieldErrors}

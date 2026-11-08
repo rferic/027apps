@@ -83,13 +83,15 @@ async function withTx<T>(deps: ModulesDeps, fn: (db: QueryClient) => Promise<T>)
 
 function isAdmin(caller: Caller): boolean {
   if (caller.kind === "session") return caller.role === "admin" || caller.role === "super_admin";
-  if (caller.kind === "service" || caller.kind === "delegated") return caller.roleCap !== "user";
+  if (caller.kind === "service") return true;
+  // A delegated key is always a plain user, whatever its stored role cap.
   return false;
 }
 
 function isSuperAdmin(caller: Caller): boolean {
   if (caller.kind === "session") return caller.role === "super_admin";
-  if (caller.kind === "service" || caller.kind === "delegated") return caller.roleCap === "super_admin";
+  if (caller.kind === "service") return caller.roleCap === "super_admin";
+  // A delegated key is always a plain user, whatever its stored role cap.
   return false;
 }
 

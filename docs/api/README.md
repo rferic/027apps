@@ -49,8 +49,8 @@ There are three credentials, for three different callers. All are **scoped and r
 | Third-party tool acting as a user | **Delegated API key** (`027_usr_…`) | `Authorization: Bearer 027_usr_…` |
 | Instance tooling / administration | **Instance API key** (`027_svc_…`) | `Authorization: Bearer 027_svc_…` |
 
-- **Scopes per action.** Each endpoint declares the scopes it needs (`expenses:read`, `users:write`, `modules:grant`, …). A delegated key is limited to `min(key scopes, user permissions)`.
-- **Instance keys** carry a `role_cap` (`admin` or `super_admin`): their effective power is `min(scopes, role_cap)`. An instance key **never** acts as a user.
+- **Scopes per action.** Each endpoint declares the scopes it needs (`expenses:read`, `users:write`, `modules:grant`, …). A delegated key always acts as a **plain user**: its scopes are limited to the closed delegated allowlist plus the owner's live module grants, and any stored `role_cap` is ignored.
+- **Instance keys** carry a `role_cap` (`admin` or `super_admin`): their effective power is `min(scopes, role_cap)`. An instance key **never** acts as a user and cannot use `profile:*`/`devices:*`.
 - **Revocation is immediate**: a revoked or expired key fails on the very next request (no cache delay).
 - **The mobile app uses only the Supabase JWT**; it never uses instance or delegated keys.
 - **Never put a key in a browser** or in client-side code. Keys are for servers and local tools.
@@ -218,7 +218,7 @@ The table reflects the **54 operations currently documented** (the authoritative
 | You | `GET/PATCH /me`, `GET /me/modules` | **previsto** |
 | Access (admin) | `POST/DELETE /users/{id}/modules/{key}` | per-user grant/revoke |
 | Invitations | `POST/GET /invitations`, `DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | redeem is the public join step (single use) |
-| API keys | `POST/GET /api-keys`, `GET/DELETE /api-keys/{id}` | secret returned once |
+| API keys | `POST/GET /api-keys`, `GET/DELETE /api-keys/{id}` | secret returned once; delegated keys act as a plain user; `user_id` optional for a super_admin; 5 active delegated keys per owner (409 `conflict`, `details.code = "key_limit"`); `/keys` panel is super_admin only |
 | Devices | `POST/GET /devices`, `DELETE /devices/{id}` | push registration and revocation |
 | Settings & currency | `GET /settings`, `PATCH /settings`, `PATCH /settings/{category}/{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
 | i18n | `GET /translations?locale=` | ETag-cached (304 on `If-None-Match`) |

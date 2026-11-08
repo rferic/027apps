@@ -150,7 +150,9 @@ export function PanelNav({ role, messages, variant = "sidebar", onNavigate }: Pa
       label: t("Platform", messages),
       items: [
         { label: t("Modules", messages), href: "/modules", icon: BoxIcon },
-        { label: t("API keys", messages), href: "/keys", icon: KeyIcon },
+        ...(role === "super_admin"
+          ? [{ label: t("API keys", messages), href: "/keys", icon: KeyIcon }]
+          : []),
       ],
     },
     {

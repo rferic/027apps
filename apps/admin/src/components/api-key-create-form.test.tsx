@@ -6,13 +6,37 @@ vi.mock("next/navigation", () => ({
 }));
 
 import {
+  ApiKeyCreateError,
   ApiKeyCreateForm,
   ApiKeyCreatedPanel,
   ApiKeyKindFields,
+  ApiKeyOwnerField,
   ApiKeyScopeChoices,
   apiKeyFormReducer,
+  buildApiKeyCreateInput,
   INITIAL_API_KEY_FORM_STATE,
 } from "./api-key-create-form";
+
+const OWNERS = [
+  { id: "u1", name: "Sara" },
+  { id: "u2", name: "Ana" },
+];
+
+function form(
+  overrides: Partial<Parameters<typeof ApiKeyCreateForm>[0]> = {},
+) {
+  return (
+    <ApiKeyCreateForm
+      canCreateService
+      canChooseOwner
+      currentUserId="u1"
+      owners={OWNERS}
+      activeCounts={{}}
+      messages={{}}
+      {...overrides}
+    />
+  );
+}
 
 function fields(
   kind: "service" | "delegated",
@@ -44,7 +68,7 @@ function fields(
 
 describe("ApiKeyCreateForm", () => {
   it("renders the fields on a page, not inside a creation dialog", () => {
-    const html = renderToStaticMarkup(<ApiKeyCreateForm canCreateService={false} messages={{}} />);
+    const html = renderToStaticMarkup(form({ canCreateService: false, canChooseOwner: false }));
 
     expect(html).toContain("<form");
     expect(html).toContain("api-key-name");
@@ -54,15 +78,15 @@ describe("ApiKeyCreateForm", () => {
   });
 
   it("starts empty: no secret from a previous creation", () => {
-    const html = renderToStaticMarkup(<ApiKeyCreateForm canCreateService messages={{}} />);
+    const html = renderToStaticMarkup(form());
 
     expect(html).not.toContain("API key created");
     expect(html).not.toContain("Copy this key now.");
     expect(html).toContain("Create API key");
   });
 
-  it("does not offer service keys to an admin", () => {
-    const html = renderToStaticMarkup(<ApiKeyCreateForm canCreateService={false} messages={{}} />);
+  it("does not offer service keys to an actor who cannot create them", () => {
+    const html = renderToStaticMarkup(form({ canCreateService: false, canChooseOwner: false }));
 
     expect(html).toContain('value="delegated"');
     expect(html).not.toContain('value="service"');
@@ -70,9 +94,55 @@ describe("ApiKeyCreateForm", () => {
   });
 
   it("offers service creation to a super_admin", () => {
-    const html = renderToStaticMarkup(<ApiKeyCreateForm canCreateService messages={{}} />);
+    const html = renderToStaticMarkup(form());
 
     expect(html).toContain('value="service"');
+  });
+
+  it("offers the owner selector for a delegated key to a super_admin", () => {
+    const html = renderToStaticMarkup(form());
+
+    expect(html).toContain('name="owner_id"');
+    expect(html).toContain("Sara");
+    expect(html).toContain("Ana");
+    expect(html).toContain("The key acts for the selected user.");
+  });
+
+  it("hides the owner selector when the actor cannot choose an owner", () => {
+    const html = renderToStaticMarkup(form({ canChooseOwner: false }));
+
+    expect(html).not.toContain('name="owner_id"');
+  });
+
+  it("explains the limit and disables creation for an owner with 5 active keys", () => {
+    const html = renderToStaticMarkup(form({ activeCounts: { u1: 5 } }));
+
+    expect(html).toContain("This user has reached the limit of 5 active keys.");
+    expect(html).toContain("disabled");
+  });
+
+  it("does not disable creation while the owner has room", () => {
+    const html = renderToStaticMarkup(form({ activeCounts: { u1: 4 } }));
+
+    expect(html).not.toContain("This user has reached the limit of 5 active keys.");
+  });
+});
+
+describe("ApiKeyOwnerField", () => {
+  it("keeps the selected owner when it is part of the list", () => {
+    const html = renderToStaticMarkup(
+      <ApiKeyOwnerField
+        owners={OWNERS}
+        currentUserId="u1"
+        ownerId="u2"
+        activeCounts={{}}
+        onOwnerChange={() => {}}
+        fieldErrors={{}}
+        messages={{}}
+      />,
+    );
+
+    expect(html).toContain('<option value="u2" selected=""');
   });
 });
 
@@ -99,11 +169,15 @@ describe("ApiKeyKindFields and scopes", () => {
     expect(html).toContain('value="users:deactivate"');
   });
 
-  it("never offers maintenance:run to a delegated key", () => {
+  it("never offers maintenance:run or administration scopes to a delegated key", () => {
     const html = fields("delegated", "super_admin");
 
     expect(html).not.toContain('value="maintenance:run"');
     expect(html).not.toContain('value="users:deactivate"');
+    expect(html).not.toContain('value="settings:write"');
+    expect(html).not.toContain('value="currencies:write"');
+    expect(html).toContain('value="users:read"');
+    expect(html).toContain('value="user_categories:read"');
   });
 
   it("asks for a role cap before offering the super-admin-only scopes", () => {
@@ -130,21 +204,23 @@ describe("apiKeyFormReducer", () => {
     { type: "role-cap", roleCap: "super_admin" },
   );
 
-  it("starts delegated with no role cap and no scopes", () => {
+  it("starts delegated, owned by the actor, with no role cap and no scopes", () => {
     expect(INITIAL_API_KEY_FORM_STATE).toEqual({
       kind: "delegated",
       roleCap: "",
+      ownerId: "",
       scopes: [],
     });
   });
 
   it("requires a role cap again when the kind becomes service", () => {
     const service = apiKeyFormReducer(
-      { kind: "delegated", roleCap: "admin", scopes: ["users:read"] },
+      { kind: "delegated", roleCap: "admin", ownerId: "u2", scopes: ["users:read"] },
       { type: "kind", kind: "service" },
     );
 
     expect(service.roleCap).toBe("");
+    expect(service.ownerId).toBe("");
     expect(service.scopes).toEqual(["users:read"]);
   });
 
@@ -197,6 +273,60 @@ describe("apiKeyFormReducer", () => {
 
     expect(checked.scopes).toEqual(["users:read"]);
     expect(unchecked.scopes).toEqual([]);
+  });
+
+  it("records the chosen owner", () => {
+    const state = apiKeyFormReducer(INITIAL_API_KEY_FORM_STATE, {
+      type: "owner",
+      ownerId: "u2",
+    });
+
+    expect(state.ownerId).toBe("u2");
+  });
+});
+
+describe("buildApiKeyCreateInput", () => {
+  it("sends user_id only when a super_admin picks another owner", () => {
+    expect(
+      buildApiKeyCreateInput({ kind: "delegated", name: "Key", scopes: ["profile:read"], ownerId: "u2" }, "u1"),
+    ).toEqual({ kind: "delegated", name: "Key", scopes: ["profile:read"], user_id: "u2" });
+  });
+
+  it("keeps the actor as owner when no other user is selected", () => {
+    expect(
+      buildApiKeyCreateInput({ kind: "delegated", name: "Key", scopes: ["profile:read"], ownerId: "" }, "u1"),
+    ).toEqual({ kind: "delegated", name: "Key", scopes: ["profile:read"] });
+  });
+
+  it("never sends an owner for a service key", () => {
+    expect(
+      buildApiKeyCreateInput(
+        { kind: "service", name: "Service", scopes: ["users:read"], roleCap: "admin", ownerId: "u2" },
+        "u1",
+      ),
+    ).toEqual({ kind: "service", name: "Service", scopes: ["users:read"], role_cap: "admin" });
+  });
+});
+
+describe("ApiKeyCreateError", () => {
+  it("explains the five-key limit instead of a generic conflict", () => {
+    const html = renderToStaticMarkup(
+      <ApiKeyCreateError
+        error={{ ok: false, code: "conflict", details: { code: "key_limit" } }}
+        messages={{}}
+      />,
+    );
+
+    expect(html).toContain("This user has reached the limit of 5 active keys.");
+    expect(html).not.toContain("We couldn't create the API key.");
+  });
+
+  it("falls back to the generic failure for any other error", () => {
+    const html = renderToStaticMarkup(
+      <ApiKeyCreateError error={{ ok: false, code: "internal" }} messages={{}} />,
+    );
+
+    expect(html).toContain("We couldn&#x27;t create the API key.");
   });
 });
 

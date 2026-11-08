@@ -7,6 +7,7 @@ import { PanelForbidden } from "@/components/panel-forbidden";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
+import { loadActiveDelegatedCounts, loadApiKeyOwners } from "@/lib/panel-keys";
 
 /** The page reads the session while rendering; opt out of the static shell. */
 export const instant = false;
@@ -27,7 +28,7 @@ function NewKeyBreadcrumb({ messages }: { messages: TranslationMap }) {
 }
 
 export default async function NewApiKeyPage() {
-  const gate = await requirePanel("admin");
+  const gate = await requirePanel("super_admin");
 
   const cookieStore = await cookies();
   const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
@@ -37,6 +38,11 @@ export default async function NewApiKeyPage() {
   if ("denied" in gate) {
     return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
   }
+
+  const [ownersResult, activeCounts] = await Promise.all([
+    loadApiKeyOwners(),
+    loadActiveDelegatedCounts(),
+  ]);
 
   return (
     <section className="flex flex-col gap-4">
@@ -58,6 +64,10 @@ export default async function NewApiKeyPage() {
 
       <ApiKeyCreateForm
         canCreateService={gate.user.role === "super_admin"}
+        canChooseOwner={gate.user.role === "super_admin"}
+        currentUserId={gate.user.id}
+        owners={ownersResult.ok ? ownersResult.owners : []}
+        activeCounts={activeCounts}
         messages={messages}
       />
     </section>

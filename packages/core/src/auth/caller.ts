@@ -61,16 +61,15 @@ export async function resolveCaller(req: Request, deps: CallerResolverDeps): Pro
       return { kind: 'service', keyId: key.id, scopes: key.scopes, roleCap: key.roleCap };
     }
     if (!key.userId) throw new DomainError('unauthorized', 'Delegated key without a user');
-    const [role, active] = await Promise.all([
-      deps.profiles.getRole(key.userId),
-      deps.profiles.isActive(key.userId),
-    ]);
-    if (!role || !active) throw new DomainError('unauthorized', 'Profile missing or deactivated');
+    const active = await deps.profiles.isActive(key.userId);
+    if (!active) throw new DomainError('unauthorized', 'Profile missing or deactivated');
+    // A delegated key is always a plain user: the owner's live role (and any
+    // stored role_cap) is ignored, so it can never widen into administration.
     return {
       kind: 'delegated',
       keyId: key.id,
       scopes: key.scopes,
-      roleCap: role,
+      roleCap: 'user',
       userId: key.userId,
     };
   }

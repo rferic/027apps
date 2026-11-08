@@ -109,6 +109,9 @@ describe("api keys service", () => {
 
   it("scopes listing by role: super_admin sees all, everyone else sees their own", async () => {
     await inRollback(async (c) => {
+      // The local stack may hold keys from other runs; this test asserts the
+      // global count, so it starts from a clean table inside the rollback.
+      await query(c, "delete from public.api_keys");
       const superAdmin = await session(c, "super_admin");
       const admin = await session(c, "admin");
       const user = await session(c, "user");

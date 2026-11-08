@@ -45,7 +45,7 @@ describe('resolveCaller — machine tokens', () => {
     });
   });
 
-  it('resolves a delegated key to the owner with their live role', async () => {
+  it('resolves a delegated key as a plain user even when the owner is an admin', async () => {
     const port = apiKeys({
       id: 'k2',
       kind: 'delegated',
@@ -66,7 +66,7 @@ describe('resolveCaller — machine tokens', () => {
       kind: 'delegated',
       keyId: 'k2',
       scopes: ['profile:read'],
-      roleCap: 'admin',
+      roleCap: 'user',
       userId: 'u1',
     });
   });

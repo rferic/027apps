@@ -6,6 +6,7 @@ const redirectMock = vi.fn((url: string) => {
 const getSessionMock = vi.fn();
 const depsMock = vi.fn();
 const handlerMock = vi.fn();
+const usersHandlerMock = vi.fn();
 const queryMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
@@ -22,11 +23,25 @@ vi.mock("@/lib/api-keys-route-deps", () => ({
   apiKeysRouteDeps: () => depsMock(),
 }));
 
+vi.mock("@/lib/api/door", () => ({
+  getInfra: async () => ({
+    deps: {},
+    auth: async () => ({ kind: "anon" }),
+    settingsDeps: { db: { query: queryMock } },
+  }),
+  withTransactionClient: async <T,>(fn: (db: unknown) => Promise<T>) =>
+    fn({ query: queryMock }),
+}));
+
 vi.mock("@027apps/core/api-keys/api.js", () => ({
   apiKeysRoute: () => handlerMock,
 }));
 
-import { loadApiKeys } from "./panel-keys";
+vi.mock("@027apps/core/users/api.js", () => ({
+  usersRoute: () => usersHandlerMock,
+}));
+
+import { loadActiveDelegatedCounts, loadApiKeyOwners, loadApiKeys } from "./panel-keys";
 
 const KEY = {
   id: "k1",
@@ -81,6 +96,72 @@ beforeEach(() => {
   queryMock.mockReset();
   queryMock.mockResolvedValue({ rows: [{ id: "u1", display_name: "Sara" }] });
   handlerMock.mockReset();
+  usersHandlerMock.mockReset();
+});
+
+describe("loadApiKeyOwners", () => {
+  it("loads active users, capped at 100, and falls back to the id as the name", async () => {
+    usersHandlerMock.mockResolvedValue(
+      json({
+        users: [
+          { id: "u1", display_name: "Sara" },
+          { id: "u2", display_name: "" },
+        ],
+        total: 2,
+        active_total: 2,
+      }),
+    );
+
+    await expect(loadApiKeyOwners()).resolves.toEqual({
+      ok: true,
+      owners: [
+        { id: "u1", name: "Sara" },
+        { id: "u2", name: "u2" },
+      ],
+    });
+
+    const request = usersHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe("http://panel.internal/api/v1/users?state=active&limit=100&offset=0");
+    expect(request.headers.get("authorization")).toBe("Bearer token-123");
+  });
+
+  it("propagates the public error code", async () => {
+    usersHandlerMock.mockResolvedValue(
+      json({ error: { code: "insufficient_scope", request_id: "req-1" } }, 403),
+    );
+
+    await expect(loadApiKeyOwners()).resolves.toEqual({
+      ok: false,
+      code: "insufficient_scope",
+      requestId: "req-1",
+    });
+  });
+
+  it("rejects a malformed user row", async () => {
+    usersHandlerMock.mockResolvedValue(json({ users: [{ display_name: "No id" }], total: 1 }));
+
+    await expect(loadApiKeyOwners()).resolves.toEqual({ ok: false });
+  });
+});
+
+describe("loadActiveDelegatedCounts", () => {
+  it("counts active delegated keys per owner", async () => {
+    queryMock.mockResolvedValue({
+      rows: [
+        { user_id: "u1", n: 2 },
+        { user_id: "u2", n: 5 },
+      ],
+    });
+
+    await expect(loadActiveDelegatedCounts()).resolves.toEqual({ u1: 2, u2: 5 });
+    expect(String(queryMock.mock.calls[0]?.[0])).toContain("kind = 'delegated'");
+  });
+
+  it("degrades to no counts instead of blocking the page", async () => {
+    queryMock.mockRejectedValue(new Error("db down"));
+
+    await expect(loadActiveDelegatedCounts()).resolves.toEqual({});
+  });
 });
 
 describe("loadApiKeys", () => {

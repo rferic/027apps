@@ -57,28 +57,61 @@ describe("RLS: api keys and devices", () => {
     });
   });
 
-  it("an admin reads delegated keys but not service keys; super_admin reads all", async () => {
+  it("an admin no longer reads delegated keys of other users; the owner and super_admin do", async () => {
     await withClient(async (c) => {
       await c.query("BEGIN");
       const superAdmin = await seedUser(c, "super_admin", "RLS Key Super");
       const admin = await seedUser(c, "admin", "RLS Key Admin 2");
       const user = await seedUser(c, "user", "RLS Key User 2");
-      await seedKey(c, { kind: "delegated", userId: user.id, createdBy: user.id });
-      await seedKey(c, { kind: "service", userId: null, createdBy: superAdmin.id });
+      const delegatedId = await seedKey(c, {
+        kind: "delegated",
+        userId: user.id,
+        createdBy: user.id,
+      });
+      const serviceId = await seedKey(c, {
+        kind: "service",
+        userId: null,
+        createdBy: superAdmin.id,
+      });
 
       await impersonate(c, admin.id);
-      await expect(count(c, "select count(*) from public.api_keys")).resolves.toBe(1);
+      await expect(
+        count(c, "select count(*) from public.api_keys where id = any($1::uuid[])", [
+          [delegatedId, serviceId],
+        ]),
+      ).resolves.toBe(0);
+
+      await c.query("RESET ROLE");
+      await impersonate(c, user.id);
+      await expect(
+        count(c, "select count(*) from public.api_keys where id = any($1::uuid[])", [
+          [delegatedId, serviceId],
+        ]),
+      ).resolves.toBe(1);
+
       await c.query("ROLLBACK");
     });
     await withClient(async (c) => {
       await c.query("BEGIN");
       const superAdmin = await seedUser(c, "super_admin", "RLS Key Super 3");
       const user = await seedUser(c, "user", "RLS Key User 3");
-      await seedKey(c, { kind: "delegated", userId: user.id, createdBy: user.id });
-      await seedKey(c, { kind: "service", userId: null, createdBy: superAdmin.id });
+      const delegatedId = await seedKey(c, {
+        kind: "delegated",
+        userId: user.id,
+        createdBy: user.id,
+      });
+      const serviceId = await seedKey(c, {
+        kind: "service",
+        userId: null,
+        createdBy: superAdmin.id,
+      });
 
       await impersonate(c, superAdmin.id);
-      await expect(count(c, "select count(*) from public.api_keys")).resolves.toBe(2);
+      await expect(
+        count(c, "select count(*) from public.api_keys where id = any($1::uuid[])", [
+          [delegatedId, serviceId],
+        ]),
+      ).resolves.toBe(2);
       await c.query("ROLLBACK");
     });
   });

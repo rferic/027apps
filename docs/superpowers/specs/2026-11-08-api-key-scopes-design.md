@@ -1,6 +1,6 @@
 # Spec — Scopes de claves API y claves delegadas por propietario
 
-**Fecha:** 2026-11-08 · **Estado:** Pendiente de aprobación del usuario
+**Fecha:** 2026-11-08 · **Estado:** Aprobada con la política final (§11)
 **Base:** [tokens §5](2026-10-25-token-model.md) · [core-api §3.6](2026-10-26-core-api.md) ·
 [ADR 0004](../../adr/0004-bordes-y-capa-de-aplicacion.md) ·
 [ADR 0007](../../adr/0007-manejo-de-errores.md)
@@ -43,7 +43,7 @@ Leyenda: ✓ permitido · ✗ denegado · «propias» solo sobre claves del mism
 | `modules:read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `<módulo>:read` / `<módulo>:read_write` | ✓ si el dueño tiene el módulo asignado | ✗ | ✗ | — | — | — |
 | `modules:grant` / `modules:manage` | ✗ | ✓ | ✓ | ✓ | ✓ | ✗ |
-| `api_keys:read` / `write` / `revoke` | ✓ (propias) | ✓ | ✓ | ✗ | ✓ | ✓ (propias) |
+| `api_keys:read` / `write` / `revoke` | ✓ (propias) | ✓ | ✓ | ✓ (propias) | ✓ | ✓ (propias) |
 | `users:read` | ✓ (instancia completa, sin email) | ✓ | ✓ | ✓ | ✓ | ✗ |
 | `users:write` | ✗ | ✓ | ✓ | ✓ | ✓ | ✗ |
 | `users:deactivate` | ✗ | ✗ | ✓ | ✗ | ✓ | ✗ |
@@ -59,17 +59,16 @@ Notas de interpretación (para aprobar junto con la política):
 - El **cap** de una service key es radio de daño, no un rol: reduce `users:deactivate` y
   `maintenance:run`, pero no retira `api_keys:*` porque la clave solo la mintea un super_admin.
   `role_cap` sigue siendo obligatorio para `service`.
-- El allowlist delegado es **independiente del cap**: que el dueño sea admin o super_admin no amplía
-  lo que su clave puede llevar. El rol del dueño se lee en cada petición y puede **reducir** el
-  allowlist si algún día el rol pierde un scope que hoy contiene; lo que nunca puede es ampliarlo.
-  La degradación que siempre surte efecto inmediato es la **desactivación del perfil** (la clave deja
-  de resolver, 401) y la pérdida de un **grant de módulo** (sus scopes de módulo dejan de valer).
+- El allowlist delegado es **independiente del cap**: una delegada actúa **siempre como `user`**,
+  aunque su dueño sea admin o super_admin. El rol guardado (`role_cap`) se ignora en runtime y la
+  desactivación del perfil sigue surtiendo efecto inmediato (401); perder un grant de módulo retira
+  sus scopes de módulo en la siguiente petición.
 - Las categorías **clasifican, no aíslan**: `users:read` y `user_categories:read` de una delegada
   ven toda la instancia. No hay filtrado por categoría del dueño.
 - La sesión `user` no gana `users:read` ni `user_categories:read`; quien necesite leer el directorio
   desde el móvil usa su clave delegada. Ampliarlo a la sesión es una línea si se prefiere (§8).
-- **`role_cap` en delegadas**: el runtime lo ignora por completo —el cap efectivo es el rol del
-  perfil—. Hoy el check de `0009` impide que una fila delegada lo lleve; si un dump antiguo la
+- **`role_cap` en delegadas**: el runtime lo ignora por completo —el rol efectivo es siempre
+  `user`—. Hoy el check de `0009` impide que una fila delegada lo lleve; si un dump antiguo la
   trae, se ignora sin migración destructiva. Limpiarlo sería una migración cosmética
   (`update api_keys set role_cap = null where kind = 'delegated'`) que no hace falta porque el
   constraint ya lo garantiza; se documenta como no-op.
@@ -85,8 +84,9 @@ Notas de interpretación (para aprobar junto con la política):
    `insufficient_scope`. No se reescriben filas.
 5. **No escalada**: quien crea una clave (sesión o clave propia) solo puede pedir scopes incluidos
    en sus scopes efectivos. Una delegada con `api_keys:write` no puede mintear una clave más amplia
-   que ella misma. Un caller que pide scopes fuera del allowlist de su tipo recibe
-   `validation_failed` al crear (el borde zod solo valida forma, no política).
+   que ella misma. Además, una delegada solo guarda scopes de su allowlist: lo que quede fuera se
+   **recorta** al crear (incluido un scope de módulo sin grant vigente del dueño) y si no queda
+   ninguno la creación falla con `validation_failed`.
 6. Errores: 401 `unauthorized` sin sesión/token; 403 `insufficient_scope` sin enumerar recursos
    (ADR 0007). Nunca se dice qué scope falta.
 
@@ -95,7 +95,7 @@ Notas de interpretación (para aprobar junto con la política):
 | Quién | Delegadas | Service |
 |---|---|---|
 | Sesión `user` | crea, lista y revoca **las suyas** vía API y app (scopes recortados a su rol) | ✗ |
-| Sesión `admin` | ninguna: **no gestiona claves** (pierde `api_keys:*`; 403 en `/keys` y en la API, ítem oculto) | ✗ |
+| Sesión `admin` | crea, lista y revoca **las suyas** vía API; nunca service. El panel `/keys` es super_admin, así que no lo ve | ✗ |
 | Clave delegada con `api_keys:*` | solo las del dueño, y sin superar sus propios scopes | ✗ |
 | Sesión `super_admin` | todas; crea para cualquier usuario activo con `user_id` (selector de propietario) | todas; crea con `role_cap` |
 | Clave `service` cap super_admin | revoca cualquier clave por id | revoca las suyas por id; no lista |
@@ -103,10 +103,12 @@ Notas de interpretación (para aprobar junto con la política):
 - `POST /api/v1/api-keys` gana `user_id` (uuid, opcional). Solo una **sesión super_admin** puede
   enviarlo; para cualquier otro caller → 403. Propietario inexistente o desactivado → 404
   `not_found`. `role_cap` sigue prohibido en delegadas (el check de BD lo impone).
+- `api_keys:*` se conserva en **todas** las sesiones (`user`, `admin`, `super_admin`): la app móvil
+  gestiona sus claves con la sesión. No amplía nada por sí solo; la propiedad limita cada llamada.
 - Listar, detallar y revocar ya están acotados al dueño salvo super_admin. **Una clave delegada
   nunca es super_admin a efectos de propiedad**, aunque su dueño lo sea: ve solo las del dueño.
-  Hoy `isSuperAdmin` mira el `roleCap` (el rol vivo del dueño) y le abre todas las claves; se
-  corrige para que solo una sesión super_admin o una service key con ese cap vean el global.
+  `DELETE` de una clave ajena por un no-super_admin responde **404**, indistinguible de «no existe»,
+  para no enumerar.
 - El listado de claves sigue siendo una acción de panel: `listApiKeys` rechaza a un caller `service`
   incluso con `api_keys:read`, porque no es dueño de nada (§10).
 - **Panel**: solo super_admin. `/keys` y `/keys/new` → `requirePanel("super_admin")` (403 genérico
@@ -155,8 +157,9 @@ anota en el PR y la respuesta de error no dice qué scope falta (solo `insuffici
 
 ## 9. Criterios de aceptación
 
-1. Una sesión admin recibe 403 en `GET/POST/DELETE /api/v1/api-keys` y en `/keys`; el ítem del menú
-   no se renderiza para admin; una sesión `user` sigue gestionando las suyas y una super_admin todas.
+1. Una sesión admin gestiona por API sus propias claves delegadas (nunca service), pero recibe el
+   403 genérico en `/keys` y `/keys/new` y el ítem del menú no se renderiza; una sesión `user` sigue
+   gestionando las suyas y una super_admin todas.
 2. Una sesión super_admin conserva `api_keys:*` y ve todas las claves.
 3. Una clave delegada con `settings:write`, `currencies:write`, `users:write`, `users:deactivate`,
    `roles:assign`, `user_categories:write`, `invitations:write`, `modules:grant`, `modules:manage`
@@ -186,3 +189,25 @@ anota en el PR y la respuesta de error no dice qué scope falta (solo `insuffici
   esta spec no toca `apps/android`.
 - Listado de claves por una service key (sigue siendo acción de panel con dueño).
 - Rotación de secretos, `expires_at` por defecto y uso agregado (`audit:read`).
+
+## 11. Política final aplicada (2026-11-08)
+
+Ajustes decididos por el usuario sobre el borrador, ya implementados:
+
+1. **Delegada = `user` efectivo, siempre.** `resolveCaller` devuelve `roleCap: 'user'` para toda
+   clave delegada; el `role_cap` guardado (si un dump antiguo lo trae) se ignora. El allowlist es
+   cerrado: `profile:read|write`, `currencies:read`, `devices:read|write|revoke`, `modules:read`,
+   `api_keys:read|write|revoke`, `users:read`, `user_categories:read` y scopes de módulo con grant
+   vigente del dueño. Nunca incluye administración.
+2. **Admin conserva `api_keys:*` en la sesión.** Gestiona sus propias delegadas por API, pero el
+   panel `/keys` es solo de super_admin (`requirePanel("super_admin")`, ítem oculto).
+3. **Recorte al crear.** Una delegada no rechaza la creación por scopes de más: los recorta
+   (allowlist + scopes efectivos del creador + grant de módulo) y falla con `validation_failed` solo
+   si no queda ninguno. Una service key sí rechaza scopes fuera de su set con `validation_failed`.
+4. **Service sin datos personales.** Los dos caps mantienen `role_cap` obligatorio y excluyen
+   `profile:*`/`devices:*`; `maintenance:run` y `users:deactivate` siguen solo en cap super_admin.
+5. **Límite transaccional.** Cinco delegadas activas por propietario; la sexta responde 409
+   `conflict` con `details.code = "key_limit"` desde la misma transacción con
+   `pg_advisory_xact_lock`.
+6. **RLS coherente.** `0015_api_keys_owner_policy.sql` quita la rama `core_is_admin()` de
+   `api_keys_select`: el dueño y super_admin leen, admin no.

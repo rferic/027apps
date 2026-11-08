@@ -345,7 +345,7 @@ export default async function KeysPage({
 }: {
   searchParams: Promise<KeysSearchParams>;
 }) {
-  const gate = await requirePanel("admin");
+  const gate = await requirePanel("super_admin");
 
   const cookieStore = await cookies();
   const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });

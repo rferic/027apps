@@ -33,6 +33,8 @@ export const createApiKeySchema = z
     name: z.string().trim().min(1).max(80),
     scopes: z.array(z.string()).min(1).max(100),
     role_cap: z.enum(["admin", "super_admin"]).optional(),
+    /** Owner of a delegated key; only a super_admin session may send it. */
+    user_id: z.uuid().optional(),
     expires_at: z.string().datetime().optional(),
   })
   .strict();
@@ -86,6 +88,7 @@ export function createApiKeyRoute(deps: ApiKeysRouteDeps) {
             name: string;
             scopes: string[];
             role_cap?: "admin" | "super_admin";
+            user_id?: string;
             expires_at?: string;
           },
         ),

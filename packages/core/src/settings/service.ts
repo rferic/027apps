@@ -80,10 +80,11 @@ function rowToView(row: Record<string, unknown>): SettingView | null {
   return { ...base, value: (row.value ?? null) as JsonValue };
 }
 
-/** Super-admin level means a session super_admin or a key capped at super_admin. */
+/** Super-admin level means a session super_admin or a service key capped at super_admin. */
 function isSuperAdminLevel(caller: Caller): boolean {
   if (caller.kind === 'session') return caller.role === 'super_admin';
-  if (caller.kind === 'service' || caller.kind === 'delegated') return caller.roleCap === 'super_admin';
+  if (caller.kind === 'service') return caller.roleCap === 'super_admin';
+  // A delegated key is always a plain user, whatever its stored role cap.
   return false;
 }
 

@@ -110,6 +110,16 @@ describe("PanelNav", () => {
     expect(currentHrefs(html)).toEqual(["/settings/instance"]);
   });
 
+  it("hides API keys from an admin and shows them to a super_admin", () => {
+    const admin = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
+    const superAdmin = renderToStaticMarkup(<PanelNav role="super_admin" messages={{}} />);
+
+    expect(admin).not.toContain('href="/keys"');
+    expect(admin).not.toContain(">API keys</span>");
+    expect(admin).toContain('href="/modules"');
+    expect(superAdmin).toContain('href="/keys"');
+  });
+
   it("hides security from an admin, both in the sidebar and the drawer", () => {
     pathname.current = "/settings/instance";
     const sidebar = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);

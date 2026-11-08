@@ -1,7 +1,8 @@
+import { MACHINE_SCOPES } from "@027apps/core/auth/guard.js";
+
 /**
- * Scope hints offered by the key form. It mirrors the action scopes the guard
- * grants sessions (`packages/core/src/auth/guard.ts`); the API remains the
- * source of truth and rejects anything outside its scope pattern.
+ * Scope hints offered by the key form. The policy lives in the Core guard; this
+ * module only groups the resulting allowlist for the UI, never duplicates it.
  */
 export type ScopeGroupId =
   | "profile"
@@ -36,54 +37,20 @@ export const API_KEY_SCOPE_GROUPS: readonly ScopeGroup[] = [
 export type ApiKeyScopeKind = "service" | "delegated";
 export type ApiKeyScopeRoleCap = "admin" | "super_admin";
 
-const USER_SCOPES = [
-  "profile:read",
-  "profile:write",
-  "currencies:read",
-  "api_keys:read",
-  "api_keys:write",
-  "api_keys:revoke",
-  "devices:read",
-  "devices:write",
-  "devices:revoke",
-  "modules:read",
-] as const;
-
-const ADMIN_SCOPES = [
-  ...USER_SCOPES,
-  "users:read",
-  "users:write",
-  "roles:assign",
-  "user_categories:read",
-  "user_categories:write",
-  "modules:manage",
-  "modules:grant",
-  "invitations:read",
-  "invitations:write",
-  "settings:read",
-  "settings:write",
-  "currencies:write",
-] as const;
-
-const SERVICE_SUPER_ADMIN_SCOPES = [...ADMIN_SCOPES, "users:deactivate", "maintenance:run"] as const;
-
 /**
- * Scopes a key can actually use, mirroring the Core guard's role floor. A
- * delegated key inherits its owner's role, so the form caps it at admin: it
- * never offers `maintenance:run` (service-only) nor super-admin scopes. A
- * service key without a chosen cap offers only the scopes both caps share; the
- * super-admin-only ones appear once that cap is selected. The requested list
- * can still be wider than what the key ends up using, hence the "requested
- * scopes" label in the panel.
+ * Scopes a key can actually use. A delegated key is always a plain user, so it
+ * gets the fixed delegated allowlist regardless of any cap. A service key is
+ * bounded by its cap; before one is chosen, only the scopes both caps share are
+ * offered.
  */
 export function allowedApiKeyScopes(
   kind: ApiKeyScopeKind,
   roleCap: ApiKeyScopeRoleCap | "",
 ): readonly string[] {
-  if (kind === "service") {
-    return roleCap === "super_admin" ? SERVICE_SUPER_ADMIN_SCOPES : ADMIN_SCOPES;
-  }
-  return ADMIN_SCOPES;
+  if (kind === "delegated") return MACHINE_SCOPES.delegated;
+  return roleCap === "super_admin"
+    ? MACHINE_SCOPES.service.super_admin
+    : MACHINE_SCOPES.service.admin;
 }
 
 export const ALL_API_KEY_SCOPES: readonly string[] = API_KEY_SCOPE_GROUPS.flatMap(

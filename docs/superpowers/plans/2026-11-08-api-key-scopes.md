@@ -17,6 +17,21 @@ del Core para no duplicar la política.
 
 **Spec:** `docs/superpowers/specs/2026-11-08-api-key-scopes-design.md`
 
+## Política final aplicada (manda sobre los pasos)
+
+- **Delegada = `user` efectivo siempre.** `resolveCaller` devuelve `roleCap: 'user'`; el `role_cap`
+  guardado se ignora. Allowlist cerrada con `users:read`/`user_categories:read` y scopes de módulo
+  con grant del dueño.
+- **`api_keys:*` sigue en las tres sesiones** (`user`, `admin`, `super_admin`). El panel `/keys` pasa
+  a `requirePanel("super_admin")` y el ítem desaparece para admin; por API, admin gestiona solo sus
+  delegadas y nunca service.
+- **Crear delegada recorta, no rechaza:** intersección de allowlist + scopes efectivos del creador +
+  grant de módulo; si queda vacío → `validation_failed`. Crear service con un scope fuera de su set
+  → `validation_failed`.
+- **Límite de 5** delegadas activas por propietario, en transacción con `pg_advisory_xact_lock`;
+  409 `conflict` con `details.code = "key_limit"`.
+- **Propiedad:** `user_id` solo para sesión super_admin; clave ajena para un no-super_admin → 404.
+
 ## Restricciones globales
 
 - Código, comentarios, commits y ramas en **inglés**; docs internas y conversación en **español**.

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { apiKeysRoute } from "@027apps/core/api-keys/api.js";
 import type { QueryClient } from "@027apps/core/api/rate-limit-storage.js";
+import { usersRoute, type UsersRouteDeps } from "@027apps/core/users/api.js";
+import { getInfra, withTransactionClient } from "@/lib/api/door";
 import { apiKeysRouteDeps } from "@/lib/api-keys-route-deps";
 import { PANEL_PAGE_SIZE } from "@/lib/panel-pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -262,4 +264,74 @@ export async function loadApiKeys(input: {
   const total = readCount(call.body.total);
   if (total === null) return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
   return { ok: true, apiKeys, total };
+}
+
+/** A selectable owner for a delegated key; active users only. */
+export interface ApiKeyOwner {
+  id: string;
+  name: string;
+}
+
+export type ApiKeyOwners = { ok: true; owners: ApiKeyOwner[] } | ApiKeysFailure;
+
+async function usersRouteDeps(): Promise<UsersRouteDeps> {
+  const { deps, auth, settingsDeps } = await getInfra();
+  return {
+    door: deps,
+    auth,
+    users: { db: settingsDeps.db, withTransaction: withTransactionClient },
+  };
+}
+
+/**
+ * GET /api/v1/users?state=active&limit=100 — the super_admin owner selector.
+ * The page never builds this from client input, and `limit=100` is the API cap.
+ */
+export async function loadApiKeyOwners(): Promise<ApiKeyOwners> {
+  const token = await sessionToken();
+  const params = new URLSearchParams({ state: "active", limit: "100", offset: "0" });
+  const call = await callRoute(
+    usersRoute(await usersRouteDeps()),
+    `/api/v1/users?${params.toString()}`,
+    token,
+  );
+  if (!call.ok) return call;
+  if (!Array.isArray(call.body.users)) {
+    return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+  }
+
+  const owners: ApiKeyOwner[] = [];
+  for (const entry of call.body.users) {
+    if (!isRecord(entry)) return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+    const id = readString(entry.id);
+    if (!id) return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+    owners.push({ id, name: readString(entry.display_name) ?? id });
+  }
+  return { ok: true, owners };
+}
+
+/**
+ * Active delegated keys per owner, for the five-key hint. A failure only hides
+ * the hint: the API still enforces the limit, so the form is not blocked by it.
+ */
+export async function loadActiveDelegatedCounts(): Promise<Record<string, number>> {
+  const { settingsDeps } = await getInfra();
+  try {
+    const { rows } = await settingsDeps.db.query(
+      `select user_id, count(*)::int as n
+         from public.api_keys
+        where kind = 'delegated' and revoked_at is null
+          and (expires_at is null or expires_at > now())
+        group by user_id`,
+    );
+    const counts: Record<string, number> = {};
+    for (const row of rows) {
+      const id = readString(row.user_id);
+      const count = readCount(row.n);
+      if (id && count !== null) counts[id] = count;
+    }
+    return counts;
+  } catch {
+    return {};
+  }
 }

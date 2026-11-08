@@ -2,12 +2,13 @@ import { createHash, randomBytes } from "node:crypto";
 import { DomainError } from "../errors";
 import type { Caller } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
+import { DELEGATED_SCOPES, MACHINE_SCOPES, effectiveScopes, isModuleScope } from "../auth/guard";
 
 /**
  * Machine tokens (tokens spec §3.2/§3.3/§6). A service key acts as the
- * instance with a role cap; a delegated key acts as its owner with the
- * intersection of its scopes and the user's permissions. Only the SHA-256 of
- * the token is stored and the secret is returned exactly once at creation.
+ * instance with a role cap; a delegated key always acts as a plain user and
+ * only carries the delegated allowlist. Only the SHA-256 of the token is
+ * stored and the secret is returned exactly once at creation.
  */
 export interface ApiKeysDeps {
   db: QueryClient;
@@ -37,6 +38,8 @@ export type CreateApiKeyInput = {
   name: string;
   scopes: string[];
   role_cap?: ApiKeyRoleCap;
+  /** Owner of a delegated key; only a super_admin session may set it. */
+  user_id?: string;
   expires_at?: string;
 };
 
@@ -62,6 +65,7 @@ export interface ApiKeyPage {
 const SERVICE_PREFIX = "027_svc_";
 const DELEGATED_PREFIX = "027_usr_";
 const MAX_SCOPES = 100;
+const MAX_ACTIVE_DELEGATED_KEYS = 5;
 const SCOPE = /^[a-z0-9][a-z0-9_-]{0,63}:[a-z0-9_]{1,32}$/;
 
 const toIso = (value: unknown): string =>
@@ -94,8 +98,123 @@ function validateScopes(values: string[]): string[] {
 
 function isSuperAdmin(caller: Caller): boolean {
   if (caller.kind === "session") return caller.role === "super_admin";
-  if (caller.kind === "service" || caller.kind === "delegated") return caller.roleCap === "super_admin";
+  if (caller.kind === "service") return caller.roleCap === "super_admin";
+  // A delegated key is always a plain user, whatever its stored role cap.
   return false;
+}
+
+function keyLimitError(): DomainError {
+  return new DomainError(
+    "conflict",
+    `A user can have at most ${MAX_ACTIVE_DELEGATED_KEYS} active delegated API keys`,
+    { code: "key_limit" },
+  );
+}
+
+function moduleKeyOf(scope: string): string {
+  return scope.slice(0, scope.indexOf(":"));
+}
+
+async function assertActiveOwner(db: QueryClient, ownerId: string): Promise<void> {
+  const { rows } = await db.query(
+    "select role from public.profiles where id = $1 and deactivated_at is null",
+    [ownerId],
+  );
+  if (!rows[0]) throw new DomainError("not_found");
+}
+
+/** Module scopes the owner actually holds, read live from `user_modules`. */
+async function grantedModuleScopes(
+  db: QueryClient,
+  ownerId: string,
+  requested: readonly string[],
+): Promise<string[]> {
+  const keys = [...new Set(requested.filter(isModuleScope).map(moduleKeyOf))];
+  if (keys.length === 0) return [];
+  const { rows } = await db.query(
+    `select module_key from public.user_modules
+      where user_id = $1 and module_key = any($2::text[]) and revoked_at is null`,
+    [ownerId, keys],
+  );
+  const granted = new Set(rows.map((row) => String(row.module_key)));
+  return requested.filter((scope) => isModuleScope(scope) && granted.has(moduleKeyOf(scope)));
+}
+
+/**
+ * Scopes a delegated key may actually store: the fixed allowlist plus the
+ * owner's live module grants, intersected with the creator's own effective
+ * scopes. A session's module capability comes from `user_modules`, not from a
+ * scope string, so granted module scopes are not trimmed for sessions.
+ */
+async function delegatedCreationScopes(
+  db: QueryClient,
+  caller: Caller,
+  ownerId: string,
+  requested: readonly string[],
+): Promise<string[]> {
+  const granted = await grantedModuleScopes(db, ownerId, requested);
+  const allowed = new Set<string>([...DELEGATED_SCOPES, ...granted]);
+  const own = new Set(effectiveScopes(caller));
+  return requested.filter(
+    (scope) => allowed.has(scope) && (own.has(scope) || isModuleScope(scope)),
+  );
+}
+
+function assertServiceScopes(scopes: readonly string[], cap: ApiKeyRoleCap): void {
+  const allowed: readonly string[] = MACHINE_SCOPES.service[cap];
+  if (scopes.some((scope) => !allowed.includes(scope))) {
+    throw new DomainError("validation_failed", "scope is not allowed for a service key");
+  }
+}
+
+async function withTx<T>(
+  deps: ApiKeysDeps,
+  fn: (db: QueryClient) => Promise<T>,
+): Promise<T> {
+  if (!deps.withTransaction) return fn(deps.db);
+  return deps.withTransaction(async (db) => {
+    await db.query("BEGIN");
+    try {
+      const result = await fn(db);
+      await db.query("COMMIT");
+      return result;
+    } catch (err) {
+      await db.query("ROLLBACK").catch(() => undefined);
+      throw err;
+    }
+  });
+}
+
+async function insertKey(
+  db: QueryClient,
+  row: {
+    secret: string;
+    kind: ApiKeyKind;
+    name: string;
+    scopes: string[];
+    userId: string | null;
+    roleCap: ApiKeyRoleCap | null;
+    actor: string;
+    expiresAt: string | null;
+  },
+): Promise<ApiKeyView> {
+  const { rows } = await db.query(
+    `insert into public.api_keys
+       (key_hash, kind, name, scopes, user_id, role_cap, created_by, expires_at)
+     values ($1, $2, $3, $4, $5, $6, $7, $8)
+     returning ${VIEW_COLUMNS}`,
+    [
+      hashApiKeyToken(row.secret),
+      row.kind,
+      row.name,
+      row.scopes,
+      row.userId,
+      row.roleCap,
+      row.actor,
+      row.expiresAt,
+    ],
+  );
+  return toView(rows[0]!);
 }
 
 /** The human the key is attributed to; service keys have no user. */
@@ -129,8 +248,8 @@ export async function createApiKey(
   caller: Caller,
   input: CreateApiKeyInput,
 ): Promise<{ api_key: ApiKeyView; secret: string }> {
-  // Service keys are created by a super_admin from the panel; service callers
-  // have no profile to attribute `created_by` to.
+  // Keys are minted by a human session or by another delegated key; a service
+  // key has no profile to attribute `created_by` to.
   if (caller.kind === "service") throw new DomainError("insufficient_scope");
 
   const actor = actorUserId(caller);
@@ -140,43 +259,84 @@ export async function createApiKey(
     throw new DomainError("validation_failed", "name must be 1..80 characters");
   }
 
-  let roleCap: ApiKeyRoleCap | null = null;
-  let userId: string | null = null;
-  if (input.kind === "service") {
-    // Minting a service credential is a panel action: a delegated key must
-    // never escalate into a service key, even if its owner is super_admin.
-    if (caller.kind !== "session" || caller.role !== "super_admin") {
-      throw new DomainError("insufficient_scope");
-    }
-    roleCap = input.role_cap ?? "admin";
-  } else {
-    userId = actor;
-  }
-
   const now = deps.now?.() ?? new Date();
   const expiresAt = input.expires_at ? new Date(input.expires_at) : null;
   if (expiresAt && (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime())) {
     throw new DomainError("validation_failed", "expires_at must be in the future");
   }
 
-  const secret = newApiKeyToken(input.kind);
-  const { rows } = await deps.db.query(
-    `insert into public.api_keys
-       (key_hash, kind, name, scopes, user_id, role_cap, created_by, expires_at)
-     values ($1, $2, $3, $4, $5, $6, $7, $8)
-     returning ${VIEW_COLUMNS}`,
-    [
-      hashApiKeyToken(secret),
-      input.kind,
+  if (input.kind === "service") {
+    // Minting a service credential is a panel action: a delegated key must
+    // never escalate into a service key, even if its owner is super_admin.
+    if (caller.kind !== "session" || caller.role !== "super_admin") {
+      throw new DomainError("insufficient_scope");
+    }
+    if (input.user_id !== undefined) {
+      throw new DomainError("validation_failed", "a service key has no owner");
+    }
+    const roleCap = input.role_cap ?? "admin";
+    assertServiceScopes(scopes, roleCap);
+
+    const secret = newApiKeyToken("service");
+    const api_key = await insertKey(deps.db, {
+      secret,
+      kind: "service",
       name,
       scopes,
-      userId,
+      userId: null,
       roleCap,
       actor,
-      expiresAt ? expiresAt.toISOString() : null,
-    ],
-  );
-  return { api_key: toView(rows[0]!), secret };
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+    });
+    return { api_key, secret };
+  }
+
+  // Delegated keys never carry a role cap: they always act as a plain user.
+  if (input.role_cap !== undefined) {
+    throw new DomainError("validation_failed", "role_cap is not allowed for a delegated key");
+  }
+  if (
+    input.user_id !== undefined &&
+    !(caller.kind === "session" && caller.role === "super_admin")
+  ) {
+    throw new DomainError("insufficient_scope", "only a super_admin may name the owner");
+  }
+
+  const ownerId = input.user_id ?? actor;
+  await assertActiveOwner(deps.db, ownerId);
+  const effective = await delegatedCreationScopes(deps.db, caller, ownerId, scopes);
+  if (effective.length === 0) {
+    throw new DomainError(
+      "validation_failed",
+      "no requested scope is allowed for a delegated key",
+    );
+  }
+
+  const secret = newApiKeyToken("delegated");
+  return withTx(deps, async (db) => {
+    // The check and the insert share a transaction and a per-owner advisory
+    // lock, so two concurrent creations cannot both take the fifth slot.
+    await db.query("select pg_advisory_xact_lock(hashtext($1))", [`api_keys:${ownerId}`]);
+    const { rows } = await db.query(
+      `select count(*)::int as n from public.api_keys
+        where user_id = $1 and kind = 'delegated' and revoked_at is null
+          and (expires_at is null or expires_at > now())`,
+      [ownerId],
+    );
+    if (Number(rows[0]?.n ?? 0) >= MAX_ACTIVE_DELEGATED_KEYS) throw keyLimitError();
+
+    const api_key = await insertKey(db, {
+      secret,
+      kind: "delegated",
+      name,
+      scopes: effective,
+      userId: ownerId,
+      roleCap: null,
+      actor,
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+    });
+    return { api_key, secret };
+  });
 }
 
 export async function listApiKeys(

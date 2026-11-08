@@ -2,7 +2,7 @@
 id: sprint-06-task-13
 titulo: Scopes de claves API y claves delegadas por propietario
 area: web
-estado: pendiente
+estado: test
 adrs: [0004, 0007]
 plan: docs/superpowers/plans/2026-11-08-api-key-scopes.md
 spec: docs/superpowers/specs/2026-11-08-api-key-scopes-design.md
@@ -20,28 +20,31 @@ siempre atribuidas al actor: no existe selector de propietario.
 
 Cambios:
 
-- **Guard**: suelos separados por tipo de credencial. `ADMIN_SCOPES` deja de incluir `api_keys:*`;
-  los conserva la sesión `user` (sobre las suyas), la sesión super_admin y los dos caps de service.
-  `delegated` usa un allowlist fijo (nunca `settings:*`, `currencies:write`, `users:write`,
-  `users:deactivate`, `roles:assign`, `user_categories:write`, `invitations:*`,
-  `modules:grant/manage`, `maintenance:run`) y gana `users:read` y `user_categories:read` de toda la
-  instancia (las categorías clasifican, no aíslan). `service` usa el set administrativo sin
-  `profile:*` ni `devices:*`; `maintenance:run` sigue solo en cap super_admin.
-- **`role_cap`**: obligatorio solo para `service`. En `delegated` el cap efectivo sigue siendo el rol
-  vivo del perfil (`packages/core/src/auth/caller.ts:73`); si una fila antigua trae `role_cap`, el
-  runtime lo ignora. No hay migración destructiva: el check de `0009` ya impide esa fila.
+- **Guard**: suelos separados por tipo de credencial. `api_keys:*` se mantiene en las tres sesiones
+  (`user`, `admin`, `super_admin`): la app móvil gestiona sus claves con la sesión. `delegated` usa
+  un allowlist fijo (nunca `settings:*`, `currencies:write`, `users:write`, `users:deactivate`,
+  `roles:assign`, `user_categories:write`, `invitations:*`, `modules:grant/manage`,
+  `maintenance:run`) y tiene `users:read` y `user_categories:read` de toda la instancia (las
+  categorías clasifican, no aíslan). `service` usa el set administrativo sin `profile:*` ni
+  `devices:*`; `maintenance:run` sigue solo en cap super_admin.
+- **`role_cap`**: obligatorio solo para `service`. Una delegada **actúa siempre como `user`**: el
+  rol vivo del dueño y cualquier `role_cap` guardado se ignoran en runtime. No hay migración
+  destructiva: el check de `0009` ya impide esa fila.
 - **Recorte al validar**: los scopes efectivos de una clave se calculan en cada petición como
   `scopes ∩ allowlist(kind, cap)`; una clave antigua con scopes retirados deja de poder usarlos sin
   reescribir filas (no hay backfill de `scopes`).
 - **Propiedad**: `POST /api/v1/api-keys` acepta `user_id` opcional solo para una sesión super_admin;
   una clave (incluida una delegada de un super_admin) nunca crea claves para otro usuario y no puede
-  pedir scopes fuera de los suyos (no escalada). Propietario inexistente o desactivado → 404.
+  pedir scopes fuera de los suyos (no escalada). Los scopes de una delegada fuera del allowlist se
+  **recortan** al crear; si no queda ninguno → `validation_failed`. Propietario inexistente o
+  desactivado → 404. Una clave ajena para un no-super_admin → 404.
 - **Límite**: 5 claves delegadas activas por usuario, validado en el Core dentro de transacción con
-  `pg_advisory_xact_lock` por propietario; la sexta → 409 `conflict`.
+  `pg_advisory_xact_lock` por propietario; la sexta → 409 `conflict` con
+  `details.code = "key_limit"`.
 - **Panel**: `/keys` y `/keys/new` pasan a `requirePanel("super_admin")`, el ítem Claves solo
-  aparece a super_admin y el formulario añade selector de propietario (delegadas) y ofrece los
-  scopes de cada tipo desde el allowlist del Core. Un admin deja de llegar: `api_keys:*` sale de
-  `ADMIN_SCOPES` y la página devuelve el 403 genérico.
+  aparece a super_admin y el formulario añade selector de propietario (delegadas, usuarios activos
+  con `limit=100`) y ofrece los scopes de cada tipo desde el allowlist del Core. Un admin conserva
+  `api_keys:*` por API para sus propias delegadas, pero en el panel recibe el 403 genérico.
 - **RLS**: la política de lectura de `api_keys` deja de dar al rol admin visibilidad de las
   delegadas (`supabase/migrations/0015_api_keys_owner_policy.sql`).
 
@@ -53,21 +56,21 @@ dueño); cambios en el modelo de datos más allá del índice/política citados.
 
 ## TDD
 
-- `packages/core/src/auth/guard.test.ts`: sesión admin sin `api_keys:*`; sesión `user` con
+- `packages/core/src/auth/guard.test.ts`: sesión admin conserva `api_keys:*`; sesión `user` con
   `api_keys:*`; super_admin con ellos; delegada con `users:read`/`user_categories:read`; delegada con
   `settings:write`, `currencies:write`, `users:write`, `users:deactivate`, `roles:assign`,
   `user_categories:write`, `invitations:write`, `modules:grant`, `modules:manage` y
-  `maintenance:run` → 403; `service` con `profile:read` o `devices:read` → 403; `service` con
-  `api_keys:read` en ambos caps; `service` cap admin sin `maintenance:run` ni `users:deactivate`;
-  scopes almacenados fuera del allowlist se recortan (acción pedida → 403; el resto sigue).
-- `packages/core/src/api-keys/service.test.ts` (nuevo): `user_id` ignorado/rechazado para un caller
-  que no es sesión super_admin; propietario inexistente o desactivado → `not_found`; scope fuera del
-  allowlist delegado → `validation_failed`; scope de módulo sin grant del dueño → `validation_failed`;
-  sexta clave activa → `conflict`; clave revocada o caducada no cuenta para el límite; dos
-  creaciones concurrentes no superan 5 (lock); una delegada no puede pedir un scope que ella no
-  tiene; una delegada nunca crea `service` ni para otro usuario;
-  **la delegada de un super_admin lista, detalla y revoca solo las de su dueño** (hoy `isSuperAdmin`
-  mira el cap y le abre todas).
+  `maintenance:run` → 403, incluso con `roleCap` admin/super_admin guardado; `service` con
+  `profile:read` o `devices:read` → 403; `service` con `api_keys:read` en ambos caps; `service` cap
+  admin sin `maintenance:run` ni `users:deactivate`; scopes almacenados fuera del allowlist se
+  recortan (acción pedida → 403; el resto sigue).
+- `packages/core/src/api-keys/service.test.ts` (nuevo): `user_id` rechazado para un caller que no es
+  sesión super_admin; propietario inexistente o desactivado → `not_found`; scopes de administración
+  recortados al crear una delegada; sin scopes permitidos → `validation_failed`; scope de módulo sin
+  grant del dueño recortado; sexta clave activa → `conflict` con `details.code = "key_limit"`; clave
+  revocada o caducada no cuenta; dos creaciones concurrentes no superan 5 (lock); una delegada no
+  puede pedir un scope que ella no tiene; una delegada nunca crea `service` ni para otro usuario;
+  **la delegada de un super_admin lista, detalla y revoca solo las de su dueño**.
 - `packages/core/src/api-keys/api.test.ts`: el body con `user_id` llega al servicio; 403 de un caller
   sin `api_keys:write`; `user_id` con forma no-uuid → `validation_failed`.
 - `packages/db-tests/src/rls/api-keys-devices.test.ts`: un admin ya no lee delegadas de otro
@@ -115,3 +118,50 @@ dueño); cambios en el modelo de datos más allá del índice/política citados.
 - El panel carga las claves llamando a las rutas del Core en proceso
   (`apps/admin/src/lib/panel-keys.ts`), así que el gate de rol y el guard deben coincidir: el 403 de
   `/keys` no depende solo de `requirePanel`.
+
+## Implementación (2026-11-08)
+
+**Política final aplicada** (detalle en la spec §11):
+
+1. **Delegada = `user` efectivo siempre.** `resolveCaller` devuelve `roleCap: 'user'`; el guard
+   ignora cualquier `role_cap` guardado y aplica el allowlist cerrado. `isSuperAdmin` de claves ya
+   no mira el cap de una delegada: solo una sesión super_admin o una service key con cap
+   super_admin ven el global.
+2. **`api_keys:*` en las tres sesiones.** Admin gestiona por API sus delegadas, pero el panel
+   `/keys` y `/keys/new` son `requirePanel("super_admin")` y el ítem del menú se oculta a admin.
+3. **Recorte al crear.** La delegada guarda `allowlist ∩ scopes efectivos del creador ∩ grants de
+   módulo`; si queda vacío → `validation_failed`. La service key rechaza scopes fuera de su set.
+4. **Límite transaccional** de 5 delegadas activas por propietario (`pg_advisory_xact_lock`),
+   409 `conflict` con `details.code = "key_limit"`.
+5. **RLS**: `0015_api_keys_owner_policy.sql` retira la rama `core_is_admin()` de `api_keys_select`.
+
+**Desviaciones respecto al borrador del plan:**
+
+- El borrador rechazaba scopes ilegales al crear; la política final **recorta** los de una delegada
+  y solo rechaza si no queda ninguno (una service key sí rechaza).
+- El borrador quitaba `api_keys:*` a la sesión admin y le daba 403 en la API; la política final lo
+  mantiene en la sesión y limita el 403 al panel.
+- El borrador dejaba el rol efectivo de la delegada en el rol vivo del dueño; la política final lo
+  fija en `user`.
+
+**Ficheros principales:** `packages/core/src/auth/{guard,caller}.ts` (+ tests),
+`packages/core/src/api-keys/{service,api}.ts` (+ tests), `apps/admin/src/lib/api-key-scopes.ts` y
+`panel-keys.ts` (+ tests), `apps/admin/src/components/{panel-nav,api-key-create-form}.tsx` (+ tests),
+`apps/admin/src/app/(panel)/keys/*` (+ tests), `supabase/migrations/0015_api_keys_owner_policy.sql`,
+`packages/db-tests/src/rls/api-keys-devices.test.ts`, catálogos i18n y docs de contrato.
+
+**Verificación ejecutada**
+
+- `pnpm --filter @027apps/core test` — 305 tests en verde.
+- `pnpm --filter admin test` — 662 tests en verde.
+- `pnpm --filter db-tests exec vitest run src/api/api-keys.test.ts` — 4 en verde.
+- `pnpm --filter db-tests exec vitest run src/api-keys/service.test.ts` y `src/rls/api-keys-devices.test.ts` — verdes tras aplicar `0015` al stack local y aislar el conteo global de datos preexistentes.
+- `pnpm lint`, `pnpm tsc`, `pnpm i18n:check`, `pnpm check:openapi` — en verde.
+- No se ejecutó `next build` (orden explícita); el dev server se reinició al terminar.
+
+**Consecuencia aceptada:** una integración antigua con scopes hoy retirados (p. ej. `settings:write`
+en una delegada) empieza a recibir 403 `insufficient_scope` tras el despliegue, sin decir qué scope
+falta. Las filas no se reescriben; el valor guardado queda como pista de auditoría.
+
+**Pendiente antes de `finalizada`:** QA de un segundo agente y auditoría de seguridad OWASP
+(A01/A02/A03/A04/A05/A07/A08/A09) con informe en esta tarea.

@@ -73,7 +73,7 @@ function render(searchParams: Record<string, string> = {}) {
 beforeEach(() => {
   requirePanelMock.mockReset();
   requirePanelMock.mockResolvedValue({
-    user: { id: "u1", email: "admin@example.com", displayName: "Admin", role: "admin" },
+    user: { id: "u1", email: "root@example.com", displayName: "Root", role: "super_admin" },
   });
   loadApiKeysMock.mockReset();
   redirectMock.mockClear();
@@ -168,11 +168,12 @@ describe("KeysPage", () => {
   it("renders the generic 403 and never loads keys when the role is denied", async () => {
     requirePanelMock.mockResolvedValue({
       denied: true,
-      user: { id: "u9", email: "user@example.com", displayName: "User", role: "user" },
+      user: { id: "u9", email: "user@example.com", displayName: "User", role: "admin" },
     });
 
     const html = renderToStaticMarkup(await render());
 
+    expect(requirePanelMock).toHaveBeenCalledWith("super_admin");
     expect(html).toContain("You do not have access to this page.");
     expect(loadApiKeysMock).not.toHaveBeenCalled();
   });
