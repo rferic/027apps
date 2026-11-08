@@ -33,7 +33,7 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 | 11 | Revisión de diseño y UX | en curso |
 | 12 | Canje público de invitaciones | pendiente |
 | 13 | Scopes de claves API y claves delegadas por propietario | finalizada |
-| 14 | Fichas de detalle de invitaciones y módulos | pendiente |
+| 14 | Fichas de detalle de invitaciones y módulos | finalizada |
 
 ## Dependencias
 

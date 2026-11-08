@@ -4,6 +4,7 @@ import type { Caller } from "../api/types.js";
 import {
   getModule,
   listModuleGrants,
+  uninstallModule,
   type ModuleGrantCategory,
   type ModuleGrantUser,
   type ModulesDeps,
@@ -11,6 +12,7 @@ import {
 
 const admin: Caller = { kind: "session", userId: "admin-1", role: "admin" };
 const plainUser: Caller = { kind: "session", userId: "user-1", role: "user" };
+const root: Caller = { kind: "session", userId: "root-1", role: "super_admin" };
 const serviceAdmin: Caller = {
   kind: "service",
   keyId: "key-1",
@@ -168,5 +170,94 @@ describe("manifest_digest", () => {
 
     expect(module.manifest_digest).toBe("sha256:abc");
     expect(queries[0]!.sql).toContain("manifest_digest");
+  });
+});
+
+const UNINSTALL_MANIFEST = {
+  key: "inventory",
+  name: "Inventory",
+  branding: { description: "Stock", icon: "assets/icon.svg", color: "teal" },
+  version: "1.0.0",
+  is_public: false,
+  migrations: [],
+  settings: [],
+  i18n: ["en"],
+  scopes: [],
+  mcp_tools: [],
+  channels: [],
+  events: [],
+  hooks: {},
+  admin_pages: [],
+  docs: { readme: "README.md" },
+};
+
+function uninstallDeps(input: { grants?: number; applied?: string[] }): ModulesDeps {
+  const db: QueryClient = {
+    async query(sql: string) {
+      if (sql.includes("from public.module_registry")) {
+        return {
+          rows: [
+            {
+              key: "inventory",
+              name: "Inventory",
+              version: "1.0.0",
+              state: "active",
+              is_public: false,
+              mcp_exposed: "read",
+              manifest_digest: "sha256:abc",
+              installed_at: "2026-01-01T00:00:00.000Z",
+              updated_at: "2026-01-01T00:00:00.000Z",
+            },
+          ],
+        };
+      }
+      if (sql.includes("as grants")) {
+        return { rows: [{ grants: input.grants ?? 0, category_grants: 0 }] };
+      }
+      if (sql.includes("from public.module_migrations")) {
+        return { rows: (input.applied ?? []).map((version) => ({ version })) };
+      }
+      return { rows: [] };
+    },
+  };
+  return {
+    db,
+    withTransaction: async (fn) => fn(db),
+    readFile: async (path) =>
+      path.endsWith(".svg")
+        ? '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor"></svg>'
+        : "# Inventory",
+    moduleRoot: () => "/modules/inventory",
+  };
+}
+
+async function captureFailure(promise: Promise<unknown>): Promise<unknown> {
+  return promise.then(
+    () => null,
+    (error: unknown) => error,
+  );
+}
+
+describe("uninstallModule", () => {
+  it("tags the active-grants conflict so the panel can confirm a second time", async () => {
+    const deps = uninstallDeps({ grants: 2 });
+
+    await expect(
+      uninstallModule(deps, root, "inventory", UNINSTALL_MANIFEST, false),
+    ).rejects.toMatchObject({
+      code: "conflict",
+      details: { code: "grants_active" },
+    });
+  });
+
+  it("leaves the migration conflict untagged: a retry cannot fix it", async () => {
+    const deps = uninstallDeps({ applied: ["2.0.0"] });
+
+    const error = await captureFailure(
+      uninstallModule(deps, root, "inventory", UNINSTALL_MANIFEST, false),
+    );
+
+    expect(error).toMatchObject({ code: "conflict" });
+    expect((error as { details?: unknown }).details).toBeUndefined();
   });
 });

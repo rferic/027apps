@@ -96,24 +96,24 @@ describe("uninstallModule", () => {
     });
   });
 
-  it("keeps a domain detail code so the page can explain it", async () => {
+  it("keeps a 409 detail code so the dialog can tell the grants gate apart", async () => {
     const fetcher = vi.fn(async () =>
       json(
         {
           error: {
-            code: "validation_failed",
-            request_id: "req-400",
+            code: "conflict",
+            request_id: "req-409",
             details: { code: "grants_active" },
           },
         },
-        400,
+        409,
       ),
     );
 
     await expect(uninstallModule("inventory", false, fetcher)).resolves.toEqual({
       ok: false,
-      code: "validation_failed",
-      requestId: "req-400",
+      code: "conflict",
+      requestId: "req-409",
       details: { code: "grants_active" },
     });
   });

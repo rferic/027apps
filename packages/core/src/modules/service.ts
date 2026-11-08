@@ -560,7 +560,9 @@ export async function uninstallModule(
     );
     const grants = Number(usage[0]?.grants ?? 0) + Number(usage[0]?.category_grants ?? 0);
     if (grants > 0 && !confirm) {
-      throw new DomainError("conflict", "Module has active grants; confirm the uninstall");
+      throw new DomainError("conflict", "Module has active grants; confirm the uninstall", {
+        code: "grants_active",
+      });
     }
 
     await db.query("delete from public.invitation_modules where module_key = $1", [key]);

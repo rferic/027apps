@@ -172,7 +172,6 @@ function InvitationDetails({
       </h2>
       <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <MetaItem label={t("Name", messages)}>{invitation.name}</MetaItem>
-        <MetaItem label={t("Role", messages)}>{t("Member", messages)}</MetaItem>
         <MetaItem label={t("Category", messages)}>
           <CategoryValue
             categoryId={invitation.user_category_id}

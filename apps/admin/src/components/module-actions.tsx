@@ -8,8 +8,27 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { FormActions, FormAlert } from "@/components/ui/form";
 import { activateModule, deactivateModule, uninstallModule } from "@/lib/module-mutations";
-import type { MutationFailure } from "@/lib/mutation-result";
+import type { MutationFailure, MutationResult } from "@/lib/mutation-result";
 import type { ModuleState } from "@/lib/panel-modules";
+
+/** What the uninstall dialog does with one Core answer. */
+export type UninstallOutcome =
+  | { kind: "success" }
+  | { kind: "grants" }
+  | { kind: "error"; failure: MutationFailure };
+
+/**
+ * The double confirmation belongs to the active-grants gate only. Any other
+ * `409` — an unreverted migration, for instance — is a plain failure, so the
+ * dialog never offers "Uninstall anyway" for a reason a retry cannot fix.
+ */
+export function uninstallOutcome(result: MutationResult, confirm: boolean): UninstallOutcome {
+  if (result.ok) return { kind: "success" };
+  if (!confirm && result.code === "conflict" && result.details?.code === "grants_active") {
+    return { kind: "grants" };
+  }
+  return { kind: "error", failure: result };
+}
 
 /**
  * Uninstall, super_admin only (the Core checks again). The Core answers
@@ -37,18 +56,18 @@ function ModuleUninstall({
     setError(null);
     const result = await uninstallModule(moduleKey, confirm);
     setPending(false);
-    if (result.ok) {
+    const outcome = uninstallOutcome(result, confirm);
+    if (outcome.kind === "success") {
       dialogRef.current?.close();
       router.push("/modules");
       router.refresh();
       return;
     }
-    // The first conflict is the active-grants gate, not a failure.
-    if (!confirm && result.code === "conflict") {
+    if (outcome.kind === "grants") {
       setPhase("grants");
       return;
     }
-    setError(result);
+    setError(outcome.failure);
   }
 
   function open() {

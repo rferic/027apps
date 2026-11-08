@@ -108,12 +108,13 @@ describe("InvitationDetailPage", () => {
     expect(loadInvitationMock).toHaveBeenCalledWith("i1");
   });
 
-  it("shows the name, role, readable modules, dates and the creator", async () => {
+  it("shows the name, readable modules, dates and the creator", async () => {
     const html = renderToStaticMarkup(await render());
 
     expect(html).toContain("Ana");
-    expect(html).toContain("Role");
-    expect(html).toContain("Member");
+    // The invitation has no role: redeeming only creates `user` accounts.
+    expect(html).not.toContain("Role");
+    expect(html).not.toContain("Member");
     expect(html).toContain("Expenses");
     expect(html).toContain("Notes");
     expect(html).toContain("Expires");

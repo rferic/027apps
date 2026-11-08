@@ -2,7 +2,7 @@
 id: sprint-06-task-14
 titulo: Fichas de detalle de invitaciones y módulos
 area: web
-estado: pendiente
+estado: finalizada
 adrs: [0004, 0005, 0007, 0008]
 plan: docs/superpowers/plans/2026-11-08-detail-pages.md
 spec: docs/superpowers/specs/2026-11-08-detail-pages-design.md
@@ -120,3 +120,40 @@ task-13 (estructura de detalle, `redirectTo` en el botón de revocar).
    `kind === "service" → "Instance"`).
 4. **Scope `modules:manage`** para concesiones: cierra la fuga hacia miembros, aunque deja fuera a
    una futura clave de solo lectura de administración. Se acepta para esta tarea.
+
+## Reservas aceptadas de la auditoría
+
+1. **`created_by: null` se etiqueta «Instance» también cuando el creador era un miembro ya purgado.**
+   La vista de invitación solo distingue «clave» (`created_by: null`) de «cuenta», y el `join` a
+   `public.profiles` devuelve `null` también si la cuenta se purgó. Es un caso de borde: ningún flujo
+   actual crea invitaciones desde una cuenta purgada (el purgado exige perfil desactivado y revoca sus
+   sesiones antes). Se acepta sin tocar el contrato; si aparece un flujo que lo permita, la vista
+   necesitará un discriminante explícito (`created_by_kind`) en lugar de inferirlo de `null`.
+2. **La regex de `moduleKey` no es la misma en el borde y en el servicio.** `modules/api.ts:39` usa
+   `^[a-z0-9]+(-[a-z0-9]+)*$` (solo minúsculas, dígitos y guiones, coherente con el manifest) y
+   `modules/service.ts:80` usa `^[a-z0-9][a-z0-9_-]{0,63}$` (admite `_` y hasta 64 caracteres). La
+   divergencia es inofensiva —el borde es más estricto y la API siempre valida antes—, pero un
+   módulo con `_` en la clave sería rechazado en HTTP y aceptado por el servicio. Se unifican cuando
+   se toque ese módulo; hoy no hay ninguna clave así.
+
+## Cierre (2026-11-08)
+
+- **Implementado**: `/invitations/{id}` y `/modules/{key}` con filas y tarjetas clicables en ambas
+  listas y la acción de revocar movida de la fila a la ficha; `GET /api/v1/invitations/{id}`
+  (`created_by` resuelto, sin token) y `GET /api/v1/modules/{key}/grants` (`modules:manage`, una sola
+  consulta); `manifest_digest` aditivo en `ModuleView`.
+- **Decisiones del usuario aplicadas**: el token no se muestra en la ficha (solo al crear); ajustes del
+  módulo en solo lectura, sin enlace a una página de edición inexistente; invitaciones creadas por clave
+  se etiquetan «Instance»; scope de grants = `modules:manage`.
+- **Evidencia**: `pnpm --filter core test` ✓ (387), `pnpm --filter admin test` ✓ (911), `pnpm --filter
+  @027apps/i18n test` ✓ (26), `pnpm lint` ✓, `pnpm tsc` ✓, `pnpm i18n:check` ✓ (546 cadenas, 9 locales),
+  `pnpm check:openapi` ✓ (58/58), `pnpm --filter admin build` ✓ (ejecutado con el dev server parado y su
+  salida leída; las rutas `/invitations/[id]` y `/modules/[key]` se prerenderizan parcialmente).
+- **db-tests**: `src/modules/grants.test.ts` y `src/api/invitations.test.ts` en verde (9 tests).
+- **Auditoría OWASP/QA**: veredicto **APTO CON RESERVAS**, sin hallazgos altos ni críticos. Resueltos: el
+  rol inventado en la ficha de invitación (eliminado) y el 409 de desinstalación con
+  `details.code = "grants_active"`. Reservas aceptadas: la etiqueta «Instance» cuando el creador era un
+  miembro purgado (ver reserva 1) y la regex de `moduleKey` no idéntica entre borde y servicio (ver
+  reserva 2).
+- **Pendiente de prueba manual**: la doble confirmación de desinstalación con concesiones activas contra
+  la base real. No bloquea el cierre de código; queda como comprobación del usuario.

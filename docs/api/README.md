@@ -195,7 +195,7 @@ An instance has a **catalogue of modules** (e.g. Split Expenses). A module is in
 
 | Endpoint | Status | What it returns |
 |---|---|---|
-| `GET /api/v1/modules` | **implemented** | Catalogue: `key`, `name`, `version`, `state`, `is_public` |
+| `GET /api/v1/modules` | **implemented** | Catalogue: `key`, `name`, `version`, `state`, `is_public` and `manifest_digest` (the list and the detail share the module schema) |
 | `GET /api/v1/modules/{key}` | **implemented** | Detail: state, version, `is_public`, `manifest_digest` and its **public settings** |
 | `GET /api/v1/modules/{key}/grants` | **implemented** | Who has the module: active `users` (`id` + `display_name`) and assigned `categories` (`id` + `name`); admins only (`modules:manage`), empty arrays when there are no grants |
 | `GET /api/v1/me/modules` | **previsto** | **Your** modules (public + granted); admins see all |
