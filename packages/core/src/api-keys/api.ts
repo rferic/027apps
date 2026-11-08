@@ -27,6 +27,32 @@ export interface ApiKeysRouteDeps {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * `GET /api-keys` filters beyond pagination. `kind` defaults to `all` when
+ * omitted; `user` selects the owner of delegated keys and cannot be combined
+ * with `kind=service` (that pair could only return an empty list).
+ */
+export const apiKeyListFiltersSchema = z
+  .object({
+    kind: z.enum(["all", "service", "delegated"]).optional(),
+    user: z.uuid().optional(),
+  })
+  .strict()
+  .refine((value) => !(value.kind === "service" && value.user), {
+    message: "user cannot be combined with kind=service",
+  });
+
+function listFilters(searchParams: URLSearchParams) {
+  const filters = apiKeyListFiltersSchema.safeParse({
+    kind: searchParams.get("kind") || undefined,
+    user: searchParams.get("user") || undefined,
+  });
+  if (!filters.success) {
+    throw new DomainError("validation_failed", "invalid kind or user filter");
+  }
+  return filters.data;
+}
+
 export const createApiKeySchema = z
   .object({
     kind: z.enum(["service", "delegated"]),
@@ -67,7 +93,8 @@ export function apiKeysRoute(deps: ApiKeysRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(req, readOptions(deps, ["api_keys:read"]), deps.door, async (ctx) => {
       const page = pageParams(ctx.searchParams);
-      const result = await listApiKeys(deps.apiKeys, ctx.caller, page);
+      const filters = listFilters(ctx.searchParams);
+      const result = await listApiKeys(deps.apiKeys, ctx.caller, { ...filters, ...page });
       return { ...result, limit: page.limit, offset: page.offset };
     });
 }

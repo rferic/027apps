@@ -178,6 +178,21 @@ describe("loadApiKeys", () => {
     expect(request.headers.get("host")).toBeNull();
   });
 
+  it("forwards the kind and owner filters and omits kind=all", async () => {
+    handlerMock.mockResolvedValue(json({ api_keys: [KEY], total: 1 }));
+
+    await loadApiKeys({ offset: 20, kind: "delegated", user: "u1" });
+    const filtered = handlerMock.mock.calls[0]?.[0] as Request;
+    expect(filtered.url).toBe(
+      "http://panel.internal/api/v1/api-keys?limit=20&offset=20&kind=delegated&user=u1",
+    );
+
+    handlerMock.mockClear();
+    await loadApiKeys({ offset: 0, kind: "all" });
+    const unfiltered = handlerMock.mock.calls[0]?.[0] as Request;
+    expect(unfiltered.url).toBe("http://panel.internal/api/v1/api-keys?limit=20&offset=0");
+  });
+
   it("resolves delegated owners in one profile query and labels service keys as the instance", async () => {
     handlerMock.mockResolvedValue(json({ api_keys: [KEY, SERVICE_KEY], total: 1 }));
 

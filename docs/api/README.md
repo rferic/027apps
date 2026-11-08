@@ -137,6 +137,13 @@ explicitly. `category` keeps only the members of that category and combines with
 `categories: [{ "id": "…", "name": "…" }]`, ordered by name. There is no generic
 `{ "data", "meta" }` envelope in v1.
 
+`/api-keys` accepts two filters on top of `limit`/`offset`: `kind` (`all|service|delegated`,
+omitted means `all`) and `user` (the uuid of a delegated key's owner). `user` only makes sense for
+delegated keys: combined with `kind=service` it is a `validation_failed` (400) instead of an empty
+list. Only a `super_admin` may filter by another owner; for any other caller `user` must be their own
+id, and another owner is a `not_found` (404) so the list cannot be used to enumerate users. Both
+filters narrow `total`.
+
 **Previsto: cursor pagination.** For large or live lists (declared per resource) the target is an opaque `next_cursor`; it is **not implemented** and no endpoint accepts `cursor=` today.
 
 ## 6. Rate limiting
@@ -218,7 +225,7 @@ The table reflects the **54 operations currently documented** (the authoritative
 | You | `GET/PATCH /me`, `GET /me/modules` | **previsto** |
 | Access (admin) | `POST/DELETE /users/{id}/modules/{key}` | per-user grant/revoke |
 | Invitations | `POST/GET /invitations`, `DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | redeem is the public join step (single use) |
-| API keys | `POST/GET /api-keys`, `GET/DELETE /api-keys/{id}` | secret returned once; delegated keys act as a plain user; `user_id` optional for a super_admin; 5 active delegated keys per owner (409 `conflict`, `details.code = "key_limit"`); `/keys` panel is super_admin only |
+| API keys | `POST/GET /api-keys`, `GET/DELETE /api-keys/{id}` | secret returned once; delegated keys act as a plain user; `user_id` optional for a super_admin; list filters `kind` and `user` (`user` + `kind=service` → 400, another owner for a non-super_admin → 404); 5 active delegated keys per owner (409 `conflict`, `details.code = "key_limit"`); `/keys` panel is super_admin only |
 | Devices | `POST/GET /devices`, `DELETE /devices/{id}` | push registration and revocation |
 | Settings & currency | `GET /settings`, `PATCH /settings`, `PATCH /settings/{category}/{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
 | i18n | `GET /translations?locale=` | ETag-cached (304 on `If-None-Match`) |

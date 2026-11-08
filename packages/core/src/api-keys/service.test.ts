@@ -132,12 +132,16 @@ function apiKeyTable(profiles: Profile[] = []) {
           return { rows: [view(row)] };
         }
         if (sql.includes("with total")) {
-          const global = params.length === 2;
-          const [limit, offset] = (
-            global ? params : params.slice(1)
-          ) as [number, number];
-          const actor = global ? null : String(params[0]);
-          const visible = rows.filter((row) => global || row.user_id === actor);
+          const [limit, offset] = params.slice(-2) as [number, number];
+          // Filters are positional; read each one from the placeholder it uses
+          // so the fake follows the real query instead of a fixed param order.
+          const kindMatch = sql.match(/kind = \$(\d+)/);
+          const userMatch = sql.match(/user_id = \$(\d+)/);
+          const kind = kindMatch ? String(params[Number(kindMatch[1]) - 1]) : null;
+          const userId = userMatch ? String(params[Number(userMatch[1]) - 1]) : null;
+          const visible = rows.filter(
+            (row) => (!kind || row.kind === kind) && (!userId || row.user_id === userId),
+          );
           const page = visible.slice(offset, offset + limit);
           const total = visible.length;
           if (page.length === 0) return { rows: [{ total }] };
@@ -504,6 +508,96 @@ describe("createApiKey — five active delegated keys per owner", () => {
     );
     expect(rejected).toHaveLength(1);
     expect(rejected[0]!.reason).toMatchObject({ code: "conflict" });
+  });
+});
+
+describe("api key list filters", () => {
+  it("filters by kind and reports the filtered total", async () => {
+    table.seed({ kind: "service", name: "Instance" });
+    table.seed({ kind: "delegated", user_id: "user", name: "Mine" });
+    table.seed({ kind: "delegated", user_id: "other", name: "Theirs" });
+
+    const listed = await listApiKeys(table.deps, session("root", "super_admin"), {
+      ...PAGE,
+      kind: "delegated",
+    });
+
+    expect(listed.api_keys.map((row) => row.name).sort()).toEqual(["Mine", "Theirs"]);
+    expect(listed.total).toBe(2);
+  });
+
+  it("filters by owner and combines it with the kind", async () => {
+    table.seed({ kind: "service", name: "Instance" });
+    table.seed({ kind: "delegated", user_id: "user", name: "Mine" });
+    table.seed({ kind: "delegated", user_id: "other", name: "Theirs" });
+
+    const listed = await listApiKeys(table.deps, session("root", "super_admin"), {
+      ...PAGE,
+      kind: "delegated",
+      user: "other",
+    });
+
+    expect(listed.api_keys.map((row) => row.name)).toEqual(["Theirs"]);
+    expect(listed.total).toBe(1);
+  });
+
+  it("keeps pagination and the total on the filtered set", async () => {
+    table.seed({ kind: "delegated", user_id: "user", name: "One" });
+    table.seed({ kind: "delegated", user_id: "user", name: "Two" });
+    table.seed({ kind: "delegated", user_id: "user", name: "Three" });
+    table.seed({ kind: "delegated", user_id: "other", name: "Other" });
+
+    const first = await listApiKeys(table.deps, session("root", "super_admin"), {
+      limit: 1,
+      offset: 0,
+      kind: "delegated",
+      user: "user",
+    });
+    const second = await listApiKeys(table.deps, session("root", "super_admin"), {
+      limit: 1,
+      offset: 1,
+      kind: "delegated",
+      user: "user",
+    });
+
+    expect(first.total).toBe(3);
+    expect(second.total).toBe(3);
+    expect(first.api_keys).toHaveLength(1);
+    expect(second.api_keys).toHaveLength(1);
+    expect(first.api_keys[0]!.id).not.toBe(second.api_keys[0]!.id);
+  });
+
+  it("treats kind=all like an omitted kind", async () => {
+    table.seed({ kind: "service", name: "Instance" });
+    table.seed({ kind: "delegated", user_id: "user", name: "Mine" });
+
+    const listed = await listApiKeys(table.deps, session("root", "super_admin"), {
+      ...PAGE,
+      kind: "all",
+    });
+
+    expect(listed.api_keys).toHaveLength(2);
+    expect(listed.total).toBe(2);
+  });
+
+  it("lets a non-super_admin filter their own keys", async () => {
+    table.seed({ kind: "delegated", user_id: "admin", name: "Mine" });
+    table.seed({ kind: "delegated", user_id: "other", name: "Theirs" });
+
+    const listed = await listApiKeys(table.deps, session("admin", "admin"), {
+      ...PAGE,
+      kind: "delegated",
+      user: "admin",
+    });
+
+    expect(listed.api_keys.map((row) => row.name)).toEqual(["Mine"]);
+    expect(listed.total).toBe(1);
+  });
+
+  it("hides another owner's keys from a non-super_admin as not_found", async () => {
+    await expect(
+      listApiKeys(table.deps, session("admin", "admin"), { ...PAGE, user: "other" }),
+    ).rejects.toMatchObject({ code: "not_found" });
   });
 });
 

@@ -16,6 +16,7 @@ import {
   buildApiKeyCreateInput,
   INITIAL_API_KEY_FORM_STATE,
 } from "./api-key-create-form";
+import { allowedApiKeyScopes } from "@/lib/api-key-scopes";
 
 const OWNERS = [
   { id: "u1", name: "Sara" },
@@ -59,6 +60,8 @@ function fields(
         roleCap={roleCap}
         selected={selected}
         onToggle={() => {}}
+        onSelectAll={() => {}}
+        onClearAll={() => {}}
         fieldErrors={{}}
         messages={{}}
       />
@@ -196,7 +199,42 @@ describe("ApiKeyKindFields and scopes", () => {
     expect(html).toContain('checked="" value="users:read"');
     expect(html).not.toContain('checked="" value="users:write"');
   });
+
+  it("offers select-all and clear-all next to the scopes", () => {
+    const html = fields("delegated", "", []);
+
+    expect(html).toContain(">Select all</button>");
+    expect(html).toContain(">Clear all</button>");
+  });
+
+  it("disables select-all when every offered scope is already selected", () => {
+    const html = fields("delegated", "", allowedApiKeyScopes("delegated", ""));
+
+    expect(buttonMarkup(html, "Select all")).toContain("disabled");
+    expect(buttonMarkup(html, "Clear all")).not.toContain("disabled");
+  });
+
+  it("disables clear-all when nothing is selected", () => {
+    const html = fields("delegated", "", []);
+
+    expect(buttonMarkup(html, "Clear all")).toContain("disabled");
+    expect(buttonMarkup(html, "Select all")).not.toContain("disabled");
+  });
+
+  it("disables select-all for a service key without a role cap", () => {
+    const html = fields("service", "", []);
+
+    expect(buttonMarkup(html, "Select all")).toContain("disabled");
+    expect(buttonMarkup(html, "Clear all")).toContain("disabled");
+  });
 });
+
+function buttonMarkup(html: string, label: string): string {
+  const match = new RegExp(`<button[^>]*>${label}</button>`).exec(html);
+  if (!match) throw new Error(`no button "${label}"`);
+  // Drop the class attribute: `disabled:` utility classes are not the attribute.
+  return match[0].replace(/\sclass="[^"]*"/, "");
+}
 
 describe("apiKeyFormReducer", () => {
   const superAdminService = apiKeyFormReducer(
@@ -273,6 +311,51 @@ describe("apiKeyFormReducer", () => {
 
     expect(checked.scopes).toEqual(["users:read"]);
     expect(unchecked.scopes).toEqual([]);
+  });
+
+  it("select-all selects exactly the scopes offered for the kind and cap", () => {
+    const state = apiKeyFormReducer(INITIAL_API_KEY_FORM_STATE, { type: "select-all-scopes" });
+
+    expect(state.scopes).toEqual([...allowedApiKeyScopes("delegated", "")]);
+    expect(state.scopes).not.toContain("maintenance:run");
+    expect(state.scopes).not.toContain("users:write");
+  });
+
+  it("select-all uses the new allowlist after switching kind or cap", () => {
+    const service = apiKeyFormReducer(
+      apiKeyFormReducer(INITIAL_API_KEY_FORM_STATE, { type: "kind", kind: "service" }),
+      { type: "role-cap", roleCap: "super_admin" },
+    );
+    const serviceAll = apiKeyFormReducer(service, { type: "select-all-scopes" });
+
+    expect(serviceAll.scopes).toEqual([...allowedApiKeyScopes("service", "super_admin")]);
+    expect(serviceAll.scopes).toContain("maintenance:run");
+
+    const delegated = apiKeyFormReducer(serviceAll, { type: "kind", kind: "delegated" });
+    const delegatedAll = apiKeyFormReducer(delegated, { type: "select-all-scopes" });
+
+    expect(delegatedAll.scopes).toEqual([...allowedApiKeyScopes("delegated", "")]);
+    expect(delegatedAll.scopes).not.toContain("maintenance:run");
+  });
+
+  it("select-all does nothing while a service key has no role cap", () => {
+    const service = apiKeyFormReducer(INITIAL_API_KEY_FORM_STATE, { type: "kind", kind: "service" });
+
+    const state = apiKeyFormReducer(service, { type: "select-all-scopes" });
+
+    expect(state.scopes).toEqual([]);
+  });
+
+  it("clear-all removes every selected scope", () => {
+    const selected = apiKeyFormReducer(INITIAL_API_KEY_FORM_STATE, {
+      type: "scope",
+      scope: "users:read",
+      checked: true,
+    });
+
+    const cleared = apiKeyFormReducer(selected, { type: "clear-scopes" });
+
+    expect(cleared.scopes).toEqual([]);
   });
 
   it("records the chosen owner", () => {

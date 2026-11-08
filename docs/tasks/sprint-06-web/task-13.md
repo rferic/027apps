@@ -150,6 +150,22 @@ dueño); cambios en el modelo de datos más allá del índice/política citados.
 `apps/admin/src/app/(panel)/keys/*` (+ tests), `supabase/migrations/0015_api_keys_owner_policy.sql`,
 `packages/db-tests/src/rls/api-keys-devices.test.ts`, catálogos i18n y docs de contrato.
 
+### Filtros del listado de claves (2026-11-08)
+
+`GET /api/v1/api-keys` acepta `kind` (`all|service|delegated`, omitido = `all`) y `user` (uuid del
+propietario), validados con zod y aplicados en la misma consulta que el `count`, así que `total`
+siempre refleja el conjunto filtrado. `user` + `kind=service` → 400 `validation_failed` (el par solo
+podría devolver una lista vacía engañosa). Un no-super_admin solo puede usar su propio id: cualquier
+otro propietario → 404 `not_found`, igual que una clave ajena, para no permitir enumerar usuarios.
+El panel reenvía ambos desde `apps/admin/src/lib/panel-keys.ts` y `/keys` los expone como selects de
+tipo y propietario (ver iteración 21 de task-11).
+
+Tests: filtro por `kind`, por `user`, combinación con paginación y `total`, `kind=all`, un
+no-super_admin filtrando lo propio y el 404/400 de los casos no permitidos
+(`packages/core/src/api-keys/{service,api}.test.ts`); reenvío y omisión de `kind=all` en
+`panel-keys.test.ts`; selects, conservación en paginación/reintento, ocultación con `service` y
+limpieza de los tres filtros en `(panel)/keys/page.test.tsx`.
+
 **Verificación ejecutada**
 
 - `pnpm --filter @027apps/core test` — 305 tests en verde.

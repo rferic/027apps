@@ -57,7 +57,19 @@ export interface ApiKeyList {
   total: number;
 }
 
-export interface ApiKeyPage {
+/** `all` is the explicit opt-out of the kind filter. */
+export type ApiKeyKindFilter = "all" | "service" | "delegated";
+
+/**
+ * Filters accepted by the list. `user` narrows the owner of delegated keys
+ * and is only meaningful to a super_admin (anyone else only sees their own).
+ */
+export interface ApiKeyListFilters {
+  kind?: ApiKeyKindFilter;
+  user?: string;
+}
+
+export interface ApiKeyPage extends ApiKeyListFilters {
   limit: number;
   offset: number;
 }
@@ -346,31 +358,42 @@ export async function listApiKeys(
 ): Promise<ApiKeyList> {
   if (caller.kind === "service") throw new DomainError("insufficient_scope");
   const actor = actorUserId(caller);
+  const superAdmin = isSuperAdmin(caller);
 
-  const { rows } = isSuperAdmin(caller)
-    ? await deps.db.query(
-        `with total as (select count(*)::int as n from public.api_keys),
-              page as (
-                select ${VIEW_COLUMNS} from public.api_keys
-                 order by created_at desc, id desc
-                 limit $1 offset $2
-              )
-         select total.n as total, page.* from total left join page on true`,
-        [page.limit, page.offset],
-      )
-    : await deps.db.query(
-        `with total as (
-           select count(*)::int as n from public.api_keys where user_id = $1
-         ),
-         page as (
-           select ${VIEW_COLUMNS} from public.api_keys
-            where user_id = $1
-            order by created_at desc, id desc
-            limit $2 offset $3
-         )
-         select total.n as total, page.* from total left join page on true`,
-        [actor, page.limit, page.offset],
-      );
+  // `user` only refines delegated keys: with `kind=service` it could only
+  // return an empty list, so it is rejected instead of hiding the mistake.
+  if (page.kind === "service" && page.user) {
+    throw new DomainError("validation_failed", "user cannot be combined with kind=service");
+  }
+  // A non-super_admin can only ever list their own keys; asking for someone
+  // else's is indistinguishable from a missing resource.
+  if (page.user && !superAdmin && page.user !== actor) throw new DomainError("not_found");
+
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  const owner = superAdmin ? page.user : actor;
+  if (owner) {
+    params.push(owner);
+    conditions.push(`user_id = $${params.length}`);
+  }
+  if (page.kind && page.kind !== "all") {
+    params.push(page.kind);
+    conditions.push(`kind = $${params.length}`);
+  }
+  const where = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
+  params.push(page.limit, page.offset);
+
+  const { rows } = await deps.db.query(
+    `with total as (select count(*)::int as n from public.api_keys ${where}),
+          page as (
+            select ${VIEW_COLUMNS} from public.api_keys
+             ${where}
+             order by created_at desc, id desc
+             limit $${params.length - 1} offset $${params.length}
+          )
+     select total.n as total, page.* from total left join page on true`,
+    params,
+  );
   const keys = rows.filter((row) => row.id !== null && row.id !== undefined);
   return {
     api_keys: keys.map(toView),

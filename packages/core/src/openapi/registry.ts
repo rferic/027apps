@@ -55,6 +55,7 @@ import {
   userListSchema,
   userResponseSchema,
   usersQuerySchema,
+  apiKeysQuerySchema,
 } from "./schemas";
 
 /**
@@ -372,9 +373,9 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
   {
     method: "get",
     path: "/api-keys",
-    summary: "List own keys, or all keys as super_admin.",
+    summary: "List own keys, or all keys as super_admin; filter by kind and owner.",
     scopes: ["api_keys:read"],
-    query: paginationQuerySchema,
+    query: apiKeysQuerySchema,
     response: apiKeyListSchema,
     auth: "session",
   },

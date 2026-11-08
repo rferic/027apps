@@ -10,6 +10,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 const INTERNAL_ORIGIN = "http://panel.internal";
 
 export type ApiKeyKind = "service" | "delegated";
+/** `all` is the explicit opt-out of the kind filter in the list. */
+export type ApiKeyKindFilter = "all" | ApiKeyKind;
 export type ApiKeyRoleCap = "admin" | "super_admin";
 
 /** `ApiKeyView` from `packages/core/src/api-keys/service.ts` (never the secret). */
@@ -220,16 +222,30 @@ async function callRoute(
   return { ok: true, body, ...(headerRequestId ? { requestId: headerRequestId } : {}) };
 }
 
+function listParams(input: {
+  offset: number;
+  limit?: number;
+  kind?: ApiKeyKindFilter;
+  user?: string;
+}): URLSearchParams {
+  const params = new URLSearchParams();
+  params.set("limit", String(input.limit ?? PANEL_PAGE_SIZE));
+  params.set("offset", String(Math.max(0, input.offset)));
+  if (input.kind && input.kind !== "all") params.set("kind", input.kind);
+  if (input.user) params.set("user", input.user);
+  return params;
+}
+
 /** GET /api/v1/api-keys — own keys, or every key for a super_admin, one page. */
 export async function loadApiKeys(input: {
   offset: number;
   limit?: number;
+  kind?: ApiKeyKindFilter;
+  user?: string;
 }): Promise<ApiKeysList> {
   const token = await sessionToken();
   const deps = await apiKeysRouteDeps();
-  const params = new URLSearchParams();
-  params.set("limit", String(input.limit ?? PANEL_PAGE_SIZE));
-  params.set("offset", String(Math.max(0, input.offset)));
+  const params = listParams(input);
   const call = await callRoute(apiKeysRoute(deps), `/api/v1/api-keys?${params.toString()}`, token);
   if (!call.ok) return call;
   if (!Array.isArray(call.body.api_keys)) {

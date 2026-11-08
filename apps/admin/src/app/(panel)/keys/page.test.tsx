@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requirePanelMock = vi.fn();
 const loadApiKeysMock = vi.fn();
+const loadApiKeyOwnersMock = vi.fn();
 const redirectMock = vi.fn((url: string) => {
   throw new Error(`NEXT_REDIRECT:${url}`);
 });
@@ -30,6 +31,7 @@ vi.mock("@/lib/panel-settings", () => ({
 
 vi.mock("@/lib/panel-keys", () => ({
   loadApiKeys: (input: unknown) => loadApiKeysMock(input),
+  loadApiKeyOwners: () => loadApiKeyOwnersMock(),
 }));
 
 vi.mock("@/app/(auth)/actions", () => ({
@@ -76,6 +78,14 @@ beforeEach(() => {
     user: { id: "u1", email: "root@example.com", displayName: "Root", role: "super_admin" },
   });
   loadApiKeysMock.mockReset();
+  loadApiKeyOwnersMock.mockReset();
+  loadApiKeyOwnersMock.mockResolvedValue({
+    ok: true,
+    owners: [
+      { id: "u1", name: "Sara" },
+      { id: "u2", name: "Marta" },
+    ],
+  });
   redirectMock.mockClear();
 });
 
@@ -139,7 +149,7 @@ describe("KeysPage", () => {
 
     expect(html).toContain("Backup");
     expect(html).not.toContain("Zapier");
-    expect(html).toContain("Clear filter");
+    expect(html).toContain("Clear filters");
     expect(html).toContain('href="/keys"');
   });
 
@@ -243,5 +253,118 @@ describe("KeysPage filters", () => {
     expect(html).toContain('name="state"');
     expect(html).not.toContain(">Apply<");
     expect(html).not.toContain('type="submit"');
+  });
+});
+
+const OWNER_ID = "11111111-1111-4111-8111-111111111111";
+
+describe("KeysPage kind and owner filters", () => {
+  it("sends kind and user to the API and keeps them in the pagination", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY], total: 45 });
+
+    const html = renderToStaticMarkup(
+      await render({ page: "2", kind: "delegated", user: OWNER_ID }),
+    );
+
+    expect(loadApiKeysMock).toHaveBeenCalledWith({
+      offset: 20,
+      kind: "delegated",
+      user: OWNER_ID,
+    });
+    expect(html).toContain("Page 2 of 3");
+    expect(html).toContain(`href="/keys?kind=delegated&amp;user=${OWNER_ID}"`);
+    expect(html).toContain(`href="/keys?kind=delegated&amp;user=${OWNER_ID}&amp;page=3"`);
+  });
+
+  it("combines state, kind and owner in the pagination links", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY], total: 45 });
+
+    const html = renderToStaticMarkup(
+      await render({ state: "all", page: "2", kind: "delegated", user: OWNER_ID }),
+    );
+
+    expect(loadApiKeysMock).toHaveBeenCalledWith({
+      offset: 20,
+      kind: "delegated",
+      user: OWNER_ID,
+    });
+    expect(html).toContain(
+      `href="/keys?state=all&amp;kind=delegated&amp;user=${OWNER_ID}"`,
+    );
+    expect(html).toContain(
+      `href="/keys?state=all&amp;kind=delegated&amp;user=${OWNER_ID}&amp;page=3"`,
+    );
+  });
+
+  it("renders the type and owner selects with the active values", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY], total: 1 });
+
+    const html = renderToStaticMarkup(
+      await render({ kind: "delegated", user: OWNER_ID }),
+    );
+
+    expect(html).toContain('name="kind"');
+    expect(html).toContain('<option value="delegated" selected=""');
+    expect(html).toContain('name="user"');
+    expect(html).toContain("All owners");
+    expect(html).toContain("Sara");
+    expect(html).toContain("Marta");
+    expect(html).toContain(`<option value="${OWNER_ID}" selected=""`);
+  });
+
+  it("defaults the type to all without adding it to the URL", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY], total: 1 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 0 });
+    expect(html).toContain('<option value="all" selected=""');
+    expect(html).toContain('<option value="" selected=""');
+    expect(html).not.toContain("Clear filters");
+  });
+
+  it("hides the owner select for service and cleans a stale user from the URL", async () => {
+    await expect(render({ kind: "service", user: OWNER_ID })).rejects.toThrow(
+      `NEXT_REDIRECT:/keys?kind=service`,
+    );
+    expect(loadApiKeysMock).not.toHaveBeenCalled();
+    expect(loadApiKeyOwnersMock).not.toHaveBeenCalled();
+
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [SERVICE_KEY], total: 1 });
+    const html = renderToStaticMarkup(await render({ kind: "service" }));
+
+    expect(html).not.toContain('name="user"');
+    expect(html).toContain('name="kind"');
+    expect(loadApiKeysMock).toHaveBeenCalledWith({ offset: 0, kind: "service" });
+  });
+
+  it("clears state, kind and owner with Clear filters", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
+
+    const html = renderToStaticMarkup(
+      await render({ state: "revoked", kind: "delegated", user: OWNER_ID }),
+    );
+
+    expect(html).toContain("Clear filters");
+    expect(html).toContain('href="/keys"');
+  });
+
+  it("keeps kind and user on the error retry link", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: false, code: "internal", requestId: "req-500" });
+
+    const html = renderToStaticMarkup(
+      await render({ kind: "delegated", user: OWNER_ID }),
+    );
+
+    expect(html).toContain(`href="/keys?kind=delegated&amp;user=${OWNER_ID}"`);
+  });
+
+  it("shows a filter-specific empty state when a server filter matches nothing", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [], total: 0 });
+
+    const html = renderToStaticMarkup(await render({ kind: "service" }));
+
+    expect(html).toContain("No API keys match this filter.");
+    expect(html).not.toContain("No API keys yet.");
   });
 });

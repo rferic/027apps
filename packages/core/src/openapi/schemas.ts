@@ -129,6 +129,19 @@ export const invitationsQuerySchema = paginationQuerySchema.extend({
     .describe("Filter by derived status; omitted or all removes the filter. total reflects it."),
 });
 
+export const apiKeysQuerySchema = paginationQuerySchema.extend({
+  kind: z
+    .enum(["all", "service", "delegated"])
+    .optional()
+    .describe("Filter by key kind; omitted or all removes the filter. total reflects it."),
+  user: z
+    .uuid()
+    .optional()
+    .describe(
+      "Owner of delegated keys (super_admin only); rejected together with kind=service.",
+    ),
+});
+
 export const userResponseSchema = component(
   "UserResponse",
   z.object({ user: userSchema }).strict(),

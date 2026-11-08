@@ -45,6 +45,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 18 | Formularios de creación sin estado residual (secreto/token de la visita anterior) | hecho |
 | 19 | Claves: scopes derivados de `kind` + `role_cap`, poda de selecciones inválidas | hecho |
 | 20 | Filtro por defecto vivo (`active`) en `/keys` y `/modules`; `all` explícito | hecho |
+| 21 | Filtros de tipo y propietario en `/keys` (API `kind`/`user`) | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -377,3 +378,19 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   por defecto.
 - Tests: default sin parámetro (solo filas vivas y URL sin `state`), `state=all` explícito con las
   revocadas/no activas, conservación del filtro en la paginación y en la redirección.
+
+### Iteración 21 — Filtros de tipo y propietario en `/keys` (hecho)
+
+- La lista añade dos `FilterSelect`: **Tipo** (`All types`, `Service`, `Delegated`) y
+  **Propietario** (`All owners` + usuarios activos de `/users?state=active&limit=100`, valor = id).
+  Ambos se aplican en el Core y afectan a `total`, así que la paginación cuenta el conjunto filtrado
+  y no la página visible.
+- El selector de propietario solo aparece con tipo `delegated` o `all`; con `service` se oculta y la
+  página redirige a la URL canónica sin `user` (el Core rechazaría `kind=service&user` con un 400).
+  Un propietario filtrado que ya no está activo sigue apareciendo como opción con su id para no
+  disfrazar el filtro de «All owners».
+- `state`, `kind` y `user` se conservan al paginar y en el reintento del error; «Clear filters» limpia
+  los tres. Los valores por defecto (`state=active`, `kind=all`) se omiten de la URL canónica.
+- Tests: `panel-keys` reenvía `kind`/`user` (y omite `kind=all`), la página envía ambos al Core, los
+  conserva en paginación/reintento, oculta y limpia el propietario con `service`, y el vacío con
+  filtros de servidor es «No API keys match this filter.».

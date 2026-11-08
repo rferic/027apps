@@ -37,10 +37,16 @@ function pagedDeps(rows: KeyRow[], who: Caller = admin): ApiKeysRouteDeps {
     apiKeys: {
       db: {
         async query(sql: string, params: unknown[] = []) {
-          const paged = params.slice(-2) as [number, number];
-          const [limit, offset] = paged;
-          const page = rows.slice(offset, offset + limit);
-          const total = rows.length;
+          const [limit, offset] = params.slice(-2) as [number, number];
+          const kindMatch = sql.match(/kind = \$(\d+)/);
+          const userMatch = sql.match(/user_id = \$(\d+)/);
+          const kind = kindMatch ? String(params[Number(kindMatch[1]) - 1]) : null;
+          const userId = userMatch ? String(params[Number(userMatch[1]) - 1]) : null;
+          const visible = rows.filter(
+            (row) => (!kind || row.kind === kind) && (!userId || row.user_id === userId),
+          );
+          const page = visible.slice(offset, offset + limit);
+          const total = visible.length;
           if (page.length === 0) return { rows: [{ total }] };
           return { rows: page.map((row) => ({ ...row, total })) };
         },
@@ -73,6 +79,7 @@ async function list(route: ReturnType<typeof apiKeysRoute>, url: string) {
       total: number;
       limit: number;
       offset: number;
+      error?: { code: string };
     },
   };
 }
@@ -242,5 +249,89 @@ describe("api keys route pagination", () => {  it("returns the first page with l
     );
 
     expect(res.status).toBe(401);
+  });
+});
+
+const OWNER = "11111111-1111-4111-8111-111111111111";
+
+function mixedRows(): KeyRow[] {
+  return [
+    { ...rows(1)[0]!, id: "svc", kind: "service", name: "Instance", user_id: null },
+    {
+      ...rows(1)[0]!,
+      id: "own",
+      kind: "delegated",
+      name: "Mine",
+      user_id: OWNER,
+    },
+    {
+      ...rows(1)[0]!,
+      id: "other",
+      kind: "delegated",
+      name: "Theirs",
+      user_id: "22222222-2222-4222-8222-222222222222",
+    },
+  ];
+}
+
+describe("api keys route filters", () => {
+  it("filters by kind, keeps the filtered total and paginates", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(mixedRows())),
+      "/api/v1/api-keys?kind=delegated&limit=1&offset=1",
+    );
+
+    expect(status).toBe(200);
+    expect(body.total).toBe(2);
+    expect(body.api_keys).toHaveLength(1);
+    expect(body.limit).toBe(1);
+    expect(body.offset).toBe(1);
+  });
+
+  it("filters by owner for a super_admin", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(mixedRows())),
+      `/api/v1/api-keys?user=${OWNER}`,
+    );
+
+    expect(status).toBe(200);
+    expect(body.api_keys.map((row) => row.id)).toEqual(["own"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("rejects user combined with kind=service", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(mixedRows())),
+      `/api/v1/api-keys?kind=service&user=${OWNER}`,
+    );
+
+    expect(status).toBe(400);
+    expect(body.error?.code).toBe("validation_failed");
+  });
+
+  it("rejects an unknown kind", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(mixedRows())),
+      "/api/v1/api-keys?kind=other",
+    );
+
+    expect(status).toBe(400);
+    expect(body.error?.code).toBe("validation_failed");
+  });
+
+  it("hides another owner's keys from a non-super_admin as not_found", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(
+        pagedDeps(mixedRows(), {
+          kind: "session",
+          userId: "33333333-3333-4333-8333-333333333333",
+          role: "admin",
+        }),
+      ),
+      `/api/v1/api-keys?user=${OWNER}`,
+    );
+
+    expect(status).toBe(404);
+    expect(body.error?.code).toBe("not_found");
   });
 });

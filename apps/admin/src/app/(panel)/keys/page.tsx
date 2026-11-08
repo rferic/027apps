@@ -21,7 +21,13 @@ import {
   pageOffset,
   parsePage,
 } from "@/lib/panel-pagination";
-import { loadApiKeys, type ApiKeyKind, type ApiKeyRow } from "@/lib/panel-keys";
+import {
+  loadApiKeyOwners,
+  loadApiKeys,
+  type ApiKeyKind,
+  type ApiKeyOwner,
+  type ApiKeyRow,
+} from "@/lib/panel-keys";
 
 /**
  * The page reads the session while rendering; the layout's opt-out is not
@@ -30,22 +36,74 @@ import { loadApiKeys, type ApiKeyKind, type ApiKeyRow } from "@/lib/panel-keys";
 export const instant = false;
 
 type StateFilter = "all" | "active" | "revoked";
+type KindFilter = "all" | "service" | "delegated";
+
+interface KeysFilters {
+  state: StateFilter;
+  kind: KindFilter;
+  user?: string;
+}
 
 interface KeysSearchParams {
   state?: string | string[];
+  kind?: string | string[];
+  user?: string | string[];
   page?: string | string[];
 }
 
 /** The list defaults to the live state: revoked keys stay out of the way. */
 const DEFAULT_STATE: StateFilter = "active";
+/** No kind filter unless the URL asks for one. */
+const DEFAULT_KIND: KindFilter = "all";
+
+/** A user filter must be a uuid; anything else is ignored like an unknown kind. */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function parseFilter(value: string | undefined): StateFilter {
   return value === "revoked" || value === "all" || value === "active" ? value : DEFAULT_STATE;
 }
 
+function parseKind(value: string | undefined): KindFilter {
+  return value === "service" || value === "delegated" ? value : DEFAULT_KIND;
+}
+
+function parseUser(value: string | undefined): string | undefined {
+  return value && UUID_PATTERN.test(value) ? value : undefined;
+}
+
 /** The default `active` is omitted so the canonical URL stays clean. */
 function stateParam(filter: StateFilter): StateFilter | undefined {
   return filter === DEFAULT_STATE ? undefined : filter;
+}
+
+function kindParam(filter: KindFilter): KindFilter | undefined {
+  return filter === DEFAULT_KIND ? undefined : filter;
+}
+
+/** The owner only refines delegated keys: with `service` it is never sent. */
+function ownerParam(filters: KeysFilters): string | undefined {
+  return filters.kind === "service" ? undefined : filters.user;
+}
+
+function keysHref(filters: KeysFilters, page: number): string {
+  return pageHref(
+    "/keys",
+    {
+      state: stateParam(filters.state),
+      kind: kindParam(filters.kind),
+      user: ownerParam(filters),
+    },
+    page,
+  );
+}
+
+function hasActiveFilters(filters: KeysFilters): boolean {
+  return (
+    filters.state !== DEFAULT_STATE ||
+    filters.kind !== DEFAULT_KIND ||
+    ownerParam(filters) !== undefined
+  );
 }
 
 function filterKeys(rows: ApiKeyRow[], filter: StateFilter): ApiKeyRow[] {
@@ -83,16 +141,38 @@ function OwnerCell({ row, messages }: { row: ApiKeyRow; messages: TranslationMap
   );
 }
 
-function KeysFilter({ filter, messages }: { filter: StateFilter; messages: TranslationMap }) {
+function filterParams(filters: KeysFilters): Record<string, string> {
+  const params: Record<string, string> = {};
+  const state = stateParam(filters.state);
+  if (state) params.state = state;
+  const kind = kindParam(filters.kind);
+  if (kind) params.kind = kind;
+  const user = ownerParam(filters);
+  if (user) params.user = user;
+  return params;
+}
+
+function KeysFilter({
+  filters,
+  owners,
+  messages,
+}: {
+  filters: KeysFilters;
+  owners: ApiKeyOwner[];
+  messages: TranslationMap;
+}) {
+  // The owner select only makes sense for delegated keys: a service key has no
+  // user, so the control disappears and the URL never carries `user` with it.
+  const params = filterParams(filters);
   return (
     <div className="flex flex-wrap items-end gap-3">
       <FilterSelect
         name="state"
         id="keys-state"
         label={t("Status", messages)}
-        value={filter}
+        value={filters.state}
         basePath="/keys"
-        params={{}}
+        params={params}
         options={[
           { value: "active", label: t("Active", messages) },
           { value: "revoked", label: t("Revoked", messages) },
@@ -100,12 +180,44 @@ function KeysFilter({ filter, messages }: { filter: StateFilter; messages: Trans
           { value: "all", label: t("All", messages) },
         ]}
       />
-      {filter !== DEFAULT_STATE && (
+      <FilterSelect
+        name="kind"
+        id="keys-kind"
+        label={t("Type", messages)}
+        value={filters.kind}
+        basePath="/keys"
+        params={params}
+        options={[
+          { value: "all", label: t("All types", messages) },
+          { value: "service", label: t("Service", messages) },
+          { value: "delegated", label: t("Delegated", messages) },
+        ]}
+      />
+      {filters.kind !== "service" && (
+        <FilterSelect
+          name="user"
+          id="keys-owner"
+          label={t("Owner", messages)}
+          value={filters.user ?? ""}
+          basePath="/keys"
+          params={params}
+          options={[
+            { value: "", label: t("All owners", messages) },
+            ...owners.map((owner) => ({ value: owner.id, label: owner.name })),
+            // A filtered owner may have been deactivated since the URL was
+            // built: keep the value selectable instead of silently showing All.
+            ...(filters.user && !owners.some((owner) => owner.id === filters.user)
+              ? [{ value: filters.user, label: filters.user }]
+              : []),
+          ]}
+        />
+      )}
+      {hasActiveFilters(filters) && (
         <Link
           href="/keys"
           className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          {t("Clear filter", messages)}
+          {t("Clear filters", messages)}
         </Link>
       )}
     </div>
@@ -278,7 +390,8 @@ function KeysEmpty({ filtered, messages }: { filtered: boolean; messages: Transl
 
 function KeysBody({
   data,
-  filter,
+  filters,
+  owners,
   page,
   locale,
   timeZone,
@@ -286,32 +399,37 @@ function KeysBody({
   messages,
 }: {
   data: Awaited<ReturnType<typeof loadApiKeys>>;
-  filter: StateFilter;
+  filters: KeysFilters;
+  owners: ApiKeyOwner[];
   page: number;
   locale: Locale;
   timeZone: string;
   currentUserId: string;
   messages: TranslationMap;
 }) {
-  const filters = { state: stateParam(filter) };
-
   if (!data.ok) {
     return (
       <PanelError
         error={data}
         heading={t("We couldn't load the API keys.", messages)}
-        retryHref={pageHref("/keys", filters, page)}
+        retryHref={keysHref(filters, page)}
         messages={messages}
       />
     );
   }
 
-  const rows = filterKeys(data.apiKeys, filter);
+  const rows = filterKeys(data.apiKeys, filters.state);
+  // `kind` and `user` are applied by the API, so an empty page with them is a
+  // real "no match", not an empty instance.
+  const filtered =
+    filters.kind !== DEFAULT_KIND ||
+    ownerParam(filters) !== undefined ||
+    (filters.state !== DEFAULT_STATE && data.total > 0);
   return (
     <>
-      <KeysFilter filter={filter} messages={messages} />
+      <KeysFilter filters={filters} owners={owners} messages={messages} />
       {rows.length === 0 ? (
-        <KeysEmpty filtered={filter !== DEFAULT_STATE && data.total > 0} messages={messages} />
+        <KeysEmpty filtered={filtered} messages={messages} />
       ) : (
         <>
           <KeysTable
@@ -333,11 +451,36 @@ function KeysBody({
       <Pagination
         page={page}
         pages={pageCount(data.total)}
-        hrefFor={(target) => pageHref("/keys", filters, target)}
+        hrefFor={(target) => keysHref(filters, target)}
         messages={messages}
       />
     </>
   );
+}
+
+/**
+ * Resolves the list data for a render. A service kind has no owner, so a
+ * stale `user` in the URL is dropped by redirecting to the canonical address;
+ * the API rejects that pair instead of returning a misleading empty list.
+ */
+async function loadKeysView(
+  filters: KeysFilters,
+  page: number,
+): Promise<{ data: Awaited<ReturnType<typeof loadApiKeys>>; owners: ApiKeyOwner[] }> {
+  if (filters.kind === "service" && filters.user) {
+    redirect(keysHref({ ...filters, user: undefined }, page));
+  }
+
+  const user = ownerParam(filters);
+  const data = await loadApiKeys({
+    offset: pageOffset(page),
+    ...(filters.kind !== DEFAULT_KIND ? { kind: filters.kind } : {}),
+    ...(user ? { user } : {}),
+  });
+  if (filters.kind === "service") return { data, owners: [] };
+
+  const loaded = await loadApiKeyOwners();
+  return { data, owners: loaded.ok ? loaded.owners : [] };
 }
 
 export default async function KeysPage({
@@ -359,13 +502,17 @@ export default async function KeysPage({
   const timeZone = await loadPanelTimeZone();
 
   const params = await searchParams;
-  const filter = parseFilter(firstParam(params.state));
+  const filters: KeysFilters = {
+    state: parseFilter(firstParam(params.state)),
+    kind: parseKind(firstParam(params.kind)),
+    user: parseUser(firstParam(params.user)),
+  };
   const page = parsePage(firstParam(params.page));
-  const data = await loadApiKeys({ offset: pageOffset(page) });
+  const { data, owners } = await loadKeysView(filters, page);
 
   if (data.ok && page > pageCount(data.total)) {
     const target = pageCount(data.total);
-    redirect(pageHref("/keys", { state: stateParam(filter) }, target));
+    redirect(keysHref(filters, target));
   }
 
   return (
@@ -387,7 +534,8 @@ export default async function KeysPage({
 
       <KeysBody
         data={data}
-        filter={filter}
+        filters={filters}
+        owners={owners}
         page={page}
         locale={locale}
         timeZone={timeZone}

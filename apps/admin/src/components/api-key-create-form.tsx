@@ -29,6 +29,9 @@ const secondaryLinkClass =
 const cancelClass =
   "inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
+const bulkActionClass =
+  "inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline";
+
 type KeyKind = "service" | "delegated";
 
 /** Empty until the user picks a cap; a service key cannot be created without it. */
@@ -86,6 +89,8 @@ export type ApiKeyFormAction =
   | { type: "role-cap"; roleCap: ApiKeyRoleCap }
   | { type: "owner"; ownerId: string }
   | { type: "scope"; scope: string; checked: boolean }
+  | { type: "select-all-scopes" }
+  | { type: "clear-scopes" }
   | { type: "reset" };
 
 function normalizeRoleCap(value: string): ApiKeyRoleCap {
@@ -100,6 +105,28 @@ function pruneScopes(
 ): readonly string[] {
   const allowed = new Set(allowedApiKeyScopes(kind, roleCap));
   return scopes.filter((scope) => allowed.has(scope));
+}
+
+function toggleScope(
+  state: ApiKeyFormState,
+  scope: string,
+  checked: boolean,
+): ApiKeyFormState {
+  if (!checked) {
+    return { ...state, scopes: state.scopes.filter((entry) => entry !== scope) };
+  }
+  if (!allowedApiKeyScopes(state.kind, state.roleCap).includes(scope)) return state;
+  if (state.scopes.includes(scope)) return state;
+  return { ...state, scopes: [...state.scopes, scope] };
+}
+
+function selectAllScopes(state: ApiKeyFormState): ApiKeyFormState {
+  // A service key without a cap cannot be created yet, so there is no
+  // meaningful "all" until the cap resolves the allowlist.
+  if (state.kind === "service" && !state.roleCap) return state;
+  const offered = allowedApiKeyScopes(state.kind, state.roleCap);
+  if (offered.length === 0) return state;
+  return { ...state, scopes: [...offered] };
 }
 
 /**
@@ -127,14 +154,12 @@ export function apiKeyFormReducer(
     }
     case "owner":
       return { ...state, ownerId: action.ownerId };
-    case "scope": {
-      if (!action.checked) {
-        return { ...state, scopes: state.scopes.filter((scope) => scope !== action.scope) };
-      }
-      if (!allowedApiKeyScopes(state.kind, state.roleCap).includes(action.scope)) return state;
-      if (state.scopes.includes(action.scope)) return state;
-      return { ...state, scopes: [...state.scopes, action.scope] };
-    }
+    case "scope":
+      return toggleScope(state, action.scope, action.checked);
+    case "select-all-scopes":
+      return selectAllScopes(state);
+    case "clear-scopes":
+      return state.scopes.length === 0 ? state : { ...state, scopes: [] };
     default:
       return INITIAL_API_KEY_FORM_STATE;
   }
@@ -286,6 +311,8 @@ export function ApiKeyScopeChoices({
   roleCap,
   selected,
   onToggle,
+  onSelectAll,
+  onClearAll,
   fieldErrors,
   messages,
 }: {
@@ -293,18 +320,45 @@ export function ApiKeyScopeChoices({
   roleCap: ApiKeyRoleCap;
   selected: readonly string[];
   onToggle: (scope: string, checked: boolean) => void;
+  onSelectAll: () => void;
+  onClearAll: () => void;
   fieldErrors: Record<string, string[]>;
   messages: TranslationMap;
 }) {
-  const allowed = new Set(allowedApiKeyScopes(kind, roleCap));
+  const offered = allowedApiKeyScopes(kind, roleCap);
+  const allowed = new Set(offered);
   const groups = API_KEY_SCOPE_GROUPS.map((group) => ({
     ...group,
     scopes: group.scopes.filter((scope) => allowed.has(scope)),
   })).filter((group) => group.scopes.length > 0);
+  // Without a cap the service allowlist is still provisional, so bulk
+  // selection is off until the key is actually configurable.
+  const bulkAvailable = kind === "delegated" || roleCap !== "";
+  const allSelected =
+    bulkAvailable && offered.length > 0 && offered.every((scope) => selected.includes(scope));
+  const noneSelected = selected.length === 0;
 
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="text-xs font-semibold">{t("Scopes", messages)}</legend>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          className={bulkActionClass}
+          onClick={onSelectAll}
+          disabled={!bulkAvailable || offered.length === 0 || allSelected}
+        >
+          {t("Select all", messages)}
+        </button>
+        <button
+          type="button"
+          className={bulkActionClass}
+          onClick={onClearAll}
+          disabled={!bulkAvailable || offered.length === 0 || noneSelected}
+        >
+          {t("Clear all", messages)}
+        </button>
+      </div>
       <p className="text-xs text-muted-foreground">
         {t("Scopes are limited by the key kind and role cap.", messages)}
       </p>
@@ -576,6 +630,8 @@ function ApiKeyCreateFormBody({
         roleCap={state.roleCap}
         selected={state.scopes}
         onToggle={(scope, checked) => dispatch({ type: "scope", scope, checked })}
+        onSelectAll={() => dispatch({ type: "select-all-scopes" })}
+        onClearAll={() => dispatch({ type: "clear-scopes" })}
         fieldErrors={fieldErrors}
         messages={messages}
       />
