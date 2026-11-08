@@ -277,7 +277,7 @@ describe("SettingsForm", () => {
     expect(html).not.toContain('<dialog open');
   });
 
-  it("warns on the CORS field that the panel origin must stay in the list", () => {
+  it("warns on the CORS field that the panel origin only needs listing for another origin", () => {
     const html = renderToStaticMarkup(
       <SettingField
         setting={{
@@ -295,7 +295,35 @@ describe("SettingsForm", () => {
       />,
     );
 
-    expect(html).toContain("The origin of this panel must be in this list or it loses access to the API.");
+    expect(html).toContain("One entry per line.");
+    expect(html).toContain(
+      "The origin of this panel must be listed only if it calls the API from a different origin.",
+    );
+  });
+
+  it("explains an empty CORS list: no external app is allowed and the panel is not needed", () => {
+    const html = renderToStaticMarkup(
+      <SettingField
+        setting={{
+          ...NAME,
+          key: "security.cors_allowlist",
+          category: "security",
+          type: "array",
+          help: "Origins allowed by the API door (max 20, no wildcard, no paths).",
+          value: [],
+        }}
+        draft={{ "security.cors_allowlist": "" }}
+        onChange={() => {}}
+        error={null}
+        messages={{}}
+      />,
+    );
+
+    expect(html).toContain(
+      "With an empty list, no external application can call the API.",
+    );
+    expect(html).toContain("does not need to be listed");
+    expect(html).not.toContain("One entry per line.");
   });
 
   it("shows the coherence error in the alert with its request id", () => {

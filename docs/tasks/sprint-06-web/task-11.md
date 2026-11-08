@@ -443,8 +443,18 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   solo se recupera editando la lista desde otro origen permitido). «Save anyway» envía el lote; «Cancel»
   no guarda nada. Un origen que nunca estuvo en la lista no dispara el aviso (no hay acceso que perder),
   y sin cambios en CORS el guardado es directo.
-- Texto de ayuda nuevo en el propio campo: el origen del panel tiene que estar en la lista o pierde el
-  acceso a la API. Todas las cadenas nuevas, en las 9 locales.
+- Texto de ayuda del propio campo, en dos estados: con la lista vacía explica que ninguna aplicación externa
+  puede llamar a la API y que el panel no necesita aparecer porque usa su propio origen; con valores añade
+  «One entry per line.» y avisa de que el origen del panel solo debe estar en la lista si llama desde otro
+  origen. Todas las cadenas nuevas, en las 9 locales.
+- **Corregido en la revisión:** el esquema de `security.cors_allowlist` exigía un punto en el host
+  (`^https?:\/\/[^/*]+\.[^/*]+$`) y rechazaba `http://localhost:3003`, un origen legítimo y el habitual en
+  desarrollo. Ahora pide esquema `http`/`https`, host no vacío (una sola etiqueta vale, también IPv6 entre
+  corchetes), puerto opcional y nada de path, query, fragmento, comodín, espacios ni barra final; longitud
+  máxima 300. Tests de esquema: aceptan `http://localhost:3003`, `http://127.0.0.1:3003`,
+  `http://192.168.1.108:3003` y `https://panel.example.com`; rechazan `localhost:3003` (sin esquema),
+  `http://panel.example.com/` (barra final), `http://example.com/path`, `not a url` y la cadena vacía. La
+  base local queda sembrada con `["http://localhost:3003"]` para poder borrarlo y ver la confirmación.
 - `0017_drop_instance_logo_setting.sql` borra la fila huérfana `instance.logo_url` que sembró
   `0005_instance_logo.sql`: la clave salió del catálogo en este sprint y no debe sobrevivir a un restore
   como si fuera configurable. El test de catálogo sigue tolerando la clave en bases restauradas con
@@ -452,7 +462,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   `source = 'module:<key>'`), que no forman parte del seed de `0002`.
 - Tests: el guardia no abre confirmación sin cambios de CORS, la abre al quitar el origen actual y no
   envía el lote, no la abre si el nuevo valor conserva el origen ni si el origen nunca estuvo permitido;
-  el diálogo se renderiza cerrado y el campo CORS muestra su aviso. `db-tests`: catálogo verde tras la
+  el diálogo se renderiza cerrado y el campo CORS muestra su aviso (lista vacía y lista con valores). `db-tests`: catálogo verde tras la
   migración (la fila `instance.logo_url` ya no existe).
 
 ### Iteración 29 — Filtros de módulos en servidor y retirada del componente muerto (hecho)

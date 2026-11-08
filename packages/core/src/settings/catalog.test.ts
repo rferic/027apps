@@ -157,3 +157,81 @@ describe('public_url schema validation', () => {
     });
   });
 });
+
+describe('cors_allowlist schema validation', () => {
+  const corsSetting = SETTINGS_CATALOG.find((s) => s.key === 'security.cors_allowlist');
+  if (!corsSetting) {
+    throw new Error('security.cors_allowlist setting not found in catalog');
+  }
+
+  // The array schema validates every entry with the origin schema.
+  const schema = corsSetting.schema;
+
+  function accepts(origin: string): boolean {
+    return schema.safeParse([origin]).success;
+  }
+
+  describe('accepts', () => {
+    it('http://localhost:3003 (single-label host, the dev origin)', () => {
+      expect(accepts('http://localhost:3003')).toBe(true);
+    });
+
+    it('http://localhost (no port)', () => {
+      expect(accepts('http://localhost')).toBe(true);
+    });
+
+    it('http://127.0.0.1:3003', () => {
+      expect(accepts('http://127.0.0.1:3003')).toBe(true);
+    });
+
+    it('http://192.168.1.108:3003', () => {
+      expect(accepts('http://192.168.1.108:3003')).toBe(true);
+    });
+
+    it('https://panel.example.com', () => {
+      expect(accepts('https://panel.example.com')).toBe(true);
+    });
+
+    it('http://[::1]:3003 (IPv6 origin)', () => {
+      expect(accepts('http://[::1]:3003')).toBe(true);
+    });
+  });
+
+  describe('rejects', () => {
+    it('localhost:3003 (missing scheme)', () => {
+      expect(accepts('localhost:3003')).toBe(false);
+    });
+
+    it('http://panel.example.com/ (trailing slash)', () => {
+      expect(accepts('http://panel.example.com/')).toBe(false);
+    });
+
+    it('http://example.com/path', () => {
+      expect(accepts('http://example.com/path')).toBe(false);
+    });
+
+    it('http://example.com* (wildcard)', () => {
+      expect(accepts('http://example.com*')).toBe(false);
+    });
+
+    it('http://example.com?q=1 (query string)', () => {
+      expect(accepts('http://example.com?q=1')).toBe(false);
+    });
+
+    it('not a url', () => {
+      expect(accepts('not a url')).toBe(false);
+    });
+
+    it('empty string', () => {
+      expect(accepts('')).toBe(false);
+    });
+
+    it('http:// (empty host)', () => {
+      expect(accepts('http://')).toBe(false);
+    });
+
+    it('ftp://example.com (not http/https)', () => {
+      expect(accepts('ftp://example.com')).toBe(false);
+    });
+  });
+});

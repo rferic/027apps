@@ -276,6 +276,30 @@ function ScalarInput({
   );
 }
 
+/**
+ * Dynamic lines under an array field. The CORS allowlist is the only array
+ * whose empty state is a real choice: it locks every external client out and
+ * the panel keeps working because it calls the API from its own origin.
+ */
+function arrayHints(key: string, value: string, messages: TranslationMap): string[] {
+  if (key !== CORS_SETTING_KEY) return [t("One entry per line.", messages)];
+  if (value.trim() === "") {
+    return [
+      t(
+        "With an empty list, no external application can call the API. This panel does not need to be listed: it calls from its own origin.",
+        messages,
+      ),
+    ];
+  }
+  return [
+    t("One entry per line.", messages),
+    t(
+      "The origin of this panel must be listed only if it calls the API from a different origin.",
+      messages,
+    ),
+  ];
+}
+
 function ArrayInput({
   setting,
   value,
@@ -294,12 +318,11 @@ function ArrayInput({
       hint={
         <>
           {settingHelp(setting.key, messages, setting.help)}
-          <span className="block">{t("One entry per line.", messages)}</span>
-          {setting.key === CORS_SETTING_KEY && (
-            <span className="block">
-              {t("The origin of this panel must be in this list or it loses access to the API.", messages)}
+          {arrayHints(setting.key, value, messages).map((line) => (
+            <span key={line} className="block">
+              {line}
             </span>
-          )}
+          ))}
         </>
       }
     >

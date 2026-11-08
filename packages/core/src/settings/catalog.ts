@@ -156,9 +156,16 @@ const publicUrlSchema = z
     { message: 'must be an https origin, or http for local hosts, without trailing slash' },
   );
 
+// Origin only: scheme, a non-empty host (single label allowed, so
+// `http://localhost:3003` is valid), optional port, IPv6 brackets. No path,
+// query, fragment, wildcard, whitespace or trailing slash.
 const corsOriginSchema = z
   .string()
-  .regex(/^https?:\/\/[^/*]+\.[^/*]+$/, 'must be an origin like https://host[:port], no paths, no wildcard');
+  .max(300)
+  .regex(
+    /^https?:\/\/[^/?#*\s]+$/,
+    'must be an origin like https://host[:port], no paths, no wildcard',
+  );
 
 const corsAllowlistSchema = z.array(corsOriginSchema).max(20);
 
