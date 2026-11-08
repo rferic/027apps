@@ -163,6 +163,9 @@ function publicLabel(isPublic: boolean, messages: TranslationMap): string {
 type StateFilter = "all" | "installed" | "active" | "disabled";
 type PublicFilter = "all" | "yes" | "no";
 
+/** The catalogue defaults to the live state; installed/disabled stay opt-in. */
+const DEFAULT_STATE: StateFilter = "active";
+
 interface ModulesSearchParams {
   state?: string | string[];
   public?: string | string[];
@@ -170,7 +173,14 @@ interface ModulesSearchParams {
 }
 
 function parseStateFilter(value: string | undefined): StateFilter {
-  return value === "installed" || value === "active" || value === "disabled" ? value : "all";
+  return value === "installed" || value === "active" || value === "disabled" || value === "all"
+    ? value
+    : DEFAULT_STATE;
+}
+
+/** The default `active` is omitted so the canonical URL stays clean. */
+function stateParam(state: StateFilter): StateFilter | undefined {
+  return state === DEFAULT_STATE ? undefined : state;
 }
 
 function parsePublicFilter(value: string | undefined): PublicFilter {
@@ -199,9 +209,10 @@ function ModulesFilter({
   visibility: PublicFilter;
   messages: TranslationMap;
 }) {
-  const filtered = state !== "all" || visibility !== "all";
+  const filtered = state !== DEFAULT_STATE || visibility !== "all";
   const params: Record<string, string> = {};
-  if (state !== "all") params.state = state;
+  const stateValue = stateParam(state);
+  if (stateValue) params.state = stateValue;
   if (visibility !== "all") params.public = visibility;
   return (
     <div className="flex flex-wrap items-end gap-3">
@@ -209,14 +220,15 @@ function ModulesFilter({
         name="state"
         id="modules-state"
         label={t("State", messages)}
-        value={state === "all" ? "" : state}
+        value={state}
         basePath="/modules"
         params={params}
         options={[
-          { value: "", label: t("All", messages) },
           { value: "installed", label: t("Installed", messages) },
           { value: "active", label: t("Active", messages) },
           { value: "disabled", label: t("Disabled", messages) },
+          // A real value: "All" is an explicit `state=all`, never a missing key.
+          { value: "all", label: t("All", messages) },
         ]}
       />
       <FilterSelect
@@ -430,11 +442,11 @@ function ModulesBody({
   if (!catalogue.ok) return <CatalogueError error={catalogue} messages={messages} />;
 
   const filters = {
-    state: state === "all" ? undefined : state,
+    state: stateParam(state),
     public: visibility === "all" ? undefined : visibility,
   };
   const modules = filterModules(catalogue.modules, state, visibility);
-  const filtered = state !== "all" || visibility !== "all";
+  const filtered = state !== DEFAULT_STATE || visibility !== "all";
 
   return (
     <>
@@ -482,7 +494,7 @@ export default async function ModulesPage({
       pageHref(
         "/modules",
         {
-          state: state === "all" ? undefined : state,
+          state: stateParam(state),
           public: visibility === "all" ? undefined : visibility,
         },
         target,

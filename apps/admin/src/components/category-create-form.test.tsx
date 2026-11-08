@@ -18,6 +18,13 @@ describe("CategoryCreateForm", () => {
     expect(html).toContain('href="/categories"');
     expect(html).not.toContain("<dialog");
   });
+
+  it("starts empty: no error or secret from a previous creation", () => {
+    const html = renderToStaticMarkup(<CategoryCreateForm messages={{}} />);
+
+    expect(html).not.toContain('role="alert"');
+    expect(html).toContain("Create category");
+  });
 });
 
 describe("categoryCreatedHref", () => {

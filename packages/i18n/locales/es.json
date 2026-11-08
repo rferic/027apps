@@ -61,6 +61,7 @@
   "Changes saved.": "Cambios guardados.",
   "Check that the Firebase Cloud Messaging API is enabled for this project in Google Cloud.": "Compruebe que la API de Firebase Cloud Messaging esté habilitada para este proyecto en Google Cloud.",
   "Check the inbox (and spam) of {email}. Running locally, Supabase captures mail in its own inbox viewer (Mailpit) instead of delivering it. Nothing yet? Check the SMTP settings in Supabase.": "Revise la bandeja de entrada (y el spam) de {email}. Cuando se ejecuta en local, Supabase captura el correo en su propio visor de bandeja (Mailpit) en lugar de entregarlo. ¿Nada todavía? Compruebe la configuración SMTP de Supabase.",
+  "Choose a role cap.": "Elija un límite de rol.",
   "Choose a valid IANA time zone.": "Elija una zona horaria IANA válida.",
   "Choose an enabled currency.": "Elija una moneda habilitada.",
   "Choose one of the supported languages.": "Elija uno de los idiomas admitidos.",

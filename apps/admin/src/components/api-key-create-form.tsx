@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useReducer, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
@@ -17,6 +17,7 @@ import {
   type ScopeGroupId,
 } from "@/lib/api-key-scopes";
 import type { MutationFailure } from "@/lib/mutation-result";
+import { useCreateForm } from "@/lib/use-create-form";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -28,6 +29,9 @@ const cancelClass =
   "inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 type KeyKind = "service" | "delegated";
+
+/** Empty until the user picks a cap; a service key cannot be created without it. */
+export type ApiKeyRoleCap = ApiKeyScopeRoleCap | "";
 
 const SCOPE_GROUP_LABEL: Record<ScopeGroupId, (messages: TranslationMap) => string> = {
   profile: (messages) => t("Profile", messages),
@@ -57,20 +61,86 @@ function fieldState(field: string, errors: string[] | undefined, hintId?: string
   };
 }
 
-function buildCreateInput(data: FormData, kind: KeyKind): CreateApiKeyInput {
-  const scopes = data
-    .getAll("scopes")
-    .map((value) => String(value))
-    .filter((value) => value.length > 0);
+/** The kind fields own their state so a new visit remounts them empty. */
+export interface ApiKeyFormState {
+  kind: KeyKind;
+  roleCap: ApiKeyRoleCap;
+  scopes: readonly string[];
+}
+
+export const INITIAL_API_KEY_FORM_STATE: ApiKeyFormState = {
+  kind: "delegated",
+  roleCap: "",
+  scopes: [],
+};
+
+export type ApiKeyFormAction =
+  | { type: "kind"; kind: KeyKind }
+  | { type: "role-cap"; roleCap: ApiKeyRoleCap }
+  | { type: "scope"; scope: string; checked: boolean }
+  | { type: "reset" };
+
+function normalizeRoleCap(value: string): ApiKeyRoleCap {
+  if (value === "admin" || value === "super_admin") return value;
+  return "";
+}
+
+function pruneScopes(
+  kind: KeyKind,
+  roleCap: ApiKeyRoleCap,
+  scopes: readonly string[],
+): readonly string[] {
+  const allowed = new Set(allowedApiKeyScopes(kind, roleCap));
+  return scopes.filter((scope) => allowed.has(scope));
+}
+
+/**
+ * Scopes are always derived from `(kind, roleCap)`: changing either drops any
+ * selection the new pair no longer allows, so a stale checkbox can never be
+ * submitted and switching back never resurrects it.
+ */
+export function apiKeyFormReducer(
+  state: ApiKeyFormState,
+  action: ApiKeyFormAction,
+): ApiKeyFormState {
+  switch (action.type) {
+    case "kind":
+      // The cap belongs to the service kind: it must be chosen again.
+      return {
+        kind: action.kind,
+        roleCap: "",
+        scopes: pruneScopes(action.kind, "", state.scopes),
+      };
+    case "role-cap": {
+      const roleCap = normalizeRoleCap(action.roleCap);
+      return { ...state, roleCap, scopes: pruneScopes(state.kind, roleCap, state.scopes) };
+    }
+    case "scope": {
+      if (!action.checked) {
+        return { ...state, scopes: state.scopes.filter((scope) => scope !== action.scope) };
+      }
+      if (!allowedApiKeyScopes(state.kind, state.roleCap).includes(action.scope)) return state;
+      if (state.scopes.includes(action.scope)) return state;
+      return { ...state, scopes: [...state.scopes, action.scope] };
+    }
+    default:
+      return INITIAL_API_KEY_FORM_STATE;
+  }
+}
+
+function buildCreateInput(
+  data: FormData,
+  kind: KeyKind,
+  roleCap: ApiKeyRoleCap,
+  selected: readonly string[],
+): CreateApiKeyInput {
+  const allowed = new Set(allowedApiKeyScopes(kind, roleCap));
   const input: CreateApiKeyInput = {
     kind,
     name: String(data.get("name") ?? "").trim(),
-    scopes,
+    scopes: selected.filter((scope) => allowed.has(scope)),
   };
-  if (kind === "service") {
-    const roleCap = String(data.get("role_cap") ?? "");
-    if (roleCap === "admin" || roleCap === "super_admin") input.role_cap = roleCap;
-  }
+  if (kind === "service" && roleCap) input.role_cap = roleCap;
   return input;
 }
 
@@ -182,11 +252,15 @@ export function ApiKeyCreatedPanel({
 export function ApiKeyScopeChoices({
   kind,
   roleCap,
+  selected,
+  onToggle,
   fieldErrors,
   messages,
 }: {
   kind: KeyKind;
-  roleCap: ApiKeyScopeRoleCap;
+  roleCap: ApiKeyRoleCap;
+  selected: readonly string[];
+  onToggle: (scope: string, checked: boolean) => void;
   fieldErrors: Record<string, string[]>;
   messages: TranslationMap;
 }) {
@@ -210,7 +284,13 @@ export function ApiKeyScopeChoices({
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {group.scopes.map((scope) => (
               <label key={scope} className="flex min-h-11 items-center gap-2 text-xs">
-                <input type="checkbox" name="scopes" value={scope} />
+                <input
+                  type="checkbox"
+                  name="scopes"
+                  value={scope}
+                  checked={selected.includes(scope)}
+                  onChange={(event) => onToggle(scope, event.target.checked)}
+                />
                 <span className="font-mono text-[11px]">{scope}</span>
               </label>
             ))}
@@ -233,9 +313,9 @@ export function ApiKeyKindFields({
 }: {
   canCreateService: boolean;
   kind: KeyKind;
-  roleCap: ApiKeyScopeRoleCap;
+  roleCap: ApiKeyRoleCap;
   onKindChange: (kind: KeyKind) => void;
-  onRoleCapChange: (roleCap: ApiKeyScopeRoleCap) => void;
+  onRoleCapChange: (roleCap: ApiKeyRoleCap) => void;
   fieldErrors: Record<string, string[]>;
   messages: TranslationMap;
 }) {
@@ -275,12 +355,12 @@ export function ApiKeyKindFields({
           <Select
             id="api-key-role-cap"
             name="role_cap"
+            required
             value={roleCap}
-            onChange={(event) =>
-              onRoleCapChange(event.target.value === "super_admin" ? "super_admin" : "admin")
-            }
+            onChange={(event) => onRoleCapChange(normalizeRoleCap(event.target.value))}
             {...fieldState("role_cap", fieldErrors.role_cap)}
           >
+            <option value="">{t("Choose a role cap.", messages)}</option>
             <option value="admin">{t("Administrator", messages)}</option>
             <option value="super_admin">{t("Super administrator", messages)}</option>
           </Select>
@@ -290,69 +370,46 @@ export function ApiKeyKindFields({
   );
 }
 
-interface ApiKeyCreateFormProps {
+interface ApiKeyCreateFormBodyProps {
   canCreateService: boolean;
+  submitting: boolean;
+  error: MutationFailure | null;
+  fieldErrors: Record<string, string[]>;
+  onSubmit: (input: CreateApiKeyInput) => void;
+  onInvalid: (fieldErrors: Record<string, string[]>) => void;
+  onClearFieldError: (field: string) => void;
   messages: TranslationMap;
 }
 
-/**
- * Creation form on its own page. The plaintext secret lives only in component
- * state and is shown once: never a URL, a cookie, storage or a log.
- */
-export function ApiKeyCreateForm({ canCreateService, messages }: ApiKeyCreateFormProps) {
-  const router = useRouter();
-  const [kind, setKind] = useState<KeyKind>("delegated");
-  const [roleCap, setRoleCap] = useState<ApiKeyScopeRoleCap>("admin");
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<MutationFailure | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-  const [secret, setSecret] = useState<string | null>(null);
-  const [created, setCreated] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [copyFailed, setCopyFailed] = useState(false);
+function ApiKeyCreateFormBody({
+  canCreateService,
+  submitting,
+  error,
+  fieldErrors,
+  onSubmit,
+  onInvalid,
+  onClearFieldError,
+  messages,
+}: ApiKeyCreateFormBodyProps) {
+  const [state, dispatch] = useReducer(apiKeyFormReducer, INITIAL_API_KEY_FORM_STATE);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleKindChange(kind: KeyKind) {
+    dispatch({ type: "kind", kind });
+    onClearFieldError("role_cap");
+  }
+
+  function handleRoleCapChange(roleCap: ApiKeyRoleCap) {
+    dispatch({ type: "role-cap", roleCap });
+    onClearFieldError("role_cap");
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-
-    setCreating(true);
-    setError(null);
-    setFieldErrors({});
-    const result = await createApiKey(buildCreateInput(new FormData(form), kind));
-    setCreating(false);
-
-    if (!result.ok) {
-      setFieldErrors(result.details?.fieldErrors ?? {});
-      setError(result);
+    if (state.kind === "service" && !state.roleCap) {
+      onInvalid({ role_cap: [t("Choose a role cap.", messages)] });
       return;
     }
-
-    form.reset();
-    setSecret(result.secret ?? null);
-    setCreated(true);
-    setCopied(false);
-    setCopyFailed(false);
-    router.refresh();
-  }
-
-  async function handleCopy() {
-    if (!secret) return;
-    // The secret stays in a selectable <input> if every copy path fails.
-    const ok = await copyText(secret);
-    setCopied(ok);
-    setCopyFailed(!ok);
-  }
-
-  if (created) {
-    return (
-      <ApiKeyCreatedPanel
-        secret={secret}
-        copied={copied}
-        copyFailed={copyFailed}
-        onCopy={handleCopy}
-        messages={messages}
-      />
-    );
+    onSubmit(buildCreateInput(new FormData(event.currentTarget), state.kind, state.roleCap, state.scopes));
   }
 
   return (
@@ -377,15 +434,22 @@ export function ApiKeyCreateForm({ canCreateService, messages }: ApiKeyCreateFor
 
       <ApiKeyKindFields
         canCreateService={canCreateService}
-        kind={kind}
-        roleCap={roleCap}
-        onKindChange={setKind}
-        onRoleCapChange={setRoleCap}
+        kind={state.kind}
+        roleCap={state.roleCap}
+        onKindChange={handleKindChange}
+        onRoleCapChange={handleRoleCapChange}
         fieldErrors={fieldErrors}
         messages={messages}
       />
 
-      <ApiKeyScopeChoices kind={kind} roleCap={roleCap} fieldErrors={fieldErrors} messages={messages} />
+      <ApiKeyScopeChoices
+        kind={state.kind}
+        roleCap={state.roleCap}
+        selected={state.scopes}
+        onToggle={(scope, checked) => dispatch({ type: "scope", scope, checked })}
+        fieldErrors={fieldErrors}
+        messages={messages}
+      />
 
       {error && <CreateErrorAlert error={error} messages={messages} />}
 
@@ -393,10 +457,76 @@ export function ApiKeyCreateForm({ canCreateService, messages }: ApiKeyCreateFor
         <Link href="/keys" className={cancelClass}>
           {t("Cancel", messages)}
         </Link>
-        <Button type="submit" variant="primary" className="min-h-11" disabled={creating}>
-          {creating ? t("Creating…", messages) : t("Create API key", messages)}
+        <Button type="submit" variant="primary" className="min-h-11" disabled={submitting}>
+          {submitting ? t("Creating…", messages) : t("Create API key", messages)}
         </Button>
       </FormActions>
     </form>
+  );
+}
+
+interface ApiKeyCreateFormProps {
+  canCreateService: boolean;
+  messages: TranslationMap;
+}
+
+/**
+ * Creation form on its own page. The plaintext secret lives only in component
+ * state and is shown once: never a URL, a cookie, storage or a log. The shared
+ * create-form flow resets on every visit, so "Done" and a new "New" never show
+ * the previous secret.
+ */
+export function ApiKeyCreateForm({ canCreateService, messages }: ApiKeyCreateFormProps) {
+  const router = useRouter();
+  const createForm = useCreateForm();
+
+  async function handleSubmit(input: CreateApiKeyInput) {
+    createForm.dispatch({ type: "submit" });
+    const result = await createApiKey(input);
+
+    if (!result.ok) {
+      createForm.dispatch({
+        type: "failed",
+        error: result,
+        fieldErrors: result.details?.fieldErrors ?? {},
+      });
+      return;
+    }
+
+    createForm.dispatch({ type: "created", result: result.secret ?? null });
+    router.refresh();
+  }
+
+  async function handleCopy() {
+    if (!createForm.result) return;
+    // The secret stays in a selectable <input> if every copy path fails.
+    const ok = await copyText(createForm.result);
+    createForm.dispatch({ type: "copy", ok });
+  }
+
+  if (createForm.phase === "created") {
+    return (
+      <ApiKeyCreatedPanel
+        secret={createForm.result}
+        copied={createForm.copied}
+        copyFailed={createForm.copyFailed}
+        onCopy={handleCopy}
+        messages={messages}
+      />
+    );
+  }
+
+  return (
+    <ApiKeyCreateFormBody
+      key={createForm.formKey}
+      canCreateService={canCreateService}
+      submitting={createForm.submitting}
+      error={createForm.error}
+      fieldErrors={createForm.fieldErrors}
+      onSubmit={handleSubmit}
+      onInvalid={(fieldErrors) => createForm.dispatch({ type: "failed", error: null, fieldErrors })}
+      onClearFieldError={(field) => createForm.dispatch({ type: "clear-field-error", field })}
+      messages={messages}
+    />
   );
 }

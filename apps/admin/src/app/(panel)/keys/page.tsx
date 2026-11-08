@@ -36,8 +36,16 @@ interface KeysSearchParams {
   page?: string | string[];
 }
 
+/** The list defaults to the live state: revoked keys stay out of the way. */
+const DEFAULT_STATE: StateFilter = "active";
+
 function parseFilter(value: string | undefined): StateFilter {
-  return value === "active" || value === "revoked" ? value : "all";
+  return value === "revoked" || value === "all" || value === "active" ? value : DEFAULT_STATE;
+}
+
+/** The default `active` is omitted so the canonical URL stays clean. */
+function stateParam(filter: StateFilter): StateFilter | undefined {
+  return filter === DEFAULT_STATE ? undefined : filter;
 }
 
 function filterKeys(rows: ApiKeyRow[], filter: StateFilter): ApiKeyRow[] {
@@ -75,10 +83,6 @@ function OwnerCell({ row, messages }: { row: ApiKeyRow; messages: TranslationMap
   );
 }
 
-function revokeHref(filter: StateFilter): string {
-  return filter === "all" ? "/keys" : `/keys?state=${filter}`;
-}
-
 function KeysFilter({ filter, messages }: { filter: StateFilter; messages: TranslationMap }) {
   return (
     <div className="flex flex-wrap items-end gap-3">
@@ -86,16 +90,17 @@ function KeysFilter({ filter, messages }: { filter: StateFilter; messages: Trans
         name="state"
         id="keys-state"
         label={t("Status", messages)}
-        value={filter === "all" ? "" : filter}
+        value={filter}
         basePath="/keys"
-        params={filter === "all" ? {} : { state: filter }}
+        params={{}}
         options={[
-          { value: "", label: t("All", messages) },
           { value: "active", label: t("Active", messages) },
           { value: "revoked", label: t("Revoked", messages) },
+          // A real value: "All" is an explicit `state=all`, never a missing key.
+          { value: "all", label: t("All", messages) },
         ]}
       />
-      {filter !== "all" && (
+      {filter !== DEFAULT_STATE && (
         <Link
           href="/keys"
           className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -253,7 +258,7 @@ function KeysEmpty({ filtered, messages }: { filtered: boolean; messages: Transl
       <div className="rounded-card border border-border bg-surface p-6">
         <h2 className="text-sm font-semibold">{t("No API keys match this filter.", messages)}</h2>
         <Link
-          href={revokeHref("all")}
+          href="/keys"
           className="mt-2 inline-block text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           {t("Clear filter", messages)}
@@ -288,7 +293,7 @@ function KeysBody({
   currentUserId: string;
   messages: TranslationMap;
 }) {
-  const filters = { state: filter === "all" ? undefined : filter };
+  const filters = { state: stateParam(filter) };
 
   if (!data.ok) {
     return (
@@ -306,7 +311,7 @@ function KeysBody({
     <>
       <KeysFilter filter={filter} messages={messages} />
       {rows.length === 0 ? (
-        <KeysEmpty filtered={filter !== "all" && data.total > 0} messages={messages} />
+        <KeysEmpty filtered={filter !== DEFAULT_STATE && data.total > 0} messages={messages} />
       ) : (
         <>
           <KeysTable
@@ -360,7 +365,7 @@ export default async function KeysPage({
 
   if (data.ok && page > pageCount(data.total)) {
     const target = pageCount(data.total);
-    redirect(pageHref("/keys", { state: filter === "all" ? undefined : filter }, target));
+    redirect(pageHref("/keys", { state: stateParam(filter) }, target));
   }
 
   return (

@@ -70,13 +70,15 @@ const SERVICE_SUPER_ADMIN_SCOPES = [...ADMIN_SCOPES, "users:deactivate", "mainte
 /**
  * Scopes a key can actually use, mirroring the Core guard's role floor. A
  * delegated key inherits its owner's role, so the form caps it at admin: it
- * never offers `maintenance:run` (service-only) nor super-admin scopes. The
- * requested list can still be wider than what the key ends up using, hence the
- * "requested scopes" label in the panel.
+ * never offers `maintenance:run` (service-only) nor super-admin scopes. A
+ * service key without a chosen cap offers only the scopes both caps share; the
+ * super-admin-only ones appear once that cap is selected. The requested list
+ * can still be wider than what the key ends up using, hence the "requested
+ * scopes" label in the panel.
  */
 export function allowedApiKeyScopes(
   kind: ApiKeyScopeKind,
-  roleCap: ApiKeyScopeRoleCap,
+  roleCap: ApiKeyScopeRoleCap | "",
 ): readonly string[] {
   if (kind === "service") {
     return roleCap === "super_admin" ? SERVICE_SUPER_ADMIN_SCOPES : ADMIN_SCOPES;

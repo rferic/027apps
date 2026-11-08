@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
@@ -10,6 +10,7 @@ import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { createCategory } from "@/lib/category-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
 import { slugConflictError } from "@/lib/panel-errors";
+import { useCreateForm } from "@/lib/use-create-form";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -60,12 +61,11 @@ export function categoryCreatedHref(id: string | undefined): string {
  */
 export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
   const router = useRouter();
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<MutationFailure | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const createForm = useCreateForm();
+  const error = createForm.error;
 
   // A conflict on this form is always the slug: say so next to the field.
-  const slugError = slugConflictError(error, messages) ?? fieldErrors.slug?.[0];
+  const slugError = slugConflictError(error, messages) ?? createForm.fieldErrors.slug?.[0];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,15 +74,15 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
     const name = String(data.get("name") ?? "").trim();
     const slug = String(data.get("slug") ?? "").trim();
 
-    setSaving(true);
-    setError(null);
-    setFieldErrors({});
+    createForm.dispatch({ type: "submit" });
     const result = await createCategory({ name, ...(slug ? { slug } : {}) });
-    setSaving(false);
 
     if (!result.ok) {
-      setFieldErrors(result.details?.fieldErrors ?? {});
-      setError(result);
+      createForm.dispatch({
+        type: "failed",
+        error: result,
+        fieldErrors: result.details?.fieldErrors ?? {},
+      });
       return;
     }
 
@@ -92,13 +92,13 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-3">
+    <form key={createForm.formKey} onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-3">
       <FormField
         id="category-name"
         label={t("Name", messages)}
         hint={t("Use a name between 1 and 80 characters.", messages)}
         hintId="category-name-help"
-        error={fieldErrors.name?.[0]}
+        error={createForm.fieldErrors.name?.[0]}
         errorId="category-name-error"
       >
         <input
@@ -107,7 +107,7 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
           type="text"
           required
           maxLength={80}
-          {...fieldAria("name", fieldErrors.name?.[0], "category-name-help")}
+          {...fieldAria("name", createForm.fieldErrors.name?.[0], "category-name-help")}
           className={inputClass}
         />
       </FormField>
@@ -140,8 +140,8 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
         <Link href="/categories" className={cancelClass}>
           {t("Cancel", messages)}
         </Link>
-        <Button type="submit" variant="primary" className="min-h-11" disabled={saving}>
-          {saving ? t("Creating…", messages) : t("Create category", messages)}
+        <Button type="submit" variant="primary" className="min-h-11" disabled={createForm.submitting}>
+          {createForm.submitting ? t("Creating…", messages) : t("Create category", messages)}
         </Button>
       </FormActions>
     </form>

@@ -42,6 +42,9 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 15 | Filtro por defecto `active` en `/users` y `/members`; `all` explícito | hecho |
 | 16 | Categorías por usuario visibles y filtro por categoría en `/members` | hecho |
 | 17 | Invitaciones: reglas al crear, errores por campo, «Create another» y filtro por defecto pendiente | hecho |
+| 18 | Formularios de creación sin estado residual (secreto/token de la visita anterior) | hecho |
+| 19 | Claves: scopes derivados de `kind` + `role_cap`, poda de selecciones inválidas | hecho |
+| 20 | Filtro por defecto vivo (`active`) en `/keys` y `/modules`; `all` explícito | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -332,3 +335,45 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   `details.code` en `panel-errors` y en el resultado de la mutación, «Create another» con y sin
   confirmación en el reducer, panel en estado de confirmación, filtro por defecto pendiente, `all`
   explícito y conservado en paginación).
+
+### Iteración 18 — Formularios de creación sin estado residual (hecho)
+
+- **Causa**: con Cache Components, Next.js conserva las rutas con React `<Activity>` en vez de
+  desmontarlas. Al salir de `/keys/new` o `/invitations/new` y volver, el `useState`/`useReducer`, los
+  valores del DOM y el resultado de la creación sobreviven; solo `/invitations/new` tenía un reset
+  (el `useEffect` de la iteración 17) y `/keys/new`/`/categories/new`, ninguno, así que una visita
+  nueva podía reabrir el secreto o el token anterior. El patrón común lo resuelve para los tres.
+- **Un patrón para los tres formularios**: `apps/admin/src/lib/use-create-form.ts` exporta el reducer
+  común (`phase`, `result` —secreto o token—, `copied`, `copyFailed`, `confirmingAnother`,
+  `submitting`, `error`, `fieldErrors`, `formKey`) y el hook `useCreateForm()`. El hook limpia en el
+  cleanup (mientras la ruta está oculta), vuelve a limpiar al mostrarse y expone `reset()` y
+  `formKey`; `formKey` remonta el subárbol para vaciar también los campos no controlados y el estado
+  del propio navegador.
+- `/categories/new`, `/keys/new` y `/invitations/new` lo usan. "Done" navega al listado; "Create
+  another" de invitaciones llama a `reset()` (con confirmación inline si el token no se copió).
+- Tests: reducer compartido (un reset desde `created` borra secreto/token, error, `fieldErrors` y
+  flags; confirmación y copia), paneles del secreto/token, y formularios que renderizan vacíos.
+
+### Iteración 19 — Scopes de claves derivados de tipo y cap (hecho)
+
+- `role_cap` ya no arranca en `admin`: empieza vacío y el selector de `service` lo exige. Sin cap solo
+  se ofrecen los scopes comunes a ambos caps; `maintenance:run` y `users:deactivate` aparecen al
+  elegir `super_admin`. Un cambio de `kind` limpia el cap.
+- `apiKeyFormReducer` es la única fuente de `kind`/`roleCap`/scopes: al cambiar tipo o cap **poda** los
+  scopes seleccionados que dejen de estar permitidos y no los restaura al volver atrás. Los scopes
+  ofrecidos se derivan siempre en render con `allowedApiKeyScopes(kind, roleCap)`; los checkboxes son
+  controlados y un scope fuera del par actual se ignora.
+- Cambiar tipo o cap despacha `clear-field-error` para borrar el error de `role_cap`; el submit valida
+  el cap y lo muestra junto al campo (`Choose a role cap.`, nueva clave i18n en las 9 locales).
+- Tests: `service` + `admin` sin `maintenance:run`/`users:deactivate`, `service` + `super_admin` con
+  ambos, `delegated` nunca, poda al bajar el cap y al cambiar de tipo, no restauración y scope no
+  permitido ignorado.
+
+### Iteración 20 — Filtro por defecto vivo en claves y módulos (hecho)
+
+- `/keys` arranca en **active** (no revocadas) y `/modules` en **active**; **All** es un valor real
+  (`state=all`), no la opción vacía. El valor por defecto se omite de la URL canónica
+  (`stateParam`), y paginación, reintento y redirección lo conservan. "Clear filter" vuelve al valor
+  por defecto.
+- Tests: default sin parámetro (solo filas vivas y URL sin `state`), `state=all` explícito con las
+  revocadas/no activas, conservación del filtro en la paginación y en la redirección.

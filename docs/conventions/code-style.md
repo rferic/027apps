@@ -50,6 +50,16 @@ Enter aplica al instante y Escape limpia), **nunca con un botón de buscar** ni 
 Los selectores se aplican al cambiar. Búsqueda y selectores conservan el resto de filtros y reinician
 `page`.
 
+**Toda lista arranca en el estado vivo** (`active` en miembros, claves y módulos; `pending` en
+invitaciones). **"All" es un valor explícito** (`state=all` / `status=all`), nunca la opción vacía; el
+valor por defecto se omite de la URL canónica y la paginación, los demás filtros, el reintento y las
+redirecciones lo conservan.
+
+**Todo formulario de creación se resetea al montar**: una visita nueva a `/…/new` empieza vacía y sin
+el secreto/token de la creación anterior. Cache Components conserva el estado de los componentes al
+navegar (React `<Activity>`), así que el reset va en `lib/use-create-form.ts` y no en un `useState`
+suelto; ver [Diálogos y formularios](#diálogos-y-formularios).
+
 ## Naming
 
 - Ficheros y carpetas: `kebab-case` (`user-menu.tsx`). Excepciones impuestas por Next.js (`page.tsx`, `layout.tsx`, `route.ts`).
@@ -90,6 +100,10 @@ Los formularios y diálogos del admin siguen **un único patrón**; no se improv
   breadcrumb, `h1` y enlace "Back". El listado enlaza con un `Link` primario; no hay triggers modales
   ni formularios de creación dentro de un diálogo. Un token o secreto de un solo uso se muestra en esa
   página con "Copy" y "Done" al listado.
+- **Reset al montar**: los tres formularios de creación usan `lib/use-create-form.ts`
+  (`useCreateForm`). El hook limpia el flujo cuando la ruta se oculta y cuando vuelve a mostrarse, y
+  expone `reset()` y `formKey` para remontar los campos. Nunca guardes el secreto/token ni los errores
+  en estado que sobreviva a una visita.
 - **Diálogos**: solo para confirmar acciones destructivas (y el drawer móvil, que necesita layout
   lateral). Siempre el `Dialog` compartido (`apps/admin/src/components/ui/dialog.tsx`). Nunca un
   `<dialog>` suelto. El elemento nativo hereda `color: CanvasText` y `background: Canvas` del navegador,

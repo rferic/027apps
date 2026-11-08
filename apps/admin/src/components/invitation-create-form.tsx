@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer, type FormEvent } from "react";
+import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
@@ -13,6 +13,7 @@ import { createInvitation, type CreateInvitationInput } from "@/lib/invitation-m
 import type { MutationFailure } from "@/lib/mutation-result";
 import { invitationConflictError } from "@/lib/panel-errors";
 import type { ModuleChoice } from "@/lib/panel-categories";
+import { useCreateForm } from "@/lib/use-create-form";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -67,107 +68,6 @@ function InvitationCreateError({
       messages={messages}
     />
   );
-}
-
-/**
- * Creation flow state. It is a reducer so the "create another" transitions (ask
- * first, or reset straight away once the token was copied) are testable without
- * a DOM, and so `formKey` can force a clean remount of the uncontrolled fields.
- */
-export interface InvitationCreateState {
-  submitting: boolean;
-  phase: "form" | "created";
-  token: string | null;
-  copied: boolean;
-  copyFailed: boolean;
-  confirmingAnother: boolean;
-  error: MutationFailure | null;
-  fieldErrors: Record<string, string[]>;
-  /** `key` of the form: bumping it remounts the fields empty. */
-  formKey: number;
-}
-
-export const INITIAL_INVITATION_CREATE_STATE: InvitationCreateState = {
-  submitting: false,
-  phase: "form",
-  token: null,
-  copied: false,
-  copyFailed: false,
-  confirmingAnother: false,
-  error: null,
-  fieldErrors: {},
-  formKey: 0,
-};
-
-export type InvitationCreateAction =
-  | { type: "submit" }
-  | { type: "failed"; error: MutationFailure | null; fieldErrors: Record<string, string[]> }
-  | { type: "created"; token: string | null }
-  | { type: "copy-succeeded" }
-  | { type: "copy-failed" }
-  | { type: "another-requested" }
-  | { type: "another-cancelled" }
-  | { type: "another-confirmed" }
-  | { type: "reset" };
-
-/** Back to an empty form on the same page, without the previous token or errors. */
-function blankState(state: InvitationCreateState): InvitationCreateState {
-  return { ...INITIAL_INVITATION_CREATE_STATE, formKey: state.formKey + 1 };
-}
-
-type ResetAction = Extract<
-  InvitationCreateAction,
-  { type: "another-requested" | "another-cancelled" | "another-confirmed" | "reset" }
->;
-
-/** Leaving the created step: ask while the token is uncopied, reset otherwise. */
-function resetStep(state: InvitationCreateState, action: ResetAction): InvitationCreateState {
-  if (action.type === "another-cancelled") return { ...state, confirmingAnother: false };
-  if (action.type === "another-requested" && state.token && !state.copied) {
-    return { ...state, confirmingAnother: true };
-  }
-  return blankState(state);
-}
-
-export function invitationCreateReducer(
-  state: InvitationCreateState,
-  action: InvitationCreateAction,
-): InvitationCreateState {
-  switch (action.type) {
-    case "submit":
-      return { ...state, submitting: true, error: null, fieldErrors: {} };
-    case "failed":
-      return {
-        ...state,
-        submitting: false,
-        error: action.error,
-        fieldErrors: action.fieldErrors,
-      };
-    case "created":
-      return {
-        ...state,
-        submitting: false,
-        phase: "created",
-        token: action.token,
-        copied: false,
-        copyFailed: false,
-        confirmingAnother: false,
-        error: null,
-        fieldErrors: {},
-        formKey: state.formKey + 1,
-      };
-    case "copy-succeeded":
-    case "copy-failed":
-      // One flag is the inverse of the other: kept together so the reducer
-      // stays a flat table.
-      return {
-        ...state,
-        copied: action.type === "copy-succeeded",
-        copyFailed: action.type === "copy-failed",
-      };
-    default:
-      return resetStep(state, action);
-  }
 }
 
 function TokenPanel({
@@ -403,7 +303,7 @@ interface InvitationCreateFormProps {
  * Creation form on its own page. The Core returns the plaintext token only in
  * this response (`createInvitation` contract), so it is kept in component state
  * and shown once: never a URL, a cookie, storage or a log. "Create another"
- * resets the flow in place, remounting the fields empty.
+ * resets the shared flow in place, remounting the fields empty.
  */
 export function InvitationCreateForm({
   categories,
@@ -412,27 +312,19 @@ export function InvitationCreateForm({
   messages,
 }: InvitationCreateFormProps) {
   const router = useRouter();
-  const [state, dispatch] = useReducer(
-    invitationCreateReducer,
-    INITIAL_INVITATION_CREATE_STATE,
-  );
-
-  // A client-cached instance must not reopen on the previous token or errors.
-  useEffect(() => {
-    dispatch({ type: "reset" });
-  }, []);
+  const createForm = useCreateForm();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
 
-    dispatch({ type: "submit" });
+    createForm.dispatch({ type: "submit" });
     const result = await createInvitation(buildCreateInput(new FormData(form)));
 
     if (!result.ok) {
       // A known conflict belongs next to the email field, not in a banner.
       const conflict = invitationConflictError(result, messages);
-      dispatch({
+      createForm.dispatch({
         type: "failed",
         error: conflict ? null : result,
         fieldErrors: conflict ? { email: [conflict] } : (result.details?.fieldErrors ?? {}),
@@ -440,39 +332,43 @@ export function InvitationCreateForm({
       return;
     }
 
-    dispatch({ type: "created", token: result.token ?? null });
+    createForm.dispatch({ type: "created", result: result.token ?? null });
     router.refresh();
   }
 
   async function handleCopy() {
-    if (!state.token) return;
+    if (!createForm.result) return;
     // The token stays in a selectable <input> if every copy path fails.
-    const ok = await copyText(state.token);
-    dispatch({ type: ok ? "copy-succeeded" : "copy-failed" });
+    const ok = await copyText(createForm.result);
+    createForm.dispatch({ type: "copy", ok });
   }
 
-  if (state.phase === "created") {
+  if (createForm.phase === "created") {
     return (
       <InvitationCreatedPanel
-        token={state.token}
-        copied={state.copied}
-        copyFailed={state.copyFailed}
-        confirmingAnother={state.confirmingAnother}
+        token={createForm.result}
+        copied={createForm.copied}
+        copyFailed={createForm.copyFailed}
+        confirmingAnother={createForm.confirmingAnother}
         onCopy={handleCopy}
-        onCreateAnother={() => dispatch({ type: "another-requested" })}
-        onConfirmAnother={() => dispatch({ type: "another-confirmed" })}
-        onCancelAnother={() => dispatch({ type: "another-cancelled" })}
+        onCreateAnother={() => createForm.dispatch({ type: "another-requested" })}
+        onConfirmAnother={() => createForm.dispatch({ type: "another-confirmed" })}
+        onCancelAnother={() => createForm.dispatch({ type: "another-cancelled" })}
         messages={messages}
       />
     );
   }
 
   return (
-    <form key={state.formKey} onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-3">
+    <form
+      key={createForm.formKey}
+      onSubmit={handleSubmit}
+      className="flex max-w-xl flex-col gap-3"
+    >
       <InvitationFields
         categories={categories}
         modules={modules}
-        fieldErrors={state.fieldErrors}
+        fieldErrors={createForm.fieldErrors}
         messages={messages}
       />
 
@@ -482,14 +378,19 @@ export function InvitationCreateForm({
         </p>
       )}
 
-      {state.error && <InvitationCreateError error={state.error} messages={messages} />}
+      {createForm.error && <InvitationCreateError error={createForm.error} messages={messages} />}
 
       <FormActions>
         <Link href="/invitations" className={cancelClass}>
           {t("Cancel", messages)}
         </Link>
-        <Button type="submit" variant="primary" className="min-h-11" disabled={state.submitting}>
-          {state.submitting ? t("Creating…", messages) : t("Create invitation", messages)}
+        <Button
+          type="submit"
+          variant="primary"
+          className="min-h-11"
+          disabled={createForm.submitting}
+        >
+          {createForm.submitting ? t("Creating…", messages) : t("Create invitation", messages)}
         </Button>
       </FormActions>
     </form>

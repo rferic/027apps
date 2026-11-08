@@ -6,10 +6,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 import {
-  INITIAL_INVITATION_CREATE_STATE,
   InvitationCreateForm,
   InvitationCreatedPanel,
-  invitationCreateReducer,
 } from "./invitation-create-form";
 
 const CATEGORIES = [{ id: "c1", name: "Familia" }];
@@ -33,6 +31,16 @@ describe("InvitationCreateForm", () => {
     expect(html).toContain("Cancel");
     expect(html).toContain('href="/invitations"');
     expect(html).not.toContain("<dialog");
+  });
+
+  it("starts empty: no token from a previous creation", () => {
+    const html = renderToStaticMarkup(
+      <InvitationCreateForm categories={CATEGORIES} modules={MODULES} messages={{}} />,
+    );
+
+    expect(html).not.toContain("Invitation created");
+    expect(html).not.toContain("Copy this token now.");
+    expect(html).toContain("Create invitation");
   });
 
   it("warns when the category or module options could not be read", () => {
@@ -110,58 +118,5 @@ describe("InvitationCreatedPanel create another", () => {
     expect(html).toContain("The token won&#x27;t be shown again.");
     expect(html).toContain("Cancel");
     expect(html).toContain("tok-123");
-  });
-});
-
-describe("invitationCreateReducer", () => {
-  const created = invitationCreateReducer(INITIAL_INVITATION_CREATE_STATE, {
-    type: "created",
-    token: "tok-123",
-  });
-
-  it("keeps the token on the created step", () => {
-    expect(created).toMatchObject({ phase: "created", token: "tok-123", copied: false });
-  });
-
-  it("asks before discarding an uncopied token", () => {
-    const asked = invitationCreateReducer(created, { type: "another-requested" });
-
-    expect(asked).toMatchObject({ phase: "created", token: "tok-123", confirmingAnother: true });
-  });
-
-  it("returns to an empty form and drops the previous token", () => {
-    const asked = invitationCreateReducer(created, { type: "another-requested" });
-    const reset = invitationCreateReducer(asked, { type: "another-confirmed" });
-
-    expect(reset).toMatchObject({
-      phase: "form",
-      token: null,
-      copied: false,
-      copyFailed: false,
-      confirmingAnother: false,
-      error: null,
-      fieldErrors: {},
-    });
-    expect(reset.formKey).toBeGreaterThan(created.formKey);
-  });
-
-  it("resets a copied token without asking", () => {
-    const copied = invitationCreateReducer(created, { type: "copy-succeeded" });
-    const reset = invitationCreateReducer(copied, { type: "another-requested" });
-
-    expect(reset).toMatchObject({ phase: "form", token: null, copied: false });
-  });
-
-  it("clears the errors and the copy flags on reset", () => {
-    const failed = invitationCreateReducer(created, {
-      type: "failed",
-      error: { ok: false, code: "conflict" },
-      fieldErrors: { email: ["nope"] },
-    });
-    expect(invitationCreateReducer(failed, { type: "reset" })).toMatchObject({
-      error: null,
-      fieldErrors: {},
-      token: null,
-    });
   });
 });

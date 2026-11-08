@@ -87,7 +87,7 @@ describe("KeysPage", () => {
   it("lists name, kind, owner, role cap, prefix, scopes, dates and status as text", async () => {
     loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
 
-    const html = renderToStaticMarkup(await render());
+    const html = renderToStaticMarkup(await render({ state: "all" }));
 
     expect(html).toContain("Zapier");
     expect(html).toContain("027_usr_");
@@ -201,8 +201,35 @@ describe("KeysPage", () => {
     loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [], total: 40 });
 
     await expect(render({ page: "3", state: "active" })).rejects.toThrow(
-      "NEXT_REDIRECT:/keys?state=active&page=2",
+      "NEXT_REDIRECT:/keys?page=2",
     );
+  });
+});
+
+describe("KeysPage default filter", () => {
+  it("starts on active even without a state parameter and omits it from the URL", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 45 });
+
+    const html = renderToStaticMarkup(await render({ page: "2" }));
+
+    expect(html).toContain("Zapier");
+    expect(html).not.toContain("Backup");
+    expect(html).toContain('<option value="active" selected=""');
+    expect(html).toContain('<option value="all"');
+    expect(html).toContain('href="/keys"');
+    expect(html).toContain('href="/keys?page=3"');
+  });
+
+  it("sends All as an explicit state=all and keeps it in the pagination", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 45 });
+
+    const html = renderToStaticMarkup(await render({ state: "all", page: "2" }));
+
+    expect(html).toContain("Zapier");
+    expect(html).toContain("Backup");
+    expect(html).toContain('<option value="all" selected=""');
+    expect(html).toContain('href="/keys?state=all"');
+    expect(html).toContain('href="/keys?state=all&amp;page=3"');
   });
 });
 

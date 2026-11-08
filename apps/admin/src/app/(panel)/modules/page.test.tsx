@@ -106,7 +106,9 @@ describe("ModulesPage", () => {
   it("lists the modules returned by the core route in process", async () => {
     routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }, 200, { "x-request-id": "req-ok" }));
 
-    const html = renderToStaticMarkup(await ModulesPage());
+    const html = renderToStaticMarkup(
+      await ModulesPage({ searchParams: Promise.resolve({ state: "all" }) }),
+    );
 
     expect(html).toContain("expenses");
     expect(html).toContain("Expenses");
@@ -227,8 +229,8 @@ describe("ModulesPage", () => {
     const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
     expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=20");
     expect(html).toContain("Page 2 of 3");
-    expect(html).toContain('href="/modules?state=active&amp;public=yes"');
-    expect(html).toContain('href="/modules?state=active&amp;public=yes&amp;page=3"');
+    expect(html).toContain('href="/modules?public=yes"');
+    expect(html).toContain('href="/modules?public=yes&amp;page=3"');
   });
 
   it("keeps the pagination visible and disabled on a single page", async () => {
@@ -257,7 +259,38 @@ describe("ModulesPage", () => {
 
     await expect(
       ModulesPage({ searchParams: Promise.resolve({ page: "3", state: "active" }) }),
-    ).rejects.toThrow("NEXT_REDIRECT:/modules?state=active&page=2");
+    ).rejects.toThrow("NEXT_REDIRECT:/modules?page=2");
+  });
+});
+
+describe("ModulesPage default filter", () => {
+  it("starts on active even without a state parameter and omits it from the URL", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 45 }));
+
+    const html = renderToStaticMarkup(
+      await ModulesPage({ searchParams: Promise.resolve({ page: "2" }) }),
+    );
+
+    expect(html).toContain("Expenses");
+    expect(html).not.toContain("Notes");
+    expect(html).toContain('<option value="active" selected=""');
+    expect(html).toContain('<option value="all"');
+    expect(html).toContain('href="/modules"');
+    expect(html).toContain('href="/modules?page=3"');
+  });
+
+  it("sends All as an explicit state=all and keeps it in the pagination", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 45 }));
+
+    const html = renderToStaticMarkup(
+      await ModulesPage({ searchParams: Promise.resolve({ state: "all", page: "2" }) }),
+    );
+
+    expect(html).toContain("Expenses");
+    expect(html).toContain("Notes");
+    expect(html).toContain('<option value="all" selected=""');
+    expect(html).toContain('href="/modules?state=all"');
+    expect(html).toContain('href="/modules?state=all&amp;page=3"');
   });
 });
 

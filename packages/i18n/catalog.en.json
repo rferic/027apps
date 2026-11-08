@@ -61,6 +61,7 @@
   "Changes saved.",
   "Check that the Firebase Cloud Messaging API is enabled for this project in Google Cloud.",
   "Check the inbox (and spam) of {email}. Running locally, Supabase captures mail in its own inbox viewer (Mailpit) instead of delivering it. Nothing yet? Check the SMTP settings in Supabase.",
+  "Choose a role cap.",
   "Choose a valid IANA time zone.",
   "Choose an enabled currency.",
   "Choose one of the supported languages.",
