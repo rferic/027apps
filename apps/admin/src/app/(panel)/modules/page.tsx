@@ -165,8 +165,11 @@ function publicLabel(isPublic: boolean, messages: TranslationMap): string {
 type StateFilter = "all" | "installed" | "active" | "disabled";
 type PublicFilter = "all" | "yes" | "no";
 
-/** The catalogue defaults to the live state; installed/disabled stay opt-in. */
-const DEFAULT_STATE: StateFilter = "active";
+/**
+ * Deliberate exception to "every list starts on the live state": the module
+ * catalogue starts on All, because a disabled module is still part of it.
+ */
+const DEFAULT_STATE: StateFilter = "all";
 
 interface ModulesSearchParams {
   state?: string | string[];
@@ -180,7 +183,7 @@ function parseStateFilter(value: string | undefined): StateFilter {
     : DEFAULT_STATE;
 }
 
-/** The default `active` is omitted so the canonical URL stays clean. */
+/** The default (`all`) is omitted so the canonical URL stays clean. */
 function stateParam(state: StateFilter): StateFilter | undefined {
   return state === DEFAULT_STATE ? undefined : state;
 }
@@ -226,11 +229,12 @@ function ModulesFilter({
         basePath="/modules"
         params={params}
         options={[
+          // A real value, never the empty option. It is the default, so it is
+          // omitted from the canonical URL (see `stateParam`).
+          { value: "all", label: t("All", messages) },
           { value: "installed", label: t("Installed", messages) },
           { value: "active", label: t("Active", messages) },
           { value: "disabled", label: t("Disabled", messages) },
-          // A real value: "All" is an explicit `state=all`, never a missing key.
-          { value: "all", label: t("All", messages) },
         ]}
       />
       <FilterSelect

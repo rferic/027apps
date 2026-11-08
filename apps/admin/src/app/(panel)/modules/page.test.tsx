@@ -254,8 +254,8 @@ describe("ModulesPage", () => {
     const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
     expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=20");
     expect(html).toContain("Page 2 of 3");
-    expect(html).toContain('href="/modules?public=yes"');
-    expect(html).toContain('href="/modules?public=yes&amp;page=3"');
+    expect(html).toContain('href="/modules?state=active&amp;public=yes"');
+    expect(html).toContain('href="/modules?state=active&amp;public=yes&amp;page=3"');
   });
 
   it("keeps the pagination visible and disabled on a single page", async () => {
@@ -284,12 +284,12 @@ describe("ModulesPage", () => {
 
     await expect(
       ModulesPage({ searchParams: Promise.resolve({ page: "3", state: "active" }) }),
-    ).rejects.toThrow("NEXT_REDIRECT:/modules?page=2");
+    ).rejects.toThrow("NEXT_REDIRECT:/modules?state=active&page=2");
   });
 });
 
 describe("ModulesPage default filter", () => {
-  it("starts on active even without a state parameter and omits it from the URL", async () => {
+  it("starts on All without a state parameter: installed, active and disabled modules alike", async () => {
     routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 45 }));
 
     const html = renderToStaticMarkup(
@@ -297,14 +297,25 @@ describe("ModulesPage default filter", () => {
     );
 
     expect(html).toContain("Expenses");
-    expect(html).not.toContain("Notes");
-    expect(html).toContain('<option value="active" selected=""');
-    expect(html).toContain('<option value="all"');
+    expect(html).toContain("Notes");
+    expect(html).toContain('<option value="all" selected=""');
+    expect(html).not.toContain('<option value="active" selected=""');
     expect(html).toContain('href="/modules"');
     expect(html).toContain('href="/modules?page=3"');
   });
 
-  it("sends All as an explicit state=all and keeps it in the pagination", async () => {
+  it("lists All first in the state select", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }));
+
+    const html = renderToStaticMarkup(await ModulesPage());
+
+    const values = [...html.matchAll(/<option value="(installed|active|disabled|all)"/g)].map(
+      (match) => match[1],
+    );
+    expect(values).toEqual(["all", "installed", "active", "disabled"]);
+  });
+
+  it("sends All as an explicit state=all but never keeps it in the canonical URL", async () => {
     routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 45 }));
 
     const html = renderToStaticMarkup(
@@ -314,8 +325,53 @@ describe("ModulesPage default filter", () => {
     expect(html).toContain("Expenses");
     expect(html).toContain("Notes");
     expect(html).toContain('<option value="all" selected=""');
-    expect(html).toContain('href="/modules?state=all"');
-    expect(html).toContain('href="/modules?state=all&amp;page=3"');
+    expect(html).toContain('href="/modules?page=3"');
+    expect(html).not.toContain("state=all");
+  });
+
+  it("keeps state=active in the URL and in the pagination", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: [MODULES[0]], total: 45 }));
+
+    const html = renderToStaticMarkup(
+      await ModulesPage({ searchParams: Promise.resolve({ state: "active", page: "2" }) }),
+    );
+
+    expect(html).toContain('<option value="active" selected=""');
+    expect(html).toContain('href="/modules?state=active"');
+    expect(html).toContain('href="/modules?state=active&amp;page=3"');
+    const request = routeHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe("http://panel.internal/api/v1/modules?limit=20&offset=20");
+  });
+
+  it("shows only the active module when state=active is selected", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }));
+
+    const html = renderToStaticMarkup(
+      await ModulesPage({ searchParams: Promise.resolve({ state: "active" }) }),
+    );
+
+    expect(html).toContain("Expenses");
+    expect(html).not.toContain("Notes");
+    expect(html).toContain('href="/modules"');
+  });
+
+  it("the clear link resets every filter to its default", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }));
+
+    const html = renderToStaticMarkup(
+      await ModulesPage({ searchParams: Promise.resolve({ state: "disabled", public: "no" }) }),
+    );
+
+    expect(html).toContain('href="/modules"');
+    expect(html).toContain("Clear filter");
+  });
+
+  it("does not show the clear link on the default All view", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }));
+
+    const html = renderToStaticMarkup(await ModulesPage({ searchParams: Promise.resolve({ state: "all" }) }));
+
+    expect(html).not.toContain("Clear filter");
   });
 });
 

@@ -55,6 +55,11 @@ invitaciones). **"All" es un valor explícito** (`state=all` / `status=all`), nu
 valor por defecto se omite de la URL canónica y la paginación, los demás filtros, el reintento y las
 redirecciones lo conservan.
 
+**Excepción consciente: `/modules` arranca en `all`**, no en `active`. Un módulo desactivado sigue
+siendo parte del catálogo instalado y el usuario quiere verlo por defecto; `installed` y `disabled`
+son estados normales, no ruido. Por eso `all` es el valor por defecto de esa lista y se omite de la
+URL canónica. Cualquier otra lista que quiera el mismo comportamiento debe justificarlo aquí.
+
 **Todo formulario de creación se resetea al montar**: una visita nueva a `/…/new` empieza vacía y sin
 el secreto/token de la creación anterior. Cache Components conserva el estado de los componentes al
 navegar (React `<Activity>`), así que el reset va en `lib/use-create-form.ts` y no en un `useState`

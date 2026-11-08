@@ -384,6 +384,11 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   por defecto.
 - Tests: default sin parámetro (solo filas vivas y URL sin `state`), `state=all` explícito con las
   revocadas/no activas, conservación del filtro en la paginación y en la redirección.
+- **Revertido en `/modules` por decisión del usuario**: `/modules` pasa a arrancar en **All**
+  (`DEFAULT_STATE = "all"`). Motivo: un módulo instalado pero desactivado sigue siendo parte del
+  catálogo y el usuario quiere verlo por defecto. `All` se muestra primero en el select y, al ser el
+  defecto, se omite de la URL canónica; `state=active` y `state=disabled` siguen en la URL. `/keys`
+  mantiene `active`. Excepción documentada en `docs/conventions/code-style.md`.
 
 ### Iteración 21 — Filtros de tipo y propietario en `/keys` (hecho)
 
