@@ -6,6 +6,7 @@
     "lint": "pnpm -r --if-present run lint",
     "tsc": "pnpm -r --if-present run tsc",
     "test": "pnpm -r --if-present run test",
+    "check:openapi": "node scripts/check-openapi.mjs",
     "i18n:scan": "pnpm --filter @027apps/i18n scan",
     "i18n:check": "pnpm --filter @027apps/i18n check"
   }

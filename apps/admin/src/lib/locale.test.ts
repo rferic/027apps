@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isSupportedLocale, localeCookie, resolveLocale } from "./locale";
+import { filterMultiSelectOptions } from "@/components/ui/multi-select";
+import { isSupportedLocale, localeCookie, localeOptions, resolveLocale } from "./locale";
 
 describe("resolveLocale", () => {
   it("defaults to English with empty input", () => {
@@ -34,5 +35,35 @@ describe("localeCookie", () => {
     expect(cookie).toContain("Max-Age=31536000");
     expect(cookie).not.toContain("HttpOnly");
     expect(cookie).not.toContain("Secure");
+  });
+});
+
+describe("localeOptions", () => {
+  it("lists the nine locales by native name with the code as hint", () => {
+    expect(localeOptions()).toEqual([
+      { value: "en", label: "English", hint: "en", fixed: true },
+      { value: "es", label: "Español", hint: "es", fixed: false },
+      { value: "ca", label: "Català", hint: "ca", fixed: false },
+      { value: "it", label: "Italiano", hint: "it", fixed: false },
+      { value: "fr", label: "Français", hint: "fr", fixed: false },
+      { value: "de", label: "Deutsch", hint: "de", fixed: false },
+      { value: "pt", label: "Português", hint: "pt", fixed: false },
+      { value: "gl", label: "Galego", hint: "gl", fixed: false },
+      { value: "eu", label: "Euskara", hint: "eu", fixed: false },
+    ]);
+  });
+
+  it("filters by native name and by code, ignoring case and accents", () => {
+    const options = localeOptions();
+    expect(filterMultiSelectOptions(options, "catala").map((option) => option.value)).toEqual(["ca"]);
+    expect(filterMultiSelectOptions(options, "euskara").map((option) => option.value)).toEqual(["eu"]);
+    expect(filterMultiSelectOptions(options, "FR").map((option) => option.value)).toEqual(["fr"]);
+    expect(filterMultiSelectOptions(options, "pt").map((option) => option.value)).toEqual(["pt"]);
+  });
+
+  it("only marks English as fixed", () => {
+    expect(localeOptions().filter((option) => option.fixed).map((option) => option.value)).toEqual([
+      "en",
+    ]);
   });
 });

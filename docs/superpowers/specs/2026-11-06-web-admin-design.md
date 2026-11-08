@@ -29,11 +29,13 @@ Convertir el mockup actual (`KPIs` y `MEMBERS_ROWS` hardcodeados, `NAV_ITEMS` co
 - Guard por rol en servidor: cada página declara su rol mínimo; sin permiso → 403 sin enumerar. Las acciones se ocultan/deshabilitan con motivo si la API responde `insufficient_scope`.
 - Responsive: sidebar a iconos <1024 px, drawer en móvil; tablas a tarjetas.
 - Banner `setup_incomplete` (vía `/instance`).
+- Cabecera: marca y nombre a la izquierda. El wordmark completo se reserva para login, wizard y ayuda; en la cabecera del panel se usa el latido (mark.svg) + nombre de instancia (ADR 0003, dirección L4).
 
 ## 4. i18n del panel
 
 - Locale desde la cookie `027_locale` (`resolveLocale`); nunca en la URL.
-- El panel usa la tabla `translations`: el Server Component pide `GET /api/v1/translations?locale=xx` y pinta con `t("literal", map)`.
+- Base: los diccionarios empaquetados del repo (`getDictionary(locale)`), completos en los 9 locales. El panel **no depende** de que la siembra de `translations` exista: con la tabla vacía se sirven igualmente los 9 idiomas.
+- Overlay: las filas de `public.translations` para el locale (`text_en → translated_text`) se superponen a la base y permiten ediciones en runtime (ver [`docs/flows/i18n.md`](../../flows/i18n.md)). Si la tabla no está disponible, se degrada a la base y se registra sin datos personales.
 - Toda cadena nueva es literal `t("...")`; `pnpm i18n:scan`; los 8 locales los rellena el `traductor`; `pnpm i18n:check` en verde.
 
 ## 5. Dashboard (v1, por rol en servidor)
@@ -61,13 +63,13 @@ Toda lista/detalle muestra vacío, cargando y error (con `code` traducido, `requ
 ## 8. OpenAPI (`/docs/api`)
 
 - **Visor: Scalar** (`@scalar/api-reference-react`), MIT, componente React, autoalojado en el bundle (respeta el CSP `script-src 'self'`), UI densa y dark mode.
-- **Generación desde zod**: registro declarativo en `packages/core/src/openapi/` (path, método, schemas de entrada/salida, summary, scopes) con `zod-to-openapi`, reutilizando los schemas compartidos. Script `pnpm --filter @027apps/core openapi:generate` que emite `docs/api/openapi.yaml` (commiteado). En runtime, `GET /api/v1/openapi.json` sin auth.
-- **Límite honesto**: el mapeo ruta↔método↔schema no es derivable de los route handlers actuales (imperativos `withDoor`); se declara una vez y el CI verifica (a) yaml al día y (b) paridad entre `apps/admin/src/app/api/v1/**/route.ts` y el registro. No es OpenAPI a mano: los schemas son los zod compartidos.
+- **Generación desde zod**: registro declarativo en `packages/core/src/openapi/` (path, método, schemas de entrada/salida, summary, scopes) con `z.toJSONSchema()` de zod 4 (nativo; `zod-to-openapi` no soporta zod 4), reutilizando los schemas compartidos. Script `pnpm --filter @027apps/core openapi:generate` que emite `docs/api/openapi.json` (commiteado; JSON y no YAML porque zod 4 lo emite nativamente y evita un serializador extra). En runtime, `GET /api/v1/openapi.json` sin auth.
+- **Límite honesto**: el mapeo ruta↔método↔schema no es derivable de los route handlers actuales (imperativos `withDoor`); se declara una vez y el CI verifica (a) documento al día y (b) paridad entre `apps/admin/src/app/api/v1/**/route.ts` y el registro. No es OpenAPI a mano: los schemas son los zod compartidos.
 
 ## 9. Riesgos
 
 - `GET /api/v1/me` no existe: el guard resuelve el rol en servidor (patrón `ProfilesPort`/`resolveCaller`) o se implementa `/me` en task-05.
-- Compatibilidad de `zod-to-openapi` con zod 4.6.7: verificar antes de fijar la dependencia.
+- Compatibilidad de `zod-to-openapi` con zod 4.6.7: descartado; se usa `z.toJSONSchema()` nativo (task-10).
 - El visor debe servirse del bundle, no de un CDN, por el CSP.
 - El panel ya es dinámico (`instant = false`), así que el fetch de `translations` en el layout no rompe el shell estático.
 - Nombres de ruta distintos del shell spec: registrados como delta.
@@ -76,7 +78,7 @@ Toda lista/detalle muestra vacío, cargando y error (con `code` traducido, `requ
 
 Antes de implementar el shell se hace una revisión de diseño y UX con dos sombreros (diseñador y
 especialista en UX): `docs/superpowers/specs/2026-11-06-web-admin-ux-review.md`. Fija la arquitectura
-de información (Inicio / Personas / Plataforma / Sistema), la cabecera (logo + nombre de instancia +
+de información (Inicio / Personas / Plataforma / Sistema), la cabecera (marca + nombre de instancia +
 idioma + menú de usuario), los patrones de lista/detalle/formulario, las confirmaciones destructivas,
 los estados reales y una checklist de aceptación de 10 puntos. Es **bloqueante**: la implementación de
 task-05 no empieza sin aplicar sus decisiones y task-11 no cierra sin pasar su checklist.

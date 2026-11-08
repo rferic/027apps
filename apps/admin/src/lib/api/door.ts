@@ -127,8 +127,10 @@ async function createInfra() {
         return { rows: result.rows as Record<string, unknown>[] };
       },
     },
-    defaultCurrency: async () => {
-      const result = await pool.query("select value from public.settings where key = 'localization.default_currency'");
+    defaultCurrency: async (client?: QueryClient) => {
+      const result = await (client ?? pool).query(
+        "select value from public.settings where key = 'localization.default_currency'",
+      );
       return result.rows[0] ? (result.rows[0].value as string) : null;
     },
     withTransaction: runInTransaction,

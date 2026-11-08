@@ -2,7 +2,7 @@
 
 Public guide for integrating with a 027Apps instance. This document is the **human entry point**; the normative contract is the generated **OpenAPI** document.
 
-> **Status.** The v1 contract is defined and approved, but **not yet implemented** (today only `GET /api/health` exists as an alias of the canonical `GET /api/v1/health`). This guide describes the contract you will integrate against; once the API lands, the OpenAPI document will be served by every instance and committed to the repository for review. If something here disagrees with the OpenAPI, **the OpenAPI wins**.
+> **Status (2026-11-08): partial — 58 operations documented.** The OpenAPI document is generated from the same zod schemas that validate requests and responses, and today it covers the Core routes in `apps/admin/src/app/api/v1/**`. Sections or endpoints marked **Previsto** describe the v1 target and are **not implemented yet**; the rest reflects the code that runs. If something here disagrees with the OpenAPI, **the OpenAPI wins**.
 
 ## Contents
 
@@ -49,15 +49,16 @@ There are three credentials, for three different callers. All are **scoped and r
 | Third-party tool acting as a user | **Delegated API key** (`027_usr_…`) | `Authorization: Bearer 027_usr_…` |
 | Instance tooling / administration | **Instance API key** (`027_svc_…`) | `Authorization: Bearer 027_svc_…` |
 
-- **Scopes per action.** Each endpoint declares the scopes it needs (`expenses:read`, `users:write`, `modules:grant`, …). A delegated key is limited to `min(key scopes, user permissions)`.
-- **Instance keys** carry a `role_cap` (`admin` or `super_admin`): their effective power is `min(scopes, role_cap)`. An instance key **never** acts as a user.
+- **Scopes per action.** Each endpoint declares the scopes it needs (`expenses:read`, `users:write`, `modules:grant`, …). A delegated key always acts as a **plain user**: its scopes are limited to the closed delegated allowlist plus the owner's live module grants, and any stored `role_cap` is ignored.
+- **Instance keys** carry a `role_cap` (`admin` or `super_admin`): their effective power is `min(scopes, role_cap)`. An instance key **never** acts as a user and cannot use `profile:*`/`devices:*`.
 - **Revocation is immediate**: a revoked or expired key fails on the very next request (no cache delay).
 - **The mobile app uses only the Supabase JWT**; it never uses instance or delegated keys.
 - **Never put a key in a browser** or in client-side code. Keys are for servers and local tools.
 - **Secrets are shown once**, at creation. Only a hash is stored; if you lose it, create a new key.
 
 ```bash
-curl -sS "$INSTANCE_URL/api/v1/me" -H "Authorization: Bearer $DELEGATED_KEY"
+# Any endpoint the credential is allowed to reach; this one needs users:read.
+curl -sS "$INSTANCE_URL/api/v1/users" -H "Authorization: Bearer $DELEGATED_KEY"
 ```
 
 ## 3. Versioning
@@ -76,13 +77,16 @@ Every error from `/api/v1` uses the same envelope:
     "code": "validation_failed",
     "message": "Validation failed",
     "request_id": "6f1c2a8e-…",
-    "details": [{ "path": "email", "rule": "email", "message": "must be a valid email" }]
+    "details": {
+      "formErrors": [],
+      "fieldErrors": { "email": ["must be a valid email"] }
+    }
   }
 }
 ```
 
 - **`code` is the contract.** Branch on it, never on `message`. `message` is a default English text; the UI translates it locally.
-- `details` appears mainly for `validation_failed` (field-level errors you can map to a form); other codes may carry non-sensitive extra information when the client needs it.
+- `details` is an **object** (never an array) that appears mainly for `validation_failed` (`formErrors`/`fieldErrors` from zod, as above); other codes may carry non-sensitive extra information when the client needs it.
 - `request_id` identifies the exact request in the server logs; quote it in support requests.
 - **No internals** are ever returned: no SQL, no stack traces, no internal paths — not even in development.
 
@@ -99,32 +103,57 @@ Every error from `/api/v1` uses the same envelope:
 | `internal` | 500 | Unexpected server error (correlated by `request_id`) | **Yes**, with backoff |
 | `invitation_expired` | 409 | The invitation is past `expires_at` | No — request a new invitation |
 | `invitation_used` | 409 | The invitation was already redeemed (single use) | No |
-| `not_a_member` | 403 | The user is not a member of the resource's group | No |
 | `currency_not_enabled` | 400 | The currency is not enabled on this instance | No — pick an enabled one |
 | `locale_not_available` | 400 | The locale is not served by this instance | No — pick an enabled one |
+| `currency_is_default` | 409 | The instance default currency cannot be disabled | No — choose another default first |
+| `cors_origin_not_allowed` | 403 | The `Origin` is not in the instance allowlist | No |
+| `payload_too_large` | 413 | The request body exceeds the 1 MB cap | No |
 | `already_setup` | 409 | The instance already has a `super_admin`; `/setup` is closed | No |
 
 > Error codes are part of the contract: changing one is a breaking change (see [Versioning](#3-versioning)).
 
 ## 5. Pagination
 
-Two modes, both in v1.
-
-**Offset/limit (default)** — for lists you navigate:
+**Implemented: offset/limit.** Lists that need it return their own named collection plus the page metadata (the generated OpenAPI is authoritative per endpoint). For users:
 
 ```
-GET /api/v1/users?offset=0&limit=50
-{ "data": [ … ], "meta": { "total": 128, "offset": 0, "limit": 50 } }
+GET /api/v1/users?q=&role=user&state=active&offset=0&limit=50
+{
+  "users": [ … ],
+  "total": 128,
+  "active_total": 120,
+  "limit": 50,
+  "offset": 0
+}
 ```
 
-**Cursor** — for large or live lists (declared per resource):
+`limit` is clamped to 1…100 and `offset` to ≥ 0. `/users` also accepts `q` (name or email),
+`role` (`super_admin|admin|user`), `state` (`active|deactivated|all`) and `category` (a category
+uuid); an unknown value is a `validation_failed` (400). **`state` defaults to `active`**: a request
+without the parameter never lists deactivated profiles by accident. `state=all` removes the filter
+explicitly. `category` keeps only the members of that category and combines with every other filter.
+`total` counts every filter, while `active_total` counts active profiles matching `q` + `role` +
+`category` and deliberately ignores `state`. Every user representation also carries
+`categories: [{ "id": "…", "name": "…" }]`, ordered by name. There is no generic
+`{ "data", "meta" }` envelope in v1.
 
-```
-GET /api/v1/some-list?cursor=<opaque>&limit=50
-{ "data": [ … ], "meta": { "next_cursor": "<opaque>" } }
-```
+`/api-keys` accepts three filters on top of `limit`/`offset`: `kind` (`all|service|delegated`,
+omitted means `all`), `user` (the uuid of a delegated key's owner) and `state`
+(`all|active|revoked|expired`, omitted means `all`; the panel always sends its own). `state`
+is derived, not stored: `active` is a non-revoked key with no expiry or a future one, `expired`
+is a non-revoked key with a past expiry, and `revoked` is `revoked_at is not null` — so a
+revoked key never counts as expired. `user` only makes sense for delegated keys: combined with
+`kind=service` it is a `validation_failed` (400) instead of an empty list. Only a `super_admin`
+may filter by another owner; for any other caller `user` must be their own id, and another owner
+is a `not_found` (404) so the list cannot be used to enumerate users. Every filter narrows
+`total`.
 
-`limit` has a server-side maximum. Treat `next_cursor` as **opaque**; never build one yourself.
+`/modules` accepts `state` (`all|installed|active|disabled`, omitted means `all`) and `public`
+(`all|yes|no`, omitted means `all`) on top of `limit`/`offset`; an unknown value is a
+`validation_failed` (400). Both filters run in the same query as the count, so `total` is the
+filtered total across every page, never the size of the page you received.
+
+**Previsto: cursor pagination.** For large or live lists (declared per resource) the target is an opaque `next_cursor`; it is **not implemented** and no endpoint accepts `cursor=` today.
 
 ## 6. Rate limiting
 
@@ -132,16 +161,18 @@ Limits are applied **per identity** (user or key) on authenticated surfaces, and
 
 | Layer | Default |
 |---|---|
-| Mobile / panel session | 120 requests/minute |
+| Mobile / panel session | 240 requests/minute |
 | API key | 30 requests/minute |
-| Writes (mutations) | 10 requests/minute |
+| Writes (mutations) | 60 requests/minute |
 | Public endpoints (no identity) | 30 requests/minute per IP |
 
 *These are starting values and are **tuneable per instance**; do not hard-code them.*
 
 On excess: `429` with `Retry-After` (seconds) and `{ "error": { "code": "rate_limited", … } }`. Implement **exponential backoff**; do not retry in a tight loop.
 
-## 7. Idempotency
+## 7. Idempotency (previsto)
+
+> **Not implemented yet.** Current writes are **not** idempotent: repeating a create makes a second resource, and no endpoint reads `Idempotency-Key`. Treat network failures on writes as ambiguous. The target contract is below.
 
 Retries are safe for writes:
 
@@ -167,11 +198,12 @@ curl -sS -X POST "$INSTANCE_URL/api/v1/invitations" \
 
 An instance has a **catalogue of modules** (e.g. Split Expenses). A module is installed **globally** on the instance and each user has access to it either because it is **public** or because it was **granted**.
 
-| Endpoint | What it returns |
-|---|---|
-| `GET /api/v1/modules` | Catalogue: `key`, `name`, `version`, `state`, `is_public` |
-| `GET /api/v1/me/modules` | **Your** modules (public + granted); admins see all |
-| `GET /api/v1/modules/{key}` | Detail: state, version, `is_public`, its **public settings**, and its **documentation** |
+| Endpoint | Status | What it returns |
+|---|---|---|
+| `GET /api/v1/modules` | **implemented** | Catalogue: `key`, `name`, `version`, `state`, `is_public` and `manifest_digest` (the list and the detail share the module schema); paginated and filterable by `state` and `public`, with `total` counting the filtered set |
+| `GET /api/v1/modules/{key}` | **implemented** | Detail: state, version, `is_public`, `manifest_digest` and its **public settings** |
+| `GET /api/v1/modules/{key}/grants` | **implemented** | Who has the module: active `users` (`id` + `display_name`) and assigned `categories` (`id` + `name`); admins only (`modules:manage`), empty arrays when there are no grants |
+| `GET /api/v1/me/modules` | **previsto** | **Your** modules (public + granted); admins see all |
 
 **Module documentation is part of the module contract.** Each module ships, inside its package:
 
@@ -186,30 +218,57 @@ packages/<key>/
 
 The CI **fails** if a declared capability is not documented, and checks that every tool, setting, event **and realtime channel** appears **by name** in the corresponding document (`docs.api` is required when the module declares `scopes`, which is the machine-checkable signal that it adds endpoints).
 
-`GET /modules/{key}` returns a **`docs`** block with the URLs of the documents **served by this instance** (`GET /api/v1/modules/{key}/docs/{readme|api|mcp|settings|events}`), so you always link to documentation that exists and belongs to the installed package.
+**Previsto:** `GET /modules/{key}` will return a **`docs`** block with the URLs of the documents **served by this instance** (`GET /api/v1/modules/{key}/docs/{readme|api|mcp|settings|events}`), so you always link to documentation that exists and belongs to the installed package. Those `docs` endpoints and the `docs` block are **not implemented**; today the package documents are validated by the manifest checks but not served over HTTP.
 
 ### Core endpoints (at a glance)
 
+The table reflects the **58 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
+
 | Area | Endpoints | Notes |
 |---|---|---|
-| Health & instance | `GET /health`, `GET /instance` | public, non-sensitive |
-| You | `GET/PATCH /me`, `GET /me/modules` | your profile and your modules |
-| Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}` | soft-deactivate (**super-admin**); root protected |
+| Health & instance | `GET /health`, `GET /instance`, `GET /openapi.json` | public, non-sensitive; `/health` answers 200 or 503 |
+| Setup | `GET /setup/environment`, `POST /setup/super-admin`, `POST /setup/test-email` | public while uninstalled (environment/super-admin); test-email is **session-only** super_admin |
+| Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}`, `POST /users/{id}/restore`, `DELETE /users/{id}/purge` | list defaults to `state=active`; `category` filters by category and every user carries `categories`; soft-deactivate and restore (**super-admin**); purge is **irreversible, super-admin only, and requires a deactivated profile**; root protected; restore is idempotent |
 | Categories (admin) | `/user-categories`, `/{id}/members`, `/{id}/modules` | assign module ∈ category materializes access |
-| Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET /modules/{key}/docs/{doc}`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin** |
-| Access (admin) | `POST/DELETE /users/{id}/modules/{key}` | per-user grant/revoke |
-| Invitations | `POST/GET /invitations`, `DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | redeem is the public join step (single use) |
-| API keys | `POST/GET /api-keys`, `GET/DELETE /api-keys/{id}` | secret returned once |
+| Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET /modules/{key}/grants`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin**; `manifest_digest` is part of the module representation; grants need `modules:manage` (never `modules:read`, which delegated keys hold) |
+| Module docs | `GET /modules/{key}/docs/{doc}` | **previsto** |
+| You | `GET/PATCH /me`, `GET /me/modules` | **previsto** |
+| Access (admin) | `GET /users/{id}/modules`, `POST/DELETE /users/{id}/modules/{key}` | per-user grants: `GET` lists the live grants on installed/active modules (`key` + `name`, empty list when none); grant/revoke |
+| Invitations | `POST/GET /invitations`, `GET/DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | detail adds `created_by` (`null` when a key created it) and **never** the token or its hash; redeem is the public join step (single use) |
+| API keys | `POST/GET /api-keys`, `GET/PATCH/DELETE /api-keys/{id}` | secret returned once; delegated keys act as a plain user; `user_id` optional for a super_admin; list filters `kind`, `user` and `state` (`all|active|revoked|expired`; a revoked key never counts as expired; `user` + `kind=service` → 400, another owner for a non-super_admin → 404); 5 active delegated keys per owner (409 `conflict`, `details.code = "key_limit"`); `PATCH` edits `name`, `scopes` and `expires_at` only (`expires_at: null` removes the expiry; `kind`/`role_cap`/`user_id` → 400), re-scopes inside the stored cap/owner grants and never resurrects a revoked key (409, `details.code = "revoked"`); `/keys` panel is super_admin only |
 | Devices | `POST/GET /devices`, `DELETE /devices/{id}` | push registration and revocation |
-| Settings & currency | `GET /settings`, `PATCH /settings/{category}.{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
-| i18n | `GET /translations?locale=`, `GET /translations/status`, `POST /translations/import`, `PUT /translations/{locale}/{hash}` | ETag-cached |
-| Operations | `GET /admin-actions`, `GET /audit`, `GET /maintenance/status` (**super-admin**); `POST /maintenance/run` (instance key, `maintenance:run`) | `maintenance/run` needs an instance key with `role_cap=super_admin` |
+| Settings & currency | `GET /settings`, `PATCH /settings`, `PATCH /settings/{category}/{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
+| i18n | `GET /translations?locale=` | ETag-cached (304 on `If-None-Match`) |
+| i18n admin | `GET /translations/status`, `POST /translations/import`, `PUT /translations/{locale}/{hash}` | **previsto** |
+| Operations | `GET /maintenance/status` (**session-only**, super_admin); `POST /maintenance/run` (**service key**, `maintenance:run`) | `maintenance/run` needs an instance key with `role_cap=super_admin` |
+| Audit | `GET /admin-actions`, `GET /audit` | **previsto** |
 
 Full request/response shapes: the generated OpenAPI (§11) or the normative spec while it is not published.
 
+### Currency batch
+
+`PATCH /api/v1/currencies` enables or disables up to **200** currencies in a **single transaction**
+(`currencies:write`, one write slot):
+
+```bash
+curl -sS -X PATCH "$INSTANCE_URL/api/v1/currencies" \
+  -H "Authorization: Bearer $CREDENTIAL" -H 'Content-Type: application/json' \
+  -d '{"updates":[{"code":"USD","enabled":false},{"code":"JPY","enabled":false}]}'
+```
+
+- `updates` is required, has **1…200** entries, and each `code` may appear only once (duplicates are
+  `400 validation_failed`).
+- The default currency (`localization.default_currency`) **cannot be disabled**; a batch that tries
+  returns `409 currency_is_default` and **applies nothing**.
+- An unknown code returns `404 not_found` and also rolls the whole batch back.
+- The response has the same shape as `GET /currencies`: `{ "default": "EUR", "currencies": [ … ] }`
+  with the final state. Prefer this endpoint over one `PATCH /currencies/{code}` per currency.
+
 Module endpoints and tools live in the module's own documentation, not here (the Core does not duplicate them).
 
-## 10. MCP
+## 10. MCP (previsto)
+
+> **Not implemented yet.** This section describes the target integration surface; the current Core exposes **no `/mcp` route** and the 56 documented operations are REST only. It stays here so clients and module authors can see the intended contract.
 
 The same data is exposed to **AI agents** over the **Model Context Protocol**. MCP is **JSON-RPC over HTTP**, so it has its own endpoints and error model.
 
@@ -268,7 +327,7 @@ The same data is exposed to **AI agents** over the **Model Context Protocol**. M
 | `settings_update` | `settings:write` | admin | Only settings marked writable for MCP (`security.*`, `connectivity.*` and `auth.*` are never exposed) |
 | `admin_actions_list` | `admin_actions:read` | **super_admin** | Sensitive mutations log |
 
-**Role invariants (always enforced):** the `/setup` owner (**root**) cannot be demoted or deactivated, and the instance always keeps **at least one active `super_admin`**. Violating either returns a domain error.
+**Role invariants (always enforced):** the `/setup` owner (**root**) cannot be demoted, deactivated or purged, and the instance always keeps **at least one active `super_admin`**. Nobody deletes their own account, and physical deletion (`DELETE /users/{id}/purge`) additionally requires the profile to be already deactivated. Violating any rule returns a domain error (`409` for state conflicts).
 
 **Not available over MCP, by design:** module install/uninstall (DDL needs a human reviewing the diff), API key management (secrets are shown once), any `is_secret` setting, and destructive deletion of money data.
 
@@ -333,14 +392,23 @@ One shared budget per key (30 req/min by default, writes 10 req/min), audited pe
 
 ## 11. OpenAPI
 
-- The **OpenAPI document is generated** from the same schemas that validate requests and responses — it cannot drift from the implementation (delta 2026-10-27 in the API spec).
+- The **OpenAPI document is generated** from the same schemas that validate requests and responses — it cannot drift from the implementation (delta 2026-10-27 in the API spec). Generation uses zod 4's native `z.toJSONSchema()`; the registry in `packages/core/src/openapi/registry.ts` maps each route handler to its shared schemas and scopes.
 - Each instance **serves it** at `GET /api/v1/openapi.json` (no auth needed to read the schema; the API itself still requires credentials).
-- A copy is committed to the repository at `docs/api/openapi.yaml` for review; CI fails if it is out of date.
-- A browsable rendering (Swagger or an equivalent) is published by the admin panel.
+- A copy is committed to the repository at `docs/api/openapi.json` for review (**58 operations** today); CI fails if it is out of date or if a route handler has no operation (and also if a `route.ts` exports no HTTP method).
+- Every operation publishes the credentials it actually accepts: `session` routes list `sessionAuth` and `apiKeyAuth`; `/setup/test-email` and `/maintenance/status` are `sessionAuth` only; `/maintenance/run` is `apiKeyAuth` only.
+- A browsable rendering is available in the admin panel at `/docs/api` (Scalar, bundled locally so the CSP needs no CDN; the client/agent/MCP toolbars are disabled).
 
-*The served path is `GET /api/v1/openapi.json`; the committed review copy is `docs/api/openapi.yaml` (checked by CI). Neither exists yet — they are produced once the API is implemented.*
+```bash
+# Regenerate the committed review copy after changing the registry.
+pnpm --filter @027apps/core openapi:generate
 
-Until the API is implemented, the **normative reference** for the contract is the specification: [`docs/superpowers/specs/2026-10-25-api-v1.md`](../superpowers/specs/2026-10-25-api-v1.md) and the Core surface in [`2026-10-26-core-api.md`](../superpowers/specs/2026-10-26-core-api.md).
+# Verify the document is current and every route has an operation.
+pnpm check:openapi
+```
+
+The served path and the committed review copy are both `docs/api/openapi.json` (JSON, not YAML: zod 4 emits JSON natively, so no extra serializer is needed).
+
+The generated document is the **normative contract**; the design specs remain the rationale: [`docs/superpowers/specs/2026-10-25-api-v1.md`](../superpowers/specs/2026-10-25-api-v1.md) and the Core surface in [`2026-10-26-core-api.md`](../superpowers/specs/2026-10-26-core-api.md).
 
 ---
 

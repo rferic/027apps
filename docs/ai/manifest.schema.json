@@ -6,7 +6,7 @@
   "x-manifest-version": "1.0.0",
   "type": "object",
   "additionalProperties": false,
-  "required": ["key", "name", "branding", "version", "docs"],
+  "required": ["key", "name", "branding", "version", "is_public", "i18n", "docs"],
   "properties": {
     "key": {
       "type": "string",
@@ -16,12 +16,15 @@
     "name": { "type": "string", "minLength": 1 },
     "branding": { "$ref": "#/$defs/branding" },
     "version": { "$ref": "#/$defs/semver" },
-    "is_public": { "type": "boolean", "default": false },
-    "migraciones": { "type": "array", "items": { "$ref": "#/$defs/migration" } },
+    "is_public": { "type": "boolean" },
+    "migrations": { "type": "array", "items": { "$ref": "#/$defs/migration" } },
     "settings": { "type": "array", "items": { "$ref": "#/$defs/settingsCategory" } },
     "i18n": {
       "type": "array",
-      "items": { "type": "string", "minLength": 2 },
+      "items": {
+        "type": "string",
+        "enum": ["en", "es", "ca", "it", "fr", "de", "pt", "gl", "eu"]
+      },
       "uniqueItems": true
     },
     "scopes": {
@@ -31,10 +34,10 @@
     },
     "mcp_tools": { "type": "array", "items": { "$ref": "#/$defs/mcpTool" } },
     "channels": { "type": "array", "items": { "$ref": "#/$defs/channel" } },
-    "eventos": { "type": "array", "items": { "$ref": "#/$defs/event" } },
+    "events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
     "hooks": {
       "type": "object",
-      "additionalProperties": { "type": "string", "minLength": 1 }
+      "additionalProperties": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" }
     },
     "admin_pages": { "type": "array", "items": { "$ref": "#/$defs/adminPage" } },
     "docs": { "$ref": "#/$defs/docs" }
@@ -53,7 +56,7 @@
       "then": { "required": ["docs"], "properties": { "docs": { "required": ["settings"] } } }
     },
     {
-      "if": { "anyOf": [{ "required": ["eventos"] }, { "required": ["channels"] }] },
+      "if": { "anyOf": [{ "required": ["events"] }, { "required": ["channels"] }] },
       "then": { "required": ["docs"], "properties": { "docs": { "required": ["events"] } } }
     }
   ],
@@ -90,9 +93,9 @@
     "settingsCategory": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["category", "label", "icon", "sort_order", "settings"],
+      "required": ["category", "label", "sort_order", "settings"],
       "properties": {
-        "category": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "category": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
         "label": { "type": "string", "minLength": 1 },
         "icon": { "type": "string", "minLength": 1 },
         "sort_order": { "type": "integer", "minimum": 0 },
@@ -109,17 +112,18 @@
       "required": [
         "key",
         "type",
-        "default",
         "label",
-        "help",
         "is_public",
         "is_secret",
         "mcp_access",
         "sort_order"
       ],
       "properties": {
-        "key": { "type": "string", "pattern": "^[a-z0-9_]+$" },
-        "type": { "type": "string", "minLength": 1 },
+        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "type": {
+          "type": "string",
+          "enum": ["string", "int", "bool", "currency", "locale", "url", "json"]
+        },
         "default": {},
         "label": { "type": "string", "minLength": 1 },
         "help": { "type": "string", "minLength": 1 },
@@ -127,7 +131,17 @@
         "is_secret": { "type": "boolean" },
         "mcp_access": { "type": "string", "enum": ["read", "write", "none"] },
         "sort_order": { "type": "integer", "minimum": 0 }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "is_secret": { "const": true } }, "required": ["is_secret"] },
+          "then": { "not": { "required": ["default"] } }
+        },
+        {
+          "if": { "properties": { "is_secret": { "const": true } }, "required": ["is_secret"] },
+          "then": { "properties": { "is_public": { "const": false } } }
+        }
+      ]
     },
     "mcpTool": {
       "type": "object",
@@ -150,8 +164,8 @@
       "additionalProperties": false,
       "required": ["pattern", "members_fn"],
       "properties": {
-        "pattern": { "type": "string", "minLength": 1 },
-        "members_fn": { "type": "string", "minLength": 1 }
+        "pattern": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*(\\{[a-z_]+\\})?$" },
+        "members_fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" }
       }
     },
     "event": {
@@ -159,11 +173,11 @@
       "additionalProperties": false,
       "required": ["type", "target"],
       "properties": {
-        "type": { "type": "string", "pattern": "^[a-z0-9_.-]+$" },
+        "type": { "type": "string", "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$" },
         "target": { "type": "string", "pattern": "^(admins|all|user|channel:.+)$" },
         "notify": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": { "type": "string", "enum": ["push"] },
           "uniqueItems": true
         }
       }

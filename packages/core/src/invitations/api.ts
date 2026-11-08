@@ -1,9 +1,12 @@
 import { z } from "zod";
 import { withDoor } from "../api/door";
+import { pageParams } from "../api/pagination";
+import { DEFAULT_READ_LIMIT, DEFAULT_WRITE_LIMIT } from "../api/rate-limits";
 import { DomainError } from "../errors";
 import type { Caller, CorsOptions, DoorDeps, RequestContext } from "../api/types";
 import {
   createInvitation,
+  getInvitation,
   listInvitations,
   redeemInvitation,
   revokeInvitation,
@@ -26,7 +29,7 @@ export interface InvitationsRouteDeps {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const createSchema = z
+export const createInvitationSchema = z
   .object({
     email: z.string().trim().email().max(320),
     name: z.string().trim().min(1).max(80),
@@ -36,7 +39,18 @@ const createSchema = z
   })
   .strict();
 
-const redeemSchema = z
+/**
+ * `GET /invitations` status filter. Validated at the edge like every other
+ * filter: an unknown value is a 400 instead of a silently unfiltered list.
+ * `all` is the explicit opt-out; omitting it also means `all`.
+ */
+export const invitationListFiltersSchema = z
+  .object({
+    status: z.enum(["pending", "used", "expired", "revoked", "all"]).optional(),
+  })
+  .strict();
+
+export const redeemInvitationSchema = z
   .object({
     email: z.string().trim().email().max(320),
     password: z.string().min(12).max(200),
@@ -55,7 +69,7 @@ function options(deps: InvitationsRouteDeps, scopes: string[], schema?: z.ZodTyp
     auth: deps.auth,
     cors: deps.cors,
     ...(schema ? { schema } : {}),
-    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? 10 },
+    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
   };
 }
 
@@ -64,22 +78,32 @@ function readOptions(deps: InvitationsRouteDeps) {
     scopes: ["invitations:read"],
     auth: deps.auth,
     cors: deps.cors,
-    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? 120 },
+    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
   };
 }
 
 export function invitationsRoute(deps: InvitationsRouteDeps) {
   return (req: Request): Promise<Response> =>
-    withDoor(req, readOptions(deps), deps.door, async () => ({
-      invitations: await listInvitations(deps.invitations),
-    }));
+    withDoor(req, readOptions(deps), deps.door, async (ctx) => {
+      const page = pageParams(ctx.searchParams);
+      const rawStatus = ctx.searchParams.get("status") || undefined;
+      const filters = invitationListFiltersSchema.safeParse({ status: rawStatus });
+      if (!filters.success) {
+        throw new DomainError("validation_failed", "invalid status filter");
+      }
+      const result = await listInvitations(deps.invitations, {
+        ...page,
+        ...(filters.data.status ? { status: filters.data.status } : {}),
+      });
+      return { ...result, limit: page.limit, offset: page.offset };
+    });
 }
 
 export function createInvitationRoute(deps: InvitationsRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["invitations:write"], createSchema),
+      options(deps, ["invitations:write"], createInvitationSchema),
       deps.door,
       async (ctx) => ({
         status: 201,
@@ -98,6 +122,13 @@ export function createInvitationRoute(deps: InvitationsRouteDeps) {
     );
 }
 
+export function invitationRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(req, readOptions(deps), deps.door, async () => ({
+      invitation: await getInvitation(deps.invitations, uuid(rawId, "invitation id")),
+    }));
+}
+
 export function revokeInvitationRoute(deps: InvitationsRouteDeps) {
   return (req: Request, rawId: string): Promise<Response> =>
     withDoor(req, options(deps, ["invitations:write"]), deps.door, async () => {
@@ -114,7 +145,7 @@ export function redeemInvitationRoute(deps: InvitationsRouteDeps) {
         scopes: [],
         auth: async () => ({ kind: "anon" as const }),
         cors: deps.cors,
-        schema: redeemSchema,
+        schema: redeemInvitationSchema,
         rateLimit: { identity: "ip" as const, limit: deps.rateLimits?.redeem ?? 30 },
       },
       deps.door,

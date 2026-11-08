@@ -1,15 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { isPublicHelpPath } from "./public-paths";
+import { isPublicPath } from "./public-paths";
 
-describe("isPublicHelpPath", () => {
-  it.each(["/help", "/help/firebase", "/help/firebase/"])("allows %s", (pathname) => {
-    expect(isPublicHelpPath(pathname)).toBe(true);
+describe("isPublicPath", () => {
+  it.each([
+    "/help",
+    "/help/firebase",
+    "/help/firebase/",
+    "/invite/027_inv_abc123",
+    "/invite/027_inv_abc123/",
+  ])("allows %s", (pathname) => {
+    expect(isPublicPath(pathname)).toBe(true);
   });
 
-  it.each(["/", "/setup", "/login", "/helpful", "/help/other", "/help/firebase/secret"])(
-    "does not expose %s",
-    (pathname) => {
-      expect(isPublicHelpPath(pathname)).toBe(false);
-    },
-  );
+  it.each([
+    "/",
+    "/setup",
+    "/login",
+    "/members",
+    "/helpful",
+    "/help/other",
+    "/help/firebase/secret",
+    "/invite",
+    "/invite/",
+    "/invite/a/b",
+    "/invites/x",
+    "/invite/..",
+    "/invite/../members",
+  ])("does not expose %s", (pathname) => {
+    expect(isPublicPath(pathname)).toBe(false);
+  });
 });

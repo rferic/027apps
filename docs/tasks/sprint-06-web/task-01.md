@@ -22,21 +22,37 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 |---|---|---|
 | 01 | README del sprint | en curso |
 | 02 | Setup i18n y ayuda Firebase | finalizada |
-| 03 | Dominio local de desarrollo | test |
+| 03 | Dominio local de desarrollo | finalizada |
 | 04 | Settings batch write | finalizada |
-| 05 | Shell y navegación + `/modules` | pendiente |
-| 06 | Dashboard con datos reales | pendiente |
-| 07 | Miembros | pendiente |
-| 08 | Categorías + invitaciones | pendiente |
-| 09 | Claves API + ajustes | pendiente |
-| 10 | Documentación de la API | pendiente |
-| 11 | Revisión de diseño y UX | pendiente |
+| 05 | Shell y navegación + `/modules` | finalizada |
+| 06 | Dashboard con datos reales | finalizada |
+| 07 | Miembros | finalizada |
+| 08 | Categorías + invitaciones | finalizada |
+| 09 | Claves API + ajustes | finalizada |
+| 10 | Documentación de la API | finalizada |
+| 11 | Revisión de diseño y UX | finalizada |
+| 12 | Canje público de invitaciones | finalizada |
+| 13 | Scopes de claves API y claves delegadas por propietario | finalizada |
+| 14 | Fichas de detalle de invitaciones y módulos | finalizada |
+| 15 | Instalar módulos desde el panel | finalizada |
 
 ## Dependencias
 
-- API del Core en `main` (✅). No existen aún `GET /me` (task-05), `/admin-actions` (el dashboard lo omite) ni `/openapi.json` (task-10).
-- OpenAPI: no existe generación en el repo; se construye en task-10.
+- API del Core en `main` (✅). No existen `GET /me` ni `/admin-actions` (el dashboard los omite, decisión del
+  sprint); `/api/v1/openapi.json` llega con task-10 y ya está en el panel.
+- task-12 reutiliza `POST /api/v1/invitations/{token}/redeem` y las invitaciones de task-08; no cambia el contrato.
+- task-13 endurece el guard de scopes y la gestión de claves (task-02 y task-09); añade `user_id` opcional al alta y un límite de 5 delegadas activas.
+- task-14 depende de dos endpoints nuevos del Core (`GET /api/v1/invitations/{id}` y
+  `GET /api/v1/modules/{key}/grants`) y reutiliza la confirmación de revocación de task-08 y el aviso de
+  concesiones activas de la desinstalación (task-05).
+- OpenAPI: el registro vive en `packages/core/src/openapi/registry.ts` y `pnpm check:openapi` verifica el
+  documento (`docs/api/openapi.json`) y la paridad con cada `route.ts`; task-14 lo amplía con dos
+  operaciones.
 
 ## Cierre
 
-Un solo PR, squash a `main` por orden del usuario, cuando 05–11 estén `finalizada` con DoD completo (TDD, gates, revisión de segundo agente y auditoría OWASP).
+Un solo PR, squash a `main` por orden del usuario, cuando 05–15 estén `finalizada` con DoD completo (TDD, gates, revisión de segundo agente y auditoría OWASP).
+
+**Estado de cierre (2026-11-08):** todo el sprint está `finalizada` salvo `task-01` (`en curso` mientras
+existe este PR), que espera el merge. Solo queda el PR: el cuerpo está en `docs/flows/pr-sprint-06-web.md`
+y el squash lo ordena el usuario.

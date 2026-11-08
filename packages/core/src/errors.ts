@@ -11,22 +11,25 @@
  * message for its code. Unknown errors collapse to `internal`.
  */
 
-export type DomainErrorCode =
-  | 'validation_failed'
-  | 'unauthorized'
-  | 'insufficient_scope'
-  | 'not_found'
-  | 'conflict'
-  | 'rate_limited'
-  | 'already_setup'
-  | 'invitation_expired'
-  | 'invitation_used'
-  | 'currency_not_enabled'
-  | 'locale_not_available'
-  | 'cors_origin_not_allowed'
-  | 'payload_too_large'
-  | 'currency_is_default'
-  | 'internal';
+export const DOMAIN_ERROR_CODES = [
+  'validation_failed',
+  'unauthorized',
+  'insufficient_scope',
+  'not_found',
+  'conflict',
+  'rate_limited',
+  'already_setup',
+  'invitation_expired',
+  'invitation_used',
+  'currency_not_enabled',
+  'locale_not_available',
+  'cors_origin_not_allowed',
+  'payload_too_large',
+  'currency_is_default',
+  'internal',
+] as const;
+
+export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];
 
 /** Canonical English message per code. It is the i18n catalogue key. */
 export const DEFAULT_MESSAGES: Readonly<Record<DomainErrorCode, string>> = {

@@ -1,0 +1,107 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import {
+  buildApiKeyUpdateInput,
+  mergeKeyScopes,
+  splitKeyScopes,
+  type ApiKeyEditState,
+} from "@/lib/api-key-edit";
+import { expiresAtFrom, parseExpiryFormData } from "@/lib/api-key-expiry";
+import { apiKeyOfferedScopes } from "@/lib/api-key-module-scopes";
+import { requirePanel } from "@/lib/panel-guard";
+import { loadKey, updateKey, type ApiKeyUpdate } from "@/lib/panel-keys";
+import {
+  loadModulesForOwner,
+  modulesFailure,
+  offeredModuleList,
+} from "@/lib/panel-user-modules";
+
+/**
+ * Expiry the form submits: `keep` (or a payload without the field) sends
+ * nothing, `never` clears it and `relative` stores an instant. An invalid
+ * amount or mode is a validation failure, never a silent no-op.
+ */
+function expiryPatch(formData: FormData): Pick<ApiKeyUpdate, "expires_at"> | null {
+  if (!formData.has("expiry_mode")) return {};
+  const choice = parseExpiryFormData(formData);
+  if (!choice) return null;
+  try {
+    const expiresAt = expiresAtFrom(choice);
+    return expiresAt === undefined ? {} : { expires_at: expiresAt };
+  } catch (error) {
+    if (error instanceof RangeError) return null;
+    throw error;
+  }
+}
+
+/**
+ * The patch the form submits: the stored scopes the form cannot offer travel
+ * untouched, and the selection is limited to the offered set.
+ */
+function patchFromFormData(
+  preserved: readonly string[],
+  offered: readonly string[],
+  formData: FormData,
+): ApiKeyUpdate | null {
+  const selected = formData.getAll("scopes").map((value) => String(value));
+  const patch = buildApiKeyUpdateInput({
+    name: String(formData.get("name") ?? ""),
+    scopes: mergeKeyScopes(preserved, selected, offered),
+  });
+  if (!patch) return null;
+
+  const expiry = expiryPatch(formData);
+  if (!expiry) return null;
+  return { ...patch, ...expiry };
+}
+
+/**
+ * Saves the editable fields through the Core route in process. The API owns
+ * the rules (immutable kind/cap/owner, `409 revoked`, `400` validation), so a
+ * failure comes back as state and only success leaves the page.
+ *
+ * The form offers the Core allowlist plus the modules granted to the owner. Any
+ * other stored scope (a module no longer granted, a legacy scope) is reloaded
+ * and re-injected into the patch: saving this form can never drop it.
+ */
+export async function updateKeyAction(
+  id: string,
+  _previous: ApiKeyEditState,
+  formData: FormData,
+): Promise<ApiKeyEditState> {
+  // Server actions are callable outside the page render, so the page guard is
+  // repeated here: key management is a super_admin surface, exactly like the
+  // Core route this action calls.
+  const gate = await requirePanel("super_admin");
+  if ("denied" in gate) return { error: { ok: false, code: "insufficient_scope" } };
+
+  const stored = await loadKey(id);
+  if (!stored.ok) return { error: stored };
+
+  const modules = await loadModulesForOwner(stored.apiKey);
+  const modulesError = modulesFailure(modules);
+  if (modulesError) return { error: modulesError };
+
+  const offered = apiKeyOfferedScopes(
+    stored.apiKey.kind,
+    stored.apiKey.roleCap ?? "",
+    offeredModuleList(modules),
+  );
+  const { preserved } = splitKeyScopes(stored.apiKey.scopes, offered);
+  const patch = patchFromFormData(preserved, offered, formData);
+  if (!patch) return { error: { ok: false, code: "validation_failed" } };
+
+  const result = await updateKey(id, patch);
+  if (!result.ok) return { error: result };
+
+  // Without this the client Router Cache keeps the previous RSC of these
+  // pages, so reopening the form shows the scopes that were just removed.
+  // Revalidate before redirecting: `redirect` throws and ends the action.
+  revalidatePath("/keys");
+  revalidatePath(`/keys/${encodeURIComponent(id)}`);
+  revalidatePath(`/keys/${encodeURIComponent(id)}/edit`);
+
+  redirect(`/keys/${encodeURIComponent(id)}`);
+}

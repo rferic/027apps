@@ -119,9 +119,10 @@ describe("invitations API", () => {
 
       const listed = await invitationsRoute(route)(new Request("http://local/api/v1/invitations"));
       const listBody = (await listed.json()) as { invitations: Record<string, unknown>[] };
-      expect(listBody.invitations).toHaveLength(1);
-      expect(listBody.invitations[0]).not.toHaveProperty("token");
-      expect(listBody.invitations[0]).not.toHaveProperty("token_hash");
+      const createdRow = listBody.invitations.find((item) => item.id === body.invitation.id);
+      expect(createdRow).toBeDefined();
+      expect(createdRow).not.toHaveProperty("token");
+      expect(createdRow).not.toHaveProperty("token_hash");
 
       const revoked = await revokeInvitationRoute(route)(
         new Request(`http://local/api/v1/invitations/${body.invitation.id}`, { method: "DELETE" }),

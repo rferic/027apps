@@ -6,6 +6,7 @@
 
 import { z } from 'zod';
 import { withDoor } from '../api/door';
+import { DEFAULT_READ_LIMIT, DEFAULT_WRITE_LIMIT } from '../api/rate-limits';
 import { DomainError } from '../errors';
 import type { Caller, CorsOptions, DoorDeps } from '../api/types';
 import { SETTINGS_CATEGORIES } from './catalog';
@@ -22,12 +23,9 @@ export interface SettingsRouteDeps {
 /** Canonical key: `<category>.<name>` (e.g. `instance.name`). */
 const KEY_PATTERN = /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/;
 
-/** Default write limit: wizard batch (12 writes) + margin. */
-export const DEFAULT_WRITE_LIMIT = 30;
+export const patchSettingBodySchema = z.object({ value: z.unknown() }).strict();
 
-const patchBodySchema = z.object({ value: z.unknown() }).strict();
-
-const patchSettingsBodySchema = z.object({
+export const patchSettingsBodySchema = z.object({
   updates: z.array(z.object({ key: z.string(), value: z.unknown() }).strict()).min(1).max(30),
 }).strict();
 
@@ -44,7 +42,7 @@ export function settingsRoute(deps: SettingsRouteDeps) {
         scopes: ['settings:read'],
         auth: deps.auth,
         cors: deps.cors,
-        rateLimit: { identity: 'user', limit: deps.rateLimits?.read ?? 120 },
+        rateLimit: { identity: 'user', limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
       },
       deps.door,
       async (ctx) => {
@@ -63,7 +61,7 @@ export function settingsCategoriesRoute(deps: SettingsRouteDeps) {
         scopes: ['settings:read'],
         auth: deps.auth,
         cors: deps.cors,
-        rateLimit: { identity: 'user', limit: deps.rateLimits?.read ?? 120 },
+        rateLimit: { identity: 'user', limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
       },
       deps.door,
       async (ctx) => {
@@ -88,7 +86,7 @@ export function patchSettingRoute(deps: SettingsRouteDeps) {
       {
         scopes: ['settings:write'],
         auth: deps.auth,
-        schema: patchBodySchema,
+        schema: patchSettingBodySchema,
         cors: deps.cors,
         rateLimit: { identity: 'user', limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
       },

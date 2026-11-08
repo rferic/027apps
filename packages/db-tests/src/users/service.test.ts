@@ -43,7 +43,7 @@ describe("users service — reads", () => {
         displayName: "List Me",
       });
 
-      const list = await listUsers(deps(c), { q: "List Me", limit: 10, offset: 0 });
+      const list = await listUsers(deps(c), caller("super_admin"), { q: "List Me", limit: 10, offset: 0 });
       expect(list.users.some((user) => user.id === id)).toBe(true);
       expect(list.total).toBeGreaterThanOrEqual(1);
 
@@ -51,6 +51,33 @@ describe("users service — reads", () => {
       expect(user.display_name).toBe("List Me");
 
       await expect(getUser(deps(c), crypto.randomUUID())).rejects.toMatchObject({ code: "not_found" });
+    });
+  });
+
+  it("counts only active profiles in active_total, across every page", async () => {
+    await inRollback(async (c) => {
+      const prefix = `Active ${Date.now()}-${Math.random()}`;
+      await createTestUser(c, { email: email("active-one"), displayName: `${prefix} One` });
+      await createTestUser(c, { email: email("active-two"), displayName: `${prefix} Two` });
+      const deactivated = await createTestUser(c, {
+        email: email("active-off"),
+        displayName: `${prefix} Off`,
+      });
+      await query(c, "update public.profiles set deactivated_at = now() where id = $1", [
+        deactivated.id,
+      ]);
+
+      // `state: "all"` es explícito porque el defecto del filtro es `active`.
+      const list = await listUsers(deps(c), caller("super_admin"), {
+        q: prefix,
+        state: "all",
+        limit: 2,
+        offset: 0,
+      });
+
+      expect(list.total).toBe(3);
+      expect(list.active_total).toBe(2);
+      expect(list.users).toHaveLength(2);
     });
   });
 });
@@ -102,6 +129,30 @@ describe("users service — profile and role edits", () => {
       ).rejects.toMatchObject({ code: "conflict" });
     });
   });
+
+  it("rejects changing your own role even as super_admin", async () => {
+    await inRollback(async (c) => {
+      await makeRootSuperAdmin(c, "Root Self Role");
+      const self = await createTestUser(c, { email: email("self-role"), role: "super_admin" });
+      const selfCaller: Caller = {
+        kind: "session",
+        userId: self.id,
+        role: "super_admin",
+      };
+
+      await expect(
+        updateUser(deps(c), selfCaller, self.id, { role: "admin" }),
+      ).rejects.toMatchObject({
+        code: "conflict",
+        message: "You cannot change your own role",
+      });
+
+      const { rows } = await query(c, "select role from public.profiles where id = $1", [
+        self.id,
+      ]);
+      expect(rows).toEqual([{ role: "super_admin" }]);
+    });
+  });
 });
 
 describe("users service — deactivation", () => {
@@ -145,6 +196,30 @@ describe("users service — deactivation", () => {
       await expect(
         deactivateUser(deps(c), caller("super_admin"), only.id),
       ).rejects.toMatchObject({ code: "conflict" });
+    });
+  });
+
+  it("rejects deactivating your own account even as super_admin", async () => {
+    await inRollback(async (c) => {
+      await makeRootSuperAdmin(c, "Root Self Deactivate");
+      const self = await createTestUser(c, { email: email("self-deactivate"), role: "super_admin" });
+      const selfCaller: Caller = {
+        kind: "session",
+        userId: self.id,
+        role: "super_admin",
+      };
+
+      await expect(deactivateUser(deps(c), selfCaller, self.id)).rejects.toMatchObject({
+        code: "conflict",
+        message: "You cannot deactivate your own account",
+      });
+
+      const { rows } = await query(
+        c,
+        "select deactivated_at from public.profiles where id = $1",
+        [self.id],
+      );
+      expect(rows).toEqual([{ deactivated_at: null }]);
     });
   });
 });

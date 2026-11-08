@@ -93,7 +93,12 @@ describe("user-categories API", () => {
       expect(category.slug).toBe("familia");
 
       const listed = await userCategoriesRoute(route)(new Request("http://local/api/v1/user-categories"));
-      expect(((await listed.json()) as { categories: unknown[] }).categories).toHaveLength(1);
+      const listBody = (await listed.json()) as {
+        categories: { id: string }[];
+        total: number;
+      };
+      expect(listBody.categories.some((row) => row.id === category.id)).toBe(true);
+      expect(listBody.total).toBeGreaterThanOrEqual(1);
 
       const memberRes = await addCategoryMemberRoute(route)(
         new Request("http://local/api/v1/user-categories/x/members/y", { method: "POST" }),

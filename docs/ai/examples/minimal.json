@@ -7,6 +7,8 @@
     "color": "indigo"
   },
   "version": "1.0.0",
+  "is_public": false,
+  "i18n": ["en"],
   "docs": {
     "readme": "README.md"
   }

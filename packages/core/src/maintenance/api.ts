@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { withDoor } from "../api/door";
+import { DEFAULT_READ_LIMIT } from "../api/rate-limits";
 import { DomainError } from "../errors";
 import type { Caller, CorsOptions, DoorDeps } from "../api/types";
 import { maintenanceStatus, runMaintenance, type MaintenanceDeps } from "./service";
@@ -13,7 +14,7 @@ export interface MaintenanceRouteDeps {
   cors?: CorsOptions;
 }
 
-const runSchema = z.object({ jobs: z.array(z.string().min(1).max(64)).optional() }).strict().optional();
+export const maintenanceRunSchema = z.object({ jobs: z.array(z.string().min(1).max(64)).optional() }).strict().optional();
 
 function assertInstanceKey(caller: Caller): void {
   if (caller.kind !== "service" || caller.roleCap !== "super_admin") {
@@ -29,7 +30,7 @@ export function maintenanceRunRoute(deps: MaintenanceRouteDeps) {
         scopes: ["maintenance:run"],
         auth: deps.auth,
         cors: deps.cors,
-        schema: runSchema,
+        schema: maintenanceRunSchema,
         rateLimit: { identity: "key", limit: 5 },
       },
       deps.door,
@@ -52,7 +53,7 @@ export function maintenanceStatusRoute(deps: MaintenanceRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(
       req,
-      { scopes: [], auth: deps.auth, cors: deps.cors, rateLimit: { identity: "user", limit: 120 } },
+      { scopes: [], auth: deps.auth, cors: deps.cors, rateLimit: { identity: "user", limit: DEFAULT_READ_LIMIT } },
       deps.door,
       async (ctx) => {
         if (ctx.caller.kind !== "session" || ctx.caller.role !== "super_admin") {

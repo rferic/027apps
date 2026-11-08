@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { withDoor } from "../api/door";
+import { DEFAULT_READ_LIMIT, DEFAULT_WRITE_LIMIT } from "../api/rate-limits";
 import { DomainError } from "../errors";
 import type { Caller, CorsOptions, DoorDeps } from "../api/types";
 import { listDevices, registerDevice, revokeDevice, type DevicesDeps } from "./service";
@@ -18,7 +19,7 @@ export interface DevicesRouteDeps {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const registerSchema = z
+export const registerDeviceSchema = z
   .object({
     platform: z.enum(["android", "ios"]),
     push_token: z.string().trim().min(8).max(4096).optional().nullable(),
@@ -36,7 +37,7 @@ function options(deps: DevicesRouteDeps, scopes: string[], schema?: z.ZodType) {
     auth: deps.auth,
     cors: deps.cors,
     ...(schema ? { schema } : {}),
-    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? 10 },
+    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
   };
 }
 
@@ -45,7 +46,7 @@ function readOptions(deps: DevicesRouteDeps) {
     scopes: ["devices:read"],
     auth: deps.auth,
     cors: deps.cors,
-    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? 120 },
+    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
   };
 }
 
@@ -63,7 +64,7 @@ export function registerDeviceRoute(deps: DevicesRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["devices:write"], registerSchema),
+      options(deps, ["devices:write"], registerDeviceSchema),
       deps.door,
       async (ctx) => ({
         device: await registerDevice(

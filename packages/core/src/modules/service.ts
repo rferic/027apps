@@ -28,6 +28,28 @@ export interface ModulesDeps {
 
 export type ModuleState = "installed" | "active" | "disabled";
 
+/** Filters applied in SQL, so `total` counts the filtered set and not one page. */
+export type ModuleStateFilter = "all" | ModuleState;
+export type ModulePublicFilter = "all" | "yes" | "no";
+
+export interface ModuleListFilters {
+  /** Omitted or `all` keeps every lifecycle state. */
+  state?: ModuleStateFilter;
+  /** Omitted or `all` keeps public and private modules alike. */
+  public?: ModulePublicFilter;
+}
+
+/** One page of modules plus the total across every page. */
+export interface ModuleList {
+  modules: ModuleView[];
+  total: number;
+}
+
+export interface ModulePage {
+  limit: number;
+  offset: number;
+}
+
 export type ModuleView = {
   key: string;
   name: string;
@@ -35,8 +57,18 @@ export type ModuleView = {
   state: ModuleState;
   is_public: boolean;
   mcp_exposed: "none" | "read" | "read_write";
+  manifest_digest: string;
   installed_at: string;
   updated_at: string;
+};
+
+/** Access holder of a module: a user grant or a category assignment. */
+export type ModuleGrantUser = { id: string; display_name: string };
+export type ModuleGrantCategory = { id: string; name: string };
+
+export type ModuleGrants = {
+  users: ModuleGrantUser[];
+  categories: ModuleGrantCategory[];
 };
 
 export type ModuleSettingView = {
@@ -56,6 +88,7 @@ export type ModuleSettingView = {
 export type ModuleDetail = ModuleView & { settings_public: ModuleSettingView[] };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MODULE_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const MODULE_ROLE = "module_installer";
 
 const toIso = (value: unknown): string =>
@@ -72,13 +105,15 @@ async function withTx<T>(deps: ModulesDeps, fn: (db: QueryClient) => Promise<T>)
 
 function isAdmin(caller: Caller): boolean {
   if (caller.kind === "session") return caller.role === "admin" || caller.role === "super_admin";
-  if (caller.kind === "service" || caller.kind === "delegated") return caller.roleCap !== "user";
+  if (caller.kind === "service") return true;
+  // A delegated key is always a plain user, whatever its stored role cap.
   return false;
 }
 
 function isSuperAdmin(caller: Caller): boolean {
   if (caller.kind === "session") return caller.role === "super_admin";
-  if (caller.kind === "service" || caller.kind === "delegated") return caller.roleCap === "super_admin";
+  if (caller.kind === "service") return caller.roleCap === "super_admin";
+  // A delegated key is always a plain user, whatever its stored role cap.
   return false;
 }
 
@@ -111,6 +146,7 @@ function toModuleView(row: Record<string, unknown>): ModuleView {
     state: String(row.state) as ModuleState,
     is_public: row.is_public === true,
     mcp_exposed: String(row.mcp_exposed) as ModuleView["mcp_exposed"],
+    manifest_digest: String(row.manifest_digest ?? ""),
     installed_at: toIso(row.installed_at),
     updated_at: toIso(row.updated_at),
   };
@@ -134,7 +170,7 @@ function toSettingView(row: Record<string, unknown>): ModuleSettingView {
 }
 
 const MODULE_COLUMNS =
-  "key, name, version, state, is_public, mcp_exposed, installed_at, updated_at";
+  "key, name, version, state, is_public, mcp_exposed, manifest_digest, installed_at, updated_at";
 
 async function getModuleRow(db: QueryClient, key: string): Promise<Record<string, unknown>> {
   const { rows } = await db.query(`select ${MODULE_COLUMNS} from public.module_registry where key = $1`, [
@@ -355,27 +391,61 @@ export async function installModule(
   return toModuleView(await getModuleRow(deps.db, manifest.key));
 }
 
-export async function listModules(deps: ModulesDeps, caller: Caller): Promise<ModuleView[]> {
+export async function listModules(
+  deps: ModulesDeps,
+  caller: Caller,
+  page: ModulePage,
+  filters: ModuleListFilters = {},
+): Promise<ModuleList> {
+  // `null` means "no filter"; the filter lives in the same CTE that feeds the
+  // count, so `total` is the filtered total and never lies about the page.
+  const state = filters.state && filters.state !== "all" ? filters.state : null;
+  const isPublic =
+    filters.public === "yes" ? true : filters.public === "no" ? false : null;
   if (isAdmin(caller)) {
     const { rows } = await deps.db.query(
-      `select ${MODULE_COLUMNS} from public.module_registry order by name asc, key asc`,
+      `with filtered as (
+         select ${MODULE_COLUMNS} from public.module_registry
+          where ($3::text is null or state = $3)
+            and ($4::boolean is null or is_public = $4)
+       ),
+       total as (select count(*)::int as n from filtered),
+       page as (
+         select * from filtered
+          order by installed_at desc, key desc
+          limit $1 offset $2
+       )
+       select total.n as total, page.* from total left join page on true`,
+      [page.limit, page.offset, state, isPublic],
     );
-    return rows.map(toModuleView);
+    const modules = rows.filter((row) => row.key !== null && row.key !== undefined);
+    return { modules: modules.map(toModuleView), total: Number(rows[0]?.total ?? 0) };
   }
   const userId =
     caller.kind === "session" || caller.kind === "delegated" ? caller.userId : null;
-  if (!userId) return [];
+  if (!userId) return { modules: [], total: 0 };
   const { rows } = await deps.db.query(
-    `select ${MODULE_COLUMNS} from public.module_registry m
-      where m.state = 'active'
-        and (m.is_public = true or exists (
-          select 1 from public.user_modules u
-           where u.user_id = $1 and u.module_key = m.key and u.revoked_at is null
-        ))
-      order by m.name asc, m.key asc`,
-    [userId],
+    `with filtered as (
+       select ${MODULE_COLUMNS} from public.module_registry m
+        where m.state = 'active'
+          and (m.is_public = true or exists (
+            select 1 from public.user_modules u
+             where u.user_id = $1 and u.module_key = m.key and u.revoked_at is null
+          ))
+          and ($4::text is null or m.state = $4)
+          and ($5::boolean is null or m.is_public = $5)
+     ),
+     total as (select count(*)::int as n from filtered),
+     page as (
+       select * from filtered
+        order by installed_at desc, key desc
+        limit $2 offset $3
+     )
+     select total.n as total, page.* from total left join page on true`,
+    [userId, page.limit, page.offset, state, isPublic],
   );
-  return rows.map(toModuleView);
+  const modules = rows.filter((row) => row.key !== null && row.key !== undefined);
+  return { modules: modules.map(toModuleView), total: Number(rows[0]?.total ?? 0) };
 }
 
 async function hasAccess(
@@ -509,7 +579,9 @@ export async function uninstallModule(
     );
     const grants = Number(usage[0]?.grants ?? 0) + Number(usage[0]?.category_grants ?? 0);
     if (grants > 0 && !confirm) {
-      throw new DomainError("conflict", "Module has active grants; confirm the uninstall");
+      throw new DomainError("conflict", "Module has active grants; confirm the uninstall", {
+        code: "grants_active",
+      });
     }
 
     await db.query("delete from public.invitation_modules where module_key = $1", [key]);
@@ -649,6 +721,42 @@ export async function updateModuleSetting(
   );
   if (!rows[0]) throw new DomainError("not_found");
   return toSettingView(rows[0]);
+}
+
+export async function listModuleGrants(
+  deps: ModulesDeps,
+  caller: Caller,
+  key: string,
+): Promise<ModuleGrants> {
+  // The door already enforces `modules:manage`; the explicit role check keeps
+  // the use case safe when it is called outside the API (same rule as the rest
+  // of the module service).
+  if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
+  if (!MODULE_KEY.test(key)) throw new DomainError("validation_failed", "invalid module key");
+  // One statement for the module row (404) and both aggregates: no N+1 between
+  // the users and their access, and empty grants are `[]`, never `null`.
+  const { rows } = await deps.db.query(
+    `select
+       (select coalesce(json_agg(json_build_object('id', p.id, 'display_name', p.display_name)
+                                 order by p.display_name asc, p.id asc), '[]'::json)
+          from public.user_modules u
+          join public.profiles p on p.id = u.user_id
+         where u.module_key = $1 and u.revoked_at is null) as users,
+       (select coalesce(json_agg(json_build_object('id', c.id, 'name', c.name)
+                                 order by c.name asc, c.id asc), '[]'::json)
+          from public.user_category_modules cm
+          join public.user_categories c on c.id = cm.user_category_id
+         where cm.module_key = $1) as categories
+       from public.module_registry m
+      where m.key = $1`,
+    [key],
+  );
+  const row = rows[0];
+  if (!row) throw new DomainError("not_found");
+  return {
+    users: (row.users as ModuleGrantUser[] | null) ?? [],
+    categories: (row.categories as ModuleGrantCategory[] | null) ?? [],
+  };
 }
 
 export async function grantUserModule(

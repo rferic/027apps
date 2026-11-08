@@ -1,0 +1,603 @@
+import { describe, expect, it } from "vitest";
+import type { Caller, DoorDeps } from "../api/types";
+import type { RateLimitStorage } from "../api/rate-limit-storage";
+import { apiKeysRoute, createApiKeyRoute, updateApiKeyRoute, type ApiKeysRouteDeps } from "./api.js";
+
+const admin: Caller = { kind: "session", userId: "admin-1", role: "super_admin" };
+
+interface KeyRow {
+  id: string;
+  kind: "service" | "delegated";
+  name: string;
+  scopes: string[];
+  user_id: string | null;
+  role_cap: null;
+  expires_at: string | null;
+  revoked_at: string | null;
+  last_used_at: null;
+  created_at: string;
+}
+
+/** Mirrors the SQL predicate `listApiKeys` adds for `?state=`. */
+function matchesState(row: KeyRow, state: "active" | "expired" | "revoked" | null): boolean {
+  const now = Date.now();
+  const expired = row.expires_at !== null && new Date(row.expires_at).getTime() <= now;
+  if (state === "revoked") return row.revoked_at !== null;
+  if (state === "expired") return row.revoked_at === null && expired;
+  if (state === "active") return row.revoked_at === null && !expired;
+  return true;
+}
+
+function stateOf(sql: string): "active" | "expired" | "revoked" | null {
+  if (sql.includes("expires_at is null or expires_at > now()")) return "active";
+  if (sql.includes("expires_at <= now()")) return "expired";
+  if (sql.includes("revoked_at is not null")) return "revoked";
+  return null;
+}
+
+function countingStorage(): RateLimitStorage {
+  const counts = new Map<string, number>();
+  return {
+    async increment(key) {
+      const count = (counts.get(key) ?? 0) + 1;
+      counts.set(key, count);
+      return { count };
+    },
+  };
+}
+
+function pagedDeps(rows: KeyRow[], who: Caller = admin): ApiKeysRouteDeps {
+  const door: DoorDeps = { rateLimitStorage: countingStorage(), logger: () => {} };
+  return {
+    door,
+    auth: async () => who,
+    apiKeys: {
+      db: {
+        async query(sql: string, params: unknown[] = []) {
+          const [limit, offset] = params.slice(-2) as [number, number];
+          const kindMatch = sql.match(/kind = \$(\d+)/);
+          const userMatch = sql.match(/user_id = \$(\d+)/);
+          const kind = kindMatch ? String(params[Number(kindMatch[1]) - 1]) : null;
+          const userId = userMatch ? String(params[Number(userMatch[1]) - 1]) : null;
+          const state = stateOf(sql);
+          const visible = rows.filter(
+            (row) =>
+              (!kind || row.kind === kind) &&
+              (!userId || row.user_id === userId) &&
+              matchesState(row, state),
+          );
+          const page = visible.slice(offset, offset + limit);
+          const total = visible.length;
+          if (page.length === 0) return { rows: [{ total }] };
+          return { rows: page.map((row) => ({ ...row, total })) };
+        },
+      },
+    },
+  };
+}
+
+function rows(count: number): KeyRow[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `k${index + 1}`,
+    kind: "service",
+    name: `Key ${index + 1}`,
+    scopes: ["users:read"],
+    user_id: null,
+    role_cap: null,
+    expires_at: null,
+    revoked_at: null,
+    last_used_at: null,
+    created_at: `2026-01-0${count - index}T00:00:00.000Z`,
+  }));
+}
+
+async function list(route: ReturnType<typeof apiKeysRoute>, url: string) {
+  const res = await route(new Request(`http://local${url}`));
+  return {
+    status: res.status,
+    body: (await res.json()) as {
+      api_keys: { id: string }[];
+      total: number;
+      limit: number;
+      offset: number;
+      error?: { code: string };
+    },
+  };
+}
+
+interface InsertedKey {
+  kind: string;
+  scopes: string[];
+  user_id: string | null;
+  role_cap: string | null;
+}
+
+function createDeps(who: Caller): { deps: ApiKeysRouteDeps; inserts: InsertedKey[] } {
+  const inserts: InsertedKey[] = [];
+  const door: DoorDeps = { rateLimitStorage: countingStorage(), logger: () => {} };
+  const deps: ApiKeysRouteDeps = {
+    door,
+    auth: async () => who,
+    apiKeys: {
+      db: {
+        async query(sql: string, params: unknown[] = []) {
+          if (sql.includes("from public.profiles")) return { rows: [{ role: "user" }] };
+          if (sql.includes("count(*)::int as n")) return { rows: [{ n: 0 }] };
+          if (sql.startsWith("insert into public.api_keys")) {
+            const [hash, kind, name, scopes, userId, roleCap, actor, expiresAt] = params as [
+              string,
+              string,
+              string,
+              string[],
+              string | null,
+              string | null,
+              string,
+              string | null,
+            ];
+            inserts.push({ kind, scopes, user_id: userId, role_cap: roleCap });
+            return {
+              rows: [
+                {
+                  id: "k-new",
+                  key_hash: hash,
+                  kind,
+                  name,
+                  scopes,
+                  user_id: userId,
+                  role_cap: roleCap,
+                  created_by: actor,
+                  expires_at: expiresAt,
+                  revoked_at: null,
+                  last_used_at: null,
+                  created_at: "2026-11-08T00:00:00.000Z",
+                },
+              ],
+            };
+          }
+          return { rows: [] };
+        },
+      },
+    },
+  };
+  return { deps, inserts };
+}
+
+describe("api keys create route", () => {
+  it("passes user_id through to the service for a super_admin session", async () => {
+    const { deps, inserts } = createDeps({
+      kind: "session",
+      userId: "root",
+      role: "super_admin",
+    });
+
+    const res = await createApiKeyRoute(deps)(
+      new Request("http://local/api/v1/api-keys", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          kind: "delegated",
+          name: "For another user",
+          scopes: ["profile:read"],
+          user_id: "11111111-1111-4111-8111-111111111111",
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    expect(inserts).toEqual([
+      {
+        kind: "delegated",
+        scopes: ["profile:read"],
+        user_id: "11111111-1111-4111-8111-111111111111",
+        role_cap: null,
+      },
+    ]);
+  });
+
+  it("rejects a user_id that is not a uuid with validation_failed", async () => {
+    const { deps } = createDeps({ kind: "session", userId: "root", role: "super_admin" });
+
+    const res = await createApiKeyRoute(deps)(
+      new Request("http://local/api/v1/api-keys", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          kind: "delegated",
+          name: "Bad owner",
+          scopes: ["profile:read"],
+          user_id: "not-a-uuid",
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { error: { code: string } }).toMatchObject({
+      error: { code: "validation_failed" },
+    });
+  });
+
+  it("denies a caller without api_keys:write", async () => {
+    const { deps } = createDeps({ kind: "service", keyId: "svc", scopes: [], roleCap: "admin" });
+
+    const res = await createApiKeyRoute(deps)(
+      new Request("http://local/api/v1/api-keys", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: "delegated", name: "Nope", scopes: ["profile:read"] }),
+      }),
+    );
+
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("api keys update route", () => {
+  const ID = "11111111-1111-4111-8111-111111111111";
+  const stored = {
+    id: ID,
+    kind: "delegated" as const,
+    name: "Old name",
+    scopes: ["profile:read"],
+    user_id: "22222222-2222-4222-8222-222222222222",
+    role_cap: null,
+    expires_at: null,
+    revoked_at: null,
+    last_used_at: null,
+    created_at: "2026-11-08T00:00:00.000Z",
+  };
+
+  function updateDeps(who: Caller): {
+    deps: ApiKeysRouteDeps;
+    updates: Record<string, unknown>[];
+  } {
+    const updates: Record<string, unknown>[] = [];
+    const door: DoorDeps = { rateLimitStorage: countingStorage(), logger: () => {} };
+    return {
+      updates,
+      deps: {
+        door,
+        auth: async () => who,
+        apiKeys: {
+          db: {
+            async query(sql: string, params: unknown[] = []) {
+              if (sql.includes("from public.api_keys where id = $1")) {
+                return { rows: [{ ...stored, scopes: [...stored.scopes] }] };
+              }
+              if (sql.startsWith("update public.api_keys set") && sql.includes("returning")) {
+                const patch: Record<string, unknown> = {};
+                for (const match of sql.matchAll(/(\w+) = \$(\d+)/g)) {
+                  patch[match[1]!] = params[Number(match[2]) - 1];
+                }
+                // `expires_at = null` carries no placeholder.
+                if (/\bexpires_at = null\b/.test(sql)) patch.expires_at = null;
+                updates.push(patch);
+                return { rows: [{ ...stored, ...patch }] };
+              }
+              return { rows: [] };
+            },
+          },
+        },
+      },
+    };
+  }
+
+  function patch(body: unknown): Request {
+    return new Request(`http://local/api/v1/api-keys/${ID}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("updates only the name and returns the key", async () => {
+    const who: Caller = {
+      kind: "session",
+      userId: "22222222-2222-4222-8222-222222222222",
+      role: "user",
+    };
+    const { deps, updates } = updateDeps(who);
+
+    const res = await updateApiKeyRoute(deps)(patch({ name: "New name" }), ID);
+
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { api_key: { name: string } }).toMatchObject({
+      api_key: { name: "New name" },
+    });
+    expect(updates).toEqual([{ name: "New name", id: ID }]);
+  });
+
+  it("passes scopes and expires_at through", async () => {
+    const who: Caller = {
+      kind: "session",
+      userId: "22222222-2222-4222-8222-222222222222",
+      role: "user",
+    };
+    const { deps, updates } = updateDeps(who);
+    const expires = "2027-01-01T00:00:00.000Z";
+
+    const res = await updateApiKeyRoute(deps)(
+      patch({ scopes: ["profile:read"], expires_at: expires }),
+      ID,
+    );
+
+    expect(res.status).toBe(200);
+    expect(updates).toEqual([{ scopes: ["profile:read"], expires_at: expires, id: ID }]);
+  });
+
+  it("rejects an empty patch", async () => {
+    const who: Caller = { kind: "session", userId: "root", role: "super_admin" };
+    const { deps } = updateDeps(who);
+
+    const res = await updateApiKeyRoute(deps)(patch({}), ID);
+
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { error: { code: string } }).toMatchObject({
+      error: { code: "validation_failed" },
+    });
+  });
+
+  it("accepts expires_at: null to remove the expiry", async () => {
+    const who: Caller = {
+      kind: "session",
+      userId: "22222222-2222-4222-8222-222222222222",
+      role: "user",
+    };
+    const { deps, updates } = updateDeps(who);
+
+    const res = await updateApiKeyRoute(deps)(patch({ expires_at: null }), ID);
+
+    expect(res.status).toBe(200);
+    expect(updates).toEqual([{ expires_at: null, id: ID }]);
+  });
+
+  it("rejects kind, role_cap and user_id as immutable", async () => {
+    const who: Caller = { kind: "session", userId: "root", role: "super_admin" };
+    for (const body of [{ kind: "service" }, { role_cap: "admin" }, { user_id: null }]) {
+      const { deps, updates } = updateDeps(who);
+
+      const res = await updateApiKeyRoute(deps)(patch(body), ID);
+
+      expect(res.status).toBe(400);
+      expect(updates).toHaveLength(0);
+    }
+  });
+
+  it("denies a caller without api_keys:write", async () => {
+    const who: Caller = { kind: "service", keyId: "svc", scopes: [], roleCap: "admin" };
+    const { deps } = updateDeps(who);
+
+    const res = await updateApiKeyRoute(deps)(patch({ name: "Nope" }), ID);
+
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("api keys route pagination", () => {
+  it("returns the first page with limit=2 and the total", async () => {
+    const { status, body } = await list(apiKeysRoute(pagedDeps(rows(3))), "/api/v1/api-keys?limit=2");
+
+    expect(status).toBe(200);
+    expect(body.api_keys.map((row) => row.id)).toEqual(["k1", "k2"]);
+    expect(body.total).toBe(3);
+    expect(body.limit).toBe(2);
+    expect(body.offset).toBe(0);
+  });
+
+  it("returns the second page with offset=2", async () => {
+    const { body } = await list(
+      apiKeysRoute(pagedDeps(rows(3))),
+      "/api/v1/api-keys?limit=2&offset=2",
+    );
+
+    expect(body.api_keys.map((row) => row.id)).toEqual(["k3"]);
+    expect(body.total).toBe(3);
+    expect(body.offset).toBe(2);
+  });
+
+  it("caps a limit over 100", async () => {
+    const { body } = await list(apiKeysRoute(pagedDeps(rows(3))), "/api/v1/api-keys?limit=500");
+
+    expect(body.limit).toBe(100);
+  });
+
+  it("defaults to 20 rows", async () => {
+    const { body } = await list(apiKeysRoute(pagedDeps(rows(3))), "/api/v1/api-keys");
+
+    expect(body.limit).toBe(20);
+  });
+
+  it("rejects a listing without a session", async () => {
+    const res = await apiKeysRoute(pagedDeps(rows(1), { kind: "anon" }))(
+      new Request("http://local/api/v1/api-keys"),
+    );
+
+    expect(res.status).toBe(401);
+  });
+});
+
+const OWNER = "11111111-1111-4111-8111-111111111111";
+
+function mixedRows(): KeyRow[] {
+  return [
+    { ...rows(1)[0]!, id: "svc", kind: "service", name: "Instance", user_id: null },
+    {
+      ...rows(1)[0]!,
+      id: "own",
+      kind: "delegated",
+      name: "Mine",
+      user_id: OWNER,
+    },
+    {
+      ...rows(1)[0]!,
+      id: "other",
+      kind: "delegated",
+      name: "Theirs",
+      user_id: "22222222-2222-4222-8222-222222222222",
+    },
+  ];
+}
+
+describe("api keys route filters", () => {
+  it("filters by kind, keeps the filtered total and paginates", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(mixedRows())),
+      "/api/v1/api-keys?kind=delegated&limit=1&offset=1",
+    );
+
+    expect(status).toBe(200);
+    expect(body.total).toBe(2);
+    expect(body.api_keys).toHaveLength(1);
+    expect(body.limit).toBe(1);
+    expect(body.offset).toBe(1);
+  });
+
+  it("filters by owner for a super_admin", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(mixedRows())),
+      `/api/v1/api-keys?user=${OWNER}`,
+    );
+
+    expect(status).toBe(200);
+    expect(body.api_keys.map((row) => row.id)).toEqual(["own"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("rejects user combined with kind=service", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(mixedRows())),
+      `/api/v1/api-keys?kind=service&user=${OWNER}`,
+    );
+
+    expect(status).toBe(400);
+    expect(body.error?.code).toBe("validation_failed");
+  });
+
+  it("rejects an unknown kind", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(mixedRows())),
+      "/api/v1/api-keys?kind=other",
+    );
+
+    expect(status).toBe(400);
+    expect(body.error?.code).toBe("validation_failed");
+  });
+
+  it("hides another owner's keys from a non-super_admin as not_found", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(
+        pagedDeps(mixedRows(), {
+          kind: "session",
+          userId: "33333333-3333-4333-8333-333333333333",
+          role: "admin",
+        }),
+      ),
+      `/api/v1/api-keys?user=${OWNER}`,
+    );
+
+    expect(status).toBe(404);
+    expect(body.error?.code).toBe("not_found");
+  });
+});
+
+function stateRows(): KeyRow[] {
+  const base = rows(1)[0]!;
+  return [
+    { ...base, id: "active-null", name: "Active null" },
+    {
+      ...base,
+      id: "active-future",
+      name: "Active future",
+      expires_at: "2099-01-01T00:00:00.000Z",
+    },
+    {
+      ...base,
+      id: "expired",
+      name: "Expired",
+      expires_at: "2000-01-01T00:00:00.000Z",
+    },
+    {
+      ...base,
+      id: "revoked",
+      name: "Revoked",
+      revoked_at: "2026-01-01T00:00:00.000Z",
+    },
+    {
+      ...base,
+      id: "revoked-expired",
+      name: "Revoked expired",
+      expires_at: "2000-01-01T00:00:00.000Z",
+      revoked_at: "2026-01-01T00:00:00.000Z",
+    },
+  ];
+}
+
+describe("api keys route state filter", () => {
+  it("keeps only active keys (no expiry, or a future one)", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(stateRows())),
+      "/api/v1/api-keys?state=active",
+    );
+
+    expect(status).toBe(200);
+    expect(body.api_keys.map((row) => row.id).sort()).toEqual(["active-future", "active-null"]);
+    expect(body.total).toBe(2);
+  });
+
+  it("keeps only non-revoked keys with a past expiry for state=expired", async () => {
+    const { body } = await list(apiKeysRoute(pagedDeps(stateRows())), "/api/v1/api-keys?state=expired");
+
+    expect(body.api_keys.map((row) => row.id)).toEqual(["expired"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("keeps only revoked keys for state=revoked, even when also expired", async () => {
+    const { body } = await list(apiKeysRoute(pagedDeps(stateRows())), "/api/v1/api-keys?state=revoked");
+
+    expect(body.api_keys.map((row) => row.id).sort()).toEqual(["revoked", "revoked-expired"]);
+    expect(body.total).toBe(2);
+  });
+
+  it("treats state=all and an omitted state like no filter", async () => {
+    const all = await list(apiKeysRoute(pagedDeps(stateRows())), "/api/v1/api-keys?state=all");
+    const none = await list(apiKeysRoute(pagedDeps(stateRows())), "/api/v1/api-keys");
+
+    expect(all.body.total).toBe(5);
+    expect(none.body.total).toBe(5);
+    expect(none.body.api_keys).toHaveLength(5);
+  });
+
+  it("combines state with kind and user", async () => {
+    const base = rows(1)[0]!;
+    const ownerRows: KeyRow[] = [
+      { ...base, id: "mine", kind: "delegated", user_id: OWNER, name: "Mine" },
+      {
+        ...base,
+        id: "mine-expired",
+        kind: "delegated",
+        user_id: OWNER,
+        name: "Mine expired",
+        expires_at: "2000-01-01T00:00:00.000Z",
+      },
+      { ...base, id: "svc", kind: "service", name: "Service" },
+    ];
+
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(ownerRows)),
+      `/api/v1/api-keys?kind=delegated&user=${OWNER}&state=active`,
+    );
+
+    expect(status).toBe(200);
+    expect(body.api_keys.map((row) => row.id)).toEqual(["mine"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("rejects an unknown state", async () => {
+    const { status, body } = await list(
+      apiKeysRoute(pagedDeps(stateRows())),
+      "/api/v1/api-keys?state=stale",
+    );
+
+    expect(status).toBe(400);
+    expect(body.error?.code).toBe("validation_failed");
+  });
+});

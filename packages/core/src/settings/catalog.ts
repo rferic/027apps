@@ -156,9 +156,16 @@ const publicUrlSchema = z
     { message: 'must be an https origin, or http for local hosts, without trailing slash' },
   );
 
+// Origin only: scheme, a non-empty host (single label allowed, so
+// `http://localhost:3003` is valid), optional port, IPv6 brackets. No path,
+// query, fragment, wildcard, whitespace or trailing slash.
 const corsOriginSchema = z
   .string()
-  .regex(/^https?:\/\/[^/*]+\.[^/*]+$/, 'must be an origin like https://host[:port], no paths, no wildcard');
+  .max(300)
+  .regex(
+    /^https?:\/\/[^/?#*\s]+$/,
+    'must be an origin like https://host[:port], no paths, no wildcard',
+  );
 
 const corsAllowlistSchema = z.array(corsOriginSchema).max(20);
 
@@ -201,13 +208,6 @@ export const SETTINGS_CATALOG: SettingMeta[] = [
     isSecret: false, isPublic: true, mcpAccess: 'read', sortOrder: 10,
     superAdminOnly: false, readOnly: false,
     schema: z.string().min(1).max(80),
-  },
-  {
-    key: 'instance.logo_url', category: 'instance', type: 'url',
-    label: 'Logo URL', help: 'Optional https URL of the instance logo (defaults to the 027Apps mark).',
-    isSecret: false, isPublic: true, mcpAccess: 'read', sortOrder: 15,
-    superAdminOnly: false, readOnly: false,
-    schema: z.string().regex(/^https:\/\/[^\s]+$/, 'must be an https URL').nullable(),
   },
   {
     key: 'instance.public_url', category: 'instance', type: 'url',
@@ -388,7 +388,6 @@ export function getSettingMeta(key: string): SettingMeta | undefined {
 /** Default values from the spec table §4 (jsonb `value`, secrets have no default). */
 export const CATALOG_DEFAULTS: Record<string, unknown> = {
   'instance.name': '027Apps',
-  'instance.logo_url': null,
   'instance.public_url': null,
   'localization.default_locale': 'en',
   'localization.timezone': 'UTC',

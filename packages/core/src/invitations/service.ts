@@ -29,6 +29,9 @@ export interface InvitationsAuth {
 
 export type InvitationStatus = "pending" | "used" | "expired" | "revoked";
 
+/** `all` is the explicit "no status filter"; every list defaults to it. */
+export type InvitationStatusFilter = InvitationStatus | "all";
+
 export type InvitationView = {
   id: string;
   email: string;
@@ -40,6 +43,11 @@ export type InvitationView = {
   used_at: string | null;
   revoked_at: string | null;
   created_at: string;
+};
+
+/** Detail view: the list representation plus who created the invitation. */
+export type InvitationDetail = InvitationView & {
+  created_by: { id: string; display_name: string } | null;
 };
 
 export interface CreateInvitationInput {
@@ -60,6 +68,19 @@ export type RedeemResult = {
   user: { id: string; email: string; display_name: string };
   invitation_id: string;
 };
+
+/** One page of invitations plus the total across every page. */
+export interface InvitationList {
+  invitations: InvitationView[];
+  total: number;
+}
+
+export interface InvitationPage {
+  limit: number;
+  offset: number;
+  /** Derived status filter; omitted means `all`. */
+  status?: InvitationStatusFilter;
+}
 
 const TOKEN_PREFIX = "027_inv_";
 const DEFAULT_TTL_DAYS = 7;
@@ -125,12 +146,16 @@ async function withTx<T>(
   });
 }
 
-async function modulesFor(db: QueryClient, invitationId?: string): Promise<Map<string, string[]>> {
-  const { rows } = invitationId
+async function modulesFor(
+  db: QueryClient,
+  invitationIds?: readonly string[],
+): Promise<Map<string, string[]>> {
+  if (invitationIds && invitationIds.length === 0) return new Map();
+  const { rows } = invitationIds
     ? await db.query(
         `select invitation_id, module_key from public.invitation_modules
-          where invitation_id = $1 order by module_key asc`,
-        [invitationId],
+          where invitation_id = any($1::uuid[]) order by module_key asc`,
+        [invitationIds],
       )
     : await db.query(
         "select invitation_id, module_key from public.invitation_modules order by module_key asc",
@@ -169,6 +194,31 @@ async function assertCategory(db: QueryClient, categoryId: string): Promise<void
   if (!rows[0]) throw new DomainError("not_found");
 }
 
+function readSettingString(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+/**
+ * Initial preferences for a profile created by redemption (task-07 debt M2b):
+ * the wizard's localization is the instance default, so a new member must not
+ * start on hardcoded `en`/`UTC`. Missing rows or null values keep the column
+ * defaults; a partially configured instance falls back per key.
+ */
+async function defaultProfileLocalization(
+  db: QueryClient,
+): Promise<{ locale: string; timezone: string }> {
+  const { rows } = await db.query(
+    "select key, value from public.settings where key = any($1::text[])",
+    [["localization.default_locale", "localization.timezone"]],
+  );
+  const values = new Map<string, unknown>();
+  for (const row of rows) values.set(String(row.key), row.value);
+  return {
+    locale: readSettingString(values.get("localization.default_locale")) ?? "en",
+    timezone: readSettingString(values.get("localization.timezone")) ?? "UTC",
+  };
+}
+
 export async function createInvitation(
   deps: InvitationsDeps,
   caller: Caller,
@@ -180,10 +230,38 @@ export async function createInvitation(
   const now = deps.now?.() ?? new Date();
   const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
   const token = newInvitationToken();
+  const email = normalizeEmail(input.email);
 
   if (input.user_category_id) await assertCategory(deps.db, input.user_category_id);
 
+  // An account cannot be invited again: redemption would only reattach it.
+  const existingUser = await deps.auth.findUserByEmail(email);
+  if (existingUser) {
+    throw new DomainError("conflict", "That email already belongs to a member", {
+      code: "email_registered",
+    });
+  }
+
   const invitationId = await withTx(deps, async (db) => {
+    // The check and the insert share the transaction, and the advisory lock
+    // serialises creates for the same email: two concurrent requests cannot
+    // both see "no pending invitation" and insert twice.
+    await db.query("select pg_advisory_xact_lock(hashtext($1))", [`invitation:${email}`]);
+    const { rows: pending } = await db.query(
+      `select 1 from public.invitations
+        where email = $1
+          and used_at is null
+          and revoked_at is null
+          and expires_at > $2
+        limit 1`,
+      [email, now.toISOString()],
+    );
+    if (pending[0]) {
+      throw new DomainError("conflict", "That email already has a pending invitation", {
+        code: "pending_invitation",
+      });
+    }
+
     const { rows } = await db
       .query(
         `insert into public.invitations
@@ -191,7 +269,7 @@ export async function createInvitation(
          values ($1, $2, $3, $4, $5, $6, $7)
          returning id`,
         [
-          normalizeEmail(input.email),
+          email,
           input.name.trim(),
           input.user_category_id ?? null,
           hashInvitationToken(token),
@@ -218,7 +296,7 @@ export async function createInvitation(
       type: "invitation.created",
       target: "admins",
       resource: {
-        email: normalizeEmail(input.email),
+        email,
         name: input.name.trim(),
         user_category_id: input.user_category_id ?? null,
         modules,
@@ -237,15 +315,76 @@ export async function createInvitation(
   return { invitation: toView(rows[0]!, modules, now), token };
 }
 
-export async function listInvitations(deps: InvitationsDeps): Promise<InvitationView[]> {
-  const { rows } = await deps.db.query(
-    `select id, email, name, user_category_id, expires_at, used_at, revoked_at, created_at
-       from public.invitations
-      order by created_at desc, id desc`,
-  );
-  const modules = await modulesFor(deps.db);
+export async function listInvitations(
+  deps: InvitationsDeps,
+  page: InvitationPage,
+): Promise<InvitationList> {
   const now = deps.now?.() ?? new Date();
-  return rows.map((row) => toView(row, modules.get(String(row.id)) ?? [], now));
+  const status = page.status ?? "all";
+  // One CTE filters and the next counts: `total` reflects the filter, so the
+  // paginator and the panel agree on how many rows the list really has.
+  const { rows } = await deps.db.query(
+    `with filtered as (
+       select id, email, name, user_category_id, expires_at, used_at, revoked_at, created_at
+         from public.invitations
+        where $3::text = 'all'
+           or ($3::text = 'used' and used_at is not null)
+           or ($3::text = 'revoked' and used_at is null and revoked_at is not null)
+           or ($3::text = 'pending'
+               and used_at is null and revoked_at is null and expires_at > $4::timestamptz)
+           or ($3::text = 'expired'
+               and used_at is null and revoked_at is null and expires_at <= $4::timestamptz)
+     ),
+     total as (select count(*)::int as n from filtered),
+     page as (
+       select * from filtered
+        order by created_at desc, id desc
+        limit $1 offset $2
+     )
+     select total.n as total, page.*
+       from total left join page on true`,
+    [page.limit, page.offset, status, now.toISOString()],
+  );
+  const invitations = rows.filter((row) => row.id !== null && row.id !== undefined);
+  const modules = await modulesFor(
+    deps.db,
+    invitations.map((row) => String(row.id)),
+  );
+  return {
+    invitations: invitations.map((row) =>
+      toView(row, modules.get(String(row.id)) ?? [], now),
+    ),
+    total: Number(rows[0]?.total ?? 0),
+  };
+}
+
+/** One invitation with its creator; never the token nor its hash. */
+export async function getInvitation(
+  deps: InvitationsDeps,
+  id: string,
+): Promise<InvitationDetail> {
+  const now = deps.now?.() ?? new Date();
+  const { rows } = await deps.db.query(
+    `select i.id, i.email, i.name, i.user_category_id, i.expires_at, i.used_at, i.revoked_at,
+            i.created_at, p.id as created_by_id, p.display_name as created_by_display_name
+       from public.invitations i
+       left join public.profiles p on p.id = i.created_by
+      where i.id = $1`,
+    [id],
+  );
+  const row = rows[0];
+  if (!row) throw new DomainError("not_found");
+  const invitationId = String(row.id);
+  const modules = await modulesFor(deps.db, [invitationId]);
+  // `created_by` is null for a key (instance) actor: the caller labels it.
+  const creator =
+    row.created_by_id === null || row.created_by_id === undefined
+      ? null
+      : {
+          id: String(row.created_by_id),
+          display_name: String(row.created_by_display_name),
+        };
+  return { ...toView(row, modules.get(invitationId) ?? [], now), created_by: creator };
 }
 
 export async function revokeInvitation(deps: InvitationsDeps, id: string): Promise<void> {
@@ -349,11 +488,13 @@ export async function redeemInvitation(
 
       const invitationId = String(invitation.id);
 
+      // The wizard's localization seeds the profile instead of `en`/`UTC`.
+      const localization = await defaultProfileLocalization(db);
       await db.query(
-        `insert into public.profiles (id, display_name, role)
-         values ($1, $2, 'user')
+        `insert into public.profiles (id, display_name, role, locale, timezone)
+         values ($1, $2, 'user', $3, $4)
          on conflict (id) do nothing`,
-        [userId, displayName],
+        [userId, displayName, localization.locale, localization.timezone],
       );
 
       if (invitation.user_category_id) {

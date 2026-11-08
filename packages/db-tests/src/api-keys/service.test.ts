@@ -14,6 +14,8 @@ import { deactivateUser } from "@027apps/core/users/service.js";
 import { resolveCaller } from "@027apps/core/auth/caller.js";
 import type { Caller } from "@027apps/core/api/types.js";
 
+const PAGE = { limit: 100, offset: 0 };
+
 const email = (name: string) => `key-${name}-${Date.now()}-${Math.random()}@test.local`;
 
 const deps = (c: ClientBase): ApiKeysDeps => ({
@@ -107,6 +109,9 @@ describe("api keys service", () => {
 
   it("scopes listing by role: super_admin sees all, everyone else sees their own", async () => {
     await inRollback(async (c) => {
+      // The local stack may hold keys from other runs; this test asserts the
+      // global count, so it starts from a clean table inside the rollback.
+      await query(c, "delete from public.api_keys");
       const superAdmin = await session(c, "super_admin");
       const admin = await session(c, "admin");
       const user = await session(c, "user");
@@ -127,9 +132,9 @@ describe("api keys service", () => {
         scopes: ["profile:read"],
       });
 
-      expect(await listApiKeys(deps(c), superAdmin)).toHaveLength(3);
-      expect(await listApiKeys(deps(c), admin)).toHaveLength(1);
-      expect(await listApiKeys(deps(c), user)).toHaveLength(1);
+      expect((await listApiKeys(deps(c), superAdmin, PAGE)).api_keys).toHaveLength(3);
+      expect((await listApiKeys(deps(c), admin, PAGE)).api_keys).toHaveLength(1);
+      expect((await listApiKeys(deps(c), user, PAGE)).api_keys).toHaveLength(1);
 
       const serviceCaller: Caller = {
         kind: "service",
@@ -137,7 +142,7 @@ describe("api keys service", () => {
         scopes: ["api_keys:read"],
         roleCap: "super_admin",
       };
-      await expect(listApiKeys(deps(c), serviceCaller)).rejects.toMatchObject({
+      await expect(listApiKeys(deps(c), serviceCaller, PAGE)).rejects.toMatchObject({
         code: "insufficient_scope",
       });
     });

@@ -2,12 +2,13 @@ import { createHash, randomBytes } from "node:crypto";
 import { DomainError } from "../errors";
 import type { Caller } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
+import { DELEGATED_SCOPES, MACHINE_SCOPES, effectiveScopes, isModuleScope } from "../auth/guard";
 
 /**
  * Machine tokens (tokens spec §3.2/§3.3/§6). A service key acts as the
- * instance with a role cap; a delegated key acts as its owner with the
- * intersection of its scopes and the user's permissions. Only the SHA-256 of
- * the token is stored and the secret is returned exactly once at creation.
+ * instance with a role cap; a delegated key always acts as a plain user and
+ * only carries the delegated allowlist. Only the SHA-256 of the token is
+ * stored and the secret is returned exactly once at creation.
  */
 export interface ApiKeysDeps {
   db: QueryClient;
@@ -37,7 +38,20 @@ export type CreateApiKeyInput = {
   name: string;
   scopes: string[];
   role_cap?: ApiKeyRoleCap;
+  /** Owner of a delegated key; only a super_admin session may set it. */
+  user_id?: string;
   expires_at?: string;
+};
+
+/**
+ * Editable fields of an existing key. `kind`, `role_cap` and `user_id` are
+ * immutable: re-scoping is bounded by the stored cap and owner. `expires_at:
+ * null` removes the expiry so the key never expires.
+ */
+export type UpdateApiKeyInput = {
+  name?: string;
+  scopes?: string[];
+  expires_at?: string | null;
 };
 
 export type ApiKeyResolution = {
@@ -48,9 +62,40 @@ export type ApiKeyResolution = {
   userId: string | null;
 };
 
+/** One page of API keys plus the total across every page. */
+export interface ApiKeyList {
+  api_keys: ApiKeyView[];
+  total: number;
+}
+
+/** `all` is the explicit opt-out of the kind filter. */
+export type ApiKeyKindFilter = "all" | "service" | "delegated";
+
+/**
+ * Derived lifecycle state: `expired` requires a live key with a past expiry,
+ * so a revoked key never counts as expired. `all` is the explicit opt-out.
+ */
+export type ApiKeyStateFilter = "all" | "active" | "revoked" | "expired";
+
+/**
+ * Filters accepted by the list. `user` narrows the owner of delegated keys
+ * and is only meaningful to a super_admin (anyone else only sees their own).
+ */
+export interface ApiKeyListFilters {
+  kind?: ApiKeyKindFilter;
+  user?: string;
+  state?: ApiKeyStateFilter;
+}
+
+export interface ApiKeyPage extends ApiKeyListFilters {
+  limit: number;
+  offset: number;
+}
+
 const SERVICE_PREFIX = "027_svc_";
 const DELEGATED_PREFIX = "027_usr_";
 const MAX_SCOPES = 100;
+const MAX_ACTIVE_DELEGATED_KEYS = 5;
 const SCOPE = /^[a-z0-9][a-z0-9_-]{0,63}:[a-z0-9_]{1,32}$/;
 
 const toIso = (value: unknown): string =>
@@ -83,8 +128,137 @@ function validateScopes(values: string[]): string[] {
 
 function isSuperAdmin(caller: Caller): boolean {
   if (caller.kind === "session") return caller.role === "super_admin";
-  if (caller.kind === "service" || caller.kind === "delegated") return caller.roleCap === "super_admin";
+  if (caller.kind === "service") return caller.roleCap === "super_admin";
+  // A delegated key is always a plain user, whatever its stored role cap.
   return false;
+}
+
+function keyLimitError(): DomainError {
+  return new DomainError(
+    "conflict",
+    `A user can have at most ${MAX_ACTIVE_DELEGATED_KEYS} active delegated API keys`,
+    { code: "key_limit" },
+  );
+}
+
+function moduleKeyOf(scope: string): string {
+  return scope.slice(0, scope.indexOf(":"));
+}
+
+async function assertActiveOwner(db: QueryClient, ownerId: string): Promise<void> {
+  const { rows } = await db.query(
+    "select role from public.profiles where id = $1 and deactivated_at is null",
+    [ownerId],
+  );
+  if (!rows[0]) throw new DomainError("not_found");
+}
+
+/** Module scopes the owner actually holds, read live from `user_modules`. */
+async function grantedModuleScopes(
+  db: QueryClient,
+  ownerId: string,
+  requested: readonly string[],
+): Promise<string[]> {
+  const keys = [...new Set(requested.filter(isModuleScope).map(moduleKeyOf))];
+  if (keys.length === 0) return [];
+  const { rows } = await db.query(
+    `select module_key from public.user_modules
+      where user_id = $1 and module_key = any($2::text[]) and revoked_at is null`,
+    [ownerId, keys],
+  );
+  const granted = new Set(rows.map((row) => String(row.module_key)));
+  return requested.filter((scope) => isModuleScope(scope) && granted.has(moduleKeyOf(scope)));
+}
+
+/**
+ * Scopes a delegated key may store at all: the fixed allowlist plus the
+ * owner's live module grants. Creation intersects this with the creator's own
+ * effective scopes; editing does not, because ownership already bounds the
+ * edit to the owner (or a super_admin) and an editor must never strip scopes
+ * that were granted to the key by someone else.
+ */
+async function delegatedKeyScopes(
+  db: QueryClient,
+  ownerId: string,
+  requested: readonly string[],
+): Promise<string[]> {
+  const granted = await grantedModuleScopes(db, ownerId, requested);
+  const allowed = new Set<string>([...DELEGATED_SCOPES, ...granted]);
+  return requested.filter((scope) => allowed.has(scope));
+}
+
+/**
+ * Scopes a delegated key may be created with: the key allowlist trimmed to the
+ * creator's own effective scopes. A session's module capability comes from
+ * `user_modules`, not from a scope string, so granted module scopes are not
+ * trimmed for sessions.
+ */
+async function delegatedCreationScopes(
+  db: QueryClient,
+  caller: Caller,
+  ownerId: string,
+  requested: readonly string[],
+): Promise<string[]> {
+  const permitted = await delegatedKeyScopes(db, ownerId, requested);
+  const own = new Set(effectiveScopes(caller));
+  return permitted.filter((scope) => own.has(scope) || isModuleScope(scope));
+}
+
+function assertServiceScopes(scopes: readonly string[], cap: ApiKeyRoleCap): void {
+  const allowed: readonly string[] = MACHINE_SCOPES.service[cap];
+  if (scopes.some((scope) => !allowed.includes(scope))) {
+    throw new DomainError("validation_failed", "scope is not allowed for a service key");
+  }
+}
+
+async function withTx<T>(
+  deps: ApiKeysDeps,
+  fn: (db: QueryClient) => Promise<T>,
+): Promise<T> {
+  if (!deps.withTransaction) return fn(deps.db);
+  return deps.withTransaction(async (db) => {
+    await db.query("BEGIN");
+    try {
+      const result = await fn(db);
+      await db.query("COMMIT");
+      return result;
+    } catch (err) {
+      await db.query("ROLLBACK").catch(() => undefined);
+      throw err;
+    }
+  });
+}
+
+async function insertKey(
+  db: QueryClient,
+  row: {
+    secret: string;
+    kind: ApiKeyKind;
+    name: string;
+    scopes: string[];
+    userId: string | null;
+    roleCap: ApiKeyRoleCap | null;
+    actor: string;
+    expiresAt: string | null;
+  },
+): Promise<ApiKeyView> {
+  const { rows } = await db.query(
+    `insert into public.api_keys
+       (key_hash, kind, name, scopes, user_id, role_cap, created_by, expires_at)
+     values ($1, $2, $3, $4, $5, $6, $7, $8)
+     returning ${VIEW_COLUMNS}`,
+    [
+      hashApiKeyToken(row.secret),
+      row.kind,
+      row.name,
+      row.scopes,
+      row.userId,
+      row.roleCap,
+      row.actor,
+      row.expiresAt,
+    ],
+  );
+  return toView(rows[0]!);
 }
 
 /** The human the key is attributed to; service keys have no user. */
@@ -118,8 +292,8 @@ export async function createApiKey(
   caller: Caller,
   input: CreateApiKeyInput,
 ): Promise<{ api_key: ApiKeyView; secret: string }> {
-  // Service keys are created by a super_admin from the panel; service callers
-  // have no profile to attribute `created_by` to.
+  // Keys are minted by a human session or by another delegated key; a service
+  // key has no profile to attribute `created_by` to.
   if (caller.kind === "service") throw new DomainError("insufficient_scope");
 
   const actor = actorUserId(caller);
@@ -129,59 +303,144 @@ export async function createApiKey(
     throw new DomainError("validation_failed", "name must be 1..80 characters");
   }
 
-  let roleCap: ApiKeyRoleCap | null = null;
-  let userId: string | null = null;
-  if (input.kind === "service") {
-    // Minting a service credential is a panel action: a delegated key must
-    // never escalate into a service key, even if its owner is super_admin.
-    if (caller.kind !== "session" || caller.role !== "super_admin") {
-      throw new DomainError("insufficient_scope");
-    }
-    roleCap = input.role_cap ?? "admin";
-  } else {
-    userId = actor;
-  }
-
   const now = deps.now?.() ?? new Date();
   const expiresAt = input.expires_at ? new Date(input.expires_at) : null;
   if (expiresAt && (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime())) {
     throw new DomainError("validation_failed", "expires_at must be in the future");
   }
 
-  const secret = newApiKeyToken(input.kind);
-  const { rows } = await deps.db.query(
-    `insert into public.api_keys
-       (key_hash, kind, name, scopes, user_id, role_cap, created_by, expires_at)
-     values ($1, $2, $3, $4, $5, $6, $7, $8)
-     returning ${VIEW_COLUMNS}`,
-    [
-      hashApiKeyToken(secret),
-      input.kind,
+  if (input.kind === "service") {
+    // Minting a service credential is a panel action: a delegated key must
+    // never escalate into a service key, even if its owner is super_admin.
+    if (caller.kind !== "session" || caller.role !== "super_admin") {
+      throw new DomainError("insufficient_scope");
+    }
+    if (input.user_id !== undefined) {
+      throw new DomainError("validation_failed", "a service key has no owner");
+    }
+    const roleCap = input.role_cap ?? "admin";
+    assertServiceScopes(scopes, roleCap);
+
+    const secret = newApiKeyToken("service");
+    const api_key = await insertKey(deps.db, {
+      secret,
+      kind: "service",
       name,
       scopes,
-      userId,
+      userId: null,
       roleCap,
       actor,
-      expiresAt ? expiresAt.toISOString() : null,
-    ],
-  );
-  return { api_key: toView(rows[0]!), secret };
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+    });
+    return { api_key, secret };
+  }
+
+  // Delegated keys never carry a role cap: they always act as a plain user.
+  if (input.role_cap !== undefined) {
+    throw new DomainError("validation_failed", "role_cap is not allowed for a delegated key");
+  }
+  if (
+    input.user_id !== undefined &&
+    !(caller.kind === "session" && caller.role === "super_admin")
+  ) {
+    throw new DomainError("insufficient_scope", "only a super_admin may name the owner");
+  }
+
+  const ownerId = input.user_id ?? actor;
+  await assertActiveOwner(deps.db, ownerId);
+  const effective = await delegatedCreationScopes(deps.db, caller, ownerId, scopes);
+  if (effective.length === 0) {
+    throw new DomainError(
+      "validation_failed",
+      "no requested scope is allowed for a delegated key",
+    );
+  }
+
+  const secret = newApiKeyToken("delegated");
+  return withTx(deps, async (db) => {
+    // The check and the insert share a transaction and a per-owner advisory
+    // lock, so two concurrent creations cannot both take the fifth slot.
+    await db.query("select pg_advisory_xact_lock(hashtext($1))", [`api_keys:${ownerId}`]);
+    const { rows } = await db.query(
+      `select count(*)::int as n from public.api_keys
+        where user_id = $1 and kind = 'delegated' and revoked_at is null
+          and (expires_at is null or expires_at > now())`,
+      [ownerId],
+    );
+    if (Number(rows[0]?.n ?? 0) >= MAX_ACTIVE_DELEGATED_KEYS) throw keyLimitError();
+
+    const api_key = await insertKey(db, {
+      secret,
+      kind: "delegated",
+      name,
+      scopes: effective,
+      userId: ownerId,
+      roleCap: null,
+      actor,
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+    });
+    return { api_key, secret };
+  });
 }
 
-export async function listApiKeys(deps: ApiKeysDeps, caller: Caller): Promise<ApiKeyView[]> {
+export async function listApiKeys(
+  deps: ApiKeysDeps,
+  caller: Caller,
+  page: ApiKeyPage,
+): Promise<ApiKeyList> {
   if (caller.kind === "service") throw new DomainError("insufficient_scope");
   const actor = actorUserId(caller);
+  const superAdmin = isSuperAdmin(caller);
 
-  const { rows } = isSuperAdmin(caller)
-    ? await deps.db.query(
-        `select ${VIEW_COLUMNS} from public.api_keys order by created_at desc, id desc`,
-      )
-    : await deps.db.query(
-        `select ${VIEW_COLUMNS} from public.api_keys
-          where user_id = $1 order by created_at desc, id desc`,
-        [actor],
-      );
-  return rows.map(toView);
+  // `user` only refines delegated keys: with `kind=service` it could only
+  // return an empty list, so it is rejected instead of hiding the mistake.
+  if (page.kind === "service" && page.user) {
+    throw new DomainError("validation_failed", "user cannot be combined with kind=service");
+  }
+  // A non-super_admin can only ever list their own keys; asking for someone
+  // else's is indistinguishable from a missing resource.
+  if (page.user && !superAdmin && page.user !== actor) throw new DomainError("not_found");
+
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  const owner = superAdmin ? page.user : actor;
+  if (owner) {
+    params.push(owner);
+    conditions.push(`user_id = $${params.length}`);
+  }
+  if (page.kind && page.kind !== "all") {
+    params.push(page.kind);
+    conditions.push(`kind = $${params.length}`);
+  }
+  // Derived state; `now()` keeps the decision in the database so the list and
+  // the `total` count can never disagree about what "expired" means.
+  if (page.state === "active") {
+    conditions.push("revoked_at is null and (expires_at is null or expires_at > now())");
+  } else if (page.state === "expired") {
+    // A revoked key never counts as expired.
+    conditions.push("revoked_at is null and expires_at is not null and expires_at <= now()");
+  } else if (page.state === "revoked") {
+    conditions.push("revoked_at is not null");
+  }
+  const where = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
+  params.push(page.limit, page.offset);
+
+  const { rows } = await deps.db.query(
+    `with total as (select count(*)::int as n from public.api_keys ${where}),
+          page as (
+            select ${VIEW_COLUMNS} from public.api_keys
+             ${where}
+             order by created_at desc, id desc
+             limit $${params.length - 1} offset $${params.length}
+          )
+     select total.n as total, page.* from total left join page on true`,
+    params,
+  );
+  const keys = rows.filter((row) => row.id !== null && row.id !== undefined);
+  return {
+    api_keys: keys.map(toView),
+    total: Number(rows[0]?.total ?? 0),
+  };
 }
 
 async function findVisibleKey(
@@ -207,15 +466,151 @@ export async function getApiKey(deps: ApiKeysDeps, caller: Caller, id: string): 
 }
 
 export async function revokeApiKey(deps: ApiKeysDeps, caller: Caller, id: string): Promise<void> {
-  if (caller.kind === "service" && caller.roleCap !== "super_admin") {
-    throw new DomainError("insufficient_scope");
-  }
+  // Key management is a human/delegated action; a service credential cannot
+  // manage credentials (B3).
+  if (caller.kind === "service") throw new DomainError("insufficient_scope");
   const row = await findVisibleKey(deps, caller, id);
   if (row.revoked_at !== null && row.revoked_at !== undefined) return;
   await deps.db.query(
     "update public.api_keys set revoked_at = now() where id = $1 and revoked_at is null",
     [id],
   );
+}
+
+/**
+ * Edits `name`, `scopes` or `expires_at` of an existing key (never `kind`,
+ * `role_cap` or `user_id`, and never the secret or `last_used_at`). Re-scoping
+ * is bounded by what the key itself may hold: a service key stays inside its
+ * stored cap and a delegated key is trimmed to the owner's allowlist and live
+ * module grants, never to the editor's own scopes. The expiry can be extended
+ * or removed (`expires_at: null`); removing it makes the key one that never
+ * expires. Reactivating an expired key (extending it or removing its expiry)
+ * counts against the owner's five-key limit.
+ */
+export async function updateApiKey(
+  deps: ApiKeysDeps,
+  caller: Caller,
+  id: string,
+  patch: UpdateApiKeyInput,
+): Promise<ApiKeyView> {
+  if (caller.kind === "service") throw new DomainError("insufficient_scope");
+
+  const row = await findVisibleKey(deps, caller, id);
+  const kind = String(row.kind) as ApiKeyKind;
+
+  if (row.revoked_at !== null && row.revoked_at !== undefined) {
+    throw new DomainError("conflict", "a revoked API key cannot be edited", { code: "revoked" });
+  }
+  // Ownership already hid it; this keeps a future looser lookup from letting a
+  // plain admin edit the instance credential.
+  if (kind === "service" && !isSuperAdmin(caller)) throw new DomainError("not_found");
+
+  const now = deps.now?.() ?? new Date();
+  const assignments: string[] = [];
+  const params: unknown[] = [];
+  const currentExpiresAt =
+    row.expires_at === null || row.expires_at === undefined
+      ? null
+      : new Date(toIso(row.expires_at));
+  const wasActive = currentExpiresAt === null || currentExpiresAt.getTime() > now.getTime();
+
+  if (patch.name !== undefined) {
+    const name = patch.name.trim();
+    if (name.length < 1 || name.length > 80) {
+      throw new DomainError("validation_failed", "name must be 1..80 characters");
+    }
+    params.push(name);
+    assignments.push(`name = $${params.length}`);
+  }
+
+  if (patch.scopes !== undefined) {
+    const scopes = validateScopes(patch.scopes);
+    let effective: string[];
+    if (kind === "service") {
+      const cap = (row.role_cap ?? "admin") as ApiKeyRoleCap;
+      assertServiceScopes(scopes, cap);
+      effective = scopes;
+    } else {
+      effective = await delegatedKeyScopes(deps.db, String(row.user_id), scopes);
+      if (effective.length === 0) {
+        throw new DomainError(
+          "validation_failed",
+          "no requested scope is allowed for a delegated key",
+        );
+      }
+    }
+    params.push(effective);
+    assignments.push(`scopes = $${params.length}`);
+  }
+
+  if (patch.expires_at !== undefined) {
+    if (patch.expires_at === null) {
+      // Removing the expiry always makes sense, even on an expired key: it
+      // turns the key back into one that never expires.
+      assignments.push("expires_at = null");
+    } else {
+      const expiresAt = new Date(patch.expires_at);
+      if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) {
+        throw new DomainError("validation_failed", "expires_at must be in the future");
+      }
+      // An expired key can only be extended: the new value is in the future by
+      // the check above, so it always lands after the stored one.
+      if (
+        currentExpiresAt &&
+        currentExpiresAt.getTime() <= now.getTime() &&
+        expiresAt.getTime() <= currentExpiresAt.getTime()
+      ) {
+        throw new DomainError("validation_failed", "an expired key can only be extended");
+      }
+      params.push(expiresAt.toISOString());
+      assignments.push(`expires_at = $${params.length}`);
+    }
+  }
+
+  // Nothing to change: the route schema already requires a field.
+  if (assignments.length === 0) return toView(row);
+
+  const nextExpiresAt =
+    patch.expires_at === undefined
+      ? currentExpiresAt
+      : patch.expires_at === null
+        ? null
+        : new Date(patch.expires_at);
+  const willBeActive = nextExpiresAt === null || nextExpiresAt.getTime() > now.getTime();
+  // Extending an expired key (or removing its expiry) brings it back to the
+  // active set, so it must pass the same per-owner limit as a creation. Both
+  // the count and the write share one transaction and one advisory lock: two
+  // concurrent edits cannot both take the fifth slot.
+  const reactivates = !wasActive && willBeActive && kind === "delegated";
+  const ownerId = row.user_id === null ? null : String(row.user_id);
+
+  params.push(id);
+  const updated = await withTx(deps, async (db) => {
+    if (reactivates && ownerId !== null) {
+      await db.query("select pg_advisory_xact_lock(hashtext($1))", [`api_keys:${ownerId}`]);
+      const { rows: countRows } = await db.query(
+        `select count(*)::int as n from public.api_keys
+          where user_id = $1 and kind = 'delegated' and id <> $2
+            and revoked_at is null
+            and (expires_at is null or expires_at > now())`,
+        [ownerId, id],
+      );
+      if (Number(countRows[0]?.n ?? 0) >= MAX_ACTIVE_DELEGATED_KEYS) throw keyLimitError();
+    }
+    const { rows } = await db.query(
+      `update public.api_keys set ${assignments.join(", ")}
+        where id = $${params.length} and revoked_at is null
+        returning ${VIEW_COLUMNS}`,
+      params,
+    );
+    return rows[0];
+  });
+  // The key was visible above, so a vanished row means it was revoked in
+  // between: report the same conflict as the pre-check.
+  if (!updated) {
+    throw new DomainError("conflict", "a revoked API key cannot be edited", { code: "revoked" });
+  }
+  return toView(updated);
 }
 
 /**

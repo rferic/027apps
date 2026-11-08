@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { withDoor } from "../api/door";
+import { pageParams } from "../api/pagination";
+import { DEFAULT_READ_LIMIT, DEFAULT_WRITE_LIMIT } from "../api/rate-limits";
 import { DomainError } from "../errors";
 import type { Caller, CorsOptions, DoorDeps } from "../api/types";
 import {
@@ -9,6 +11,7 @@ import {
   getModuleSettings,
   grantUserModule,
   installModule,
+  listModuleGrants,
   listModules,
   revokeUserModule,
   uninstallModule,
@@ -35,15 +38,27 @@ export interface ModulesRouteDeps {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MODULE_KEY = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-const emptySchema = z.object({}).strict().optional();
-const uninstallSchema = z.object({ confirm: z.boolean().optional() }).strict().optional();
-const updateSchema = z
+export const moduleEmptySchema = z.object({}).strict().optional();
+export const moduleUninstallSchema = z.object({ confirm: z.boolean().optional() }).strict().optional();
+export const moduleUpdateSchema = z
   .object({
     is_public: z.boolean().optional(),
     mcp_exposed: z.enum(["none", "read", "read_write"]).optional(),
   })
   .strict();
-const settingSchema = z.object({ key: z.string().trim().min(1).max(200), value: z.unknown() }).strict();
+export const moduleSettingSchema = z.object({ key: z.string().trim().min(1).max(200), value: z.unknown() }).strict();
+
+/**
+ * `GET /modules` filters. Validated at the edge like every other filter, so an
+ * unknown value is a 400 instead of a silently unfiltered list. The filter is
+ * applied in SQL together with the count; omitting it means `all`.
+ */
+export const moduleListFiltersSchema = z
+  .object({
+    state: z.enum(["all", "installed", "active", "disabled"]).optional(),
+    public: z.enum(["all", "yes", "no"]).optional(),
+  })
+  .strict();
 
 function moduleKey(value: string): string {
   if (!MODULE_KEY.test(value)) throw new DomainError("validation_failed", "invalid module key");
@@ -61,7 +76,7 @@ function options(deps: ModulesRouteDeps, scopes: string[], schema?: z.ZodType) {
     auth: deps.auth,
     cors: deps.cors,
     ...(schema ? { schema } : {}),
-    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? 10 },
+    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
   };
 }
 
@@ -70,7 +85,7 @@ function readOptions(deps: ModulesRouteDeps, scopes: string[]) {
     scopes,
     auth: deps.auth,
     cors: deps.cors,
-    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? 120 },
+    rateLimit: { identity: "user" as const, limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
   };
 }
 
@@ -82,9 +97,18 @@ async function loadManifest(deps: ModulesRouteDeps, key: string): Promise<unknow
 
 export function modulesRoute(deps: ModulesRouteDeps) {
   return (req: Request): Promise<Response> =>
-    withDoor(req, readOptions(deps, ["modules:read"]), deps.door, async (ctx) => ({
-      modules: await listModules(deps.modules, ctx.caller),
-    }));
+    withDoor(req, readOptions(deps, ["modules:read"]), deps.door, async (ctx) => {
+      const filters = moduleListFiltersSchema.safeParse({
+        state: ctx.searchParams.get("state") || undefined,
+        public: ctx.searchParams.get("public") || undefined,
+      });
+      if (!filters.success) {
+        throw new DomainError("validation_failed", "invalid state or public filter");
+      }
+      const page = pageParams(ctx.searchParams);
+      const result = await listModules(deps.modules, ctx.caller, page, filters.data);
+      return { ...result, limit: page.limit, offset: page.offset };
+    });
 }
 
 export function moduleRoute(deps: ModulesRouteDeps) {
@@ -98,7 +122,7 @@ export function updateModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["modules:manage"], updateSchema),
+      options(deps, ["modules:manage"], moduleUpdateSchema),
       deps.door,
       async (ctx) => ({
         module: await updateModule(
@@ -115,7 +139,7 @@ export function installModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["modules:manage"], emptySchema),
+      options(deps, ["modules:manage"], moduleEmptySchema),
       deps.door,
       async (ctx) => ({
         status: 201,
@@ -132,14 +156,14 @@ export function installModuleRoute(deps: ModulesRouteDeps) {
 
 export function activateModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
-    withDoor(req, options(deps, ["modules:manage"], emptySchema), deps.door, async (ctx) => ({
+    withDoor(req, options(deps, ["modules:manage"], moduleEmptySchema), deps.door, async (ctx) => ({
       module: await activateModule(deps.modules, ctx.caller, moduleKey(rawKey)),
     }));
 }
 
 export function deactivateModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
-    withDoor(req, options(deps, ["modules:manage"], emptySchema), deps.door, async (ctx) => ({
+    withDoor(req, options(deps, ["modules:manage"], moduleEmptySchema), deps.door, async (ctx) => ({
       module: await deactivateModule(deps.modules, ctx.caller, moduleKey(rawKey)),
     }));
 }
@@ -148,7 +172,7 @@ export function uninstallModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["modules:manage"], uninstallSchema),
+      options(deps, ["modules:manage"], moduleUninstallSchema),
       deps.door,
       async (ctx) => {
         const key = moduleKey(rawKey);
@@ -162,6 +186,13 @@ export function uninstallModuleRoute(deps: ModulesRouteDeps) {
         );
         return new Response(null, { status: 204 });
       },
+    );
+}
+
+export function moduleGrantsRoute(deps: ModulesRouteDeps) {
+  return (req: Request, rawKey: string): Promise<Response> =>
+    withDoor(req, readOptions(deps, ["modules:manage"]), deps.door, async (ctx) =>
+      listModuleGrants(deps.modules, ctx.caller, moduleKey(rawKey)),
     );
 }
 
@@ -181,7 +212,7 @@ export function updateModuleSettingRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
     withDoor(
       req,
-      options(deps, ["modules:manage", "settings:write"], settingSchema),
+      options(deps, ["modules:manage", "settings:write"], moduleSettingSchema),
       deps.door,
       async (ctx) => {
         const key = moduleKey(rawKey);
@@ -208,7 +239,7 @@ export function updateModuleSettingRoute(deps: ModulesRouteDeps) {
 
 export function grantUserModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, userId: string, rawKey: string): Promise<Response> =>
-    withDoor(req, options(deps, ["modules:grant"], emptySchema), deps.door, async (ctx) => {
+    withDoor(req, options(deps, ["modules:grant"], moduleEmptySchema), deps.door, async (ctx) => {
       const key = moduleKey(rawKey);
       await grantUserModule(deps.modules, ctx.caller, uuid(userId, "user id"), key);
       return new Response(null, { status: 204 });

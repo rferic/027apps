@@ -38,7 +38,7 @@ Ejemplo completo:
   },
   "version": "1.0.0",
   "is_public": false,
-  "migraciones": [
+  "migrations": [
     {
       "version": "1.0.0",
       "up": "./sql/1.0.0-up.sql",
@@ -84,14 +84,14 @@ Ejemplo completo:
       "members_fn": "split_expenses_expense_group_members"
     }
   ],
-  "eventos": [
+  "events": [
     {
       "type": "expense.created",
       "target": "channel:expense-group-{id}",
       "notify": ["push"]
     }
   ],
-  "hooks": { "user.deactivated": "handleUserDeactivated" },
+  "hooks": { "user.deactivated": "handle_user_deactivated" },
   "admin_pages": [
     {
       "route": "overview",
@@ -115,9 +115,12 @@ Ejemplo completo:
 
 - `key` único, kebab-case; `name`/`label` en inglés; `version` semver. Palabras reservadas:
   `admin`, `mcp`, `api`, `core` no pueden ser `key`.
+- `is_public` e `i18n` son obligatorios; `i18n` usa los locales soportados
+  (`en`, `es`, `ca`, `it`, `fr`, `de`, `pt`, `gl`, `eu`) e **incluye `en` siempre**.
 - Cada migración declara `up` y `down`, con `digest` y `down_digest`; cada
-  `migraciones[].version` es única en el manifest.
-- `settings[].category` = `snake_case(key)` del módulo; se respeta `is_public`.
+  `migrations[].version` es única en el manifest.
+- `settings[].category` = `snake_case(key)` del módulo; `settings[].icon` es opcional; se
+  respeta `is_public`.
 - `scopes` siguen `recurso:acción`; viven en código; no se siembran en BD.
 - Las tools MCP referencian un scope declarado.
 - Cada evento declara `type`, `target` (`admins`|`all`|`user`|`channel:<pattern>`) y
@@ -128,18 +131,21 @@ Ejemplo completo:
   `GET /api/v1/modules/{key}/icon.svg`.
 - Cada tool MCP declara `name`, `kind` (`read`|`write`), `description` en inglés y `scopes`;
   `mcp_exposed = read` oculta y bloquea las de `write`.
-- Cada setting declara `key`, `type`, `default`, `label`/`help` en inglés, `is_public`,
-  `is_secret`, `mcp_access`, `sort_order`.
+- Cada setting declara `key`, `type` (`string`|`int`|`bool`|`currency`|`locale`|`url`|`json`),
+  `label` en inglés, `is_public`, `is_secret`, `mcp_access`, `sort_order`; `help` es
+  opcional. Un setting con `is_secret: true` **no declara `default`** ni puede ser público:
+  su valor llega por el gestor de secretos.
 - Cada canal declara `pattern` y `members_fn` (función SQL security definer que devuelve los
   `user_id` con acceso).
-- Los `hooks` referencian eventos del Core o del propio módulo.
+- Los `hooks` referencian eventos del Core o del propio módulo; el valor es el nombre de la
+  función `snake_case` que los atiende.
 - `admin_pages`: `route` de un solo segmento (`^[a-z0-9]+(-[a-z0-9]+)*$`, sin `/`, `..`,
   `%2e` ni rutas reservadas), `label` en inglés, `icon` del DS, `group` (`module`) y `role`
   (`admin`|`super_admin`). El componente vive en `packages/<key>/admin/<route>/page.tsx` y el
   CI del Core exigirá que exista; se sirve en `/modules/<key>/<route>` y solo si el módulo está `active`.
 - Documentación por capacidad: `docs.readme` obligatorio; `docs.api` obligatorio si declara
   `scopes`; `docs.mcp` si declara `mcp_tools`; `docs.settings` si declara `settings`;
-  `docs.events` si declara `eventos`/`channels`. El CI del Core exigirá el fichero y que cada
+  `docs.events` si declara `events`/`channels`. El CI del Core exigirá el fichero y que cada
   nombre declarado aparezca en su documento. Un módulo sin `README.md` no instala.
 
 El esquema JSON valida la forma; las referencias cruzadas (scopes de las tools, targets de
@@ -181,7 +187,7 @@ packages/<key>/
 - `docs/api.md` obligatorio si el manifest declara `scopes`.
 - `docs/mcp.md` obligatorio si declara `mcp_tools`.
 - `docs/settings.md` obligatorio si declara `settings`.
-- `docs/events.md` obligatorio si declara `eventos` o `channels`.
+- `docs/events.md` obligatorio si declara `events` o `channels`.
 - DDL `up`/`down` reversible, con digests verificables.
 - Settings completos y con `is_secret` cuando corresponda.
 - i18n con claves en inglés como clave; el texto visible se traduce.
@@ -258,6 +264,10 @@ actualizar, en el mismo PR:
 - los ejemplos si cambia la forma
 
 Un cambio solo de código que deje esta documentación desactualizada está incompleto.
+
+> **Deuda registrada:** las claves de nivel superior de `docs/ai/manifest.schema.json` se
+> comparan automáticamente con `manifestSchema` en
+> `packages/core/src/modules/manifest.test.ts` (`pnpm --filter core test`).
 
 ## 9. Dependencias del Core y stop conditions
 

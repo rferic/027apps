@@ -9,9 +9,9 @@ import it from "../locales/it.json";
 import pt from "../locales/pt.json";
 
 /**
- * Dictionaries bundled from the repository catalog. The setup wizard and the
- * public help page run before (or without) the database, so they use these
- * files; the authenticated panel will use the seeded `translations` table.
+ * Dictionaries bundled from the repository catalog. They are the base for
+ * every screen, including the authenticated panel, which overlays runtime
+ * edits from the seeded `translations` table on top.
  */
 const DICTIONARIES: Record<Exclude<Locale, "en">, TranslationMap> = {
   ca,

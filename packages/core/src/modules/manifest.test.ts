@@ -152,6 +152,37 @@ describe("manifest contract", () => {
 });
 
 /**
+ * Drift guard: the JSON Schema agents write manifests against and the Zod
+ * schema the installer validates with must declare the same top-level keys.
+ * Renaming a key in only one of them ships an installable-looking contract
+ * that rejects every manifest written from the docs (see module-system §8).
+ */
+describe("documented manifest schema (docs/ai/manifest.schema.json)", () => {
+  const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+  const schemaPath = join(repoRoot, "docs/ai/manifest.schema.json");
+
+  it("declares the same top-level properties as manifestSchema", () => {
+    const jsonSchema = JSON.parse(readFileSync(schemaPath, "utf8")) as {
+      properties?: Record<string, unknown>;
+    };
+    const documented = Object.keys(jsonSchema.properties ?? {}).sort();
+    const implemented = Object.keys(manifestSchema.shape).sort();
+
+    const missingInDoc = implemented.filter((key) => !documented.includes(key));
+    const missingInSchema = documented.filter((key) => !implemented.includes(key));
+
+    expect(
+      { missingInDoc, missingInSchema },
+      "docs/ai/manifest.schema.json diverges from the Zod contract: " +
+        `missing in doc=[${missingInDoc.join(", ")}] ` +
+        `missing in code=[${missingInSchema.join(", ")}]. ` +
+        "Update docs/ai/manifest.schema.json and docs/ai/module-system.md to match " +
+        "packages/core/src/modules/manifest.ts.",
+    ).toEqual({ missingInDoc: [], missingInSchema: [] });
+  });
+});
+
+/**
  * CI check: every packaged manifest is valid, its docs/pages/icon exist and
  * cover every declared name, and the digests match the packaged SQL.
  */

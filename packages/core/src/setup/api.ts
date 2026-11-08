@@ -22,6 +22,18 @@ export interface SetupRouteDeps {
 
 const TEST_EMAIL_ATTEMPTS_PER_MINUTE = 3;
 
+/** Empty body: the destination is the caller's own address, never a field. */
+export const setupTestEmailBodySchema = z.object({}).strict().optional();
+
+/** First super_admin created by `/setup` (public only while none exists). */
+export const setupSuperAdminSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(12),
+    display_name: z.string().min(1).max(80),
+  })
+  .strict();
+
 /** GET /api/v1/setup/environment — 409 `already_setup` once the admin exists. */
 export function setupEnvironmentRoute(deps: SetupRouteDeps) {
   return (req: Request): Promise<Response> =>
@@ -60,7 +72,7 @@ export function setupTestEmailRoute(deps: Omit<SetupRouteDeps, 'env'> & TestEmai
         scopes: ['users:write'],
         auth: deps.auth,
         // The destination is the caller's own address: the body carries nothing.
-        schema: z.object({}).strict(),
+        schema: setupTestEmailBodySchema,
         cors: deps.cors,
         rateLimit: { identity: 'user', limit: TEST_EMAIL_ATTEMPTS_PER_MINUTE },
       },

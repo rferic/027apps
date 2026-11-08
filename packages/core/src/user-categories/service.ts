@@ -26,6 +26,17 @@ export type CategoryMember = { id: string; display_name: string; role: string };
 
 export type CategoryDetail = CategoryView & { members: CategoryMember[] };
 
+/** One page of categories plus the total across every page. */
+export interface CategoryList {
+  categories: CategoryView[];
+  total: number;
+}
+
+export interface CategoryPage {
+  limit: number;
+  offset: number;
+}
+
 export type CategoryInput = { name: string; slug?: string };
 
 const toIso = (value: unknown): string =>
@@ -67,12 +78,16 @@ async function withTx<T>(
   });
 }
 
-async function modulesFor(db: QueryClient, categoryId?: string): Promise<Map<string, string[]>> {
-  const { rows } = categoryId
+async function modulesFor(
+  db: QueryClient,
+  categoryIds?: readonly string[],
+): Promise<Map<string, string[]>> {
+  if (categoryIds && categoryIds.length === 0) return new Map();
+  const { rows } = categoryIds
     ? await db.query(
         `select user_category_id, module_key from public.user_category_modules
-          where user_category_id = $1 order by module_key asc`,
-        [categoryId],
+          where user_category_id = any($1::uuid[]) order by module_key asc`,
+        [categoryIds],
       )
     : await db.query(
         "select user_category_id, module_key from public.user_category_modules order by module_key asc",
@@ -90,23 +105,40 @@ async function assertCategory(db: QueryClient, id: string): Promise<void> {
   if (!rows[0]) throw new DomainError("not_found");
 }
 
-export async function listCategories(deps: UserCategoriesDeps): Promise<CategoryView[]> {
+export async function listCategories(
+  deps: UserCategoriesDeps,
+  page: CategoryPage,
+): Promise<CategoryList> {
   const { rows } = await deps.db.query(
-    `select c.id, c.name, c.slug, c.created_at,
-            (select count(*)::int from public.user_category_members m
-              where m.user_category_id = c.id) as member_count
-       from public.user_categories c
-      order by c.name asc, c.id asc`,
+    `with total as (select count(*)::int as n from public.user_categories),
+          page as (
+            select c.id, c.name, c.slug, c.created_at,
+                   (select count(*)::int from public.user_category_members m
+                     where m.user_category_id = c.id) as member_count
+              from public.user_categories c
+             order by c.created_at desc, c.id desc
+             limit $1 offset $2
+          )
+     select total.n as total, page.*
+       from total left join page on true`,
+    [page.limit, page.offset],
   );
-  const modules = await modulesFor(deps.db);
-  return rows.map((row) => ({
-    id: String(row.id),
-    name: String(row.name),
-    slug: String(row.slug),
-    created_at: toIso(row.created_at),
-    member_count: Number(row.member_count ?? 0),
-    modules: modules.get(String(row.id)) ?? [],
-  }));
+  const categories = rows.filter((row) => row.id !== null && row.id !== undefined);
+  const modules = await modulesFor(
+    deps.db,
+    categories.map((row) => String(row.id)),
+  );
+  return {
+    categories: categories.map((row) => ({
+      id: String(row.id),
+      name: String(row.name),
+      slug: String(row.slug),
+      created_at: toIso(row.created_at),
+      member_count: Number(row.member_count ?? 0),
+      modules: modules.get(String(row.id)) ?? [],
+    })),
+    total: Number(rows[0]?.total ?? 0),
+  };
 }
 
 export async function getCategory(deps: UserCategoriesDeps, id: string): Promise<CategoryDetail> {
@@ -129,7 +161,7 @@ export async function getCategory(deps: UserCategoriesDeps, id: string): Promise
       order by p.display_name asc, p.id asc`,
     [id],
   );
-  const modules = await modulesFor(deps.db, id);
+  const modules = await modulesFor(deps.db, [id]);
   return {
     id: String(row.id),
     name: String(row.name),

@@ -15,6 +15,7 @@ import { t } from "@027apps/i18n/t.js";
 import type { Locale } from "@027apps/i18n/types.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { getInfra } from "@/lib/api/door";
+import { loadPanelUser } from "@/lib/panel-guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { BrandLogo } from "@/components/brand-logo";
 import { DocumentLang } from "@/components/document-lang";
@@ -37,23 +38,19 @@ import { SmtpStep } from "./smtp-step";
  *   4–5  preferences (clears `setup_incomplete`) + optional FCM
  *
  * The proxy already redirects when a step does not apply; the guards here are
- * defence in depth for direct hits.
+ * defence in depth for direct hits — including the role check: steps 3–5 are
+ * `super_admin` only, read from `profiles` via `lib/panel-guard.ts`.
  */
 export const instant = false;
 
 const text = (value: JsonValue | undefined): string => (typeof value === "string" ? value : "");
 
-function screen(
-  children: React.ReactNode,
-  locale: Locale,
-  messages: TranslationMap,
-  logoUrl: string | null,
-) {
+function screen(children: React.ReactNode, locale: Locale, messages: TranslationMap) {
   return (
     <main lang={locale} className="bg-background p-4">
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-md flex-col justify-center gap-4">
         <header className="flex flex-col items-center gap-3 sm:relative sm:flex-row sm:justify-center">
-          <BrandLogo logoUrl={logoUrl} size="xl" />
+          <BrandLogo size="xl" />
           <div className="sm:absolute sm:right-0 sm:top-1/2 sm:-translate-y-1/2">
             <LocaleSwitcher locale={locale} label={t("Language", messages)} />
           </div>
@@ -70,7 +67,6 @@ async function creationStep(
   settingsDeps: SettingsDeps,
   locale: Locale,
   messages: TranslationMap,
-  logoUrl: string | null,
 ) {
   const report = await checkEnvironment({
     db: settingsDeps.db,
@@ -87,7 +83,6 @@ async function creationStep(
     </div>,
     locale,
     messages,
-    logoUrl,
   );
 }
 
@@ -118,7 +113,6 @@ async function jwtExpiryBlocker(
   settingsDeps: SettingsDeps,
   locale: Locale,
   messages: TranslationMap,
-  logoUrl: string | null,
 ) {
   const { rows } = await settingsDeps.db.query(
     "select value from public.settings where key = 'security.jwt_expiry'",
@@ -146,19 +140,24 @@ async function jwtExpiryBlocker(
     </section>,
     locale,
     messages,
-    logoUrl,
   );
 }
 
+/** The signed-in admin id, used to mirror preferences onto their own profile. */
+async function sessionUserId(): Promise<string> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? "";
+}
+
 /** Step 3: SMTP verification screen with the signed-in admin's own address. */
-async function smtpStep(locale: Locale, messages: TranslationMap, logoUrl: string | null) {
+async function smtpStep(locale: Locale, messages: TranslationMap) {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   return screen(
     <SmtpStep email={data.user?.email ?? ""} messages={messages} />,
     locale,
     messages,
-    logoUrl,
   );
 }
 
@@ -175,9 +174,11 @@ async function preferencesStep(
   settingsDeps: SettingsDeps,
   locale: Locale,
   messages: TranslationMap,
-  logoUrl: string | null,
 ) {
   const settings = await readPublicSettings(settingsDeps);
+  // The wizard mirrors the chosen language and zone onto this admin's profile
+  // after the settings batch; the id comes from the session, never the URL.
+  const userId = await sessionUserId();
   // Prefill the public URL with the current origin so it does not have to be
   // typed; a stable domain (or the Vercel branch alias) should replace it.
   const origin = await requestOrigin();
@@ -220,6 +221,7 @@ async function preferencesStep(
         </Button>
       </form>
       <PreferencesStep
+        userId={userId}
         values={values}
         locales={SUPPORTED_LOCALES}
         enabledLocales={enabledLocales}
@@ -231,7 +233,6 @@ async function preferencesStep(
     </div>,
     locale,
     messages,
-    logoUrl,
   );
 }
 
@@ -240,20 +241,23 @@ export default async function SetupPage() {
   const cookieStore = await cookies();
   const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
   const messages = getDictionary(locale);
-  const settings = await readPublicSettings(settingsDeps);
-  const logoUrl = typeof settings["instance.logo_url"] === "string" ? settings["instance.logo_url"] : null;
-
   if (!(await hasActiveSuperAdmin(settingsDeps))) {
-    return creationStep(settingsDeps, locale, messages, logoUrl);
+    return creationStep(settingsDeps, locale, messages);
   }
   if (!(await isSetupIncomplete(settingsDeps))) redirect("/");
 
+  // Steps 3–5 write instance preferences, so only the instance's super_admin
+  // may open them. The role comes from `profiles` (the panel guard), never from
+  // the session alone: an `admin` or `user` lands on the login screen.
+  const user = await loadPanelUser();
+  if (user?.role !== "super_admin") redirect("/login");
+
   await refreshJwtObservation(settingsDeps);
-  const blocker = await jwtExpiryBlocker(settingsDeps, locale, messages, logoUrl);
+  const blocker = await jwtExpiryBlocker(settingsDeps, locale, messages);
   if (blocker) return blocker;
 
   const smtpConfirmed = cookieStore.get(SMTP_COOKIE)?.value === "1";
   return smtpConfirmed
-    ? preferencesStep(settingsDeps, locale, messages, logoUrl)
-    : smtpStep(locale, messages, logoUrl);
+    ? preferencesStep(settingsDeps, locale, messages)
+    : smtpStep(locale, messages);
 }

@@ -1,6 +1,6 @@
 /* Semantic tokens — D identity (docs/brand/identities/d.md · ADR 0002). Mirror: tokens.json */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   --background: #f6f7f8;
   --surface: #ffffff;
@@ -10,6 +10,7 @@
   --primary: #17191c;
   --primary-foreground: #ffffff;
   --accent: #09795f;
+  --brand: #0f9b7d;
   --border: #e3e5e8;
   --destructive: #be123c;
   --destructive-foreground: #ffffff;
@@ -20,8 +21,11 @@
   --control-radius: 8px;
 }
 
+/* OS preference, unless the user forced light from the switcher. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light) {
+    color-scheme: dark;
+
     --background: #08090a;
     --surface: #0e0f11;
     --muted: #1a1b1e;
@@ -30,10 +34,35 @@
     --primary: #f7f8f8;
     --primary-foreground: #08090a;
     --accent: #1cc29f;
+    --brand: #1cc29f;
     --border: rgba(255, 255, 255, 0.09);
     --destructive: #fb7185;
     --destructive-foreground: #2a0a10;
     --success: #4ade80;
     --success-subtle: rgba(74, 222, 128, 0.12);
   }
+}
+
+/* Explicit user choice wins over the OS in both directions. */
+.dark {
+  color-scheme: dark;
+
+  --background: #08090a;
+  --surface: #0e0f11;
+  --muted: #1a1b1e;
+  --muted-foreground: #8a8f98;
+  --foreground: #f7f8f8;
+  --primary: #f7f8f8;
+  --primary-foreground: #08090a;
+  --accent: #1cc29f;
+  --brand: #1cc29f;
+  --border: rgba(255, 255, 255, 0.09);
+  --destructive: #fb7185;
+  --destructive-foreground: #2a0a10;
+  --success: #4ade80;
+  --success-subtle: rgba(74, 222, 128, 0.12);
+}
+
+.light {
+  color-scheme: light;
 }

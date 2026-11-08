@@ -1,11 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { SESSION_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options";
 
 /**
  * Session-scoped Supabase client for Server Components, Route Handlers and
- * Server Actions (@supabase/ssr, cookie-based). Cookies are `HttpOnly`,
- * `Secure` (in production) and `SameSite=Lax` by default; the token refresh is
- * centralized in `src/proxy.ts`.
+ * Server Actions (@supabase/ssr, cookie-based). `@supabase/ssr` does not make
+ * the cookies `HttpOnly` or `Secure` on its own, so the explicit
+ * `SESSION_COOKIE_OPTIONS` add both; the token refresh is centralized in
+ * `src/proxy.ts`.
  *
  * Create a new client for every server render: never share it across requests.
  * In Next.js 16 `cookies()` is async, so the factory is async too.
@@ -20,6 +22,7 @@ export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: SESSION_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return cookieStore.getAll();

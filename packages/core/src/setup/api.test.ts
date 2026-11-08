@@ -72,6 +72,14 @@ describe('setupTestEmailRoute', () => {
     expect(sendTestEmail).toHaveBeenCalledWith('admin-1');
   });
 
+  it('accepts a POST with no body (the contract documents an empty body)', async () => {
+    const { handler, sendTestEmail } = route(superAdmin);
+    const res = await handler(new Request(`${BASE}/test-email`, { method: 'POST' }));
+
+    expect(res.status).toBe(200);
+    expect(sendTestEmail).toHaveBeenCalledWith('admin-1');
+  });
+
   it('rejects a non-super_admin session', async () => {
     const { handler, sendTestEmail } = route(plainAdmin);
     const res = await handler(new Request(`${BASE}/test-email`, { method: 'POST', body: '{}' }));

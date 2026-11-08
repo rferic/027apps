@@ -1,4 +1,5 @@
 import { withDoor } from "../api/door";
+import { DEFAULT_READ_LIMIT } from "../api/rate-limits";
 import { DomainError } from "../errors";
 import type { Caller, CorsOptions, DoorDeps } from "../api/types";
 import type { SettingsDeps } from "../settings/service";
@@ -38,7 +39,7 @@ export function translationsRoute(deps: TranslationsRouteDeps) {
         scopes: ["profile:read"],
         auth: deps.auth,
         cors: deps.cors,
-        rateLimit: { identity: "user", limit: deps.rateLimits?.read ?? 120 },
+        rateLimit: { identity: "user", limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
       },
       deps.door,
       async (ctx) => {

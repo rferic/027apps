@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+import { isSupportedLocale, localeCookie } from "@/lib/locale";
 
 export interface PreferencesValues {
   instanceName: string;
@@ -23,6 +25,8 @@ export interface PreferencesValues {
 }
 
 export interface PreferencesProps {
+  /** The signed-in super_admin whose profile mirrors the chosen locale/timezone. */
+  userId: string;
   values: PreferencesValues;
   locales: readonly string[];
   /** Locales already enabled on the instance (`en` can never be removed). */
@@ -86,12 +90,65 @@ export async function patchSettings(
 }
 
 /**
+ * The wizard writes the chosen language and zone to the instance settings, but
+ * the admin's own profile keeps its seeded `en`/`UTC` until this call. It is
+ * best-effort on purpose: the settings batch already cleared `setup_incomplete`,
+ * so a failure here must not block the installation (the profile stays editable
+ * from /members afterwards). No console output by design.
+ */
+export async function patchUserPreferences(
+  userId: string,
+  values: Pick<PreferencesValues, "locale" | "timezone">,
+): Promise<void> {
+  try {
+    await fetch(`/api/v1/users/${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ locale: values.locale, timezone: values.timezone }),
+    });
+  } catch {
+    // Best-effort: the installation is already complete at this point.
+  }
+}
+
+/**
+ * Steps 4–5 in order: the settings batch first (it completes setup), then the
+ * profile mirror. Returns the message to show, or `null` on success.
+ */
+export async function savePreferences(
+  userId: string,
+  form: PreferencesValues,
+  enabledLocales: readonly string[],
+  messages: TranslationMap,
+): Promise<string | null> {
+  const built = buildSteps(form, enabledLocales, messages);
+  if ("error" in built) return built.error;
+
+  try {
+    const failure = await patchSettings(built.steps, messages);
+    if (failure) return failure;
+  } catch {
+    return t("We couldn't reach the server. Check the connection, then try again.", messages);
+  }
+
+  await patchUserPreferences(userId, { locale: form.locale, timezone: form.timezone });
+
+  // The panel picks its language from this cookie on the next request, before
+  // the profile mirror is visible there: write it as soon as the save is done.
+  if (typeof document !== "undefined" && isSupportedLocale(form.locale)) {
+    document.cookie = localeCookie(form.locale);
+  }
+  return null;
+}
+
+type StepsResult = { steps: Array<[string, unknown]> } | { error: string };
+
+/**
  * Setup steps 4 and 5: preferences (required — this is what clears
  * `setup_incomplete`) and optional FCM notifications. Everything is written
  * through `/api/v1/settings`, so the super_admin session is the audit actor.
  */
-
-type StepsResult = { steps: Array<[string, unknown]> } | { error: string };
 
 /** Writes for steps 4–5; order does not matter because coherence sees the merged batch. */
 export function buildSteps(
@@ -144,6 +201,7 @@ export function buildSteps(
 }
 
 export function PreferencesStep({
+  userId,
   values,
   locales,
   enabledLocales,
@@ -165,22 +223,9 @@ export function PreferencesStep({
     setSaving(true);
     setError(null);
 
-    const built = buildSteps(form, enabledLocales, messages);
-    if ("error" in built) {
-      setError(built.error);
-      setSaving(false);
-      return;
-    }
-
-    try {
-      const failure = await patchSettings(built.steps, messages);
-      if (failure) {
-        setError(failure);
-        setSaving(false);
-        return;
-      }
-    } catch {
-      setError(t("We couldn't reach the server. Check the connection, then try again.", messages));
+    const failure = await savePreferences(userId, form, enabledLocales, messages);
+    if (failure) {
+      setError(failure);
       setSaving(false);
       return;
     }
@@ -237,17 +282,16 @@ export function PreferencesStep({
 
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">{t("Default language", messages)}</span>
-          <select
+          <Select
             value={form.locale}
             onChange={(event) => update("locale", event.target.value)}
-            className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
           >
             {locales.map((locale) => (
               <option key={locale} value={locale}>
                 {locale}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <label className="flex flex-col gap-1">
@@ -269,17 +313,16 @@ export function PreferencesStep({
 
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">{t("Default currency", messages)}</span>
-          <select
+          <Select
             value={form.currency}
             onChange={(event) => update("currency", event.target.value)}
-            className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
           >
             {currencies.map((currency) => (
               <option key={currency} value={currency}>
                 {currency}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <fieldset className="mt-2 flex flex-col gap-3 border-t border-border pt-3">
@@ -296,14 +339,13 @@ export function PreferencesStep({
           </legend>
           <label className="flex flex-col gap-1">
             <span className="text-sm font-medium">{t("Provider", messages)}</span>
-            <select
+            <Select
               value={form.pushProvider}
               onChange={(event) => update("pushProvider", event.target.value as "none" | "fcm")}
-              className="rounded-control border border-border bg-background px-2.5 py-1.5 text-xs"
             >
               <option value="none">{t("None for now", messages)}</option>
               <option value="fcm">{t("Firebase Cloud Messaging", messages)}</option>
-            </select>
+            </Select>
           </label>
 
           {form.pushProvider === "fcm" && (

@@ -47,8 +47,12 @@ function missingRequired(settingsPublic: Record<string, unknown>): string[] {
  * written (`instance.public_url` and the three `localization.*` keys). Derived
  * from the real state, never stored (instance-config spec §7.3).
  */
+export function setupIncomplete(settingsPublic: Record<string, unknown>): boolean {
+  return missingRequired(settingsPublic).length > 0;
+}
+
 export async function isSetupIncomplete(settings: SettingsDeps): Promise<boolean> {
-  return missingRequired(await readPublicSettings(settings)).length > 0;
+  return setupIncomplete(await readPublicSettings(settings));
 }
 
 /** GET /api/v1/instance — public metadata plus public settings. */

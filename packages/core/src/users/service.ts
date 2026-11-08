@@ -18,12 +18,17 @@ import type { QueryClient } from "../api/rate-limit-storage";
  * message for the error code, never this text.
  */
 export type Role = "super_admin" | "admin" | "user";
+export type UserState = "active" | "deactivated";
+/** `all` is an explicit opt-out; omitting the filter defaults to active. */
+export type UserStateFilter = UserState | "all";
 
 export interface UsersDeps {
   db: QueryClient;
   /** Runs the invariants + write in one transaction (injected by the app). */
   withTransaction?: <T>(fn: (db: QueryClient) => Promise<T>) => Promise<T>;
 }
+
+export type UserCategory = { id: string; name: string };
 
 export type UserView = {
   id: string;
@@ -33,18 +38,39 @@ export type UserView = {
   role: Role;
   created_at: string;
   deactivated_at: string | null;
+  /** Categories the profile belongs to, ordered by name. */
+  categories: UserCategory[];
 };
 
 export interface UserListFilters {
   q?: string;
+  role?: Role;
+  /**
+   * `active` (the default when omitted), `deactivated`, or `all` for no
+   * state filter. A list never shows deactivated profiles by accident.
+   */
+  state?: UserStateFilter;
+  /** Only profiles that belong to this category (already validated as a uuid). */
+  category?: string;
   limit: number;
   offset: number;
 }
 
 export interface UserList {
   users: UserView[];
+  /** Profiles matching every filter (including `state`), across every page. */
   total: number;
+  /**
+   * Active (not deactivated) profiles matching `q` + `role`, across every
+   * page. It deliberately ignores `state`: the dashboard keeps "how many are
+   * active among the current search" even when the list shows deactivated
+   * profiles.
+   */
+  active_total: number;
 }
+
+/** A module the profile may use, as the API key form needs it: key + display name. */
+export type UserModule = { key: string; name: string };
 
 export interface UserPatch {
   display_name?: string;
@@ -58,6 +84,31 @@ const ROLE_LOCK = "select pg_advisory_xact_lock(hashtext('core_users_roles'))";
 const toIso = (value: unknown): string | null =>
   value instanceof Date ? value.toISOString() : typeof value === "string" ? value : null;
 
+/**
+ * `json_agg` arrives already parsed from the driver, but a text representation
+ * is tolerated as well. Anything malformed is dropped instead of failing the
+ * whole read; the order is guaranteed here so every caller sees the same list.
+ */
+function toCategories(value: unknown): UserCategory[] {
+  let entries: unknown = value;
+  if (typeof entries === "string") {
+    try {
+      entries = JSON.parse(entries);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(entries)) return [];
+  const categories: UserCategory[] = [];
+  for (const entry of entries) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const row = entry as Record<string, unknown>;
+    if (typeof row.id !== "string" || typeof row.name !== "string") continue;
+    categories.push({ id: row.id, name: row.name });
+  }
+  return categories.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function toView(row: Record<string, unknown>): UserView {
   return {
     id: String(row.id),
@@ -67,6 +118,7 @@ function toView(row: Record<string, unknown>): UserView {
     role: row.role as Role,
     created_at: toIso(row.created_at) ?? new Date(0).toISOString(),
     deactivated_at: toIso(row.deactivated_at),
+    categories: toCategories(row.categories),
   };
 }
 
@@ -75,9 +127,20 @@ function likePattern(q: string): string {
   return `%${q.replace(/[\\%_]/g, "\\$&")}%`;
 }
 
+/** One profile plus its categories, aggregated in the same query (no N+1). */
 async function getUserFrom(db: QueryClient, id: string): Promise<UserView> {
   const { rows } = await db.query(
-    "select id, display_name, locale, timezone, role, created_at, deactivated_at from public.profiles where id = $1",
+    `select p.id, p.display_name, p.locale, p.timezone, p.role, p.created_at, p.deactivated_at,
+            coalesce(
+              json_agg(json_build_object('id', c.id, 'name', c.name) order by c.name asc)
+                filter (where c.id is not null),
+              '[]'::json
+            ) as categories
+       from public.profiles p
+       left join public.user_category_members m on m.user_id = p.id
+       left join public.user_categories c on c.id = m.user_category_id
+      where p.id = $1
+      group by p.id`,
     [id],
   );
   if (!rows[0]) throw new DomainError("not_found");
@@ -92,6 +155,17 @@ async function rootUserId(db: QueryClient): Promise<string | null> {
   return rows[0] ? String(rows[0].id) : null;
 }
 
+/**
+ * The root regardless of its state: purge accepts deactivated profiles, so the
+ * active-only definition would let a deactivated root be deleted.
+ */
+async function rootUserIdAnyState(db: QueryClient): Promise<string | null> {
+  const { rows } = await db.query(
+    "select id from public.profiles where role = 'super_admin' order by created_at asc, id asc limit 1",
+  );
+  return rows[0] ? String(rows[0].id) : null;
+}
+
 async function activeSuperAdmins(db: QueryClient): Promise<number> {
   const { rows } = await db.query(
     "select count(*)::int as n from public.profiles where role = 'super_admin' and deactivated_at is null",
@@ -99,29 +173,126 @@ async function activeSuperAdmins(db: QueryClient): Promise<number> {
   return Number(rows[0]?.n ?? 0);
 }
 
-export async function listUsers(deps: UsersDeps, filters: UserListFilters): Promise<UserList> {
+/**
+ * Only a super_admin may search by email. A delegated (or service) caller with
+ * `users:read` must not be able to confirm whether an address belongs to the
+ * instance, so for everyone else `q` matches the display name only.
+ */
+function callerIsSuperAdmin(caller: Caller): boolean {
+  if (caller.kind === "session") return caller.role === "super_admin";
+  if (caller.kind === "service") return caller.roleCap === "super_admin";
+  return false;
+}
+
+export async function listUsers(
+  deps: UsersDeps,
+  caller: Caller,
+  filters: UserListFilters,
+): Promise<UserList> {
   const pattern = filters.q ? likePattern(filters.q) : null;
+  // `null` means "no state filter"; a boolean lets both queries share the SQL.
+  // Omitting the filter is the safe default: active profiles only.
+  const state = filters.state ?? "active";
+  const active = state === "all" ? null : state === "active";
+  const category = filters.category ?? null;
+  const emailSearch = callerIsSuperAdmin(caller);
+  // Categories reach the page in the same query: one row per profile, never a
+  // read per user. The `exists` subquery keeps the membership filter separate
+  // from the join that feeds the aggregate.
   const { rows } = await deps.db.query(
-    `select p.id, p.display_name, p.locale, p.timezone, p.role, p.created_at, p.deactivated_at
+    `select p.id, p.display_name, p.locale, p.timezone, p.role, p.created_at, p.deactivated_at,
+            coalesce(
+              json_agg(json_build_object('id', c.id, 'name', c.name) order by c.name asc)
+                filter (where c.id is not null),
+              '[]'::json
+            ) as categories
        from public.profiles p
        join auth.users u on u.id = p.id
-      where ($1::text is null or p.display_name ilike $1 escape '\\' or u.email ilike $1 escape '\\')
+       left join public.user_category_members m on m.user_id = p.id
+       left join public.user_categories c on c.id = m.user_category_id
+      where ($1::text is null or p.display_name ilike $1 escape '\\'
+              or ($7::boolean and u.email ilike $1 escape '\\'))
+        and ($2::text is null or p.role = $2)
+        and ($3::boolean is null or (p.deactivated_at is null) = $3)
+        and ($4::uuid is null or exists (
+              select 1 from public.user_category_members cm
+               where cm.user_id = p.id and cm.user_category_id = $4))
+      group by p.id
       order by p.created_at asc, p.id asc
-      limit $2 offset $3`,
-    [pattern, filters.limit, filters.offset],
+      limit $5 offset $6`,
+    [pattern, filters.role ?? null, active, category, filters.limit, filters.offset, emailSearch],
   );
   const { rows: countRows } = await deps.db.query(
-    `select count(*)::int as n
+    `select count(*) filter (where ($3::boolean is null or (p.deactivated_at is null) = $3))::int as n,
+            count(*) filter (where p.deactivated_at is null)::int as active_total
        from public.profiles p
        join auth.users u on u.id = p.id
-      where ($1::text is null or p.display_name ilike $1 escape '\\' or u.email ilike $1 escape '\\')`,
-    [pattern],
+      where ($1::text is null or p.display_name ilike $1 escape '\\'
+              or ($5::boolean and u.email ilike $1 escape '\\'))
+        and ($2::text is null or p.role = $2)
+        and ($4::uuid is null or exists (
+              select 1 from public.user_category_members cm
+               where cm.user_id = p.id and cm.user_category_id = $4))`,
+    [pattern, filters.role ?? null, active, category, emailSearch],
   );
-  return { users: rows.map(toView), total: Number(countRows[0]?.n ?? 0) };
+  return {
+    users: rows.map(toView),
+    total: Number(countRows[0]?.n ?? 0),
+    active_total: Number(countRows[0]?.active_total ?? 0),
+  };
 }
 
 export async function getUser(deps: UsersDeps, id: string): Promise<UserView> {
   return getUserFrom(deps.db, id);
+}
+
+/**
+ * Profiles a caller may read: admins and instance keys see any profile, while
+ * a delegated key (a machine credential for its owner) only sees its own.
+ * `null` means "no restriction"; the SQL treats it as such.
+ */
+function callerProfileId(caller: Caller): string | null {
+  if (caller.kind === "session") {
+    return caller.role === "admin" || caller.role === "super_admin" ? null : caller.userId;
+  }
+  if (caller.kind === "service") return null;
+  if (caller.kind === "delegated") return caller.userId;
+  return null;
+}
+
+/**
+ * GET /api/v1/users/{id}/modules — live module grants of a profile.
+ *
+ * One read: the profile drives the join, so a missing (or hidden) profile and
+ * a profile without grants are distinguishable without a second query. Only
+ * grants that are alive and point at an installed/active module count; a
+ * profile with none answers an empty list, never 404.
+ */
+export async function listUserModules(
+  deps: UsersDeps,
+  caller: Caller,
+  id: string,
+): Promise<UserModule[]> {
+  const ownId = callerProfileId(caller);
+  const { rows } = await deps.db.query(
+    `select m.key, m.name
+       from public.profiles p
+       left join public.user_modules u
+         on u.user_id = p.id and u.revoked_at is null
+       left join public.module_registry m
+         on m.key = u.module_key and m.state in ('active', 'installed')
+      where p.id = $1
+        and ($2::uuid is null or p.id = $2)
+      order by m.name asc`,
+    [id, ownId],
+  );
+  if (rows.length === 0) throw new DomainError("not_found");
+  const modules: UserModule[] = [];
+  for (const row of rows) {
+    if (typeof row.key !== "string" || typeof row.name !== "string") continue;
+    modules.push({ key: row.key, name: row.name });
+  }
+  return modules;
 }
 
 async function assertRoleChangeAllowed(
@@ -178,6 +349,11 @@ export async function updateUser(
 ): Promise<UserView> {
   return withRoleLock(deps, async (db) => {
     const current = await getUserFrom(db, id);
+    // Nobody edits their own privileges: an admin must not promote or demote
+    // themselves through the users API, even when the root checks would pass.
+    if (caller.kind === "session" && caller.userId === id && patch.role !== undefined) {
+      throw new DomainError("conflict", "You cannot change your own role");
+    }
     if (patch.role !== undefined) await assertRoleChangeAllowed(db, caller, current, patch.role);
 
     await db.query(
@@ -204,6 +380,12 @@ export async function deactivateUser(
   }
   return withRoleLock(deps, async (db) => {
     const current = await getUserFrom(db, id);
+    // Before the root check: self-deactivation is forbidden for everyone,
+    // including the root, so the API never answers "the root…" to its own
+    // account (the diagnostic would be misleading and the action still wrong).
+    if (caller.kind === "session" && caller.userId === id) {
+      throw new DomainError("conflict", "You cannot deactivate your own account");
+    }
     if ((await rootUserId(db)) === current.id) {
       throw new DomainError("conflict", "The root user cannot be deactivated");
     }
@@ -232,5 +414,116 @@ export async function deactivateUser(
       payload: { reason: null },
     });
     return view;
+  });
+}
+
+/**
+ * POST /api/v1/users/{id}/restore — undo a soft deactivation (super_admin).
+ *
+ * Reactivation cannot break an invariant (the root is always safe and no
+ * "last super_admin" rule can be violated by adding access back), so there is
+ * no advisory lock and no conflict path beyond 404. An already active profile
+ * is a 200 without a write: retrying the request is safe.
+ *
+ * Revoked credentials stay revoked on purpose: restoring access never
+ * resurrects api keys or devices that were revoked at deactivation.
+ */
+export async function restoreUser(
+  deps: UsersDeps,
+  caller: Caller,
+  id: string,
+): Promise<UserView> {
+  if (caller.kind !== "session" || caller.role !== "super_admin") {
+    throw new DomainError("insufficient_scope");
+  }
+  const current = await getUserFrom(deps.db, id);
+  if (current.deactivated_at === null) return current;
+  await deps.db.query(
+    "update public.profiles set deactivated_at = null, updated_at = now() where id = $1",
+    [id],
+  );
+  return getUserFrom(deps.db, id);
+}
+
+/**
+ * DELETE /api/v1/users/{id}/purge — physical deletion (super_admin, irreversible).
+ *
+ * Only a deactivated profile can be purged: the explicit prior deactivation is
+ * what keeps this apart from a single accidental click. The root and the last
+ * active super_admin can never be purged, and nobody purges their own account.
+ *
+ * One transaction with the same role advisory lock as deactivation: the
+ * references that would block `delete from auth.users` are nulled first, so the
+ * profile, its devices and its own keys fall by cascade. The attribution of
+ * history (settings, translations, invitations, categories and module grants)
+ * survives without an actor; that is the audit trail this operation discards.
+ */
+export async function purgeUser(
+  deps: UsersDeps,
+  caller: Caller,
+  id: string,
+): Promise<void> {
+  if (caller.kind !== "session" || caller.role !== "super_admin") {
+    throw new DomainError("insufficient_scope");
+  }
+  await withRoleLock(deps, async (db) => {
+    const current = await getUserFrom(db, id);
+    // Self first: the diagnostic never says "the root…" to the root itself.
+    if (caller.kind === "session" && caller.userId === id) {
+      throw new DomainError("conflict", "You cannot delete your own account");
+    }
+    if ((await rootUserIdAnyState(db)) === current.id) {
+      throw new DomainError("conflict", "The root user cannot be deleted");
+    }
+    if (current.role === "super_admin" && (await activeSuperAdmins(db)) <= 1) {
+      throw new DomainError("conflict", "The instance needs at least one active super_admin");
+    }
+    if (current.deactivated_at === null) {
+      throw new DomainError("conflict", "Deactivate the member before deleting it");
+    }
+
+    // Null every actor reference that has no ON DELETE action. A single
+    // transaction keeps the database from being left half-purged on failure.
+    await db.query(
+      "update public.settings set updated_by = null, updated_by_key = null where updated_by = $1",
+      [id],
+    );
+    await db.query("update public.api_keys set created_by = null where created_by = $1", [id]);
+    await db.query("update public.invitations set created_by = null where created_by = $1", [id]);
+    await db.query("update public.translations set updated_by = null where updated_by = $1", [id]);
+    await db.query("update public.user_categories set created_by = null where created_by = $1", [id]);
+    await db.query("update public.user_modules set granted_by = null where granted_by = $1", [id]);
+    await db.query(
+      "update public.user_category_modules set assigned_by = null where assigned_by = $1",
+      [id],
+    );
+
+    // The profile's own delegated keys also fall by cascade; any history that
+    // points at those keys (a delegated admin key acted as the author) would
+    // otherwise block the delete after the profile is gone.
+    const ownKeys = "select id from public.api_keys where user_id = $1";
+    await db.query(
+      `update public.settings set updated_by_key = null where updated_by_key in (${ownKeys})`,
+      [id],
+    );
+    await db.query(
+      `update public.user_categories set created_by_key = null where created_by_key in (${ownKeys})`,
+      [id],
+    );
+    await db.query(
+      `update public.invitations set created_by_key = null where created_by_key in (${ownKeys})`,
+      [id],
+    );
+    await db.query(
+      `update public.user_modules set granted_by_key = null where granted_by_key in (${ownKeys})`,
+      [id],
+    );
+    await db.query(
+      `update public.user_category_modules set assigned_by_key = null where assigned_by_key in (${ownKeys})`,
+      [id],
+    );
+
+    // `profiles`, `devices` and the user's own (delegated) keys cascade.
+    await db.query("delete from auth.users where id = $1", [id]);
   });
 }

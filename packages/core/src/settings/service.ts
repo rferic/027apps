@@ -55,12 +55,12 @@ export interface HealthStatus {
   degradedReasons: string[];
 }
 
-function rowToView(row: Record<string, unknown>): SettingView {
+function rowToView(row: Record<string, unknown>): SettingView | null {
   const key = String(row.key);
   const meta = getSettingMeta(key);
-  if (!meta) {
-    throw new DomainError('internal', `Setting ${key} has no catalog metadata`);
-  }
+  // Rows removed from the catalog are left in `settings` on purpose (no data
+  // migration), e.g. the old `instance.logo_url`. They are never exposed.
+  if (!meta) return null;
   const base: SettingView = {
     key,
     category: meta.category,
@@ -80,10 +80,11 @@ function rowToView(row: Record<string, unknown>): SettingView {
   return { ...base, value: (row.value ?? null) as JsonValue };
 }
 
-/** Super-admin level means a session super_admin or a key capped at super_admin. */
+/** Super-admin level means a session super_admin or a service key capped at super_admin. */
 function isSuperAdminLevel(caller: Caller): boolean {
   if (caller.kind === 'session') return caller.role === 'super_admin';
-  if (caller.kind === 'service' || caller.kind === 'delegated') return caller.roleCap === 'super_admin';
+  if (caller.kind === 'service') return caller.roleCap === 'super_admin';
+  // A delegated key is always a plain user, whatever its stored role cap.
   return false;
 }
 
@@ -91,7 +92,10 @@ async function readSettingViews(deps: SettingsDeps): Promise<SettingView[]> {
   const { rows } = await deps.db.query(
     'select key, value, value_encrypted, updated_by, updated_at from public.settings',
   );
-  return rows.map(rowToView);
+  return rows.flatMap((row) => {
+    const view = rowToView(row);
+    return view ? [view] : [];
+  });
 }
 
 /**

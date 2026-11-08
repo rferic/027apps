@@ -1,0 +1,21 @@
+/*
+ * Scalar ships its own palette; override only the semantic slots with the
+ * panel tokens so the viewer follows the same light/dark scheme. These rules
+ * are unlayered, so they win over Scalar's `@layer scalar-theme` defaults.
+ */
+.light-mode,
+.dark-mode {
+  --scalar-background-1: var(--background);
+  --scalar-background-2: var(--surface);
+  --scalar-background-3: var(--muted);
+  --scalar-color-1: var(--foreground);
+  --scalar-color-2: var(--muted-foreground);
+  --scalar-color-3: var(--muted-foreground);
+  --scalar-color-accent: var(--accent);
+  --scalar-border-color: var(--border);
+  --scalar-button-1: var(--primary);
+  --scalar-button-1-hover: var(--primary);
+  --scalar-button-1-color: var(--primary-foreground);
+  --scalar-font: var(--font-sans);
+  --scalar-font-code: var(--font-mono);
+}

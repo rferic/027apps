@@ -56,7 +56,8 @@ function toView(row: Record<string, unknown>): DeviceView {
 
 function isAdmin(caller: Caller): boolean {
   if (caller.kind === "session") return caller.role === "admin" || caller.role === "super_admin";
-  if (caller.kind === "delegated") return caller.roleCap !== "user";
+  if (caller.kind === "service") return true;
+  // A delegated key is always a plain user, whatever its stored role cap.
   return false;
 }
 
