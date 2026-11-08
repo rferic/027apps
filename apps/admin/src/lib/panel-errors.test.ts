@@ -1,5 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { panelErrorCodeLabel, slugConflictError } from "./panel-errors";
+import { invitationConflictError, panelErrorCodeLabel, slugConflictError } from "./panel-errors";
+
+describe("invitationConflictError", () => {
+  it("names a registered member as the cause of a create conflict", () => {
+    expect(
+      invitationConflictError({ code: "conflict", details: { code: "email_registered" } }, {}),
+    ).toBe("That email already belongs to a member.");
+  });
+
+  it("names the pending invitation as the cause of a create conflict", () => {
+    expect(
+      invitationConflictError({ code: "conflict", details: { code: "pending_invitation" } }, {}),
+    ).toBe("That email already has a pending invitation.");
+  });
+
+  it("leaves a conflict without a known detail code to the generic alert", () => {
+    expect(invitationConflictError({ code: "conflict" }, {})).toBeUndefined();
+    expect(invitationConflictError({ code: "conflict", details: {} }, {})).toBeUndefined();
+    expect(
+      invitationConflictError({ code: "conflict", details: { code: "other" } }, {}),
+    ).toBeUndefined();
+    expect(
+      invitationConflictError({ code: "internal", details: { code: "email_registered" } }, {}),
+    ).toBeUndefined();
+    expect(invitationConflictError(null, {})).toBeUndefined();
+  });
+});
 
 describe("slugConflictError", () => {
   it("names the slug as the cause of a create conflict", () => {

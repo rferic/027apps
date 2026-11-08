@@ -14,6 +14,33 @@ export function slugConflictError(
     : undefined;
 }
 
+/** Domain conflict a failed invitation create can explain on its own. */
+export interface InvitationConflict {
+  code?: string;
+  details?: { code?: string };
+}
+
+/**
+ * Invitation create conflicts the email field can name: the same address is
+ * already a member, or it already holds a pending invitation. Keyed on the
+ * public `details.code` (the envelope never carries the custom message), so an
+ * unrelated `conflict` keeps the generic label.
+ */
+export function invitationConflictError(
+  error: InvitationConflict | null,
+  messages: TranslationMap,
+): string | undefined {
+  if (error?.code !== "conflict") return undefined;
+  switch (error.details?.code) {
+    case "email_registered":
+      return t("That email already belongs to a member.", messages);
+    case "pending_invitation":
+      return t("That email already has a pending invitation.", messages);
+    default:
+      return undefined;
+  }
+}
+
 /**
  * Public error codes mapped to a readable message. One map for every panel
  * surface (members, categories, invitations, keys, settings); unknown codes

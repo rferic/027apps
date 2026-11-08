@@ -67,6 +67,24 @@ describe("loadInvitations", () => {
     expect(req.headers.get("host")).toBeNull();
   });
 
+  it("forwards the status filter to the route", async () => {
+    invitationsHandlerMock.mockResolvedValue(json({ invitations: [INVITATION], total: 1 }));
+
+    await loadInvitations({ offset: 0, status: "pending" });
+
+    const req = invitationsHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(req.url).toBe("http://panel.internal/api/v1/invitations?limit=20&offset=0&status=pending");
+  });
+
+  it("sends all explicitly instead of dropping the filter", async () => {
+    invitationsHandlerMock.mockResolvedValue(json({ invitations: [INVITATION], total: 1 }));
+
+    await loadInvitations({ offset: 40, status: "all" });
+
+    const req = invitationsHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(req.url).toBe("http://panel.internal/api/v1/invitations?limit=20&offset=40&status=all");
+  });
+
   it("keeps a category-less invitation with a null category id", async () => {
     invitationsHandlerMock.mockResolvedValue(
       json({ invitations: [{ ...INVITATION, user_category_id: null }], total: 1 }),

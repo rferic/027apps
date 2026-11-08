@@ -122,6 +122,13 @@ export const usersQuerySchema = paginationQuerySchema.extend({
     .describe("Only members of this category id; the total reflects the filter."),
 });
 
+export const invitationsQuerySchema = paginationQuerySchema.extend({
+  status: z
+    .enum(["pending", "used", "expired", "revoked", "all"])
+    .optional()
+    .describe("Filter by derived status; omitted or all removes the filter. total reflects it."),
+});
+
 export const userResponseSchema = component(
   "UserResponse",
   z.object({ user: userSchema }).strict(),

@@ -29,6 +29,9 @@ export interface InvitationsAuth {
 
 export type InvitationStatus = "pending" | "used" | "expired" | "revoked";
 
+/** `all` is the explicit "no status filter"; every list defaults to it. */
+export type InvitationStatusFilter = InvitationStatus | "all";
+
 export type InvitationView = {
   id: string;
   email: string;
@@ -70,6 +73,8 @@ export interface InvitationList {
 export interface InvitationPage {
   limit: number;
   offset: number;
+  /** Derived status filter; omitted means `all`. */
+  status?: InvitationStatusFilter;
 }
 
 const TOKEN_PREFIX = "027_inv_";
@@ -220,10 +225,38 @@ export async function createInvitation(
   const now = deps.now?.() ?? new Date();
   const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
   const token = newInvitationToken();
+  const email = normalizeEmail(input.email);
 
   if (input.user_category_id) await assertCategory(deps.db, input.user_category_id);
 
+  // An account cannot be invited again: redemption would only reattach it.
+  const existingUser = await deps.auth.findUserByEmail(email);
+  if (existingUser) {
+    throw new DomainError("conflict", "That email already belongs to a member", {
+      code: "email_registered",
+    });
+  }
+
   const invitationId = await withTx(deps, async (db) => {
+    // The check and the insert share the transaction, and the advisory lock
+    // serialises creates for the same email: two concurrent requests cannot
+    // both see "no pending invitation" and insert twice.
+    await db.query("select pg_advisory_xact_lock(hashtext($1))", [`invitation:${email}`]);
+    const { rows: pending } = await db.query(
+      `select 1 from public.invitations
+        where email = $1
+          and used_at is null
+          and revoked_at is null
+          and expires_at > $2
+        limit 1`,
+      [email, now.toISOString()],
+    );
+    if (pending[0]) {
+      throw new DomainError("conflict", "That email already has a pending invitation", {
+        code: "pending_invitation",
+      });
+    }
+
     const { rows } = await db
       .query(
         `insert into public.invitations
@@ -231,7 +264,7 @@ export async function createInvitation(
          values ($1, $2, $3, $4, $5, $6, $7)
          returning id`,
         [
-          normalizeEmail(input.email),
+          email,
           input.name.trim(),
           input.user_category_id ?? null,
           hashInvitationToken(token),
@@ -258,7 +291,7 @@ export async function createInvitation(
       type: "invitation.created",
       target: "admins",
       resource: {
-        email: normalizeEmail(input.email),
+        email,
         name: input.name.trim(),
         user_category_id: input.user_category_id ?? null,
         modules,
@@ -281,24 +314,37 @@ export async function listInvitations(
   deps: InvitationsDeps,
   page: InvitationPage,
 ): Promise<InvitationList> {
+  const now = deps.now?.() ?? new Date();
+  const status = page.status ?? "all";
+  // One CTE filters and the next counts: `total` reflects the filter, so the
+  // paginator and the panel agree on how many rows the list really has.
   const { rows } = await deps.db.query(
-    `with total as (select count(*)::int as n from public.invitations),
-          page as (
-            select id, email, name, user_category_id, expires_at, used_at, revoked_at, created_at
-              from public.invitations
-             order by created_at desc, id desc
-             limit $1 offset $2
-          )
+    `with filtered as (
+       select id, email, name, user_category_id, expires_at, used_at, revoked_at, created_at
+         from public.invitations
+        where $3::text = 'all'
+           or ($3::text = 'used' and used_at is not null)
+           or ($3::text = 'revoked' and used_at is null and revoked_at is not null)
+           or ($3::text = 'pending'
+               and used_at is null and revoked_at is null and expires_at > $4::timestamptz)
+           or ($3::text = 'expired'
+               and used_at is null and revoked_at is null and expires_at <= $4::timestamptz)
+     ),
+     total as (select count(*)::int as n from filtered),
+     page as (
+       select * from filtered
+        order by created_at desc, id desc
+        limit $1 offset $2
+     )
      select total.n as total, page.*
        from total left join page on true`,
-    [page.limit, page.offset],
+    [page.limit, page.offset, status, now.toISOString()],
   );
   const invitations = rows.filter((row) => row.id !== null && row.id !== undefined);
   const modules = await modulesFor(
     deps.db,
     invitations.map((row) => String(row.id)),
   );
-  const now = deps.now?.() ?? new Date();
   return {
     invitations: invitations.map((row) =>
       toView(row, modules.get(String(row.id)) ?? [], now),

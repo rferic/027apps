@@ -240,14 +240,44 @@ describe("InvitationsPage", () => {
     loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING], total: 45 });
 
     const html = renderToStaticMarkup(
-      await InvitationsPage({ searchParams: Promise.resolve({ page: "2", status: "pending" }) }),
+      await InvitationsPage({ searchParams: Promise.resolve({ page: "2", status: "used" }) }),
     );
 
-    expect(loadInvitationsMock).toHaveBeenCalledWith({ offset: 20 });
+    expect(loadInvitationsMock).toHaveBeenCalledWith({ offset: 20, status: "used" });
     expect(loadCategoriesMock).toHaveBeenCalledWith({ offset: 0, limit: 100 });
     expect(html).toContain("Page 2 of 3");
-    expect(html).toContain('href="/invitations?status=pending"');
-    expect(html).toContain('href="/invitations?status=pending&amp;page=3"');
+    expect(html).toContain('href="/invitations?status=used"');
+    expect(html).toContain('href="/invitations?status=used&amp;page=3"');
+  });
+
+  it("starts on pending when the URL carries no status", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING], total: 1 });
+
+    const html = renderToStaticMarkup(await InvitationsPage());
+
+    expect(loadInvitationsMock).toHaveBeenCalledWith({ offset: 0, status: "pending" });
+    expect(html).toContain('id="invitations-status"');
+  });
+
+  it("sends All as an explicit status=all and keeps it in the pagination", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING], total: 45 });
+
+    const html = renderToStaticMarkup(
+      await InvitationsPage({ searchParams: Promise.resolve({ status: "all", page: "2" }) }),
+    );
+
+    expect(loadInvitationsMock).toHaveBeenCalledWith({ offset: 20, status: "all" });
+    expect(html).toContain('href="/invitations?status=all"');
+    expect(html).toContain('href="/invitations?status=all&amp;page=3"');
+  });
+
+  it("offers All as a real option that is never the empty value", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING], total: 1 });
+
+    const html = renderToStaticMarkup(await InvitationsPage());
+
+    expect(html).toContain('<option value="all"');
+    expect(html).not.toContain('<option value=""');
   });
 
   it("keeps the pagination visible and disabled on a single page", async () => {
@@ -259,17 +289,16 @@ describe("InvitationsPage", () => {
     expect(html).toContain('aria-disabled="true"');
   });
 
-  it("filters the current page by status without another API call", async () => {
-    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING, USED], total: 2 });
+  it("asks the Core for the selected status instead of filtering the page", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [USED], total: 1 });
 
     const html = renderToStaticMarkup(
       await InvitationsPage({ searchParams: Promise.resolve({ status: "used" }) }),
     );
 
-    expect(html).not.toContain("ana@example.com");
-    expect(html).toContain("luis@example.com");
     expect(loadInvitationsMock).toHaveBeenCalledTimes(1);
-    expect(loadInvitationsMock).toHaveBeenCalledWith({ offset: 0 });
+    expect(loadInvitationsMock).toHaveBeenCalledWith({ offset: 0, status: "used" });
+    expect(html).toContain("luis@example.com");
   });
 
   it("redirects only when the requested page is past the last one", async () => {
@@ -278,6 +307,14 @@ describe("InvitationsPage", () => {
     await expect(
       InvitationsPage({ searchParams: Promise.resolve({ page: "3", status: "used" }) }),
     ).rejects.toThrow("NEXT_REDIRECT:/invitations?status=used&page=2");
+  });
+
+  it("keeps the default pending out of the canonical URL when redirecting", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [], total: 40 });
+
+    await expect(InvitationsPage({ searchParams: Promise.resolve({ page: "3" }) })).rejects.toThrow(
+      "NEXT_REDIRECT:/invitations?page=2",
+    );
   });
 });
 

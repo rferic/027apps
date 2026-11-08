@@ -38,6 +38,17 @@ export const createInvitationSchema = z
   })
   .strict();
 
+/**
+ * `GET /invitations` status filter. Validated at the edge like every other
+ * filter: an unknown value is a 400 instead of a silently unfiltered list.
+ * `all` is the explicit opt-out; omitting it also means `all`.
+ */
+export const invitationListFiltersSchema = z
+  .object({
+    status: z.enum(["pending", "used", "expired", "revoked", "all"]).optional(),
+  })
+  .strict();
+
 export const redeemInvitationSchema = z
   .object({
     email: z.string().trim().email().max(320),
@@ -74,7 +85,15 @@ export function invitationsRoute(deps: InvitationsRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(req, readOptions(deps), deps.door, async (ctx) => {
       const page = pageParams(ctx.searchParams);
-      const result = await listInvitations(deps.invitations, page);
+      const rawStatus = ctx.searchParams.get("status") || undefined;
+      const filters = invitationListFiltersSchema.safeParse({ status: rawStatus });
+      if (!filters.success) {
+        throw new DomainError("validation_failed", "invalid status filter");
+      }
+      const result = await listInvitations(deps.invitations, {
+        ...page,
+        ...(filters.data.status ? { status: filters.data.status } : {}),
+      });
       return { ...result, limit: page.limit, offset: page.offset };
     });
 }

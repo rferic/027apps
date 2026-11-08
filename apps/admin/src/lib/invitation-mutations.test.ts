@@ -83,6 +83,31 @@ describe("createInvitation", () => {
     });
   });
 
+  it("keeps the conflict detail code the form maps next to the email", async () => {
+    const fetcher = vi.fn(async () =>
+      json(
+        {
+          error: {
+            code: "conflict",
+            message: "State conflict",
+            request_id: "req-409",
+            details: { code: "email_registered" },
+          },
+        },
+        409,
+      ),
+    );
+
+    await expect(createInvitation({ email: "ana@example.com", name: "Ana" }, fetcher)).resolves.toEqual(
+      {
+        ok: false,
+        code: "conflict",
+        requestId: "req-409",
+        details: { code: "email_registered" },
+      },
+    );
+  });
+
   it("does not treat a 201 HTML page as success", async () => {
     const fetcher = vi.fn(async () => new Response("<html></html>", { status: 201 }));
 

@@ -4630,6 +4630,22 @@
               "minimum": 0,
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "description": "Filter by derived status; omitted or all removes the filter. total reflects it.",
+              "enum": [
+                "pending",
+                "used",
+                "expired",
+                "revoked",
+                "all"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4662,7 +4678,7 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "List invitations.",
+        "summary": "List invitations, optionally by derived status.",
         "x-027-scopes": [
           "invitations:read"
         ]

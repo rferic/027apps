@@ -7,6 +7,7 @@ import {
   listInvitations,
   redeemInvitation,
   revokeInvitation,
+  type InvitationStatusFilter,
   type InvitationsAuth,
   type InvitationsDeps,
 } from "@027apps/core/invitations/service.js";
@@ -346,9 +347,14 @@ describe("invitations service", () => {
       const who = await admin(c);
       const existingEmail = email("existing");
       const existing = await createTestUser(c, { email: existingEmail });
+      // Creation refuses an email that already belongs to a member, so the
+      // invitation has to predate the account (the race redemption guards).
+      const inv = await createInvitation(deps(c, authPort(c).port), who, {
+        email: existingEmail,
+        name: "Existing",
+      });
       const auth = authPort(c, [{ id: existing.id, email: existingEmail }]);
       const d = deps(c, auth.port);
-      const inv = await createInvitation(d, who, { email: existingEmail, name: "Existing" });
 
       const result = await redeemInvitation(d, inv.token, {
         email: inv.invitation.email,
@@ -365,9 +371,12 @@ describe("invitations service", () => {
       const existingEmail = email("deactivated");
       const existing = await createTestUser(c, { email: existingEmail });
       await query(c, "update public.profiles set deactivated_at = now() where id = $1", [existing.id]);
+      const inv = await createInvitation(deps(c, authPort(c).port), who, {
+        email: existingEmail,
+        name: "Gone",
+      });
       const auth = authPort(c, [{ id: existing.id, email: existingEmail }]);
       const d = deps(c, auth.port);
-      const inv = await createInvitation(d, who, { email: existingEmail, name: "Gone" });
 
       await expect(
         redeemInvitation(d, inv.token, {
@@ -447,6 +456,188 @@ describe("invitations service", () => {
         );
         await c.query("delete from public.profiles where id = any($1::uuid[])", [ids]);
         await c.query("delete from auth.users where id = any($1::uuid[])", [ids]);
+      });
+    }
+  });
+});
+
+describe("createInvitation rules", () => {
+  it("rejects a second pending invitation for the same email", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      const d = deps(c, authPort(c).port);
+      const inviteEmail = email("duplicate");
+
+      await createInvitation(d, who, { email: inviteEmail, name: "One" });
+
+      await expect(
+        createInvitation(d, who, { email: inviteEmail, name: "Two" }),
+      ).rejects.toMatchObject({
+        code: "conflict",
+        message: "That email already has a pending invitation",
+        details: { code: "pending_invitation" },
+      });
+
+      const { rows } = await query(
+        c,
+        "select count(*)::int as n from public.invitations where email = $1",
+        [inviteEmail],
+      );
+      expect(rows[0]!.n).toBe(1);
+    });
+  });
+
+  it("rejects an email that already belongs to a member", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      const memberEmail = email("member");
+      const member = await createTestUser(c, { email: memberEmail });
+      const auth = authPort(c, [{ id: member.id, email: memberEmail }]);
+
+      await expect(
+        createInvitation(deps(c, auth.port), who, { email: memberEmail, name: "Member" }),
+      ).rejects.toMatchObject({
+        code: "conflict",
+        message: "That email already belongs to a member",
+        details: { code: "email_registered" },
+      });
+
+      const { rows } = await query(
+        c,
+        "select count(*)::int as n from public.invitations where email = $1",
+        [memberEmail],
+      );
+      expect(rows[0]!.n).toBe(0);
+    });
+  });
+
+  it("allows the email of a used or an expired invitation", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      const d = deps(c, authPort(c).port);
+      const usedEmail = email("used-again");
+      const expiredEmail = email("expired-again");
+
+      const used = await createInvitation(d, who, { email: usedEmail, name: "Used" });
+      await query(c, "update public.invitations set used_at = now() where id = $1", [
+        used.invitation.id,
+      ]);
+
+      const expired = await createInvitation(d, who, { email: expiredEmail, name: "Expired" });
+      await query(
+        c,
+        "update public.invitations set created_at = now() - interval '2 days', expires_at = now() - interval '1 minute' where id = $1",
+        [expired.invitation.id],
+      );
+
+      await expect(
+        createInvitation(d, who, { email: usedEmail, name: "Used again" }),
+      ).resolves.toMatchObject({ invitation: { status: "pending" } });
+      await expect(
+        createInvitation(d, who, { email: expiredEmail, name: "Expired again" }),
+      ).resolves.toMatchObject({ invitation: { status: "pending" } });
+    });
+  });
+
+  it("normalises the email before storing and comparing it", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      const d = deps(c, authPort(c).port);
+      const raw = email("normalise");
+      const mixed = `  ${raw.toUpperCase()} `;
+
+      const created = await createInvitation(d, who, { email: mixed, name: "Normalised" });
+
+      expect(created.invitation.email).toBe(raw);
+      await expect(
+        createInvitation(d, who, { email: `${raw.toUpperCase()}`, name: "Again" }),
+      ).rejects.toMatchObject({ code: "conflict", details: { code: "pending_invitation" } });
+    });
+  });
+
+  it("filters the list by derived status and keeps the total in sync", async () => {
+    await inRollback(async (c) => {
+      // The local stack may hold invitations from other runs; the filter and its
+      // total are only deterministic with a clean table.
+      await query(c, "delete from public.invitations");
+
+      const who = await admin(c);
+      const d = deps(c, authPort(c).port);
+
+      const pending = await createInvitation(d, who, { email: email("f-pending"), name: "P" });
+      const used = await createInvitation(d, who, { email: email("f-used"), name: "U" });
+      const expired = await createInvitation(d, who, { email: email("f-expired"), name: "E" });
+      const revoked = await createInvitation(d, who, { email: email("f-revoked"), name: "R" });
+
+      await query(c, "update public.invitations set used_at = now() where id = $1", [
+        used.invitation.id,
+      ]);
+      await query(
+        c,
+        "update public.invitations set created_at = now() - interval '2 days', expires_at = now() - interval '1 minute' where id = $1",
+        [expired.invitation.id],
+      );
+      await revokeInvitation(d, revoked.invitation.id);
+
+      const ids = async (status: InvitationStatusFilter) => {
+        const result = await listInvitations(d, { ...PAGE, status });
+        expect(result.total).toBe(result.invitations.length);
+        expect(result.invitations.every((row) => row.status === status)).toBe(true);
+        return result.invitations.map((row) => row.id);
+      };
+
+      expect(await ids("pending")).toEqual([pending.invitation.id]);
+      expect(await ids("used")).toEqual([used.invitation.id]);
+      expect(await ids("expired")).toEqual([expired.invitation.id]);
+      expect(await ids("revoked")).toEqual([revoked.invitation.id]);
+      expect(await listInvitations(d, { ...PAGE, status: "all" })).toMatchObject({ total: 4 });
+    });
+  });
+
+  it("leaves a single invitation when two creates race for the same email", async () => {
+    const live = liveDeps();
+    const inviteEmail = email("create-race");
+    let adminId = "";
+
+    try {
+      await withClient(async (c) => {
+        const created = await createTestUser(c, { email: email("race-admin"), role: "super_admin" });
+        adminId = created.id;
+      });
+      const who: Caller = { kind: "session", userId: adminId, role: "super_admin" };
+
+      const attempts = await Promise.allSettled([
+        createInvitation(live.deps, who, { email: inviteEmail, name: "One" }),
+        createInvitation(live.deps, who, { email: inviteEmail, name: "Two" }),
+      ]);
+
+      expect(attempts.filter((attempt) => attempt.status === "fulfilled")).toHaveLength(1);
+      const rejected = attempts.find((attempt) => attempt.status === "rejected") as
+        | PromiseRejectedResult
+        | undefined;
+      expect(rejected?.reason).toMatchObject({
+        code: "conflict",
+        details: { code: "pending_invitation" },
+      });
+
+      await withClient(async (c) => {
+        const { rows } = await query(
+          c,
+          "select count(*)::int as n from public.invitations where email = $1",
+          [inviteEmail],
+        );
+        expect(rows[0]!.n).toBe(1);
+      });
+    } finally {
+      await withClient(async (c) => {
+        await c.query("delete from public.invitations where email = $1", [inviteEmail]);
+        if (adminId) {
+          await c.query("delete from public.event_outbox where resource->>'email' = $1", [
+            inviteEmail,
+          ]);
+          await c.query("delete from public.profiles where id = $1", [adminId]);
+          await c.query("delete from auth.users where id = $1", [adminId]);
+        }
       });
     }
   });

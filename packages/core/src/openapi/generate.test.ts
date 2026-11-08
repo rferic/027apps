@@ -78,6 +78,16 @@ describe("OpenAPI generation", () => {
     }
   });
 
+  it("documents the status filter of GET /invitations", () => {
+    const document = buildOpenApiDocument();
+    const get = record(record(record(document.paths)["/invitations"]).get);
+    const parameters = (get.parameters ?? []) as JsonRecord[];
+    const status = parameters.find((parameter) => parameter.name === "status");
+    expect(status).toBeDefined();
+    expect(JSON.stringify(status)).toContain("pending");
+    expect(JSON.stringify(status)).toContain('"all"');
+  });
+
   it("documents the role, state and category filters of GET /users", () => {
     const document = buildOpenApiDocument();
     const get = record(record(record(document.paths)["/users"]).get);

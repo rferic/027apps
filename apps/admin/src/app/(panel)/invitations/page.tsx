@@ -41,14 +41,18 @@ interface InvitationsSearchParams {
   page?: string | string[];
 }
 
+/** The list defaults to pending even when the URL carries no `status`. */
+const DEFAULT_STATUS: StatusFilter = "pending";
+
 function parseStatus(value: string | undefined): StatusFilter {
-  return value === "pending" || value === "used" || value === "expired" || value === "revoked"
+  return value === "used" || value === "expired" || value === "revoked" || value === "all"
     ? value
-    : "all";
+    : DEFAULT_STATUS;
 }
 
-function filterInvitations(rows: InvitationRow[], filter: StatusFilter): InvitationRow[] {
-  return filter === "all" ? rows : rows.filter((row) => row.status === filter);
+/** The default `pending` is omitted so the canonical URL stays clean. */
+function statusParam(filter: StatusFilter): StatusFilter | undefined {
+  return filter === DEFAULT_STATUS ? undefined : filter;
 }
 
 function InvitationsFilter({
@@ -64,18 +68,19 @@ function InvitationsFilter({
         name="status"
         id="invitations-status"
         label={t("Status", messages)}
-        value={filter === "all" ? "" : filter}
+        value={filter}
         basePath="/invitations"
-        params={filter === "all" ? {} : { status: filter }}
+        params={{}}
         options={[
-          { value: "", label: t("All", messages) },
           { value: "pending", label: t("Pending", messages) },
           { value: "used", label: t("Used", messages) },
           { value: "expired", label: t("Expired", messages) },
           { value: "revoked", label: t("Revoked", messages) },
+          // A real value: "All" is an explicit `status=all`, never a missing key.
+          { value: "all", label: t("All", messages) },
         ]}
       />
-      {filter !== "all" && (
+      {filter !== DEFAULT_STATUS && (
         <Link href="/invitations" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
           {t("Clear filter", messages)}
         </Link>
@@ -299,7 +304,7 @@ function InvitationsBody({
   moduleChoices: Awaited<ReturnType<typeof loadModuleChoices>>;
   messages: TranslationMap;
 }) {
-  const filters = { status: filter === "all" ? undefined : filter };
+  const filters = { status: statusParam(filter) };
 
   if (!data.ok) {
     return (
@@ -312,7 +317,7 @@ function InvitationsBody({
     );
   }
 
-  const rows = filterInvitations(data.invitations, filter);
+  const rows = data.invitations;
   const categoryRows = readCategories(categories);
   const categoryNames = new Map(categoryRows.map((category) => [category.id, category.name]));
   const moduleNames = new Map(
@@ -324,7 +329,7 @@ function InvitationsBody({
     <>
       <InvitationsFilter filter={filter} messages={messages} />
       {empty ? (
-        <InvitationsEmpty filtered={filter !== "all"} messages={messages} />
+        <InvitationsEmpty filtered={filter !== DEFAULT_STATUS} messages={messages} />
       ) : (
         <>
           <InvitationsTable
@@ -380,14 +385,14 @@ export default async function InvitationsPage({
   const page = parsePage(firstParam(params.page));
 
   const [invitations, categories, moduleChoices] = await Promise.all([
-    loadInvitations({ offset: pageOffset(page) }),
+    loadInvitations({ offset: pageOffset(page), status: filter }),
     loadCategories({ offset: 0, limit: 100 }),
     loadModuleChoices(),
   ]);
 
   if (invitations.ok && page > pageCount(invitations.total)) {
     const target = pageCount(invitations.total);
-    redirect(pageHref("/invitations", { status: filter === "all" ? undefined : filter }, target));
+    redirect(pageHref("/invitations", { status: statusParam(filter) }, target));
   }
 
   return (

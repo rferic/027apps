@@ -128,3 +128,49 @@ describe("invitations route pagination", () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe("invitations route status filter", () => {
+  it("passes an explicit all filter to the service", async () => {
+    const deps = pagedDeps(rows(1));
+    const query = deps.invitations.db.query;
+    const calls: { sql: string; params: unknown[] }[] = [];
+    deps.invitations.db = {
+      query: (sql: string, params: unknown[] = []) => {
+        calls.push({ sql, params });
+        return query(sql, params);
+      },
+    };
+
+    const { status } = await list(invitationsRoute(deps), "/api/v1/invitations?status=all");
+
+    expect(status).toBe(200);
+    const page = calls.find((call) => call.sql.includes("public.invitations"));
+    expect(page?.params[2]).toBe("all");
+  });
+
+  it("passes a concrete status to the service", async () => {
+    const deps = pagedDeps(rows(1));
+    const query = deps.invitations.db.query;
+    const calls: { sql: string; params: unknown[] }[] = [];
+    deps.invitations.db = {
+      query: (sql: string, params: unknown[] = []) => {
+        calls.push({ sql, params });
+        return query(sql, params);
+      },
+    };
+
+    await list(invitationsRoute(deps), "/api/v1/invitations?status=pending");
+
+    const page = calls.find((call) => call.sql.includes("public.invitations"));
+    expect(page?.params[2]).toBe("pending");
+  });
+
+  it("rejects an unknown status instead of guessing", async () => {
+    const res = await invitationsRoute(pagedDeps(rows(1)))(
+      new Request("http://local/api/v1/invitations?status=maybe"),
+    );
+
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe("validation_failed");
+  });
+});

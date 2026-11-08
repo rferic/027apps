@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { invitationsRoute } from "@027apps/core/invitations/api.js";
+import type { InvitationStatusFilter } from "@027apps/core/invitations/service.js";
 import { invitationsRouteDeps } from "@/lib/invitations-route-deps";
 import { PANEL_PAGE_SIZE } from "@/lib/panel-pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -177,18 +178,32 @@ function readInvitation(value: unknown): InvitationRow | null {
   };
 }
 
+/** Query for one page: `status` only travels when the caller asks for one. */
+function pageQuery(input: {
+  offset: number;
+  limit?: number;
+  status?: InvitationStatusFilter;
+}): URLSearchParams {
+  const params = new URLSearchParams();
+  params.set("limit", String(input.limit ?? PANEL_PAGE_SIZE));
+  params.set("offset", String(Math.max(0, input.offset)));
+  if (input.status) params.set("status", input.status);
+  return params;
+}
+
 /**
- * GET /api/v1/invitations with a page window. The route never returns the
- * token: the plaintext exists only in the creation response.
+ * GET /api/v1/invitations with a page window and an optional status filter.
+ * The route never returns the token: the plaintext exists only in the creation
+ * response. The status travels to the Core so the page, `total` and the
+ * paginator all describe the same filtered list.
  */
 export async function loadInvitations(input: {
   offset: number;
   limit?: number;
+  status?: InvitationStatusFilter;
 }): Promise<InvitationList> {
   const token = await sessionToken();
-  const params = new URLSearchParams();
-  params.set("limit", String(input.limit ?? PANEL_PAGE_SIZE));
-  params.set("offset", String(Math.max(0, input.offset)));
+  const params = pageQuery(input);
 
   const call = await callRoute(
     invitationsRoute(await invitationsRouteDeps()),

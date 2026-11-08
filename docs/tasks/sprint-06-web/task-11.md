@@ -41,6 +41,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 14 | Borrado definitivo de un miembro desactivado (`DELETE /users/{id}/purge`) | hecho |
 | 15 | Filtro por defecto `active` en `/users` y `/members`; `all` explícito | hecho |
 | 16 | Categorías por usuario visibles y filtro por categoría en `/members` | hecho |
+| 17 | Invitaciones: reglas al crear, errores por campo, «Create another» y filtro por defecto pendiente | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -284,3 +285,50 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   `category` enviado y conservado en paginación y búsqueda, opciones del select, uuid inválido
   ignorado, detalle con enlaces y vacío); i18n (`All categories`, `No categories assigned.` en las 8
   locales).
+
+### Iteración 17 — Invitaciones: reglas, errores por campo, «Create another» y filtro por defecto (hecho)
+
+- **Core, reglas al crear** (`packages/core/src/invitations/service.ts`): el email se normaliza
+  (trim + minúsculas) antes de compararlo y de guardarlo. `createInvitation` rechaza ahora:
+  - un email que ya es de una cuenta (`auth.findUserByEmail`) → `conflict` con
+    `details.code = "email_registered"`;
+  - un email con otra invitación **pendiente** (no usada, no revocada y `expires_at > now`) →
+    `conflict` con `details.code = "pending_invitation"`.
+
+  Una invitación usada o caducada no bloquea: ese email se puede volver a invitar. La comprobación
+  de pendientes y el `insert` van en la **misma transacción**, serializados por
+  `pg_advisory_xact_lock(hashtext('invitation:<email>'))`: dos creates concurrentes del mismo email
+  dejan exactamente una invitación (verificado con dos conexiones reales, no con un fake).
+- **Contrato de error**: el envelope de ADR 0007 no publica el mensaje propio de un `DomainError`
+  (`toEnvelope` siempre renderiza el canónico del código), así que el caso concreto viaja en
+  `error.details.code`. El panel mapea **por ese código**, nunca por el texto: `conflict` sin un
+  código conocido sigue mostrando la etiqueta genérica.
+- **Core, filtro `status`** en `GET /api/v1/invitations`: `pending | used | expired | revoked | all`.
+  `all` (y la ausencia del parámetro) es «sin filtro»; el valor se valida con zod en el borde y uno
+  desconocido es `400 validation_failed` (no se recorta como `limit`/`offset`, porque aquí sí cambia
+  el resultado). El `total` se cuenta sobre el CTE ya filtrado, así que lista y paginador coinciden.
+  `invitationsQuerySchema` documenta el parámetro y `docs/api/openapi.json` se regenera.
+- **Admin, errores por caso**: `MutationErrorDetails` publica `details.code`;
+  `panel-errors.invitationConflictError()` traduce `email_registered` y `pending_invitation`.
+  En `/invitations/new` se pintan como `fieldErrors.email`, junto al campo
+  (`aria-invalid` + `aria-describedby`), y **no** como alerta genérica.
+- **Admin, «Create another»**: tras crear, el panel del token ofrece **Create another** junto a
+  **Done**. Si el token no se ha copiado, pide confirmación inline («The token won't be shown again.»);
+  si ya se copió, resetea sin preguntar. El reset deja `phase: "form"`, limpia
+  `token`/`copied`/`copyFailed`/`error`/`fieldErrors`, vacía el formulario con `formKey + 1`
+  (remonta los campos no controlados) y **no sale de la página**. El `useEffect` de montaje limpia
+  el estado de una instancia cacheada al volver a entrar.
+- **Admin, filtro por defecto pendiente**: `/invitations` arranca en **pending** aunque la URL no
+  traiga `status`; la opción **All** es un valor real (`status=all`), no la opción vacía. `pending`
+  se omite de la URL canónica (misma regla que `state=active` en `/members`), y paginación, reintento
+  y redirección conservan el filtro. El estado se filtra en el Core, no sobre la página ya paginada
+  (antes una página podía quedarse vacía aunque hubiera pendientes en la siguiente).
+- **i18n**: cuatro claves nuevas (`Create another`, los dos conflictos y el aviso de token) en
+  `catalog.en.json` y en las 8 locales, con `i18n:scan` + `i18n:check`.
+- Tests: Core (pendiente duplicado → 409 con `details.code`, email de miembro → 409, usada/caducada
+  permitidas, normalización, dos creates concurrentes dejan una, `status` enviado al servicio y valor
+  desconocido → 400, documento OpenAPI con el parámetro); db-tests (mismas reglas contra Postgres,
+  filtro por estado con `total` coherente y carrera real con dos conexiones); Admin (mensajes por
+  `details.code` en `panel-errors` y en el resultado de la mutación, «Create another» con y sin
+  confirmación en el reducer, panel en estado de confirmación, filtro por defecto pendiente, `all`
+  explícito y conservado en paginación).

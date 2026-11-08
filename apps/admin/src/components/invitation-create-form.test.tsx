@@ -5,10 +5,21 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 
-import { InvitationCreateForm, InvitationCreatedPanel } from "./invitation-create-form";
+import {
+  INITIAL_INVITATION_CREATE_STATE,
+  InvitationCreateForm,
+  InvitationCreatedPanel,
+  invitationCreateReducer,
+} from "./invitation-create-form";
 
 const CATEGORIES = [{ id: "c1", name: "Familia" }];
 const MODULES = [{ key: "expenses", name: "Expenses" }];
+const PANEL_ACTIONS = {
+  onCopy: () => {},
+  onCreateAnother: () => {},
+  onConfirmAnother: () => {},
+  onCancelAnother: () => {},
+};
 
 describe("InvitationCreateForm", () => {
   it("renders the fields on a page, not inside a creation dialog", () => {
@@ -41,13 +52,7 @@ describe("InvitationCreateForm", () => {
 describe("InvitationCreatedPanel", () => {
   it("asks for a manual copy when the clipboard copy failed (insecure context)", () => {
     const html = renderToStaticMarkup(
-      <InvitationCreatedPanel
-        token="tok-123"
-        copied={false}
-        copyFailed
-        onCopy={() => {}}
-        messages={{}}
-      />,
+      <InvitationCreatedPanel token="tok-123" copied={false} copyFailed {...PANEL_ACTIONS} messages={{}} />,
     );
 
     expect(html).toContain("Select the text and copy it manually.");
@@ -56,7 +61,7 @@ describe("InvitationCreatedPanel", () => {
 
   it("shows the one-time token on the page with copy and a Done link to the list", () => {
     const html = renderToStaticMarkup(
-      <InvitationCreatedPanel token="tok-123" copied={false} onCopy={() => {}} messages={{}} />,
+      <InvitationCreatedPanel token="tok-123" copied={false} {...PANEL_ACTIONS} messages={{}} />,
     );
 
     expect(html).toContain("tok-123");
@@ -71,11 +76,92 @@ describe("InvitationCreatedPanel", () => {
 
   it("does not leave a second creation path when the API returned no token", () => {
     const html = renderToStaticMarkup(
-      <InvitationCreatedPanel token={null} copied={false} onCopy={() => {}} messages={{}} />,
+      <InvitationCreatedPanel token={null} copied={false} {...PANEL_ACTIONS} messages={{}} />,
     );
 
     expect(html).toContain("The invitation was created but the API did not return a token.");
     expect(html).toContain("Done");
     expect(html).not.toContain("<form");
+  });
+});
+
+describe("InvitationCreatedPanel create another", () => {
+  it("offers Create another next to Done", () => {
+    const html = renderToStaticMarkup(
+      <InvitationCreatedPanel token="tok-123" copied={false} {...PANEL_ACTIONS} messages={{}} />,
+    );
+
+    expect(html).toContain("Create another");
+    expect(html).toContain("Done");
+    expect(html).not.toContain("The token won't be shown again.");
+  });
+
+  it("asks inline before dropping a token that was not copied", () => {
+    const html = renderToStaticMarkup(
+      <InvitationCreatedPanel
+        token="tok-123"
+        copied={false}
+        confirmingAnother
+        {...PANEL_ACTIONS}
+        messages={{}}
+      />,
+    );
+
+    expect(html).toContain("The token won&#x27;t be shown again.");
+    expect(html).toContain("Cancel");
+    expect(html).toContain("tok-123");
+  });
+});
+
+describe("invitationCreateReducer", () => {
+  const created = invitationCreateReducer(INITIAL_INVITATION_CREATE_STATE, {
+    type: "created",
+    token: "tok-123",
+  });
+
+  it("keeps the token on the created step", () => {
+    expect(created).toMatchObject({ phase: "created", token: "tok-123", copied: false });
+  });
+
+  it("asks before discarding an uncopied token", () => {
+    const asked = invitationCreateReducer(created, { type: "another-requested" });
+
+    expect(asked).toMatchObject({ phase: "created", token: "tok-123", confirmingAnother: true });
+  });
+
+  it("returns to an empty form and drops the previous token", () => {
+    const asked = invitationCreateReducer(created, { type: "another-requested" });
+    const reset = invitationCreateReducer(asked, { type: "another-confirmed" });
+
+    expect(reset).toMatchObject({
+      phase: "form",
+      token: null,
+      copied: false,
+      copyFailed: false,
+      confirmingAnother: false,
+      error: null,
+      fieldErrors: {},
+    });
+    expect(reset.formKey).toBeGreaterThan(created.formKey);
+  });
+
+  it("resets a copied token without asking", () => {
+    const copied = invitationCreateReducer(created, { type: "copy-succeeded" });
+    const reset = invitationCreateReducer(copied, { type: "another-requested" });
+
+    expect(reset).toMatchObject({ phase: "form", token: null, copied: false });
+  });
+
+  it("clears the errors and the copy flags on reset", () => {
+    const failed = invitationCreateReducer(created, {
+      type: "failed",
+      error: { ok: false, code: "conflict" },
+      fieldErrors: { email: ["nope"] },
+    });
+    expect(invitationCreateReducer(failed, { type: "reset" })).toMatchObject({
+      error: null,
+      fieldErrors: {},
+      token: null,
+    });
   });
 });
