@@ -54,6 +54,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 27 | Revisión de estilo de la tarea 13 y extracción de las primitivas compartidas de los formularios de clave | hecho |
 | 28 | Guardia de CORS al guardar la lista de orígenes y limpieza de la fila `instance.logo_url` | hecho |
 | 29 | Filtros de módulos en servidor y retirada del componente muerto `LayoutShell` | hecho |
+| 30 | Grants explícitos en `public` y cierre del agujero de `profiles` (defecto de `0001` que sale al resetear; no es alcance de la tarea) | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -497,6 +498,37 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   del servidor no se vuelve a filtrar en cliente y la paginación usa el total filtrado.
 - **Deuda aceptada:** `/docs/api` (Scalar) no muestra `request_id` si falla la carga del documento.
 
+### Iteración 30 — Grants explícitos en `public` y cierre del agujero de `profiles` (hecho)
+
+- **No es un cambio de esta tarea.** Es un defecto de `supabase/migrations/0001_profiles.sql` que salió a la
+  luz al resetear la base local y aplicar las migraciones con el CLI 3.0.0. Se deja constancia aquí porque
+  apareció durante la revisión, pero no forma parte del alcance de la tarea 11.
+- **El fallo:** el bootstrap del CLI 3 —que no existía en el 2.108.0 que usa CI— instala *default privileges*
+  `for role postgres in schema public` que conceden `ALL` sobre tablas y secuencias a `anon` y
+  `authenticated`. Eso anulaba el grant por columnas de `0001`: un miembro podía escribir `role` en su
+  propia fila (de `user` a `super_admin`) o `deactivated_at` directamente por PostgREST, sin pasar por el
+  Core. Además, `anon` quedaba con DML en las 19 tablas. La política efectiva dependía de qué CLI hubiera
+  provisionado la base: en CI no se veía porque usa 2.108.0.
+- **`0018_explicit_public_grants.sql`:** `revoke all` sobre todas las tablas y secuencias de `public` a
+  `anon, authenticated` y reconstrucción explícita de la matriz que ya pretendían `0001`–`0016`: `anon` solo
+  lee el catálogo (`profiles`, `settings_categories`, `settings`, `currencies`, `rate_limit_counters`,
+  `translations`); `authenticated` lee el catálogo y las tablas del panel, y escribe solo las que el panel
+  posee (categorías, módulos por usuario, invitaciones, dispositivos); `api_keys` queda en solo lectura
+  (0016); `currencies` admite `update` de tabla; `profiles` solo `update (display_name, locale, timezone)`.
+- **`0019_explicit_public_function_grants.sql`:** el mismo bootstrap concede `EXECUTE` sobre toda función
+  nueva de `public` a `anon` y `authenticated`, así que el `revoke ... from public, anon` de `0001`/`0013`
+  dejó de bastar en local: un `members_fn` creado después seguía siendo invocable por un miembro. Se cierra
+  con `alter default privileges for role postgres in schema public revoke execute on functions from anon,
+  authenticated`; las tres funciones existentes conservan sus grants explícitos.
+- **Test:** `packages/db-tests/src/rls/privileges.test.ts` fija el invariante con `has_table_privilege` e
+  `information_schema.column_privileges`: `anon` no tiene `insert`/`update`/`delete` ni privilegios de
+  columna en ninguna tabla de `public`, y solo lee las seis del catálogo; `authenticated` no tiene `update`
+  de tabla en `profiles` y solo puede actualizar `display_name`, `locale` y `timezone`. Comprobado por
+  mutación: un `grant update on public.currencies to anon` pone el test en rojo.
+- **Evidencia (CLI 3.0.0 local):** tras `0018`, `pnpm --filter db-tests test` pasó a 212/213 (el único fallo
+  era `core_can_subscribe`, ya de funciones); tras `0019`, 35 ficheros y 216 tests en verde, con
+  `pnpm --filter db-tests tsc` limpio.
+
 ## Checklist por páginas (revisión con el usuario)
 
 Recorrido página a página de la checklist de la spec §9, separado del inventario de iteraciones: cada
@@ -545,9 +577,10 @@ como **necesita ojo humano** con la instrucción concreta.
 
 ## Cierre (2026-11-08)
 
-- **Resumen (29 iteraciones)**: las iteraciones 1–29 están cerradas. Cubren la arquitectura de información,
+- **Resumen (30 iteraciones)**: las iteraciones 1–30 están cerradas. Cubren la arquitectura de información,
   cabecera e idioma, patrones de lista/detalle/formulario, estados vacío/carga/error, paginación y filtros en
-  servidor, fichas de claves e invitaciones, guardia de CORS y filtros de módulos.
+  servidor, fichas de claves e invitaciones, guardia de CORS y filtros de módulos. La 30 es un defecto de la
+  migración `0001`, no de esta tarea: grants explícitos en `public` para que la política no dependa del CLI.
 - **Checklist §9 y pantallas 8–10**: verificadas en código y, a continuación, por el usuario: 375 px sin
   scroll horizontal, teclado con anillo de foco y textos largos en las 9 locales.
 - **Evidencia de gates**: `pnpm lint` y `pnpm tsc` en verde; `pnpm --filter admin test` 1069;
