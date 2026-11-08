@@ -2,7 +2,7 @@
 id: sprint-06-task-11
 titulo: Revisión de diseño y UX
 area: web
-estado: en curso
+estado: finalizada
 adrs: [0004, 0005]
 plan: docs/superpowers/plans/2026-11-06-web-admin.md
 spec: docs/superpowers/specs/2026-11-06-web-admin-ux-review.md
@@ -31,7 +31,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 4 | Estados vacío/carga/error y comportamiento móvil (375 px) | hecho |
 | 5 | Settings como padre con una página por categoría y guard por sección | hecho |
 | 6 | Monedas como selector múltiple con búsqueda, nombre y símbolo derivados | hecho |
-| 7 | Checklist UX de 10 puntos de la spec §9 (a 375 y 1280 px), revisión y auditoría | pendiente |
+| 7 | Checklist UX de 10 puntos de la spec §9 (a 375 y 1280 px), revisión y auditoría | hecho |
 | 8 | Fechas de presentación con la zona de la instancia (deuda M2d, ADR 0008 §2) | hecho |
 | 9 | Idiomas habilitados con el mismo selector múltiple que las monedas | hecho |
 | 10 | Arquitectura de información final: Ajustes plano y grupo Documentación | hecho |
@@ -511,13 +511,13 @@ fila se cierra con el usuario delante, a 375 y 1280 px.
 | 5 | Categorías | hecho |
 | 6 | Invitaciones | hecho |
 | 7 | Claves | hecho |
-| 8 | Ajustes | test |
-| 9 | Módulos y documentación de API | test |
-| 10 | Transversal (acciones sobre uno mismo, procedencia del dato, coherencia wizard → perfil) | test |
+| 8 | Ajustes | hecho |
+| 9 | Módulos y documentación de API | hecho |
+| 10 | Transversal (acciones sobre uno mismo, procedencia del dato, coherencia wizard → perfil) | hecho |
 
 Nota: la 6 y la 9 no tienen ficha de detalle todavía; se resuelve en `task-14`.
-Las filas 8, 9 y 10 se revisaron en código el 2026-11-08 (ver § Checklist §9 más abajo) y quedan en
-`test` a la espera del visto bueno del usuario sobre los puntos 8, 9 y 10 de la checklist.
+Las filas 8, 9 y 10 se revisaron en código el 2026-11-08 (ver § Checklist §9 más abajo) y el usuario
+dio el visto bueno en la prueba visual posterior.
 
 ## Checklist §9 — verificación mecánica (2026-11-08)
 
@@ -531,24 +531,27 @@ como **necesita ojo humano** con la instrucción concreta.
 | 3 | Cabecera con marca, instancia, idioma y menú con «Cerrar sesión» | cumple (matiz) | `panel-header.tsx:49-55` (marca `md` + nombre de instancia) y `:57-98` (menú de usuario con rol, tema, idioma y `Log out` en `:92-95`). El idioma vive **dentro** del menú de usuario, no suelto a la derecha; cumple §3 y §4 de la spec (junto al menú de usuario). |
 | 4 | Cada lista tiene vacío, carga y error con `request_id` | cumple | Error único `panel-error.tsx:14-34` (código traducido + `request_id` + reintento) usado en `categories/page.tsx:142`, `invitations/page.tsx:301`, `keys/page.tsx:399`, `modules/install/page.tsx:201-202`, `members/page.tsx:494` y el error propio de `modules/page.tsx:372-392`; `loading.tsx` en cada listado (`members`, `categories`, `invitations`, `keys`, `modules`, `modules/install`, `settings`); vacíos en `categories/page.tsx:166`, `invitations/page.tsx:321`, `keys/page.tsx:410-411`, `members/page.tsx:552`, `modules/page.tsx:424`. |
 | 5 | Acción primaria clara; destructivas separadas y confirmadas | cumple | Primarias: `members/page.tsx:567` (Invitar), `categories/page.tsx:220`, `invitations/page.tsx:398`, `keys/page.tsx:517`, `modules/page.tsx:429`, guardar en `settings-form.tsx:579`. Destructivas en zona propia con `<Dialog>`: `member-danger-zone.tsx:73`, `category-danger-zone.tsx:77`, `member-purge-action.tsx`, `api-key-revoke-button.tsx`, `invitation-revoke-button.tsx`, `module-actions.tsx`. |
-| 6 | Sin scroll horizontal a 375 px; tablas → tarjetas | cumple en código · **necesita ojo humano** | Las 7 tablas están dentro de `hidden overflow-x-auto sm:block` y tienen gemela `ul sm:hidden`: `members/page.tsx:166/220`, `categories/page.tsx:46/84`, `invitations/page.tsx:154/216`, `keys/page.tsx:271/327`, `modules/page.tsx:267/327`, `modules/install/page.tsx:77/125`, `modules/[key]/page.tsx:207/233`. Resto: `components/ui/data-table.tsx:18-19` es una tabla solo con `overflow-x-auto`, pero **no se importa en ninguna página** (solo en su test): código muerto a borrar, no un fallo de la checklist. |
+| 6 | Sin scroll horizontal a 375 px; tablas → tarjetas | cumple (código y prueba visual del usuario a 375 px) | Las 7 tablas están dentro de `hidden overflow-x-auto sm:block` y tienen gemela `ul sm:hidden`: `members/page.tsx:166/220`, `categories/page.tsx:46/84`, `invitations/page.tsx:154/216`, `keys/page.tsx:271/327`, `modules/page.tsx:267/327`, `modules/install/page.tsx:77/125`, `modules/[key]/page.tsx:207/233`. Resto: `components/ui/data-table.tsx:18-19` es una tabla solo con `overflow-x-auto`, pero **no se importa en ninguna página** (solo en su test): código muerto a borrar, no un fallo de la checklist. |
 | 7 | Sin datos de ejemplo en producción | cumple | `grep -rn 'Sara\|Carlos\|MEMBERS_ROWS\|340,00'` sobre `apps/admin/src` no devuelve nada fuera de `*.test.*`; `grep -rn 'demo\|mock\|Lorem'` tampoco. Los KPIs salen de `total`/API (`page.tsx`). |
 | 8 | Rol y estado se leen sin color | cumple | `Badge` siempre lleva texto (`ui/badge.tsx:22-24`); etiquetas de rol/estado en `members/page.tsx:111-127`, `keys/page.tsx:135-138`, `modules/page.tsx:157-163`, `members/[id]/page.tsx:86`, `keys/[id]/page.tsx:66`. El color solo refuerza. |
-| 9 | Navegación con teclado y foco visible | **necesita ojo humano** (parcial) | Las primitivas llevan anillo explícito: `ui/button.tsx:16`, `ui/form.tsx:10-14`, `ui/select.tsx:10`, `ui/search-input.tsx:153,160`, `panel-nav.tsx:87`, `panel-mobile-menu.tsx:27,53`, `ui/row-link.tsx` (`stretchedLinkClass`). Los enlaces de texto en línea (p. ej. `members/[id]/page.tsx:60`, `modules/page.tsx:395`) solo llevan `hover:underline` y dependen del anillo por defecto del navegador: hay que confirmarlo con Tab. |
-| 10 | Textos de menú en las 9 locales | **necesita ojo humano** (parcial) | La etiqueta más larga es «Rate limits»: «Límites de peticiones» (es, 21), «Límites de peticións» (gl, 20), «Limiti di richieste» (it, 19), «Limites de requêtes» (fr, 19), «Límits de peticions» (ca, 19), «Limites de pedidos» (pt, 18); después «Benachrichtigungen» (de, 18) y «Firebase-Anleitung» (de, 18). La navegación usa `truncate` (`panel-nav.tsx:106,116`), así que no rompe el layout, pero el sidebar mide 220 px (`layout.tsx:42`): comprobar que «Rate limits» y «Notifications» no se corten a 1280 px ni en el drawer a 375 px. |
+| 9 | Navegación con teclado y foco visible | cumple (prueba de teclado del usuario) | Las primitivas llevan anillo explícito: `ui/button.tsx:16`, `ui/form.tsx:10-14`, `ui/select.tsx:10`, `ui/search-input.tsx:153,160`, `panel-nav.tsx:87`, `panel-mobile-menu.tsx:27,53`, `ui/row-link.tsx` (`stretchedLinkClass`). Los enlaces de texto en línea (p. ej. `members/[id]/page.tsx:60`, `modules/page.tsx:395`) solo llevan `hover:underline` y dependen del anillo por defecto del navegador: hay que confirmarlo con Tab. |
+| 10 | Textos de menú en las 9 locales | cumple (prueba del usuario con idiomas largos) | La etiqueta más larga es «Rate limits»: «Límites de peticiones» (es, 21), «Límites de peticións» (gl, 20), «Limiti di richieste» (it, 19), «Limites de requêtes» (fr, 19), «Límits de peticions» (ca, 19), «Limites de pedidos» (pt, 18); después «Benachrichtigungen» (de, 18) y «Firebase-Anleitung» (de, 18). La navegación usa `truncate` (`panel-nav.tsx:106,116`), así que no rompe el layout, pero el sidebar mide 220 px (`layout.tsx:42`): comprobar que «Rate limits» y «Notifications» no se corten a 1280 px ni en el drawer a 375 px. |
 
 ## Pendiente para cerrar
 
-- **Ojo humano (puntos 6, 9 y 10)**: recorrer a 375 px y 1280 px con el panel en marcha; comprobar
-  que ninguna página genera scroll horizontal, que el Tab dibuja un anillo en todos los interactivos
-  (incluidos los enlaces de texto en línea) y que los textos de menú caben sin truncarse en las 9
-  locales (con `027_locale` cambiado desde el menú de usuario).
-- **Build**: `pnpm --filter admin build` ya se ejecutó con el dev server parado; no hay cambios de
-  código en esta verificación, así que no hace falta repetirlo salvo que se toque `apps/admin`.
-- **Auditoría OWASP de la tarea 11 (A01, A05, A07)**: pendiente, por un agente distinto del autor,
-  antes de pasar la tarea a `finalizada`.
-- **Limpieza opcional**: borrar `apps/admin/src/components/ui/data-table.tsx` y su test (sin usos
-  fuera de él).
-- **CSP en Report-Only**: activar la cabecera enforcing requiere una pasada por navegador real (panel,
-  `/docs/api`, `/invite/<token>`) y, si algo se rompe, acotar `'unsafe-inline'` a estilos. Riesgo
-  aceptado y registrado hasta entonces.
+- **CSP en Report-Only (riesgo aceptado)**: activar la cabecera enforcing requiere una pasada por navegador
+  real (panel, `/docs/api`, `/invite/<token>`) y, si algo se rompe, acotar `'unsafe-inline'` a estilos.
+  Condición del riesgo aceptado: esa pasada antes de pasar a enforcing.
+
+## Cierre (2026-11-08)
+
+- **Resumen (29 iteraciones)**: las iteraciones 1–29 están cerradas. Cubren la arquitectura de información,
+  cabecera e idioma, patrones de lista/detalle/formulario, estados vacío/carga/error, paginación y filtros en
+  servidor, fichas de claves e invitaciones, guardia de CORS y filtros de módulos.
+- **Checklist §9 y pantallas 8–10**: verificadas en código y, a continuación, por el usuario: 375 px sin
+  scroll horizontal, teclado con anillo de foco y textos largos en las 9 locales.
+- **Evidencia de gates**: `pnpm lint` y `pnpm tsc` en verde; `pnpm --filter admin test` 1069;
+  `pnpm --filter core test` 414; `pnpm i18n:check` 584 entradas en 9 locales; `pnpm --filter admin build`
+  con el dev server parado.
+- **Auditoría OWASP (A01, A05, A07)**: APTO CON RESERVAS. Cerrados: `/setup` sin rol y `Permissions-Policy`.
+  La CSP queda como riesgo aceptado (ver «Pendiente para cerrar»).

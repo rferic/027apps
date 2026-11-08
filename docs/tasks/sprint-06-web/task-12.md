@@ -2,7 +2,7 @@
 id: sprint-06-task-12
 titulo: Canje público de invitaciones
 area: web
-estado: test
+estado: finalizada
 adrs: [0004, 0007]
 plan: docs/superpowers/plans/2026-11-07-invitation-redemption.md
 spec: docs/superpowers/specs/2026-11-07-invitation-redemption-design.md
@@ -176,3 +176,17 @@ Auditoría OWASP por un agente distinto del autor. Sin hallazgos críticos ni al
   ambas de task-08.
 - `/login` no está traducido (cadenas inglesas literales). El aviso de éxito sigue ese patrón;
   localizar la pantalla de login queda fuera de esta tarea y se anota como deuda.
+
+## Cierre (2026-11-08)
+
+- **Implementado** `/invite/[token]`: canje público sin sesión, locale desde `027_locale`, formulario con
+  validación de cliente (UX) y zod en el borde del Core.
+- **`no-referrer` por cabecera**: la `<meta name="referrer">` no bastaba, porque la cabecera global de
+  `next.config.ts` la anulaba. Ahora hay una regla específica para `/invite/:token`, después de la global,
+  con `Referrer-Policy: no-referrer` y `X-Robots-Tag: noindex, nofollow`. La meta se conserva como defensa
+  en profundidad.
+- **Mapeo de estados sin enumeración**: token desconocido y revocado comparten el mismo texto; el éxito es
+  idéntico para cuenta nueva y existente.
+- **Prueba manual del usuario**: canje correcto en ventana privada y segundo intento con «ya usada».
+- **Evidencia**: `pnpm --filter admin test` 1069, `pnpm --filter core test` 414, `pnpm lint`, `pnpm tsc`,
+  `pnpm i18n:check` 584 entradas en 9 locales.

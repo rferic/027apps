@@ -1,8 +1,9 @@
-# Borrador del cuerpo del PR — sprint 06 web
+# Cuerpo del PR — sprint 06 web
 
-> **No se ha abierto ningún PR.** Este fichero guarda el texto listo para pegar en GitHub cuando el
-> usuario dé la orden de cierre (`docs/flows/git.md` §2–3: un PR por sprint, squash a `main`).
-> Todo el texto va en inglés, como el resto de la superficie de GitHub.
+> Cuerpo del PR del sprint 06 web, que se abre ahora (un PR por sprint, `docs/flows/git.md` §2–3).
+> El squash a `main` lo ordena el usuario. Todo el texto va en inglés, como el resto de la superficie de GitHub.
+>
+> **Migraciones a aplicar en orden:** `0015`, `0016` y `0017` (ver la sección *Migrations*).
 
 ---
 

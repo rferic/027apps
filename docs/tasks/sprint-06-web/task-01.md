@@ -30,8 +30,8 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 | 08 | Categorías + invitaciones | finalizada |
 | 09 | Claves API + ajustes | finalizada |
 | 10 | Documentación de la API | finalizada |
-| 11 | Revisión de diseño y UX | en curso |
-| 12 | Canje público de invitaciones | test |
+| 11 | Revisión de diseño y UX | finalizada |
+| 12 | Canje público de invitaciones | finalizada |
 | 13 | Scopes de claves API y claves delegadas por propietario | finalizada |
 | 14 | Fichas de detalle de invitaciones y módulos | finalizada |
 | 15 | Instalar módulos desde el panel | finalizada |
@@ -53,7 +53,6 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 
 Un solo PR, squash a `main` por orden del usuario, cuando 05–15 estén `finalizada` con DoD completo (TDD, gates, revisión de segundo agente y auditoría OWASP).
 
-**Estado de cierre (2026-11-08):** `task-11` sigue `en curso` a la espera del visto bueno del usuario
-sobre los puntos 8, 9 y 10 de la checklist UX §9 (revisados en código y en `test`; ver
-`docs/tasks/sprint-06-web/task-11.md`). `task-12` sigue en `test`. El cuerpo del PR está redactado en
-`docs/flows/pr-sprint-06-web.md`; el PR **no** se ha abierto.
+**Estado de cierre (2026-11-08):** todo el sprint está `finalizada` salvo `task-01` (`en curso` mientras
+existe este PR) y `task-03` (`test`). Solo queda el PR: el cuerpo está en `docs/flows/pr-sprint-06-web.md`
+y el squash lo ordena el usuario.
