@@ -1,15 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { failureFrom } from "./mutation-result";
 import type { SettingRow } from "./setting-types";
 import {
   CORS_SETTING_KEY,
-  corsChangeLocksOut,
-  corsKeepsOrigin,
-  corsUpdateLocksOut,
+  corsRemovals,
+  corsUpdateRemovals,
   encodeSettingValue,
   initialSettingsDraft,
   parseSettingValue,
   revertEnabledLocales,
+  submitSettings,
   updatesFromDraft,
 } from "./settings-form";
 
@@ -162,64 +162,125 @@ describe("revertEnabledLocales", () => {
   });
 });
 
-describe("cors guard", () => {
-  const PANEL = "https://panel.example.com";
-
-  it("keeps the origin only on an exact match of the stored list", () => {
-    expect(corsKeepsOrigin([PANEL, "https://other.test"], PANEL)).toBe(true);
-    expect(corsKeepsOrigin([`${PANEL}/`], PANEL)).toBe(false);
-    expect(corsKeepsOrigin([], PANEL)).toBe(false);
-    expect(corsKeepsOrigin(undefined, PANEL)).toBe(false);
+describe("corsRemovals", () => {
+  it("lists the stored origins the new value drops, in the saved order", () => {
+    expect(corsRemovals(["https://a.test", "https://b.test"], ["https://b.test"])).toEqual([
+      "https://a.test",
+    ]);
+    expect(corsRemovals(["https://a.test", "https://b.test"], [])).toEqual([
+      "https://a.test",
+      "https://b.test",
+    ]);
   });
 
-  it("does not lock out when the list was not changed", () => {
-    // Saving instance.name or a list the user did not touch never warns.
-    expect(corsUpdateLocksOut(ALL, [{ key: "instance.name", value: "Familia" }], PANEL)).toBe(false);
-    expect(corsUpdateLocksOut(ALL, [], PANEL)).toBe(false);
+  it("drops nothing when origins are only added or reordered", () => {
+    expect(corsRemovals(["https://a.test"], ["https://a.test", "https://b.test"])).toEqual([]);
+    expect(corsRemovals(["https://a.test", "https://b.test"], ["https://b.test", "https://a.test"])).toEqual([]);
   });
 
-  it("warns when the change removes the origin the panel uses", () => {
-    const saved = setting({
-      key: CORS_SETTING_KEY,
-      category: "security",
-      type: "array",
-      value: ["https://a.test", "https://b.test"],
-    });
-
-    expect(
-      corsUpdateLocksOut([saved], [{ key: CORS_SETTING_KEY, value: ["https://a.test"] }], "https://b.test"),
-    ).toBe(true);
+  it("compares by exact string: a trailing slash is a different origin", () => {
+    expect(corsRemovals(["https://a.test"], ["https://a.test/"])).toEqual(["https://a.test"]);
   });
 
-  it("does not warn when the new list still contains the panel origin", () => {
-    expect(
-      corsChangeLocksOut([PANEL], [PANEL, "https://a.test"], PANEL),
-    ).toBe(false);
-    expect(
-      corsUpdateLocksOut(
-        [setting({ key: CORS_SETTING_KEY, category: "security", type: "array", value: [PANEL] })],
-        [{ key: CORS_SETTING_KEY, value: [PANEL, "https://b.test"] }],
-        PANEL,
-      ),
-    ).toBe(false);
-  });
-
-  it("does not warn for an origin that was never allowed", () => {
-    // Empty allowlist (the default): editing it cannot take away API access
-    // this browser did not have.
-    expect(
-      corsUpdateLocksOut(ALL, [{ key: CORS_SETTING_KEY, value: ["https://b.test"] }], PANEL),
-    ).toBe(false);
+  it("treats a missing saved list or a non-array value as empty", () => {
+    expect(corsRemovals(undefined, ["https://a.test"])).toEqual([]);
+    expect(corsRemovals(["https://a.test"], "https://a.test")).toEqual(["https://a.test"]);
   });
 });
 
-describe("corsKeepsOrigin with the parsed draft", () => {
-  it("compares against the JSON array the batch sends, not the textarea text", () => {
-    const draft = initialSettingsDraft(ALL);
-    draft[CORS_SETTING_KEY] = "https://a.test\nhttps://panel.example.com";
-    const updates = updatesFromDraft(ALL, draft);
+describe("corsUpdateRemovals", () => {
+  const SAVED = setting({
+    key: CORS_SETTING_KEY,
+    category: "security",
+    type: "array",
+    value: ["https://a.test", "https://b.test"],
+  });
 
-    expect(corsUpdateLocksOut(ALL, updates, "https://panel.example.com")).toBe(false);
+  it("finds nothing when the batch does not touch CORS", () => {
+    expect(corsUpdateRemovals([SAVED], [])).toEqual([]);
+    expect(corsUpdateRemovals([SAVED], [{ key: "instance.name", value: "Familia" }])).toEqual([]);
+  });
+
+  it("finds the origin a batch drops", () => {
+    expect(
+      corsUpdateRemovals([SAVED], [{ key: CORS_SETTING_KEY, value: ["https://a.test"] }]),
+    ).toEqual(["https://b.test"]);
+  });
+});
+
+describe("submitSettings", () => {
+  const CORS_SAVED = setting({
+    key: CORS_SETTING_KEY,
+    category: "security",
+    type: "array",
+    value: ["https://a.test", "https://b.test"],
+  });
+
+  function draftWith(cors: string) {
+    return { ...initialSettingsDraft([CORS_SAVED]), [CORS_SETTING_KEY]: cors };
+  }
+
+  it("asks before saving when an origin is removed and does not call the API", async () => {
+    const send = vi.fn(async () => {});
+    const confirm = vi.fn(async () => false);
+
+    await submitSettings([CORS_SAVED], draftWith("https://a.test"), { send, confirm });
+
+    expect(confirm).toHaveBeenCalledWith(["https://b.test"]);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("sends the batch once the user confirms", async () => {
+    const send = vi.fn(async () => {});
+    const confirm = vi.fn(async () => true);
+
+    await submitSettings([CORS_SAVED], draftWith("https://a.test"), { send, confirm });
+
+    expect(send).toHaveBeenCalledWith([{ key: CORS_SETTING_KEY, value: ["https://a.test"] }]);
+  });
+
+  it("saves directly when an origin is added", async () => {
+    const send = vi.fn(async () => {});
+    const confirm = vi.fn(async () => false);
+
+    await submitSettings([CORS_SAVED], draftWith("https://a.test\nhttps://b.test\nhttps://c.test"), {
+      send,
+      confirm,
+    });
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledWith([
+      { key: CORS_SETTING_KEY, value: ["https://a.test", "https://b.test", "https://c.test"] },
+    ]);
+  });
+
+  it("saves directly when the list is only reordered", async () => {
+    const send = vi.fn(async () => {});
+    const confirm = vi.fn(async () => false);
+
+    await submitSettings([CORS_SAVED], draftWith("https://b.test\nhttps://a.test"), { send, confirm });
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists every removed origin when the list is emptied", async () => {
+    const confirm = vi.fn(async () => false);
+
+    await submitSettings([CORS_SAVED], draftWith(""), { send: vi.fn(async () => {}), confirm });
+
+    expect(confirm).toHaveBeenCalledWith(["https://a.test", "https://b.test"]);
+  });
+
+  it("saves directly when CORS was not touched", async () => {
+    const send = vi.fn(async () => {});
+    const confirm = vi.fn(async () => false);
+    const draft = { ...initialSettingsDraft([CORS_SAVED, NAME]), "instance.name": "Familia" };
+
+    await submitSettings([CORS_SAVED, NAME], draft, { send, confirm });
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledWith([{ key: "instance.name", value: "Familia" }]);
   });
 });
 

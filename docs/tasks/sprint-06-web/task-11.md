@@ -435,14 +435,21 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 
 - `security.cors_allowlist` se guarda como **array JSON de orígenes exactos** (el textarea del panel acepta
   uno por línea o separados por coma; el door compara el header `Origin` por igualdad estricta, con
-  puerto y sin barra final). Quitar el origen desde el que se sirve el panel dejaba al navegador sin
-  API, así que el guardado de Ajustes ahora comprueba el lote antes de enviarlo
-  (`corsChangeLocksOut`/`corsUpdateLocksOut` en `lib/settings-form.ts`).
-- Si el origen actual estaba permitido y el nuevo valor lo deja fuera, no se llama al API: se abre el
-  `<dialog>` de confirmación y explica la consecuencia (el panel deja de funcionar desde esa dirección y
-  solo se recupera editando la lista desde otro origen permitido). «Save anyway» envía el lote; «Cancel»
-  no guarda nada. Un origen que nunca estuvo en la lista no dispara el aviso (no hay acceso que perder),
-  y sin cambios en CORS el guardado es directo.
+  puerto y sin barra final). La lista **no puede bloquear al panel**: el panel sirve UI y API desde el
+  mismo origen y el navegador no aplica CORS a las peticiones same-origin; el door solo resuelve el
+  contexto comparando el `Origin` recibido con la lista (`packages/core/src/api/door.ts:38-43`) y rechaza
+  únicamente el preflight de un origen no listado. Lo que la lista controla de verdad es qué
+  **aplicaciones externas** pueden llamar al API desde un navegador.
+- **Corregido en la iteración 28 (la premisa anterior era falsa):** la guardia avisaba solo si el origen
+  actual del navegador estaba en la lista y el nuevo valor lo dejaba fuera. Con el panel abierto en
+  `192.168.1.108:3003` y `http://localhost:3003` en la lista, quitar esa entrada no afectaba al panel y,
+  por tanto, no debía avisar. Ahora, al guardar la categoría `security`, si el nuevo valor **elimina algún
+  origen** respecto al guardado (`corsRemovals`/`corsUpdateRemovals` en `lib/settings-form.ts`) no se llama
+  al API: se abre el `<dialog>` «Remove these origins?», que lista los orígenes retirados y explica que las
+  aplicaciones que llamen al API desde ellos dejarán de poder hacerlo, más una línea que aclara que el
+  panel no se ve afectado porque se sirve desde el mismo origen que la API. «Save anyway» envía el lote;
+  «Cancel» no guarda nada. Añadir o reordenar orígenes guarda directo, y sin cambios en CORS el guardado
+  también es directo (`submitSettings`).
 - Texto de ayuda del propio campo, en dos estados: con la lista vacía explica que ninguna aplicación externa
   puede llamar a la API y que el panel no necesita aparecer porque usa su propio origen; con valores añade
   «One entry per line.» y avisa de que el origen del panel solo debe estar en la lista si llama desde otro
@@ -460,9 +467,10 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   como si fuera configurable. El test de catálogo sigue tolerando la clave en bases restauradas con
   migraciones pendientes y ahora ignora los ajustes de módulos instalados (categorías y filas con
   `source = 'module:<key>'`), que no forman parte del seed de `0002`.
-- Tests: el guardia no abre confirmación sin cambios de CORS, la abre al quitar el origen actual y no
-  envía el lote, no la abre si el nuevo valor conserva el origen ni si el origen nunca estuvo permitido;
-  el diálogo se renderiza cerrado y el campo CORS muestra su aviso (lista vacía y lista con valores). `db-tests`: catálogo verde tras la
+- Tests: quitar un origen abre la confirmación y no llama al API; confirmar envía el lote; añadir un
+  origen, reordenar la lista o guardar sin tocar CORS no abren nada; vaciar la lista lista todos los
+  orígenes retirados. En el componente, el diálogo se renderiza cerrado con su título y su explicación, y
+  el campo CORS conserva su aviso (lista vacía y lista con valores). `db-tests`: catálogo verde tras la
   migración (la fila `instance.logo_url` ya no existe).
 
 ### Iteración 29 — Filtros de módulos en servidor y retirada del componente muerto (hecho)

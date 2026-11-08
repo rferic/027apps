@@ -98,33 +98,52 @@ export function updatesFromDraft(
   return updates;
 }
 
-/**
- * The door compares `Origin` headers against the stored array by exact string
- * (`packages/core/src/api/door.ts`), so a trailing slash or a different port is
- * a different origin.
- */
-export function corsKeepsOrigin(value: unknown, origin: string): boolean {
-  return Array.isArray(value) && value.some((entry) => entry === origin);
+function strings(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string");
 }
 
 /**
- * Saving this change would take away the origin the panel is being used from:
- * it was allowed before and it would not be allowed after. Only then is the
- * warning honest — an origin that was never listed is not a CORS client today,
- * so editing the list cannot lock it out.
+ * The door compares `Origin` headers against the stored array by exact string
+ * (`packages/core/src/api/door.ts:38-43`), so a trailing slash or a different
+ * port is a different origin.
+ *
+ * Only the entries the save drops matter: the panel is served by the same app
+ * as the API and the browser skips CORS for same-origin calls, so removing its
+ * own origin changes nothing for the panel. What it does take away is browser
+ * access for the external applications listed here.
  */
-export function corsChangeLocksOut(saved: unknown, next: unknown, origin: string): boolean {
-  return corsKeepsOrigin(saved, origin) && !corsKeepsOrigin(next, origin);
+export function corsRemovals(saved: unknown, next: unknown): string[] {
+  const after = new Set(strings(next));
+  return strings(saved).filter((origin) => !after.has(origin));
 }
 
 /** Same decision, from the batch the form is about to send. */
-export function corsUpdateLocksOut(
+export function corsUpdateRemovals(
   settings: readonly SettingRow[],
   updates: readonly { key: string; value: unknown }[],
-  origin: string,
-): boolean {
+): string[] {
   const saved = settings.find((setting) => setting.key === CORS_SETTING_KEY);
   const changed = updates.find((update) => update.key === CORS_SETTING_KEY);
-  if (!saved || !changed) return false;
-  return corsChangeLocksOut(saved.value, changed.value, origin);
+  if (!saved || !changed) return [];
+  return corsRemovals(saved.value, changed.value);
+}
+
+/**
+ * One Save pass. A batch that drops origins never reaches the API unconfirmed:
+ * the caller shows the dialog with `removedOrigins` and only calls `send` after
+ * the user accepts. Adding or reordering origins sends the batch right away.
+ */
+export async function submitSettings(
+  settings: readonly SettingRow[],
+  draft: SettingsDraft,
+  deps: {
+    send: (updates: Array<{ key: string; value: unknown }>) => Promise<void>;
+    confirm: (removedOrigins: readonly string[]) => Promise<boolean>;
+  },
+): Promise<void> {
+  const updates = updatesFromDraft(settings, draft);
+  const removedOrigins = corsUpdateRemovals(settings, updates);
+  if (removedOrigins.length > 0 && !(await deps.confirm(removedOrigins))) return;
+  await deps.send(updates);
 }

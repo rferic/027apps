@@ -18,10 +18,10 @@ import { categoryHelp, categoryLabel, settingHelp, settingLabel } from "@/lib/se
 import type { RestrictedSetting, SettingRow, SettingsCategoryRow } from "@/lib/setting-types";
 import {
   CORS_SETTING_KEY,
-  corsUpdateLocksOut,
   encodeSettingValue,
   initialSettingsDraft,
   revertEnabledLocales,
+  submitSettings,
   updatesFromDraft,
   type SettingsDraft,
 } from "@/lib/settings-form";
@@ -514,7 +514,8 @@ export function SettingsForm({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<MutationFailure | null>(null);
   const corsDialogRef = useRef<HTMLDialogElement>(null);
-  const [corsOrigin, setCorsOrigin] = useState("");
+  const pendingCorsConfirm = useRef<((confirmed: boolean) => void) | null>(null);
+  const [removedOrigins, setRemovedOrigins] = useState<string[]>([]);
 
   // Activity keeps this form mounted while the user visits another route: the
   // unsaved draft would come back as if the server had accepted it. Re-seed it
@@ -534,15 +535,28 @@ export function SettingsForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // Losing the origin this panel is served from would take the API away from
-    // this browser: ask first, and never send the batch on this pass.
-    const origin = window.location.origin;
-    if (corsUpdateLocksOut(settings, updates, origin)) {
-      setCorsOrigin(origin);
-      corsDialogRef.current?.showModal();
-      return;
-    }
-    await save(updates);
+    // Dropping an origin takes browser API access away from the external apps
+    // listed there, so ask first and send nothing on this pass. The panel is
+    // not at risk: it calls the API from its own origin, where there is no CORS.
+    await submitSettings(settings, draft, {
+      send: save,
+      confirm: askToRemoveOrigins,
+    });
+  }
+
+  function askToRemoveOrigins(removed: readonly string[]): Promise<boolean> {
+    setRemovedOrigins([...removed]);
+    corsDialogRef.current?.showModal();
+    return new Promise((resolve) => {
+      pendingCorsConfirm.current = resolve;
+    });
+  }
+
+  function settleCorsDialog(confirmed: boolean) {
+    const resolve = pendingCorsConfirm.current;
+    pendingCorsConfirm.current = null;
+    corsDialogRef.current?.close();
+    resolve?.(confirmed);
   }
 
   async function save(changes: Array<{ key: string; value: unknown }>) {
@@ -569,11 +583,6 @@ export function SettingsForm({
     setDraft(cleared);
     setSaved(true);
     router.refresh();
-  }
-
-  async function confirmCorsSave() {
-    corsDialogRef.current?.close();
-    await save(updatesFromDraft(settings, draft));
   }
 
   return (
@@ -607,21 +616,26 @@ export function SettingsForm({
       <Dialog
         labelledBy="cors-confirm-title"
         ref={corsDialogRef}
-        onBackdropClick={() => corsDialogRef.current?.close()}
+        onClose={() => settleCorsDialog(false)}
+        onBackdropClick={() => settleCorsDialog(false)}
       >
         <h2 id="cors-confirm-title" className="text-sm font-semibold">
-          {t("Remove the current origin?", messages)}
+          {t("Remove these origins?", messages)}
         </h2>
         <p className="mt-2 text-xs text-muted-foreground">
           {t(
-            "This browser will no longer reach the API once you save, so the panel stops working from this address.",
+            "Applications that call the API from these origins will no longer be able to:",
             messages,
           )}
         </p>
-        <p className="mt-1 font-mono text-xs text-foreground">{corsOrigin}</p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <ul className="mt-1 font-mono text-xs text-foreground">
+          {removedOrigins.map((origin) => (
+            <li key={origin}>{origin}</li>
+          ))}
+        </ul>
+        <p className="mt-2 text-xs text-muted-foreground">
           {t(
-            "To recover it, edit the allowlist from another origin that is still allowed.",
+            "This panel is not affected: it is served from the same origin as the API.",
             messages,
           )}
         </p>
@@ -630,11 +644,16 @@ export function SettingsForm({
             type="button"
             variant="secondary"
             className="min-h-11"
-            onClick={() => corsDialogRef.current?.close()}
+            onClick={() => settleCorsDialog(false)}
           >
             {t("Cancel", messages)}
           </Button>
-          <Button type="button" variant="destructive" className="min-h-11" onClick={confirmCorsSave}>
+          <Button
+            type="button"
+            variant="destructive"
+            className="min-h-11"
+            onClick={() => settleCorsDialog(true)}
+          >
             {t("Save anyway", messages)}
           </Button>
         </FormActions>

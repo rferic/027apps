@@ -265,14 +265,19 @@ describe("SettingsForm", () => {
     expect(html).toContain('data-remove="es"');
   });
 
-  it("keeps the CORS confirmation dialog closed until a save would lock the panel out", () => {
+  it("keeps the CORS confirmation dialog closed until a save drops an origin", () => {
     const html = renderToStaticMarkup(
       <SettingsForm categories={CATEGORIES} restricted={[]} messages={{}} />,
     );
 
     expect(html).toContain("<dialog");
-    expect(html).toContain("Remove the current origin?");
-    expect(html).toContain("the panel stops working from this address");
+    expect(html).toContain("Remove these origins?");
+    expect(html).toContain(
+      "Applications that call the API from these origins will no longer be able to:",
+    );
+    expect(html).toContain(
+      "This panel is not affected: it is served from the same origin as the API.",
+    );
     expect(html).toContain("Save anyway");
     expect(html).not.toContain('<dialog open');
   });
