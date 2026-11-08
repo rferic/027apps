@@ -6,6 +6,7 @@ const redirectMock = vi.fn((url: string) => {
 const getSessionMock = vi.fn();
 const depsMock = vi.fn();
 const handlerMock = vi.fn();
+const detailHandlerMock = vi.fn();
 const usersHandlerMock = vi.fn();
 const queryMock = vi.fn();
 
@@ -35,13 +36,14 @@ vi.mock("@/lib/api/door", () => ({
 
 vi.mock("@027apps/core/api-keys/api.js", () => ({
   apiKeysRoute: () => handlerMock,
+  apiKeyRoute: () => detailHandlerMock,
 }));
 
 vi.mock("@027apps/core/users/api.js", () => ({
   usersRoute: () => usersHandlerMock,
 }));
 
-import { loadActiveDelegatedCounts, loadApiKeyOwners, loadApiKeys } from "./panel-keys";
+import { loadActiveDelegatedCounts, loadApiKeyOwners, loadApiKeys, loadKey } from "./panel-keys";
 
 const KEY = {
   id: "k1",
@@ -96,6 +98,7 @@ beforeEach(() => {
   queryMock.mockReset();
   queryMock.mockResolvedValue({ rows: [{ id: "u1", display_name: "Sara" }] });
   handlerMock.mockReset();
+  detailHandlerMock.mockReset();
   usersHandlerMock.mockReset();
 });
 
@@ -161,6 +164,62 @@ describe("loadActiveDelegatedCounts", () => {
     queryMock.mockRejectedValue(new Error("db down"));
 
     await expect(loadActiveDelegatedCounts()).resolves.toEqual({});
+  });
+});
+
+describe("loadKey", () => {
+  it("reads one key in process with the session bearer and resolves its owner", async () => {
+    detailHandlerMock.mockResolvedValue(json({ api_key: KEY }));
+
+    await expect(loadKey("k1")).resolves.toEqual({ ok: true, apiKey: ROW });
+
+    const request = detailHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe("http://panel.internal/api/v1/api-keys/k1");
+    expect(request.method).toBe("GET");
+    expect(request.headers.get("authorization")).toBe("Bearer token-123");
+    expect(detailHandlerMock.mock.calls[0]?.[1]).toBe("k1");
+    expect(queryMock.mock.calls[0]?.[1]).toEqual([["u1"]]);
+  });
+
+  it("labels a service key as the instance without reading profiles", async () => {
+    detailHandlerMock.mockResolvedValue(json({ api_key: SERVICE_KEY }));
+
+    const result = await loadKey("k2");
+
+    expect(result.ok && result.apiKey.owner).toBe("Instance");
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("infers not_found from a bare 404", async () => {
+    detailHandlerMock.mockResolvedValue(new Response("", { status: 404 }));
+
+    await expect(loadKey("missing")).resolves.toEqual({ ok: false, code: "not_found" });
+  });
+
+  it("keeps the public code and request id on a 500", async () => {
+    detailHandlerMock.mockResolvedValue(
+      json(
+        { error: { code: "internal", request_id: "req-500" } },
+        500,
+        { "x-request-id": "req-header" },
+      ),
+    );
+
+    await expect(loadKey("k1")).resolves.toEqual({
+      ok: false,
+      code: "internal",
+      requestId: "req-500",
+    });
+  });
+
+  it("rejects a malformed detail instead of showing a partial record", async () => {
+    detailHandlerMock.mockResolvedValue(
+      json({ api_key: { id: "k1", name: "Zapier", kind: "delegated" } }, 200, {
+        "x-request-id": "req-shape",
+      }),
+    );
+
+    await expect(loadKey("k1")).resolves.toEqual({ ok: false, requestId: "req-shape" });
   });
 });
 

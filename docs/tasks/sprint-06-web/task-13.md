@@ -166,13 +166,34 @@ no-super_admin filtrando lo propio y el 404/400 de los casos no permitidos
 `panel-keys.test.ts`; selects, conservación en paginación/reintento, ocultación con `service` y
 limpieza de los tres filtros en `(panel)/keys/page.test.tsx`.
 
+### Ficha de detalle de la clave (2026-11-08)
+
+La lista `/keys` deja de mostrar los scopes y el prefijo (también en la tarjeta móvil), y la acción
+de revocar sale de la tabla: cada fila y cada tarjeta enlaza a `/keys/{id}`. La nueva ficha
+(`requirePanel("super_admin")`, `instant = false`, `notFound()` si la clave no existe) muestra
+breadcrumb, `h1`, badges de tipo/estado, propietario («Instance» o nombre), `role_cap` solo en
+`service`, prefijo, creada, caduca y último uso. Los permisos son chips con el nombre legible del
+mapa `API_KEY_SCOPE_LABELS` (los scopes de módulo caen al identificador) y la revocación reutiliza
+`ApiKeyRevokeButton` con `redirectTo="/keys"`, así que al confirmar se vuelve al listado. Una clave
+ya revocada no ofrece la acción.
+
+`api-key-revoke-button` acepta `redirectTo` y expone `completeRevoke` para que el destino posterior
+sea comprobable sin DOM. `panel-keys.ts` añade `loadKey(id)`: llamada en proceso a
+`GET /api/v1/api-keys/{id}` con Bearer, parseo defensivo y 404/500 con `request_id`.
+
+Tests: lista sin scopes/prefijo/confirmación y con enlace a `/keys/{id}` en tabla y tarjeta
+(`(panel)/keys/page.test.tsx`); ficha con metadatos, permisos con nombre e identificador, 404, 403,
+error con `request_id` y botón solo con la clave viva (`(panel)/keys/[id]/page.test.tsx`);
+`loadKey` con owner resuelto, `Instance`, 404, 500 y cuerpo malformado (`panel-keys.test.ts`);
+etiqueta conocida y fallback de módulo (`api-key-scopes.test.ts`); `completeRevoke`.
+
 **Verificación ejecutada**
 
 - `pnpm --filter @027apps/core test` — 305 tests en verde.
-- `pnpm --filter admin test` — 662 tests en verde.
+- `pnpm --filter admin test` — 698 tests en verde.
 - `pnpm --filter db-tests exec vitest run src/api/api-keys.test.ts` — 4 en verde.
 - `pnpm --filter db-tests exec vitest run src/api-keys/service.test.ts` y `src/rls/api-keys-devices.test.ts` — verdes tras aplicar `0015` al stack local y aislar el conteo global de datos preexistentes.
-- `pnpm lint`, `pnpm tsc`, `pnpm i18n:check`, `pnpm check:openapi` — en verde.
+- `pnpm lint`, `pnpm tsc`, `pnpm i18n:check` — en verde (486 cadenas, 9 locales).
 - No se ejecutó `next build` (orden explícita); el dev server se reinició al terminar.
 
 **Consecuencia aceptada:** una integración antigua con scopes hoy retirados (p. ej. `settings:write`

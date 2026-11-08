@@ -94,15 +94,12 @@ describe("KeysPage", () => {
     expect(instant).toBe(false);
   });
 
-  it("lists name, kind, owner, role cap, prefix, scopes, dates and status as text", async () => {
+  it("lists name, kind, owner, role cap, expiry, last use and status without the scopes", async () => {
     loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
 
     const html = renderToStaticMarkup(await render({ state: "all" }));
 
     expect(html).toContain("Zapier");
-    expect(html).toContain("027_usr_");
-    expect(html).toContain("users:read, settings:read");
-    expect(html).toContain("Requested scopes");
     expect(html).toContain("Delegated");
     expect(html).toContain("Service");
     expect(html).toContain("Sara");
@@ -115,31 +112,20 @@ describe("KeysPage", () => {
     expect(html).toContain("<caption");
     expect(html).toContain('href="/keys/new"');
     expect(html).not.toContain("api-key-create-title");
+    expect(html).not.toContain("Requested scopes");
+    expect(html).not.toContain("users:read");
+    expect(html).not.toContain("027_usr_");
+    expect(html).not.toContain("Revoke the API key");
   });
 
-  it("marks the caller's own key and names its owner in the confirmation", async () => {
+  it("links every row and every mobile card to the key detail", async () => {
     loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
 
-    const html = renderToStaticMarkup(await render());
+    const html = renderToStaticMarkup(await render({ state: "all" }));
 
-    expect(html).toContain("This is your key");
-    expect(html).toContain("This key belongs to Sara.");
-    expect(html).toContain("Revoke the API key Zapier?");
-    expect(html).not.toContain("Revoke the API key Backup?");
-  });
-
-  it("names the instance in the confirmation for an active service key", async () => {
-    loadApiKeysMock.mockResolvedValue({
-      ok: true,
-      apiKeys: [{ ...SERVICE_KEY, revoked_at: null }],
-      total: 1,
-    });
-
-    const html = renderToStaticMarkup(await render());
-
-    expect(html).toContain("Revoke the API key Backup?");
-    expect(html).toContain("This is an instance key.");
-    expect(html).toContain("Super administrator");
+    // The table and the mobile card both render the name as a link.
+    expect(html.match(/href="\/keys\/k1"/g)).toHaveLength(2);
+    expect(html.match(/href="\/keys\/k2"/g)).toHaveLength(2);
   });
 
   it("filters by state and offers to clear the filter", async () => {

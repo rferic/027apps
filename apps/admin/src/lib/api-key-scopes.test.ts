@@ -3,7 +3,9 @@ import { MACHINE_SCOPES } from "@027apps/core/auth/guard.js";
 import {
   ALL_API_KEY_SCOPES,
   API_KEY_SCOPE_GROUPS,
+  API_KEY_SCOPE_LABELS,
   allowedApiKeyScopes,
+  apiKeyScopeLabel,
 } from "./api-key-scopes";
 
 const offered = (kind: "service" | "delegated", cap: "" | "admin" | "super_admin" = "") =>
@@ -79,5 +81,18 @@ describe("scope groups", () => {
         allowedApiKeyScopes("service", "super_admin").includes(scope);
       expect(used).toBe(true);
     }
+  });
+});
+
+describe("scope labels", () => {
+  it("has a readable label for every scope the form offers", () => {
+    for (const scope of ALL_API_KEY_SCOPES) {
+      expect(API_KEY_SCOPE_LABELS[scope], scope).toBeTruthy();
+    }
+  });
+
+  it("falls back to the identifier for module scopes without a label", () => {
+    expect(apiKeyScopeLabel("inventory:read_write")).toBe("inventory:read_write");
+    expect(apiKeyScopeLabel("users:read")).toBe("Read members");
   });
 });

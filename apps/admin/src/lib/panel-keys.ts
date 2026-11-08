@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { apiKeysRoute } from "@027apps/core/api-keys/api.js";
+import { apiKeyRoute, apiKeysRoute } from "@027apps/core/api-keys/api.js";
 import type { QueryClient } from "@027apps/core/api/rate-limit-storage.js";
 import { usersRoute, type UsersRouteDeps } from "@027apps/core/users/api.js";
 import { getInfra, withTransactionClient } from "@/lib/api/door";
@@ -272,14 +272,41 @@ export async function loadApiKeys(input: {
 
   const apiKeys: ApiKeyRow[] = parsed.map((row) => ({
     ...row,
-    owner:
-      row.kind === "service"
-        ? "Instance"
-        : ((row.user_id && ownerNames.get(row.user_id)) || row.user_id || "—"),
+    owner: ownerLabel(row, ownerNames),
   }));
   const total = readCount(call.body.total);
   if (total === null) return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
   return { ok: true, apiKeys, total };
+}
+
+function ownerLabel(row: ParsedApiKey, names: ReadonlyMap<string, string>): string {
+  if (row.kind === "service") return "Instance";
+  return (row.user_id && names.get(row.user_id)) || row.user_id || "—";
+}
+
+export type ApiKeyDetail = { ok: true; apiKey: ApiKeyRow } | ApiKeysFailure;
+
+/**
+ * GET /api/v1/api-keys/{id} — the same in-process route as the list, so the
+ * role gate and the guard cannot disagree. The secret never comes back.
+ */
+export async function loadKey(id: string): Promise<ApiKeyDetail> {
+  const token = await sessionToken();
+  const deps = await apiKeysRouteDeps();
+  const handler = apiKeyRoute(deps);
+  const call = await callRoute(
+    (req) => handler(req, id),
+    `/api/v1/api-keys/${encodeURIComponent(id)}`,
+    token,
+  );
+  if (!call.ok) return call;
+
+  const row = readApiKey(call.body.api_key);
+  if (!row) return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+
+  const userIds = row.kind === "delegated" && row.user_id ? [row.user_id] : [];
+  const ownerNames = await loadOwnerNames(deps.apiKeys.db, userIds);
+  return { ok: true, apiKey: { ...row, owner: ownerLabel(row, ownerNames) } };
 }
 
 /** A selectable owner for a delegated key; active users only. */

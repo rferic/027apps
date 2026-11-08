@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
-import { ApiKeyRevokeButton } from "@/components/api-key-revoke-button";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
@@ -125,7 +124,9 @@ function ownerLabel(row: ApiKeyRow, messages: TranslationMap): string {
 }
 
 function roleCapLabel(row: ApiKeyRow, messages: TranslationMap): string | null {
-  if (!row.roleCap) return null;
+  // The cap only exists for service keys; a stale value on a delegated key
+  // is ignored by the guard and must not be shown as if it mattered.
+  if (row.kind !== "service" || !row.roleCap) return null;
   return row.roleCap === "super_admin"
     ? t("Super administrator", messages)
     : t("Administrator", messages);
@@ -228,28 +229,21 @@ interface KeysViewProps {
   rows: ApiKeyRow[];
   locale: Locale;
   timeZone: string;
-  currentUserId: string;
   messages: TranslationMap;
 }
 
-function scopesText(row: ApiKeyRow): string {
-  return row.scopes.length > 0 ? row.scopes.join(", ") : "—";
-}
-
-function RevokeCell({ row, currentUserId, messages }: Omit<KeysViewProps, "rows" | "locale" | "timeZone"> & { row: ApiKeyRow }) {
-  if (row.revoked_at !== null) return <span className="text-muted-foreground">{t("Revoked", messages)}</span>;
+function KeyNameLink({ row }: { row: ApiKeyRow }) {
   return (
-    <ApiKeyRevokeButton
-      id={row.id}
-      name={row.name}
-      owner={row.kind === "service" ? null : row.owner}
-      isOwnKey={row.kind === "delegated" && row.user_id === currentUserId}
-      messages={messages}
-    />
+    <Link
+      href={`/keys/${encodeURIComponent(row.id)}`}
+      className="font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+    >
+      {row.name}
+    </Link>
   );
 }
 
-function KeysTable({ rows, locale, timeZone, currentUserId, messages }: KeysViewProps) {
+function KeysTable({ rows, locale, timeZone, messages }: KeysViewProps) {
   return (
     <div className="hidden overflow-x-auto sm:block">
       <table className="w-full border-collapse text-left text-xs">
@@ -266,41 +260,28 @@ function KeysTable({ rows, locale, timeZone, currentUserId, messages }: KeysView
               {t("Owner", messages)}
             </th>
             <th scope="col" className="py-2 pr-3 font-semibold">
-              {t("Prefix", messages)}
-            </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
-              {t("Requested scopes", messages)}
-            </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
-              {t("Created", messages)}
-            </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
               {t("Expires", messages)}
             </th>
             <th scope="col" className="py-2 pr-3 font-semibold">
               {t("Last used", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
-              {t("Status", messages)}
-            </th>
             <th scope="col" className="py-2 font-semibold">
-              <span className="sr-only">{t("Actions", messages)}</span>
+              {t("Status", messages)}
             </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.id} className="border-b border-border align-top">
-              <td className="py-2 pr-3 font-semibold">{row.name}</td>
+              <td className="py-2 pr-3">
+                <KeyNameLink row={row} />
+              </td>
               <td className="py-2 pr-3">
                 <Badge variant={kindVariant(row.kind)}>{kindLabel(row.kind, messages)}</Badge>
               </td>
               <td className="py-2 pr-3">
                 <OwnerCell row={row} messages={messages} />
               </td>
-              <td className="py-2 pr-3 font-mono text-[11px]">{row.prefix}</td>
-              <td className="py-2 pr-3 font-mono text-[11px]">{scopesText(row)}</td>
-              <td className="py-2 pr-3">{formatDate(row.created_at, { locale, timeZone })}</td>
               <td className="py-2 pr-3">
                 {row.expiresAt ? formatDate(row.expiresAt, { locale, timeZone }) : t("Never", messages)}
               </td>
@@ -312,13 +293,6 @@ function KeysTable({ rows, locale, timeZone, currentUserId, messages }: KeysView
                   {row.revoked_at ? t("Revoked", messages) : t("Active", messages)}
                 </Badge>
               </td>
-              <td className="py-2 text-right">
-                <RevokeCell
-                  row={row}
-                  currentUserId={currentUserId}
-                  messages={messages}
-                />
-              </td>
             </tr>
           ))}
         </tbody>
@@ -327,13 +301,13 @@ function KeysTable({ rows, locale, timeZone, currentUserId, messages }: KeysView
   );
 }
 
-function KeysCards({ rows, locale, timeZone, currentUserId, messages }: KeysViewProps) {
+function KeysCards({ rows, locale, timeZone, messages }: KeysViewProps) {
   return (
     <ul className="flex flex-col gap-2 sm:hidden">
       {rows.map((row) => (
         <li key={row.id} className="rounded-card border border-border bg-surface p-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold">{row.name}</span>
+            <KeyNameLink row={row} />
             <Badge variant={kindVariant(row.kind)}>{kindLabel(row.kind, messages)}</Badge>
             <Badge variant={row.revoked_at ? "destructive" : "success"}>
               {row.revoked_at ? t("Revoked", messages) : t("Active", messages)}
@@ -344,20 +318,11 @@ function KeysCards({ rows, locale, timeZone, currentUserId, messages }: KeysView
             <dd>
               <OwnerCell row={row} messages={messages} />
             </dd>
-            <dt className="text-muted-foreground">{t("Prefix", messages)}</dt>
-            <dd className="font-mono text-[11px]">{row.prefix}</dd>
-            <dt className="text-muted-foreground">{t("Requested scopes", messages)}</dt>
-            <dd className="font-mono text-[11px]">{scopesText(row)}</dd>
-            <dt className="text-muted-foreground">{t("Created", messages)}</dt>
-            <dd>{formatDate(row.created_at, { locale, timeZone })}</dd>
             <dt className="text-muted-foreground">{t("Expires", messages)}</dt>
             <dd>{row.expiresAt ? formatDate(row.expiresAt, { locale, timeZone }) : t("Never", messages)}</dd>
             <dt className="text-muted-foreground">{t("Last used", messages)}</dt>
             <dd>{row.last_used_at ? formatDate(row.last_used_at, { locale, timeZone }) : t("Never", messages)}</dd>
           </dl>
-          <div className="mt-2">
-            <RevokeCell row={row} currentUserId={currentUserId} messages={messages} />
-          </div>
         </li>
       ))}
     </ul>
@@ -395,7 +360,6 @@ function KeysBody({
   page,
   locale,
   timeZone,
-  currentUserId,
   messages,
 }: {
   data: Awaited<ReturnType<typeof loadApiKeys>>;
@@ -404,7 +368,6 @@ function KeysBody({
   page: number;
   locale: Locale;
   timeZone: string;
-  currentUserId: string;
   messages: TranslationMap;
 }) {
   if (!data.ok) {
@@ -436,14 +399,12 @@ function KeysBody({
             rows={rows}
             locale={locale}
             timeZone={timeZone}
-            currentUserId={currentUserId}
             messages={messages}
           />
           <KeysCards
             rows={rows}
             locale={locale}
             timeZone={timeZone}
-            currentUserId={currentUserId}
             messages={messages}
           />
         </>
@@ -539,7 +500,6 @@ export default async function KeysPage({
         page={page}
         locale={locale}
         timeZone={timeZone}
-        currentUserId={gate.user.id}
         messages={messages}
       />
     </section>

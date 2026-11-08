@@ -56,3 +56,38 @@ export function allowedApiKeyScopes(
 export const ALL_API_KEY_SCOPES: readonly string[] = API_KEY_SCOPE_GROUPS.flatMap(
   (group) => group.scopes,
 );
+
+/**
+ * Readable label for a known core scope. Module scopes are dynamic
+ * (`<module>:read|read_write`), so they stay as their identifier.
+ */
+export const API_KEY_SCOPE_LABELS: Readonly<Record<string, string>> = {
+  "profile:read": "Read profile",
+  "profile:write": "Update profile",
+  "users:read": "Read members",
+  "users:write": "Create members",
+  "users:deactivate": "Deactivate members",
+  "roles:assign": "Assign roles",
+  "user_categories:read": "Read categories",
+  "user_categories:write": "Assign categories",
+  "invitations:read": "Read invitations",
+  "invitations:write": "Invite members",
+  "modules:read": "Read modules",
+  "modules:manage": "Manage modules",
+  "modules:grant": "Grant modules",
+  "devices:read": "Read devices",
+  "devices:write": "Manage devices",
+  "devices:revoke": "Revoke devices",
+  "api_keys:read": "Read API keys",
+  "api_keys:write": "Create API keys",
+  "api_keys:revoke": "Revoke API keys",
+  "settings:read": "Read settings",
+  "settings:write": "Change settings",
+  "currencies:read": "Read currencies",
+  "currencies:write": "Change currencies",
+  "maintenance:run": "Run maintenance",
+};
+
+export function apiKeyScopeLabel(scope: string): string {
+  return API_KEY_SCOPE_LABELS[scope] ?? scope;
+}

@@ -11,6 +11,17 @@ import { FormActions, FormAlert } from "@/components/ui/form";
 import { revokeApiKey } from "@/lib/api-key-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
 
+interface RouterLike {
+  push: (href: string) => void;
+  refresh: () => void;
+}
+
+/** After a revoke: leave the current view when a target is given, then refresh. */
+export async function completeRevoke(router: RouterLike, redirectTo?: string): Promise<void> {
+  if (redirectTo) router.push(redirectTo);
+  router.refresh();
+}
+
 /**
  * Revocation is immediate and irreversible, so the confirmation names the key
  * and its owner, states that every integration using it stops working, and
@@ -22,6 +33,7 @@ export function ApiKeyRevokeButton({
   name,
   owner,
   isOwnKey,
+  redirectTo,
   messages,
 }: {
   id: string;
@@ -29,6 +41,8 @@ export function ApiKeyRevokeButton({
   /** Profile display name, or `null` for a service key owned by the instance. */
   owner: string | null;
   isOwnKey: boolean;
+  /** Send the caller here after revoking; the detail page returns to the list. */
+  redirectTo?: string;
   messages: TranslationMap;
 }) {
   const router = useRouter();
@@ -46,7 +60,7 @@ export function ApiKeyRevokeButton({
       return;
     }
     dialogRef.current?.close();
-    router.refresh();
+    await completeRevoke(router, redirectTo);
   }
 
   return (

@@ -46,6 +46,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 19 | Claves: scopes derivados de `kind` + `role_cap`, poda de selecciones inválidas | hecho |
 | 20 | Filtro por defecto vivo (`active`) en `/keys` y `/modules`; `all` explícito | hecho |
 | 21 | Filtros de tipo y propietario en `/keys` (API `kind`/`user`) | hecho |
+| 22 | Claves: permisos y revocación movidos de la lista a una ficha de detalle `/keys/{id}` | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -394,3 +395,26 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 - Tests: `panel-keys` reenvía `kind`/`user` (y omite `kind=all`), la página envía ambos al Core, los
   conserva en paginación/reintento, oculta y limpia el propietario con `service`, y el vacío con
   filtros de servidor es «No API keys match this filter.».
+
+### Iteración 22 — Permisos y revocación en la ficha de detalle de la clave (hecho)
+
+- **Lista `/keys` más corta**: se retiran las columnas de **prefijo**, **scopes**, **creada** y
+  **acciones** (también sus celdas en la tarjeta móvil). Quedan nombre, tipo, propietario (con el
+  `role_cap` solo en `service`), caducidad, último uso y estado. El nombre de cada fila y de cada
+  tarjeta enlaza a `/keys/{id}`.
+- **Ficha `/keys/[id]`** (`requirePanel("super_admin")`, `instant = false`, `notFound()` real para una
+  clave inexistente): breadcrumb `API keys / <nombre>`, `h1`, badges de tipo y estado, y una sección
+  de datos con propietario («Instance» o el nombre), `role_cap` solo en `service`, prefijo, creada,
+  caduca y último uso.
+- **Permisos** en chips con el estilo de las categorías del miembro. `api-key-scopes.ts` añade
+  `API_KEY_SCOPE_LABELS`/`apiKeyScopeLabel`: los scopes del núcleo muestran un nombre legible
+  traducido; los scopes de módulo (`<módulo>:read|read_write`) caen al identificador tal cual.
+- **Revocar** reutiliza `ApiKeyRevokeButton` con la confirmación y el dueño de siempre. El botón
+  acepta `redirectTo`; desde la ficha usa `/keys`, así que tras revocar se vuelve al listado. Una
+  clave ya revocada no ofrece la acción.
+- Tests: la lista no muestra scopes/prefijo ni confirmación de revocado y enlaza cada fila y tarjeta a
+  `/keys/{id}`; la ficha pinta metadatos, permisos con nombre o identificador, 404, 403 y el botón
+  solo si está viva; `loadKey` llama en proceso a `GET /api/v1/api-keys/{id}` con Bearer y propaga
+  `not_found`/`internal` con `request_id`; `completeRevoke` vuelve a `/keys` solo cuando se le pide.
+- i18n: 26 claves nuevas (etiquetas de scope, «Details», «Permissions» y el error de carga de la
+  ficha) en las 9 locales vía `i18n:scan` + edición de catálogos.
