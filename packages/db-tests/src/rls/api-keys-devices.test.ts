@@ -47,12 +47,39 @@ describe("RLS: api keys and devices", () => {
       await expect(count(c, "select count(*) from public.api_keys")).resolves.toBe(1);
       await expect(count(c, "select count(*) from public.api_keys where id = $1", [own])).resolves.toBe(1);
 
-      // Cannot change the owner of their own key (WITH CHECK).
+      // `authenticated` has no INSERT/UPDATE/DELETE on api_keys: the migration 0016
+      // revoked those privileges and dropped the api_keys_write policy. Writes go
+      // through the Core with the service pool, so any direct write fails with
+      // "permission denied" before RLS is even evaluated.
       await c.query("SAVEPOINT sp_owner");
       await expect(
         query(c, "update public.api_keys set user_id = $1 where id = $2", [b.id, own]),
-      ).rejects.toThrowError(/row-level security/i);
+      ).rejects.toThrowError(/permission denied/i);
       await c.query("ROLLBACK TO SAVEPOINT sp_owner");
+
+      await c.query("SAVEPOINT sp_insert");
+      await expect(
+        query(
+          c,
+          `insert into public.api_keys (key_hash, kind, name, scopes, user_id, created_by)
+           values ($1, 'delegated', 'RLS key insert', '{profile:read}', $2, $2)`,
+          ["ab".repeat(32), a.id],
+        ),
+      ).rejects.toThrowError(/permission denied/i);
+      await c.query("ROLLBACK TO SAVEPOINT sp_insert");
+
+      await c.query("SAVEPOINT sp_update");
+      await expect(
+        query(c, "update public.api_keys set name = 'hacked' where id = $1", [own]),
+      ).rejects.toThrowError(/permission denied/i);
+      await c.query("ROLLBACK TO SAVEPOINT sp_update");
+
+      await c.query("SAVEPOINT sp_delete");
+      await expect(
+        query(c, "delete from public.api_keys where id = $1", [own]),
+      ).rejects.toThrowError(/permission denied/i);
+      await c.query("ROLLBACK TO SAVEPOINT sp_delete");
+
       await c.query("ROLLBACK");
     });
   });
