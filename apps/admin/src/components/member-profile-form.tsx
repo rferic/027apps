@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useRef, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { SUPPORTED_LOCALES } from "@027apps/core/settings/catalog.js";
 import { t } from "@027apps/i18n/t.js";
@@ -19,6 +19,7 @@ import type { MutationResult } from "@/lib/member-mutations";
 import { patchMember } from "@/lib/member-mutations";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
 import type { MemberRow } from "@/lib/panel-members";
+import { useResetOnRouteChange } from "@/lib/use-reset-on-route";
 
 type SaveFailure = Extract<MutationResult, { ok: false }>;
 
@@ -212,6 +213,7 @@ export function MemberProfileForm({
   messages,
 }: MemberProfileFormProps) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<SaveFailure | null>(null);
@@ -219,6 +221,16 @@ export function MemberProfileForm({
   // The API also rejects a self role change; hiding the control keeps the
   // panel from offering an action the Core refuses by design.
   const roleEditable = !isSelf && canAssignRole(viewerRole, member.role);
+
+  // Activity preserves the uncontrolled fields while the user is away: their
+  // `defaultValue` is updated by the re-render but the DOM value is not, so the
+  // typed draft would look saved. `reset()` puts each field back on the value
+  // the server sent this time.
+  useResetOnRouteChange(member, () => {
+    formRef.current?.reset();
+    setError(null);
+    setFieldErrors({});
+  });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -252,7 +264,7 @@ export function MemberProfileForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
+    <form ref={formRef} onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
       <h2 className="text-sm font-semibold">{t("Profile", messages)}</h2>
 
       {isSelf && (

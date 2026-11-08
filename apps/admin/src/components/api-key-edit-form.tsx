@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
@@ -19,6 +19,7 @@ import type { ExpiryChoice } from "@/lib/api-key-expiry";
 import { apiKeyOfferedScopes } from "@/lib/api-key-module-scopes";
 import type { ApiKeyRow } from "@/lib/panel-keys";
 import type { UserModule } from "@/lib/panel-user-modules";
+import { useResetOnRouteChange } from "@/lib/use-reset-on-route";
 
 /** Submit handler bound to the key id by the page (server action). */
 export type ApiKeyEditAction = (
@@ -245,10 +246,24 @@ export function ApiKeyEditForm({
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL_API_KEY_EDIT_STATE);
   const { offered, editable, preserved, visibleModules } = editOffer(apiKey, modules);
+  const formRef = useRef<HTMLFormElement>(null);
   const [scopes, setScopes] = useState<readonly string[]>(editable);
   const [expiry, setExpiry] = useState<ExpiryChoice>(
     apiKey.expiresAt ? { mode: "keep" } : { mode: "never" },
   );
+  // Bumped on every re-seed: the expiry field keeps its own amount/unit state,
+  // so it must be remounted to start from the stored expiry again.
+  const [seed, setSeed] = useState(0);
+
+  // Activity preserves the edited key while the user visits another route: the
+  // name, the scopes and the expiry would come back as if they had been saved.
+  // Re-seed all three from the value the server sent this time.
+  useResetOnRouteChange(apiKey, () => {
+    formRef.current?.reset();
+    setScopes(editable);
+    setExpiry(apiKey.expiresAt ? { mode: "keep" } : { mode: "never" });
+    setSeed((current) => current + 1);
+  });
 
   const fieldErrors = state.error?.details?.fieldErrors ?? {};
   // A key with only module permissions is still a valid key: the server
@@ -256,12 +271,13 @@ export function ApiKeyEditForm({
   const noScopes = scopes.length === 0 && preserved.length === 0;
 
   return (
-    <form action={formAction} className="flex max-w-xl flex-col gap-3">
+    <form ref={formRef} action={formAction} className="flex max-w-xl flex-col gap-3">
       <ReadOnlyDetails apiKey={apiKey} messages={messages} />
 
       <NameField apiKey={apiKey} error={fieldErrors.name?.[0]} messages={messages} />
 
       <ApiKeyExpiryField
+        key={seed}
         currentExpiresAt={apiKey.expiresAt}
         currentLabel={currentLabel}
         value={expiry}

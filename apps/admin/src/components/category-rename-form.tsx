@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useRef, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { renameCategory } from "@/lib/category-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
+import { useResetOnRouteChange } from "@/lib/use-reset-on-route";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -23,10 +24,20 @@ export function CategoryRenameForm({
   messages: TranslationMap;
 }) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<MutationFailure | null>(null);
   const [fieldError, setFieldError] = useState<string | undefined>();
+
+  // The input is uncontrolled and seeded with `defaultValue`: Activity keeps
+  // the DOM value while the props are refreshed, so coming back would show a
+  // draft that was never saved. Reset puts the stored name back.
+  useResetOnRouteChange(name, () => {
+    formRef.current?.reset();
+    setError(null);
+    setFieldError(undefined);
+  });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,7 +60,7 @@ export function CategoryRenameForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-3">
+    <form ref={formRef} onSubmit={handleSubmit} className="flex max-w-md flex-col gap-3">
       <h2 className="text-sm font-semibold">{t("Rename category", messages)}</h2>
       <label htmlFor="category-rename" className="flex flex-col gap-1 text-xs font-semibold">
         {t("Name", messages)}

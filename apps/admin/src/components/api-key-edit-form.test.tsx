@@ -10,6 +10,7 @@ import { apiKeyOfferedScopes } from "@/lib/api-key-module-scopes";
 import type { ApiKeyRow } from "@/lib/panel-keys";
 
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/keys/k1/edit",
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 

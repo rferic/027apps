@@ -15,6 +15,7 @@ vi.mock("next/headers", () => ({
 
 vi.mock("next/navigation", () => ({
   notFound: () => notFoundMock(),
+  usePathname: () => "/categories/c1",
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 

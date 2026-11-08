@@ -15,6 +15,7 @@ import {
 import type { MutationFailure } from "@/lib/mutation-result";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
 import type { CurrencyRow } from "@/lib/setting-types";
+import { useResetOnRouteChange } from "@/lib/use-reset-on-route";
 
 function CurrencyBatchError({
   error,
@@ -61,6 +62,14 @@ export function CurrencySettings({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<MutationFailure | null>(null);
   const [confirmingBulk, setConfirmingBulk] = useState(false);
+
+  // The chips already derive from the server props; only the transient state
+  // survives Activity, so a failed request or a pending confirmation is not
+  // still on screen after visiting another route and coming back.
+  useResetOnRouteChange(currencies, () => {
+    setError(null);
+    setConfirmingBulk(false);
+  });
 
   const options = useMemo<MultiSelectOption[]>(
     () =>

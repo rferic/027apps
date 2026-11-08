@@ -133,7 +133,12 @@ async function SectionContent({
         <p className="text-xs text-muted-foreground">{help}</p>
       </header>
 
-      <SettingsForm categories={[category]} restricted={restricted} messages={messages} />
+      <SettingsForm
+        key={section.slug}
+        categories={[category]}
+        restricted={restricted}
+        messages={messages}
+      />
 
       {currencies && <CurrenciesBlock data={currencies} locale={locale} messages={messages} />}
     </section>

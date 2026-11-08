@@ -19,6 +19,7 @@ vi.mock("next/headers", () => ({
 vi.mock("next/navigation", () => ({
   notFound: () => notFoundMock(),
   redirect: (url: string) => redirectMock(url),
+  usePathname: () => "/keys/k1/edit",
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 

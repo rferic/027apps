@@ -1,8 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+const resetOnRoute = vi.hoisted(() => vi.fn());
+
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/settings/localization",
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
+}));
+
+vi.mock("@/lib/use-reset-on-route", () => ({
+  useResetOnRouteChange: resetOnRoute,
 }));
 
 import { CurrencySettings } from "./currency-settings";
@@ -15,6 +22,18 @@ const CURRENCIES = [
 ];
 
 describe("CurrencySettings", () => {
+  it("re-seeds its transient state from the currencies the server sent", () => {
+    resetOnRoute.mockClear();
+
+    renderToStaticMarkup(
+      <CurrencySettings defaultCode="EUR" currencies={CURRENCIES} locale="en" messages={{}} />,
+    );
+
+    const [seed, reset] = resetOnRoute.mock.calls[0] ?? [];
+    expect(seed).toBe(CURRENCIES);
+    expect(typeof reset).toBe("function");
+  });
+
   it("renders the combobox with a chip per enabled currency", () => {
     const html = renderToStaticMarkup(
       <CurrencySettings defaultCode="EUR" currencies={CURRENCIES} locale="en" messages={{}} />,

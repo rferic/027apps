@@ -23,6 +23,7 @@ import {
   type SettingsDraft,
 } from "@/lib/settings-form";
 import { patchSettingsBatch } from "@/lib/settings-mutations";
+import { useResetOnRouteChange } from "@/lib/use-reset-on-route";
 
 const inputClass =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -481,6 +482,15 @@ export function SettingsForm({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<MutationFailure | null>(null);
+
+  // Activity keeps this form mounted while the user visits another route: the
+  // unsaved draft would come back as if the server had accepted it. Re-seed it
+  // from the values the server sent this time. The saved confirmation is left
+  // alone: after our own save the refresh brings exactly the saved values.
+  useResetOnRouteChange(settings, () => {
+    setDraft(initialSettingsDraft(settings));
+    setError(null);
+  });
 
   const updates = updatesFromDraft(settings, draft);
 

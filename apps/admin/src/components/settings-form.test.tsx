@@ -2,8 +2,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { getDictionary } from "@027apps/i18n/dictionary.js";
 
+const resetOnRoute = vi.hoisted(() => vi.fn());
+
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/settings/instance",
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
+}));
+
+vi.mock("@/lib/use-reset-on-route", () => ({
+  useResetOnRouteChange: resetOnRoute,
 }));
 
 import { SettingField, SettingsForm, SaveError } from "./settings-form";
@@ -111,6 +118,19 @@ const CATEGORIES: SettingsCategoryRow[] = [
 ];
 
 describe("SettingsForm", () => {
+  it("re-seeds the draft from the server settings when the route is shown again", () => {
+    resetOnRoute.mockClear();
+
+    renderToStaticMarkup(
+      <SettingsForm categories={CATEGORIES} restricted={[]} messages={{}} />,
+    );
+
+    const [seed, reset] = resetOnRoute.mock.calls[0] ?? [];
+    // The hook gets the payload this render was seeded from, not a stale copy.
+    expect(seed).toEqual([NAME, LOCALES, JWT, SECRET]);
+    expect(typeof reset).toBe("function");
+  });
+
   it("groups settings by category with the catalog label and help", () => {
     const html = renderToStaticMarkup(
       <SettingsForm categories={CATEGORIES} restricted={[]} messages={{}} />,
