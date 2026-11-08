@@ -1,19 +1,21 @@
 ---
-id: sprint-11-task-02
+id: sprint-13-task-07
 titulo: Backup cifrado de la base de datos fuera de Supabase
 area: infra
 estado: test
-plan: docs/superpowers/plans/2026-10-27-sprint-04-infra.md
+plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/superpowers/specs/2026-10-26-backups.md
+adrs: [0010]
 ---
 
 **Tarea**: que la BD de producción tenga un respaldo diario, cifrado y **externo a Supabase**,
 con restauración documentada y probada. El plan free de Supabase no incluye backups ni PITR:
 hoy la instancia no tiene ninguna copia recuperable.
 
-**Traslado** (2026-10-31): movida desde `sprint-04-infra` a `sprint-11-prod-activation` al cerrar ese
-sprint — la verificación real (primer snapshot + simulacro de restauración) exige el proyecto
-`027apps-prod`, que se crea al cierre de sprint-08-core-base (decisión del usuario, 2026-10-27).
+**Traslado** (2026-11-08): movida desde `sprint-11-prod-activation/task-02` (que a su vez vino
+de `sprint-04-infra`) a `sprint-13-staging-prod` — la verificación real (primer snapshot +
+simulacro de restauración) exige el proyecto `027apps-prod`, que se crea en este sprint
+(tarea 06). **La BD objetivo pasa a ser `027apps-prod`** (antes no existía).
 
 **Piezas implementadas** (rama `sprint/11-infra-backups`):
 - `scripts/backup/backup.sh` — `pg_dump` en formato custom, validación del TOC, `restic
@@ -29,7 +31,8 @@ sprint — la verificación real (primer snapshot + simulacro de restauración) 
 **Pendiente (puerta de usuario)**:
 1. Bucket privado en Cloudflare R2 o Backblaze B2 + token S3 con alcance a ese bucket.
 2. `RESTIC_PASSWORD` en el gestor de contraseñas **y** en una copia en papel.
-3. `SUPABASE_DB_URL` con la cadena del session pooler (IPv4) y la contraseña de la BD.
+3. `SUPABASE_DB_URL` de `027apps-prod` con la cadena del session pooler (IPv4) y la contraseña
+   de la BD.
 4. Cargar `SUPABASE_DB_URL`, `RESTIC_REPOSITORY`, `RESTIC_PASSWORD`, `AWS_ACCESS_KEY_ID` y
    `AWS_SECRET_ACCESS_KEY` (y `BACKUP_S3_REGION` si no es R2); comandos en el runbook.
 5. `workflow_dispatch` del backup y primer simulacro de restauración.
