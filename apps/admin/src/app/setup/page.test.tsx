@@ -23,6 +23,9 @@ vi.mock("next/headers", () => ({
 
 vi.mock("@/lib/api/door", () => ({ getInfra: () => getInfraMock() }));
 
+const panelUser = { current: null as { id: string; email: string; displayName: string; role: string } | null };
+vi.mock("@/lib/panel-guard", () => ({ loadPanelUser: async () => panelUser.current }));
+
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: async () => ({
     auth: {
@@ -105,6 +108,7 @@ beforeEach(() => {
   redirectMock.mockClear();
   getInfraMock.mockReset();
   cookieValues.current = {};
+  panelUser.current = { id: "u1", email: "a@b.co", displayName: "Ana", role: "super_admin" };
   process.env.SETTINGS_ENCRYPTION_KEY = "unused-in-tests";
 });
 
@@ -218,5 +222,31 @@ describe("SetupPage — wizard steps", () => {
 
     await expect(SetupPage()).rejects.toThrow("NEXT_REDIRECT:/");
     expect(redirectMock).toHaveBeenCalledWith("/");
+  });
+});
+
+describe("SetupPage — steps 3–5 are super_admin only", () => {
+  it.each(["admin", "user"] as const)("redirects a %s session to /login", async (role) => {
+    panelUser.current = { id: "u1", email: "a@b.co", displayName: "Ana", role };
+    getInfraMock.mockResolvedValue(infra({ superAdmin: true, complete: false }));
+
+    await expect(SetupPage()).rejects.toThrow("NEXT_REDIRECT:/login");
+    expect(redirectMock).toHaveBeenCalledWith("/login");
+  });
+
+  it("redirects a request without a session to /login (as the proxy already did)", async () => {
+    panelUser.current = null;
+    getInfraMock.mockResolvedValue(infra({ superAdmin: true, complete: false }));
+
+    await expect(SetupPage()).rejects.toThrow("NEXT_REDIRECT:/login");
+  });
+
+  it("lets a super_admin through to step 3", async () => {
+    getInfraMock.mockResolvedValue(infra({ superAdmin: true, complete: false }));
+
+    const html = renderToStaticMarkup(await SetupPage());
+
+    expect(html).toContain("Step 3 · Email");
+    expect(redirectMock).not.toHaveBeenCalled();
   });
 });

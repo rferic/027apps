@@ -35,6 +35,7 @@ export async function proxy(request: NextRequest) {
 
   if (isPublicPath(request.nextUrl.pathname)) {
     const response = NextResponse.next({ request: { headers: requestHeaders } });
+    // Report-Only only: enforcing it needs a real-browser pass (panel, /docs/api, /invite/<token>).
     response.headers.set("Content-Security-Policy-Report-Only", contentSecurityPolicy);
     return response;
   }
@@ -59,6 +60,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
+  // Report-Only only: enforcing it needs a real-browser pass (panel, /docs/api, /invite/<token>).
   response.headers.set("Content-Security-Policy-Report-Only", contentSecurityPolicy);
   for (const { name, value, options } of refreshedCookies) response.cookies.set(name, value, options);
 

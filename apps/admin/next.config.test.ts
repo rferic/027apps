@@ -33,4 +33,21 @@ describe("next.config headers", () => {
     expect(globalIndex).toBeGreaterThanOrEqual(0);
     expect(inviteIndex).toBeGreaterThan(globalIndex);
   });
+
+  it("denies camera, microphone and geolocation for every response", async () => {
+    const rules = (await config.headers?.()) ?? [];
+    const global = rules.find((rule) => rule.source === "/:path*");
+
+    expect(global?.headers.find((header) => header.key === "Permissions-Policy")?.value).toBe(
+      "camera=(), microphone=(), geolocation=()",
+    );
+  });
+
+  it("leaves HSTS to the platform", async () => {
+    const rules = (await config.headers?.()) ?? [];
+
+    expect(
+      rules.flatMap((rule) => rule.headers).find((header) => header.key === "Strict-Transport-Security"),
+    ).toBeUndefined();
+  });
 });

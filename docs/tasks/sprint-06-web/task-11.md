@@ -531,3 +531,6 @@ como **necesita ojo humano** con la instrucción concreta.
   antes de pasar la tarea a `finalizada`.
 - **Limpieza opcional**: borrar `apps/admin/src/components/ui/data-table.tsx` y su test (sin usos
   fuera de él).
+- **CSP en Report-Only**: activar la cabecera enforcing requiere una pasada por navegador real (panel,
+  `/docs/api`, `/invite/<token>`) y, si algo se rompe, acotar `'unsafe-inline'` a estilos. Riesgo
+  aceptado y registrado hasta entonces.

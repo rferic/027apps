@@ -15,6 +15,7 @@ import { t } from "@027apps/i18n/t.js";
 import type { Locale } from "@027apps/i18n/types.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { getInfra } from "@/lib/api/door";
+import { loadPanelUser } from "@/lib/panel-guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { BrandLogo } from "@/components/brand-logo";
 import { DocumentLang } from "@/components/document-lang";
@@ -37,7 +38,8 @@ import { SmtpStep } from "./smtp-step";
  *   4–5  preferences (clears `setup_incomplete`) + optional FCM
  *
  * The proxy already redirects when a step does not apply; the guards here are
- * defence in depth for direct hits.
+ * defence in depth for direct hits — including the role check: steps 3–5 are
+ * `super_admin` only, read from `profiles` via `lib/panel-guard.ts`.
  */
 export const instant = false;
 
@@ -243,6 +245,12 @@ export default async function SetupPage() {
     return creationStep(settingsDeps, locale, messages);
   }
   if (!(await isSetupIncomplete(settingsDeps))) redirect("/");
+
+  // Steps 3–5 write instance preferences, so only the instance's super_admin
+  // may open them. The role comes from `profiles` (the panel guard), never from
+  // the session alone: an `admin` or `user` lands on the login screen.
+  const user = await loadPanelUser();
+  if (user?.role !== "super_admin") redirect("/login");
 
   await refreshJwtObservation(settingsDeps);
   const blocker = await jwtExpiryBlocker(settingsDeps, locale, messages);
