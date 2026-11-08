@@ -18,7 +18,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 2. Cada PR tiene un preview desplegable.
 3. Producción solo se despliega desde `main` en verde.
 4. Los secretos viven únicamente en GitHub Secrets / Vercel / el gestor de contraseñas del usuario; nunca en git.
-5. Un fork sin secretos ejecuta solo los gates locales y omite (sin fallar) deploy, migraciones y keep-alive.
+5. Un fork sin secretos ejecuta solo los gates locales y omite (sin fallar) deploy y keep-alive. No hay job de migraciones automático (ver [Migraciones Supabase](#migraciones-supabase)).
 6. El rollback es siempre un `git revert` en `main`.
 
 ## Triggers
@@ -58,7 +58,7 @@ Los checks `admin`, `android`, `supabase`, `guard-secrets`, `commitlint` y `ai-d
 | `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | GitHub Secrets (Environment `release`) | Firma del APK de release (solo job `release`) | En un fork el release se omite con aviso; en el repo original el job `release` **falla** (un tag sin firmar no debe pasar desapercibido) |
 | `PROD_URL` | GitHub Secrets | URL base de producción para el keep-alive | El ping se omite (paso con `if`, job en verde) |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Vercel (Preview y Production) | Runtime de `apps/admin` | `/api/health` devuelve 503 `degraded` |
-| Credenciales de migraciones (token/ DB password de Supabase) | GitHub Secrets (futuro) | Job de migraciones | El job de migraciones se omite |
+| `SUPABASE_ACCESS_TOKEN` y ref del proyecto (futuro) | GitHub Secrets (cuando exista el job) | Job de migraciones automático (**aún no existe**) | No aplica hoy: no hay secreto ni job. Cuando se cree, el job se omitirá sin fallar si falta el token |
 | `SUPABASE_DB_URL` | GitHub Secrets | Backup: conexión a Postgres (session pooler, puerto 5432) | Todos los pasos del backup se omiten (job en verde) |
 | `RESTIC_REPOSITORY`, `RESTIC_PASSWORD` | GitHub Secrets | Backup: repositorio restic y su clave de cifrado | Todos los pasos del backup se omiten |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | GitHub Secrets | Backup: token S3 con alcance a un bucket | Todos los pasos del backup se omiten |
@@ -90,10 +90,10 @@ Ya existen las primeras migraciones (`supabase/migrations/0001–0004`); el orde
 1. **En local primero**: `supabase db reset` aplica todas las migraciones desde cero sobre el stack local y la suite de aislamiento RLS corre ahí (no necesita el proyecto cloud ni secretos). Una migración que no pasa en local no abre PR. El job `supabase` de CI reproduce esto en cada PR con `supabase start` + `pnpm --filter db-tests test`.
 2. El PR con la migración tiene preview contra el proyecto Supabase de desarrollo/preview (nunca contra producción).
 3. Merge a `main` → Vercel despliega el admin.
-4. **Después del deploy del admin** un job en `main` (con secrets de Supabase) aplica las migraciones pendientes a producción (`supabase db push`).
+4. **Después del deploy del admin**: hoy **no existe** job automático en `.github/workflows/` que aplique migraciones a la base cloud. Se aplican **a mano** con `supabase link --project-ref <ref>` seguido de `supabase db push` (o `supabase migration up --linked`). Pendiente: crear el job automático en `main` con un `SUPABASE_ACCESS_TOKEN` de scope mínimo.
 5. **Antes del keep-alive**: el keep-alive diario solo valida salud tras migrar; si la migración falla el job queda en rojo y el siguiente ping no enmascara el problema.
 6. Las migraciones deben ser compatibles hacia atrás con la versión anterior del admin (expand → migrate → contract): el admin nuevo ya está desplegado cuando se aplica la migración y un rollback de código debe seguir funcionando.
-7. Sin secrets de Supabase (forks) el job de migraciones se omite sin fallar.
+7. **El job de migraciones no existe** (ver paso 4): ningún workflow aplica migraciones a la base cloud, así que hoy no hay secreto ni job que omitir en forks o sin secrets. Cuando se cree, usará `SUPABASE_ACCESS_TOKEN` y el ref del proyecto, y debe omitirse sin fallar si falta el token, igual que el backup.
 
 ## Backups
 
@@ -130,7 +130,7 @@ Un fork (o un PR desde un fork) no tiene secrets. Resultado esperado, sin fallos
 | `release` | Con `github.event.repository.fork == true` y sin keystore: aviso `::notice::` y todos los pasos de build/publicación se omiten; el job termina en verde |
 | `keep-alive` | Los workflows programados vienen deshabilitados en forks; si se lanza a mano, `PROD_URL` vacío omite el ping |
 | Vercel | No está conectado en el fork: no hay deploy |
-| Migraciones | Se omiten (sin secrets) |
+| Migraciones | No aplica: no existe job de migraciones automático, así que no hay nada que omitir. Cuando se cree, se omitirá sin fallar si falta `SUPABASE_ACCESS_TOKEN` |
 | `backup` | Todos los pasos se omiten (sin `SUPABASE_DB_URL`); el job queda en verde |
 
 Se puede comprobar leyendo las condiciones: ningún paso exige un secret sin una guarda previa y ninguna guarda convierte la ausencia de secret en un error salvo el caso del repo original en un tag (intencionado).

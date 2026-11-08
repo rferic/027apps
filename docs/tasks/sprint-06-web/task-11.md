@@ -591,3 +591,6 @@ como **necesita ojo humano** con la instrucción concreta.
   con el dev server parado.
 - **Auditoría OWASP (A01, A05, A07)**: APTO CON RESERVAS. Cerrados: `/setup` sin rol y `Permissions-Policy`.
   La CSP queda como riesgo aceptado (ver «Pendiente para cerrar»).
+- **Verificación del despliegue preview tras el merge del PR #42**: `/login` responde 200, `/api/v1/instance`
+  responde 200 con la configuración real y `/api/v1/health` está ok. Durante la verificación se detectó que
+  `SUPABASE_DB_URL` faltaba fuera de una rama concreta (ver `docs/infrastructure.md` §1, Vercel).

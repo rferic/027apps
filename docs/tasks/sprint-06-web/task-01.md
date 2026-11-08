@@ -2,7 +2,7 @@
 id: sprint-06-web
 titulo: Web de administración — panel real sobre la API del Core
 area: web
-estado: en curso
+estado: finalizada
 ---
 
 Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs y `MEMBERS_ROWS` hardcodeados, `NAV_ITEMS` con enlaces muertos) por el panel real, sobre la API del Core ya en `main`.
@@ -20,7 +20,7 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 
 | # | Tarea | Estado |
 |---|---|---|
-| 01 | README del sprint | en curso |
+| 01 | README del sprint | finalizada |
 | 02 | Setup i18n y ayuda Firebase | finalizada |
 | 03 | Dominio local de desarrollo | finalizada |
 | 04 | Settings batch write | finalizada |
@@ -53,6 +53,9 @@ Sprint **web-admin**: sustituir el mockup de `apps/admin/src/app/page.tsx` (KPIs
 
 Un solo PR, squash a `main` por orden del usuario, cuando 05–15 estén `finalizada` con DoD completo (TDD, gates, revisión de segundo agente y auditoría OWASP).
 
-**Estado de cierre (2026-11-08):** todo el sprint está `finalizada` salvo `task-01` (`en curso` mientras
-existe este PR), que espera el merge. Solo queda el PR: el cuerpo está en `docs/flows/pr-sprint-06-web.md`
-y el squash lo ordena el usuario.
+**Estado (2026-11-08):** sprint cerrado. El PR **#42** se mergeó con squash a `main` como
+`9d1cd40 feat(admin): ship the real admin panel on the Core API (#42)`; task-01 queda `finalizada` con él.
+CI en `main` en verde (`admin`, `android`, `supabase`, `guard-secrets`, `commitlint`, `ai-docs` y Vercel).
+
+Para un sprint futuro: el cuerpo del PR sigue el modelo de `docs/flows/pr-sprint-06-web.md`, y el squash
+lo ordena el usuario explícitamente.
