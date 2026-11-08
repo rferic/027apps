@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Caller, DoorDeps } from "../api/types";
 import type { RateLimitStorage } from "../api/rate-limit-storage";
-import { invitationsRoute, type InvitationsRouteDeps } from "./api.js";
+import { invitationRoute, invitationsRoute, type InvitationsRouteDeps } from "./api.js";
 import type { InvitationsAuth } from "./service.js";
 
 const admin: Caller = { kind: "session", userId: "admin-1", role: "admin" };
@@ -172,5 +172,94 @@ describe("invitations route status filter", () => {
 
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe("validation_failed");
+  });
+});
+
+describe("invitation detail route", () => {
+  function detailDeps(
+    input: { row?: Record<string, unknown> | null; who?: Caller } = {},
+  ): InvitationsRouteDeps {
+    const row = input.row === undefined ? null : input.row;
+    const door: DoorDeps = { rateLimitStorage: countingStorage(), logger: () => {} };
+    return {
+      door,
+      auth: async () => input.who ?? admin,
+      invitations: {
+        db: {
+          async query(sql: string) {
+            if (sql.includes("from public.invitations i")) return { rows: row ? [row] : [] };
+            if (sql.includes("from public.invitation_modules")) return { rows: [] };
+            return { rows: [] };
+          },
+        },
+        auth: unusedAuth,
+        now: () => new Date("2026-01-01T00:00:00.000Z"),
+      },
+    };
+  }
+
+  const ROW = {
+    id: "11111111-1111-4111-8111-111111111111",
+    email: "ana@example.com",
+    name: "Ana",
+    user_category_id: null,
+    expires_at: "2099-01-01T00:00:00.000Z",
+    used_at: null,
+    revoked_at: null,
+    created_at: "2026-01-01T00:00:00.000Z",
+    created_by_id: "u-1",
+    created_by_display_name: "Sara",
+  };
+
+  async function detail(deps: InvitationsRouteDeps, id = "11111111-1111-4111-8111-111111111111") {
+    const res = await invitationRoute(deps)(new Request("http://local"), id);
+    return { status: res.status, body: (await res.json()) as Record<string, unknown> };
+  }
+
+  it("returns the invitation with its creator", async () => {
+    const { status, body } = await detail(detailDeps({ row: ROW }));
+
+    expect(status).toBe(200);
+    expect(body).toMatchObject({
+      invitation: { id: ROW.id, created_by: { id: "u-1", display_name: "Sara" } },
+    });
+  });
+
+  it("returns created_by null for an invitation created by a key", async () => {
+    const { body } = await detail(
+      detailDeps({ row: { ...ROW, created_by_id: null, created_by_display_name: null } }),
+    );
+
+    expect((body as { invitation: { created_by: unknown } }).invitation.created_by).toBeNull();
+  });
+
+  it("never returns the token or its hash", async () => {
+    const { body } = await detail(detailDeps({ row: ROW }));
+    const serialized = JSON.stringify(body);
+
+    expect(serialized).not.toContain("token");
+  });
+
+  it("answers 404 for a missing invitation", async () => {
+    const { status, body } = await detail(detailDeps({ row: null }));
+
+    expect(status).toBe(404);
+    expect((body as { error: { code: string } }).error.code).toBe("not_found");
+  });
+
+  it("answers 400 for a malformed id", async () => {
+    const { status, body } = await detail(detailDeps({ row: ROW }), "not-a-uuid");
+
+    expect(status).toBe(400);
+    expect((body as { error: { code: string } }).error.code).toBe("validation_failed");
+  });
+
+  it("answers 403 without invitations:read", async () => {
+    const { status, body } = await detail(
+      detailDeps({ row: ROW, who: { kind: "session", userId: "user-1", role: "user" } }),
+    );
+
+    expect(status).toBe(403);
+    expect((body as { error: { code: string } }).error.code).toBe("insufficient_scope");
   });
 });

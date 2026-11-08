@@ -11,6 +11,7 @@ import {
   getModuleSettings,
   grantUserModule,
   installModule,
+  listModuleGrants,
   listModules,
   revokeUserModule,
   uninstallModule,
@@ -166,6 +167,13 @@ export function uninstallModuleRoute(deps: ModulesRouteDeps) {
         );
         return new Response(null, { status: 204 });
       },
+    );
+}
+
+export function moduleGrantsRoute(deps: ModulesRouteDeps) {
+  return (req: Request, rawKey: string): Promise<Response> =>
+    withDoor(req, readOptions(deps, ["modules:manage"]), deps.door, async (ctx) =>
+      listModuleGrants(deps.modules, ctx.caller, moduleKey(rawKey)),
     );
 }
 

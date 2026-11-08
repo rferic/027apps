@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { modulesRoute } from "@027apps/core/modules/api.js";
 import { t } from "@027apps/i18n/t.js";
@@ -7,6 +8,7 @@ import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { RowLink, clickableRowClass } from "@/components/ui/row-link";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { modulesRouteDeps } from "@/lib/modules-route-deps";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -245,9 +247,12 @@ function ModulesFilter({
         ]}
       />
       {filtered && (
-        <a href="/modules" className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline">
+        <Link
+          href="/modules"
+          className="min-h-11 py-3 text-xs font-semibold text-accent hover:underline"
+        >
           {t("Clear filter", messages)}
-        </a>
+        </Link>
       )}
     </div>
   );
@@ -262,39 +267,49 @@ function ModulesTable({
 }) {
   return (
     <div className="hidden overflow-x-auto sm:block">
-      <table className="w-full border-collapse text-left text-xs">
+      <table className="w-full border-separate border-spacing-0 text-left text-xs">
         <caption className="sr-only">{t("Modules", messages)}</caption>
         <thead>
-          <tr className="border-b border-border text-muted-foreground">
-            <th scope="col" className="py-2 pr-3 font-semibold">
+          <tr className="text-muted-foreground">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Key", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Name", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Version", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("State", messages)}
             </th>
-            <th scope="col" className="py-2 font-semibold">
+            <th scope="col" className="border-b border-border py-2 font-semibold">
               {t("Public", messages)}
             </th>
           </tr>
         </thead>
         <tbody>
           {modules.map((module) => (
-            <tr key={module.key} className="border-b border-border">
-              <td className="py-2 pr-3 font-mono text-[11px]">{module.key}</td>
-              <td className="py-2 pr-3 font-semibold">{module.name}</td>
-              <td className="py-2 pr-3">{module.version}</td>
-              <td className="py-2 pr-3">
+            <tr key={module.key} className={clickableRowClass}>
+              <td className="border-b border-border py-2 pr-3 font-mono text-[11px]">{module.key}</td>
+              <td className="border-b border-border py-2 pr-3 font-semibold">
+                <RowLink
+                  href={`/modules/${encodeURIComponent(module.key)}`}
+                  label={module.name}
+                  className="text-accent"
+                >
+                  {module.name}
+                </RowLink>
+              </td>
+              <td className="border-b border-border py-2 pr-3">{module.version}</td>
+              <td className="border-b border-border py-2 pr-3">
                 <Badge variant={stateVariant(module.state)}>
                   {stateLabel(module.state, messages)}
                 </Badge>
               </td>
-              <td className="py-2">{publicLabel(module.is_public, messages)}</td>
+              <td className="border-b border-border py-2">
+                {publicLabel(module.is_public, messages)}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -313,24 +328,26 @@ function ModulesCards({
   return (
     <ul className="flex flex-col gap-2 sm:hidden">
       {modules.map((module) => (
-        <li
-          key={module.key}
-          className="rounded-card border border-border bg-surface p-3"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-sm font-semibold">{module.name}</h2>
-            <Badge variant={stateVariant(module.state)}>
-              {stateLabel(module.state, messages)}
-            </Badge>
-          </div>
-          <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-            <dt className="text-muted-foreground">{t("Key", messages)}</dt>
-            <dd className="font-mono text-[11px]">{module.key}</dd>
-            <dt className="text-muted-foreground">{t("Version", messages)}</dt>
-            <dd>{module.version}</dd>
-            <dt className="text-muted-foreground">{t("Public", messages)}</dt>
-            <dd>{publicLabel(module.is_public, messages)}</dd>
-          </dl>
+        <li key={module.key}>
+          <Link
+            href={`/modules/${encodeURIComponent(module.key)}`}
+            className="flex min-h-11 flex-col gap-1 rounded-card border border-border bg-surface p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold">{module.name}</span>
+              <Badge variant={stateVariant(module.state)}>
+                {stateLabel(module.state, messages)}
+              </Badge>
+            </span>
+            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+              <dt className="text-muted-foreground">{t("Key", messages)}</dt>
+              <dd className="font-mono text-[11px]">{module.key}</dd>
+              <dt className="text-muted-foreground">{t("Version", messages)}</dt>
+              <dd>{module.version}</dd>
+              <dt className="text-muted-foreground">{t("Public", messages)}</dt>
+              <dd>{publicLabel(module.is_public, messages)}</dd>
+            </dl>
+          </Link>
         </li>
       ))}
     </ul>
@@ -377,9 +394,9 @@ function CatalogueError({
           <code className="select-all font-mono">{error.requestId}</code>
         </p>
       )}
-      <a href="/modules" className="mt-2 inline-block font-semibold text-accent hover:underline">
+      <Link href="/modules" className="mt-2 inline-block font-semibold text-accent hover:underline">
         {t("Try again", messages)}
-      </a>
+      </Link>
     </div>
   );
 }
@@ -395,9 +412,12 @@ function CatalogueEmpty({
     return (
       <div className="rounded-card border border-border bg-surface p-6">
         <h2 className="text-sm font-semibold">{t("No modules match this filter.", messages)}</h2>
-        <a href="/modules" className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
+        <Link
+          href="/modules"
+          className="mt-2 inline-block text-xs font-semibold text-accent hover:underline"
+        >
           {t("Clear filter", messages)}
-        </a>
+        </Link>
       </div>
     );
   }

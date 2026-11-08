@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Caller, DoorDeps } from "../api/types";
 import type { RateLimitStorage } from "../api/rate-limit-storage";
-import { modulesRoute, type ModulesRouteDeps } from "./api.js";
+import { modulesRoute, moduleGrantsRoute, type ModulesRouteDeps } from "./api.js";
 
 const admin: Caller = { kind: "session", userId: "admin-1", role: "admin" };
 
@@ -72,6 +72,79 @@ async function list(route: ReturnType<typeof modulesRoute>, url: string) {
     },
   };
 }
+
+describe("module grants route", () => {
+  function grantsDeps(input: {
+    exists?: boolean;
+    users?: { id: string; display_name: string }[];
+    categories?: { id: string; name: string }[];
+    who?: Caller;
+  }): ModulesRouteDeps {
+    const door: DoorDeps = { rateLimitStorage: countingStorage(), logger: () => {} };
+    return {
+      door,
+      auth: async () => input.who ?? admin,
+      manifest: async () => null,
+      modules: {
+        db: {
+          async query(sql: string) {
+            if (!sql.includes("json_agg")) return { rows: [] };
+            if (input.exists === false) return { rows: [] };
+            return { rows: [{ users: input.users ?? [], categories: input.categories ?? [] }] };
+          },
+        },
+      },
+    };
+  }
+
+  async function grants(deps: ModulesRouteDeps, key = "expenses") {
+    const res = await moduleGrantsRoute(deps)(new Request("http://local"), key);
+    return { status: res.status, body: (await res.json()) as Record<string, unknown> };
+  }
+
+  it("returns the users and categories with access", async () => {
+    const { status, body } = await grants(
+      grantsDeps({
+        users: [{ id: "u-1", display_name: "Ana" }],
+        categories: [{ id: "c-1", name: "Familia" }],
+      }),
+    );
+
+    expect(status).toBe(200);
+    expect(body).toEqual({
+      users: [{ id: "u-1", display_name: "Ana" }],
+      categories: [{ id: "c-1", name: "Familia" }],
+    });
+  });
+
+  it("requires modules:manage, not modules:read", async () => {
+    const delegated: Caller = {
+      kind: "delegated",
+      keyId: "key-1",
+      userId: "user-1",
+      scopes: ["modules:read"],
+      roleCap: "user",
+    };
+    const { status, body } = await grants(grantsDeps({ who: delegated }));
+
+    expect(status).toBe(403);
+    expect((body as { error: { code: string } }).error.code).toBe("insufficient_scope");
+  });
+
+  it("answers 404 for a module that does not exist", async () => {
+    const { status, body } = await grants(grantsDeps({ exists: false }));
+
+    expect(status).toBe(404);
+    expect((body as { error: { code: string } }).error.code).toBe("not_found");
+  });
+
+  it("answers 400 for a malformed key", async () => {
+    const { status, body } = await grants(grantsDeps({}), "Not A Key");
+
+    expect(status).toBe(400);
+    expect((body as { error: { code: string } }).error.code).toBe("validation_failed");
+  });
+});
 
 describe("modules route pagination", () => {
   it("returns the first page with limit=2 and the total", async () => {

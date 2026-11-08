@@ -103,19 +103,20 @@ de la fila a la ficha y se completa el contrato del Core que falta para pintarla
 - Ningún dato que el contrato no devuelva.
 - El token no se muestra salvo decisión explícita del usuario.
 
-## Dependencias y preguntas abiertas
+## Dependencias y decisiones tomadas
 
 Se apoya en task-11 iteración 26 (filas clicables y patrón compartido) y en la ficha de clave de
 task-13 (estructura de detalle, `redirectTo` en el botón de revocar).
 
-Preguntas abiertas:
+**Decisiones aprobadas por el usuario el 2026-11-08:**
 
-1. **Enlace de canje**: ¿mostrar en la ficha una URL de canje? Recomendación: **no mostrarlo**; el
-   token solo se guarda como hash y mostrarlo exigiría guardarlo en claro. No se toca el modelo de
-   tokens.
-2. **«Ir a los ajustes del módulo»**: apunta a una página de edición que no existe. Recomendación:
-   dejar los ajustes en **solo lectura** en la ficha y no enlazar a una ruta vacía.
-3. **Etiqueta «Instance»** para invitaciones creadas por una clave: se reutiliza el criterio de la ficha
-   de clave (`kind === "service" → "Instance"`).
-4. **Scope `modules:manage`** para grants: cierra la fuga hacia miembros, pero deja fuera a una futura
-   clave de solo lectura de administración. Se acepta para esta tarea.
+1. **Enlace de canje: no se muestra.** El token solo se guarda como hash y mostrarlo exigiría
+   guardarlo en claro. No se toca el modelo de tokens y `GET /invitations/{id}` **nunca** devuelve
+   `token` ni `token_hash`.
+2. **Ajustes del módulo en solo lectura en la ficha.** No se crea página de edición ni se enlaza a
+   una ruta inexistente.
+3. **Etiqueta «Instance»** para invitaciones creadas por una clave: el contrato devuelve
+   `created_by: null` y el panel decide la etiqueta (reutiliza el criterio de la ficha de clave,
+   `kind === "service" → "Instance"`).
+4. **Scope `modules:manage`** para concesiones: cierra la fuga hacia miembros, aunque deja fuera a
+   una futura clave de solo lectura de administración. Se acepta para esta tarea.

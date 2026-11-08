@@ -10,6 +10,17 @@ import { FormActions, FormAlert } from "@/components/ui/form";
 import { revokeInvitation } from "@/lib/invitation-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
 
+interface RouterLike {
+  push: (href: string) => void;
+  refresh: () => void;
+}
+
+/** After a revoke: leave the current view when a target is given, then refresh. */
+export async function completeRevoke(router: RouterLike, redirectTo?: string): Promise<void> {
+  if (redirectTo) router.push(redirectTo);
+  router.refresh();
+}
+
 /**
  * Revocation is destructive to the invitee's link, so the confirmation names
  * the person and the email and states that the link stops working at once.
@@ -20,11 +31,14 @@ export function InvitationRevokeButton({
   id,
   name,
   email,
+  redirectTo,
   messages,
 }: {
   id: string;
   name: string;
   email: string;
+  /** Send the caller here after revoking; the detail page returns to the list. */
+  redirectTo?: string;
   messages: TranslationMap;
 }) {
   const router = useRouter();
@@ -42,7 +56,7 @@ export function InvitationRevokeButton({
       return;
     }
     dialogRef.current?.close();
-    router.refresh();
+    await completeRevoke(router, redirectTo);
   }
 
   return (

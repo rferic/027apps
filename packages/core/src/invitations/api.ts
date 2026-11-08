@@ -6,6 +6,7 @@ import { DomainError } from "../errors";
 import type { Caller, CorsOptions, DoorDeps, RequestContext } from "../api/types";
 import {
   createInvitation,
+  getInvitation,
   listInvitations,
   redeemInvitation,
   revokeInvitation,
@@ -119,6 +120,13 @@ export function createInvitationRoute(deps: InvitationsRouteDeps) {
         ),
       }),
     );
+}
+
+export function invitationRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(req, readOptions(deps), deps.door, async () => ({
+      invitation: await getInvitation(deps.invitations, uuid(rawId, "invitation id")),
+    }));
 }
 
 export function revokeInvitationRoute(deps: InvitationsRouteDeps) {

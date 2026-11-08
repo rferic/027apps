@@ -45,6 +45,11 @@ export type InvitationView = {
   created_at: string;
 };
 
+/** Detail view: the list representation plus who created the invitation. */
+export type InvitationDetail = InvitationView & {
+  created_by: { id: string; display_name: string } | null;
+};
+
 export interface CreateInvitationInput {
   email: string;
   name: string;
@@ -351,6 +356,35 @@ export async function listInvitations(
     ),
     total: Number(rows[0]?.total ?? 0),
   };
+}
+
+/** One invitation with its creator; never the token nor its hash. */
+export async function getInvitation(
+  deps: InvitationsDeps,
+  id: string,
+): Promise<InvitationDetail> {
+  const now = deps.now?.() ?? new Date();
+  const { rows } = await deps.db.query(
+    `select i.id, i.email, i.name, i.user_category_id, i.expires_at, i.used_at, i.revoked_at,
+            i.created_at, p.id as created_by_id, p.display_name as created_by_display_name
+       from public.invitations i
+       left join public.profiles p on p.id = i.created_by
+      where i.id = $1`,
+    [id],
+  );
+  const row = rows[0];
+  if (!row) throw new DomainError("not_found");
+  const invitationId = String(row.id);
+  const modules = await modulesFor(deps.db, [invitationId]);
+  // `created_by` is null for a key (instance) actor: the caller labels it.
+  const creator =
+    row.created_by_id === null || row.created_by_id === undefined
+      ? null
+      : {
+          id: String(row.created_by_id),
+          display_name: String(row.created_by_display_name),
+        };
+  return { ...toView(row, modules.get(invitationId) ?? [], now), created_by: creator };
 }
 
 export async function revokeInvitation(deps: InvitationsDeps, id: string): Promise<void> {

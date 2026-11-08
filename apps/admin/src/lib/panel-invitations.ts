@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { invitationsRoute } from "@027apps/core/invitations/api.js";
+import { invitationRoute, invitationsRoute } from "@027apps/core/invitations/api.js";
 import type { InvitationStatusFilter } from "@027apps/core/invitations/service.js";
 import { invitationsRouteDeps } from "@/lib/invitations-route-deps";
 import { PANEL_PAGE_SIZE } from "@/lib/panel-pagination";
@@ -26,6 +26,19 @@ export type InvitationFailure = { ok: false; code?: string; requestId?: string }
 
 export type InvitationList =
   | { ok: true; invitations: InvitationRow[]; total: number }
+  | InvitationFailure;
+
+/** Who created the invitation; `null` means a key (the instance) did. */
+export interface InvitationCreator {
+  id: string;
+  display_name: string;
+}
+
+/** `InvitationDetail` from the Core: the list row plus its creator. */
+export type InvitationDetail = InvitationRow & { created_by: InvitationCreator | null };
+
+export type InvitationDetailResult =
+  | { ok: true; invitation: InvitationDetail }
   | InvitationFailure;
 
 type RouteSuccess = { ok: true; body: Record<string, unknown>; requestId?: string };
@@ -178,6 +191,23 @@ function readInvitation(value: unknown): InvitationRow | null {
   };
 }
 
+function readCreator(value: unknown): InvitationCreator | null | undefined {
+  if (value === null) return null;
+  if (!isRecord(value)) return undefined;
+  const id = readString(value.id);
+  const displayName = readString(value.display_name);
+  if (!id || !displayName) return undefined;
+  return { id, display_name: displayName };
+}
+
+function readInvitationDetail(value: unknown): InvitationDetail | null {
+  const invitation = readInvitation(value);
+  if (!invitation || !isRecord(value)) return null;
+  const creator = readCreator(value.created_by);
+  if (creator === undefined) return null;
+  return { ...invitation, created_by: creator };
+}
+
 /** Query for one page: `status` only travels when the caller asks for one. */
 function pageQuery(input: {
   offset: number;
@@ -230,4 +260,25 @@ export async function loadInvitations(input: {
     return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
   }
   return { ok: true, invitations, total };
+}
+
+/**
+ * GET /api/v1/invitations/{id} — the same in-process route as the list, so the
+ * role gate and the guard cannot disagree. The token (and its hash) never
+ * comes back: the plaintext only exists in the creation response.
+ */
+export async function loadInvitation(id: string): Promise<InvitationDetailResult> {
+  const token = await sessionToken();
+  const deps = await invitationsRouteDeps();
+  const handler = invitationRoute(deps);
+  const call = await callRoute(
+    (req) => handler(req, id),
+    `/api/v1/invitations/${encodeURIComponent(id)}`,
+    token,
+  );
+  if (!call.ok) return call;
+
+  const invitation = readInvitationDetail(call.body.invitation);
+  if (!invitation) return { ok: false, ...(call.requestId ? { requestId: call.requestId } : {}) };
+  return { ok: true, invitation };
 }

@@ -2,10 +2,15 @@ import { z, type ZodType } from "zod";
 import { DOMAIN_ERROR_CODES, type ErrorEnvelope } from "../errors";
 import type { UserView } from "../users/service";
 import type { CategoryDetail, CategoryMember, CategoryView } from "../user-categories/service";
-import type { InvitationView, RedeemResult } from "../invitations/service";
+import type { InvitationDetail, InvitationView, RedeemResult } from "../invitations/service";
 import type { ApiKeyView } from "../api-keys/service";
 import type { DeviceView } from "../devices/service";
-import type { ModuleDetail, ModuleSettingView, ModuleView } from "../modules/service";
+import type {
+  ModuleDetail,
+  ModuleGrants,
+  ModuleSettingView,
+  ModuleView,
+} from "../modules/service";
 import type { SettingView } from "../settings/service";
 import type { SettingCategoryMeta } from "../settings/catalog";
 import type { CurrencyView } from "../currencies/service";
@@ -253,6 +258,23 @@ export const invitationCreatedSchema = component(
   z.object({ invitation: invitationSchema, token: z.string() }).strict(),
 );
 
+export const invitationDetailSchema = component(
+  "InvitationDetail",
+  invitationSchema
+    .extend({
+      created_by: z
+        .object({ id: z.uuid(), display_name: z.string() })
+        .strict()
+        .nullable(),
+    })
+    .strict() satisfies z.ZodType<InvitationDetail>,
+);
+
+export const invitationDetailResponseSchema = component(
+  "InvitationDetailResponse",
+  z.object({ invitation: invitationDetailSchema }).strict(),
+);
+
 export const redeemResultSchema = component(
   "RedeemResult",
   z
@@ -358,6 +380,7 @@ export const moduleSchema = component(
       state: z.enum(["installed", "active", "disabled"]),
       is_public: z.boolean(),
       mcp_exposed: z.enum(["none", "read", "read_write"]),
+      manifest_digest: z.string(),
       installed_at: isoDate,
       updated_at: isoDate,
     })
@@ -401,6 +424,26 @@ export const moduleSettingListSchema = component(
 export const moduleSettingResponseSchema = component(
   "ModuleSettingResponse",
   z.object({ setting: moduleSettingSchema }).strict(),
+);
+
+export const moduleGrantUserSchema = component(
+  "ModuleGrantUser",
+  z.object({ id: z.uuid(), display_name: z.string() }).strict(),
+);
+
+export const moduleGrantCategorySchema = component(
+  "ModuleGrantCategory",
+  z.object({ id: z.uuid(), name: z.string() }).strict(),
+);
+
+export const moduleGrantsSchema = component(
+  "ModuleGrants",
+  z
+    .object({
+      users: z.array(moduleGrantUserSchema),
+      categories: z.array(moduleGrantCategorySchema),
+    })
+    .strict() satisfies z.ZodType<ModuleGrants>,
 );
 
 export const settingSchema = component(

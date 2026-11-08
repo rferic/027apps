@@ -5,6 +5,7 @@ const redirectMock = vi.fn((url: string) => {
 });
 const getSessionMock = vi.fn();
 const invitationsHandlerMock = vi.fn();
+const invitationHandlerMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => redirectMock(url),
@@ -22,9 +23,10 @@ vi.mock("@/lib/invitations-route-deps", () => ({
 
 vi.mock("@027apps/core/invitations/api.js", () => ({
   invitationsRoute: () => invitationsHandlerMock,
+  invitationRoute: () => invitationHandlerMock,
 }));
 
-import { loadInvitations } from "./panel-invitations";
+import { loadInvitation, loadInvitations } from "./panel-invitations";
 
 const INVITATION = {
   id: "i1",
@@ -48,6 +50,7 @@ beforeEach(() => {
   getSessionMock.mockReset();
   getSessionMock.mockResolvedValue({ data: { session: { access_token: "token-123" } } });
   invitationsHandlerMock.mockReset();
+  invitationHandlerMock.mockReset();
 });
 
 describe("loadInvitations", () => {
@@ -140,5 +143,84 @@ describe("loadInvitations", () => {
 
     await expect(loadInvitations({ offset: 0 })).rejects.toThrow("NEXT_REDIRECT:/login");
     expect(invitationsHandlerMock).not.toHaveBeenCalled();
+  });
+});
+
+const CREATOR = { id: "u1", display_name: "Sara" };
+
+describe("loadInvitation", () => {
+  it("reads one invitation in process with the session bearer and its creator", async () => {
+    invitationHandlerMock.mockResolvedValue(
+      json({ invitation: { ...INVITATION, created_by: CREATOR } }),
+    );
+
+    await expect(loadInvitation("i1")).resolves.toEqual({
+      ok: true,
+      invitation: { ...INVITATION, created_by: CREATOR },
+    });
+
+    const request = invitationHandlerMock.mock.calls[0]?.[0] as Request;
+    expect(request.url).toBe("http://panel.internal/api/v1/invitations/i1");
+    expect(request.method).toBe("GET");
+    expect(request.headers.get("authorization")).toBe("Bearer token-123");
+    expect(request.headers.get("host")).toBeNull();
+    expect(invitationHandlerMock.mock.calls[0]?.[1]).toBe("i1");
+  });
+
+  it("keeps a null creator for an invitation created by a key", async () => {
+    invitationHandlerMock.mockResolvedValue(
+      json({ invitation: { ...INVITATION, created_by: null } }),
+    );
+
+    await expect(loadInvitation("i1")).resolves.toEqual({
+      ok: true,
+      invitation: { ...INVITATION, created_by: null },
+    });
+  });
+
+  it("infers not_found from a bare 404", async () => {
+    invitationHandlerMock.mockResolvedValue(new Response("", { status: 404 }));
+
+    await expect(loadInvitation("missing")).resolves.toEqual({ ok: false, code: "not_found" });
+  });
+
+  it("keeps the public code and request id on a 500", async () => {
+    invitationHandlerMock.mockResolvedValue(
+      json({ error: { code: "internal", request_id: "req-500" } }, 500, {
+        "x-request-id": "req-header",
+      }),
+    );
+
+    await expect(loadInvitation("i1")).resolves.toEqual({
+      ok: false,
+      code: "internal",
+      requestId: "req-500",
+    });
+  });
+
+  it("rejects a malformed detail instead of showing a partial record", async () => {
+    invitationHandlerMock.mockResolvedValue(
+      json({ invitation: { id: "i1", email: "ana@example.com" } }, 200, {
+        "x-request-id": "req-shape",
+      }),
+    );
+
+    await expect(loadInvitation("i1")).resolves.toEqual({ ok: false, requestId: "req-shape" });
+  });
+
+  it("rejects a malformed creator", async () => {
+    invitationHandlerMock.mockResolvedValue(
+      json({ invitation: { ...INVITATION, created_by: { id: "u1" } } }, 200, {
+        "x-request-id": "req-creator",
+      }),
+    );
+
+    await expect(loadInvitation("i1")).resolves.toEqual({ ok: false, requestId: "req-creator" });
+  });
+
+  it("requires the creator field instead of guessing it is null", async () => {
+    invitationHandlerMock.mockResolvedValue(json({ invitation: INVITATION }));
+
+    await expect(loadInvitation("i1")).resolves.toEqual({ ok: false });
   });
 });

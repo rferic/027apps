@@ -3,6 +3,7 @@ import type { QueryClient } from "../api/rate-limit-storage.js";
 import type { Caller } from "../api/types.js";
 import {
   createInvitation,
+  getInvitation,
   redeemInvitation,
   type InvitationsAuth,
   type InvitationsDeps,
@@ -372,5 +373,77 @@ describe("createInvitation rules", () => {
       | undefined;
     expect(rejected?.reason).toMatchObject({ code: "conflict", details: { code: "pending_invitation" } });
     expect(table.rows).toHaveLength(1);
+  });
+});
+
+function detailDeps(input: {
+  row?: Record<string, unknown> | null;
+  modules?: string[];
+  now?: Date;
+}): InvitationsDeps {
+  const row = input.row === undefined ? null : input.row;
+  const db = {
+    async query(sql: string) {
+      if (sql.includes("from public.invitations i")) return { rows: row ? [row] : [] };
+      if (sql.includes("from public.invitation_modules")) {
+        return { rows: (input.modules ?? []).map((key) => ({ invitation_id: "i1", module_key: key })) };
+      }
+      return { rows: [] };
+    },
+  };
+  return { db, auth: auth(), now: () => input.now ?? new Date("2026-01-01T00:00:00.000Z") };
+}
+
+const DETAIL_ROW = {
+  id: "i1",
+  email: "ana@example.com",
+  name: "Ana",
+  user_category_id: null,
+  expires_at: "2099-01-01T00:00:00.000Z",
+  used_at: null,
+  revoked_at: null,
+  created_at: "2026-01-01T00:00:00.000Z",
+  created_by_id: null,
+  created_by_display_name: null,
+};
+
+describe("getInvitation", () => {
+  it("resolves the creator when a session created the invitation", async () => {
+    const detail = await getInvitation(
+      detailDeps({
+        row: {
+          ...DETAIL_ROW,
+          created_by_id: "u-1",
+          created_by_display_name: "Sara",
+        },
+        modules: ["balances", "expenses"],
+      }),
+      "i1",
+    );
+
+    expect(detail.created_by).toEqual({ id: "u-1", display_name: "Sara" });
+    expect(detail.modules).toEqual(["balances", "expenses"]);
+    expect(detail.status).toBe("pending");
+  });
+
+  it("returns created_by null when the invitation was created by a key", async () => {
+    const detail = await getInvitation(detailDeps({ row: DETAIL_ROW }), "i1");
+
+    expect(detail.created_by).toBeNull();
+  });
+
+  it("answers not_found when the invitation does not exist", async () => {
+    await expect(getInvitation(detailDeps({ row: null }), "i1")).rejects.toMatchObject({
+      code: "not_found",
+    });
+  });
+
+  it("never exposes the token or its hash", async () => {
+    const detail = await getInvitation(detailDeps({ row: DETAIL_ROW }), "i1");
+    const serialized = JSON.stringify(detail);
+
+    expect(serialized).not.toContain("token");
+    expect(detail).not.toHaveProperty("token");
+    expect(detail).not.toHaveProperty("token_hash");
   });
 });

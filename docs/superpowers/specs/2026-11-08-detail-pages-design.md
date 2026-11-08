@@ -1,6 +1,6 @@
 # Spec — Fichas de detalle de invitaciones y módulos
 
-**Fecha:** 2026-11-08 · **Estado:** Pendiente de aprobación del usuario
+**Fecha:** 2026-11-08 · **Estado:** Aprobada por el usuario el 2026-11-08
 **Tarea:** [task-14](../../tasks/sprint-06-web/task-14.md) · **Plan:**
 [2026-11-08-detail-pages](2026-11-08-detail-pages.md) · **Base:**
 [API del Core](2026-10-26-core-api.md) · [revisión UX](2026-11-06-web-admin-ux-review.md) ·
@@ -83,10 +83,9 @@ Guard: `requirePanel("admin")`, `instant = false`, `notFound()` real. La ficha n
 `mcp_exposed` como controles: cambiarlos es `PATCH /modules/{key}` y queda fuera del alcance de esta
 tarea (se muestran como dato).
 
-**Pregunta abierta:** «Ir a los ajustes del módulo» apunta hoy a una página de edición que no existe. La
-propuesta es dejar los ajustes en **solo lectura** en la propia ficha y no enlazar a una ruta vacía; si se
-quiere edición, necesita su tarea (formulario por setting, validación por tipo en el borde y auditoría de
-secretos). Decisión del usuario.
+**Decisión (usuario, 2026-11-08):** los ajustes se muestran en **solo lectura** en la propia ficha y
+no se enlaza a ninguna ruta de edición. Si se quiere edición, necesita su tarea (formulario por
+setting, validación por tipo en el borde y auditoría de secretos).
 
 ## §4 Política del enlace de canje
 
@@ -104,8 +103,9 @@ enseñar el enlace en la ficha exige cambiar el modelo. Tres opciones:
    (el `409 pending_invitation` de la iteración 17 ya impide duplicados pendientes y hay que revocar
    primero).
 
-**Recomendación: opción 3**, con el texto de la ficha explicando dónde se vio el enlace y qué hacer si se
-perdió. La decisión final es del usuario.
+**Decisión (usuario, 2026-11-08): opción 3.** No se muestra el enlace de canje y no se toca el modelo
+de tokens: `GET /invitations/{id}` nunca devuelve `token` ni `token_hash`. La ficha explica dónde se
+vio el enlace al crear la invitación y que, si se perdió, se revoca y se crea otra.
 
 ## §5 Deltas al contrato del Core
 
@@ -119,3 +119,13 @@ perdió. La decisión final es del usuario.
   módulos ya publicadas.
 - `docs/superpowers/specs/2026-10-26-core-api.md` §3.4/§3.5 recoge los tres puntos y
   `docs/api/openapi.json` se regenera con `pnpm check:openapi` en el mismo PR.
+
+## §6 Decisiones aprobadas por el usuario (2026-11-08)
+
+1. **Token de canje:** no se muestra en la ficha; no se toca el modelo de tokens y
+   `GET /invitations/{id}` nunca devuelve `token` ni `token_hash` (§4, opción 3).
+2. **Ajustes de módulo:** solo lectura en la ficha; sin página de edición ni enlace a una ruta
+   inexistente (§3).
+3. **Invitación creada por una clave:** el contrato devuelve `created_by: null` y el panel pinta
+   «Instance» (§2).
+4. **Scope de concesiones:** `modules:manage` (§1).

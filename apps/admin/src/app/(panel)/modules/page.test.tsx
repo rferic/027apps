@@ -128,6 +128,20 @@ describe("ModulesPage", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("links every row and every card to the module detail", async () => {
+    routeHandlerMock.mockResolvedValue(json({ modules: MODULES, total: 2 }));
+
+    const html = renderToStaticMarkup(
+      await ModulesPage({ searchParams: Promise.resolve({ state: "all" }) }),
+    );
+
+    expect(html).toContain('href="/modules/expenses"');
+    expect(html).toContain('href="/modules/notes"');
+    expect(html.match(/href="\/modules\/expenses"/g)).toHaveLength(2);
+    expect(html).toContain("cursor-pointer");
+    expect(html).toContain("border-spacing-0");
+  });
+
   it("shows the empty state instead of a table when there are no modules", async () => {
     routeHandlerMock.mockResolvedValue(json({ modules: [], total: 0 }));
 

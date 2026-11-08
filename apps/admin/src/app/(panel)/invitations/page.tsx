@@ -3,12 +3,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
-import { InvitationRevokeButton } from "@/components/invitation-revoke-button";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { RowLink, clickableRowClass } from "@/components/ui/row-link";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import { loadCategories, loadModuleChoices, type CategoryRow } from "@/lib/panel-categories";
@@ -152,53 +152,48 @@ function InvitationsTable({
 }: InvitationsViewProps) {
   return (
     <div className="hidden overflow-x-auto sm:block">
-      <table className="w-full border-collapse text-left text-xs">
+      <table className="w-full border-separate border-spacing-0 text-left text-xs">
         <caption className="sr-only">{t("Invitations", messages)}</caption>
         <thead>
-          <tr className="border-b border-border text-muted-foreground">
-            <th scope="col" className="py-2 pr-3 font-semibold">
+          <tr className="text-muted-foreground">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Email", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Name", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Status", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Category", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 pr-3 font-semibold">
               {t("Modules", messages)}
             </th>
-            <th scope="col" className="py-2 pr-3 font-semibold">
+            <th scope="col" className="border-b border-border py-2 font-semibold">
               {t("Expires", messages)}
-            </th>
-            <th scope="col" className="py-2 font-semibold">
-              <span className="sr-only">{t("Actions", messages)}</span>
             </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-b border-border align-top">
-              <td className="py-2 pr-3 font-semibold">{row.email}</td>
-              <td className="py-2 pr-3">{row.name}</td>
-              <td className="py-2 pr-3">
+            <tr key={row.id} className={clickableRowClass}>
+              <td className="border-b border-border py-2 pr-3 font-semibold">
+                <RowLink href={`/invitations/${encodeURIComponent(row.id)}`} className="text-accent">
+                  {row.email}
+                </RowLink>
+              </td>
+              <td className="border-b border-border py-2 pr-3">{row.name}</td>
+              <td className="border-b border-border py-2 pr-3">
                 <Badge variant={statusVariant(row.status)}>{statusLabel(row.status, messages)}</Badge>
               </td>
-              <td className="py-2 pr-3">{categoryName(row, categories, categoriesOk, messages)}</td>
-              <td className="py-2 pr-3">{moduleNames(row, modules)}</td>
-              <td className="py-2 pr-3">{formatDate(row.expires_at, { locale, timeZone })}</td>
-              <td className="py-2 text-right">
-                {row.status === "pending" && (
-                  <InvitationRevokeButton
-                    id={row.id}
-                    name={row.name}
-                    email={row.email}
-                    messages={messages}
-                  />
-                )}
+              <td className="border-b border-border py-2 pr-3">
+                {categoryName(row, categories, categoriesOk, messages)}
+              </td>
+              <td className="border-b border-border py-2 pr-3">{moduleNames(row, modules)}</td>
+              <td className="border-b border-border py-2">
+                {formatDate(row.expires_at, { locale, timeZone })}
               </td>
             </tr>
           ))}
@@ -220,31 +215,26 @@ function InvitationsCards({
   return (
     <ul className="flex flex-col gap-2 sm:hidden">
       {rows.map((row) => (
-        <li key={row.id} className="rounded-card border border-border bg-surface p-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold">{row.email}</span>
-            <Badge variant={statusVariant(row.status)}>{statusLabel(row.status, messages)}</Badge>
-          </div>
-          <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-            <dt className="text-muted-foreground">{t("Name", messages)}</dt>
-            <dd>{row.name}</dd>
-            <dt className="text-muted-foreground">{t("Category", messages)}</dt>
-            <dd>{categoryName(row, categories, categoriesOk, messages)}</dd>
-            <dt className="text-muted-foreground">{t("Modules", messages)}</dt>
-            <dd>{moduleNames(row, modules)}</dd>
-            <dt className="text-muted-foreground">{t("Expires", messages)}</dt>
-            <dd>{formatDate(row.expires_at, { locale, timeZone })}</dd>
-          </dl>
-          {row.status === "pending" && (
-            <div className="mt-2">
-              <InvitationRevokeButton
-                id={row.id}
-                name={row.name}
-                email={row.email}
-                messages={messages}
-              />
-            </div>
-          )}
+        <li key={row.id}>
+          <Link
+            href={`/invitations/${encodeURIComponent(row.id)}`}
+            className="flex min-h-11 flex-col gap-1 rounded-card border border-border bg-surface p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold">{row.email}</span>
+              <Badge variant={statusVariant(row.status)}>{statusLabel(row.status, messages)}</Badge>
+            </span>
+            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+              <dt className="text-muted-foreground">{t("Name", messages)}</dt>
+              <dd>{row.name}</dd>
+              <dt className="text-muted-foreground">{t("Category", messages)}</dt>
+              <dd>{categoryName(row, categories, categoriesOk, messages)}</dd>
+              <dt className="text-muted-foreground">{t("Modules", messages)}</dt>
+              <dd>{moduleNames(row, modules)}</dd>
+              <dt className="text-muted-foreground">{t("Expires", messages)}</dt>
+              <dd>{formatDate(row.expires_at, { locale, timeZone })}</dd>
+            </dl>
+          </Link>
         </li>
       ))}
     </ul>

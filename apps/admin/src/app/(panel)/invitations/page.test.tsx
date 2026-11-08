@@ -131,12 +131,24 @@ describe("InvitationsPage", () => {
     expect(html).toContain(">Pending<");
   });
 
-  it("offers revocation only for a pending invitation", async () => {
+  it("links every row and every card to the invitation detail", async () => {
     loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING, USED], total: 2 });
 
     const html = renderToStaticMarkup(await InvitationsPage());
 
-    expect(html).toContain("Revoke invitation for Ana");
+    expect(html).toContain('href="/invitations/i1"');
+    expect(html).toContain('href="/invitations/i2"');
+    expect(html.match(/href="\/invitations\/i1"/g)).toHaveLength(2);
+    expect(html).toContain("cursor-pointer");
+    expect(html).toContain("border-spacing-0");
+  });
+
+  it("no longer offers revocation from the list row", async () => {
+    loadInvitationsMock.mockResolvedValue({ ok: true, invitations: [PENDING, USED], total: 2 });
+
+    const html = renderToStaticMarkup(await InvitationsPage());
+
+    expect(html).not.toContain("Revoke invitation for Ana");
     expect(html).not.toContain("Revoke invitation for Luis");
   });
 

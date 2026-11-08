@@ -46,8 +46,18 @@ export type ModuleView = {
   state: ModuleState;
   is_public: boolean;
   mcp_exposed: "none" | "read" | "read_write";
+  manifest_digest: string;
   installed_at: string;
   updated_at: string;
+};
+
+/** Access holder of a module: a user grant or a category assignment. */
+export type ModuleGrantUser = { id: string; display_name: string };
+export type ModuleGrantCategory = { id: string; name: string };
+
+export type ModuleGrants = {
+  users: ModuleGrantUser[];
+  categories: ModuleGrantCategory[];
 };
 
 export type ModuleSettingView = {
@@ -67,6 +77,7 @@ export type ModuleSettingView = {
 export type ModuleDetail = ModuleView & { settings_public: ModuleSettingView[] };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MODULE_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const MODULE_ROLE = "module_installer";
 
 const toIso = (value: unknown): string =>
@@ -124,6 +135,7 @@ function toModuleView(row: Record<string, unknown>): ModuleView {
     state: String(row.state) as ModuleState,
     is_public: row.is_public === true,
     mcp_exposed: String(row.mcp_exposed) as ModuleView["mcp_exposed"],
+    manifest_digest: String(row.manifest_digest ?? ""),
     installed_at: toIso(row.installed_at),
     updated_at: toIso(row.updated_at),
   };
@@ -147,7 +159,7 @@ function toSettingView(row: Record<string, unknown>): ModuleSettingView {
 }
 
 const MODULE_COLUMNS =
-  "key, name, version, state, is_public, mcp_exposed, installed_at, updated_at";
+  "key, name, version, state, is_public, mcp_exposed, manifest_digest, installed_at, updated_at";
 
 async function getModuleRow(db: QueryClient, key: string): Promise<Record<string, unknown>> {
   const { rows } = await db.query(`select ${MODULE_COLUMNS} from public.module_registry where key = $1`, [
@@ -688,6 +700,42 @@ export async function updateModuleSetting(
   );
   if (!rows[0]) throw new DomainError("not_found");
   return toSettingView(rows[0]);
+}
+
+export async function listModuleGrants(
+  deps: ModulesDeps,
+  caller: Caller,
+  key: string,
+): Promise<ModuleGrants> {
+  // The door already enforces `modules:manage`; the explicit role check keeps
+  // the use case safe when it is called outside the API (same rule as the rest
+  // of the module service).
+  if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
+  if (!MODULE_KEY.test(key)) throw new DomainError("validation_failed", "invalid module key");
+  // One statement for the module row (404) and both aggregates: no N+1 between
+  // the users and their access, and empty grants are `[]`, never `null`.
+  const { rows } = await deps.db.query(
+    `select
+       (select coalesce(json_agg(json_build_object('id', p.id, 'display_name', p.display_name)
+                                 order by p.display_name asc, p.id asc), '[]'::json)
+          from public.user_modules u
+          join public.profiles p on p.id = u.user_id
+         where u.module_key = $1 and u.revoked_at is null) as users,
+       (select coalesce(json_agg(json_build_object('id', c.id, 'name', c.name)
+                                 order by c.name asc, c.id asc), '[]'::json)
+          from public.user_category_modules cm
+          join public.user_categories c on c.id = cm.user_category_id
+         where cm.module_key = $1) as categories
+       from public.module_registry m
+      where m.key = $1`,
+    [key],
+  );
+  const row = rows[0];
+  if (!row) throw new DomainError("not_found");
+  return {
+    users: (row.users as ModuleGrantUser[] | null) ?? [],
+    categories: (row.categories as ModuleGrantCategory[] | null) ?? [],
+  };
 }
 
 export async function grantUserModule(
