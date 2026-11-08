@@ -31,7 +31,7 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 4 | Estados vacío/carga/error y comportamiento móvil (375 px) | hecho |
 | 5 | Settings como padre con una página por categoría y guard por sección | hecho |
 | 6 | Monedas como selector múltiple con búsqueda, nombre y símbolo derivados | hecho |
-| 7 | Checklist UX de 10 puntos a 375 y 1280 px, revisión y auditoría | pendiente |
+| 7 | Checklist UX de 10 puntos de la spec §9 (a 375 y 1280 px), revisión y auditoría | pendiente |
 | 8 | Fechas de presentación con la zona de la instancia (deuda M2d, ADR 0008 §2) | hecho |
 | 9 | Idiomas habilitados con el mismo selector múltiple que las monedas | hecho |
 | 10 | Arquitectura de información final: Ajustes plano y grupo Documentación | hecho |
@@ -47,6 +47,11 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
 | 20 | Filtro por defecto vivo (`active`) en `/keys` y `/modules`; `all` explícito | hecho |
 | 21 | Filtros de tipo y propietario en `/keys` (API `kind`/`user`) | hecho |
 | 22 | Claves: permisos y revocación movidos de la lista a una ficha de detalle `/keys/{id}` | hecho |
+| 23 | Claves: edición de nombre, permisos y caducidad; los permisos de módulo del propietario se ofrecen en alta y edición | hecho |
+| 24 | Claves: el formulario se refresca tras guardar (revalidatePath + remontaje por huella de datos) | hecho |
+| 25 | Claves: caducidad relativa (horas/días/meses/años) en alta y edición, y state=expired filtrado en servidor | hecho |
+| 26 | Filas de lista clicables en claves, miembros y categorías (patrón compartido, border-separate para que el relative del tr sea fiable) | hecho |
+| 27 | Revisión de estilo de la tarea 13 y extracción de las primitivas compartidas de los formularios de clave | hecho |
 
 ### Iteración 10 — Arquitectura de información final (hecho)
 
@@ -418,3 +423,23 @@ checklist de 10 puntos verificada con evidencia, revisión y auditoría OWASP (A
   `not_found`/`internal` con `request_id`; `completeRevoke` vuelve a `/keys` solo cuando se le pide.
 - i18n: 26 claves nuevas (etiquetas de scope, «Details», «Permissions» y el error de carga de la
   ficha) en las 9 locales vía `i18n:scan` + edición de catálogos.
+
+## Checklist por páginas (revisión con el usuario)
+
+Recorrido página a página de la checklist de la spec §9, separado del inventario de iteraciones: cada
+fila se cierra con el usuario delante, a 375 y 1280 px.
+
+| # | Página | Estado |
+|---|---|---|
+| 1 | Inicio | hecho |
+| 2 | Cabecera y menú | hecho |
+| 3 | Login y wizard | hecho |
+| 4 | Miembros | hecho |
+| 5 | Categorías | hecho |
+| 6 | Invitaciones | hecho |
+| 7 | Claves | hecho |
+| 8 | Ajustes | pendiente |
+| 9 | Módulos y documentación de API | pendiente |
+| 10 | Transversal (acciones sobre uno mismo, procedencia del dato, coherencia wizard → perfil) | pendiente |
+
+Nota: la 6 y la 9 no tienen ficha de detalle todavía; se resuelve en `task-14`.

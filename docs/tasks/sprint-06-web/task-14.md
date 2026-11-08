@@ -1,0 +1,121 @@
+---
+id: sprint-06-task-14
+titulo: Fichas de detalle de invitaciones y módulos
+area: web
+estado: pendiente
+adrs: [0004, 0005, 0007, 0008]
+plan: docs/superpowers/plans/2026-11-08-detail-pages.md
+spec: docs/superpowers/specs/2026-11-08-detail-pages-design.md
+---
+
+**Alcance**: `/invitations` y `/modules` son las dos únicas listas del panel sin ficha de detalle, así
+que sus acciones viven todavía en la fila y no pueden usar el patrón de fila clicable que ya tienen
+miembros, categorías y claves (`904a7f7`, `components/ui/row-link.tsx` + `border-separate` para que el
+`relative` del `tr` sea fiable). Se crean `/invitations/{id}` y `/modules/{key}`, se mueven las acciones
+de la fila a la ficha y se completa el contrato del Core que falta para pintarla.
+
+## Cambios
+
+### Core
+
+- **`GET /api/v1/modules/{key}/grants`** (nuevo): scope **`modules:manage`** (sesión `admin` /
+  `super_admin` y service key con ese cap; **no** `modules:read`, que lo tienen las claves delegadas de
+  los miembros en `DELEGATED_SCOPES` y filtraría quién tiene qué). Respuesta
+  `{ users: [{ id, display_name }], categories: [{ id, name }] }`:
+  - `users` = `public.user_modules` con `revoked_at is null` para ese `module_key`, con join a
+    `public.profiles`;
+  - `categories` = `public.user_category_modules` para ese `module_key`, con join a
+    `public.user_categories`.
+  - **Una sola consulta** con dos subconsultas `json_agg(...)` + `coalesce(…, '[]')`, sin N+1.
+  - 404 si el módulo no existe; key inválida → 400 `validation_failed`; sin concesiones → arrays vacíos
+    (nunca `null`).
+- **Core — `manifest_digest`**: se añade de forma aditiva a `ModuleView`. Hoy la columna existe en
+  `public.module_registry` (la escribe `installModule`) pero `MODULE_COLUMNS` no la selecciona, así que
+  no viaja en `GET /modules` ni en `GET /modules/{key}`.
+- **`GET /api/v1/invitations/{id}`** (nuevo): scope `invitations:read`; devuelve la vista de invitación
+  (`InvitationView`) más `created_by: { id, display_name } | null`. **Nunca** el token ni `token_hash`:
+  la tabla solo guarda `token_hash` y el token en claro se devuelve una única vez al crear.
+
+### Panel
+
+- **`/invitations/{id}`**: `requirePanel("admin")`, `instant = false`, `notFound()` real. Breadcrumb
+  `Invitations / <email>`, `h1`, badge de estado (`pending|used|expired|revoked`), email, nombre,
+  categoría (enlace a `/categories/{id}` si existe), módulos con nombre legible, caduca,
+  usada/revocada si aplica, creada y quién la creó («Instance» si la creó una clave).
+  Acción **Revocar** con `InvitationRevokeButton` (`redirectTo="/invitations"`, la prop se añade
+  igual que en `ApiKeyRevokeButton`), solo si está `pending`.
+- **`/modules/{key}`**: `requirePanel("admin")`, `instant = false`, `notFound()` real. Badges de estado
+  y de `is_public`, clave, nombre, versión, `manifest_digest`, instalada, `mcp_exposed`, ajustes en solo
+  lectura (`getModuleSettings`) y concesiones del endpoint nuevo. Acciones: Activar/Desactivar,
+  Desinstalar (solo `super_admin`, confirmación y el 409 de concesiones activas) y enlace a ajustes
+  (pregunta abierta, hoy no existe la página de edición).
+- **Listas clicables**: cada fila y tarjeta de `/invitations` enlaza a `/invitations/{id}`; cada
+  fila/tarjeta de `/modules` a `/modules/{key}` (patrón `border-separate` + `relative` del `tr`). Se
+  retira de la fila de invitaciones la acción de revocar.
+
+## Fuera de alcance
+
+- Runtime de módulos y app Android.
+- Página de **edición** de settings de módulo: la ficha los muestra en solo lectura.
+- Mostrar el token de la invitación en la ficha.
+- Cambios de modelo más allá de `manifest_digest` y `created_by`.
+
+## TDD
+
+- `listModuleGrants`: concesiones activas y revocadas, sin concesiones, orden, 404, key inválida, 403
+  sin `modules:manage`, y **una sola consulta** (espía sobre `db.query`).
+- `packages/db-tests/src/modules/grants.test.ts`: mismo contrato contra Postgres real (grants activos,
+  revocados excluidos, categorías y arrays vacíos).
+- Detalle de invitación: 200 con `created_by`, `null` si la creó una clave, 404, 400, 403 y **ausencia
+  de token** en la respuesta.
+- `lib/panel-modules.ts` y `lib/panel-invitations.ts`: parseo defensivo y `request_id`.
+- Páginas: estructura, 404, 403, revocar solo en `pending`, desinstalar solo `super_admin`, chips de
+  concesiones.
+- Listas: enlaces y ausencia de la acción en fila.
+- OpenAPI: las dos operaciones nuevas y `manifest_digest` en el schema del módulo.
+
+## DoD
+
+- DoD de Código completo (TDD, `pnpm lint && pnpm tsc && pnpm test`,
+  `pnpm --filter admin build`, `pnpm i18n:check`, CI en verde).
+- ADR 0004 (puertas delgadas, zod en el borde, representación compartida), 0005 (dato inicial del
+  servidor + fetching en cliente), 0007 (envelope y `request_id`) y 0008 (fechas con la zona de la
+  instancia) respetados.
+- Contrato documentado en `docs/superpowers/specs/2026-10-26-core-api.md` §3.4/§3.5 y OpenAPI
+  regenerado (`docs/api/openapi.json` + `pnpm check:openapi`).
+- QA de segundo agente.
+- **Auditoría OWASP obligatoria**, centrada en:
+  - **A01**: las concesiones no son visibles sin `modules:manage`; `requirePanel` coincide con el guard
+    de la API (misma condición de rol).
+  - **A02/A05**: el token nunca aparece en la ficha ni en logs.
+  - **A03**: zod en el borde (key y UUID) antes de tocar la BD.
+  - **A07**: desinstalar con concesiones activas exige confirmación.
+- Los tres interrogantes de la §10 de `docs/superpowers/specs/2026-11-06-web-admin-ux-review.md`
+  respondidos por escrito con `archivo:línea` para cada ficha.
+
+## Criterios de aceptación
+
+- Filas y tarjetas de `/invitations` y `/modules` navegan a su ficha.
+- 404 y 403 correctos en ambas fichas.
+- Acciones destructivas confirmadas y solo cuando aplican (revocar en `pending`; desinstalar con
+  `super_admin`).
+- Breadcrumb y badges presentes y legibles sin depender del color.
+- Ningún dato que el contrato no devuelva.
+- El token no se muestra salvo decisión explícita del usuario.
+
+## Dependencias y preguntas abiertas
+
+Se apoya en task-11 iteración 26 (filas clicables y patrón compartido) y en la ficha de clave de
+task-13 (estructura de detalle, `redirectTo` en el botón de revocar).
+
+Preguntas abiertas:
+
+1. **Enlace de canje**: ¿mostrar en la ficha una URL de canje? Recomendación: **no mostrarlo**; el
+   token solo se guarda como hash y mostrarlo exigiría guardarlo en claro. No se toca el modelo de
+   tokens.
+2. **«Ir a los ajustes del módulo»**: apunta a una página de edición que no existe. Recomendación:
+   dejar los ajustes en **solo lectura** en la ficha y no enlazar a una ruta vacía.
+3. **Etiqueta «Instance»** para invitaciones creadas por una clave: se reutiliza el criterio de la ficha
+   de clave (`kind === "service" → "Instance"`).
+4. **Scope `modules:manage`** para grants: cierra la fuga hacia miembros, pero deja fuera a una futura
+   clave de solo lectura de administración. Se acepta para esta tarea.
