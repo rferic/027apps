@@ -17,14 +17,14 @@ Cómo entra una funcionalidad nueva (spec-driven development, ver spec §9). Las
 | 7 | **Revisión de la tarea** (spec + calidad) y **QA con ojos nuevos**: bugs, casos límite, estilo contra `code-style.md`. Los hallazgos se corrigen o se rechazan con motivo escrito | Orquestador + agentes QA y de estilo (distintos del autor) | Criterios de aceptación de spec/plan | — |
 | 8 | **Auditoría de seguridad OWASP, incondicional** (punto 6 del DoD) por un agente distinto del autor; informe por escrito. Críticos/altos sin resolver bloquean | Auditor de seguridad | Orquestador comprueba que cada hallazgo está resuelto o rechazado con motivo | Ve el resumen del informe; no lo revisa línea a línea |
 | 9 | **Aceptación** cuando aplica (UI, flujo visible, APK): el usuario prueba el preview o la APK de `apk-debug` | Orquestador presenta el resultado | — | **Puerta: acepta el resultado** (en el PR o en la sesión). Sin aceptación no se mergea |
-| 10 | **Merge**: squash merge a `main` (el título del PR es el commit). Vercel despliega producción | Orquestador | Checks requeridos en verde | **Puerta: orden explícita de merge** (`AGENTS.md`: no se mergea sin ella) |
+| 10 | **Merge**: squash merge a `staging` (el título del PR es el commit). Vercel despliega staging. La promoción a producción es un PR `staging → main` aparte, con su propia orden ([git](git.md#4-integración-y-promoción)) | Orquestador | Checks requeridos en verde | **Puerta: orden explícita de merge** (`AGENTS.md`: no se mergea sin ella) |
 | 11 | **Cierre**: tras el merge, verificar el despliegue (`/api/health` responde `ok`, [cicd.md](cicd.md)) y pasar el fichero de tarea a `estado: finalizada` | Orquestador | DoD completa y despliegue sano | — |
 
 Pasos 7 y 8 se repiten tras cada corrección hasta que no queden hallazgos abiertos. Una corrección que cambie la spec vuelve a la puerta del paso 1.
 
 **Estados (quién los marca):** el implementador marca `en curso` al arrancar; el orquestador marca `test` y `finalizada`.
 
-**Con rama de sprint:** el modelo de ramas se define en [`git.md`](git.md): un sprint es un concepto, una rama por sprint con commits por tarea, un PR por sprint, squash merge; `finalizada` se fija al cumplir el DoD completo (incluida la auditoría) mientras el trabajo vive en la rama de sprint; el merge del PR del sprint a `main` (y la verificación del despliegue) cierra el sprint. Mismo criterio en [`bugfix.md`](bugfix.md), [`hotfix.md`](hotfix.md) y [`release.md`](release.md).
+**Con rama de sprint:** el modelo de ramas se define en [`git.md`](git.md): un sprint es un concepto, una rama por sprint con commits por tarea, un PR por sprint contra `staging`, squash merge; `finalizada` se fija al cumplir el DoD completo (incluida la auditoría) mientras el trabajo vive en la rama de sprint; el merge del PR del sprint a `staging` (y la verificación del despliegue en staging) cierra el sprint; llega a producción con el PR `staging → main`. Mismo criterio en [`bugfix.md`](bugfix.md), [`hotfix.md`](hotfix.md) y [`release.md`](release.md).
 
 ## Variantes por tipo de cambio
 

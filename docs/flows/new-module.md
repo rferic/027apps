@@ -232,7 +232,7 @@ reporta; el módulo queda en `test` con la lista de bloqueos.
 ### Fase 10 — Aceptación y merge
 
 - El usuario acepta la UI/el resultado en preview o APK (si aplica).
-- Merge con orden explícita; squash; `main` desplegable.
+- Merge con orden explícita; squash a `staging`; la promoción a `main` es un PR `staging → main` aparte.
 - Cierre: verificar despliegue y pasar la tarea a `finalizada`.
 
 ## 5. Stop conditions por dependencia del Core

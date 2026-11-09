@@ -3,7 +3,7 @@
 **Fecha:** 2026-11-08
 **Estado:** Aceptada
 **Decisora:** usuario (rferic), en conversación de diseño
-**Sustituye:** la rama placeholder `production`, la nota «*Production Branch* → `main` al cierre de sprint-08-core-base» ([`cicd.md`](../flows/cicd.md#b-conectar-vercel) paso 4 y [`infrastructure.md`](../infrastructure.md#9-producción--activación-pendiente) paso 3), y la pausa de despliegue por falta de Core ([`cicd.md`](../flows/cicd.md#despliegues)).
+**Sustituye:** la rama placeholder `production`, la nota «*Production Branch* → `main` al cierre de sprint-08-core-base» ([`cicd.md`](../flows/cicd.md#b-conectar-vercel) paso 4 y [`infrastructure.md`](../infrastructure.md#9-producción--activación-sprint-13) paso 3), y la pausa de despliegue por falta de Core ([`cicd.md`](../flows/cicd.md#despliegues)).
 **Base:** [`cicd.md`](../flows/cicd.md) · [`git.md`](../flows/git.md) · [`infrastructure.md`](../infrastructure.md) · [`release.md`](../flows/release.md)
 
 ## Contexto
@@ -67,9 +67,10 @@ Se adopta un modelo de dos ramas desplegables con deploy automático:
   y `AGENTS.md` se alinean con este modelo (tarea 01 del sprint 13).
 - Se crean el proyecto Supabase `027apps-prod`, las variables de producción en Vercel y el job
   de migraciones por entorno.
-- `staging` queda asignado al dominio `staging.027apps.ericrf.com`; al no aplicar Vercel
-  Authentication a dominios custom, queda **pendiente de decisión** si ese dominio va
-  protegido o público (ver spec, puertas de usuario).
+- `staging` queda asignado al dominio `staging.027apps.ericrf.com` y **protegido** (decisión
+  del usuario, 2026-11-09, ver spec §3 y §A.5): con *Standard Protection* la familia no
+  accede a staging en Hobby; lo prueba el propietario y los agentes usan *Protection Bypass
+  for Automation*.
 - La contraseña de la BD de `027apps-dev` se rotará al crear la de producción (se compartió
   por chat el 2026-10-27).
 - El backup cifrado y el keep-alive, antes bloqueados en `sprint-11-prod-activation`, se

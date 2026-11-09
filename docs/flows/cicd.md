@@ -8,32 +8,34 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | Release firmado de Android en tag `v*` | Implementado, pendiente de keystore (ver [Pendiente de ejecución](#pendiente-de-ejecución-puerta-de-usuario)) |
 | Keep-alive diario | Implementado (`.github/workflows/keep-alive.yml`), inactivo hasta que exista el secret `PROD_URL` |
 | `commitlint` | Implementado (`.github/workflows/ci.yml`, config `.commitlintrc.json`); valida el título del PR |
-| Deploy Vercel (preview/prod) | Definido; **en pausa** (decisión del usuario 2026-10-25) hasta que exista un core funcional — ver paso B |
-| Migraciones Supabase | Definido; se implementa cuando exista la primera migración |
+| Deploy Vercel (preview, `staging` y producción) | Definido en el [ADR 0010](../adr/0010-entornos-y-ramas.md); se activa en el sprint 13 (puertas de usuario: ver [paso B](#b-conectar-vercel)). Sustituye a la pausa por falta de Core (2026-10-25): el Core ya existe |
+| Migraciones Supabase | Definido por entorno ([Migraciones Supabase](#migraciones-supabase)); los jobs se implementan en sprint-13 task-04 |
 | Backup diario de la BD | Implementado (`.github/workflows/backup.yml`), inactivo hasta crear el bucket y los secrets (ver [paso C](#c-backups-bucket-y-secrets)) |
 
 ## Principios
 
-1. Todo lo que entra a `main` pasa gates mecánicos (no hay revisión manual que sustituya a un check).
+1. Todo lo que entra a `staging` o `main` pasa gates mecánicos (no hay revisión manual que sustituya a un check).
 2. Cada PR tiene un preview desplegable.
-3. Producción solo se despliega desde `main` en verde.
+3. **Nada llega a `main` sin pasar por `staging`.** `staging` se despliega solo desde `staging` en verde y producción solo desde `main` en verde ([`git.md`](git.md#1-ramas-y-entornos)).
 4. Los secretos viven únicamente en GitHub Secrets / Vercel / el gestor de contraseñas del usuario; nunca en git.
-5. Un fork sin secretos ejecuta solo los gates locales y omite (sin fallar) deploy y keep-alive. No hay job de migraciones automático (ver [Migraciones Supabase](#migraciones-supabase)).
-6. El rollback es siempre un `git revert` en `main`.
+5. Un fork sin secretos ejecuta solo los gates locales y omite (sin fallar) deploy, migraciones y keep-alive ([Migraciones Supabase](#migraciones-supabase)).
+6. El rollback de código es siempre un `git revert` (en `main`, o en `staging` si el fallo es solo de staging); el de migraciones, una migración nueva hacia delante.
 
 ## Triggers
 
 | Workflow | Trigger | Qué ejecuta |
 |---|---|---|
 | `ci.yml` | `pull_request` (`opened`, `synchronize`, `reopened`, `edited`; cualquier rama destino) | `admin`, `android`, `supabase`, `guard-secrets`, `commitlint`, `ai-docs` |
-| `ci.yml` | `push` a `main` | los mismos checks sobre el commit mergeado |
+| `ci.yml` | `push` a `staging` y a `main` | los mismos checks sobre el commit mergeado (`commitlint` solo corre en `pull_request`). Repo público: minutos de Actions sin coste |
 | `ci.yml` | `push` de tag `v*` | los mismos checks + job `release` |
 | `keep-alive.yml` | `schedule` diario (06:17 UTC) y `workflow_dispatch` | ping a producción si existe `PROD_URL` |
 | `backup.yml` | `schedule` diario (03:42 UTC) y `workflow_dispatch` | dump de Postgres + subida cifrada a restic si existen los secrets |
 | *(Dependabot)* | `.github/dependabot.yml`: semanal, agrupado (npm, actions, gradle), **sin auto-merge** | PRs de dependencias; una security update no espera a la semana |
-| Vercel (app externa) | PR → preview; `main` → producción | deploy de `apps/admin` |
+| Vercel (app externa) | PR → preview; `staging` → `staging.027apps.ericrf.com`; `main` → producción | deploy de `apps/admin` |
 
-`ci.yml` usa `concurrency` por ref: un push nuevo a un PR cancela la ejecución anterior; en `main` y tags nunca se cancela.
+> El trigger `push` a `staging` se añade a `ci.yml` en sprint-13 task-03; hasta entonces solo está definido aquí.
+
+`ci.yml` usa `concurrency` por ref: un push nuevo a un PR cancela la ejecución anterior; en `staging`, `main` y tags nunca se cancela.
 
 ## Gates (jobs de `ci.yml`)
 
@@ -49,7 +51,7 @@ Todos corren en `ubuntu-24.04` (imagen fijada explícitamente) con permisos `con
 | `ai-docs` | checkout → Node 22 → `node scripts/check-ai-docs.mjs` | GitHub Actions | La versión del manifest coincide entre `docs/ai/manifest.schema.json` y `docs/ai/module-system.md`, y `AGENTS.md`, `CLAUDE.md`, `.opencode`, `.claude` y `.agents` apuntan a la fuente canónica. Sin secretos. |
 | `release` | solo en tag `v*`, y solo si el commit etiquetado es ancestro de `origin/main` (`git merge-base --is-ancestor "$GITHUB_SHA" origin/main`, con `fetch-depth: 0`; si no, el job falla antes de tocar secrets); corre en el Environment `release`; ver [Distribución Android](#distribución-android-y-actualizaciones) | GitHub Actions | APK firmado y publicado. |
 
-Los checks `admin`, `android`, `supabase`, `guard-secrets`, `commitlint` y `ai-docs` son los que se marcarán como requeridos en la protección de `main`.
+Los checks `admin`, `android`, `supabase`, `guard-secrets`, `commitlint` y `ai-docs` son los que se marcarán como requeridos en la protección de `staging` y de `main` (junto con el check de Vercel).
 
 ## Secretos
 
@@ -58,7 +60,7 @@ Los checks `admin`, `android`, `supabase`, `guard-secrets`, `commitlint` y `ai-d
 | `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | GitHub Secrets (Environment `release`) | Firma del APK de release (solo job `release`) | En un fork el release se omite con aviso; en el repo original el job `release` **falla** (un tag sin firmar no debe pasar desapercibido) |
 | `PROD_URL` | GitHub Secrets | URL base de producción para el keep-alive | El ping se omite (paso con `if`, job en verde) |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Vercel (Preview y Production) | Runtime de `apps/admin` | `/api/health` devuelve 503 `degraded` |
-| `SUPABASE_ACCESS_TOKEN` y ref del proyecto (futuro) | GitHub Secrets (cuando exista el job) | Job de migraciones automático (**aún no existe**) | No aplica hoy: no hay secreto ni job. Cuando se cree, el job se omitirá sin fallar si falta el token |
+| `SUPABASE_ACCESS_TOKEN` y ref del proyecto (cuando exista el job) | GitHub Secrets (el de producción, en el Environment `production`) | Jobs de migraciones por entorno (**aún no existen**, sprint-13 task-04) | Los jobs se omitirán sin fallar si falta el token |
 | `SUPABASE_DB_URL` | GitHub Secrets | Backup: conexión a Postgres (session pooler, puerto 5432) | Todos los pasos del backup se omiten (job en verde) |
 | `RESTIC_REPOSITORY`, `RESTIC_PASSWORD` | GitHub Secrets | Backup: repositorio restic y su clave de cifrado | Todos los pasos del backup se omiten |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | GitHub Secrets | Backup: token S3 con alcance a un bucket | Todos los pasos del backup se omiten |
@@ -77,23 +79,32 @@ Reglas de manejo de secretos:
 
 **Quién despliega:** Vercel (integración Git), no GitHub Actions. **Qué lo verifica:** el check de Vercel en el PR y, en producción, el keep-alive.
 
-> **Alcance actual:** el deploy a producción **no procede hasta que exista un core funcional** (datos, API de producto, pantallas con lógica real). Hoy el repo es solo fundaciones (tooling, identidad, design system base); desplegar ahora no aporta nada. El paso B de [Pendiente de ejecución](#pendiente-de-ejecución-puerta-de-usuario) (conectar Vercel) queda **en pausa hasta entonces**, por decisión del usuario (2026-10-25).
+> **Modelo de entornos** ([ADR 0010](../adr/0010-entornos-y-ramas.md)): dos ramas desplegables con deploy automático al mergear. Sustituye a la rama placeholder `production` y a la pausa por falta de Core (2026-10-25); el Core ya existe. El paso B de [Pendiente de ejecución](#pendiente-de-ejecución-puerta-de-usuario) lista lo que debe hacer el usuario para activarlo.
+
+| Rama | Vercel | Dominio | Supabase |
+|---|---|---|---|
+| `sprint/*`, `fix/*` (PR) | Preview | URL del deployment | `027apps-dev` |
+| `staging` | Preview con variables por rama | `staging.027apps.ericrf.com` (protegido) | `027apps-dev` |
+| `main` | Production | `027apps.ericrf.com` | `027apps-prod` |
 
 1. PR abierto/actualizado → Vercel despliega un **preview** de `apps/admin` y comenta la URL en el PR.
-2. Merge a `main` (solo posible con los checks requeridos en verde) → Vercel despliega **producción**.
-3. Un push directo a una rama que no sea `main` y sin PR no despliega producción.
+2. Merge a `staging` (solo posible con los checks requeridos en verde) → Vercel despliega **staging** y se aplican las migraciones a `027apps-dev`.
+3. Merge a `main` (PR `staging → main`, con checks en verde y aprobación) → Vercel despliega **producción**; las migraciones a `027apps-prod` esperan la aprobación del *required reviewer*.
+4. Un push directo a una rama que no sea `staging` o `main` y sin PR no despliega ni staging ni producción.
+5. `staging` está protegido por Vercel (*Standard Protection*, decisión 2026-11-09): lo prueba el propietario, y los agentes usan *Protection Bypass for Automation*. Producción (`027apps.ericrf.com`) es pública.
 
 ## Migraciones Supabase
 
-Ya existen las primeras migraciones (`supabase/migrations/0001–0004`); el orden queda definido así:
+Hay migraciones `0001`–`0019` en `supabase/migrations/`. Cada entorno aplica las suyas; el orden queda definido así:
 
 1. **En local primero**: `supabase db reset` aplica todas las migraciones desde cero sobre el stack local y la suite de aislamiento RLS corre ahí (no necesita el proyecto cloud ni secretos). Una migración que no pasa en local no abre PR. El job `supabase` de CI reproduce esto en cada PR con `supabase start` + `pnpm --filter db-tests test`.
-2. El PR con la migración tiene preview contra el proyecto Supabase de desarrollo/preview (nunca contra producción).
-3. Merge a `main` → Vercel despliega el admin.
-4. **Después del deploy del admin**: hoy **no existe** job automático en `.github/workflows/` que aplique migraciones a la base cloud. Se aplican **a mano** con `supabase link --project-ref <ref>` seguido de `supabase db push` (o `supabase migration up --linked`). Pendiente: crear el job automático en `main` con un `SUPABASE_ACCESS_TOKEN` de scope mínimo.
-5. **Antes del keep-alive**: el keep-alive diario solo valida salud tras migrar; si la migración falla el job queda en rojo y el siguiente ping no enmascara el problema.
-6. Las migraciones deben ser compatibles hacia atrás con la versión anterior del admin (expand → migrate → contract): el admin nuevo ya está desplegado cuando se aplica la migración y un rollback de código debe seguir funcionando.
-7. **El job de migraciones no existe** (ver paso 4): ningún workflow aplica migraciones a la base cloud, así que hoy no hay secreto ni job que omitir en forks o sin secrets. Cuando se cree, usará `SUPABASE_ACCESS_TOKEN` y el ref del proyecto, y debe omitirse sin fallar si falta el token, igual que el backup.
+2. El PR con la migración tiene preview contra el proyecto Supabase de desarrollo (`027apps-dev`; nunca contra producción). El preview **no** aplica migraciones.
+3. **Merge a `staging`** → Vercel despliega staging y un job aplica las migraciones a `027apps-dev` (sin aprobación: son datos de desarrollo).
+4. **Merge a `main`** → Vercel despliega producción y un job aplica las migraciones a `027apps-prod`, protegido por el Environment `production` con *required reviewer*: **el propietario aprueba antes de tocar datos reales**. Antes de aplicar, el job verifica el nivel de migraciones (`supabase migration list --linked`).
+5. **Hoy no existen estos jobs** (se crean en sprint-13 task-04): ningún workflow de `.github/workflows/` aplica migraciones a la base cloud. Mientras tanto se aplican **a mano** con `supabase link --project-ref <ref>` seguido de `supabase db push` (o `supabase migration up --linked`). Cuando existan, usarán `SUPABASE_ACCESS_TOKEN` de scope mínimo y el ref de cada proyecto, y se omitirán sin fallar si falta el token, igual que el backup.
+6. **Antes de una migración destructiva** (borra o transforma datos): verificar el nivel de migraciones y lanzar un backup manual (`workflow_dispatch` de `backup.yml`).
+7. **Antes del keep-alive**: el keep-alive diario solo valida salud tras migrar; si la migración falla el job queda en rojo y el siguiente ping no enmascara el problema.
+8. Las migraciones deben ser compatibles hacia atrás con la versión anterior del admin (expand → migrate → contract): el admin nuevo ya está desplegado cuando se aplica la migración y un rollback de código debe seguir funcionando.
 
 ## Backups
 
@@ -116,7 +127,7 @@ recuperación: [`docs/infrastructure.md`](../infrastructure.md#4-backups).
 
 ## Rollback
 
-- **Código/admin:** `git revert <sha>` del commit (o PR) en `main` → PR → mismos gates → Vercel despliega el estado anterior. Alternativa de emergencia: promover en Vercel el deployment anterior (se reconcilia después con el `revert` en git, que sigue siendo la fuente de verdad).
+- **Código/admin:** `git revert <sha>` del commit (o PR) en `main` (o en `staging` si el fallo es solo de staging) → PR → mismos gates → Vercel despliega el estado anterior. Tras revertir en `main`, merge `main → staging`. Alternativa de emergencia: promover en Vercel el deployment anterior (se reconcilia después con el `revert` en git, que sigue siendo la fuente de verdad).
 - **Migraciones:** no se revierten con `git revert`; se corrige hacia delante con una migración nueva (por eso deben ser compatibles hacia atrás).
 - **Android:** un release malo se corrige publicando un tag nuevo con `versionCode` mayor (Android no permite bajar de versión); el release defectuoso se marca como pre-release/borrador en GitHub.
 
@@ -130,7 +141,7 @@ Un fork (o un PR desde un fork) no tiene secrets. Resultado esperado, sin fallos
 | `release` | Con `github.event.repository.fork == true` y sin keystore: aviso `::notice::` y todos los pasos de build/publicación se omiten; el job termina en verde |
 | `keep-alive` | Los workflows programados vienen deshabilitados en forks; si se lanza a mano, `PROD_URL` vacío omite el ping |
 | Vercel | No está conectado en el fork: no hay deploy |
-| Migraciones | No aplica: no existe job de migraciones automático, así que no hay nada que omitir. Cuando se cree, se omitirá sin fallar si falta `SUPABASE_ACCESS_TOKEN` |
+| Migraciones | Hoy no existen los jobs (sprint-13 task-04), así que no hay nada que omitir. Cuando existan, se omitirán sin fallar si falta `SUPABASE_ACCESS_TOKEN` |
 | `backup` | Todos los pasos se omiten (sin `SUPABASE_DB_URL`); el job queda en verde |
 
 Se puede comprobar leyendo las condiciones: ningún paso exige un secret sin una guarda previa y ninguna guarda convierte la ausencia de secret en un error salvo el caso del repo original en un tag (intencionado).
@@ -172,7 +183,7 @@ Estos pasos requieren al usuario y **no se han ejecutado**; el código que los c
 
 **Orden obligatorio: las protecciones (1–2) van ANTES de subir cualquier secret de firma (4+).** Hasta que existan, cualquier colaborador con permiso de escritura podría empujar un tag `v*` sobre un commit arbitrario y exfiltrar el keystore a través del job `release`. La guarda de CI (ancestro de `main`) funciona sin ellas pero no las sustituye.
 
-1. **Proteger `main`** (*Settings → Branches* o un ruleset): exigir PR y los seis checks `admin`, `android`, `supabase`, `guard-secrets`, `commitlint`, `ai-docs` (y el check de Vercel cuando esté conectado); sin force-push ni borrado. Acción de administrador: no se puede hacer con `gh` sin acceso admin a la API.
+1. **Proteger `staging` y `main`** (*Settings → Branches* o un ruleset): exigir PR y los seis checks `admin`, `android`, `supabase`, `guard-secrets`, `commitlint`, `ai-docs` (y el check de Vercel cuando esté conectado); sin force-push ni borrado; en `main`, además, aprobación del propietario. Acción de administrador: no se puede hacer con `gh` sin acceso admin a la API (pasos exactos en sprint-13 task-02).
 2. **Ruleset para tags** (*Settings → Rules → Rulesets*): target *Tags*, patrón `v*`, restringir creación (y actualización/borrado) a administradores del repo.
 3. **Environment `release`** (*Settings → Environments*): con *Required reviewers* (el propietario) y, opcionalmente, *Deployment branches and tags* limitado a `v*`. El job `release` ya declara `environment: release`; los secrets de firma deben guardarse **en ese Environment** (no a nivel de repositorio) para que solo ese job, tras aprobación, pueda leerlos.
 
@@ -197,14 +208,15 @@ Detalle y comandos exactos del keystore en [`apps/android/keystore/README.md`](.
 
 ### B. Conectar Vercel
 
-> **En pausa por decisión del usuario (2026-10-25):** no se conecta hasta que exista un core funcional que desplegar. Este paso solo se ejecuta cuando se cumpla esa condición.
+> **Se activa en el sprint 13** ([ADR 0010](../adr/0010-entornos-y-ramas.md)): el proyecto Vercel ya existe en Hobby; los pasos 3–5 describen su configuración final. Detalle por tarea: preview y `staging` (task-05), producción (task-06). Son acciones del usuario en el dashboard.
 
 1. En Vercel: *Add New → Project → Import Git Repository* → `rferic/027apps`.
 2. **Root Directory:** `apps/admin`. Framework: Next.js (autodetectado). Con la raíz en `apps/admin`, Vercel instala con el `pnpm-lock.yaml` del monorepo (activar "Include source files outside of the Root Directory").
-3. Añadir env vars (**solo Preview** mientras no exista `027apps-prod`) del proyecto Supabase de desarrollo: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (esta última nunca con prefijo `NEXT_PUBLIC_`) y `SETTINGS_ENCRYPTION_KEY` (tipo *sensitive*).
-4. *Production Branch:* `production` (rama **placeholder**, congelada en el HEAD de `main`; Vercel exige que exista en el repo, por eso se crea una vez y no se toca). Los pushes a `main` generan solo previews. Se cambiará a `main` al cierre de sprint-08-core-base, cuando exista el Core funcional y `027apps-prod` (nota de recordatorio en `plans/...`).
-5. Verificación: abrir un PR de prueba → aparece el preview de Vercel y `/api/health` responde `{"status":"ok"}`. El merge a `main` también es preview mientras `production` sea la production branch.
-6. La protección de `main` se hace en el paso A (antes del keystore); añade aquí el check de Vercel a los checks requeridos.
+3. Añadir env vars: scope **Preview** (todas las ramas, incluida `staging`) con los valores del proyecto Supabase de desarrollo `027apps-dev`, y scope **Production** con los de `027apps-prod`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (nunca con prefijo `NEXT_PUBLIC_`), `SETTINGS_ENCRYPTION_KEY` (distinta por entorno) y `SUPABASE_DB_URL`; las tres últimas, tipo *sensitive*.
+4. *Production Branch:* `main`. La rama placeholder `production` se **borra** de GitHub. La rama `staging` queda con *branch tracking* en Preview, dominio `staging.027apps.ericrf.com` y las variables de Preview heredadas. Producción se asigna a `027apps.ericrf.com`.
+5. *Deployment Protection:* *Standard Protection* (protege previews y `staging`; deja pública producción). **No** usar *All Deployments*.
+6. Verificación: abrir un PR de prueba → aparece el preview de Vercel; un push a `staging` despliega staging y `/api/health` responde `{"status":"ok"}`; el merge `staging → main` despliega producción.
+7. La protección de `staging` y `main` se hace en el paso A (antes del keystore); añade aquí el check de Vercel a los checks requeridos.
 
 ### C. Backups (bucket y secrets)
 

@@ -31,14 +31,20 @@ y [`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-
   en el reset del 2026-10-27; este se creó desde el repo.
 - **Root Directory**: `apps/admin`, con ficheros de la raíz incluidos (workspace pnpm
   necesita el `pnpm-workspace.yaml` de la raíz).
-- **Production Branch**: `production` (rama placeholder congelada en el HEAD de `main`;
-  Vercel exige que exista en el repo → producción en pausa hasta que exista el Core
-  funcional; decisión 2026-10-25). Fijada el 2026-10-31 en *Settings → Environments →
-  Production → Branch Tracking*; los pushes del PR generan previews `READY`. El dominio de
-  producción `027apps.vercel.app` se eliminó, así que no hay URL de producción. Al cierre de
-  sprint-08-core-base se cambia a `main`.
+- **Modelo de entornos** ([ADR 0010](adr/0010-entornos-y-ramas.md)): `main` = Production
+  (`027apps.ericrf.com`, `027apps-prod`); `staging` = rama asignada al entorno Preview con
+  dominio `staging.027apps.ericrf.com` y `027apps-dev` (Hobby no permite entornos custom); los
+  PRs generan previews contra `027apps-dev`. Todos con deploy automático al mergear.
+- **Production Branch**: **hoy sigue siendo `production`** (rama placeholder congelada en el
+  HEAD de `main`, fijada el 2026-10-31 en *Settings → Environments → Production → Branch
+  Tracking*; el dominio `027apps.vercel.app` se eliminó, así que no hay URL de producción).
+  El sprint 13 (tarea 06, puerta de usuario) la cambia a `main` y **borra** la rama
+  `production`; la rama `staging` se crea en la tarea 05.
 - **Protección**: Vercel Authentication activa en todas las URLs de deployment menos
-  dominios custom (los previews solo se ven autenticado).
+  dominios custom (los previews solo se ven autenticado). Objetivo (tarea 05): *Standard
+  Protection*, que protege previews y `staging` y deja pública producción; **staging queda
+  protegido** (decisión 2026-11-09): la familia no accede en Hobby, lo prueba el propietario y
+  los agentes usan *Protection Bypass for Automation*.
 - **Env vars** (nunca valores aquí; solo nombres): 5 con scope **Preview** —
   `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (publicas por diseño),
   `SUPABASE_SERVICE_ROLE_KEY`, `SETTINGS_ENCRYPTION_KEY` y `SUPABASE_DB_URL` (tipo *sensitive*/*Secret*;
@@ -116,7 +122,7 @@ pierde la cuenta de GitHub, los secretos deben seguir siendo recuperables.
 
 ### Activación (puerta de usuario)
 
-Orden: **primero** las protecciones de `main` (paso A de
+Orden: **primero** las protecciones de `staging` y `main` (paso A de
 [`cicd.md`](flows/cicd.md#a-protecciones-del-repo-y-solo-después-keystore-y-secrets-de-github)),
 igual que con el keystore. Sin ellas, cualquiera con escritura puede modificar el workflow
 y exfiltrar los secretos.
@@ -266,35 +272,40 @@ reciente:
 | Simulacro automatizado | Pendiente: requiere Supabase self-hosted o proyecto desechable por API |
 | Inventario completo de servicios y variables | Pendiente: tareas de despliegue |
 
-## 9. Producción — activación pendiente
+## 9. Producción — activación (sprint 13)
 
-**Hoy no existe entorno de producción.** La decisión 2026-10-25 pausa producción hasta que el
-Core sea funcional: no hay app que desplegar y el plan free de Supabase pausa proyectos idle.
-Solo existe `027apps-dev` (Supabase) y el proyecto Vercel con env vars de scope Preview.
+**Hoy no existe entorno de producción**: solo `027apps-dev` (Supabase) y el proyecto Vercel con
+env vars de scope Preview. El [ADR 0010](adr/0010-entornos-y-ramas.md) sustituye la pausa del
+2026-10-25 (el Core ya existe) por el modelo `staging`/`main`, y el sprint 13
+([spec](superpowers/specs/2026-11-08-staging-production-design.md)) lo activa. Todo lo de este
+apartado son **puertas de usuario** (Supabase, Vercel, GitHub); la checklist exacta por tarea
+está en `docs/tasks/sprint-13-staging-prod/`.
 
-Checklist para activarla al cierre del sprint-08-core-base (en este orden):
+Orden de activación:
 
-0. **Verificar el nivel de migraciones de la base cloud** con `supabase migration list --linked`. A fecha
-   del cierre del sprint 06 **no está verificado** que `0015`–`0019` estén aplicadas. `0018` y `0019`
-   cierran una escalada de privilegios (cualquier miembro podía escribir su propio `role`), así que
-   deben aplicarse antes de abrir producción.
-1. **Crear `027apps-prod`** en Supabase con contraseña nueva generada en el dashboard (nunca
-   por chat ni en git) y anotar el project ref en este documento.
-2. **Añadir las env vars de scope Production en Vercel**: `NEXT_PUBLIC_SUPABASE_URL`,
-   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (sensitive) y
-   `SETTINGS_ENCRYPTION_KEY` (sensitive; la misma clave maestra o una nueva con re-cifrado).
-3. **Cambiar *Production Branch* a `main`** en Vercel (*Settings → Environments → Production →
-   Branch Tracking*) y **borrar la rama placeholder `production`** de GitHub.
-4. **Asignar `027apps.ericrf.com`** al proyecto en Vercel (DNS ya en Vercel); no usar el dominio
-   raíz ni el de email.
-5. **Configurar SMTP en `027apps-prod`** con Resend (mismo dominio `mail.ericrf.com`) y probar
-   invitación + reset reales.
-6. **Aplicar migraciones** y lanzar el **primer backup** con el `SUPABASE_DB_URL` de producción
-   (session pooler, IPv4); simulacro de restauración antes de dar por buena la instancia.
+0. **Verificar el nivel de migraciones de la base cloud** con `supabase migration list --linked`.
+   `0018` y `0019` cierran una escalada de privilegios (cualquier miembro podía escribir su
+   propio `role`), así que deben aplicarse antes de abrir producción.
+1. **Proteger `staging` y `main`** en GitHub (tarea 02) y crear el Environment `production`
+   con *required reviewer* (tarea 04).
+2. **Preview y `staging`** (tarea 05): variables Preview en todas las ramas, rotar la contraseña
+   de `027apps-dev`, Auth con `https://staging.027apps.ericrf.com`, rama `staging` con su
+   dominio y *Standard Protection*.
+3. **Crear `027apps-prod`** (tarea 06) en Supabase con contraseña nueva generada en el dashboard
+   (nunca por chat ni en git); anotar su project ref en este documento; aplicar las
+   migraciones.
+4. **Vercel Production** (tarea 06): las 5 variables con valores de prod
+   (`SETTINGS_ENCRYPTION_KEY` **nueva**, distinta de la de dev); cambiar *Production Branch* a
+   `main`, **borrar la rama placeholder `production`** de GitHub y asignar `027apps.ericrf.com`
+   (DNS ya en Vercel; no usar el dominio raíz ni el de email).
+5. **SMTP en `027apps-prod`** con Resend (mismo dominio `mail.ericrf.com`); probar invitación y
+   reset reales.
+6. **Primer backup** con el `SUPABASE_DB_URL` de producción (session pooler, IPv4) y simulacro de
+   restauración (tarea 07).
 7. **Verificar** `/api/health`, login por invitación, reset de contraseña y restore del backup.
-8. **`PROD_URL`** (task-07): subir el secret con el dominio de producción para activar el
+8. **`PROD_URL`** (tarea 08): subir el secret con el dominio de producción para activar el
    keep-alive diario.
 
-Riesgos asociados: rotar o descartar la contraseña de BD de `027apps-dev` al crear la de
-producción (se compartió por chat el 2026-10-27, riesgo aceptado); no reutilizar el proyecto
-dev como prod.
+Riesgos asociados: rotar la contraseña de BD de `027apps-dev` (se compartió por chat el
+2026-10-27); no reutilizar el proyecto dev como prod; ningún secreto se comparte entre dev y
+prod.

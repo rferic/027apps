@@ -59,7 +59,7 @@ Definición completa de "terminado" por tipo: `docs/conventions/definition-of-do
 
 ## Checklist obligatoria antes de cada commit
 
-- [ ] Estoy en una rama de trabajo (`feature/*`, `fix/*`, `chore/*`, `docs/*`, `sprint/*`), no en `main`.
+- [ ] Estoy en una rama de trabajo (`feature/*`, `fix/*`, `chore/*`, `docs/*`, `sprint/*`), no en `main` ni en `staging`.
 - [ ] `pnpm lint && pnpm tsc && pnpm test` en verde (desde la raíz). Si toqué el admin: `pnpm --filter admin build`. Si toqué Android: `cd apps/android && ./gradlew :app:testDebugUnitTest`.
 - [ ] Ejecuté los comandos y leí su salida; no afirmo "pasa" sin evidencia.
 - [ ] Sin colores hardcodeados, sin `any` injustificado, sin `console.log` olvidados, sin código comentado.
@@ -71,8 +71,15 @@ Definición completa de "terminado" por tipo: `docs/conventions/definition-of-do
 ## Git
 
 - **Idioma de la superficie de GitHub en inglés**: ramas (`sprint/NN-<slug>`, `feature/*`, `fix/*`, `docs/*`, `chore/*`), mensajes de commit (Conventional Commits), títulos y **body de PRs**, descripciones de repositorio, releases y changelog. El contenido técnico de `docs/` (specs, ADRs, flujos, convenciones) se escribe en español; solo lo que GitHub muestra públicamente (y el código) va en inglés.
-- Un PR por sprint (no por tarea ni por cambio): el PR acumula los cambios del sprint y se
-  squash-mergea a `main` una sola vez, con orden explícita del usuario. El título del PR es el
-  commit resultante. Las puertas de setup del usuario se documentan en ese mismo PR.
+- Ramas desplegables: `main` = producción y `staging` = pruebas (ADR 0010, `docs/flows/git.md`).
+  No existe `develop`; la rama `production` se elimina.
+- Un PR por sprint (no por tarea ni por cambio), en draft contra `staging` desde el arranque: el
+  PR acumula los cambios del sprint y se squash-mergea a `staging` una sola vez, con orden
+  explícita del usuario. El título del PR es el commit resultante. Las puertas de setup del
+  usuario se documentan en ese mismo PR.
+- **Regla dura: nada llega a `main` sin pasar por `staging`.** La promoción es un PR
+  `staging → main` (checks en verde, aprobación del propietario) con orden explícita del
+  usuario; tras cada release, merge `main → staging`. Única excepción: el `revert` de un
+  hotfix con producción rota (`docs/flows/hotfix.md`).
 - No mergees, no fuerces push ni reescribas historia compartida sin orden explícita del usuario.
 - La tarea no es `finalizada` hasta cumplir `docs/conventions/definition-of-done.md`, incluida la auditoría de seguridad.
