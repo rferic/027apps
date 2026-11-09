@@ -2,7 +2,7 @@
 id: sprint-09-core-data
 titulo: Core datos y plataforma — personas, claves, módulos, realtime y jobs
 area: core
-estado: en curso
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-27-core-implementation-roadmap.md
 ---
 

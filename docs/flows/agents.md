@@ -31,7 +31,7 @@ Lo único que el usuario decide; el resto lo resuelven los agentes y las herrami
 | **Emergencia (hotfix)** | Se le informa de inmediato y confirma el camino de emergencia | [`hotfix.md`](hotfix.md) 1 |
 | **Reescritura de historia** | Orden explícita si un secreto llegó al historial de git y limpiarlo exige reescribir historia compartida (`AGENTS.md`: nunca sin orden) | [`hotfix.md`](hotfix.md) 1 |
 | **Aceptación** | Prueba el preview / la APK y acepta o rechaza el resultado (en un módulo, también la UI) | [`feature.md`](feature.md) 9, [`bugfix.md`](bugfix.md) 8, [`release.md`](release.md) 5, [`new-module.md`](new-module.md) 7 y 10 |
-| **Merge a `main`** | Orden explícita de merge (`AGENTS.md`: no se mergea sin ella), también en revert y hotfix | [`feature.md`](feature.md) 10, [`bugfix.md`](bugfix.md) 9, [`hotfix.md`](hotfix.md) 2, [`release.md`](release.md) 2, [`new-module.md`](new-module.md) 10 |
+| **Merge a `staging` y a `main`** | Orden explícita de merge (`AGENTS.md`: no se mergea sin ella), una por cada PR (sprint → `staging`, `staging → main`), también en revert y hotfix | [`feature.md`](feature.md) 10, [`bugfix.md`](bugfix.md) 9, [`hotfix.md`](hotfix.md) 2, [`release.md`](release.md) 2, [`new-module.md`](new-module.md) 10 |
 | **Publicación (tag)** | Orden explícita de crear/empujar un tag (publica un binario instalable), también el de un hotfix de APK | [`release.md`](release.md) 3, [`hotfix.md`](hotfix.md) 5 |
 | **Decisiones aplazadas** | Cuestiones abiertas de la spec (flujo de git, método de login, modelo de tokens…) cuando llegue su tarea de definición | Spec §11 |
 
