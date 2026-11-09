@@ -36,3 +36,7 @@ es acción de administrador (no automatizable con `gh` sin acceso admin).
 
 **Riesgos**: olvidar el check de Vercel en los checks requeridos; proteger `main` antes de que
 el modelo de ramas esté documentado (orden: tarea 01 → 02).
+
+## Ejecución (2026-11-09)
+
+Por autorización expresa del usuario para las acciones de administrador de GitHub de este sprint, se ejecutó con `gh api` y se verificó por lectura: `main-protection` con `supabase` y `ai-docs` añadidos y métodos de merge `merge`+`squash`; `protect-staging` creado con los siete checks, PR obligatorio, sin force-push ni borrado, solo `squash`; rebase merge desactivado a nivel de repo. Los Environments `staging` y `production` se crearon sin secrets (puerta de la tarea 04).
