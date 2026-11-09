@@ -287,7 +287,7 @@ Orden de activación:
    `0018` y `0019` cierran una escalada de privilegios (cualquier miembro podía escribir su
    propio `role`), así que deben aplicarse antes de abrir producción.
 1. **Proteger `staging` y `main`** en GitHub (tarea 02) y crear el Environment `production`
-   con *required reviewer* (tarea 04).
+   con *required reviewer* y *Deployment branches* limitado a `main` (tarea 04).
 2. **Preview y `staging`** (tarea 05): variables Preview en todas las ramas, rotar la contraseña
    de `027apps-dev`, Auth con `https://staging.027apps.ericrf.com`, rama `staging` con su
    dominio y *Standard Protection*.
@@ -307,5 +307,8 @@ Orden de activación:
    keep-alive diario.
 
 Riesgos asociados: rotar la contraseña de BD de `027apps-dev` (se compartió por chat el
-2026-10-27); no reutilizar el proyecto dev como prod; ningún secreto se comparte entre dev y
-prod.
+2026-10-27; la rotación de la tarea 05 va **antes** de dar `staging` por operativo); no
+reutilizar el proyecto dev como prod; ningún secreto se comparte entre dev y prod. Los previews
+de PR y `staging` comparten `027apps-dev`: pueden pisarse datos (riesgo aceptado, son datos de
+desarrollo) y `staging` puede divergir de `main` (se mitiga con el merge `main → staging`
+tras cada release). `027apps-dev` contiene **solo datos de prueba**: nunca se cargan datos reales de la familia en `staging`. Los previews reciben las variables de dev (incluida la service-role de dev), así que tener escritura en el repo implica confianza sobre `027apps-dev`; no se da escritura a terceros.

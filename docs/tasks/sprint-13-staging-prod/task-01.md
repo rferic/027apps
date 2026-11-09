@@ -2,7 +2,7 @@
 id: sprint-13-task-01
 titulo: Modelo de entornos y ramas (ADR 0010 + spec + alineación de flujos)
 area: infra
-estado: en curso
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/adr/0010-entornos-y-ramas.md; docs/superpowers/specs/2026-11-08-staging-production-design.md
 adrs: [0010]
