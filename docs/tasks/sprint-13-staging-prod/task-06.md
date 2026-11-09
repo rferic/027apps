@@ -2,7 +2,7 @@
 id: sprint-13-task-06
 titulo: Entorno de producción completo (crear)
 area: infra
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/superpowers/specs/2026-11-08-staging-production-design.md §B
 adrs: [0010]
@@ -107,6 +107,24 @@ en el formato del repo).
 - **GitHub**: Environments verificados por API. `production` tiene *required reviewer* (1) y
   *Deployment branches* = `main`; `staging` está limitado a `staging`. Variable
   `SUPABASE_PROJECT_REF` de `production` creada con el ref de prod
-  (`pmsxqwcvsvtiipgfgwdt`). Cargado `SUPABASE_ACCESS_TOKEN` en `staging` y `production`; falta
-  `SUPABASE_DB_PASSWORD` en ambos (verificado que es necesario: sin él `db push` se queda en el
-  prompt de contraseña aunque haya token).
+  (`pmsxqwcvsvtiipgfgwdt`). Cargados `SUPABASE_ACCESS_TOKEN` y `SUPABASE_DB_PASSWORD` en
+  `staging` y `production` (verificado que el segundo es necesario: sin él `db push` se queda en
+  el prompt de contraseña aunque haya token).
+
+## Ejecución (2026-11-09) — configuración de producción preparada
+
+- **Vercel Production**: 5/5 variables creadas con scope **solo Production** y tipo correcto
+  (`SETTINGS_ENCRYPTION_KEY`, `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_DB_URL` como *Secret*;
+  las dos `NEXT_PUBLIC_*` como *Config*). `SETTINGS_ENCRYPTION_KEY` generada nueva con
+  `openssl rand -base64 32` (no reutilizada de dev); no consta en el repo.
+- **Auth de `027apps-prod`**: Site URL y redirect URL `https://027apps.ericrf.com`, SMTP de
+  Resend, 30 emails/hora y registro público desactivado (ejecutado por el propietario en el
+  dashboard; se valida con el email de prueba del asistente).
+- **GitHub**: `SUPABASE_PROJECT_REF` (variable) y los secrets `SUPABASE_ACCESS_TOKEN` +
+  `SUPABASE_DB_PASSWORD` en `staging` y `production`.
+- **Dominio**: `027apps.ericrf.com` **no asignado todavía**, a propósito: se asigna después del
+  wizard para que `/setup` no quede público.
+
+**Pendiente**: promoción `staging → main`, deploy de producción, verificación de `/api/health`,
+wizard de instalación, asignación del dominio, borrado de la rama `production` y verificación
+end-to-end (B.6/B.7).

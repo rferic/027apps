@@ -2,7 +2,7 @@
 id: sprint-13-task-05
 titulo: Entorno de preview y rama staging (editar)
 area: infra
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/superpowers/specs/2026-11-08-staging-production-design.md §A
 adrs: [0010]
@@ -99,13 +99,19 @@ Hecho hasta ahora, con evidencia leída de la API de Vercel (sin valores de secr
   emite al asignarlo. Evidencia del estado previo: `027apps.ericrf.com` → `404`
   (`DEPLOYMENT_NOT_FOUND`, no asignado), `staging.027apps.ericrf.com` → error TLS (sin
   certificado por no estar asignado).
-- **Sin deployments de la rama `staging`**: en los 30 últimos solo hay `sprint/13-staging-prod`,
-  `main`, `sprint/06-web` y dos `docs/*`. El alias de rama existirá tras el merge del sprint a
-  `staging` (orden del usuario).
-
-**Pendiente**: A.3 (redirect URL de staging en Auth de `027apps-dev`) y A.6 (tras el primer
-deployment de `staging`: `curl -I` al alias de rama debe devolver login de Vercel y `/api/health`
-en `ok`).
+- **A.3** ejecutado por el propietario en el dashboard de `027apps-dev` (Site URL y redirect
+  URLs con `https://staging.027apps.ericrf.com`). No es verificable por API sin token; se valida
+  funcionalmente con el email de prueba del asistente en producción.
+- **A.6 verificado el 2026-11-09**, tras el merge del sprint a `staging` (squash `90a54eb`):
+  - Deployment `027apps-ig3zjy0m7-eric-rf.vercel.app`, branch `staging`, estado `READY`;
+    alias de rama `https://027apps-git-staging-eric-rf.vercel.app`.
+  - Sin cookie: `302` a `vercel.com/sso-api` → protegido por Standard Protection.
+  - Con sesión de Vercel: `/api/health` → `200 {"status":"ok"}`; `/login` → `200`,
+    `<title>027Apps</title>` (consulta Postgres en cada request, así que valida también la
+    contraseña nueva de `027apps-dev`).
+  - CI de `staging` en verde (`90a54eb`).
+  - El job `migrate-dev` **no se ejecutó**: el merge no tocó `supabase/migrations/**` (staging ya
+    contenía `0014`–`0019` desde el PR #42). Su primera validación real será una migración nueva.
 
 **Fuera de esta tarea, pero anotado**: el 2026-11-09 el propietario puso *Production Branch* =
 `main` en el dashboard, que es el estado objetivo de ADR 0010 (adelanta parte de B.4; la rama
