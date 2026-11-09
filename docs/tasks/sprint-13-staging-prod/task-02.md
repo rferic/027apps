@@ -2,7 +2,7 @@
 id: sprint-13-task-02
 titulo: Protección de ramas y contrato de promoción
 area: infra
-estado: pendiente
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/superpowers/specs/2026-11-08-staging-production-design.md §7
 adrs: [0010]
@@ -14,7 +14,7 @@ contrato de promoción.
 **Objetivo**: que ningún push directo, force-push o merge sin checks llegue a `staging` o
 `main`.
 
-**Contexto**: hoy `main` no está protegida; la disciplina la impone `AGENTS.md`. La protección
+**Contexto**: verificado el 2026-11-09 con `gh api`: `main` ya tiene el ruleset `main-protection` (PR, sin force-push ni borrado) pero sin los checks `supabase` y `ai-docs`; `staging` no tiene protección. La disciplina la impone `AGENTS.md` mientras tanto. La protección
 es acción de administrador (no automatizable con `gh` sin acceso admin).
 
 **Alcance**:

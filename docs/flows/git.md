@@ -40,14 +40,27 @@ Cómo se organiza el trabajo en ramas, cómo se promociona de `staging` a `main`
 
 ## 5. Protección de `staging` y `main` (puerta de usuario / admin)
 
-Proteger **ambas** ramas en GitHub (*Settings → Branches* o un ruleset), exigiendo:
+Es acción de administrador del repositorio; **no la ejecuta un agente** (editar rulesets exige acceso admin). Sí se puede **leer** su estado con `gh api repos/rferic/027apps/rulesets` y `.../rules/branches/<rama>`.
 
-- PR obligatorio (sin commits directos).
-- Checks requeridos: `admin`, `android`, `supabase`, `guard-secrets`, `commitlint`, `ai-docs` y el check de Vercel ([`cicd.md`](cicd.md#pendiente-de-ejecución-puerta-de-usuario)).
-- Sin force-push ni borrado.
-- En `main`, además, aprobación del propietario en el PR.
+**Estado verificado el 2026-11-09 (lectura con `gh api`):** existe el ruleset activo `main-protection` (PR obligatorio con 0 aprobaciones, resolución de conversaciones y descarte de aprobaciones obsoletas, sin force-push ni borrado, rama al día, **métodos de merge permitidos: solo `squash`**; la bypass list no es verificable sin acceso admin) con los checks `admin`, `android`, `guard-secrets`, `commitlint` y `Vercel`; y `tags-v-protection` para tags. **Hueco:** a `main` le faltan los checks `supabase` y `ai-docs`, y **`staging` no tiene ninguna protección**. Lo que resta es esa edición y ese ruleset nuevo (puerta de usuario).
 
-Es acción de administrador del repositorio; no la puede ejecutar un agente. Hasta que esté activa, la disciplina la impone `AGENTS.md` (rama de trabajo, un PR por concepto, squash, sin merge sin orden del usuario).
+**Checks requeridos** (los seis jobs de [`ci.yml`](../../.github/workflows/ci.yml) que corren en `pull_request`, más Vercel): `admin`, `android`, `supabase`, `guard-secrets`, `commitlint`, `ai-docs` y el check de Vercel. `release` no es requerido: solo corre en tags.
+
+**Pasos exactos** (para `main`, *editar* `main-protection`; para `staging`, crear `protect-staging`):
+
+1. *Settings → Rules → Rulesets*: en `main`, abrir `main-protection`; en `staging`, *New ruleset → New branch ruleset* con nombre `protect-staging`. *Enforcement status*: **Active**.
+2. *Bypass list*: vacía (ni siquiera el propietario se salta el PR; si hace falta una emergencia, edita el ruleset a propósito).
+3. *Target branches → Add target → Include by pattern*: `main` (o `staging`).
+4. Reglas a marcar: **Restrict deletions**; **Block force pushes**; **Require a pull request before merging**; **Require conversation resolution before merging** (como `main`); **Require status checks to pass** con los siete checks anteriores (el de Vercel se llama `Vercel`). *Require branches to be up to date* está activo en `main`; en `staging` es opcional (añade rebases con una rama larga).
+5. *Required approvals*: en `main` hoy es **0** y debe seguir así con un único mantenedor: GitHub no deja aprobar el propio PR y 1 aprobación **bloquearía todo merge**. Solo con un segundo revisor subirlo a 1; mientras tanto, la aprobación del propietario es su orden explícita de merge (no hay revisión humana forzada por GitHub; el control real son el PR, los checks y esa orden) (`AGENTS.md`). En `staging`, 0.
+6. *Settings → General → Pull Requests*: dejar activos **squash** y **merge commit** y desactivar **rebase merge** (los métodos efectivos por rama los fija el ruleset, ver «Métodos de merge»), y comprobar que *Automatically delete head branches* está **desactivado** (o que el ruleset de `staging` impide su borrado) para que `staging → main` no borre `staging`.
+7. Verificación (solo lectura, sin cookie ni secretos): `gh api repos/rferic/027apps/rules/branches/main --jq '.[].type'` y lo mismo con `staging` deben listar `deletion`, `non_fast_forward`, `pull_request` y `required_status_checks`.
+
+**Métodos de merge (decisión a confirmar):** el ruleset prevalece sobre *Settings → General → Pull Requests*. La promoción `staging → main` está definida como **merge commit** (§4), pero `main-protection` hoy solo permite `squash`, así que ese PR **no se podría mergear**. Para ejecutarlo: en `main-protection`, *Require a pull request → Allowed merge methods* = **merge** y **squash** (squash sigue valiendo para un `revert` de hotfix); en `protect-staging` = **squash** (PRs de sprint y de `fix/*`). Si se prefiere mantener squash también en la promoción, `main` no contendría los commits de `staging` y el merge `main → staging` dejaría de ser trivial (posibles conflictos tras cada release).
+
+**Orden:** los checks solo aparecen en el selector tras haber corrido en el repo (el PR del sprint los ejecuta); el check de Vercel aparece cuando Vercel comenta el primer deployment. Las protecciones van **antes** de subir secretos de firma, de backup o de migraciones ([`cicd.md`](cicd.md#a-protecciones-del-repo-y-solo-después-keystore-y-secrets-de-github)). El ruleset de tags `v*` es independiente (`cicd.md`, paso A.2).
+
+**Contrato de promoción** (resumen; detalle en §1 y §4): rama de trabajo → PR a `staging` → pruebas → PR `staging → main` (merge commit) → merge `main → staging` tras cada release; nada a `main` sin pasar por `staging`.
 
 ## 6. Tags y releases
 
