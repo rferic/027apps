@@ -43,6 +43,7 @@ de `027apps-prod` no existe aún (se cita por nombre).
 - Producción: `migration list --linked` y `db push --dry-run` antes de `db push --yes`; el *required reviewer* aprueba antes de que arranque el job.
 - Omisión sin fallar: paso «Check configuration» como en `backup.yml`. Verificado ejecutando el script real con y sin credenciales: sin token → `enabled=false` (exit 0); en producción, token sin `SUPABASE_PROJECT_REF` → `enabled=false` (nunca cae al ref de dev).
 - **Límite de la evidencia:** no hay run real del job. Requiere el Environment, los secrets y un merge a `staging`/`main` (puertas de usuario y orden de merge). Se verifica por lectura del YAML, parseo y ejecución local de la lógica de guarda.
+- **Nota (2026-11-09):** el job dependía de que `027apps-dev` tuviera las versiones de migración en el formato del repo. Estaban como timestamps (`apply_migration`) y en `0013`, así que `db push` habría fallado en el primer run; se normalizaron a `0001`–`0019` y se aplicaron `0014`–`0019`. Ver `task-06.md` § Ejecución.
 
 ### Desviaciones de la spec §6 (a confirmar)
 

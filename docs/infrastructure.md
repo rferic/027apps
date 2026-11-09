@@ -19,6 +19,7 @@ y [`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-
 | Supabase | Postgres, Auth, Storage, Realtime | Free: **sin backups**, 500 MB de BD, pausa por inactividad (~1 semana) | **Se reconstruye** desde el backup + migraciones (este documento) |
 | Supabase local (dev) | BD/Auth/Storage/Realtime para desarrollar y para el TDD de migraciones + RLS | Docker, sin coste; lo levanta `supabase start` | Se recrea con `supabase start`; `supabase db reset` deja la BD limpia y aplica las migraciones |
 | **Supabase `027apps-dev`** (cloud) | **Project ref `wrigkwhrihawvwiciouy`** (`https://wrigkwhrihawvwiciouy.supabase.co`, eu-west) | Env vars solo en Vercel y en el gestor del propietario (nunca en git) | Se recupera con `supabase link --project-ref wrigkwhrihawvwiciouy` + migraciones |
+| **Supabase `027apps-prod`** (cloud) | **Project ref `pmsxqwcvsvtiipgfgwdt`** (`https://pmsxqwcvsvtiipgfgwdt.supabase.co`, **eu-west-2**, creado 2026-11-09; 19 migraciones aplicadas; contraseña en el gestor) | Env vars solo en Vercel Production y en el gestor (nunca en git); sin secretos compartidos con dev | Se recupera desde el backup + migraciones `supabase link --project-ref pmsxqwcvsvtiipgfgwdt` |
 | Resend | Email transaccional de Auth (invitaciones, resets) | Free: 100 emails/día (3.000/mes) | Se recrea la cuenta y el dominio; el DNS sigue en Vercel |
 | Firebase (FCM) | Push | Free (opcional) | Se recrea el proyecto; los valores van en settings |
 | Cloudflare R2 (o Backblaze B2) | Backups cifrados de la BD | R2: 10 GB gratis, sin coste de egress | **Punto único de los backups**: ver copia secundaria (§8) |
@@ -274,9 +275,12 @@ reciente:
 
 ## 9. Producción — activación (sprint 13)
 
-**Hoy no existe entorno de producción**: solo `027apps-dev` (Supabase) y el proyecto Vercel con
-env vars de scope Preview. El [ADR 0010](adr/0010-entornos-y-ramas.md) sustituye la pausa del
-2026-10-25 (el Core ya existe) por el modelo `staging`/`main`, y el sprint 13
+**Estado 2026-11-09**: `027apps-prod` ya existe en Supabase (ref `pmsxqwcvsvtiipgfgwdt`,
+eu-west-2) con las 19 migraciones aplicadas y verificadas, pero todavía **no está activo**:
+faltan las variables de Vercel Production, el Auth con SMTP, el dominio y los secretos de
+GitHub. Vercel sigue con env vars solo de scope Preview.
+El [ADR 0010](adr/0010-entornos-y-ramas.md) sustituye la pausa del 2026-10-25 (el Core ya
+existe) por el modelo `staging`/`main`, y el sprint 13
 ([spec](superpowers/specs/2026-11-08-staging-production-design.md)) lo activa. Todo lo de este
 apartado son **puertas de usuario** (Supabase, Vercel, GitHub); la checklist exacta por tarea
 está en `docs/tasks/sprint-13-staging-prod/`.
@@ -286,6 +290,13 @@ Orden de activación:
 0. **Verificar el nivel de migraciones de la base cloud** con `supabase migration list --linked`.
    `0018` y `0019` cierran una escalada de privilegios (cualquier miembro podía escribir su
    propio `role`), así que deben aplicarse antes de abrir producción.
+   *Estado 2026-11-09*: `027apps-dev` estaba en `0013` y con las versiones registradas como
+   timestamps (aplicadas con `apply_migration`, no con `db push`), lo que hace fallar al CLI y al
+   workflow de migraciones. Se aplicaron `0014`–`0019` y se normalizaron las versiones a
+   `0001`–`0019`; detalle y evidencia en `docs/tasks/sprint-13-staging-prod/task-06.md`. Una base
+   nueva (prod) se provisiona ya con `supabase db push`, así que nace en el formato correcto.
+   Residual abierto: los default privileges del rol `supabase_admin` siguen concediendo `EXECUTE`
+   a `anon`/`authenticated` (0019 solo cubre `postgres`).
 1. **Proteger `staging` y `main`** en GitHub (tarea 02) y crear el Environment `production`
    con *required reviewer* y *Deployment branches* limitado a `main` (tarea 04).
 1b. **Migraciones automáticas** (tarea 04, `.github/workflows/migrations.yml`): crear primero los Environments `staging` (*Deployment branches* = `staging`) y `production` (*required reviewer* y *Deployment branches* = `main`) y **solo después** cargar `SUPABASE_ACCESS_TOKEN` (y, si hace falta, `SUPABASE_DB_PASSWORD`); la variable `SUPABASE_PROJECT_REF` de `production` cuando exista `027apps-prod`. Sin esa protección previa, un merge a `main` migraría producción sin aprobación.
