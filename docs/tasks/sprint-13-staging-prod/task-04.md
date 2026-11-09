@@ -2,7 +2,7 @@
 id: sprint-13-task-04
 titulo: Migraciones por entorno
 area: infra
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/superpowers/specs/2026-11-08-staging-production-design.md §5
 adrs: [0010]
