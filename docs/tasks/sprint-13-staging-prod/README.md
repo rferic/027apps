@@ -21,7 +21,9 @@ dos proyectos Supabase, migraciones por entorno, backup cifrado y keep-alive, se
 
 **Flujo:** rama de trabajo → PR a `staging` (deploy + migraciones a `027apps-dev`) → pruebas →
 PR `staging → main` (deploy + migraciones a `027apps-prod` tras aprobación). Regla dura: nada
-a `main` sin pasar por `staging`. Tras cada release: merge `main → staging`.
+a `main` sin pasar por `staging`. Tras cada release: merge `main → staging`. **Staging queda
+protegido** (decisión 2026-11-09): la familia no podrá acceder en Hobby; lo prueba el
+propietario.
 
 ## Tareas (orden de ejecución)
 
@@ -31,8 +33,8 @@ a `main` sin pasar por `staging`. Tras cada release: merge `main → staging`.
 | 2 | **02** Protección de ramas y contrato de promoción | `main`/`staging` protegidas, checks requeridos |
 | 3 | **03** CI en dos entornos | `ci.yml` con push a `staging` |
 | 4 | **04** Migraciones por entorno | Jobs dev/prod, prod detrás de aprobación |
-| 5 | **05** Vercel | *Production Branch* = `main`, dominio staging, variables prod |
-| 6 | **06** Supabase `027apps-prod` | Proyecto prod + SMTP + rotación dev |
+| 5 | **05** Entorno de preview y rama `staging` (editar) | Preview + `staging` desplegando contra `027apps-dev` |
+| 6 | **06** Entorno de producción completo (crear) | `027apps-prod` + Vercel Production + GitHub |
 | 7 | **07** Backup cifrado real | Primer snapshot + simulacro (contra prod) |
 | 8 | **08** Keep-alive y runbook de release | `PROD_URL` + runbook promoción/rollback |
 
@@ -42,7 +44,7 @@ a `main` sin pasar por `staging`. Tras cada release: merge `main → staging`.
 
 ## Criterios de cierre
 
-- Los 12 criterios de aceptación de la spec se cumplen con evidencia.
+- Los 10 criterios de aceptación de la spec se cumplen con evidencia.
 - `cicd.md`, `git.md`, `release.md`, `infrastructure.md` y `AGENTS.md` describen el modelo sin
   contradicciones.
 - Auditoría de seguridad superada en toda implementación.

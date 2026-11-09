@@ -6,17 +6,17 @@ Supabase, migraciones por entorno, backup cifrado y keep-alive — todo contra e
 
 **Architecture:** Ocho tareas secuenciales, de documentación a infraestructura. (1) alinear
 docs con el modelo; (2) protección de ramas; (3) CI en dos entornos; (4) migraciones por
-entorno; (5) Vercel (ramas, dominios, variables, protección); (6) Supabase `027apps-prod`;
-(7) backup cifrado real; (8) keep-alive y runbook de release. Las tareas 5–8 tienen puertas
-de usuario (acciones solo de administrador/dashboard); las 7 y 8 vienen de
+entorno; (5) entorno de preview y rama `staging` (editar); (6) entorno de producción completo
+(crear); (7) backup cifrado real; (8) keep-alive y runbook de release. Las tareas 5–8 tienen
+puertas de usuario (acciones solo de administrador/dashboard); las 7 y 8 vienen de
 `sprint-11-prod-activation`.
 
 **Tech Stack:** Markdown (docs), GitHub (branch protection, environments, secrets), Vercel
 dashboard (ramas, dominios, variables), Supabase dashboard/CLI, Resend, Cloudflare R2/B2.
 Sin código de producto.
 
-**Spec:** `docs/superpowers/specs/2026-11-08-staging-production-design.md` (aprobada
-2026-11-08). **ADR:** `docs/adr/0010-entornos-y-ramas.md`.
+**Spec:** `docs/superpowers/specs/2026-11-08-staging-production-design.md` (borrador para
+aprobación del usuario, revisión 2026-11-09). **ADR:** `docs/adr/0010-entornos-y-ramas.md`.
 
 ## Arranque
 
@@ -27,7 +27,7 @@ Sin código de producto.
 ## Global Constraints
 
 - **No se reabre la decisión del usuario**: dos ramas desplegables, deploy automático,
-  `main` = producción, sin `develop`, rama `production` eliminada.
+  `main` = producción, sin `develop`, rama `production` eliminada, **staging protegido**.
 - **No se escribe código de aplicación** en las tareas 1–2; las tareas 3–4 describen cambios
   de CI pero no los implementan aquí (los ejecuta el Soldado en su propia tarea, con TDD y
   auditoría).
@@ -47,8 +47,8 @@ Sin código de producto.
    `develop` en ningún flujo.
 3. **Migraciones de prod sin aprobación** → tarea 04: el job de `main` queda detrás del
    Environment `production` con required reviewer; sin eso no puede tocar datos reales.
-4. **Staging público por accidente** → tarea 05: se registra la decisión pendiente
-   (público vs protegido); no se resuelve por cuenta propia.
+4. **Staging público por accidente** → tarea 05: staging queda **protegido** (decisión
+   2026-11-09); se verifica con `curl -I` sin cookie y se documenta el plan B (URL de rama).
 5. **Fork alcanza producción** → tarea 03: ningún PR de fork recibe secrets ni dispara deploy
    de producción.
 6. **Backup no probado** → tarea 07: primer snapshot + simulacro de restauración antes de
@@ -133,38 +133,39 @@ Sin código de producto.
 
 ---
 
-### Task 5 — sprint-13-task-05: Vercel (ramas, dominios, variables, protección)
+### Task 5 — sprint-13-task-05: Entorno de preview y rama staging (editar)
 
 **Files:**
 - Modify: `docs/infrastructure.md` (§1 Vercel y §9) y `docs/flows/cicd.md` (sección B).
 
-**Verificación (puertas de usuario documentadas, no ejecutadas):**
-- *Production Branch* = `main`; borrar la rama `production` de GitHub.
-- Rama `staging` con dominio `staging.027apps.ericrf.com` y variables por rama (scope Preview
-  apuntando a `027apps-dev`).
-- Variables Production (scope Production) para `027apps-prod`.
-- **Decisión pendiente registrada**: staging público (login normal de la app) vs Deployment
-  Protection sobre el dominio custom (Vercel Authentication no aplica a dominios custom).
-- Check de Vercel añadido a los checks requeridos de `staging` y `main`.
-- Evidencia: capturas/estado del dashboard referenciadas en la tarea; sin valores de secretos.
+**Verificación (checklist §A; puertas de usuario documentadas, no ejecutadas):**
+- Variables Preview en todas las ramas (sin scope limitado a una); rotar la contraseña de
+  `027apps-dev` y actualizar `SUPABASE_DB_URL` en Vercel Preview y `.env.local`.
+- Auth de `027apps-dev` con redirect URL `https://staging.027apps.ericrf.com` añadida.
+- Rama `staging` con dominio `staging.027apps.ericrf.com` y variables **heredadas** de Preview
+  (apuntan a `027apps-dev`); Deployment Protection *Standard Protection*.
+- **Staging protegido** (decisión 2026-11-09): `curl -I https://staging.027apps.ericrf.com` sin
+  cookie devuelve login; plan B: URL de rama `<branch>-<project>-<team>.vercel.app`.
+- Evidencia: estado del dashboard + `curl -I`; sin valores de secretos.
 
 ---
 
-### Task 6 — sprint-13-task-06: Supabase `027apps-prod`
+### Task 6 — sprint-13-task-06: Entorno de producción completo (crear)
 
 **Files:**
 - Modify: `docs/infrastructure.md` (inventario: ref de `027apps-prod`, SMTP) y
   `docs/flows/cicd.md` (variables de producción).
 
-**Verificación (puertas de usuario documentadas):**
-- Crear `027apps-prod` (región eu-west, contraseña nueva generada en el dashboard, nunca por
-  chat).
-- Variables Production en Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-  `SUPABASE_SERVICE_ROLE_KEY`, `SETTINGS_ENCRYPTION_KEY`, `SUPABASE_DB_URL`.
-- SMTP con Resend (`mail.ericrf.com`).
-- Migraciones iniciales aplicadas.
-- Verificación: `/api/health` en verde, login por invitación y reset de contraseña.
-- Rotar la contraseña de `027apps-dev` (se compartió por chat 2026-10-27).
+**Verificación (checklist §B; puertas de usuario documentadas):**
+- Crear `027apps-prod` (eu-west, contraseña en dashboard); migraciones `0001`–`0019` aplicadas
+  y verificadas con `supabase migration list --linked`; suite RLS contra prod o justificación.
+- Auth de prod: site URL `https://027apps.ericrf.com`, redirect URLs, SMTP Resend, límites.
+- Storage/Realtime: replicar de dev solo lo que exista (verificación pendiente; no inventar).
+- Vercel Production: 5 variables de prod (`SERVICE_ROLE_KEY` y `SETTINGS_ENCRYPTION_KEY`
+  sensitive; clave maestra **nueva**), *Production Branch* = `main`, dominio
+  `027apps.ericrf.com`, borrar rama `production`.
+- GitHub: Environment `production` + `SUPABASE_ACCESS_TOKEN` + `PROD_URL` + secretos de backup.
+- Verificación end-to-end: `/api/health`, wizard, invitación, reset, primer backup + simulacro.
 
 ---
 
