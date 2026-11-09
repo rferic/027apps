@@ -1,7 +1,7 @@
 # Spec: entornos `staging` y `main` con deploy automático
 
 - **Fecha:** 2026-11-08 (revisión 2026-11-09)
-- **Estado:** borrador para aprobación del usuario (revisión 2026-11-09)
+- **Estado:** aprobada por el usuario el 2026-11-09
 - **Ámbito:** modelo de entornos, ramas desplegables, CI en dos entornos, migraciones por
   entorno, configuración de Vercel y Supabase, backup y keep-alive de producción
 - **Relacionado:** [ADR 0010](../../adr/0010-entornos-y-ramas.md) ·

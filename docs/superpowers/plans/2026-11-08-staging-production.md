@@ -15,8 +15,8 @@ puertas de usuario (acciones solo de administrador/dashboard); las 7 y 8 vienen 
 dashboard (ramas, dominios, variables), Supabase dashboard/CLI, Resend, Cloudflare R2/B2.
 Sin código de producto.
 
-**Spec:** `docs/superpowers/specs/2026-11-08-staging-production-design.md` (borrador para
-aprobación del usuario, revisión 2026-11-09). **ADR:** `docs/adr/0010-entornos-y-ramas.md`.
+**Spec:** `docs/superpowers/specs/2026-11-08-staging-production-design.md` (aprobada por el
+usuario el 2026-11-09). **ADR:** `docs/adr/0010-entornos-y-ramas.md`.
 
 ## Arranque
 
