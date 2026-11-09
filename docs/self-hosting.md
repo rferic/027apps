@@ -81,7 +81,7 @@ appear in *Table Editor* after `db push`.
 ## Phase 2 — Environment variables and the master key
 
 The admin needs these variables. Use **Preview** scope first; add **Production** scope only when
-you activate production (see [`docs/infrastructure.md` §9](infrastructure.md#9-producción--activación-pendiente)).
+you activate production (see [`docs/infrastructure.md` §9](infrastructure.md#9-producción--activación-sprint-13)).
 
 | Variable | Scope | Type | Where the value comes from |
 |---|---|---|---|
@@ -109,19 +109,21 @@ scope. No value appears in git (`git status` must be clean of `.env*`).
 2. **Root Directory:** `apps/admin`. Enable **Include source files outside of the Root
    Directory** (the pnpm workspace needs the root `pnpm-workspace.yaml`).
 3. Framework: Next.js (auto-detected).
-4. **Production Branch:** create a branch named `production` in your repo **frozen at `main`**
-   and select it as the production branch. Vercel rejects branches that do not exist. Until you
-   activate production, every push (including merges to `main`) produces a **preview**, so
-   nothing goes live by accident.
-5. Add the four variables from Phase 2 with **Preview** scope. Add them to **Production** scope
-   when you activate production.
-6. Enable *Deployment Protection → Vercel Authentication* so previews require your team login.
+4. **Production Branch:** `main`. Production is `main`; staging is a long-lived `staging` branch
+   assigned to the Preview environment (Hobby has no custom environments). Create `staging` from
+   `main`; merges to `staging` deploy staging and only a `staging → main` pull request reaches
+   production ([`docs/flows/git.md`](flows/git.md)). Until you activate production (Phase 9), do
+   not assign a production domain, so nothing goes live by accident.
+5. Add the variables from Phase 2 with **Preview** scope (all branches, including `staging`),
+   pointing at your development Supabase project. Add them to **Production** scope, with your
+   production project's values, when you activate production.
+6. Enable *Deployment Protection → Standard Protection* so previews and `staging` require your
+   team login while the production domain stays public. Do not use *All Deployments*.
 7. Optionally assign a custom domain. Reserve the app domain for production and use a dedicated
    subdomain for email (Phase 4); never use the same subdomain for both.
 
 **Verify:** open a PR and wait for the Vercel check. The preview URL responds `/api/health` with
-`200 ok` when you are logged in to the team. Merging to `main` still produces a preview while
-`production` is the production branch.
+`200 ok` when you are logged in to the team. A push to `staging` deploys staging the same way.
 
 ## Phase 4 — Transactional email (Resend or Brevo)
 
@@ -153,8 +155,9 @@ arrives (check spam the first time). Then test a password reset end to end.
 Do this **before** uploading any signing key. The order is deliberate: secrets must not exist
 before the protections that keep them safe.
 
-1. **Protect `main`** with a ruleset: require a pull request, the CI checks (`admin`, `android`,
-   `commitlint`, `guard-secrets`) and no force pushes.
+1. **Protect `staging` and `main`** with a ruleset each: require a pull request, the CI checks
+   (`admin`, `android`, `supabase`, `guard-secrets`, `commitlint`, `ai-docs`) and no force
+   pushes.
 2. **Protect tags `v*`** with a ruleset that only the admin can create.
 3. **Create an Environment named `release`** with yourself as required reviewer. Release secrets
    are only exposed to jobs triggered by `v*` tags.
@@ -229,20 +232,18 @@ The free Supabase plan has no backups. Set up your own from day one.
 
 ## Phase 9 — Activate production
 
-Production stays paused until your Core works. When you are ready, follow the eight-step
-checklist in [`docs/infrastructure.md` §9](infrastructure.md#9-producción--activación-pendiente):
-create `027apps-prod`, fill Production env vars, switch the production branch to `main`, assign
-the domain, configure SMTP, apply migrations, take a backup and verify health, invitations and
-password resets.
+Follow the checklist in [`docs/infrastructure.md` §9](infrastructure.md#9-producción--activación-sprint-13):
+create `027apps-prod`, fill Production env vars, set the production branch to `main` (and delete
+any placeholder `production` branch), assign the domain, configure SMTP, apply migrations, take a
+backup and verify health, invitations and password resets.
 
 ## Final verification checklist
 
 - [ ] Local stack: `/api/health` → `200 ok`
 - [ ] Supabase cloud: schema pushed, Auth responds `401` without a key
-- [ ] Vercel: PR preview green and protected; `main` still preview while `production` is the
-      production branch
+- [ ] Vercel: PR preview green and protected; `staging` deploys; production branch is `main`
 - [ ] Email: domain verified; invitation and reset received
-- [ ] GitHub: `main` and `v*` protected; `release` environment with reviewer; `guard-secrets` green
+- [ ] GitHub: `staging`, `main` and `v*` protected; `release` environment with reviewer; `guard-secrets` green
 - [ ] Keystore backed up and secrets uploaded (if publishing APKs)
 - [ ] FCM working or explicitly skipped
 - [ ] Backup run green and restore drill done
@@ -252,7 +253,7 @@ password resets.
 
 | Symptom | Cause / fix |
 |---|---|
-| Vercel rejects the production branch | The branch does not exist in GitHub; create it frozen at `main` |
+| Vercel rejects the production branch | The branch does not exist in GitHub; production branch is `main`, create `staging` from it |
 | Preview URL asks for login | Vercel Authentication is on; that is intended. Log in with the team account |
 | Supabase project paused | Free tier pauses idle projects; restore it from the dashboard |
 | Auth emails not delivered | Domain not verified, wrong SMTP port, or rate limit hit; check Resend logs |

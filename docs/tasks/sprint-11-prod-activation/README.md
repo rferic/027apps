@@ -2,23 +2,15 @@
 id: sprint-11-prod-activation
 titulo: Activación de producción — keep-alive y backups reales
 area: infra
-estado: pendiente
-plan: docs/superpowers/plans/2026-10-27-sprint-04-infra.md
+estado: absorbida
+plan: docs/superpowers/plans/2026-11-08-staging-production.md
 ---
 
-Sprint que se ejecuta **cuando se crea el proyecto Supabase `027apps-prod`** (decisión del
-usuario de 2026-10-27: se crea al cierre de sprint-08-core-base, no antes). Contiene las puertas de setup
-del usuario trasladadas desde `sprint-04-infra`: sin prod no hay URL que vigilar ni BD que respaldar.
+Sprint **absorbido por [`sprint-13-staging-prod`](../sprint-13-staging-prod/README.md)**
+(2026-11-08). Sus dos tareas se trasladaron allí:
 
-**Por qué se separa**: mientras no exista `027apps-prod`, es imposible apuntar por error a
-producción; estas tareas no pueden ejecutar su verificación (ni marcar `finalizada` con
-evidencia real) hasta ese momento.
+- `task-01` (`PROD_URL` para keep-alive) → **`sprint-13-staging-prod/task-08`**.
+- `task-02` (backup cifrado) → **`sprint-13-staging-prod/task-07`**.
 
-## Tareas (orden de ejecución)
-
-| Orden | Tarea | Qué desbloquea |
-|---|---|---|
-| 1 | **01** `PROD_URL` para keep-alive | Salud en producción |
-| 2 | **02** Backup cifrado (verificar) | Primera copia restaurable fuera de Supabase |
-
-**Depende de:** sprint-08-core-base cerrado (Core funcional) y proyecto `027apps-prod` creado.
+La verificación real de ambas exige `027apps-prod`, que se crea en el sprint 13; el modelo de
+dos ramas (staging/producción) sustituye la espera del cierre de sprint-08-core-base.

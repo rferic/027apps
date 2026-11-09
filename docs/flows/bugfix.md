@@ -14,7 +14,7 @@ Corregir un defecto no urgente. Si hay producción rota ahora mismo, usa [`hotfi
 | 6 | **Revisión de la tarea y QA con ojos nuevos**: ¿el test cubre la causa raíz y no solo el caso reportado? ¿hay regresiones vecinas? | Orquestador + agente QA (distinto del autor) | Criterios de aceptación del bug | — |
 | 7 | **Auditoría de seguridad OWASP, incondicional**, también en fixes pequeños | Auditor de seguridad | Orquestador comprueba hallazgos resueltos | Ve el resumen del informe |
 | 8 | **Aceptación** cuando el bug era visible para el usuario | Orquestador presenta el resultado | — | **Puerta: confirma que el síntoma desapareció** (preview/APK) |
-| 9 | **Merge** squash a `main`, verificar despliegue (`/api/health` `ok`) y cierre: el orquestador marca `estado: finalizada` | Orquestador | Checks requeridos en verde | **Puerta: orden explícita de merge** |
+| 9 | **Merge** squash a `staging`, verificar despliegue en staging (`/api/health` `ok`; llega a producción con el PR `staging → main`, [git](git.md#4-integración-y-promoción)) y cierre: el orquestador marca `estado: finalizada` | Orquestador | Checks requeridos en verde | **Puerta: orden explícita de merge** |
 
 ## Criterio de cierre
 

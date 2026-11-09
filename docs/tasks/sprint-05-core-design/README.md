@@ -2,7 +2,7 @@
 id: sprint-05-core-design
 titulo: Diseño del Core (definición) — superficie transversal inicial
 area: core
-estado: en curso
+estado: finalizada
 plan: docs/superpowers/plans/2026-10-26-sprint-05-core-design.md
 ---
 
