@@ -9,7 +9,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | Keep-alive diario | Implementado (`.github/workflows/keep-alive.yml`), inactivo hasta que exista el secret `PROD_URL` |
 | `commitlint` | Implementado (`.github/workflows/ci.yml`, config `.commitlintrc.json`); valida el título del PR |
 | Deploy Vercel (preview, `staging` y producción) | Definido en el [ADR 0010](../adr/0010-entornos-y-ramas.md); se activa en el sprint 13 (puertas de usuario: ver [paso B](#b-conectar-vercel)). Sustituye a la pausa por falta de Core (2026-10-25): el Core ya existe |
-| Migraciones Supabase | Definido por entorno ([Migraciones Supabase](#migraciones-supabase)); los jobs se implementan en sprint-13 task-04 |
+| Migraciones Supabase | Implementado (`.github/workflows/migrations.yml`), inactivo hasta que existan los secrets y el Environment (ver [Migraciones Supabase](#migraciones-supabase)) |
 | Backup diario de la BD | Implementado (`.github/workflows/backup.yml`), inactivo hasta crear el bucket y los secrets (ver [paso C](#c-backups-bucket-y-secrets)) |
 
 ## Principios
@@ -28,6 +28,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | `ci.yml` | `pull_request` (`opened`, `synchronize`, `reopened`, `edited`; cualquier rama destino) | `admin`, `android`, `supabase`, `guard-secrets`, `commitlint`, `ai-docs` |
 | `ci.yml` | `push` a `staging` y a `main` | los mismos checks sobre el commit mergeado (`commitlint` solo corre en `pull_request`). Repo público: minutos de Actions sin coste |
 | `ci.yml` | `push` de tag `v*` | los mismos checks + job `release` |
+| `migrations.yml` | `push` a `staging` o `main` que toque `supabase/migrations/**`, y `workflow_dispatch` | `staging` → `027apps-dev` sin aprobación; `main` → `027apps-prod` tras la aprobación del *required reviewer* del Environment `production`; se omite sin `SUPABASE_ACCESS_TOKEN` |
 | `keep-alive.yml` | `schedule` diario (06:17 UTC) y `workflow_dispatch` | ping a producción si existe `PROD_URL` |
 | `backup.yml` | `schedule` diario (03:42 UTC) y `workflow_dispatch` | dump de Postgres + subida cifrada a restic si existen los secrets |
 | *(Dependabot)* | `.github/dependabot.yml`: semanal, agrupado (npm, actions, gradle), **sin auto-merge** | PRs de dependencias; una security update no espera a la semana |
@@ -58,7 +59,9 @@ Los checks `admin`, `android`, `supabase`, `guard-secrets`, `commitlint` y `ai-d
 | `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | GitHub Secrets (Environment `release`) | Firma del APK de release (solo job `release`) | En un fork el release se omite con aviso; en el repo original el job `release` **falla** (un tag sin firmar no debe pasar desapercibido) |
 | `PROD_URL` | GitHub Secrets | URL base de producción para el keep-alive | El ping se omite (paso con `if`, job en verde) |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Vercel (Preview y Production) | Runtime de `apps/admin` | `/api/health` devuelve 503 `degraded` |
-| `SUPABASE_ACCESS_TOKEN` y ref del proyecto (cuando exista el job) | GitHub Secrets (el de producción, en el Environment `production`) | Jobs de migraciones por entorno (**aún no existen**, sprint-13 task-04) | Los jobs se omitirán sin fallar si falta el token |
+| `SUPABASE_ACCESS_TOKEN` | GitHub Secrets **de Environment**: `staging` (para `027apps-dev`) y `production` (para `027apps-prod`), nunca a nivel de repositorio | `migrations.yml`: `supabase link` y `db push` | El job se omite sin fallar |
+| `SUPABASE_DB_PASSWORD` (opcional) | GitHub Secrets de Environment (`staging` / `production`) | `migrations.yml`: evita el prompt de contraseña del CLI; solo si el CLI no autentica con el token | El CLI usa el token; si no basta, el job falla y se añade este secret |
+| `SUPABASE_PROJECT_REF` | GitHub **Variable** del Environment `production` (no es secreto) | `migrations.yml`: ref de `027apps-prod` (se crea en la tarea 06). El de `027apps-dev` está fijo en el workflow | Sin él, el job de producción se omite (nunca cae al ref de dev) |
 | `SUPABASE_DB_URL` | GitHub Secrets | Backup: conexión a Postgres (session pooler, puerto 5432) | Todos los pasos del backup se omiten (job en verde) |
 | `RESTIC_REPOSITORY`, `RESTIC_PASSWORD` | GitHub Secrets | Backup: repositorio restic y su clave de cifrado | Todos los pasos del backup se omiten |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | GitHub Secrets | Backup: token S3 con alcance a un bucket | Todos los pasos del backup se omiten |
@@ -99,7 +102,7 @@ Hay migraciones `0001`–`0019` en `supabase/migrations/`. Cada entorno aplica l
 2. El PR con la migración tiene preview contra el proyecto Supabase de desarrollo (`027apps-dev`; nunca contra producción). El preview **no** aplica migraciones.
 3. **Merge a `staging`** → Vercel despliega staging y un job aplica las migraciones a `027apps-dev` (sin aprobación: son datos de desarrollo).
 4. **Merge a `main`** → Vercel despliega producción y un job aplica las migraciones a `027apps-prod`, protegido por el Environment `production` con *required reviewer* y *Deployment branches* limitado a `main` (obligatorio; *Prevent self-review* solo si hay un segundo revisor): **el propietario aprueba antes de tocar datos reales**. Antes de aplicar, el job verifica el nivel de migraciones (`supabase migration list --linked`).
-5. **Hoy no existen estos jobs** (se crean en sprint-13 task-04): ningún workflow de `.github/workflows/` aplica migraciones a la base cloud. Mientras tanto se aplican **a mano** con `supabase link --project-ref <ref>` seguido de `supabase db push` (o `supabase migration up --linked`). Cuando existan, usarán `SUPABASE_ACCESS_TOKEN` de scope mínimo y el ref de cada proyecto, y se omitirán sin fallar si falta el token, igual que el backup.
+5. **Jobs** (`.github/workflows/migrations.yml`, solo si cambia `supabase/migrations/**`): `migrate-dev` (rama `staging`, Environment `staging`, ref de `027apps-dev`) y `migrate-prod` (rama `main`, Environment `production`). Ambos hacen `supabase link`, `migration list --linked` y `db push --linked --yes` con el CLI fijado en la misma versión que el job `supabase`; el de producción añade `db push --dry-run` antes de aplicar. Se omiten sin fallar si falta `SUPABASE_ACCESS_TOKEN` (y, en producción, `SUPABASE_PROJECT_REF`), igual que el backup. Los secrets viven solo en los Environments, no en el repositorio, de modo que una rama de PR no puede leerlos. *Puertas de usuario*: crear el Environment `staging` (*Deployment branches* = `staging`), configurar `production` con *required reviewer* y *Deployment branches* = `main`, y cargar sus secrets. Hasta entonces las migraciones se aplican **a mano** con `supabase link --project-ref <ref>` y `supabase db push`.
 6. **Antes de una migración destructiva** (borra o transforma datos): verificar el nivel de migraciones y lanzar un backup manual (`workflow_dispatch` de `backup.yml`).
 7. **Antes del keep-alive**: el keep-alive diario solo valida salud tras migrar; si la migración falla el job queda en rojo y el siguiente ping no enmascara el problema.
 8. Las migraciones deben ser compatibles hacia atrás con la versión anterior del admin (expand → migrate → contract): el admin nuevo ya está desplegado cuando se aplica la migración y un rollback de código debe seguir funcionando.
@@ -139,7 +142,7 @@ Un fork (o un PR desde un fork) no tiene secrets. Resultado esperado, sin fallos
 | `release` | Con `github.event.repository.fork == true` y sin keystore: aviso `::notice::` y todos los pasos de build/publicación se omiten; el job termina en verde |
 | `keep-alive` | Los workflows programados vienen deshabilitados en forks; si se lanza a mano, `PROD_URL` vacío omite el ping |
 | Vercel | No está conectado en el fork: no hay deploy |
-| Migraciones | Hoy no existen los jobs (sprint-13 task-04), así que no hay nada que omitir. Cuando existan, se omitirán sin fallar si falta `SUPABASE_ACCESS_TOKEN` |
+| Migraciones | `migrations.yml` se omite sin fallar: sin `SUPABASE_ACCESS_TOKEN` (los secrets viven en Environments que un fork no tiene) todos los pasos tras «Check configuration» se saltan |
 | `backup` | Todos los pasos se omiten (sin `SUPABASE_DB_URL`); el job queda en verde |
 
 Se puede comprobar leyendo las condiciones: ningún paso exige un secret sin una guarda previa y ninguna guarda convierte la ausencia de secret en un error salvo el caso del repo original en un tag (intencionado).
