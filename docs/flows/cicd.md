@@ -33,8 +33,6 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | *(Dependabot)* | `.github/dependabot.yml`: semanal, agrupado (npm, actions, gradle), **sin auto-merge** | PRs de dependencias; una security update no espera a la semana |
 | Vercel (app externa) | PR → preview; `staging` → `staging.027apps.ericrf.com`; `main` → producción | deploy de `apps/admin` |
 
-> El trigger `push` a `staging` se añade a `ci.yml` en sprint-13 task-03; hasta entonces solo está definido aquí.
-
 `ci.yml` usa `concurrency` por ref: un push nuevo a un PR cancela la ejecución anterior; en `staging`, `main` y tags nunca se cancela.
 
 ## Gates (jobs de `ci.yml`)

@@ -2,7 +2,7 @@
 id: sprint-13-task-03
 titulo: CI en dos entornos
 area: infra
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/superpowers/specs/2026-11-08-staging-production-design.md §4; docs/flows/cicd.md
 adrs: [0010]
