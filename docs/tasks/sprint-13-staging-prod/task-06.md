@@ -107,5 +107,6 @@ en el formato del repo).
 - **GitHub**: Environments verificados por API. `production` tiene *required reviewer* (1) y
   *Deployment branches* = `main`; `staging` está limitado a `staging`. Variable
   `SUPABASE_PROJECT_REF` de `production` creada con el ref de prod
-  (`pmsxqwcvsvtiipgfgwdt`). Falta el secret `SUPABASE_ACCESS_TOKEN` (PAT) y, si el CLI lo pide en
-  CI, `SUPABASE_DB_PASSWORD`.
+  (`pmsxqwcvsvtiipgfgwdt`). Cargado `SUPABASE_ACCESS_TOKEN` en `staging` y `production`; falta
+  `SUPABASE_DB_PASSWORD` en ambos (verificado que es necesario: sin él `db push` se queda en el
+  prompt de contraseña aunque haya token).

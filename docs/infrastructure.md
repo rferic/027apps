@@ -299,7 +299,7 @@ Orden de activación:
    a `anon`/`authenticated` (0019 solo cubre `postgres`).
 1. **Proteger `staging` y `main`** en GitHub (tarea 02) y crear el Environment `production`
    con *required reviewer* y *Deployment branches* limitado a `main` (tarea 04).
-1b. **Migraciones automáticas** (tarea 04, `.github/workflows/migrations.yml`): crear primero los Environments `staging` (*Deployment branches* = `staging`) y `production` (*required reviewer* y *Deployment branches* = `main`) y **solo después** cargar `SUPABASE_ACCESS_TOKEN` (y, si hace falta, `SUPABASE_DB_PASSWORD`); la variable `SUPABASE_PROJECT_REF` de `production` cuando exista `027apps-prod`. Sin esa protección previa, un merge a `main` migraría producción sin aprobación.
+1b. **Migraciones automáticas** (tarea 04, `.github/workflows/migrations.yml`): crear primero los Environments `staging` (*Deployment branches* = `staging`) y `production` (*required reviewer* y *Deployment branches* = `main`) y **solo después** cargar `SUPABASE_ACCESS_TOKEN` y `SUPABASE_DB_PASSWORD` (verificado 2026-11-09: el token no sustituye a la contraseña, `db push` se queda esperando el prompt); la variable `SUPABASE_PROJECT_REF` de `production` cuando exista `027apps-prod`. Sin esa protección previa, un merge a `main` migraría producción sin aprobación.
 2. **Preview y `staging`** (tarea 05): variables Preview en todas las ramas, rotar la contraseña
    de `027apps-dev`, Auth con `https://staging.027apps.ericrf.com`, rama `staging` con su
    dominio y *Standard Protection*.

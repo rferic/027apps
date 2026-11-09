@@ -48,4 +48,4 @@ de `027apps-prod` no existe aún (se cita por nombre).
 ### Desviaciones de la spec §6 (a confirmar)
 
 1. Los secrets de migraciones van en **Environments** (`staging`, `production`), no a nivel de repositorio: una rama de PR con escritura no puede leerlos. Añade un Environment `staging` que la spec no menciona.
-2. Se añade `SUPABASE_DB_PASSWORD` (opcional) y la variable `SUPABASE_PROJECT_REF` de `production`.
+2. Se añade `SUPABASE_DB_PASSWORD` y la variable `SUPABASE_PROJECT_REF` de `production`. **Corrección (2026-11-09):** no es opcional; con solo `SUPABASE_ACCESS_TOKEN`, `db push` se queda esperando la contraseña por prompt (reproducido en local). Debe existir en los dos Environments: `staging` = contraseña de `027apps-dev`, `production` = contraseña de `027apps-prod`.
