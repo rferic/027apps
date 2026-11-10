@@ -2,7 +2,7 @@
 id: sprint-13-task-08
 titulo: Keep-alive y runbook de release
 area: infra
-estado: pendiente
+estado: test
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/flows/cicd.md; docs/superpowers/specs/2026-11-08-staging-production-design.md §8, §9
 adrs: [0010]
@@ -34,3 +34,19 @@ Free) y un runbook ejecutable para promocionar y revertir.
 
 **Riesgos**: `PROD_URL` erróneo (keep-alive apunta mal); runbook de migraciones que invite a
 `git revert` (se corrige hacia delante, no se revierte).
+
+## Ejecución (2026-11-10)
+
+- **`PROD_URL`** cargado como secret de repo con `https://027apps.ericrf.com` (verificado por
+  API). El keep-alive diario (06:17 UTC) pide `${PROD_URL}/api/health`.
+- **Evidencia**: `workflow_dispatch` de `keep-alive.yml` en verde (run `42779087187`) y el ping
+  manual a `https://027apps.ericrf.com/api/health` devuelve `{"status":"ok"}`.
+- **Runbook**: la promoción (rama → PR a `staging` → pruebas → PR `staging → main`), el
+  rollback de código (`git revert` + Vercel) y el de migraciones (corregir hacia delante) están
+  en `docs/flows/cicd.md` (§Despliegues, §Rollback) y `docs/flows/git.md` (§3 y §4).
+- **Configuración de ramas** (2026-11-10): `staging` admite squash y merge; los PRs de trabajo
+  se squash-mergean y la promoción `staging → main` y la sincronización `main → staging` usan
+  **merge commit**, de modo que `main` conserva el historial de `staging` y las promociones
+  siguientes no necesitan `--admin`.
+
+**Pendiente**: revisión de otro agente y auditoría de seguridad para `finalizada`.
