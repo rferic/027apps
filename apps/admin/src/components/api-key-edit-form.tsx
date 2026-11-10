@@ -271,7 +271,11 @@ export function ApiKeyEditForm({
   const noScopes = scopes.length === 0 && preserved.length === 0;
 
   return (
-    <form ref={formRef} action={formAction} className="flex max-w-xl flex-col gap-3">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="flex max-w-xl flex-col gap-3 rounded-card border border-border bg-surface p-4"
+    >
       <ReadOnlyDetails apiKey={apiKey} messages={messages} />
 
       <NameField apiKey={apiKey} error={fieldErrors.name?.[0]} messages={messages} />

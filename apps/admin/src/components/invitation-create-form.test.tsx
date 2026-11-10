@@ -26,6 +26,8 @@ describe("InvitationCreateForm", () => {
     );
 
     expect(html).toContain("<form");
+    // The form is page content, so it needs a surface of its own on wide screens.
+    expect(html).toMatch(/<form[^>]*rounded-card[^>]*bg-surface/);
     expect(html).toContain("invitation-email");
     expect(html).toContain("invitation-category");
     expect(html).toContain("Cancel");
