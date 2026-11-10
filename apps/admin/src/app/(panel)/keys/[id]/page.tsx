@@ -195,7 +195,10 @@ export default async function KeyPage({ params }: { params: Promise<{ id: string
       <KeyDetails apiKey={apiKey} locale={locale} timeZone={timeZone} messages={messages} />
       <KeyPermissions apiKey={apiKey} messages={messages} />
       {apiKey.revoked_at === null && (
-        <section aria-labelledby="api-key-revoke-title" className="flex flex-col gap-2">
+        <section
+          aria-labelledby="api-key-revoke-title"
+          className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+        >
           <h2 id="api-key-revoke-title" className="text-sm font-semibold">
             {t("Danger zone", messages)}
           </h2>

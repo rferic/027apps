@@ -61,7 +61,7 @@ export function MemberPurgeAction({ id, name, isSelf, messages }: MemberPurgeAct
   return (
     <section
       aria-labelledby="member-purge-title"
-      className="flex max-w-md flex-col gap-2 rounded-card border border-destructive bg-surface p-4"
+      className="flex w-full flex-col gap-2 rounded-card border border-destructive bg-surface p-4"
     >
       <h2 id="member-purge-title" className="text-sm font-semibold text-destructive">
         {t("Danger zone", messages)}

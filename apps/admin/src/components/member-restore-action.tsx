@@ -47,7 +47,7 @@ export function MemberRestoreAction({ id, name, messages }: MemberRestoreActionP
   return (
     <section
       aria-labelledby="member-restore-title"
-      className="flex max-w-md flex-col gap-2 rounded-card border border-border bg-surface p-4"
+      className="flex w-full flex-col gap-2 rounded-card border border-border bg-surface p-4"
     >
       <h2 id="member-restore-title" className="text-sm font-semibold">
         {t("Member access", messages)}
