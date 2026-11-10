@@ -2,7 +2,7 @@
 id: sprint-13-task-07
 titulo: Backup cifrado de la base de datos fuera de Supabase
 area: infra
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/superpowers/specs/2026-10-26-backups.md
 adrs: [0010]
@@ -94,3 +94,6 @@ drill. Tres hallazgos corregidos:
 
 Bajos aplicados: `AWS_DEFAULT_REGION` en el drill, `umask 077` en `restore.sh` y detección del
 repositorio ausente por el código 10 de restic en `backup.sh`.
+
+
+**Cierre (2026-11-10)**: auditoría de otro agente superada; hallazgos documentales corregidos antes de este cierre.

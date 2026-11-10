@@ -75,3 +75,12 @@ Se adopta un modelo de dos ramas desplegables con deploy automático:
   por chat el 2026-10-27).
 - El backup cifrado y el keep-alive, antes bloqueados en `sprint-11-prod-activation`, se
   absorben en este sprint contra `027apps-prod`.
+
+## Enmienda (2026-11-10)
+
+- **Plan B de staging**: `staging.027apps.ericrf.com` **no se asigna**. En Hobby, *Standard
+  Protection* no cubre dominios custom, así que staging se usa por el alias de rama
+  `027apps-git-staging-eric-rf.vercel.app`, que sí queda protegido.
+- **Métodos de merge**: `protect-staging` admite `squash` y `merge`. Los PRs de trabajo se
+  squash-mergean; la promoción `staging → main` y la sincronización `main → staging` usan
+  merge commit para conservar el historial compartido.

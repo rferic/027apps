@@ -33,14 +33,15 @@ y [`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-
 - **Root Directory**: `apps/admin`, con ficheros de la raíz incluidos (workspace pnpm
   necesita el `pnpm-workspace.yaml` de la raíz).
 - **Modelo de entornos** ([ADR 0010](adr/0010-entornos-y-ramas.md)): `main` = Production
-  (`027apps.ericrf.com`, `027apps-prod`); `staging` = rama asignada al entorno Preview con
-  dominio `staging.027apps.ericrf.com` y `027apps-dev` (Hobby no permite entornos custom); los
-  PRs generan previews contra `027apps-dev`. Todos con deploy automático al mergear.
-- **Production Branch**: **hoy sigue siendo `production`** (rama placeholder congelada en el
-  HEAD de `main`, fijada el 2026-10-31 en *Settings → Environments → Production → Branch
-  Tracking*; el dominio `027apps.vercel.app` se eliminó, así que no hay URL de producción).
-  El sprint 13 (tarea 06, puerta de usuario) la cambia a `main` y **borra** la rama
-  `production`; la rama `staging` se crea en la tarea 05.
+  (`027apps.ericrf.com`, `027apps-prod`); `staging` = rama de Preview con `027apps-dev` (Hobby
+  no permite entornos custom ni branch tracking editable). **Plan B (2026-11-10):** staging se
+  usa por el alias de rama `027apps-git-staging-eric-rf.vercel.app`, protegido; el dominio
+  `staging.027apps.ericrf.com` **no se asigna** porque la protección de Hobby no cubre dominios
+  custom. Los PRs generan previews contra `027apps-dev`. Todos con deploy automático al
+  mergear.
+- **Production Branch**: `main` (desde el 2026-11-10). La rama placeholder `production` se
+  **borró** de GitHub. Producción sirve `https://027apps.ericrf.com` con las variables de scope
+  Production.
 - **Protección**: Vercel Authentication activa en todas las URLs de deployment menos
   dominios custom (los previews solo se ven autenticado). Objetivo (tarea 05): *Standard
   Protection*, que protege previews y `staging` y deja pública producción; **staging queda
@@ -301,10 +302,10 @@ reciente:
 
 ## 9. Producción — activación (sprint 13)
 
-**Estado 2026-11-09**: `027apps-prod` ya existe en Supabase (ref `pmsxqwcvsvtiipgfgwdt`,
-eu-west-2) con las 19 migraciones aplicadas y verificadas, pero todavía **no está activo**:
-faltan las variables de Vercel Production, el Auth con SMTP, el dominio y los secretos de
-GitHub. Vercel sigue con env vars solo de scope Preview.
+**Estado 2026-11-10**: producción **activa**. `027apps-prod` (ref `pmsxqwcvsvtiipgfgwdt`,
+eu-west-2) tiene las 19 migraciones aplicadas; Vercel Production tiene sus 5 variables; el Auth
+usa SMTP de Resend con JWT de 900 s; el dominio `027apps.ericrf.com` sirve la app y
+`/api/health` responde `ok`. Keep-alive y backup diario en verde.
 El [ADR 0010](adr/0010-entornos-y-ramas.md) sustituye la pausa del 2026-10-25 (el Core ya
 existe) por el modelo `staging`/`main`, y el sprint 13
 ([spec](superpowers/specs/2026-11-08-staging-production-design.md)) lo activa. Todo lo de este
@@ -327,8 +328,8 @@ Orden de activación:
    con *required reviewer* y *Deployment branches* limitado a `main` (tarea 04).
 1b. **Migraciones automáticas** (tarea 04, `.github/workflows/migrations.yml`): crear primero los Environments `staging` (*Deployment branches* = `staging`) y `production` (*required reviewer* y *Deployment branches* = `main`) y **solo después** cargar `SUPABASE_ACCESS_TOKEN` y `SUPABASE_DB_PASSWORD` (verificado 2026-11-09: el token no sustituye a la contraseña, `db push` se queda esperando el prompt); la variable `SUPABASE_PROJECT_REF` de `production` cuando exista `027apps-prod`. Sin esa protección previa, un merge a `main` migraría producción sin aprobación.
 2. **Preview y `staging`** (tarea 05): variables Preview en todas las ramas, rotar la contraseña
-   de `027apps-dev`, Auth con `https://staging.027apps.ericrf.com`, rama `staging` con su
-   dominio y *Standard Protection*.
+   de `027apps-dev`, Auth con el alias de rama y *Standard Protection*. **Plan B:** sin dominio
+   custom para staging (Hobby no lo protege).
 3. **Crear `027apps-prod`** (tarea 06) en Supabase con contraseña nueva generada en el dashboard
    (nunca por chat ni en git); anotar su project ref en este documento; aplicar las
    migraciones.

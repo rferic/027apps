@@ -6,7 +6,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 |---|---|
 | Gates de CI (`admin`, `android`, `guard-secrets`, `ai-docs`) | Implementado (`.github/workflows/ci.yml`) |
 | Release firmado de Android en tag `v*` | Implementado, pendiente de keystore (ver [Pendiente de ejecución](#pendiente-de-ejecución-puerta-de-usuario)) |
-| Keep-alive diario | Implementado (`.github/workflows/keep-alive.yml`), inactivo hasta que exista el secret `PROD_URL` |
+| Keep-alive diario | Activo (`.github/workflows/keep-alive.yml`) con `PROD_URL`; `workflow_dispatch` en verde el 2026-11-10 |
 | `commitlint` | Implementado (`.github/workflows/ci.yml`, config `.commitlintrc.json`); valida el título del PR |
 | Deploy Vercel (preview, `staging` y producción) | Definido en el [ADR 0010](../adr/0010-entornos-y-ramas.md); se activa en el sprint 13 (puertas de usuario: ver [paso B](#b-conectar-vercel)). Sustituye a la pausa por falta de Core (2026-10-25): el Core ya existe |
 | Migraciones Supabase | Implementado (`.github/workflows/migrations.yml`), inactivo hasta que existan los secrets y el Environment (ver [Migraciones Supabase](#migraciones-supabase)) |
@@ -33,7 +33,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | `backup.yml` | `schedule` diario (03:42 UTC) y `workflow_dispatch` | dump de Postgres + subida cifrada a restic si existen los secrets |
 | `restore-drill.yml` | `workflow_dispatch` | simulacro trimestral: restaura el último snapshot en un Postgres 17 desechable, verifica tablas/ajustes y publica el resultado en el summary |
 | *(Dependabot)* | `.github/dependabot.yml`: semanal, agrupado (npm, actions, gradle), **sin auto-merge** | PRs de dependencias; una security update no espera a la semana |
-| Vercel (app externa) | PR → preview; `staging` → `staging.027apps.ericrf.com`; `main` → producción | deploy de `apps/admin` |
+| Vercel (app externa) | PR → preview; `staging` → alias de rama protegido (`027apps-git-staging-eric-rf.vercel.app`, plan B); `main` → `027apps.ericrf.com` | deploy de `apps/admin` |
 
 `ci.yml` usa `concurrency` por ref: un push nuevo a un PR cancela la ejecución anterior; en `staging`, `main` y tags nunca se cancela.
 
@@ -86,7 +86,7 @@ Reglas de manejo de secretos:
 | Rama | Vercel | Dominio | Supabase |
 |---|---|---|---|
 | `sprint/*`, `fix/*` (PR) | Preview | URL del deployment | `027apps-dev` |
-| `staging` | Preview con variables por rama | `staging.027apps.ericrf.com` (protegido) | `027apps-dev` |
+| `staging` | Preview con las variables de Preview heredadas (sin override por rama) | alias `027apps-git-staging-eric-rf.vercel.app` (protegido, plan B) | `027apps-dev` |
 | `main` | Production | `027apps.ericrf.com` | `027apps-prod` |
 
 1. PR abierto/actualizado → Vercel despliega un **preview** de `apps/admin` y comenta la URL en el PR.
@@ -215,9 +215,9 @@ Detalle y comandos exactos del keystore en [`apps/android/keystore/README.md`](.
 1. En Vercel: *Add New → Project → Import Git Repository* → `rferic/027apps`.
 2. **Root Directory:** `apps/admin`. Framework: Next.js (autodetectado). Con la raíz en `apps/admin`, Vercel instala con el `pnpm-lock.yaml` del monorepo (activar "Include source files outside of the Root Directory").
 3. Añadir env vars: scope **Preview** (todas las ramas, incluida `staging`) con los valores del proyecto Supabase de desarrollo `027apps-dev`, y scope **Production** con los de `027apps-prod`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (nunca con prefijo `NEXT_PUBLIC_`), `SETTINGS_ENCRYPTION_KEY` (distinta por entorno) y `SUPABASE_DB_URL`; las tres últimas, tipo *sensitive*.
-4. *Production Branch:* `main`. La rama placeholder `production` se **borra** de GitHub. La rama `staging` queda con *branch tracking* en Preview, dominio `staging.027apps.ericrf.com` y las variables de Preview heredadas. Producción se asigna a `027apps.ericrf.com`.
+4. *Production Branch:* `main`. La rama placeholder `production` se **borra** de GitHub. `staging` hereda las variables de Preview (Hobby no permite branch tracking editable ni entornos custom). **Plan B (2026-11-10):** no se asigna `staging.027apps.ericrf.com`; staging se usa por el alias de rama protegido. Producción se asigna a `027apps.ericrf.com`.
 5. *Deployment Protection:* *Standard Protection* (protege previews y `staging`; deja pública producción). **No** usar *All Deployments*.
-6. Verificación: abrir un PR de prueba → aparece el preview de Vercel; un push a `staging` despliega staging y `/api/health` responde `{"status":"ok"}` (con *Protection Bypass for Automation*); `curl -I https://staging.027apps.ericrf.com` **sin cookie** devuelve login/401, nunca 200. Repetir el `curl -I` sin cookie contra la URL fija de la rama. Si el dominio custom de la rama no queda protegido, plan B: no asignarlo y usar la URL fija de la rama (spec §10). El merge `staging → main` despliega producción.
+6. Verificación: abrir un PR de prueba → aparece el preview de Vercel; un push a `staging` despliega staging y `/api/health` responde `{"status":"ok"}` (con *Protection Bypass for Automation*); `curl -I` al alias de rama (`https://027apps-git-staging-eric-rf.vercel.app`) **sin cookie** devuelve `302` al login de Vercel, nunca 200. **Plan B aplicado (2026-11-10):** no se asigna dominio custom a staging (Hobby no lo protege). El merge `staging → main` despliega producción.
 7. La protección de `staging` y `main` se hace en el paso A (antes del keystore); añade aquí el check de Vercel a los checks requeridos.
 
 ### C. Backups (bucket y secrets)
