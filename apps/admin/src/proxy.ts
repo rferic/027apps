@@ -55,25 +55,11 @@ export async function proxy(request: NextRequest) {
   }
 
   const { supabase, refreshedCookies } = sessionClient(request);
-  const pathname = request.nextUrl.pathname;
-  const isApi = pathname.startsWith("/api/v1");
-  const isGated = GATED_PATHS.has(pathname);
-
-  // One verification per request:
-  // - `/api/v1`: the door verifies the JWT; the proxy only forwards (and
-  //   refreshes) the cookie session.
-  // - gated entry pages: the gate needs the session, so verify it here.
-  // - any other page: the panel layout verifies it; the proxy only refreshes
-  //   the cookie when the token is about to expire.
-  let hasSession = false;
-  if (isApi) {
-    await forwardSessionToken(supabase, requestHeaders);
-  } else if (isGated) {
-    const { data } = await supabase.auth.getUser();
-    hasSession = data.user !== null;
-  } else {
-    await supabase.auth.getSession();
-  }
+  const hasSession = await refreshSession(
+    supabase,
+    request.nextUrl.pathname,
+    requestHeaders,
+  );
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   applyContentSecurityPolicies(response, contentSecurityPolicy, reportOnlyPolicy);
@@ -118,6 +104,33 @@ function sessionClient(request: NextRequest) {
     },
   });
   return { supabase, refreshedCookies };
+}
+
+type SessionClient = ReturnType<typeof sessionClient>["supabase"];
+
+/**
+ * One verification per request:
+ * - `/api/v1`: the door verifies the JWT; the proxy only forwards (and
+ *   refreshes) the cookie session.
+ * - gated entry pages: the entry gate needs the session, so verify it here.
+ * - any other page: the panel layout verifies it; the proxy only refreshes the
+ *   cookie when the token is about to expire.
+ */
+async function refreshSession(
+  supabase: SessionClient,
+  pathname: string,
+  headers: Headers,
+): Promise<boolean> {
+  if (pathname.startsWith("/api/v1")) {
+    await forwardSessionToken(supabase, headers);
+    return false;
+  }
+  if (GATED_PATHS.has(pathname)) {
+    const { data } = await supabase.auth.getUser();
+    return data.user !== null;
+  }
+  await supabase.auth.getSession();
+  return false;
 }
 
 /** Copies the session token onto the upstream request for `/api/v1` calls. */
