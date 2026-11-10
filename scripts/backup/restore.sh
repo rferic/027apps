@@ -15,7 +15,8 @@ Usage: restore.sh --target <postgres-url> [--snapshot <id|latest>] [--schema <na
 
   --target    connection string of the database to restore into (it must exist)
   --snapshot  restic snapshot ID (default: latest)
-  --schema    schema to restore (default: public); `all` restores the whole dump
+  --schema    schema(s) to restore (default: public); comma-separated (e.g.
+              `public,auth`) or `all` for the whole dump
 
 `public` is the normal recovery path for a fresh Supabase project: it is cleaned
 and recreated in the target database. `all` is the disaster dump (includes
@@ -60,8 +61,12 @@ echo "Restoring $(basename "$dump") into ${target%%\?*}"
 if [ "$schema" = "all" ]; then
   pg_restore --no-owner --dbname "$target" "$dump"
 else
+  schema_args=()
+  for s in ${schema//,/ }; do
+    schema_args+=(--schema "$s")
+  done
   pg_restore --no-owner --clean --if-exists --dbname "$target" \
-    --schema "$schema" "$dump"
+    "${schema_args[@]}" "$dump"
 fi
 
 tables="$(psql "$target" -Atc \
