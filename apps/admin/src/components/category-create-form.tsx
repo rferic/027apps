@@ -92,7 +92,7 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
   }
 
   return (
-    <form key={createForm.formKey} onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-3">
+    <form key={createForm.formKey} onSubmit={handleSubmit} className="flex w-full flex-col gap-3 rounded-card border border-border bg-surface p-4">
       <FormField
         id="category-name"
         label={t("Name", messages)}

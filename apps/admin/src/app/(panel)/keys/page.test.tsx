@@ -99,6 +99,15 @@ describe("KeysPage", () => {
     expect(instant).toBe(false);
   });
 
+  it("keeps the list on its own surface on wide screens", async () => {
+    loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
+    const html = renderToStaticMarkup(await render({ state: "all" }));
+
+    expect(html).toContain(
+      'class="flex flex-col gap-4 rounded-card border border-border bg-surface p-4"',
+    );
+  });
+
   it("lists name, kind, owner, role cap, expiry, last use and status without the scopes", async () => {
     loadApiKeysMock.mockResolvedValue({ ok: true, apiKeys: [OWN_KEY, SERVICE_KEY], total: 2 });
 

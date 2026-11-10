@@ -12,6 +12,8 @@ describe("CategoryCreateForm", () => {
     const html = renderToStaticMarkup(<CategoryCreateForm messages={{}} />);
 
     expect(html).toContain("<form");
+    // The form is page content, so it needs a surface of its own on wide screens.
+    expect(html).toMatch(/<form[^>]*rounded-card[^>]*bg-surface/);
     expect(html).toContain("category-name");
     expect(html).toContain("category-slug");
     expect(html).toContain("Cancel");

@@ -63,7 +63,7 @@ export function CategoryRenameForm({
     <form
       ref={formRef}
       onSubmit={handleSubmit}
-      className="flex max-w-md flex-col gap-3 rounded-card border border-border bg-surface p-4"
+      className="flex w-full flex-col gap-3 rounded-card border border-border bg-surface p-4"
     >
       <h2 className="text-sm font-semibold">{t("Rename category", messages)}</h2>
       <label htmlFor="category-rename" className="flex flex-col gap-1 text-xs font-semibold">

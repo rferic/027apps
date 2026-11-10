@@ -274,7 +274,7 @@ export function ApiKeyEditForm({
     <form
       ref={formRef}
       action={formAction}
-      className="flex max-w-xl flex-col gap-3 rounded-card border border-border bg-surface p-4"
+      className="flex w-full flex-col gap-3 rounded-card border border-border bg-surface p-4"
     >
       <ReadOnlyDetails apiKey={apiKey} messages={messages} />
 

@@ -366,7 +366,7 @@ export function InvitationCreateForm({
     <form
       key={createForm.formKey}
       onSubmit={handleSubmit}
-      className="flex max-w-xl flex-col gap-3 rounded-card border border-border bg-surface p-4"
+      className="flex w-full flex-col gap-3 rounded-card border border-border bg-surface p-4"
     >
       <InvitationFields
         categories={categories}
