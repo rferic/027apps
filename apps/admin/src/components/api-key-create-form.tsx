@@ -610,7 +610,10 @@ function ApiKeyCreateFormBody({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-3">
+    <form
+      onSubmit={handleSubmit}
+      className="flex w-full flex-col gap-3 rounded-card border border-border bg-surface p-4"
+    >
       <FormField
         id="api-key-name"
         label={t("Name", messages)}

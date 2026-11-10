@@ -72,6 +72,15 @@ describe("CategoriesPage", () => {
     expect(instant).toBe(false);
   });
 
+  it("keeps the list on its own surface on wide screens", async () => {
+    loadCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES, total: 2 });
+    const html = renderToStaticMarkup(await CategoriesPage());
+
+    expect(html).toContain(
+      'class="flex flex-col gap-4 rounded-card border border-border bg-surface p-4"',
+    );
+  });
+
   it("lists name, slug, member count and module count with a link to the detail", async () => {
     loadCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES, total: 2 });
 

@@ -75,6 +75,8 @@ describe("ApiKeyCreateForm", () => {
     const html = renderToStaticMarkup(form({ canCreateService: false, canChooseOwner: false }));
 
     expect(html).toContain("<form");
+    // The form is page content, so it needs a surface of its own on wide screens.
+    expect(html).toMatch(/<form[^>]*rounded-card[^>]*bg-surface/);
     expect(html).toContain("api-key-name");
     expect(html).toContain("Cancel");
     expect(html).toContain('href="/keys"');

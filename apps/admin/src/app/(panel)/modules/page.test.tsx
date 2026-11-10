@@ -115,6 +115,7 @@ describe("ModulesPage", () => {
     expect(html).toContain("notes");
     expect(html).toContain("Notes");
     expect(html).toContain("<table");
+    expect(html).toContain('class="flex flex-col gap-4 rounded-card border border-border bg-surface p-4"');
     expect(html).toContain("<caption");
 
     // The route is called with the shared deps and a synthetic in-process request.

@@ -402,16 +402,18 @@ export default async function InvitationsPage({
         </Link>
       </header>
 
-      <InvitationsBody
-        data={invitations}
-        filter={filter}
-        page={page}
-        locale={locale}
-        timeZone={timeZone}
-        categories={categories}
-        moduleChoices={moduleChoices}
-        messages={messages}
-      />
+      <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4">
+        <InvitationsBody
+          data={invitations}
+          filter={filter}
+          page={page}
+          locale={locale}
+          timeZone={timeZone}
+          categories={categories}
+          moduleChoices={moduleChoices}
+          messages={messages}
+        />
+      </div>
     </section>
   );
 }
