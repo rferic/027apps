@@ -22,6 +22,8 @@ jobs:
   drill:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      AWS_DEFAULT_REGION: ${{ vars.BACKUP_S3_REGION || 'auto' }}
     services:
       postgres:
         image: postgres:17-alpine
@@ -111,15 +113,18 @@ jobs:
           RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SNAPSHOT: ${{ inputs.snapshot }}
         run: |
           bash scripts/backup/restore.sh \
             --target "postgresql://postgres:postgres@127.0.0.1:5432/postgres" \
-            --snapshot "${{ inputs.snapshot }}" \
+            --snapshot "$SNAPSHOT" \
             --schema public,auth
 
       # A restore that creates no product tables is not a successful drill.
       - name: Verify the restored data
         if: steps.config.outputs.enabled == 'true'
+        env:
+          SNAPSHOT: ${{ inputs.snapshot }}
         run: |
           target="postgresql://postgres:postgres@127.0.0.1:5432/postgres"
           tables=$(psql "$target" -Atc \
@@ -140,7 +145,7 @@ jobs:
             echo ""
             echo "| Check | Value |"
             echo "|---|---|"
-            echo "| Snapshot | \`${{ inputs.snapshot }}\` |"
+            echo "| Snapshot | \`${SNAPSHOT}\` |"
             echo "| Public tables | ${tables} |"
             echo "| Settings rows | ${settings} |"
             echo "| Migration rows | ${migrations} |"
