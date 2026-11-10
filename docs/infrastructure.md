@@ -200,10 +200,25 @@ restauración usa `--schema public,auth`. Evidencia del primer simulacro (2026-1
 2. Anotar los nuevos `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y
    `SUPABASE_SERVICE_ROLE_KEY`; actualizarlos en Vercel (Preview y Production) y redesplegar.
    La app Android no cambia: apunta al admin, no a Supabase.
-3. Restaurar el esquema de producto **junto con `auth`** (las FK de `public.profiles`
-   apuntan a `auth.users`; restaurar solo `public` las deja sin validar):
+3a. **Crear los roles de las migraciones.** Un proyecto nuevo trae los roles de Supabase,
+   pero no los que crean las migraciones (`core_cron`, `module_installer`); sin ellos fallan
+   los `GRANT` y la política `core_cron_purge`:
    ```bash
-   scripts/backup/restore.sh --target "$NEW_DB_URL" --schema public,auth
+   psql "$NEW_DB_URL" -c "create role core_cron nologin" \
+                      -c "create role module_installer nologin"
+   ```
+3b. **Restaurar primero los datos de Auth.** `public.profiles` tiene FK a `auth.users`; si el
+   proyecto nuevo no tiene usuarios, `pg_restore` falla al crear esa constraint. No uses
+   `--clean --schema auth` en un proyecto gestionado (borraría objetos de GoTrue): restaura
+   solo los datos.
+   ```bash
+   restic restore latest --host 027apps-supabase --target /tmp/drill
+   pg_restore --no-owner --data-only --schema auth \
+     --dbname "$NEW_DB_URL" "$(find /tmp/drill -name '*.dump' | head -1)"
+   ```
+3c. Restaurar `public` (crea las tablas y valida las FK contra los usuarios ya restaurados):
+   ```bash
+   scripts/backup/restore.sh --target "$NEW_DB_URL" --schema public
    ```
 4. Si existe `supabase_migrations`, restaurarlo también para que `supabase db push` no
    reaplique migraciones ya aplicadas:
@@ -241,7 +256,9 @@ Un backup que nunca se ha restaurado no es un backup. Cada trimestre, con el sna
 reciente:
 
 1. Crear un **proyecto Supabase desechable** (free) o un Postgres local vacío.
-2. Restaurar: `scripts/backup/restore.sh --target "$DRILL_DB_URL" --schema public`.
+2. Restaurar. El workflow `.github/workflows/restore-drill.yml` lo hace solo (roles de
+   Supabase y de las migraciones, esquema `auth`, `--schema public,auth`). A mano, sobre un
+   Postgres 17 desechable, usa la misma secuencia de la sección anterior.
 3. Verificar la integridad de los datos guardados (no solo la estructura):
    ```bash
    restic check --read-data
@@ -258,7 +275,7 @@ reciente:
 
 | Fecha | Snapshot | Tablas / filas | Resultado | Notas |
 |---|---|---|---|---|
-| — | — | — | — | Pendiente del primer simulacro |
+| 2026-11-10 | `b9e91cbf` | 19 tablas en `public`, 18 filas en `settings` | OK | Automático con `restore-drill.yml` (runs `42852921573` y `42857478016`); restaura `public,auth` |
 
 ## 7. Operación
 
@@ -279,7 +296,7 @@ reciente:
 |---|---|
 | Ficheros de Storage (bytes) | Pendiente: `rclone`/`aws s3 sync` contra `https://<ref>.storage.supabase.co/storage/v1/s3` con claves S3 del proyecto, dentro del mismo snapshot de restic |
 | Copia secundaria (3-2-1) | Pendiente: `restic copy` a un bucket de otro proveedor |
-| Simulacro automatizado | Pendiente: requiere Supabase self-hosted o proyecto desechable por API |
+| Simulacro automatizado | Hecho: `.github/workflows/restore-drill.yml` restaura el snapshot en un Postgres 17 desechable y verifica tablas y ajustes |
 | Inventario completo de servicios y variables | Pendiente: tareas de despliegue |
 
 ## 9. Producción — activación (sprint 13)

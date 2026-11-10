@@ -32,9 +32,18 @@ echo "Dump size: $(wc -c < "$dump" | tr -d ' ') bytes"
 # Cheap integrity check: a truncated archive fails to list its TOC.
 pg_restore --list "$dump" > /dev/null
 
-if ! restic snapshots > /dev/null 2>&1; then
+# restic exits 10 when the repository does not exist yet; any other failure
+# must abort instead of being mistaken for a first run.
+set +e
+restic snapshots > /dev/null 2>&1
+restic_status=$?
+set -e
+if [ "$restic_status" -eq 10 ]; then
   echo "Initialising restic repository at ${RESTIC_REPOSITORY}"
   restic init
+elif [ "$restic_status" -ne 0 ]; then
+  echo "restic snapshots failed (exit ${restic_status}); not initialising." >&2
+  exit "$restic_status"
 fi
 
 restic backup --host "$HOST_TAG" --tag postgres "$dump"

@@ -77,3 +77,20 @@ restore → 3 filas verificadas contra Postgres 17 en Docker, repetido dos veces
   `restore-drill.yml` desde `main`; no requiere herramientas ni credenciales locales.
 
 **Pendiente**: revisión de otro agente y auditoría de seguridad para pasar a `finalizada`.
+
+### Auditoría (2026-11-10)
+
+Revisión por otro agente. Sin hallazgos en manejo de secretos (no hay valores en git ni en
+logs, `permissions: {}`, acciones fijadas, secretos solo por `env`) ni en el aislamiento del
+drill. Tres hallazgos corregidos:
+
+1. **[Alto] Inyección de script** vía `${{ inputs.snapshot }}` en `run:` del drill. Ahora el
+   input pasa por `env` (`SNAPSHOT`) y `restore.sh` valida `^(latest|[0-9a-f]{6,64})$`.
+2. **[Alto] Contraseña de la BD en stdout** en `restore.sh` (`Restoring ... into <URL>`). Ahora
+   se redacta con `sed` antes de imprimir.
+3. **[Medio] Runbook contradictorio** en Escenario B (roles y `auth`). Actualizado: crear
+   `core_cron`/`module_installer`, restaurar datos de `auth` primero y `public` después; §6 y
+   §8 al día con el simulacro automatizado.
+
+Bajos aplicados: `AWS_DEFAULT_REGION` en el drill, `umask 077` en `restore.sh` y detección del
+repositorio ausente por el código 10 de restic en `backup.sh`.
