@@ -1,0 +1,45 @@
+---
+id: sprint-14-task-03
+titulo: Invitaciones por email con plantilla reutilizable
+area: producto
+estado: pendiente
+plan: pendiente de redactar
+fuente: docs/superpowers/specs/2026-11-10-invitation-email-design.md
+adrs: [0002, 0004, 0007, 0008]
+---
+
+**Tarea**: enviar por email el enlace de invitación con Resend, con idioma elegible, entrega
+seleccionable, reenvío y respaldo manual; y construir la plantilla de email reutilizable.
+
+**Punto de partida**: hoy crear una invitación solo devuelve el token y el panel lo muestra una
+vez; no se envía ningún correo (`docs/tasks/sprint-13-staging-prod/task-06.md`, cierre). Resend
+solo está configurado como SMTP de Supabase Auth: no hay `RESEND_API_KEY` en la app.
+
+**Orden interno obligatorio**
+1. **Fase de diseño**: 3 direcciones de mockup en `docs/mockups/email/invitation/` (HTML +
+   PNG, claro/oscuro, 9 idiomas de muestra), iteración y aprobación explícita del propietario.
+2. Spec ya aprobada → plan y tests (TDD).
+3. Migración `0020_invitation_email.sql` (`locale`, `email_sent_at`, `email_failed_at`,
+   `email_error`).
+4. Módulo `packages/core/src/email/` (layout + plantilla + catálogo 9 idiomas + check).
+5. Adaptador Resend en `apps/admin` (`fetch`, timeout 5 s, sin SDK).
+6. API: `delivery` y `locale` en el alta; `email.status` en la respuesta; endpoint
+   `POST /api/v1/invitations/:id/resend-email` con cooldown de 60 s.
+7. Panel: selectores de entrega e idioma, aviso de fallo con el enlace, estado y reenvío en el
+   detalle.
+8. Docs: `docs/infrastructure.md` (variables y remitente), `docs/flows/cicd.md` si toca
+   despliegue.
+
+**Criterios de aceptación** (detalle en la spec §12): correo real de punta a punta en
+producción; fallo del proveedor sin perder la invitación; reenvío que rota el token y respeta
+el cooldown; 9 idiomas sin placeholders ni fechas mal localizadas; nada de tokens ni correos en
+logs; CI y builds en verde; mockup aprobado antes de implementar.
+
+**Puertas de usuario**
+- `RESEND_API_KEY` en Vercel (Production, Preview, Development), distinta de la contraseña SMTP.
+- Confirmar que `mail.ericrf.com` y `no-reply@mail.ericrf.com` siguen verificados.
+- Dirección de prueba para la verificación end-to-end.
+- Aprobar el mockup.
+
+**Riesgos**: cuota de 100 emails/día (cooldown + enlace manual), entrega en spam (HTML sobrio +
+texto plano), fallo del proveedor (no bloquea el alta). Deuda anotada: webhooks de Resend.

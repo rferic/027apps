@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import { cache } from "react";
 import { connection } from "next/server";
 import { createPostgresRateLimitStorage } from "@027apps/core/api/rate-limit-storage.js";
 import { withDoor } from "@027apps/core/api/door.js";
@@ -48,35 +49,48 @@ async function createInfra() {
 
   const sessionClient: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const auth = async (req: Request) => {
-    const resolverDeps: CallerResolverDeps = {
-      supabase: {
-        async getUser(jwt: string) {
-          const { data, error } = await sessionClient.auth.getUser(jwt);
-          return {
-            data: { user: data.user ? { id: data.user.id, email: data.user.email ?? null } : null },
-            error: error ? { message: error.message } : null,
-          };
-        },
+  const resolverDeps: CallerResolverDeps = {
+    supabase: {
+      async getUser(jwt: string) {
+        const { data, error } = await sessionClient.auth.getUser(jwt);
+        return {
+          data: { user: data.user ? { id: data.user.id, email: data.user.email ?? null } : null },
+          error: error ? { message: error.message } : null,
+        };
       },
-      profiles: createProfilesPort(pool),
-      apiKeys: {
-        resolve: (token: string) =>
-          resolveApiKey(
-            {
-              db: {
-                async query(sql: string, params: unknown[] = []) {
-                  const result = await pool.query(sql, params);
-                  return { rows: result.rows as Record<string, unknown>[] };
-                },
+    },
+    profiles: createProfilesPort(pool),
+    apiKeys: {
+      resolve: (token: string) =>
+        resolveApiKey(
+          {
+            db: {
+              async query(sql: string, params: unknown[] = []) {
+                const result = await pool.query(sql, params);
+                return { rows: result.rows as Record<string, unknown>[] };
               },
             },
-            token,
-          ),
-      },
-    };
-    return resolveCaller(req, resolverDeps);
+          },
+          token,
+        ),
+    },
   };
+
+  /**
+   * One JWT verification per request. A panel page renders several in-process
+   * route calls (categories, members, the detail) with the same credential;
+   * `cache()` is request-scoped, so callers are never shared across users.
+   * Without a React request store (tests, scripts) it simply calls through.
+   */
+  const resolveCallerForCredential = cache(async (authorization: string) =>
+    resolveCaller(
+      new Request("http://door.internal/", authorization ? { headers: { authorization } } : {}),
+      resolverDeps,
+    ),
+  );
+
+  const auth = async (req: Request) =>
+    resolveCallerForCredential(req.headers.get("authorization") ?? "");
 
   const deps: DoorDeps = {
     rateLimitStorage: createPostgresRateLimitStorage({
