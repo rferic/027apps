@@ -11,6 +11,8 @@ on:
         description: Snapshot ID to restore ("latest" for the newest one)
         required: false
         default: latest
+  push:
+    branches: [fix/restore-drill-pgoptions]
 
 permissions: {}
 
@@ -122,6 +124,9 @@ jobs:
           RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # A public-only dump has no auth.users rows, so the FKs that point
+          # there cannot be validated during the drill.
+          PGOPTIONS: -c session_replication_role=replica
         run: |
           bash scripts/backup/restore.sh \
             --target "postgresql://postgres:postgres@127.0.0.1:5432/postgres" \
