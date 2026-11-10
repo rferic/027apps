@@ -198,21 +198,23 @@ export default async function InstallModulePage() {
         </p>
       </header>
 
-      {!installed.ok ? (
-        <PanelError
-          error={installed}
-          heading={t("We couldn't load the module catalogue.", messages)}
-          retryHref="/modules/install"
-          messages={messages}
-        />
-      ) : available.length === 0 ? (
-        <PackagesEmpty messages={messages} />
-      ) : (
-        <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4">
-          <PackagesTable packages={available} messages={messages} />
-          <PackagesCards packages={available} messages={messages} />
-        </div>
-      )}
+      <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4">
+        {!installed.ok ? (
+          <PanelError
+            error={installed}
+            heading={t("We couldn't load the module catalogue.", messages)}
+            retryHref="/modules/install"
+            messages={messages}
+          />
+        ) : available.length === 0 ? (
+          <PackagesEmpty messages={messages} />
+        ) : (
+          <>
+            <PackagesTable packages={available} messages={messages} />
+            <PackagesCards packages={available} messages={messages} />
+          </>
+        )}
+      </div>
     </section>
   );
 }

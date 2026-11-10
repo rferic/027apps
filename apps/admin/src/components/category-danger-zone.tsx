@@ -49,7 +49,7 @@ export function CategoryDangerZone({
   return (
     <section
       aria-labelledby="category-danger-title"
-      className="flex max-w-md flex-col gap-2 rounded-card border border-destructive bg-surface p-4"
+      className="flex w-full flex-col gap-2 rounded-card border border-destructive bg-surface p-4"
     >
       <h2 id="category-danger-title" className="text-sm font-semibold text-destructive">
         {t("Danger zone", messages)}

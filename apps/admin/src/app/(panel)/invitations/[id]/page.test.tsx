@@ -105,6 +105,7 @@ describe("InvitationDetailPage", () => {
     expect(html).toContain("<h1");
     expect(html).toContain("ana@example.com");
     expect(html).toContain("Pending");
+    expect(html).toMatch(/<section[^>]*invitation-revoke-title[^>]*rounded-card/);
     expect(loadInvitationMock).toHaveBeenCalledWith("i1");
   });
 
