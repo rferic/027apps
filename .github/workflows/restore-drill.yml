@@ -82,12 +82,24 @@ jobs:
           echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
           /usr/lib/postgresql/17/bin/psql --version
 
-      # The dump grants privileges to Supabase's predefined roles, which a
-      # vanilla PostgreSQL lacks. A new Supabase project already has them.
-      - name: Create Supabase roles
+      # The dump depends on Supabase's predefined roles and the `auth` schema
+      # (policies call auth.uid() and FKs point at auth.users); a vanilla
+      # PostgreSQL lacks both and a new Supabase project already has them.
+      - name: Prepare the disposable database
         if: steps.config.outputs.enabled == 'true'
         run: |
           psql "postgresql://postgres:postgres@127.0.0.1:5432/postgres" -v ON_ERROR_STOP=1 <<'SQL'
+          create schema if not exists auth;
+          create table if not exists auth.users (id uuid primary key);
+          create or replace function auth.uid() returns uuid
+            language sql stable
+            as $$
+              select nullif(
+                coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb ->> 'sub',
+                ''
+              )::uuid
+            $$;
+
           do $$
           declare r text;
           begin
