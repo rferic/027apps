@@ -32,6 +32,10 @@ y [`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-
   en el reset del 2026-10-27; este se creó desde el repo.
 - **Root Directory**: `apps/admin`, con ficheros de la raíz incluidos (workspace pnpm
   necesita el `pnpm-workspace.yaml` de la raíz).
+- **Región de funciones**: **`lhr1`** (Londres), junto a Supabase `eu-west-2`. Declarada en
+  `apps/admin/vercel.json` (`regions`) y en los ajustes del proyecto. Antes estaba en `iad1`
+  (valor por defecto), lo que añadía un salto transatlántico a cada consulta; el antes/después
+  vive en [`flows/performance.md`](flows/performance.md).
 - **Modelo de entornos** ([ADR 0010](adr/0010-entornos-y-ramas.md)): `main` = Production
   (`027apps.ericrf.com`, `027apps-prod`); `staging` = rama de Preview con `027apps-dev` (Hobby
   no permite entornos custom ni branch tracking editable). **Plan B (2026-11-10):** staging se

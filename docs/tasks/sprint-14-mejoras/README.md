@@ -2,32 +2,69 @@
 id: sprint-14-mejoras
 titulo: Invitaciones por email, rendimiento, landing y deuda de infraestructura
 area: producto
-estado: pendiente
+estado: en curso
 ---
 
-Sprint **pendiente de definir**. El propietario explicará el alcance exacto de cada punto al
-arrancarlo; aquí solo queda registrado que existen y que **no** se han implementado.
+Sprint **definido el 2026-11-10**, pendiente de que el propietario apruebe las specs. Tres
+frentes de producto con spec propia y uno de deuda de infraestructura que va como tarea
+`infra` con evidencia.
+
+Orden propuesto de ejecución (se puede reordenar por decisión del propietario):
+
+| Orden | Tarea | Tipo | Por qué en esta posición |
+|---|---|---|---|
+| 1 | [task-01](task-01.md) — Rendimiento medido | refactor + infra | Fija el método de medida y corrige la región/dobles llamadas antes de que nada más se mida. |
+| 2 | [task-02](task-02.md) — Dependabot a `staging` | infra | Es pequeña, evita rebases sobre una rama que crece y no depende de credenciales. |
+| 3 | [task-03](task-03.md) — Invitaciones por email | feature + diseño | Fase de mockups + credencial de Resend; el diseño se cierra antes de implementar. |
+| 4 | [task-04](task-04.md) — Landing pública | feature + diseño | Necesita las referencias del propietario y se beneficia del trabajo de rendimiento. |
+
+## Decisiones del propietario (2026-11-10)
+
+- **Email de invitación:** idioma elegible en el alta; 3 direcciones de mockup con la marca
+  actual, HTML + PNG, iterando hasta aprobación; plantilla reutilizable; incluye logo, quién
+  invita, caducidad y aviso de seguridad. La entrega se elige en el alta (*email* o *solo
+  enlace*); si el envío falla, la invitación se crea igual y se ofrece el enlace; se puede
+  reenviar.
+- **Rendimiento:** objetivo intermedio (p95 API ≤ 400 ms caliente / ≤ 1,2 s frío), medido
+  antes y después, incluyendo páginas. Se auditan **llamadas duplicadas y cascadas** porque el
+  propietario nota lentitud al actuar.
+- **Landing:** `/` es siempre la landing y el panel se mueve a `/panel`; 9 idiomas; contenido
+  con descarga Android, GitHub, lista de módulos y capturas; referencias visuales antes del
+  mockup; documentación para agentes sobre cuándo actualizarla.
 
 ## Candidatas de producto
 
+| # | Tema | Estado | Spec |
+|---|---|---|---|
+| 1 | **Envío de invitaciones por email** (Resend) | Spec propuesta | [2026-11-10-invitation-email-design.md](../../superpowers/specs/2026-11-10-invitation-email-design.md) |
+| 2 | **Rendimiento de las llamadas a la API** | Spec propuesta | [2026-11-10-api-performance-design.md](../../superpowers/specs/2026-11-10-api-performance-design.md) |
+| 3 | **Landing page pública** | Spec propuesta | [2026-11-10-public-landing-design.md](../../superpowers/specs/2026-11-10-public-landing-design.md) |
+
+## Deuda de infraestructura (bloqueada o fuera de alcance)
+
 | # | Tema | Estado | Notas |
 |---|---|---|---|
-| 1 | **Envío de invitaciones por email** | Pendiente de spec | Hoy la invitación **no envía correo**: al crearla se muestra un enlace que el admin comparte a mano. Debe enviarse con Resend (dominio `mail.ericrf.com`), con el enlace `/invite/<token>`, caducidad y remitente de la instancia. **Requiere mockup del correo que recibe la persona invitada** antes de implementar. El enlace manual queda como respaldo. Ver `sprint-13-staging-prod/task-06.md` (cierre). |
-| 2 | **Rendimiento de las llamadas a la API** | Pendiente de análisis | El propietario percibe lentitud. Antes de tocar código: medir con datos reales (Vercel Analytics/logs, tiempos por ruta) y localizar si es cold start, consultas, N+1, regiones o tamaño de bundle. La spec debe fijar objetivos medibles. |
-| 3 | **Landing page** | Pendiente de spec | Página pública de presentación del producto (hoy `/` redirige a `/login`). Alcance, contenidos e idioma pendientes de definir con el propietario. |
+| 4 | **FCM / notificaciones push** | Bloqueado | Necesita proyecto Firebase y `google-services.json`. No se toca hasta que el propietario lo entregue. |
+| 5 | **Copia secundaria de backups (3-2-1)** | Bloqueado | Necesita un segundo bucket en otro proveedor. `docs/infrastructure.md` §8. |
+| 6 | **Backup de ficheros de Storage** | Condicionado | Hoy no hay buckets en uso; se diseña cuando el producto empiece a subir ficheros. |
 
-## Deuda de infraestructura
+## Dependabot
 
-| # | Tema | Estado | Notas |
-|---|---|---|---|
-| 4 | **FCM / notificaciones push** | Pendiente (necesita credenciales) | Crear proyecto Firebase, registrar la app Android `com.rferic.zero27apps`, añadir `google-services.json` y el plugin de Gradle al APK, y configurar FCM en el panel (hoy “None for now”). El panel ya soporta FCM; sin `google-services.json` la app no registra tokens. |
-| 5 | **Copia secundaria de backups (3-2-1)** | Pendiente (necesita credenciales) | Añadir un segundo bucket en otro proveedor y un paso `restic copy` al workflow de backup. Hoy solo existe el repositorio principal en Backblaze B2. Documentado en `docs/infrastructure.md` §8. |
-| 6 | **Backup de ficheros de Storage** | Pendiente de uso real | Hoy no hay buckets de Storage en uso (la app no sube ficheros), así que no hay nada que respaldar. Diseñar el `rclone`/`aws s3 sync` contra la API S3 de Supabase cuando el producto empiece a usar Storage. §8. |
-| 7 | **Dependabot pendiente** | Pendiente de merge | PRs #33 (eslint 10), #34 (@types/node 26), #38 (gradle) y #39 (actions), reorientados a `staging`. #38 y #39 están limpios; #33 y #34 quedaron conflictivos y esperan rebase. Los saltos mayores (eslint 10, TypeScript 7, @types/node 26) requieren comprobar CI y el build antes de mergear. |
+Corregido el diagnóstico del cierre del sprint 13:
+
+- `#38` (gradle) está **cerrado**; lo sustituye **#51**.
+- **#33** (eslint 10) sigue en `staging` y con conflictos; **#39** (actions) en `staging` y
+  limpio.
+- **#34** (@types/node 26) cambió su base a `main`; hay nuevos **#52** (grupo npm) y **#14**
+  (TypeScript 7), también contra `main`.
+- Causa raíz: `.github/dependabot.yml` no declara `target-branch`, así que Dependabot usa la
+  rama por defecto (`main`). `task-02` lo corrige y tria los PRs. **Ningún PR se mergea sin
+  orden explícita.**
 
 ## Reglas
 
-- Cada punto necesita spec aprobada antes de implementar (`AGENTS.md`); los de infraestructura
-  que solo son configuración o credenciales pueden ir como tareas `chore`/`infra` con su
+- Cada punto necesita spec aprobada antes de implementar (`AGENTS.md`); la deuda de
+  infraestructura que solo es configuración o credenciales va como tarea `chore`/`infra` con su
   evidencia.
-- Nada de este sprint se ha empezado; no hay rama `sprint/14-*` todavía.
+- Un PR por sprint, en draft contra `staging` desde el arranque.
+- Nada de FCM, 3-2-1 ni Storage hasta que el propietario dé credenciales o haya buckets.
