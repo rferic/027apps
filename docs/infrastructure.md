@@ -167,6 +167,14 @@ y exfiltrar los secretos.
 Requisitos en local: cliente PostgreSQL 17 (`pg_dump`, `pg_restore`, `psql`) y restic;
 las variables de §3 exportadas. Todo el proceso está en `scripts/backup/`.
 
+**Simulacro automatizado:** `.github/workflows/restore-drill.yml` (`workflow_dispatch`)
+restaura el último snapshot en un Postgres 17 desechable y verifica tablas y ajustes. Antes de
+`pg_restore` crea los roles de Supabase (`anon`, `authenticated`, `service_role`,
+`supabase_admin`, `dashboard_user`…) y los que crean las migraciones (`core_cron`,
+`module_installer`), y el esquema `auth`; el dump lo incluye con `auth.users`, así que la
+restauración usa `--schema public,auth`. Evidencia del primer simulacro (2026-11-10):
+19 tablas en `public`, 18 filas en `settings`, `restic check` sin errores.
+
 ### Escenario A — datos borrados o corruptos en producción
 
 1. **Guardar el estado actual** antes de tocar nada (evidencia y opción de comparar):
@@ -192,9 +200,10 @@ las variables de §3 exportadas. Todo el proceso está en `scripts/backup/`.
 2. Anotar los nuevos `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y
    `SUPABASE_SERVICE_ROLE_KEY`; actualizarlos en Vercel (Preview y Production) y redesplegar.
    La app Android no cambia: apunta al admin, no a Supabase.
-3. Restaurar el esquema de producto:
+3. Restaurar el esquema de producto **junto con `auth`** (las FK de `public.profiles`
+   apuntan a `auth.users`; restaurar solo `public` las deja sin validar):
    ```bash
-   scripts/backup/restore.sh --target "$NEW_DB_URL" --schema public
+   scripts/backup/restore.sh --target "$NEW_DB_URL" --schema public,auth
    ```
 4. Si existe `supabase_migrations`, restaurarlo también para que `supabase db push` no
    reaplique migraciones ya aplicadas:
