@@ -82,6 +82,26 @@ jobs:
           echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
           /usr/lib/postgresql/17/bin/psql --version
 
+      # The dump grants privileges to Supabase's predefined roles, which a
+      # vanilla PostgreSQL lacks. A new Supabase project already has them.
+      - name: Create Supabase roles
+        if: steps.config.outputs.enabled == 'true'
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:5432/postgres" -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare r text;
+          begin
+            foreach r in array array[
+              'anon', 'authenticated', 'service_role', 'supabase_admin',
+              'supabase_auth_admin', 'supabase_storage_admin', 'authenticator'
+            ] loop
+              if not exists (select 1 from pg_roles where rolname = r) then
+                execute format('create role %I nologin noinherit', r);
+              end if;
+            end loop;
+          end $$;
+          SQL
+
       - name: Restore the snapshot
         if: steps.config.outputs.enabled == 'true'
         env:
