@@ -196,7 +196,10 @@ export function ModuleActions({
   }
 
   return (
-    <section aria-labelledby="module-actions-title" className="flex flex-col gap-2">
+    <section
+      aria-labelledby="module-actions-title"
+      className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+    >
       <h2 id="module-actions-title" className="text-sm font-semibold">
         {t("Actions", messages)}
       </h2>
