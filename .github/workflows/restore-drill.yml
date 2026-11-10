@@ -90,13 +90,14 @@ jobs:
         if: steps.config.outputs.enabled == 'true'
         run: |
           psql "postgresql://postgres:postgres@127.0.0.1:5432/postgres" -v ON_ERROR_STOP=1 <<'SQL'
+          create schema if not exists auth;
           do $$
           declare r text;
           begin
             foreach r in array array[
               'anon', 'authenticated', 'service_role', 'supabase_admin',
               'supabase_auth_admin', 'supabase_storage_admin', 'authenticator',
-              'core_cron', 'module_installer'
+              'dashboard_user', 'core_cron', 'module_installer'
             ] loop
               if not exists (select 1 from pg_roles where rolname = r) then
                 execute format('create role %I nologin noinherit', r);
