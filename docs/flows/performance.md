@@ -46,22 +46,28 @@ Funciones en `iad1`, Postgres en `eu-west-2`. Medido desde España.
 | `/login` | 94–274 ms | 1,60 s |
 | `/help/firebase` | 161–533 ms | — |
 
-## Después (pendiente)
+## Después — preview con `lhr1` (2026-11-10, commit `568489f`)
 
-Se rellena con el mismo método tras desplegar los cambios de la tarea 01. Incluye la región
-observada y el commit.
+Medido sobre el preview `027apps-puctl9xwz-eric-rf.vercel.app`, que apunta a `027apps-dev`
+(`eu-west-3`), con `vercel curl` (bypass de la protección). `x-vercel-id: fra1::lhr1::…`.
 
-| Ruta | Caliente | Frío | Cambio |
+| Ruta | Caliente | Frío | Antes (prod, `iad1`) |
 |---|---|---|---|
-| — | — | — | — |
+| `/api/health` | 147–297 ms | — | 353–740 ms |
+| `/api/v1/instance` | 151–274 ms | ~590 ms | 375–412 ms |
+| `/login` | 110–125 ms | ~510 ms | 94–274 ms |
+
+**Pendiente**: repetir en producción tras el merge (mismo proyecto, `eu-west-2`) y con sesión
+real para las rutas autenticadas. El preview no sustituye a esa medida: distinto proyecto
+Supabase y tráfico de protección.
 
 ## Cambios aplicados
 
 | Cambio | Estado | Evidencia |
 |---|---|---|
-| Funciones en `lhr1` (`apps/admin/vercel.json` + ajuste del proyecto) | pendiente de deploy | `x-vercel-id` |
-| Una sola verificación de JWT por request de `/api/v1` (proxy → door) | implementado, test en `proxy.test.ts` | test + medición |
-| `/api/health` con `select 1` en vez de la API admin de Auth | implementado, test en `lib/health.test.ts` | test + medición |
+| Funciones en `lhr1` (`apps/admin/vercel.json` + ajuste del proyecto) | desplegado en preview | `x-vercel-id: …::lhr1::…` |
+| Una sola verificación de JWT por request de `/api/v1` (proxy → door) | implementado | test en `proxy.test.ts` + medida |
+| `/api/health` con `select 1` en vez de la API admin de Auth | implementado | test en `lib/health.test.ts` + medida |
 | Duplicados y cascadas del cliente | pendiente de captura del propietario | pestaña Red |
 
 ## Reglas

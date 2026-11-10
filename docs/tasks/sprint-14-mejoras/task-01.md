@@ -57,3 +57,17 @@ las medidas. Mitigaciones en la spec §9.
   recién arrancado.
 - **Pendiente**: desplegar y rellenar la tabla «después»; L4 (captura de red del propietario
   para las tres acciones), L5 y L6.
+
+### Medición del preview (2026-11-10)
+
+Preview `027apps-puctl9xwz-eric-rf.vercel.app` (commit `568489f`, `027apps-dev` en `eu-west-3`),
+`x-vercel-id: fra1::lhr1::…`:
+
+| Ruta | Caliente | Frío | Antes (prod, `iad1`) |
+|---|---|---|---|
+| `/api/health` | 147–297 ms | — | 353–740 ms |
+| `/api/v1/instance` | 151–274 ms | ~590 ms | 375–412 ms |
+| `/login` | 110–125 ms | ~510 ms | 94–274 ms |
+
+Objetivo de API (p95 ≤ 400 ms caliente) cumplido en el preview. Falta la medida en producción
+tras el merge y las rutas autenticadas con una sesión de prueba.
