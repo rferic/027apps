@@ -2,7 +2,7 @@
 id: sprint-14-task-01
 titulo: Rendimiento medido de la API y del panel
 area: rendimiento
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-11-10-api-performance.md
 fuente: docs/superpowers/specs/2026-11-10-api-performance-design.md
 adrs: [0004, 0007]
@@ -83,3 +83,21 @@ rutas Core en proceso) y 7–9 viajes a la base. Aplicado:
   que `loadCategories` y `loadMembers` no repiten la verificación.
 
 Queda 1 verificación por render. Pendiente de medir con sesión real.
+
+### Producción (2026-11-10)
+
+Promoción a producción vía #80 (merge `5c05c4f`). `x-vercel-id: fra1::lhr1::…` en
+`027apps.ericrf.com`.
+
+| Ruta | Antes (`iad1`) | Después (`lhr1`) |
+|---|---|---|
+| `/api/health` | 353–740 ms | 135–401 ms |
+| `/api/v1/instance` | 375–412 ms | 132–272 ms |
+| `/login` | 94–274 ms | 87–145 ms |
+
+Auditoría del cliente con Chrome headless y un usuario de prueba: una sola petición de
+documento por página y un solo fetch RSC al navegar al detalle; **no hay peticiones de datos
+duplicadas**. La causa era el trabajo del servidor.
+
+Pendiente: frío real (≥15 min sin tráfico), rutas autenticadas, L5 (bundle/cold start) y L6
+(consultas). Revisión con ojos nuevos y auditoría de seguridad antes de `finalizada`.
