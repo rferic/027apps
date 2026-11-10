@@ -97,6 +97,58 @@ describe("proxy session cookies", () => {
   });
 });
 
+describe("proxy API session", () => {
+  function browserClient() {
+    const getUser = vi.fn(async () => ({ data: { user: { id: "u1" } } }));
+    const getSession = vi.fn(async () => ({
+      data: { session: { access_token: "access-token" } },
+    }));
+    createServerClientMock.mockReturnValue({ auth: { getUser, getSession } });
+    return { getUser, getSession };
+  }
+
+  it("forwards the access token without verifying the JWT twice", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
+    const { getUser, getSession } = browserClient();
+
+    const response = await proxy(new NextRequest("http://localhost/api/v1/instance"));
+
+    // The door verifies the JWT with `getUser`; the proxy only forwards it.
+    expect(getSession).toHaveBeenCalledTimes(1);
+    expect(getUser).not.toHaveBeenCalled();
+    expect(response.headers.get("x-middleware-request-authorization")).toBe(
+      "Bearer access-token",
+    );
+  });
+
+  it("keeps the panel gate verifying the session", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
+    const { getUser, getSession } = browserClient();
+
+    await proxy(new NextRequest("http://localhost/members"));
+
+    expect(getUser).toHaveBeenCalledTimes(1);
+    expect(getSession).not.toHaveBeenCalled();
+  });
+
+  it("sends no Authorization header when the cookie has no session", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
+    createServerClientMock.mockReturnValue({
+      auth: {
+        getUser: vi.fn(async () => ({ data: { user: null } })),
+        getSession: vi.fn(async () => ({ data: { session: null } })),
+      },
+    });
+
+    const response = await proxy(new NextRequest("http://localhost/api/v1/instance"));
+
+    expect(response.headers.get("x-middleware-request-authorization")).toBeNull();
+  });
+});
+
 describe("proxy cross-origin mutations", () => {
   it("rejects a cookie-authenticated API mutation from another origin before touching the session", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");

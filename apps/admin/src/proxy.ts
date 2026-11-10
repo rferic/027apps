@@ -55,11 +55,19 @@ export async function proxy(request: NextRequest) {
   }
 
   const { supabase, refreshedCookies } = sessionClient(request);
-  // Triggers a token refresh when the access token is expired.
-  const { data } = await supabase.auth.getUser();
+  const isApi = request.nextUrl.pathname.startsWith("/api/v1");
 
-  if (request.nextUrl.pathname.startsWith("/api/v1")) {
+  // `/api/v1` is verified exactly once, by the door. The proxy only needs to
+  // hand the token over; `getSession` still refreshes it from the cookie when
+  // it is about to expire, so the door never receives a stale JWT. Pages keep
+  // the authoritative check because the entry gate acts on `hasSession`.
+  let hasSession = false;
+  if (isApi) {
     await forwardSessionToken(supabase, requestHeaders);
+  } else {
+    // Triggers a token refresh when the access token is expired.
+    const { data } = await supabase.auth.getUser();
+    hasSession = data.user !== null;
   }
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
@@ -78,7 +86,7 @@ export async function proxy(request: NextRequest) {
   const target = entryGate(request.nextUrl.pathname, {
     installed: state.installed,
     setupIncomplete: state.setupIncomplete,
-    hasSession: data.user !== null,
+    hasSession,
   });
   return target ? redirectWithSession(request, response, target) : response;
 }
