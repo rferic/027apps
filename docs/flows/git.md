@@ -37,6 +37,12 @@ Cómo se organiza el trabajo en ramas, cómo se promociona de `staging` a `main`
 - `main` **siempre desplegable** y `staging` siempre en verde: cada merge deja la rama con el concepto completo integrado. No hay merge de piezas a medias.
 - **Nunca** commits directos a `main` ni a `staging`, force-push ni reescritura de historia compartida sin orden explícita del usuario (`AGENTS.md`).
 - Un sprint nuevo empieza desde `main` actualizado (nunca desde la rama del sprint anterior salvo que el concepto lo requiera y se documente).
+- **Promoción y sincronización con merge commit.** La promoción `staging → main` y la
+  sincronización `main → staging` posterior a cada release se hacen con **merge commit**, no
+  con squash: así `main` conserva el historial de `staging` y la siguiente promoción no exige
+  rama al día ni bypass de administrador. Los PRs de trabajo (`sprint/*`, `fix/*`…) siguen
+  squash-mergeándose a `staging`. El ruleset `protect-staging` admite ambos métodos desde el
+  2026-11-10; `main-protection` mantiene los checks requeridos y el *strict up to date*.
 
 ## 5. Protección de `staging` y `main` (puerta de usuario / admin)
 
