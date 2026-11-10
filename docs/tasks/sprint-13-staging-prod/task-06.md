@@ -2,7 +2,7 @@
 id: sprint-13-task-06
 titulo: Entorno de producción completo (crear)
 area: infra
-estado: en curso
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/superpowers/specs/2026-11-08-staging-production-design.md §B
 adrs: [0010]
@@ -128,3 +128,13 @@ en el formato del repo).
 **Pendiente**: promoción `staging → main`, deploy de producción, verificación de `/api/health`,
 wizard de instalación, asignación del dominio, borrado de la rama `production` y verificación
 end-to-end (B.6/B.7).
+
+## Cierre (2026-11-10)
+
+- **End-to-end probado por el propietario**: super admin creado en el asistente, login en
+  `https://027apps.ericrf.com`, invitación creada y redención del enlace `/invite/<token>`
+  (la persona invitada elige contraseña y accede). El flujo de invitación **no envía correo por
+  diseño**; el panel muestra el enlace una sola vez y el admin lo comparte. La mejora de envío
+  por email queda apuntada para el sprint 14.
+- Producción activa con `/api/health` en `ok`; backup diario y keep-alive en verde; auditorías
+  de 05/07/08 superadas.
