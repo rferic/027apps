@@ -2,8 +2,8 @@
 id: sprint-14-task-02
 titulo: Dependabot apuntando a staging y triaje de los PRs abiertos
 area: infra
-estado: pendiente
-plan: pendiente de redactar
+estado: en curso
+plan: docs/superpowers/plans/2026-11-10-dependabot-staging.md
 fuente: docs/tasks/sprint-14-mejoras/README.md §Dependabot
 adrs: [0010]
 ---
@@ -36,3 +36,11 @@ defecto del repositorio (`main`), que es la rama de producción. Eso contradice 
 
 **Riesgos**: que un rebase de Dependabot fuerce push y cierre el PR; el lockfile puede requerir
 `pnpm install` para regenerarse. Se valida en la rama del PR, nunca en `staging` directamente.
+
+## Ejecución (2026-11-10)
+
+- `.github/dependabot.yml`: `target-branch: staging` en los tres ecosistemas. Efectivo cuando el
+  fichero llegue a `main` (Dependabot lee la config de la rama por defecto).
+- PRs retargeteados a `staging`: #34, #51, #52 y #14; #33 y #39 ya estaban ahí.
+- Rebase pedido a Dependabot en #33 y #14 (los dos conflictivos).
+- Estado tras el cambio: #33/#14 `CONFLICTING`; #34/#39/#51/#52 `MERGEABLE`. Ninguno mergeado.

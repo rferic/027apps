@@ -60,6 +60,9 @@ Corregido el diagnóstico del cierre del sprint 13:
 - Causa raíz: `.github/dependabot.yml` no declara `target-branch`, así que Dependabot usa la
   rama por defecto (`main`). `task-02` lo corrige y tria los PRs. **Ningún PR se mergea sin
   orden explícita.**
+- **Ejecutado (2026-11-10)**: `target-branch: staging` en los tres ecosistemas y los PRs #34,
+  #51, #52 y #14 retargeteados. Rebase pedido en #33 y #14. La config surte efecto cuando
+  llegue a `main`.
 
 ## Reglas
 

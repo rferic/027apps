@@ -1,10 +1,15 @@
 # Dependabot: automatic dependency PRs.
 # Weekly, grouped by ecosystem and WITHOUT auto-merge: CI validates, a human decides.
 # Security updates open as soon as they are announced (they do not wait a week).
+#
+# `target-branch: staging` keeps dependency PRs off the production branch: nothing
+# reaches `main` without going through `staging` (ADR 0010). Dependabot reads this
+# file from the default branch, so the setting only applies once it lands on `main`.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: "/"
+    target-branch: staging
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -15,6 +20,7 @@ updates:
 
   - package-ecosystem: github-actions
     directory: "/"
+    target-branch: staging
     schedule:
       interval: weekly
     groups:
@@ -23,6 +29,7 @@ updates:
 
   - package-ecosystem: gradle
     directory: "/apps/android"
+    target-branch: staging
     schedule:
       interval: weekly
     groups:
