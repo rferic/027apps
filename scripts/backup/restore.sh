@@ -8,6 +8,7 @@
 #   RESTIC_REPOSITORY, RESTIC_PASSWORD, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 #
 set -euo pipefail
+umask 077
 
 usage() {
   cat <<'EOF'
@@ -43,6 +44,16 @@ if [ -z "$target" ]; then
   usage >&2
   exit 2
 fi
+# The snapshot comes from user input in the drill: only IDs and `latest`.
+case "$snapshot" in
+  latest) ;;
+  *)
+    if ! printf '%s' "$snapshot" | grep -Eq '^[0-9a-f]{6,64}$'; then
+      echo "Invalid snapshot ID: ${snapshot}" >&2
+      exit 2
+    fi
+    ;;
+esac
 : "${RESTIC_REPOSITORY:?RESTIC_REPOSITORY is required}"
 : "${RESTIC_PASSWORD:?RESTIC_PASSWORD is required}"
 
@@ -56,7 +67,8 @@ if [ -z "$dump" ]; then
   echo "No .dump file found in snapshot ${snapshot}." >&2
   exit 1
 fi
-echo "Restoring $(basename "$dump") into ${target%%\?*}"
+safe_target="$(printf '%s' "${target%%\?*}" | sed -E 's#(://[^:/@]+):[^@]+@#\1:***@#')"
+echo "Restoring $(basename "$dump") into ${safe_target}"
 
 if [ "$schema" = "all" ]; then
   pg_restore --no-owner --dbname "$target" "$dump"
