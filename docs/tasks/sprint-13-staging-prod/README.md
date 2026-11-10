@@ -2,7 +2,7 @@
 id: sprint-13-staging-prod
 titulo: Entornos staging y producción con deploy automático
 area: infra
-estado: en curso
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 spec: docs/superpowers/specs/2026-11-08-staging-production-design.md
 ---
@@ -49,3 +49,16 @@ propietario.
   contradicciones.
 - Auditoría de seguridad superada en toda implementación.
 - Un solo PR por sprint; squash merge con orden explícita del usuario.
+
+## Cierre del sprint (2026-11-10)
+
+Las 8 tareas están `finalizada` y verificadas en producción:
+
+- `main` despliega `https://027apps.ericrf.com` contra `027apps-prod`; `staging` usa el alias de
+  rama protegido (plan B de Hobby) contra `027apps-dev`.
+- Backup diario cifrado en Backblaze B2 con simulacro de restauración automatizado en verde.
+- Keep-alive activo; runbook de promoción/rollback y modelo de merge commit documentados.
+- Pendiente fuera del sprint: FCM (cuando el APK tenga `google-services.json`), ficheros de
+  Storage (hoy no hay buckets) y copia secundaria 3-2-1.
+- Próximo sprint (`sprint-14-mejoras`): envío de invitaciones por email, rendimiento de las
+  llamadas y landing page.
