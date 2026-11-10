@@ -2,7 +2,7 @@
 id: sprint-13-task-08
 titulo: Keep-alive y runbook de release
 area: infra
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/flows/cicd.md; docs/superpowers/specs/2026-11-08-staging-production-design.md §8, §9
 adrs: [0010]
@@ -50,3 +50,6 @@ Free) y un runbook ejecutable para promocionar y revertir.
   siguientes no necesitan `--admin`.
 
 **Pendiente**: revisión de otro agente y auditoría de seguridad para `finalizada`.
+
+
+**Cierre (2026-11-10)**: auditoría de otro agente superada; hallazgos documentales corregidos antes de este cierre.
