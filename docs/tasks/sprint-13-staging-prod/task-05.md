@@ -2,7 +2,7 @@
 id: sprint-13-task-05
 titulo: Entorno de preview y rama staging (editar)
 area: infra
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-08-staging-production.md
 fuente: docs/superpowers/specs/2026-11-08-staging-production-design.md §A
 adrs: [0010]
@@ -33,12 +33,14 @@ dominios custom.
 **Criterios de aceptación**:
 - Las 5 variables tienen scope Preview en todas las ramas (ninguna limitada a una rama).
 - `027apps-dev` con contraseña rotada; `SUPABASE_DB_URL` actualizado en Vercel y `.env.local`.
-- Auth de dev cubre `http://027apps.local`, el puerto local y `staging.027apps.ericrf.com`.
-- `staging` despliega a `staging.027apps.ericrf.com` con `/api/health` en `ok`.
-- **Staging protegido**: `curl -I https://staging.027apps.ericrf.com` sin cookie devuelve login
-  (no la app). **Plan B si no queda protegido**: no asignar dominio custom a staging y usar la
-  URL fija de rama (`<branch>-<project>-<team>.vercel.app`), que Standard Protection protege
-  por definición.
+- Auth de dev cubre `http://027apps.local`, el puerto local y el alias de rama de staging
+  (`027apps-git-staging-eric-rf.vercel.app`); `staging.027apps.ericrf.com` queda documentado
+  por si algún día se asigna.
+- `staging` despliega en un alias protegido (plan B) con `/api/health` en `ok`.
+- **Staging protegido**: `curl -I` al alias de rama sin cookie devuelve login (no la app).
+  **Plan B aplicado (2026-11-10)**: no se asigna dominio custom a staging; se usa la URL fija de
+  rama (`027apps-git-staging-eric-rf.vercel.app`), que Standard Protection protege por
+  definición.
 
 **Puertas de usuario**: rotar la contraseña de `027apps-dev` (Supabase); asignar el dominio y
 la protección (Vercel). **Decisión tomada (2026-11-09): staging protegido** con Deployment
@@ -92,7 +94,8 @@ Hecho hasta ahora, con evidencia leída de la API de Vercel (sin valores de secr
   - URL de staging: **`https://027apps-git-staging-eric-rf.vercel.app`** (alias de rama, protegido
     por Standard Protection). Patrón confirmado en el proyecto con otra rama
     (`027apps-git-docs-sprint-infra-vercel-eric-rf.vercel.app`).
-  - El dominio `staging.027apps.ericrf.com` **no se asigna**; queda reservado para producción.
+  - El dominio `staging.027apps.ericrf.com` **no se asigna**: queda reservado por si se pasa a un
+  plan que proteja dominios custom. El dominio de producción es `027apps.ericrf.com`.
 - **El dominio comprado en Vercel no cambia la protección.** `ericrf.com` está registrado en
   Vercel con NS `ns1/ns2.vercel-dns.com` y un comodín `*.ericrf.com ALIAS
   cname.vercel-dns-017.com`, así que cualquier subdominio resuelve a Vercel y el certificado se
@@ -100,8 +103,9 @@ Hecho hasta ahora, con evidencia leída de la API de Vercel (sin valores de secr
   (`DEPLOYMENT_NOT_FOUND`, no asignado), `staging.027apps.ericrf.com` → error TLS (sin
   certificado por no estar asignado).
 - **A.3** ejecutado por el propietario en el dashboard de `027apps-dev` (Site URL y redirect
-  URLs con `https://staging.027apps.ericrf.com`). No es verificable por API sin token; se valida
-  funcionalmente con el email de prueba del asistente en producción.
+  URLs; incluye `https://staging.027apps.ericrf.com` y, por el plan B, el alias de rama). No es
+  verificable por API sin token; el email de prueba del asistente valida `027apps-prod`, no el
+  Auth de dev, así que A.3 queda como configuración declarada por el propietario.
 - **A.6 verificado el 2026-11-09**, tras el merge del sprint a `staging` (squash `90a54eb`):
   - Deployment `027apps-ig3zjy0m7-eric-rf.vercel.app`, branch `staging`, estado `READY`;
     alias de rama `https://027apps-git-staging-eric-rf.vercel.app`.

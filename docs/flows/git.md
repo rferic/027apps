@@ -7,7 +7,7 @@ Cómo se organiza el trabajo en ramas, cómo se promociona de `staging` a `main`
 | Rama | Entorno | Qué recibe |
 |---|---|---|
 | `main` | Producción (`027apps.ericrf.com`, `027apps-prod`) | Solo PRs `staging → main` y, en emergencia, un `revert` ([§7](#7-hotfix-y-bugfix)) |
-| `staging` | Pruebas (`staging.027apps.ericrf.com`, `027apps-dev`) | PRs de las ramas de trabajo |
+| `staging` | Pruebas (alias de rama protegido, `027apps-dev`) | PRs de las ramas de trabajo |
 | `sprint/*`, `fix/*`, `chore/*`, `docs/*` | Preview del PR (`027apps-dev`) | Commits de trabajo |
 
 - `main` y `staging` son las dos únicas ramas de larga vida. **No existe `develop`.** La rama placeholder `production` (que Vercel exigía como *Production Branch*) se **elimina**: el *Production Branch* pasa a `main`.
@@ -30,8 +30,8 @@ Cómo se organiza el trabajo en ramas, cómo se promociona de `staging` a `main`
 
 ## 4. Integración y promoción
 
-- **PR del sprint → `staging`:** squash merge, con orden explícita del usuario. El título del PR es el mensaje del commit en `staging` (validado por `commitlint`): el sprint se convierte en **un solo commit** en `staging`. Vercel despliega `staging.027apps.ericrf.com` y el job de migraciones aplica a `027apps-dev` ([`cicd.md`](cicd.md#migraciones-supabase)).
-- **Pruebas en `staging`** (login, datos de prueba, `/api/health`): las hace el propietario o un agente con *Protection Bypass for Automation*; `staging` está protegido y la familia no accede en Hobby.
+- **PR del sprint → `staging`:** squash merge, con orden explícita del usuario. El título del PR es el mensaje del commit en `staging` (validado por `commitlint`): el sprint se convierte en **un solo commit** en `staging`. Vercel despliega el alias de rama protegido y el job de migraciones aplica a `027apps-dev` ([`cicd.md`](cicd.md#migraciones-supabase)).
+- **Pruebas en `staging`** (login, datos de prueba, `/api/health`): las hace el propietario o un agente con *Protection Bypass for Automation*; `staging` está protegido por el alias de rama y la familia no accede en Hobby.
 - **PR `staging → main`:** **merge commit** (no squash: así `main` contiene los commits de `staging` y la sincronización `main → staging` es trivial), con orden explícita del usuario y los checks en verde. Vercel despliega producción y el job de migraciones de `027apps-prod` queda detrás del Environment `production`: el propietario aprueba antes de que toque datos reales.
 - **Sincronización `main → staging`:** tras cada release se hace merge de `main` en `staging` para que no diverja; al ser la promoción un merge commit, no hay conflictos salvo trabajo de `staging` posterior a la promoción.
 - `main` **siempre desplegable** y `staging` siempre en verde: cada merge deja la rama con el concepto completo integrado. No hay merge de piezas a medias.
@@ -48,7 +48,8 @@ Cómo se organiza el trabajo en ramas, cómo se promociona de `staging` a `main`
 
 Es acción de administrador del repositorio; **no la ejecuta un agente** (editar rulesets exige acceso admin). Sí se puede **leer** su estado con `gh api repos/rferic/027apps/rulesets` y `.../rules/branches/<rama>`.
 
-**Estado verificado el 2026-11-09 (lectura con `gh api`), tras ejecutarlo:** `main-protection` (activo) exige PR con 0 aprobaciones, conversaciones resueltas y descarte de aprobaciones obsoletas, sin force-push ni borrado, rama al día, los siete checks y merge por `merge` o `squash`; `protect-staging` (activo) exige lo mismo salvo «rama al día» (solo `squash`); `tags-v-protection` protege los tags `v*`. A nivel de repo: rebase merge desactivado y borrado automático de ramas desactivado. Existen los Environments `staging` (*Deployment branches* = `staging`) y `production` (*required reviewer* = el propietario, *Deployment branches* = `main`), **sin secrets ni variables**. La bypass list de los rulesets no es verificable sin acceso admin.
+**Estado verificado el 2026-11-09 (lectura con `gh api`), tras ejecutarlo:** `main-protection` (activo) exige PR con 0 aprobaciones, conversaciones resueltas y descarte de aprobaciones obsoletas, sin force-push ni borrado, rama al día, los siete checks y merge por `merge` o `squash`; `protect-staging` (activo) exige lo mismo salvo «rama al día» y admite `squash` y `merge`
+  (desde el 2026-11-10, para la sincronización `main → staging`); `tags-v-protection` protege los tags `v*`. A nivel de repo: rebase merge desactivado y borrado automático de ramas desactivado. Existen los Environments `staging` (*Deployment branches* = `staging`) y `production` (*required reviewer* = el propietario, *Deployment branches* = `main`), **sin secrets ni variables**. La bypass list de los rulesets no es verificable sin acceso admin.
 
 **Checks requeridos** (los seis jobs de [`ci.yml`](../../.github/workflows/ci.yml) que corren en `pull_request`, más Vercel): `admin`, `android`, `supabase`, `guard-secrets`, `commitlint`, `ai-docs` y el check de Vercel. `release` no es requerido: solo corre en tags.
 
@@ -62,7 +63,7 @@ Es acción de administrador del repositorio; **no la ejecuta un agente** (editar
 6. *Settings → General → Pull Requests*: dejar activos **squash** y **merge commit** y desactivar **rebase merge** (los métodos efectivos por rama los fija el ruleset, ver «Métodos de merge»), y comprobar que *Automatically delete head branches* está **desactivado** (o que el ruleset de `staging` impide su borrado) para que `staging → main` no borre `staging`.
 7. Verificación (solo lectura, sin cookie ni secretos): `gh api repos/rferic/027apps/rules/branches/main --jq '.[].type'` y lo mismo con `staging` deben listar `deletion`, `non_fast_forward`, `pull_request` y `required_status_checks`.
 
-**Métodos de merge (decisión a confirmar):** el ruleset prevalece sobre *Settings → General → Pull Requests*. La promoción `staging → main` está definida como **merge commit** (§4), pero `main-protection` hoy solo permite `squash`, así que ese PR **no se podría mergear**. Para ejecutarlo: en `main-protection`, *Require a pull request → Allowed merge methods* = **merge** y **squash** (squash sigue valiendo para un `revert` de hotfix); en `protect-staging` = **squash** (PRs de sprint y de `fix/*`). Si se prefiere mantener squash también en la promoción, `main` no contendría los commits de `staging` y el merge `main → staging` dejaría de ser trivial (posibles conflictos tras cada release).
+**Métodos de merge (decidido e implementado el 2026-11-10):** ambos rulesets admiten **`squash` y `merge`**. Los PRs de trabajo (`sprint/*`, `fix/*`, `docs/*`) se squash-mergean a `staging`; la promoción `staging → main` y la sincronización `main → staging` posterior a cada release usan **merge commit**, de modo que `main` conserva los commits de `staging` y la siguiente promoción cumple «rama al día» sin bypass de administrador. Con squash también en la promoción, `main` no contendría el historial de `staging` y cada release generaría conflictos.
 
 **Orden:** los checks solo aparecen en el selector tras haber corrido en el repo (el PR del sprint los ejecuta); el check de Vercel aparece cuando Vercel comenta el primer deployment. Las protecciones van **antes** de subir secretos de firma, de backup o de migraciones ([`cicd.md`](cicd.md#a-protecciones-del-repo-y-solo-después-keystore-y-secrets-de-github)). El ruleset de tags `v*` es independiente (`cicd.md`, paso A.2).
 
