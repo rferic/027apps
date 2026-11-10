@@ -32,7 +32,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | `keep-alive.yml` | `schedule` diario (06:17 UTC) y `workflow_dispatch` | ping a producción si existe `PROD_URL` |
 | `backup.yml` | `schedule` diario (03:42 UTC) y `workflow_dispatch` | dump de Postgres + subida cifrada a restic si existen los secrets |
 | `restore-drill.yml` | `workflow_dispatch` | simulacro trimestral: restaura el último snapshot en un Postgres 17 desechable, verifica tablas/ajustes y publica el resultado en el summary |
-| *(Dependabot)* | `.github/dependabot.yml`: semanal, agrupado (npm, actions, gradle), **sin auto-merge** | PRs de dependencias; una security update no espera a la semana |
+| *(Dependabot)* | `.github/dependabot.yml`: semanal, agrupado (npm, actions, gradle), `target-branch: staging` y **sin auto-merge** | PRs de dependencias contra `staging`, nunca contra `main`; una security update no espera a la semana |
 | Vercel (app externa) | PR → preview; `staging` → alias de rama protegido (`027apps-git-staging-eric-rf.vercel.app`, plan B); `main` → `027apps.ericrf.com` | deploy de `apps/admin` |
 
 `ci.yml` usa `concurrency` por ref: un push nuevo a un PR cancela la ejecución anterior; en `staging`, `main` y tags nunca se cancela.

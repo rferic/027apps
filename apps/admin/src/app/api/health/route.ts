@@ -1,21 +1,30 @@
-import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
+import { Pool } from "pg";
+import { healthResponse, probeDatabase } from "@/lib/health";
 
-const ok = () => NextResponse.json({ status: "ok" });
-const degraded = () => NextResponse.json({ status: "degraded" }, { status: 503 });
+/**
+ * GET /api/health — public liveness probe used by the keep-alive and the
+ * deploy pipeline. It answers from Postgres through a tiny pool instead of the
+ * Auth admin API, so the check is one round trip and reflects the database.
+ *
+ * The pool is module-level: warm invocations reuse the connection, and a cold
+ * one pays a single handshake with a 2 s ceiling.
+ */
+let pool: Pool | null = null;
+
+function databasePool(connectionString: string): Pool {
+  if (!pool) {
+    pool = new Pool({
+      connectionString,
+      max: 1,
+      connectionTimeoutMillis: 2_000,
+      idleTimeoutMillis: 10_000,
+    });
+  }
+  return pool;
+}
 
 export async function GET() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceRoleKey) return degraded();
-
-  try {
-    const supabase = createClient(url, serviceRoleKey, {
-      auth: { persistSession: false },
-    });
-    const { error } = await supabase.auth.admin.listUsers({ perPage: 1 });
-    return error ? degraded() : ok();
-  } catch {
-    return degraded();
-  }
+  const url = process.env.SUPABASE_DB_URL;
+  if (!url) return healthResponse(false);
+  return healthResponse(await probeDatabase({ connect: () => databasePool(url).connect() }));
 }
