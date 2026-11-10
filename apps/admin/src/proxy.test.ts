@@ -11,10 +11,12 @@ vi.mock("@/lib/instance-gate", () => ({ entryGate: vi.fn() }));
 vi.mock("@/lib/instance-state", () => ({ readInstanceState: vi.fn() }));
 
 import { proxy } from "./proxy";
+import { readInstanceState } from "@/lib/instance-state";
 
 afterEach(() => {
   vi.unstubAllEnvs();
   createServerClientMock.mockReset();
+  vi.mocked(readInstanceState).mockReset();
 });
 
 describe("proxy public help", () => {
@@ -122,13 +124,27 @@ describe("proxy API session", () => {
     );
   });
 
-  it("keeps the panel gate verifying the session", async () => {
+  it("leaves the panel verification to the layout and only refreshes the cookie", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
     const { getUser, getSession } = browserClient();
 
     await proxy(new NextRequest("http://localhost/members"));
 
+    // The panel layout verifies the session; the proxy only keeps the cookie fresh.
+    expect(getUser).not.toHaveBeenCalled();
+    expect(getSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("verifies the session on the gated entry pages", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
+    vi.mocked(readInstanceState).mockResolvedValue({ installed: true, setupIncomplete: false });
+    const { getUser, getSession } = browserClient();
+
+    await proxy(new NextRequest("http://localhost/login"));
+
+    // The entry gate decides with `hasSession`, so this page needs the check.
     expect(getUser).toHaveBeenCalledTimes(1);
     expect(getSession).not.toHaveBeenCalled();
   });

@@ -71,3 +71,15 @@ Preview `027apps-puctl9xwz-eric-rf.vercel.app` (commit `568489f`, `027apps-dev` 
 
 Objetivo de API (p95 ≤ 400 ms caliente) cumplido en el preview. Falta la medida en producción
 tras el merge y las rutas autenticadas con una sesión de prueba.
+
+### Segunda entrega: cascada del servidor
+
+Auditado el render de `/members`: 4 verificaciones del mismo JWT (proxy, layout y las dos
+rutas Core en proceso) y 7–9 viajes a la base. Aplicado:
+
+- El proxy solo verifica en las tres páginas gated (`/`, `/setup`, `/login`); en el resto
+  refresca la cookie sin red.
+- El *door* resuelve el llamante una vez por credencial y request (`cache()` de React), así
+  que `loadCategories` y `loadMembers` no repiten la verificación.
+
+Queda 1 verificación por render. Pendiente de medir con sesión real.

@@ -55,19 +55,24 @@ export async function proxy(request: NextRequest) {
   }
 
   const { supabase, refreshedCookies } = sessionClient(request);
-  const isApi = request.nextUrl.pathname.startsWith("/api/v1");
+  const pathname = request.nextUrl.pathname;
+  const isApi = pathname.startsWith("/api/v1");
+  const isGated = GATED_PATHS.has(pathname);
 
-  // `/api/v1` is verified exactly once, by the door. The proxy only needs to
-  // hand the token over; `getSession` still refreshes it from the cookie when
-  // it is about to expire, so the door never receives a stale JWT. Pages keep
-  // the authoritative check because the entry gate acts on `hasSession`.
+  // One verification per request:
+  // - `/api/v1`: the door verifies the JWT; the proxy only forwards (and
+  //   refreshes) the cookie session.
+  // - gated entry pages: the gate needs the session, so verify it here.
+  // - any other page: the panel layout verifies it; the proxy only refreshes
+  //   the cookie when the token is about to expire.
   let hasSession = false;
   if (isApi) {
     await forwardSessionToken(supabase, requestHeaders);
-  } else {
-    // Triggers a token refresh when the access token is expired.
+  } else if (isGated) {
     const { data } = await supabase.auth.getUser();
     hasSession = data.user !== null;
+  } else {
+    await supabase.auth.getSession();
   }
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
