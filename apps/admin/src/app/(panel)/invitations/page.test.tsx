@@ -109,6 +109,7 @@ describe("InvitationsPage", () => {
     const html = renderToStaticMarkup(await InvitationsPage());
 
     expect(html).toContain("ana@example.com");
+    expect(html).toContain('class="flex flex-col gap-4 rounded-card border border-border bg-surface p-4"');
     expect(html).toContain("Ana");
     expect(html).toContain("Pending");
     expect(html).toContain("luis@example.com");

@@ -97,7 +97,10 @@ export function CategoryModules({
   }
 
   return (
-    <section aria-labelledby="category-modules-title" className="flex max-w-md flex-col gap-3">
+    <section
+      aria-labelledby="category-modules-title"
+      className="flex max-w-md flex-col gap-3 rounded-card border border-border bg-surface p-4"
+    >
       <h2 id="category-modules-title" className="text-sm font-semibold">
         {t("Modules", messages)}
       </h2>

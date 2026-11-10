@@ -543,13 +543,15 @@ export default async function ModulesPage({
         </Link>
       </header>
 
-      <ModulesBody
-        catalogue={catalogue}
-        state={state}
-        visibility={visibility}
-        page={page}
-        messages={messages}
-      />
+      <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4">
+        <ModulesBody
+          catalogue={catalogue}
+          state={state}
+          visibility={visibility}
+          page={page}
+          messages={messages}
+        />
+      </div>
     </section>
   );
 }

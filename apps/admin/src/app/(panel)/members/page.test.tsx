@@ -111,6 +111,7 @@ describe("MembersPage", () => {
     const html = renderToStaticMarkup(await render());
 
     expect(html).toContain("Ana");
+    expect(html).toContain('class="flex flex-col gap-4 rounded-card border border-border bg-surface p-4"');
     expect(html).toContain("ana@example.com");
     expect(html).toContain("Super admin");
     expect(html).toContain("Active");

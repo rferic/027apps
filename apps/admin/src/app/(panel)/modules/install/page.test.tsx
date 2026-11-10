@@ -110,6 +110,7 @@ describe("InstallModulePage", () => {
     expect(html).toContain("Install a module");
     expect(html).toContain("Only packages already present on the server can be installed.");
     expect(html).toContain("<table");
+    expect(html).toContain('class="flex flex-col gap-4 rounded-card border border-border bg-surface p-4"');
   });
 
   it("lists the available packages with their metadata and an Install button", async () => {

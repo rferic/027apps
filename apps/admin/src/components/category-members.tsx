@@ -292,7 +292,10 @@ export function CategoryMembers({
   }
 
   return (
-    <section aria-labelledby="category-members-title" className="flex max-w-md flex-col gap-3">
+    <section
+      aria-labelledby="category-members-title"
+      className="flex max-w-md flex-col gap-3 rounded-card border border-border bg-surface p-4"
+    >
       <h2 id="category-members-title" className="text-sm font-semibold">
         {t("Members", messages)}
       </h2>

@@ -264,7 +264,11 @@ export function MemberProfileForm({
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className="flex w-full flex-col gap-4 rounded-card border border-border bg-surface p-4"
+    >
       <h2 className="text-sm font-semibold">{t("Profile", messages)}</h2>
 
       {isSelf && (

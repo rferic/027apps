@@ -521,15 +521,17 @@ export default async function KeysPage({
         </Link>
       </header>
 
-      <KeysBody
-        data={data}
-        filters={filters}
-        owners={owners}
-        page={page}
-        locale={locale}
-        timeZone={timeZone}
-        messages={messages}
-      />
+      <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4">
+        <KeysBody
+          data={data}
+          filters={filters}
+          owners={owners}
+          page={page}
+          locale={locale}
+          timeZone={timeZone}
+          messages={messages}
+        />
+      </div>
     </section>
   );
 }

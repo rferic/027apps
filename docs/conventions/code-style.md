@@ -13,6 +13,7 @@ Qué se exige, y **quién lo hace cumplir**. Lo mecánico lo rechaza una herrami
 | Comportamiento | vitest (`pnpm --filter admin test`) | Lo que cubran los tests |
 | Título de PR / commits convencionales | commitlint (`.commitlintrc.json`, job `commitlint`) | Solo el título del PR |
 | Sin secretos ni keystores en git | job `guard-secrets` | Patrones conocidos |
+| Superficie de página: formularios, listas y secciones de detalle dentro de una tarjeta | **Revisión** + tests de página/componente que comprueban la clase de superficie | Ver [Superficies de página](#superficies-de-página) |
 | Naming, estructura, zod, i18n, `console.log`, código muerto/comentado, claridad | **Revisión** (ver DoD) | No hay check automático |
 
 Si una regla de revisión falla de forma repetida, conviértela en regla de ESLint o test en vez de insistir en la revisión.
@@ -37,6 +38,36 @@ Dos roles de marca con propósitos distintos: **`--accent`** es para texto y est
 Excepción: nada. Para un color nuevo, define el token en `globals.css` (claro y oscuro) y úsalo por nombre.
 
 Excepción de plataforma: los elementos nativos (`<dialog>`, `<select>`, `<input>`) heredan colores del navegador (CanvasText/Canvas); si se usan, se les fija siempre el token correspondiente (`bg-surface text-foreground`).
+
+## Superficies de página
+
+Todo bloque de contenido del panel va **sobre una superficie**, no suelto sobre el fondo: la
+tarjeta estándar es `rounded-card border border-border bg-surface p-4`. El fondo queda para el
+armazón (cabecera, breadcrumb y títulos de página); lo demás se agrupa en tarjetas.
+
+Reglas por tipo de pantalla:
+
+- **Formularios de página** (`/keys/new`, `/invitations/new`, `/categories/new`, formularios de
+  detalle): el propio `<form>` lleva la superficie y ocupa el **ancho disponible** (`w-full`); no
+  se limita con `max-w-*` en la tarjeta. Si hace falta acotar un campo concreto, se hace dentro.
+- **Listas** (`/keys`, `/categories`, `/members`, `/invitations`, `/modules`, `/modules/install`):
+  filtros/buscador + tabla o tarjetas + paginación comparten **una sola** superficie, en un
+  contenedor `flex flex-col gap-4` con las clases de tarjeta. La cabecera de la página queda fuera.
+- **Detalle** (`/members/[id]`, `/categories/[id]`, `/keys/[id]`, `/modules/[key]`,
+  `/invitations/[id]`): cada sección con contenido (detalles, permisos, miembros, módulos, zona de
+  peligro) es su propia tarjeta; el encabezado y el breadcrumb no.
+- **Estados vacíos y de error** ya son tarjetas. Dentro de la superficie de una lista se aceptan
+  como panel interior; no se añade una tercera capa.
+
+Motivo: en escritorio, contenido sin superficie parece flotar y no se distingue del fondo. Pasó
+en el sprint 13 (2026-11-10) con los formularios de creación, las listas y las secciones de
+categoría; se corrigió con tests que comprueban la clase de superficie en cada raíz.
+
+**Cómo se comprueba**: los tests de página y de componente afirman que el elemento raíz
+(formulario, sección o contenedor de lista) incluye `rounded-card` y `bg-surface`
+(ej. `expect(html).toMatch(/<form[^>]*rounded-card[^>]*bg-surface/)`). No hay regla de ESLint
+para esto; si vuelve a fallar de forma repetida, se convierte en una comprobación automática que
+recorra las páginas del panel.
 
 ## Listas y paginación
 

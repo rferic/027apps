@@ -55,6 +55,8 @@ describe("ApiKeyEditForm module permissions", () => {
   it("offers the owner's modules as editable checkboxes", () => {
     const html = form(KEY, [{ key: "recetas", name: "Recetas" }]);
 
+    // The form is page content, so it needs a surface of its own on wide screens.
+    expect(html).toMatch(/<form[^>]*rounded-card[^>]*bg-surface/);
     expect(html).toContain("Module permissions");
     expect(html).toContain("Recetas");
     expect(html).toContain('value="recetas:read"');

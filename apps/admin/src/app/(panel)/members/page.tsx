@@ -572,26 +572,28 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         </Link>
       </header>
 
-      <MembersFilterForm
-        q={q}
-        role={role}
-        state={state}
-        category={category}
-        categories={categories}
-        messages={messages}
-      />
+      <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4">
+        <MembersFilterForm
+          q={q}
+          role={role}
+          state={state}
+          category={category}
+          categories={categories}
+          messages={messages}
+        />
 
-      <MembersContent
-        data={data}
-        q={q}
-        role={role}
-        state={state}
-        category={category}
-        page={page}
-        locale={locale}
-        timeZone={timeZone}
-        messages={messages}
-      />
+        <MembersContent
+          data={data}
+          q={q}
+          role={role}
+          state={state}
+          category={category}
+          page={page}
+          locale={locale}
+          timeZone={timeZone}
+          messages={messages}
+        />
+      </div>
     </section>
   );
 }

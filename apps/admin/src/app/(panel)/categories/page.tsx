@@ -224,7 +224,9 @@ export default async function CategoriesPage({
         </Link>
       </header>
 
-      <CategoriesBody data={data} q={q} page={page} messages={messages} />
+      <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4">
+        <CategoriesBody data={data} q={q} page={page} messages={messages} />
+      </div>
     </section>
   );
 }

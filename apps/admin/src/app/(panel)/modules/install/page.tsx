@@ -208,10 +208,10 @@ export default async function InstallModulePage() {
       ) : available.length === 0 ? (
         <PackagesEmpty messages={messages} />
       ) : (
-        <>
+        <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4">
           <PackagesTable packages={available} messages={messages} />
           <PackagesCards packages={available} messages={messages} />
-        </>
+        </div>
       )}
     </section>
   );
