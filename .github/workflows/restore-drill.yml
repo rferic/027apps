@@ -93,7 +93,8 @@ jobs:
           begin
             foreach r in array array[
               'anon', 'authenticated', 'service_role', 'supabase_admin',
-              'supabase_auth_admin', 'supabase_storage_admin', 'authenticator'
+              'supabase_auth_admin', 'supabase_storage_admin', 'authenticator',
+              'core_cron', 'module_installer'
             ] loop
               if not exists (select 1 from pg_roles where rolname = r) then
                 execute format('create role %I nologin noinherit', r);
