@@ -99,6 +99,7 @@ describe("KeyDetailPage", () => {
     expect(html).toContain("Zapier");
     expect(html).toContain("Delegated");
     expect(html).toContain("Active");
+    expect(html).toMatch(/<section[^>]*api-key-revoke-title[^>]*rounded-card/);
     expect(loadKeyMock).toHaveBeenCalledWith("k1");
   });
 

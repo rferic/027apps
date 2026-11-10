@@ -34,6 +34,7 @@ describe("ModuleActions", () => {
     );
 
     expect(html).toContain("Deactivate");
+    expect(html).toMatch(/<section[^>]*module-actions-title[^>]*rounded-card/);
     expect(html).toContain("Uninstall");
     expect(html).toContain("Uninstall module");
     expect(html).not.toContain("Uninstall anyway");

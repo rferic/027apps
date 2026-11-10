@@ -212,7 +212,10 @@ function InvitationDangerZone({
   messages: TranslationMap;
 }) {
   return (
-    <section aria-labelledby="invitation-revoke-title" className="flex flex-col gap-2">
+    <section
+      aria-labelledby="invitation-revoke-title"
+      className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+    >
       <h2 id="invitation-revoke-title" className="text-sm font-semibold">
         {t("Danger zone", messages)}
       </h2>
