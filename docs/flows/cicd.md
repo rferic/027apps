@@ -10,7 +10,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | `commitlint` | Implementado (`.github/workflows/ci.yml`, config `.commitlintrc.json`); valida el título del PR |
 | Deploy Vercel (preview, `staging` y producción) | Definido en el [ADR 0010](../adr/0010-entornos-y-ramas.md); se activa en el sprint 13 (puertas de usuario: ver [paso B](#b-conectar-vercel)). Sustituye a la pausa por falta de Core (2026-10-25): el Core ya existe |
 | Migraciones Supabase | Implementado (`.github/workflows/migrations.yml`), inactivo hasta que existan los secrets y el Environment (ver [Migraciones Supabase](#migraciones-supabase)) |
-| Backup diario de la BD | Implementado (`.github/workflows/backup.yml`), inactivo hasta crear el bucket y los secrets (ver [paso C](#c-backups-bucket-y-secrets)) |
+| Backup diario de la BD | Activo (`.github/workflows/backup.yml`) contra Backblaze B2 (bucket `027apps-backups-ericrf`, `us-east-005`); primer snapshot y simulacro de restauración verificados el 2026-11-10 (ver [paso C](#c-backups-bucket-y-secrets)) |
 
 ## Principios
 
@@ -31,6 +31,7 @@ Definición completa del flujo de integración y entrega de 027Apps. Se define e
 | `migrations.yml` | `push` a `staging` o `main` que toque `supabase/migrations/**`, y `workflow_dispatch` | `staging` → `027apps-dev` sin aprobación; `main` → `027apps-prod` tras la aprobación del *required reviewer* del Environment `production`; se omite sin `SUPABASE_ACCESS_TOKEN` |
 | `keep-alive.yml` | `schedule` diario (06:17 UTC) y `workflow_dispatch` | ping a producción si existe `PROD_URL` |
 | `backup.yml` | `schedule` diario (03:42 UTC) y `workflow_dispatch` | dump de Postgres + subida cifrada a restic si existen los secrets |
+| `restore-drill.yml` | `workflow_dispatch` | simulacro trimestral: restaura el último snapshot en un Postgres 17 desechable, verifica tablas/ajustes y publica el resultado en el summary |
 | *(Dependabot)* | `.github/dependabot.yml`: semanal, agrupado (npm, actions, gradle), **sin auto-merge** | PRs de dependencias; una security update no espera a la semana |
 | Vercel (app externa) | PR → preview; `staging` → `staging.027apps.ericrf.com`; `main` → producción | deploy de `apps/admin` |
 

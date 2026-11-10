@@ -11,8 +11,6 @@ on:
         description: Snapshot ID to restore ("latest" for the newest one)
         required: false
         default: latest
-  push:
-    branches: [fix/restore-drill-pgoptions]
 
 permissions: {}
 
