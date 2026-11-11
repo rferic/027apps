@@ -52,14 +52,15 @@ El copy es ilustrativo; en la implementación pasa por los **9 idiomas**.
 
 Evolución de v2 elegida por el propietario: la app manda, el panel queda como segunda cara.
 
-- `v2-app.html`, `v2-app.png` (app), `v2-app-panel.png` (pestaña Panel) y `v2-app-mobile.png`.
+- `v2-app.html`, `v2-app.png` y `v2-app-mobile.png`.
 - Hero con la app y cuatro módulos con su pantalla y explicación (finanzas, categorías,
   miembros, módulos).
-- Sección «Dos formas de usar 027Apps» con un **switch App / Panel** (contenido estático, sin
-  recarga): el panel explica miembros, invitaciones, categorías, módulos, API v1, MCP, ajustes
-  y estado.
+- Tarjeta «La parte de escritorio» que enlaza a la página del proyecto; el panel no se
+  presenta como una pantalla de la app.
 - Tecnologías, autoalojado, Android, FAQ y pie.
 - Copy ilustrativo en español; la implementación publica **inglés en `/`** y las 8 variantes.
+- El hero no lleva «También en web · abrir el panel»: el panel es administración de escritorio,
+  no una versión web de la app. El acceso queda en la nav.
 - Sin analítica por decisión del propietario.
 
 ### Estado de la app
