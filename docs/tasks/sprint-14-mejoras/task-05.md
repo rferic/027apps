@@ -2,7 +2,7 @@
 id: sprint-14-task-05
 titulo: Apariencia por usuario (tema e idioma en el perfil)
 area: producto
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-11-11-user-appearance.md
 fuente: docs/superpowers/specs/2026-11-11-user-appearance-design.md
 adrs: [0002, 0008]
@@ -27,3 +27,12 @@ CI en verde.
 
 **Riesgos**: un `PATCH` fallido deja la cookie aplicada hasta la recarga (se revierte en la
 UI); el script del panel y el del layout raíz deben coincidir en el orden de precedencia.
+
+## Ejecución (2026-11-11)
+
+- Migración `0021` aplicada en local y validada por CI.
+- Verificado con un usuario de prueba: perfil `theme=dark`, `locale=ca` y cookies contrarias
+  (`light`, `es`). El panel arrancó en oscuro y catalán (la base manda sobre la cookie).
+- Al cambiar tema e idioma desde el menú, la base quedó en `light/es` y la interfaz pasó a
+  claro y español; el `lang` se actualiza tras el refresco.
+- Usuario de prueba eliminado. Pendiente: revisión con ojos nuevos y auditoría de seguridad.

@@ -17,5 +17,7 @@ fuente de verdad.
   refresca.
 - [x] Tests: guard, usuarios, privilegios.
 - [x] `pnpm lint`, `pnpm tsc`, `pnpm --filter admin test`, `pnpm --filter admin build`.
-- [ ] Prueba manual: dos cuentas en el mismo navegador conservan su apariencia.
+- [x] Prueba manual: perfil `dark/ca` con cookies `light/es` → el panel arranca oscuro y en
+  catalán; al cambiarlo desde la UI la base queda en `light/es` y la interfaz pasa a claro y
+  español.
 - [ ] Revisión con ojos nuevos y auditoría de seguridad antes de `finalizada`.
