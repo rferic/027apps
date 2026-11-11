@@ -223,6 +223,11 @@ export default function LandingPage() {
             </h2>
             <span className="index">01–04 / APP MODULES</span>
           </div>
+          <p>
+            <span className="note-pill">
+              <b>●</b> Coming soon · the app is in development; these are the planned modules.
+            </span>
+          </p>
 
           <div className="feature-rows">
             <article className="feature-row">
@@ -234,6 +239,7 @@ export default function LandingPage() {
                 <p>
                   Expenses and income in your currency and format. Every category with its budget and history, no spreadsheets.
                 </p>
+              <ul className="check-list"><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Currencies and local format</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Budget per category</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Full history</li></ul>
               </div>
               <div className="visual">
                 <div className="phone">
@@ -288,6 +294,7 @@ export default function LandingPage() {
                 <p>
                   Home, school, leisure — whatever you need. Each category groups its members and decides what each one sees.
                 </p>
+              <ul className="check-list"><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Groups with their own members</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Permissions per category</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Shared budgets</li></ul>
               </div>
               <div className="visual">
                 <div className="phone">
@@ -306,7 +313,7 @@ export default function LandingPage() {
                       <div className="v">2 members</div>
                     </div>
                     <div className="ph-card">
-                      <div className="k">Ocio</div>
+                      <div className="k">Leisure</div>
                       <div className="v">4 members</div>
                     </div>
                     <div className="ph-tabs">
@@ -329,6 +336,7 @@ export default function LandingPage() {
                 <p>
                   Your family joins with an invitation. Pick their role and category; the rest comes with it.
                 </p>
+                <ul className="check-list"><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Invite by email or link</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Roles: admin and user</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Deactivate without deleting</li></ul>
               </div>
               <div className="visual">
                 <div className="phone">
@@ -380,6 +388,7 @@ export default function LandingPage() {
                 <p>
                   Finances, categories, API… Modules switch on and off without touching the rest. The app shows only what is active.
                 </p>
+              <ul className="check-list"><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Turn modules on and off</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Only active modules in the app</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>Access per member</li></ul>
               </div>
               <div className="visual">
                 <div className="phone">
@@ -420,6 +429,11 @@ export default function LandingPage() {
               </div>
             </article>
           </div>
+          <p style={s("margin-top: 44px")}>
+            <span className="note-pill">
+              <b>●</b> Planned: push notifications, when the app ships.
+            </span>
+          </p>
         </div>
       </section>
 
@@ -465,7 +479,7 @@ export default function LandingPage() {
               <div className="main" style={s("padding: 14px")}>
                 <div className="topbar">
                   <span className="title">Home</span>
-                  <span className="pill">Todo listo</span>
+                  <span className="pill">Everything ready</span>
                   <span className="avatar">ER</span>
                 </div>
                 <div className="kpis">

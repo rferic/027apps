@@ -1532,3 +1532,21 @@
   .lp .nav .actions .btn.primary { display: none; }
   .lp .lang summary { padding: 7px 8px; }
 }
+
+/* Technology cards: a line icon plus the name and one line. */
+.lp .tech { display: flex; gap: 12px; align-items: flex-start; }
+.lp .tech-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: rgba(28, 194, 159, 0.12); color: #1cc29f;
+  display: flex; align-items: center; justify-content: center; flex: none;
+}
+.lp .tech-icon svg { width: 16px; height: 16px; }
+.lp .tech-body { display: flex; flex-direction: column; }
+
+/* Status pill for planned modules. */
+.lp .soon {
+  display: inline-block; margin-left: 6px; vertical-align: middle;
+  padding: 1px 7px; border-radius: 999px;
+  background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24; font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
+}

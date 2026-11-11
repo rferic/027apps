@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "../landing.css";
 import { GitHubIcon } from "@/components/landing/github-icon";
+import { TechIcon, type TechName } from "@/components/landing/tech-icon";
 import { s } from "@/lib/landing-style";
 
 export const metadata: Metadata = {
@@ -158,7 +159,7 @@ export default function LandingPage() {
             <div className="main">
               <div className="topbar">
                 <span className="title">Home</span>
-                <span className="pill">Todo listo</span>
+                <span className="pill">Everything ready</span>
                 <span className="search">Buscar…</span>
                 <span className="avatar">ER</span>
               </div>
@@ -194,7 +195,7 @@ export default function LandingPage() {
                       <i style={s("background:#1cc29f")}></i>Home
                     </span>
                     <span>
-                      <i style={s("background:#2f333a")}></i>Ocio
+                      <i style={s("background:#2f333a")}></i>Leisure
                     </span>
                     <span>
                       <i style={s("background:#2f333a")}></i>School
@@ -238,54 +239,58 @@ export default function LandingPage() {
               <br />
               <span className="dim">from one instance.</span>
             </h2>
-            <span className="index">01–06 / INCLUDED</span>
+            <span className="index">01–09 / INCLUDED</span>
           </div>
           <div className="grid-3">
             <article className="module">
               <div className="ico">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                >
-                  <rect x="3" y="4.5" width="18" height="15" rx="2" />
-                  <path d="M3 9h18M7 6.7h.01" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="6" width="18" height="13" rx="2.5" /><path d="M3 10h18M16 15h2" />
                 </svg>
               </div>
-              <h3>Admin panel</h3>
-              <p>
-                Members, invitations, categories and settings from the browser.
-              </p>
+              <h3>Finances <span className="soon">Soon</span></h3>
+              <p>Currencies, budgets per category and the family history.</p>
             </article>
             <article className="module">
               <div className="ico">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5" /><path d="m3 16 9 5 9-5" />
+                </svg>
+              </div>
+              <h3>Categories</h3>
+              <p>Groups, their members and the permissions of each one.</p>
+            </article>
+            <article className="module">
+              <div className="ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="9" cy="8" r="3.2" /><path d="M3.5 19c.6-3.2 2.7-5 5.5-5s4.9 1.8 5.5 5" /><circle cx="17" cy="9" r="2.4" /><path d="M15.4 14.6c2.6-.3 4.4 1.3 5.1 4.4" />
+                </svg>
+              </div>
+              <h3>Members</h3>
+              <p>Roles, invitations and deactivation from one list.</p>
+            </article>
+            <article className="module">
+              <div className="ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3.5" y="3.5" width="7" height="7" rx="1.6" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.6" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.6" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.6" />
+                </svg>
+              </div>
+              <h3>Modules</h3>
+              <p>Turn modules on and off and grant them per member.</p>
+            </article>
+            <article className="module">
+              <div className="ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14" />
                 </svg>
               </div>
               <h3>API v1</h3>
-              <p>
-                Keys with scopes to integrate the app, scripts or third parties.
-              </p>
+              <p>Keys with scopes to integrate the app, scripts or third parties.</p>
             </article>
             <article className="module">
               <div className="ico">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                >
-                  <circle cx="12" cy="12" r="8" />
-                  <path d="M12 8v4l2.5 1.5" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="8" /><path d="M12 8v4l2.5 1.5" />
                 </svg>
               </div>
               <h3>MCP server</h3>
@@ -293,47 +298,26 @@ export default function LandingPage() {
             </article>
             <article className="module">
               <div className="ico">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                >
-                  <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
-                  <path d="M10.5 5h3" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="7" y="2.5" width="10" height="19" rx="2.5" /><path d="M10.5 5h3" />
                 </svg>
               </div>
-              <h3>Android app</h3>
+              <h3>Android app <span className="soon">In development</span></h3>
               <p>The same instance for the family, on the phone.</p>
             </article>
             <article className="module">
               <div className="ico">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 3v12M7 10l5 5 5-5" />
-                  <path d="M4 19h16" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3v12M7 10l5 5 5-5" /><path d="M4 19h16" />
                 </svg>
               </div>
-              <h3>Backups and recovery</h3>
+              <h3>Backups</h3>
               <p>Daily encrypted dump and a restore drill.</p>
             </article>
             <article className="module">
               <div className="ico">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                >
-                  <circle cx="12" cy="12" r="8.5" />
-                  <path d="M3.5 12h17M12 3.5c2.5 2.3 3.8 5.2 3.8 8.5s-1.3 6.2-3.8 8.5c-2.5-2.3-3.8-5.2-3.8-8.5S9.5 5.8 12 3.5Z" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.5 2.3 3.8 5.2 3.8 8.5s-1.3 6.2-3.8 8.5c-2.5-2.3-3.8-5.2-3.8-8.5S9.5 5.8 12 3.5Z" />
                 </svg>
               </div>
               <h3>9 languages</h3>
@@ -355,40 +339,40 @@ export default function LandingPage() {
           </div>
           <div className="tech-grid">
             <div className="tech">
-              <b>Next.js 16</b>
-              <span>Web panel y API v1</span>
+              <span className="tech-icon"><TechIcon name="next" /></span>
+              <span className="tech-body"><b>Next.js 16</b><span>Web panel and API v1</span></span>
             </div>
             <div className="tech">
-              <b>React 19 + TypeScript</b>
-              <span>End-to-end typed interface</span>
+              <span className="tech-icon"><TechIcon name="typescript" /></span>
+              <span className="tech-body"><b>React 19 + TypeScript</b><span>End-to-end typed interface</span></span>
             </div>
             <div className="tech">
-              <b>Supabase</b>
-              <span>Postgres, Auth, Realtime and Storage</span>
+              <span className="tech-icon"><TechIcon name="supabase" /></span>
+              <span className="tech-body"><b>Supabase</b><span>Postgres, Auth, Realtime and Storage</span></span>
             </div>
             <div className="tech">
-              <b>Tailwind CSS</b>
-              <span>Design with semantic tokens</span>
+              <span className="tech-icon"><TechIcon name="tailwind" /></span>
+              <span className="tech-body"><b>Tailwind CSS</b><span>Design with semantic tokens</span></span>
             </div>
             <div className="tech">
-              <b>Kotlin + Compose</b>
-              <span>Native Android app</span>
+              <span className="tech-icon"><TechIcon name="kotlin" /></span>
+              <span className="tech-body"><b>Kotlin + Compose</b><span>Native Android app</span></span>
             </div>
             <div className="tech">
-              <b>pnpm monorepo</b>
-              <span>Core, i18n, admin and Android</span>
+              <span className="tech-icon"><TechIcon name="pnpm" /></span>
+              <span className="tech-body"><b>pnpm monorepo</b><span>Core, i18n, admin and Android</span></span>
             </div>
             <div className="tech">
-              <b>Vercel</b>
-              <span>Deploy and functions in the EU</span>
+              <span className="tech-icon"><TechIcon name="vercel" /></span>
+              <span className="tech-body"><b>Vercel</b><span>Deploy and functions in the EU</span></span>
             </div>
             <div className="tech">
-              <b>Resend</b>
-              <span>Invitations and transactional email</span>
+              <span className="tech-icon"><TechIcon name="resend" /></span>
+              <span className="tech-body"><b>Resend</b><span>Invitations and transactional email</span></span>
             </div>
             <div className="tech">
-              <b>MIT</b>
-              <span>Free license, no small print</span>
+              <span className="tech-icon"><TechIcon name="mit" /></span>
+              <span className="tech-body"><b>MIT</b><span>Free license, no small print</span></span>
             </div>
           </div>
         </div>
@@ -409,8 +393,8 @@ export default function LandingPage() {
               <b>1</b>
               <h3>Clone the repo</h3>
               <p>
-                <code>git clone</code> y <code>pnpm install</code>. Todo el
-                monorepo, incluida la app.
+                <code>git clone</code> and <code>pnpm install</code>. The whole
+                monorepo, app included.
               </p>
             </div>
             <div className="step">

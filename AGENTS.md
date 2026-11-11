@@ -17,9 +17,11 @@ Todo cambio sigue spec → plan → implementación con TDD → revisión → au
 6. `docs/flows/` — flujos (CI/CD: `docs/flows/cicd.md`). Si cambias CI, deploy o releases, actualiza el flujo en el mismo PR.
 7. `docs/infrastructure.md` — inventario de servicios, límites del free tier, backups y recuperación (runbook operativo).
 8. `apps/admin/AGENTS.md` — aviso de Next.js: esta versión difiere de lo que sabes; lee `node_modules/next/dist/docs/` antes de escribir código de Next.
+9. `docs/ai/landing.md` — contenido y estado de los módulos de la landing; cuándo actualizarla.
 
-Para crear o cambiar un módulo: `docs/ai/module-system.md` (contrato canónico) y
-`.opencode/skills/new-module/SKILL.md` (skill). No dupliques el contrato del manifest.
+Para crear o cambiar un módulo: `docs/ai/module-system.md` (contrato canónico),
+`.opencode/skills/new-module/SKILL.md` (skill) y su ficha en `docs/ai/landing.md`. No dupliques
+el contrato del manifest.
 
 ## Reglas transversales
 
