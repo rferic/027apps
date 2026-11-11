@@ -5,6 +5,7 @@ import {
   LANDING_LANGUAGES,
   landingHref,
   landingMessages,
+  ogLocale,
   type LandingPage,
 } from "./i18n";
 
@@ -26,9 +27,31 @@ export function landingMetadata(locale: Locale, page: LandingPage): Metadata {
           messages,
         );
 
+  const image = {
+    url: "/og/landing.png",
+    width: 1200,
+    height: 630,
+    alt: title,
+  };
+
   return {
     title,
     description,
+    openGraph: {
+      type: "website",
+      siteName: "027Apps",
+      title,
+      description,
+      url: landingHref(locale, page),
+      locale: ogLocale(locale),
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
+    },
     alternates: {
       canonical: landingHref(locale, page),
       languages: {

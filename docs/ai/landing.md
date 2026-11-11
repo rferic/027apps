@@ -16,6 +16,15 @@ datos ni el estado de la instancia.
 | `/self-host` | El proyecto: panel de escritorio, API, MCP, tecnologías y montaje. |
 | `/l/<locale>` y `/l/<locale>/self-host` | Las 8 variantes traducidas. Inglés en `/` y `/self-host`. |
 
+## SEO
+
+- `src/app/sitemap.ts` publica las dos páginas en los 9 idiomas con sus alternates;
+  `src/app/robots.ts` permite la landing y bloquea `/panel`, `/api/`, `/setup` e `/invite/`.
+- Cada ruta declara `canonical`, `hreflang` de los 9 idiomas y `x-default`.
+- Open Graph y Twitter Card usan `apps/admin/public/og/landing.png` (1200×630).
+- `NEXT_PUBLIC_SITE_URL` fija el origen canónico en una instancia autoalojada; sin ella se usa
+  `https://027apps.ericrf.com`.
+
 ## Idiomas
 
 - Los dos componentes (`components/landing/app-landing.tsx` y `self-host-landing.tsx`) reciben

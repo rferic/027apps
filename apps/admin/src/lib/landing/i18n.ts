@@ -17,6 +17,23 @@ export const LANDING_LANGUAGES: readonly { code: Locale; label: string; short: s
 
 export type LandingPage = "app" | "selfhost";
 
+/** Open Graph locale codes for the nine languages. */
+const OG_LOCALES: Record<string, string> = {
+  en: "en_US",
+  es: "es_ES",
+  ca: "ca_ES",
+  gl: "gl_ES",
+  eu: "eu_ES",
+  pt: "pt_PT",
+  fr: "fr_FR",
+  it: "it_IT",
+  de: "de_DE",
+};
+
+export function ogLocale(locale: Locale): string {
+  return OG_LOCALES[locale] ?? "en_US";
+}
+
 /** The 8 translated variants; English is served from the root routes. */
 export const LANDING_LOCALES = SUPPORTED_LOCALES.filter(
   (locale): locale is Exclude<Locale, "en"> => locale !== "en",

@@ -24,5 +24,6 @@
   (la sección de módulos de la app ya avisa de que son diseños previstos).
 - [x] `docs/ai/landing.md` + puntero en `AGENTS.md`; los módulos planned se marcan «Coming soon»
   y el catálogo/estado queda documentado.
-- [ ] README raíz alineado con la landing.
-- [ ] Tests de render, enlaces y traducciones; CI en verde.
+- [x] README raíz alineado con la landing: banner, stack, capturas y URL del sitio.
+- [x] SEO: `sitemap.ts`, `robots.ts`, `canonical`/`hreflang`, Open Graph y Twitter Card.
+- [x] Tests de rutas públicas, enlaces de idioma, metadatos y catálogo i18n; CI en verde.

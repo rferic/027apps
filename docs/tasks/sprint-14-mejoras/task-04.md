@@ -2,7 +2,7 @@
 id: sprint-14-task-04
 titulo: Landing pública y panel en /panel
 area: producto
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-11-11-public-landing.md
 fuente: docs/superpowers/specs/2026-11-10-public-landing-design.md
 adrs: [0001, 0002, 0003, 0004, 0008]
@@ -39,6 +39,14 @@ builds en verde; sin enlaces internos rotos.
 **Riesgos**: colisión de `[locale]` con rutas existentes (spike + plan B); enlaces antiguos a
 `/` (se actualizan todos y se prueban); landing desactualizada (`docs/ai/landing.md` con
 disparadores); capturas con datos reales (regla explícita y revisión).
+
+## Estado (2026-11-11)
+
+Implementada en `feature/public-landing` (PR #87, draft): dos páginas estáticas, `/panel`,
+9 idiomas con rutas `/l/<locale>`, SEO (`sitemap.xml`, `robots.txt`, canonical/hreflang,
+Open Graph), catálogo de módulos y la regla de actualizar la landing al implementar uno.
+Pendiente: revisión nativa de traducciones, capturas reales del panel con datos de demo y
+auditoría de seguridad del cambio de apariencia del panel.
 
 ## Revisión (2026-11-11)
 
