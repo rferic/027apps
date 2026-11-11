@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect } from "react";
 import { applyTheme, themeCookie, type Theme } from "@/lib/theme";
+import type { Locale } from "@027apps/i18n/types.js";
 
 /** `useLayoutEffect` warns during SSR; fall back to `useEffect` on the server. */
 const useIsomorphicLayoutEffect =
@@ -19,7 +20,7 @@ const useIsomorphicLayoutEffect =
  * React never executes a script that appears while rendering a component on
  * the client, and it logged a console error on every panel navigation.
  */
-export function PanelAppearance({ theme, locale }: { theme: Theme; locale: string }) {
+export function PanelAppearance({ theme, locale }: { theme: Theme; locale: Locale }) {
   useIsomorphicLayoutEffect(() => {
     applyTheme(document.documentElement, theme);
     document.documentElement.lang = locale;
