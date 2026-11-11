@@ -64,5 +64,11 @@ solo `RESEND_API_KEY` + dirección de prueba para el envío real; la implementac
   156×24).
 - Tests: paridad del catálogo y render (escapado, asunto en una línea, fecha, enlaces, fallback
   de idioma y zona). `@027apps/core` en verde (428).
-- Pendiente: servicio de rotación, rutas `resend-email` y `link`, adaptador de Resend y UI del
-  panel.
+- Servicio: `locale` al crear, rotación de token con `for update`, registro del intento de
+  email y cooldown de 60 s.
+- API: `delivery`/`locale` en el alta, `POST /invitations/:id/resend-email` y
+  `POST /invitations/:id/link`; esquemas y `docs/api/openapi.json` regenerados.
+- Adaptador de Resend en el admin (`fetch`, timeout de 5 s, sin SDK); sin clave degrada a
+  `skipped`.
+- CI del PR en verde, incluido el job `supabase` con la migración `0020`.
+- Pendiente: UI del panel (selectores en el alta, estado y acciones en el detalle).
