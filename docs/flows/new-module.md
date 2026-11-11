@@ -214,6 +214,12 @@ documentos por capacidad y esqueleto de UI. El contrato del manifest se consulta
 reparto == total, casos de uso con repositorios inyectados), después schemas zod en los bordes,
 después API/UI cuando exista el Core. Un solo agente ejecuta el bucle rojo → verde → refactor.
 
+**Web pública:** la implementación incluye la ficha del módulo en
+[`docs/ai/landing.md`](../ai/landing.md) y en las dos páginas públicas (`/` y `/self-host`):
+estado, descripción, tres características y, cuando pasa a `available`, una captura real con
+datos de demo. Las claves nuevas se traducen en los 9 idiomas y `pnpm i18n:check` queda en
+verde. Sin esta actualización la tarea no se cierra.
+
 **Revisión y auditoría:** revisión de tarea (segundo agente) contra spec y plan; QA con ojos
 nuevos; revisor de estilo; **auditoría de seguridad OWASP incondicional** y específica (RLS en
 todas las tablas, accesos cruzados, scopes mínimos, tools `write` no expuestas, secretos
@@ -265,6 +271,8 @@ no tenga su verificación real. Se marca `test` con la lista de bloqueos y se re
 - [ ] Páginas de admin de un segmento, componente en su ruta y rol correcto.
 - [ ] Documentación por capacidad; cada nombre declarado aparece en su documento.
 - [ ] Tests: dominio, contrato del manifest, aislamiento RLS, i18n.
+- [ ] Landing pública actualizada: catálogo, `/`, `/self-host`, captura real si es `available`
+      y traducciones en los 9 idiomas.
 - [ ] Auditoría de seguridad OWASP con críticos/altos resueltos.
 - [ ] Instalación/activación/desinstalación probadas (cuando exista el instalador).
 - [ ] Aceptación del usuario y orden de merge.
@@ -283,6 +291,7 @@ no tenga su verificación real. Se marca `test` con la lista de bloqueos y se re
 10. Exponer tools MCP `write` por defecto.
 11. Marcar `finalizada` con capacidades bloqueadas por el Core.
 12. Generar el spec sin el mockup aceptado.
+13. Implementar el módulo y dejar la web pública (o `docs/ai/landing.md`) desactualizada.
 
 ## 8. Referencias
 

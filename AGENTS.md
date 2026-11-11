@@ -21,7 +21,9 @@ Todo cambio sigue spec → plan → implementación con TDD → revisión → au
 
 Para crear o cambiar un módulo: `docs/ai/module-system.md` (contrato canónico),
 `.opencode/skills/new-module/SKILL.md` (skill) y su ficha en `docs/ai/landing.md`. No dupliques
-el contrato del manifest.
+el contrato del manifest. **Implementar un módulo incluye actualizar la web pública** (`/` y
+`/self-host`, catálogo y captura real si pasa a `available`) en el mismo PR; sin eso la tarea
+no está `finalizada`.
 
 ## Reglas transversales
 

@@ -1,7 +1,7 @@
 # Landing pública (contenido y estado de los módulos)
 
-Documento canónico para quien toque `apps/admin/src/app/page.tsx` (la app) o
-`self-host/page.tsx` (el proyecto). La landing es **contenido estático**: no lee la base de
+Documento canónico para quien toque `apps/admin/src/components/landing/app-landing.tsx` (la app) o
+`self-host-landing.tsx` (el proyecto). La landing es **contenido estático**: no lee la base de
 datos ni el estado de la instancia.
 
 - Spec: [`docs/superpowers/specs/2026-11-10-public-landing-design.md`](../superpowers/specs/2026-11-10-public-landing-design.md)
@@ -51,12 +51,16 @@ aviso «Coming soon» mientras la app no tenga pantallas reales.
 | MCP | — | Agentes con OAuth | `available` |
 | App Android | Sí | — | `in-development` (solo configuración de FCM) |
 | Copias y recuperación | — | Dump diario y simulacro | `available` |
-| 9 idiomas | Sí | Sí | panel `available`; landing pendiente de traducciones |
+| 9 idiomas | Sí | Sí | `available`; revisión nativa de las traducciones pendiente |
 
 La app Android aún no tiene pantallas de producto: las de la landing son **maquetas de diseño**
 y el hero lo dice («App in development · these screens are the planned design»).
 
 ## Cuándo actualizar
+
+**Regla:** implementar un módulo incluye actualizar la web pública en el mismo PR. Sin esa
+actualización la tarea no está `finalizada` (ver `docs/ai/module-system.md`, «Landing
+pública»).
 
 - **Un módulo pasa a `available`**: cambia su estado en las dos páginas y en esta tabla,
   sustituye la maqueta por una **captura real**, y actualiza el README.
