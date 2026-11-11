@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cookieValue, themeBootstrapScript, themeCookie, themeFromCookie } from "./theme";
+import { applyTheme, cookieValue, themeBootstrapScript, themeCookie, themeFromCookie } from "./theme";
 
 describe("themeFromCookie", () => {
   it("keeps the three supported values", () => {
@@ -61,5 +61,31 @@ describe("themeBootstrapScript", () => {
   it("sets the document language from the cookie otherwise", () => {
     expect(script).toContain("027_locale");
     expect(script).toContain("r.lang=l[1]");
+  });
+});
+
+describe("applyTheme", () => {
+  it("forces the explicit theme classes and color scheme", () => {
+    const classes = new Set<string>();
+    const root = {
+      classList: { toggle: (name: string, force?: boolean) => (force ? classes.add(name) : classes.delete(name)) },
+      style: { colorScheme: "" },
+    };
+    applyTheme(root, "dark");
+    expect(classes.has("dark")).toBe(true);
+    expect(classes.has("light")).toBe(false);
+    expect(root.style.colorScheme).toBe("dark");
+  });
+
+  it("lets the OS decide for system", () => {
+    const classes = new Set<string>(["dark"]);
+    const root = {
+      classList: { toggle: (name: string, force?: boolean) => (force ? classes.add(name) : classes.delete(name)) },
+      style: { colorScheme: "dark" },
+    };
+    applyTheme(root, "system");
+    expect(classes.has("dark")).toBe(false);
+    expect(classes.has("light")).toBe(false);
+    expect(root.style.colorScheme).toBe("");
   });
 });
