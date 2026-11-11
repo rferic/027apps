@@ -99,7 +99,9 @@ body {
   text-align: center;
 }
 .v1 .brand { display: flex; justify-content: center; margin-bottom: 28px; }
-.v1 .brand img { height: 26px; width: auto; }
+.v1 .lockup { display: inline-flex; align-items: center; gap: 10px; color: var(--brand); }
+.v1 .lockup .pulse { width: 46px; height: auto; }
+.v1 .lockup img { height: 22px; width: auto; }
 .v1 .brand .dark-only { display: none; }
 html.dark .v1 .brand .light-only { display: none; }
 html.dark .v1 .brand .dark-only { display: block; }
@@ -133,7 +135,9 @@ html.dark .v1 .brand .dark-only { display: block; }
   padding: 44px 44px 36px;
 }
 .v2 .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px; }
-.v2 .head img { height: 22px; width: auto; }
+.v2 .head .lockup { display: inline-flex; align-items: center; gap: 8px; color: var(--brand); }
+.v2 .head .lockup .pulse { width: 38px; height: auto; }
+.v2 .head .lockup img { height: 20px; width: auto; }
 .v2 .head .dark-only { display: none; }
 html.dark .v2 .head .light-only { display: none; }
 html.dark .v2 .head .dark-only { display: block; }
@@ -159,10 +163,12 @@ html.dark .v2 .head .dark-only { display: block; }
   align-items: center;
   gap: 12px;
 }
-.v3 .band img { height: 22px; width: auto; }
-.v3 .band .dark-only { display: none; }
-html.dark .v3 .band .light-only { display: none; }
-html.dark .v3 .band .dark-only { display: block; }
+.v3 .band .lockup { display: inline-flex; align-items: center; gap: 9px; }
+.v3 .band .lockup .pulse { width: 40px; height: auto; }
+.v3 .band .lockup img { height: 22px; width: auto; }
+/* The band is a colour surface: the mono wordmark is tinted to the band ink. */
+.v3 .band .lockup .word-mono { filter: brightness(0) invert(1); }
+html.dark .v3 .band .lockup .word-mono { filter: brightness(0); }
 .v3 .band .tag {
   margin-left: auto;
   font-size: 10px;

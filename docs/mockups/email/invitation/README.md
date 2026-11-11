@@ -52,5 +52,10 @@ Recomendación: **A** para el encabezado del correo; **C** si se quiere lo más 
 
 ## Estado
 
-Pendiente de elección del propietario. Recomendación: **v1** como plantilla base reutilizable,
-con el CTA y la caja de caducidad de v3 si se quiere más énfasis en móvil.
+**Elegido por el propietario (2026-11-11): plantilla `v1` con el logo A** (latido + wordmark sin
+tagline). Aplicado a las tres plantillas para que la comparación siga siendo coherente.
+
+- `v1` y `v2` usan `wordmark-bare-light/dark` junto al latido.
+- `v3`, sobre banda de color, usa el wordmark **mono** tintado con la tinta de la banda, como
+  pide la guía de marca para superficies de color.
+- El correo real exportará el lockup a **PNG** claro y oscuro; el SVG solo se usa en el mockup.
