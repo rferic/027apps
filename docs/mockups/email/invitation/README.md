@@ -58,4 +58,5 @@ tagline). Aplicado a las tres plantillas para que la comparación siga siendo co
 - `v1` y `v2` usan `wordmark-bare-light/dark` junto al latido.
 - `v3`, sobre banda de color, usa el wordmark **mono** tintado con la tinta de la banda, como
   pide la guía de marca para superficies de color.
-- El correo real exportará el lockup a **PNG** claro y oscuro; el SVG solo se usa en el mockup.
+- El correo real usa un **único PNG** en teal de marca (`email-lockup.png`): Gmail ignora
+  `prefers-color-scheme` y mantendría el logo claro sobre su fondo oscuro.

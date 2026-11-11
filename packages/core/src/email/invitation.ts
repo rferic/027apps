@@ -97,11 +97,7 @@ export function buildInvitationEmail(input: InvitationEmailInput): EmailMessage 
     html: renderEmailLayout({
       locale: input.locale,
       preheader: fill(copy.preheader, html),
-      logo: {
-        light: `${base}/brand/email-lockup-light.png`,
-        dark: `${base}/brand/email-lockup-dark.png`,
-        alt: "027Apps",
-      },
+      logo: { url: `${base}/brand/email-lockup.png`, alt: "027Apps" },
       body,
       footer: fill(copy.footer, html),
     }),
