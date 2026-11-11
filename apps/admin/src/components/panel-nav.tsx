@@ -52,9 +52,8 @@ interface NavGroup {
   items: NavItem[];
 }
 
-/** `/` only matches itself; every other destination also owns its sub-routes. */
+/** Every destination owns its sub-routes. */
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -136,7 +135,7 @@ export function PanelNav({ role, messages, variant = "sidebar", onNavigate }: Pa
   const groups: NavGroup[] = [
     {
       label: t("Home", messages),
-      items: [{ label: t("Dashboard", messages), href: "/", icon: HomeIcon }],
+      items: [{ label: t("Dashboard", messages), href: "/panel", icon: HomeIcon }],
     },
     {
       label: t("Users", messages),

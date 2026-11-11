@@ -205,3 +205,34 @@ Hereda los objetivos de la spec de rendimiento:
 
 `0001`, `0002`, `0003` (identidad y logo), `0004` (bordes), `0008` (fechas si aparece alguna).
 No se requiere ADR nuevo.
+
+## Revisión 2026-11-11 — dos páginas y panel de escritorio
+
+El propietario aprueba separar la landing en **dos páginas**, porque el panel es una pieza de
+escritorio y no otra pantalla de la app:
+
+- **`/` — la app** (familias): hero de la app, módulos con su pantalla y explicación, Android,
+  FAQ y una tarjeta que enlaza al proyecto.
+- **`/self-host` — el proyecto** (autoalojar): panel de escritorio, API v1, MCP, tecnologías,
+  pasos de instalación, arquitectura y FAQ técnica.
+
+Precedencia y gate (sustituye a §3.2):
+
+| Ruta | Comportamiento |
+|---|---|
+| `/` y `/self-host` | **Públicas siempre** y estáticas (sin Supabase, sin gate de instalación). |
+| `/panel` | Dashboard; sin sesión va a `/login`; sin instalar va a `/setup`. |
+| `/login` | Sin instalar va a `/setup`; con sesión va a `/panel`. |
+| `/setup` | Igual que antes. |
+
+- **Inglés por defecto** en `/` y `/self-host`; las 8 variantes en rutas de idioma.
+- **APK público**; el panel sigue siendo solo por invitación.
+- **Sin analítica** por decisión del propietario.
+- Los módulos son contenido estático con ficha (superficie app/panel, orden, icono, captura y
+  claves de traducción); se exige al crear un módulo.
+- Capturas reales del panel con datos de demo; la app usa mockups hasta que exista su UI, y se
+  sustituirán cuando la app tenga pantallas.
+- La app deberá abrir `/invite/<token>` y canjear la invitación dentro, dejando la sesión
+  iniciada.
+
+Los mockups aprobados viven en `docs/mockups/landing/` (`v2-app` y `v2-selfhost`).
