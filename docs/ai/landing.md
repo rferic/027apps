@@ -16,6 +16,18 @@ datos ni el estado de la instancia.
 | `/self-host` | El proyecto: panel de escritorio, API, MCP, tecnologías y montaje. |
 | `/l/<locale>` y `/l/<locale>/self-host` | Las 8 variantes traducidas. Inglés en `/` y `/self-host`. |
 
+## Idiomas
+
+- Los dos componentes (`components/landing/app-landing.tsx` y `self-host-landing.tsx`) reciben
+  `locale` y traducen cada cadena visible con `t("texto en inglés")`.
+- El catálogo inglés vive en `packages/i18n/catalog.en.json`; las traducciones, en
+  `packages/i18n/locales/<locale>.json`.
+- Para añadir o cambiar copy: `pnpm i18n:scan`, traduce la clave en los 8 ficheros y
+  `pnpm i18n:check`. El check falla si falta una clave, sobra o no coinciden los placeholders.
+- El selector enlaza a la misma página en cada idioma (`/l/<locale>`). `LocaleSync` escribe la
+  cookie `027_locale` y corrige `<html lang>` antes del primer pintado.
+- No hay copy literal en el JSX salvo marcas, nombres de las maquetas y los importes de ejemplo.
+
 ## Estados
 
 Cada módulo declara uno:
