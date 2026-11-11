@@ -1,5 +1,8 @@
 export const THEME_COOKIE = "027_theme";
 
+/** Locale cookie written by the language switcher (mirrors `LOCALE_COOKIE`). */
+const LOCALE_COOKIE = "027_locale";
+
 export const THEMES = ["system", "light", "dark"] as const;
 
 export type Theme = (typeof THEMES)[number];
@@ -47,4 +50,31 @@ export function applyTheme(root: ThemeRoot, theme: Theme): void {
   root.classList.toggle("dark", theme === "dark");
   root.classList.toggle("light", theme === "light");
   root.style.colorScheme = theme === "system" ? "" : theme;
+}
+
+/**
+ * Inline script that applies the stored theme before the first paint.
+ *
+ * `DocumentTheme` used a `useEffect`, which runs after hydration: a browser
+ * whose OS is light and whose cookie says dark painted light first. This string
+ * is rendered as a blocking script at the top of `<body>`, so the class is set
+ * before any content paints and the page never flashes.
+ *
+ * The `lang` attribute follows the locale cookie only when the URL does not
+ * carry `?lang` (the public help page lets the query override the cookie).
+ */
+export function themeBootstrapScript(): string {
+  return [
+    "(function(){try{",
+    `var m=document.cookie.match(/(?:^|; )${THEME_COOKIE}=(dark|light)(?:;|$)/);`,
+    "var t=m?m[1]:null;var r=document.documentElement;",
+    'r.classList.toggle("dark",t==="dark");',
+    'r.classList.toggle("light",t==="light");',
+    'r.style.colorScheme=t||"";',
+    "if(!/[?&]lang=/.test(window.location.search)){",
+    `var l=document.cookie.match(/(?:^|; )${LOCALE_COOKIE}=([a-z]{2})(?:;|$)/);`,
+    "if(l){r.lang=l[1];}",
+    "}",
+    "}catch(e){}})();",
+  ].join("");
 }
