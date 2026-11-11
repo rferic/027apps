@@ -1,4 +1,5 @@
 import { buildInvitationEmail } from "@027apps/core/email/invitation.js";
+import type { EmailMessage } from "@027apps/core/email/types.js";
 import type {
   InvitationDelivery,
   InvitationsMailer,
@@ -11,6 +12,13 @@ const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const TIMEOUT_MS = 5_000;
 const DEFAULT_FROM = "no-reply@mail.ericrf.com";
 
+interface SendContext {
+  publicUrl: string;
+  instanceName: string;
+  timeZone: string;
+  inviterName: string;
+}
+
 /** `Nombre <direccion>` with the name stripped of header-breaking characters. */
 function fromHeader(name: string, address: string): string {
   const safe = name.replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim();
@@ -19,6 +27,67 @@ function fromHeader(name: string, address: string): string {
 
 function readString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function isTimeout(error: unknown): boolean {
+  return (
+    error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")
+  );
+}
+
+/** Instance identity plus the inviter's name, or the code that prevents sending. */
+async function loadContext(invitationId: string): Promise<SendContext | { code: string }> {
+  const { settingsDeps } = await getInfra();
+  const settings = await readPublicSettings(settingsDeps);
+  const publicUrl = readString(settings["instance.public_url"]);
+  if (!publicUrl) return { code: "email_missing_public_url" };
+
+  const instanceName = readString(settings["instance.name"]) ?? "027Apps";
+  const { rows } = await settingsDeps.db.query(
+    `select p.display_name
+       from public.invitations i
+       left join public.profiles p on p.id = i.created_by
+      where i.id = $1`,
+    [invitationId],
+  );
+
+  return {
+    publicUrl,
+    instanceName,
+    timeZone: readString(settings["localization.timezone"]) ?? "UTC",
+    inviterName: readString(rows[0]?.display_name) ?? instanceName,
+  };
+}
+
+/** One POST to Resend; the provider body is never surfaced. */
+async function postToResend(
+  key: string,
+  to: string,
+  from: string,
+  message: EmailMessage,
+): Promise<InvitationDelivery> {
+  try {
+    const response = await fetch(RESEND_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    return response.ok
+      ? { status: "sent" }
+      : { status: "failed", code: "email_provider_error" };
+  } catch (error) {
+    return { status: "failed", code: isTimeout(error) ? "email_timeout" : "email_provider_error" };
+  }
 }
 
 /**
@@ -32,63 +101,29 @@ export function createInvitationMailer(): InvitationsMailer {
       if (!key) return { status: "skipped", code: "email_not_configured" };
 
       try {
-        const { settingsDeps } = await getInfra();
-        const settings = await readPublicSettings(settingsDeps);
-        const publicUrl = readString(settings["instance.public_url"]);
-        if (!publicUrl) return { status: "failed", code: "email_missing_public_url" };
-
-        const instanceName = readString(settings["instance.name"]) ?? "027Apps";
-        const timeZone = readString(settings["localization.timezone"]) ?? "UTC";
-
-        // The invitation stores who created it by id; the email needs a name.
-        const { rows } = await settingsDeps.db.query(
-          `select p.display_name
-             from public.invitations i
-             left join public.profiles p on p.id = i.created_by
-            where i.id = $1`,
-          [invitation.id],
-        );
-        const inviterName = readString(rows[0]?.display_name) ?? instanceName;
+        const context = await loadContext(invitation.id);
+        if ("code" in context) return { status: "failed", code: context.code };
 
         const message = buildInvitationEmail({
           locale: invitation.locale,
           inviteeName: invitation.name,
-          inviterName,
-          instanceName,
-          publicUrl,
-          timeZone,
+          inviterName: context.inviterName,
+          instanceName: context.instanceName,
+          publicUrl: context.publicUrl,
+          timeZone: context.timeZone,
           token,
           expiresAt: new Date(invitation.expires_at),
         });
-
-        const response = await fetch(RESEND_ENDPOINT, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${key}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: fromHeader(
-              process.env.EMAIL_FROM_NAME?.trim() || instanceName,
-              process.env.EMAIL_FROM?.trim() || DEFAULT_FROM,
-            ),
-            to: [invitation.email],
-            subject: message.subject,
-            html: message.html,
-            text: message.text,
-          }),
-          signal: AbortSignal.timeout(TIMEOUT_MS),
-        });
-
-        // The provider body is never surfaced: it may echo the recipient.
-        return response.ok
-          ? { status: "sent" }
-          : { status: "failed", code: "email_provider_error" };
+        const from = fromHeader(
+          process.env.EMAIL_FROM_NAME?.trim() || context.instanceName,
+          process.env.EMAIL_FROM?.trim() || DEFAULT_FROM,
+        );
+        return await postToResend(key, invitation.email, from, message);
       } catch (error) {
-        const timedOut =
-          error instanceof Error &&
-          (error.name === "TimeoutError" || error.name === "AbortError");
-        return { status: "failed", code: timedOut ? "email_timeout" : "email_provider_error" };
+        return {
+          status: "failed",
+          code: isTimeout(error) ? "email_timeout" : "email_provider_error",
+        };
       }
     },
   };
