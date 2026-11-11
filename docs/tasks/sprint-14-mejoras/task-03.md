@@ -48,6 +48,5 @@ texto plano), fallo del proveedor (no bloquea el alta). Deuda anotada: webhooks 
 
 Tres direcciones de mockup en [`docs/mockups/email/invitation/`](../../mockups/email/invitation/README.md):
 `v1` tarjeta clásica, `v2` editorial, `v3` acción primero. Cada una con los 9 idiomas, claro y
-oscuro, HTML + PNG y datos ficticios. **Pendiente de que el propietario elija dirección** (y de
-`RESEND_API_KEY` + dirección de prueba para implementar). Recomendación: `v1` como base
-reutilizable.
+oscuro, HTML + PNG y datos ficticios. **Elegida por el propietario: `v1` con el logo A** (latido + wordmark sin tagline). Pendiente
+solo `RESEND_API_KEY` + dirección de prueba para el envío real; la implementación puede empezar.
