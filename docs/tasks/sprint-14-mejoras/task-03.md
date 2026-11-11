@@ -43,3 +43,11 @@ logs; CI y builds en verde; mockup aprobado antes de implementar.
 
 **Riesgos**: cuota de 100 emails/día (cooldown + enlace manual), entrega en spam (HTML sobrio +
 texto plano), fallo del proveedor (no bloquea el alta). Deuda anotada: webhooks de Resend.
+
+## Diseño (2026-11-11)
+
+Tres direcciones de mockup en [`docs/mockups/email/invitation/`](../../mockups/email/invitation/README.md):
+`v1` tarjeta clásica, `v2` editorial, `v3` acción primero. Cada una con los 9 idiomas, claro y
+oscuro, HTML + PNG y datos ficticios. **Pendiente de que el propietario elija dirección** (y de
+`RESEND_API_KEY` + dirección de prueba para implementar). Recomendación: `v1` como base
+reutilizable.
