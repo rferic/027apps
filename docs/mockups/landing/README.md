@@ -32,7 +32,8 @@ El copy es ilustrativo; en la implementación pasa por los **9 idiomas**.
 - Captura del panel realista (sidebar, topbar, KPIs, gráfico con la barra activa en teal y
   lista de miembros) en lugar del placeholder vacío.
 - Iconos de línea coherentes en los módulos; GitHub como único icono en la nav.
-- Wordmark *bare* en la nav (la tagline era ilegible a 24 px).
+- Lockup de marca en nav, sidebar y pie: latido + wordmark *bare* (la tagline era ilegible a
+  24 px).
 - Franja de garantías bajo la captura y bloque de stack + terminal en autoalojar.
 - Cierre de Android con maqueta de móvil.
 - Capturas de página completa en escritorio (1440) y móvil (390).

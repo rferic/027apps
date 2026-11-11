@@ -404,3 +404,14 @@ body.warm .accent-warm { color: #b45309; }
   .app2 .screen { grid-template-columns: 1fr; }
   .strip { gap: 10px 16px; }
 }
+
+/* Brand lockup: the heartbeat mark next to the bare wordmark. */
+.lockup { display: inline-flex; align-items: center; gap: 8px; color: #1cc29f; }
+.lockup .pulse { width: 42px; height: auto; flex: none; }
+.nav .brand.lockup img { height: 22px; }
+.side-brand.lockup { gap: 6px; }
+.side-brand.lockup .pulse { width: 24px; }
+.side-brand.lockup img { height: 12px; }
+.footer .lockup { gap: 7px; }
+.footer .lockup .pulse { width: 30px; }
+.footer .lockup img { height: 17px; }
