@@ -4,11 +4,12 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
+import { InvitationActions } from "@/components/invitation-actions";
 import { InvitationRevokeButton } from "@/components/invitation-revoke-button";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
-import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
+import { LOCALE_COOKIE, LOCALE_LABELS, resolveLocale } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import {
   loadCategory,
@@ -19,10 +20,11 @@ import {
 import {
   loadInvitation,
   type InvitationDetail,
+  type InvitationEmailMode,
   type InvitationStatus,
 } from "@/lib/panel-invitations";
 import { loadPanelMessages } from "@/lib/panel-i18n";
-import { loadPanelTimeZone } from "@/lib/panel-settings";
+import { loadPanelSettings, loadPanelTimeZone } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
 
 /**
@@ -53,6 +55,18 @@ function statusLabel(status: InvitationStatus, messages: TranslationMap): string
     default:
       return t("Revoked", messages);
   }
+}
+
+function publicUrlOf(settings: Record<string, unknown>): string | null {
+  return typeof settings["instance.public_url"] === "string"
+    ? settings["instance.public_url"]
+    : null;
+}
+
+function emailModeLabel(mode: InvitationEmailMode, messages: TranslationMap): string {
+  if (mode === "sent") return t("Email sent", messages);
+  if (mode === "failed") return t("Email failed", messages);
+  return t("Not sent by email", messages);
 }
 
 function InvitationBreadcrumb({ email, messages }: { email: string; messages: TranslationMap }) {
@@ -189,6 +203,12 @@ function InvitationDetails({
           {formatDate(invitation.created_at, { locale, timeZone })}
         </MetaItem>
         <MetaItem label={t("Created by", messages)}>{creator}</MetaItem>
+        <MetaItem label={t("Language", messages)}>
+          {LOCALE_LABELS[invitation.locale]}
+        </MetaItem>
+        <MetaItem label={t("Email", messages)}>
+          {emailModeLabel(invitation.mode, messages)}
+        </MetaItem>
         {invitation.used_at && (
           <MetaItem label={t("Used", messages)}>
             {formatDate(invitation.used_at, { locale, timeZone })}
@@ -221,12 +241,9 @@ function InvitationDangerZone({
       </h2>
       <p className="text-xs text-muted-foreground">
         {t(
-          "The invitation link is only shown once, when the invitation is created. The invitee opens it in the browser or in the mobile app.",
+          "The invitation link is only shown once. Generate a new link above if the invitee lost it, or revoke this invitation.",
           messages,
         )}
-      </p>
-      <p className="text-xs text-muted-foreground">
-        {t("If you lost it, revoke this invitation and create a new one.", messages)}
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <InvitationRevokeButton
@@ -273,6 +290,7 @@ export default async function InvitationPage({ params }: { params: Promise<{ id:
   }
 
   const invitation = detail.invitation;
+  const publicUrl = publicUrlOf(await loadPanelSettings());
   const [category, moduleChoices] = await Promise.all([
     invitation.user_category_id
       ? loadCategory(invitation.user_category_id)
@@ -294,6 +312,10 @@ export default async function InvitationPage({ params }: { params: Promise<{ id:
         timeZone={timeZone}
         messages={messages}
       />
+      {invitation.status === "pending" && (
+        <InvitationActions id={invitation.id} publicUrl={publicUrl} messages={messages} />
+      )}
+
       {invitation.status === "pending" && (
         <InvitationDangerZone invitation={invitation} messages={messages} />
       )}

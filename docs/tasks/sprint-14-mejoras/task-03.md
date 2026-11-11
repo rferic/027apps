@@ -72,3 +72,14 @@ solo `RESEND_API_KEY` + dirección de prueba para el envío real; la implementac
   `skipped`.
 - CI del PR en verde, incluido el job `supabase` con la migración `0020`.
 - Pendiente: UI del panel (selectores en el alta, estado y acciones en el detalle).
+
+### UI del panel (2026-11-11)
+
+- Alta: selectores de *Entrega* (email / solo enlace) e *Idioma* (9, por defecto el del
+  panel), y el resultado muestra si el correo se envió, se omitió o falló.
+- Detalle: idioma y estado del email en los metadatos; para pendientes, *Reenviar email* y
+  *Generar enlace nuevo* (con confirmación porque invalida el anterior), enlace construido
+  desde `instance.public_url` y botón de copiar.
+- 21 cadenas nuevas traducidas a los 8 idiomas; `i18n:check` en verde.
+- Tests: mutaciones de reenvío/enlace, selectores del alta y render de las acciones.
+  `pnpm lint`, `pnpm tsc`, 1102 tests y `pnpm --filter admin build` en verde.

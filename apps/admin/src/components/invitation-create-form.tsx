@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
@@ -9,7 +9,13 @@ import { Button } from "@/components/ui/button";
 import { FormActions, FormAlert, FormField } from "@/components/ui/form";
 import { Select } from "@/components/ui/select";
 import { copyText } from "@/lib/clipboard";
-import { createInvitation, type CreateInvitationInput } from "@/lib/invitation-mutations";
+import { LOCALE_LABELS } from "@/lib/locale";
+import type { Locale } from "@027apps/i18n/types.js";
+import {
+  createInvitation,
+  type CreateInvitationInput,
+  type InvitationDelivery,
+} from "@/lib/invitation-mutations";
 import type { MutationFailure } from "@/lib/mutation-result";
 import { invitationConflictError } from "@/lib/panel-errors";
 import type { ModuleChoice } from "@/lib/panel-categories";
@@ -35,8 +41,13 @@ function fieldState(
   };
 }
 
+function deliveryFrom(data: FormData): "email" | "link" {
+  return data.get("delivery") === "link" ? "link" : "email";
+}
+
 function buildCreateInput(data: FormData): CreateInvitationInput {
   const categoryId = String(data.get("user_category_id") ?? "");
+  const locale = String(data.get("locale") ?? "");
   const modules = data
     .getAll("modules")
     .map((value) => String(value))
@@ -49,6 +60,8 @@ function buildCreateInput(data: FormData): CreateInvitationInput {
   if (categoryId) input.user_category_id = categoryId;
   if (modules.length > 0) input.modules = modules;
   if (Number.isInteger(days)) input.expires_in_days = days;
+  input.delivery = deliveryFrom(data);
+  if (locale) input.locale = locale;
   return input;
 }
 
@@ -124,6 +137,7 @@ function TokenPanel({
  */
 export function InvitationCreatedPanel({
   token,
+  email = null,
   copied,
   copyFailed = false,
   confirmingAnother = false,
@@ -134,6 +148,7 @@ export function InvitationCreatedPanel({
   messages,
 }: {
   token: string | null;
+  email?: InvitationDelivery | null;
   copied: boolean;
   copyFailed?: boolean;
   confirmingAnother?: boolean;
@@ -146,6 +161,15 @@ export function InvitationCreatedPanel({
   return (
     <section role="status" className="flex max-w-xl flex-col gap-3">
       <h2 className="text-sm font-semibold">{t("Invitation created", messages)}</h2>
+      {email && (
+        <p className="text-xs text-muted-foreground">
+          {email.status === "sent"
+            ? t("The invitation email was sent.", messages)
+            : email.status === "skipped"
+              ? t("No email was sent. Share this link instead.", messages)
+              : t("The email could not be sent.", messages)}
+        </p>
+      )}
       {token ? (
         <TokenPanel
           token={token}
@@ -191,11 +215,13 @@ function InvitationFields({
   categories,
   modules,
   fieldErrors,
+  defaultLocale,
   messages,
 }: {
   categories: { id: string; name: string }[];
   modules: ModuleChoice[];
   fieldErrors: Record<string, string[]>;
+  defaultLocale: Locale;
   messages: TranslationMap;
 }) {
   return (
@@ -273,6 +299,23 @@ function InvitationFields({
         </Select>
       </FormField>
 
+      <FormField id="invitation-delivery" label={t("Delivery", messages)}>
+        <Select id="invitation-delivery" name="delivery" defaultValue="email">
+          <option value="email">{t("Send by email", messages)}</option>
+          <option value="link">{t("Link only", messages)}</option>
+        </Select>
+      </FormField>
+
+      <FormField id="invitation-locale" label={t("Language", messages)}>
+        <Select id="invitation-locale" name="locale" defaultValue={defaultLocale}>
+          {(Object.keys(LOCALE_LABELS) as Locale[]).map((code) => (
+            <option key={code} value={code}>
+              {LOCALE_LABELS[code]}
+            </option>
+          ))}
+        </Select>
+      </FormField>
+
       <FormField
         id="invitation-days"
         label={t("Expires in days", messages)}
@@ -299,6 +342,8 @@ interface InvitationCreateFormProps {
   modules: ModuleChoice[];
   /** The category or module reads failed: creation still works without them. */
   optionsUnavailable?: boolean;
+  /** Preselected email language: the panel locale. */
+  defaultLocale: Locale;
   messages: TranslationMap;
 }
 
@@ -312,10 +357,12 @@ export function InvitationCreateForm({
   categories,
   modules,
   optionsUnavailable = false,
+  defaultLocale,
   messages,
 }: InvitationCreateFormProps) {
   const router = useRouter();
   const createForm = useCreateForm();
+  const [delivery, setDelivery] = useState<InvitationDelivery | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -335,6 +382,7 @@ export function InvitationCreateForm({
       return;
     }
 
+    setDelivery(result.email ?? null);
     createForm.dispatch({ type: "created", result: result.token ?? null });
     router.refresh();
   }
@@ -350,6 +398,7 @@ export function InvitationCreateForm({
     return (
       <InvitationCreatedPanel
         token={createForm.result}
+        email={delivery}
         copied={createForm.copied}
         copyFailed={createForm.copyFailed}
         confirmingAnother={createForm.confirmingAnother}
@@ -372,6 +421,7 @@ export function InvitationCreateForm({
         categories={categories}
         modules={modules}
         fieldErrors={createForm.fieldErrors}
+        defaultLocale={defaultLocale}
         messages={messages}
       />
 

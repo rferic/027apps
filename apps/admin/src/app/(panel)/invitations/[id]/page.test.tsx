@@ -28,6 +28,7 @@ vi.mock("@/lib/panel-i18n", () => ({
 
 vi.mock("@/lib/panel-settings", () => ({
   loadPanelTimeZone: async () => "UTC",
+  loadPanelSettings: async () => ({ "instance.public_url": "https://panel.test" }),
 }));
 
 vi.mock("@/lib/panel-invitations", () => ({

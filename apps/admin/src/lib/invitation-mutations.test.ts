@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { createInvitation, revokeInvitation } from "./invitation-mutations";
+import {
+  createInvitation,
+  regenerateInvitationLink,
+  resendInvitationEmail,
+  revokeInvitation,
+} from "./invitation-mutations";
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), { status, headers });
@@ -138,6 +143,68 @@ describe("revokeInvitation", () => {
       ok: false,
       code: "invitation_used",
       requestId: "req-409",
+    });
+  });
+});
+
+describe("resendInvitationEmail", () => {
+  it("POSTs to the resend endpoint and keeps the email outcome", async () => {
+    const fetcher = vi.fn(async () =>
+      json({ token: "027_inv_new", email: { status: "sent" } }),
+    );
+
+    const result = await resendInvitationEmail("i1", fetcher);
+
+    expect(result).toEqual({ ok: true, token: "027_inv_new", email: { status: "sent" } });
+    const [url, init] = call(fetcher);
+    expect(url).toBe("/api/v1/invitations/i1/resend-email");
+    expect(init.method).toBe("POST");
+  });
+
+  it("returns a token even when the provider failed", async () => {
+    const fetcher = vi.fn(async () =>
+      json({ token: "027_inv_new", email: { status: "failed", code: "email_timeout" } }),
+    );
+
+    await expect(resendInvitationEmail("i1", fetcher)).resolves.toEqual({
+      ok: true,
+      token: "027_inv_new",
+      email: { status: "failed", code: "email_timeout" },
+    });
+  });
+
+  it("maps a 429 to the failure envelope", async () => {
+    const fetcher = vi.fn(async () =>
+      json({ error: { code: "rate_limited", request_id: "req-1" } }, 429),
+    );
+
+    await expect(resendInvitationEmail("i1", fetcher)).resolves.toMatchObject({
+      ok: false,
+      code: "rate_limited",
+      requestId: "req-1",
+    });
+  });
+});
+
+describe("regenerateInvitationLink", () => {
+  it("POSTs to the link endpoint and returns the new token", async () => {
+    const fetcher = vi.fn(async () => json({ token: "027_inv_link" }));
+
+    await expect(regenerateInvitationLink("i1", fetcher)).resolves.toEqual({
+      ok: true,
+      token: "027_inv_link",
+    });
+    expect(call(fetcher)[0]).toBe("/api/v1/invitations/i1/link");
+  });
+
+  it("rejects an expired invitation with its code", async () => {
+    const fetcher = vi.fn(async () =>
+      json({ error: { code: "invitation_expired" } }, 409),
+    );
+
+    await expect(regenerateInvitationLink("i1", fetcher)).resolves.toMatchObject({
+      ok: false,
+      code: "invitation_expired",
     });
   });
 });

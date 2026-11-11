@@ -71,6 +71,7 @@ export default async function NewInvitationPage() {
         categories={categoryRows.map((category) => ({ id: category.id, name: category.name }))}
         modules={moduleChoices.ok ? moduleChoices.modules : []}
         optionsUnavailable={!categories.ok || !moduleChoices.ok}
+        defaultLocale={locale}
         messages={messages}
       />
     </section>

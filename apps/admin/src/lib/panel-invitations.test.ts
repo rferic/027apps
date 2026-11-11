@@ -35,9 +35,14 @@ const INVITATION = {
   user_category_id: "c1",
   modules: ["expenses"],
   status: "pending",
+  locale: "es",
+  mode: "sent",
   expires_at: "2026-12-01T00:00:00.000Z",
   used_at: null,
   revoked_at: null,
+  email_sent_at: "2026-11-01T00:00:00.000Z",
+  email_failed_at: null,
+  email_error: null,
   created_at: "2026-11-01T00:00:00.000Z",
 };
 
