@@ -75,11 +75,12 @@ describe("invitation email", () => {
     expect(email.html).toContain("18 de noviembre de 2026");
   });
 
-  it("includes the light and dark lockups from the instance URL", () => {
+  it("uses one lockup that reads on both backgrounds", () => {
     const email = buildInvitationEmail(base);
 
-    expect(email.html).toContain("https://027apps.ericrf.com/brand/email-lockup-light.png");
-    expect(email.html).toContain("https://027apps.ericrf.com/brand/email-lockup-dark.png");
+    expect(email.html).toContain("https://027apps.ericrf.com/brand/email-lockup.png");
+    expect(email.html).not.toContain("email-lockup-light");
+    expect(email.html).not.toContain("email-lockup-dark");
   });
 });
 

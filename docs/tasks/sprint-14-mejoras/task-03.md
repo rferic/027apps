@@ -83,3 +83,10 @@ solo `RESEND_API_KEY` + dirección de prueba para el envío real; la implementac
 - 21 cadenas nuevas traducidas a los 8 idiomas; `i18n:check` en verde.
 - Tests: mutaciones de reenvío/enlace, selectores del alta y render de las acciones.
   `pnpm lint`, `pnpm tsc`, 1102 tests y `pnpm --filter admin build` en verde.
+
+## Corrección (2026-11-11): logo en modo oscuro
+
+Gmail no respeta `prefers-color-scheme`: aplica su propio modo oscuro y mantiene la imagen
+clara, con tinta oscura sobre fondo oscuro. Se sustituyen los dos lockups por **uno solo en
+teal de marca** (`email-lockup.png`), legible sobre la tarjeta blanca y sobre la oscura, sin
+depender del cliente.
