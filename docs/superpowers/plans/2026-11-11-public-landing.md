@@ -17,7 +17,9 @@
 - [x] Página `/self-host`: panel, API, MCP, tecnologías, pasos, arquitectura, FAQ.
 - [ ] Contenido en `landing-content.ts` con fichas de módulo y claves de traducción (las páginas usan el copy inglés del mockup).
 - [x] Layout y estilos de landing (`landing.css` con prefijo `.lp`; sin JS).
-- [ ] Rutas de idioma para las 8 variantes; inglés por defecto (el selector ya está en la UI).
+- [x] Rutas de idioma `/l/<locale>` y `/l/<locale>/self-host` para las 8 variantes, con el
+  copy en el catálogo i18n; inglés en `/` y `/self-host`. El selector enlaza cada variante y
+  fija la cookie `027_locale` para que el panel abra en ese idioma.
 - [ ] Capturas reales del panel con datos de demo en `public/landing/`; mockups para la app
   (la sección de módulos de la app ya avisa de que son diseños previstos).
 - [x] `docs/ai/landing.md` + puntero en `AGENTS.md`; los módulos planned se marcan «Coming soon»

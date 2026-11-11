@@ -72,8 +72,9 @@ presupuesto de rendimiento y para SEO.
 **Solución:** una página estática por idioma.
 
 - `/` → idioma por defecto de la instancia (hoy `en`), estática.
-- `/es`, `/ca`, `/gl`, `/eu`, `/pt`, `/fr`, `/it`, `/de` → estáticas, con
-  `generateStaticParams` y `dynamicParams = false` (un segmento desconocido da 404).
+- `/l/es`, `/l/ca`, `/l/gl`, `/l/eu`, `/l/pt`, `/l/fr`, `/l/it`, `/l/de` → estáticas, con
+  `generateStaticParams`; un locale desconocido llama `notFound()`. Se eligió `/l/<locale>`
+  (no `[locale]` raíz) y se omitió `dynamicParams`, que Next 16 rechaza con `cacheComponents`.
 - `<html lang>` correcto por página, `canonical` propio, `hreflang` de todos los idiomas +
   `x-default` apuntando a `/`. Si el idioma por defecto cambia en los ajustes, `/` cambia de
   contenido en el siguiente build (documentado en `docs/ai/landing.md`).

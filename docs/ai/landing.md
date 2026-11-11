@@ -14,7 +14,7 @@ datos ni el estado de la instancia.
 |---|---|
 | `/` | La app para la familia (móvil). |
 | `/self-host` | El proyecto: panel de escritorio, API, MCP, tecnologías y montaje. |
-| `/<locale>` y `/<locale>/self-host` | Las 8 variantes (pendientes de traducción). Inglés por defecto. |
+| `/l/<locale>` y `/l/<locale>/self-host` | Las 8 variantes traducidas. Inglés en `/` y `/self-host`. |
 
 ## Estados
 
@@ -90,7 +90,7 @@ características**). El panel la muestra como tarjeta (nombre + una línea + est
 
 ## Pendiente
 
-- Traducciones de las 8 variantes y sus rutas.
+- Revisión nativa de las traducciones (hoy generadas y revisadas en bloque).
 - Capturas reales del panel con datos de demo.
 - Mover las fichas a un `landing-content.ts` (o al manifest de cada módulo) y añadir un check
   que falle si falta la ficha o una traducción.

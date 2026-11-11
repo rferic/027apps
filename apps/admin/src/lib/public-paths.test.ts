@@ -6,6 +6,10 @@ describe("isPublicPath", () => {
     "/",
     "/self-host",
     "/self-host/",
+    "/l/es",
+    "/l/es/",
+    "/l/de/self-host",
+    "/l/pt/self-host/",
     "/help",
     "/help/firebase",
     "/help/firebase/",
@@ -28,6 +32,10 @@ describe("isPublicPath", () => {
     "/invites/x",
     "/invite/..",
     "/invite/../members",
+    "/l/en",
+    "/l/xx",
+    "/l/es/panel",
+    "/l",
   ])("does not expose %s", (pathname) => {
     expect(isPublicPath(pathname)).toBe(false);
   });
