@@ -640,7 +640,7 @@
   "Balance": "Saldoa",
   "Balance this month": "Hilabete honetako saldoa",
   "Budget per category": "Kategoria bakoitzeko aurrekontua",
-  "Built": "Eraikia",
+  "Built": "Eraikita",
   "CATEGORIES": "KATEGORIAK",
   "Clone the repo": "Klonatu errepositorioa",
   "Code on GitHub": "Kodea GitHub-en",
@@ -764,9 +764,9 @@
   "Where is my data?": "Non daude nire datuak?",
   "Where is the data?": "Non daude datuak?",
   "With an invitation from the admin. The link opens the app, you choose a password and you are in; there is no public signup.": "Administratzailearen gonbidapenarekin. Estekak aplikazioa irekitzen du, pasahitza aukeratzen duzu eta jada barruan zaude; ez dago erregistro publikorik.",
-  "with what you already use.": "dagoeneko erabiltzen duzunarekin.",
   "Your family joins with an invitation. Pick their role and category; the rest comes with it.": "Zure familia gonbidapen batekin batzen da. Aukeratu haien rola eta kategoria; gainerakoa berez dator.",
   "your family.": "zure familiarentzat.",
   "Your group, your apps, your data.": "Zure taldea, zure aplikazioak, zure datuak.",
-  "Your own": "Zurea den"
+  "Your own": "Zurea den",
+  "on proven technology.": "frogatutako teknologiarekin."
 }

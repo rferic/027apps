@@ -301,7 +301,7 @@ export function SelfHostLanding({ locale }: { locale: Locale }) {
         <div className="wrap">
           <div className="section-head">
             <h2 className="display">{t("Built")}{" "}<br />
-              <span className="dim">{t("with what you already use.")}</span>
+              <span className="dim">{t("on proven technology.")}</span>
             </h2>
             <span className="index">{t("02 / TECHNOLOGIES")}</span>
           </div>

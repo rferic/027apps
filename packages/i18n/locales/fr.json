@@ -640,7 +640,7 @@
   "Balance": "Solde",
   "Balance this month": "Solde ce mois-ci",
   "Budget per category": "Budget par catégorie",
-  "Built": "Stack",
+  "Built": "Construit",
   "CATEGORIES": "CATÉGORIES",
   "Clone the repo": "Cloner le dépôt",
   "Code on GitHub": "Code sur GitHub",
@@ -764,9 +764,9 @@
   "Where is my data?": "Où sont mes données ?",
   "Where is the data?": "Où sont les données ?",
   "With an invitation from the admin. The link opens the app, you choose a password and you are in; there is no public signup.": "Avec une invitation de l'admin. Le lien ouvre l'app, vous choisissez un mot de passe et vous êtes connecté ; il n'y a pas d'inscription publique.",
-  "with what you already use.": "avec ce que vous utilisez déjà.",
   "Your family joins with an invitation. Pick their role and category; the rest comes with it.": "Votre famille rejoint sur invitation. Choisissez son rôle et sa catégorie ; le reste suit.",
   "your family.": "votre famille.",
   "Your group, your apps, your data.": "Votre groupe, vos apps, vos données.",
-  "Your own": "Votre propre"
+  "Your own": "Votre propre",
+  "on proven technology.": "avec des technologies éprouvées."
 }
