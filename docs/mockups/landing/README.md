@@ -106,3 +106,9 @@ Se enlazan entre sí: la app lleva «Autoalojar el proyecto» y el proyecto llev
 La nav de ambas ofrece `App` y `Autoalojar`. La ruta inglesa será `/self-host`.
 
 Capturas: `v2-app.png`/`v2-app-mobile.png` y `v2-selfhost.png`/`v2-selfhost-mobile.png`.
+
+## Selector de idiomas
+
+La nav de las dos páginas incorpora un selector (`<details>`, sin JS) con los 9 idiomas y el
+actual marcado. En la implementación cada opción enlaza a su ruta (`/`, `/es`, `/self-host`,
+`/es/self-host`).
