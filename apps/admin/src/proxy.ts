@@ -8,7 +8,7 @@ import { isSameOriginMutation } from "@/lib/same-origin";
 import { SESSION_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options";
 
 /** Paths whose access depends on the instance state (the gate's inputs). */
-const GATED_PATHS = new Set(["/", "/setup", "/login"]);
+const GATED_PATHS = new Set(["/setup", "/login", "/panel"]);
 
 /**
  * Session refresh at the edge (Next.js 16 proxy file — `middleware.ts` is

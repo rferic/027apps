@@ -221,7 +221,7 @@ describe("SetupPage — wizard steps", () => {
     getInfraMock.mockResolvedValue(infra({ superAdmin: true, complete: true }));
 
     await expect(SetupPage()).rejects.toThrow("NEXT_REDIRECT:/");
-    expect(redirectMock).toHaveBeenCalledWith("/");
+    expect(redirectMock).toHaveBeenCalledWith("/panel");
   });
 });
 

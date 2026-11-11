@@ -131,7 +131,7 @@ describe("DashboardPage", () => {
     expect(html).toContain("We couldn&#x27;t load the dashboard.");
     expect(html).toContain("Something went wrong on the server.");
     expect(html).toContain("req-123");
-    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/panel"');
     expect(html).toContain("Try again");
     expect(html).not.toContain("Active members");
   });
