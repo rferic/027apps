@@ -47,3 +47,39 @@ El copy es ilustrativo; en la implementación pasa por los **9 idiomas**.
   implementación irá la variante *bare* o a mayor tamaño.
 - Las capturas son maquetas CSS; la implementación usará capturas reales con datos ficticios
   (sin nombres ni importes de la familia).
+
+## v2-app — propuesta app primero (2026-11-11)
+
+Evolución de v2 elegida por el propietario: la app manda, el panel queda como segunda cara.
+
+- `v2-app.html`, `v2-app.png` (app), `v2-app-panel.png` (pestaña Panel) y `v2-app-mobile.png`.
+- Hero con la app y cuatro módulos con su pantalla y explicación (finanzas, categorías,
+  miembros, módulos).
+- Sección «Dos formas de usar 027Apps» con un **switch App / Panel** (contenido estático, sin
+  recarga): el panel explica miembros, invitaciones, categorías, módulos, API v1, MCP, ajustes
+  y estado.
+- Tecnologías, autoalojado, Android, FAQ y pie.
+- Copy ilustrativo en español; la implementación publica **inglés en `/`** y las 8 variantes.
+- Sin analítica por decisión del propietario.
+
+### Estado de la app
+
+La app Android **aún no tiene pantallas de producto** (su única UI es la configuración de FCM).
+Por eso estas pantallas son **mockups de diseño** y la página lo dice («App en desarrollo»).
+
+### Requisitos anotados para la base de la app (primer módulo)
+
+1. **Sustituir los mockups por capturas reales** con datos de demo en cuanto existan pantallas.
+2. **Abrir la invitación dentro de la app**: el enlace `/invite/<token>` debe abrir la app,
+   canjear la invitación allí y dejar la sesión iniciada (sin pasar por la web ni volver a
+   hacer login). El canje ya crea la cuenta; la app puede iniciar sesión automáticamente con
+   las credenciales elegidas en el formulario.
+3. Descarga del APK **pública** desde GitHub Releases; el panel sigue siendo solo por
+   invitación.
+
+### Contenido estático de módulos
+
+La lista de módulos se mantiene como contenido versionado (sin base de datos). Cada módulo
+declara su ficha de landing —nombre, resumen, icono, captura, orden y si es de app o de panel—
+y el contrato de módulos (`docs/ai/module-system.md`) y la skill `new-module` deben exigirla al
+crear uno. El `README.md` raíz se reescribirá para contar lo mismo que la landing.

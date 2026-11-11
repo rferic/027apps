@@ -72,3 +72,11 @@ Corregido el diagnóstico del cierre del sprint 13:
   evidencia.
 - Un PR por sprint, en draft contra `staging` desde el arranque.
 - Nada de FCM, 3-2-1 ni Storage hasta que el propietario dé credenciales o haya buckets.
+
+## Deuda anotada para la base de la app Android
+
+- Sustituir los mockups de la landing por **capturas reales** cuando existan pantallas de la
+  app (`docs/mockups/landing/README.md`).
+- **Abrir `/invite/<token>` dentro de la app** y canjear la invitación allí, dejando la sesión
+  iniciada sin pasar por la web (requisito del propietario, 2026-11-11).
+- La descarga del APK será **pública**; el panel sigue siendo solo por invitación.
