@@ -500,3 +500,13 @@ body.warm .accent-warm { color: #b45309; }
   .segmented { width: 100%; }
   .segmented button { flex: 1; }
 }
+
+/* Two phones, staggered, under the centered hero. */
+.phones { display: flex; justify-content: center; align-items: flex-start; gap: 22px; margin-top: 20px; }
+.phones .phone { width: 270px; }
+.phones .phone + .phone { margin-top: 44px; }
+@media (max-width: 900px) {
+  .phones { gap: 12px; }
+  .phones .phone { width: 240px; }
+  .phones .phone + .phone { display: none; }
+}

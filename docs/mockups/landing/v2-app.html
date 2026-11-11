@@ -28,10 +28,11 @@
       </nav>
     </div>
 
-    <header class="wrap app-hero">
-      <div>
+    <header class="center-hero">
+      <div class="hero-glow"></div>
+      <div class="wrap" style="position: relative">
         <span class="badge" style="display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; font-size: 11px; color: var(--muted)"><b style="color: #1cc29f">●</b> MIT · Autoalojable · 9 idiomas</span>
-        <h1 class="display" style="margin-top: 22px">La app de<br /><span style="color: #1cc29f">tu familia.</span></h1>
+        <h1>La app de<br /><span style="color: #1cc29f">tu familia.</span></h1>
         <p class="lead">
           Finanzas, categorías y miembros en el móvil. Una instancia propia, sin anuncios y
           sin depender de una plataforma cerrada.
@@ -41,21 +42,45 @@
           <a class="btn ghost" href="https://github.com/rferic/027apps">Ver en GitHub</a>
         </div>
         <p style="margin-top: 14px"><span class="note-pill"><b>●</b> App en desarrollo · estas pantallas son el diseño previsto</span></p>
-        <p class="sub" style="text-align: left; margin-top: 12px">También en web · <a href="/login" style="color: #1cc29f">abrir el panel →</a></p>
-      </div>
+        <p class="sub">También en web · <a href="/login" style="color: #1cc29f">abrir el panel →</a></p>
 
-      <div class="phone lg">
-        <div class="notch"></div>
-        <div class="screen">
-          <div class="ph-head"><span>Finanzas</span><span>ER</span></div>
-          <div class="ph-card"><div class="k">Balance del mes</div><div class="v teal">1.842,50 €</div></div>
-          <div class="ph-card"><div class="k">Gastos por categoría</div><div class="ph-bars"><i style="height: 42%"></i><i style="height: 68%"></i><i class="hi" style="height: 92%"></i><i style="height: 50%"></i><i style="height: 74%"></i><i style="height: 34%"></i></div></div>
-          <div class="ph-list">
-            <div class="ph-item"><span class="ph-dot">H</span><span class="who">Hipoteca</span><span class="amt neg">−820,00 €</span></div>
-            <div class="ph-item"><span class="ph-dot">C</span><span class="who">Colegio</span><span class="amt neg">−240,00 €</span></div>
-            <div class="ph-item"><span class="ph-dot">N</span><span class="who">Nómina</span><span class="amt pos">+2.400,00 €</span></div>
+        <div class="tabs">
+          <span class="on">Resumen</span>
+          <span>Finanzas</span>
+          <span>Categorías</span>
+          <span>Miembros</span>
+          <span>Módulos</span>
+        </div>
+
+        <div class="phones">
+          <div class="phone lg">
+            <div class="notch"></div>
+            <div class="screen">
+              <div class="ph-head"><span>Finanzas</span><span>ER</span></div>
+              <div class="ph-card"><div class="k">Balance del mes</div><div class="v teal">1.842,50 €</div></div>
+              <div class="ph-card"><div class="k">Gastos por categoría</div><div class="ph-bars"><i style="height: 42%"></i><i style="height: 68%"></i><i class="hi" style="height: 92%"></i><i style="height: 50%"></i><i style="height: 74%"></i><i style="height: 34%"></i></div></div>
+              <div class="ph-list">
+                <div class="ph-item"><span class="ph-dot">H</span><span class="who">Hipoteca</span><span class="amt neg">−820,00 €</span></div>
+                <div class="ph-item"><span class="ph-dot">C</span><span class="who">Colegio</span><span class="amt neg">−240,00 €</span></div>
+                <div class="ph-item"><span class="ph-dot">N</span><span class="who">Nómina</span><span class="amt pos">+2.400,00 €</span></div>
+              </div>
+              <div class="ph-tabs"><b>Inicio</b><span>Categorías</span><span>Miembros</span><span>Módulos</span></div>
+            </div>
           </div>
-          <div class="ph-tabs"><b>Inicio</b><span>Categorías</span><span>Miembros</span><span>Módulos</span></div>
+          <div class="phone lg">
+            <div class="notch"></div>
+            <div class="screen">
+              <div class="ph-head"><span>Miembros</span><span>4</span></div>
+              <div class="ph-list">
+                <div class="ph-item"><span class="mini-avatar">ER</span><span class="who">Eric</span><span class="amt">super_admin</span></div>
+                <div class="ph-item"><span class="mini-avatar">MR</span><span class="who">Marta</span><span class="amt">admin</span></div>
+                <div class="ph-item"><span class="mini-avatar">LR</span><span class="who">Lucas</span><span class="amt">user</span></div>
+                <div class="ph-item"><span class="mini-avatar">NR</span><span class="who">Nora</span><span class="amt">user</span></div>
+              </div>
+              <div class="ph-card" style="margin-top: 10px"><div class="k">Categorías</div><div class="v">3</div></div>
+              <div class="ph-tabs"><span>Inicio</span><span>Categorías</span><b>Miembros</b><span>Módulos</span></div>
+            </div>
+          </div>
         </div>
       </div>
     </header>
