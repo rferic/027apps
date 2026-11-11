@@ -1522,3 +1522,13 @@
   background: #1a1b1e;
   color: var(--ink);
 }
+
+/* Mobile nav: the lockup and the language menu only; GitHub and the panel
+   entry stay in the hero and the footer, where there is room. */
+@media (max-width: 900px) {
+  .lp .nav { gap: 12px; }
+  .lp .nav .brand { flex: none; }
+  .lp .nav .actions .icon-btn,
+  .lp .nav .actions .btn.primary { display: none; }
+  .lp .lang summary { padding: 7px 8px; }
+}

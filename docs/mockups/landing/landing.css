@@ -549,3 +549,12 @@ body.warm .accent-warm { color: #b45309; }
 }
 .lang-menu a { padding: 6px 8px; border-radius: 6px; font-size: 12px; color: var(--muted); text-decoration: none; }
 .lang-menu a:hover, .lang-menu a[aria-current] { background: #1a1b1e; color: var(--ink); }
+
+/* Mobile nav: same rule as the app landing. */
+@media (max-width: 900px) {
+  .nav { gap: 12px; }
+  .nav .brand { flex: none; }
+  .nav .actions .icon-btn,
+  .nav .actions .btn.primary { display: none; }
+  .lang summary { padding: 7px 8px; }
+}
