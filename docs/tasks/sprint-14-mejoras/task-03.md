@@ -2,7 +2,7 @@
 id: sprint-14-task-03
 titulo: Invitaciones por email con plantilla reutilizable
 area: producto
-estado: pendiente
+estado: en curso
 plan: pendiente de redactar
 fuente: docs/superpowers/specs/2026-11-10-invitation-email-design.md
 adrs: [0002, 0004, 0007, 0008]
@@ -53,3 +53,16 @@ Tres direcciones de mockup en [`docs/mockups/email/invitation/`](../../mockups/e
 `v1` tarjeta clásica, `v2` editorial, `v3` acción primero. Cada una con los 9 idiomas, claro y
 oscuro, HTML + PNG y datos ficticios. **Elegida por el propietario: `v1` con el logo A** (latido + wordmark sin tagline). Pendiente
 solo `RESEND_API_KEY` + dirección de prueba para el envío real; la implementación puede empezar.
+
+## Ejecución (2026-11-11)
+
+- Migración `0020_invitation_email.sql`: `locale`, `email_sent_at`, `email_failed_at`,
+  `email_error`; backfill del idioma por defecto de la instancia.
+- `packages/core/src/email/`: plantilla aprobada (`v1` + logo A), catálogo en 9 idiomas,
+  versión texto, escapado, fecha por locale y paleta oscura con `prefers-color-scheme`.
+- Lockups `email-lockup-light/dark.png` en `apps/admin/public/brand/` (610×94, se muestran a
+  156×24).
+- Tests: paridad del catálogo y render (escapado, asunto en una línea, fecha, enlaces, fallback
+  de idioma y zona). `@027apps/core` en verde (428).
+- Pendiente: servicio de rotación, rutas `resend-email` y `link`, adaptador de Resend y UI del
+  panel.
