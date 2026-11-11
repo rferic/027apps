@@ -6,6 +6,8 @@ describe("isPublicPath", () => {
     "/",
     "/self-host",
     "/self-host/",
+    "/robots.txt",
+    "/sitemap.xml",
     "/l/es",
     "/l/es/",
     "/l/de/self-host",

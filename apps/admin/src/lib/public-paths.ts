@@ -8,7 +8,7 @@
 const PUBLIC_HELP_PATHS = new Set(["/help", "/help/firebase"]);
 
 /** Product pages: public, static and Supabase-free. */
-const PUBLIC_PAGES = new Set(["/", "/self-host"]);
+const PUBLIC_PAGES = new Set(["/", "/self-host", "/robots.txt", "/sitemap.xml"]);
 
 const INVITE_PATH = /^\/invite\/([^/]+)$/;
 
