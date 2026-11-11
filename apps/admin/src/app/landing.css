@@ -1469,12 +1469,45 @@
   .lp .steps {
     grid-template-columns: 1fr;
   }
+
+  /* Architecture: one centred column per flow, with the arrows between boxes. */
+  .lp .panel {
+    padding: 18px 14px;
+  }
   .lp .arch {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    gap: 6px;
+    margin-top: 18px;
+  }
+  .lp .arch + .arch {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--border);
+  }
+  .lp .arch .box {
+    width: 100%;
+    max-width: 240px;
+    text-align: center;
+    padding: 10px 12px;
   }
   .lp .arch .arrow {
     transform: rotate(90deg);
+    line-height: 1;
+  }
+
+  /* Footer: brand, links and the closing line centred instead of squeezed. */
+  .lp .footer {
+    padding: 32px 0 48px;
+  }
+  .lp .footer .row {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+  }
+  .lp .footer .row:last-child {
+    gap: 6px;
   }
 }
 
