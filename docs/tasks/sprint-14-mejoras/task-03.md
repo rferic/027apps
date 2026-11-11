@@ -23,10 +23,13 @@ solo está configurado como SMTP de Supabase Auth: no hay `RESEND_API_KEY` en la
    `email_error`).
 4. Módulo `packages/core/src/email/` (layout + plantilla + catálogo 9 idiomas + check).
 5. Adaptador Resend en `apps/admin` (`fetch`, timeout 5 s, sin SDK).
-6. API: `delivery` y `locale` en el alta; `email.status` en la respuesta; endpoint
-   `POST /api/v1/invitations/:id/resend-email` con cooldown de 60 s.
-7. Panel: selectores de entrega e idioma, aviso de fallo con el enlace, estado y reenvío en el
-   detalle.
+6. API: `delivery` y `locale` en el alta; `email.status` en la respuesta; `POST
+   /api/v1/invitations/:id/resend-email` con cooldown de 60 s y `POST
+   /api/v1/invitations/:id/link` (enlace nuevo para copiar). Ambos rotan el token y solo
+   actúan sobre pendientes.
+7. Panel: selectores de entrega e idioma, aviso de fallo con el enlace, estado del email y, en
+   el detalle de una pendiente, *Reenviar email* y *Generar enlace nuevo* con aviso de que el
+   anterior deja de valer.
 8. Docs: `docs/infrastructure.md` (variables y remitente), `docs/flows/cicd.md` si toca
    despliegue.
 
