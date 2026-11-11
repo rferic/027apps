@@ -4950,6 +4950,14 @@
             ],
             "type": "string"
           },
+          "theme": {
+            "enum": [
+              "system",
+              "light",
+              "dark"
+            ],
+            "type": "string"
+          },
           "timezone": {
             "type": "string"
           }

@@ -73,6 +73,7 @@ export interface UserList {
 export type UserModule = { key: string; name: string };
 
 export interface UserPatch {
+  theme?: "system" | "light" | "dark";
   display_name?: string;
   locale?: string;
   timezone?: string;
@@ -361,10 +362,18 @@ export async function updateUser(
           set display_name = coalesce($2, display_name),
               locale = coalesce($3, locale),
               timezone = coalesce($4, timezone),
-              role = coalesce($5, role),
+              theme = coalesce($5, theme),
+              role = coalesce($6, role),
               updated_at = now()
         where id = $1`,
-      [id, patch.display_name ?? null, patch.locale ?? null, patch.timezone ?? null, patch.role ?? null],
+      [
+        id,
+        patch.display_name ?? null,
+        patch.locale ?? null,
+        patch.timezone ?? null,
+        patch.theme ?? null,
+        patch.role ?? null,
+      ],
     );
     return getUserFrom(db, id);
   });

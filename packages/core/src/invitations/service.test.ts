@@ -174,9 +174,13 @@ interface StoredInvitation {
   email: string;
   name: string;
   user_category_id: string | null;
+  locale?: string;
   expires_at: string;
   used_at: string | null;
   revoked_at: string | null;
+  email_sent_at?: string | null;
+  email_failed_at?: string | null;
+  email_error?: string | null;
   created_at: string;
 }
 

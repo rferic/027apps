@@ -42,9 +42,9 @@ export function BrandLogo({
   return (
     <span className={cn("flex items-center", SIZES[size], className)}>
       {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset */}
-      <img src="/brand/wordmark-light.svg" alt="027Apps" className="h-full w-auto dark:hidden" />
+      <img src="/brand/wordmark-light.svg" alt="027Apps" className="brand-wordmark-light h-full w-auto" />
       {/* eslint-disable-next-line @next/next/no-img-element -- static brand asset */}
-      <img src="/brand/wordmark-dark.svg" alt="027Apps" className="hidden h-full w-auto dark:block" />
+      <img src="/brand/wordmark-dark.svg" alt="027Apps" className="brand-wordmark-dark h-full w-auto" />
     </span>
   );
 }

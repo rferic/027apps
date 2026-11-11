@@ -29,3 +29,19 @@ body {
   font-size: 14px;
   line-height: 1.45;
 }
+
+/*
+ * The wordmark follows the same precedence as the palette: an explicit
+ * `.dark`/`.light` class wins; otherwise the OS preference decides. Tailwind's
+ * `dark:` variant is media-based, so it ignored a forced theme.
+ */
+.brand-wordmark-light { display: block; }
+.brand-wordmark-dark { display: none; }
+
+.dark .brand-wordmark-light { display: none; }
+.dark .brand-wordmark-dark { display: block; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .brand-wordmark-light { display: none; }
+  :root:not(.light) .brand-wordmark-dark { display: block; }
+}

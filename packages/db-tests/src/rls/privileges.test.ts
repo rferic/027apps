@@ -64,7 +64,7 @@ describe('privileges: public schema', () => {
     });
   });
 
-  it('authenticated has no table-level UPDATE on profiles, only the three preference columns', async () => {
+  it('authenticated has no table-level UPDATE on profiles, only the preference columns', async () => {
     await withClient(async (c) => {
       const table = await query(
         c,
@@ -82,7 +82,12 @@ describe('privileges: public schema', () => {
             and privilege_type = 'UPDATE'
           order by column_name`,
       );
-      expect(columns.rows.map((r) => r.column_name)).toEqual(['display_name', 'locale', 'timezone']);
+      expect(columns.rows.map((r) => r.column_name)).toEqual([
+        'display_name',
+        'locale',
+        'theme',
+        'timezone',
+      ]);
     });
   });
 });

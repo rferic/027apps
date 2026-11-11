@@ -19,6 +19,7 @@ type ProfileRow = {
   email: string;
   locale: string;
   timezone: string;
+  theme: string;
   role: Role;
   created_at: string;
   deactivated_at: string | null;
@@ -31,6 +32,7 @@ function profile(id: string, overrides: Partial<ProfileRow> = {}): ProfileRow {
     email: `${id}@example.test`,
     locale: 'en',
     timezone: 'UTC',
+    theme: 'system',
     role: 'user',
     created_at: '2026-01-01T00:00:00.000Z',
     deactivated_at: null,
@@ -153,12 +155,13 @@ function makeDeps(
       return { rows: [] };
     }
     if (sql.startsWith('update public.profiles')) {
-      const [id, display_name, locale, timezone, role] = params;
+      const [id, display_name, locale, timezone, theme, role] = params;
       const row = profiles.get(String(id));
       if (row) {
         if (display_name !== null) row.display_name = String(display_name);
         if (locale !== null) row.locale = String(locale);
         if (timezone !== null) row.timezone = String(timezone);
+        if (theme !== null) row.theme = String(theme);
         if (role !== null) row.role = role as Role;
       }
       return { rows: [] };
@@ -206,6 +209,14 @@ describe('updateUser — self role changes', () => {
       message: 'You cannot change your own role',
     });
     expect(profiles.get('self')?.role).toBe('super_admin');
+  });
+
+  it('persists the theme preference on the profile', async () => {
+    const { deps, profiles } = makeDeps([profile('self', { role: 'super_admin' })]);
+
+    await updateUser(deps, session('self', 'super_admin'), 'self', { theme: 'dark' });
+
+    expect(profiles.get('self')?.theme).toBe('dark');
   });
 
   it('still lets a super_admin change another person’s role', async () => {

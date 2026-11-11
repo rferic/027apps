@@ -2,7 +2,10 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { getInfra } from "@/lib/api/door";
+import { isSupportedLocale } from "@/lib/locale";
+import { isTheme, type Theme } from "@/lib/theme";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { Locale } from "@027apps/i18n/types.js";
 
 /** Roles that may open the panel at all; `user` is a valid profile role, never a panel role. */
 export type PanelRole = "admin" | "super_admin";
@@ -12,6 +15,9 @@ export interface PanelUser {
   email: string;
   displayName: string;
   role: "super_admin" | "admin" | "user";
+  /** Per-user preferences; the database wins over the cookie. */
+  locale: Locale;
+  theme: Theme;
 }
 
 const ROLE_RANK: Record<PanelUser["role"], number> = {
@@ -34,7 +40,8 @@ export const loadPanelUser = cache(async (): Promise<PanelUser | null> => {
 
   const { settingsDeps } = await getInfra();
   const { rows } = await settingsDeps.db.query(
-    "select display_name, role from public.profiles where id = $1 and deactivated_at is null",
+    `select display_name, role, locale, theme
+       from public.profiles where id = $1 and deactivated_at is null`,
     [data.user.id],
   );
   const row = rows[0];
@@ -45,6 +52,9 @@ export const loadPanelUser = cache(async (): Promise<PanelUser | null> => {
     email: data.user.email ?? "",
     displayName: String(row.display_name ?? ""),
     role: row.role as PanelUser["role"],
+    locale:
+      typeof row.locale === "string" && isSupportedLocale(row.locale) ? row.locale : "en",
+    theme: typeof row.theme === "string" && isTheme(row.theme) ? row.theme : "system",
   };
 });
 
