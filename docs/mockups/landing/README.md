@@ -25,11 +25,17 @@ Titular, propuesta de valor, seis módulos (finanzas, categorías, miembros, mó
 notificaciones), bloque autoalojable/privacidad, app Android, enlace a GitHub y CTA al panel.
 El copy es ilustrativo; en la implementación pasa por los **9 idiomas**.
 
-## Recomendación
+## Elección
 
-**v1** como base: mantiene la identidad del panel, no añade paleta nueva y la estructura
-editorial aguanta bien el contenido. Se le puede inyectar el tono cálido de v3 en la sección de
-familia si se quiere suavizar.
+**v2 (oscuro centrado)**, elegida por el propietario el 2026-11-11 y refinada:
+
+- Captura del panel realista (sidebar, topbar, KPIs, gráfico con la barra activa en teal y
+  lista de miembros) en lugar del placeholder vacío.
+- Iconos de línea coherentes en los módulos; GitHub como único icono en la nav.
+- Wordmark *bare* en la nav (la tagline era ilegible a 24 px).
+- Franja de garantías bajo la captura y bloque de stack + terminal en autoalojar.
+- Cierre de Android con maqueta de móvil.
+- Capturas de página completa en escritorio (1440) y móvil (390).
 
 ## Pendiente antes de publicar
 
