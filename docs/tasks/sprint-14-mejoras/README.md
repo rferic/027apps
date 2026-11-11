@@ -17,6 +17,7 @@ Orden propuesto de ejecución (se puede reordenar por decisión del propietario)
 | 2 | [task-02](task-02.md) — Dependabot a `staging` | infra | Es pequeña, evita rebases sobre una rama que crece y no depende de credenciales. |
 | 3 | [task-03](task-03.md) — Invitaciones por email | feature + diseño | Fase de mockups + credencial de Resend; el diseño se cierra antes de implementar. |
 | 4 | [task-04](task-04.md) — Landing pública | feature + diseño | Necesita las referencias del propietario y se beneficia del trabajo de rendimiento. |
+| 5 | [task-05](task-05.md) — Apariencia por usuario | feature | Tema e idioma en el perfil; la cookie pasa a ser solo una pista de carga. |
 
 ## Decisiones del propietario (2026-11-10)
 

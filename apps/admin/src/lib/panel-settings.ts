@@ -30,6 +30,12 @@ export const loadPanelSettings = cache(async () => {
  * Presentation time zone for the request (ADR 0008 §2). Invalid or missing
  * values fall back to UTC instead of silently using the server zone.
  */
+/** `instance.public_url`, or null when the instance has not set it. */
+export function publicUrlFromSettings(settings: Record<string, unknown>): string | null {
+  const value = settings["instance.public_url"];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 export const loadPanelTimeZone = cache(async () => {
   const settings = await loadPanelSettings();
   return resolveTimeZone(settings["localization.timezone"]);

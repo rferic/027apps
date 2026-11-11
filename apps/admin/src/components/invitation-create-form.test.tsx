@@ -22,7 +22,9 @@ const PANEL_ACTIONS = {
 describe("InvitationCreateForm", () => {
   it("renders the fields on a page, not inside a creation dialog", () => {
     const html = renderToStaticMarkup(
-      <InvitationCreateForm categories={CATEGORIES} modules={MODULES} messages={{}} />,
+      <InvitationCreateForm categories={CATEGORIES} modules={MODULES} defaultLocale="es"
+        publicUrl="https://panel.test"
+        messages={{}} />,
     );
 
     expect(html).toContain("<form");
@@ -30,6 +32,8 @@ describe("InvitationCreateForm", () => {
     expect(html).toMatch(/<form[^>]*rounded-card[^>]*bg-surface/);
     expect(html).toContain("invitation-email");
     expect(html).toContain("invitation-category");
+    expect(html).toContain("invitation-delivery");
+    expect(html).toContain("invitation-locale");
     expect(html).toContain("Cancel");
     expect(html).toContain('href="/invitations"');
     expect(html).not.toContain("<dialog");
@@ -37,7 +41,9 @@ describe("InvitationCreateForm", () => {
 
   it("starts empty: no token from a previous creation", () => {
     const html = renderToStaticMarkup(
-      <InvitationCreateForm categories={CATEGORIES} modules={MODULES} messages={{}} />,
+      <InvitationCreateForm categories={CATEGORIES} modules={MODULES} defaultLocale="es"
+        publicUrl="https://panel.test"
+        messages={{}} />,
     );
 
     expect(html).not.toContain("Invitation created");
@@ -51,6 +57,8 @@ describe("InvitationCreateForm", () => {
         categories={[]}
         modules={[]}
         optionsUnavailable
+        defaultLocale="es"
+        publicUrl="https://panel.test"
         messages={{}}
       />,
     );
@@ -62,7 +70,14 @@ describe("InvitationCreateForm", () => {
 describe("InvitationCreatedPanel", () => {
   it("asks for a manual copy when the clipboard copy failed (insecure context)", () => {
     const html = renderToStaticMarkup(
-      <InvitationCreatedPanel token="tok-123" copied={false} copyFailed {...PANEL_ACTIONS} messages={{}} />,
+      <InvitationCreatedPanel
+        publicUrl={null}
+        token="tok-123"
+        copied={false}
+        copyFailed
+        {...PANEL_ACTIONS}
+        messages={{}}
+      />,
     );
 
     expect(html).toContain("Select the text and copy it manually.");
@@ -71,12 +86,18 @@ describe("InvitationCreatedPanel", () => {
 
   it("shows the one-time token on the page with copy and a Done link to the list", () => {
     const html = renderToStaticMarkup(
-      <InvitationCreatedPanel token="tok-123" copied={false} {...PANEL_ACTIONS} messages={{}} />,
+      <InvitationCreatedPanel
+        publicUrl={null}
+        token="tok-123"
+        copied={false}
+        {...PANEL_ACTIONS}
+        messages={{}}
+      />,
     );
 
     expect(html).toContain("tok-123");
-    expect(html).toContain("Copy this token now. It will not be shown again.");
-    expect(html).toContain("Copy token");
+    expect(html).toContain("Copy this link now. It will not be shown again.");
+    expect(html).toContain("Copy link");
     expect(html).toContain(
       "The invitee opens the invitation link in the browser or redeems the token from the mobile app to join the instance.",
     );
@@ -89,7 +110,13 @@ describe("InvitationCreatedPanel", () => {
 
   it("does not leave a second creation path when the API returned no token", () => {
     const html = renderToStaticMarkup(
-      <InvitationCreatedPanel token={null} copied={false} {...PANEL_ACTIONS} messages={{}} />,
+      <InvitationCreatedPanel
+        publicUrl={null}
+        token={null}
+        copied={false}
+        {...PANEL_ACTIONS}
+        messages={{}}
+      />,
     );
 
     expect(html).toContain("The invitation was created but the API did not return a token.");
@@ -98,10 +125,33 @@ describe("InvitationCreatedPanel", () => {
   });
 });
 
+describe("InvitationCreatedPanel link", () => {
+  it("shows the full invitation link instead of the bare token", () => {
+    const html = renderToStaticMarkup(
+      <InvitationCreatedPanel
+        token="tok-123"
+        publicUrl="https://panel.test"
+        copied={false}
+        {...PANEL_ACTIONS}
+        messages={{}}
+      />,
+    );
+
+    expect(html).toContain("https://panel.test/invite/tok-123");
+    expect(html).toContain("Copy this link now.");
+  });
+});
+
 describe("InvitationCreatedPanel create another", () => {
   it("offers Create another next to Done", () => {
     const html = renderToStaticMarkup(
-      <InvitationCreatedPanel token="tok-123" copied={false} {...PANEL_ACTIONS} messages={{}} />,
+      <InvitationCreatedPanel
+        publicUrl={null}
+        token="tok-123"
+        copied={false}
+        {...PANEL_ACTIONS}
+        messages={{}}
+      />,
     );
 
     expect(html).toContain("Create another");
@@ -112,6 +162,7 @@ describe("InvitationCreatedPanel create another", () => {
   it("asks inline before dropping a token that was not copied", () => {
     const html = renderToStaticMarkup(
       <InvitationCreatedPanel
+        publicUrl={null}
         token="tok-123"
         copied={false}
         confirmingAnother

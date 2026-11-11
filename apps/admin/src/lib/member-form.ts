@@ -15,6 +15,7 @@ export interface MemberPatch {
   display_name?: string;
   locale?: string;
   timezone?: string;
+  theme?: "system" | "light" | "dark";
   role?: MemberRole;
 }
 

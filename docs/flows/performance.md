@@ -46,20 +46,33 @@ Funciones en `iad1`, Postgres en `eu-west-2`. Medido desde España.
 | `/login` | 94–274 ms | 1,60 s |
 | `/help/firebase` | 161–533 ms | — |
 
-## Después — preview con `lhr1` (2026-11-10, commit `568489f`)
+## Después — producción con `lhr1` (2026-11-10, commit `5c05c4f`)
 
-Medido sobre el preview `027apps-puctl9xwz-eric-rf.vercel.app`, que apunta a `027apps-dev`
-(`eu-west-3`), con `vercel curl` (bypass de la protección). `x-vercel-id: fra1::lhr1::…`.
+Medido con `curl` desde España contra `https://027apps.ericrf.com`, 6 peticiones seguidas por
+ruta (caliente) y verificando la región con `x-vercel-id: fra1::lhr1::…`.
 
-| Ruta | Caliente | Frío | Antes (prod, `iad1`) |
+| Ruta | Antes (`iad1`) | Después (`lhr1`) | Cambio |
 |---|---|---|---|
-| `/api/health` | 147–297 ms | — | 353–740 ms |
-| `/api/v1/instance` | 151–274 ms | ~590 ms | 375–412 ms |
-| `/login` | 110–125 ms | ~510 ms | 94–274 ms |
+| `/api/health` | 353–740 ms | **135–401 ms** | ~2× |
+| `/api/v1/instance` | 375–412 ms | **132–272 ms** | ~2× |
+| `/login` | 94–274 ms | **87–145 ms** | ~1,5× |
 
-**Pendiente**: repetir en producción tras el merge (mismo proyecto, `eu-west-2`) y con sesión
-real para las rutas autenticadas. El preview no sustituye a esa medida: distinto proyecto
-Supabase y tráfico de protección.
+Objetivo de API caliente (p95 ≤ 400 ms) cumplido en producción. `/api/health` responde `200`
+`{"status":"ok"}` con la base de producción. **Pendiente**: medida en frío tras ≥15 min sin
+tráfico y rutas autenticadas (requieren una sesión de prueba).
+
+## Auditoría del cliente: sin duplicados (2026-11-10)
+
+Reproducido en local con un usuario de prueba y Chrome headless (CDP), sobre el mismo código:
+
+- Carga completa de `/members`: **1 petición de documento** (209 ms en caliente, dev).
+- Clic de fila al detalle: **1 fetch RSC** (`?_rsc=…`), sin peticiones de datos duplicadas.
+- Único duplicado observado: un chunk `_next/static/…js` pedido dos veces (200 y 304) en dev.
+  No es una petición de datos y en producción el cliente lo deduplica; se vigila.
+
+Conclusión: la lentitud percibida **no** viene de peticiones duplicadas en el navegador. Viene
+del trabajo del servidor por render (verificaciones de JWT y viajes a la base), que es lo que
+se ha reducido de 4 a 1 verificación.
 
 ## Cascada de `/members` (auditoría de código, 2026-11-10)
 
@@ -87,11 +100,11 @@ rate-limit a llamadas en proceso.
 
 | Cambio | Estado | Evidencia |
 |---|---|---|
-| Funciones en `lhr1` (`apps/admin/vercel.json` + ajuste del proyecto) | desplegado en preview | `x-vercel-id: …::lhr1::…` |
+| Funciones en `lhr1` (`apps/admin/vercel.json` + ajuste del proyecto) | **en producción** | `x-vercel-id: …::lhr1::…` |
 | Una sola verificación de JWT por request de `/api/v1` (proxy → door) | implementado | test en `proxy.test.ts` + medida |
 | `/api/health` con `select 1` en vez de la API admin de Auth | implementado | test en `lib/health.test.ts` + medida |
 | Cascada del servidor: 4 verificaciones de JWT → 1 por render | implementado | `proxy.test.ts` + inventario de arriba |
-| Duplicados y cascadas del cliente | pendiente de captura del propietario | pestaña Red |
+| Duplicados y cascadas del cliente | auditado: no hay duplicados de datos | captura CDP local |
 
 ## Reglas
 

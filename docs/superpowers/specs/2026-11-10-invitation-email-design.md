@@ -145,18 +145,33 @@ Salida `201` (ampliada, compatible):
 - `skipped` = `delivery: "link"` o `RESEND_API_KEY` ausente (con `code: "not_configured"`).
 - `token` sigue devolviéndose **una sola vez**; el cliente decide si lo muestra.
 
-### 6.2 `POST /api/v1/invitations/:id/resend-email` (nuevo)
+### 6.2 Reenvío y regeneración del enlace (nuevos)
+
+Dos acciones distintas, solo sobre invitaciones **pendientes**. Ambas **rotan el token**: el
+anterior deja de redimir al instante, porque la base solo guarda su hash y no hay forma de
+recuperarlo. La UI avisa antes y muestra el nuevo enlace una sola vez.
+
+`POST /api/v1/invitations/:id/resend-email`
 
 - Scope `invitations:write`; rate limit de escritura + **cooldown de 60 s por invitación**
   (protege la cuota de 100/día) → `429` con `retry_after`.
 - Rechaza `used` (`409 invitation_used`), `revoked`/inexistente (`404`), `expired`
   (`409 invitation_expired`): reenviar un enlace caducado solo genera frustración.
-- Genera un token nuevo (rota el anterior) y actualiza `email_sent_at`. **No** cambia
+- Genera un token nuevo, envía el correo y actualiza `email_sent_at`. **No** cambia
   `expires_at` ni el idioma.
 - Responde `{ token, email: { status, code } }` para que el panel pueda ofrecer el enlace si
-  el reenvío falla.
+  el envío falla.
 
-`packages/core/src/openapi/registry.ts` documenta ambos cambios y `generate.test.ts` los cubre.
+`POST /api/v1/invitations/:id/link`
+
+- Scope `invitations:write`; sin coste de correo, pero pide confirmación en la UI porque
+  invalida el enlace anterior.
+- Mismas reglas de estado que el reenvío. Genera un token nuevo y lo devuelve una sola vez;
+  no toca `email_sent_at`.
+- Cubre el caso «perdió el correo y quiero pasárselo por WhatsApp».
+
+`packages/core/src/openapi/registry.ts` documenta los tres cambios (alta y dos acciones) y
+`generate.test.ts` los cubre.
 
 ## 7. Plantilla de correo
 
@@ -203,8 +218,13 @@ Reglas técnicas:
   token con el panel actual de copiar.
 - **Resultado**: si el email se envió, «Correo enviado a {email}» y el enlace igualmente
   disponible (respaldo). Si falló, aviso no bloqueante + enlace.
-- **Detalle** (`invitations/[id]`): estado del email (enviado / fallido / sin enviar) y acción
-  *Reenviar email* para invitaciones pendientes, con feedback y manejo de `429`.
+- **Detalle** (`invitations/[id]`): estado del email (enviado / fallido / sin enviar) y, para
+  invitaciones pendientes, dos acciones:
+  - *Reenviar email*: rota el token y manda el correo; feedback y manejo de `429`.
+  - *Generar enlace nuevo*: rota el token sin enviar y muestra el enlace con el botón de copiar,
+    para pasarlo por otra vía.
+  Ambas avisan de que **el enlace anterior deja de funcionar**. Sobre una invitación usada,
+  caducada o revocada no se ofrecen.
 - Textos nuevos al catálogo y a los 9 idiomas; sin colores fuera de tokens; foco visible y
   `aria-live` en el resultado.
 
@@ -247,12 +267,14 @@ Reglas técnicas:
    `email.status = "failed"`, enlace visible y copiable; existe fila con `email_failed_at`.
 4. *Reenviar* sobre una pendiente envía y rota el token (el anterior deja de redimir); sobre
    usada/caducada/revocada devuelve el error documentado; dos reenvíos seguidos → `429`.
-5. Los 9 idiomas generan asunto, HTML y texto sin placeholders sin sustituir y sin fechas en
+5. *Generar enlace nuevo* devuelve un token que redime, invalida el anterior y no envía correo;
+   sobre usada/caducada/revocada devuelve el mismo error documentado.
+6. Los 9 idiomas generan asunto, HTML y texto sin placeholders sin sustituir y sin fechas en
    inglés cuando el locale no lo es.
-6. No aparece ningún token ni dirección de correo en logs, Sentry ni eventos.
-7. `pnpm lint`, `pnpm tsc`, `pnpm test`, `pnpm --filter admin build` en verde; CI del PR en
+7. No aparece ningún token ni dirección de correo en logs, Sentry ni eventos.
+8. `pnpm lint`, `pnpm tsc`, `pnpm test`, `pnpm --filter admin build` en verde; CI del PR en
    verde; migración `0020` aplicada en dev y en prod con `supabase db push`.
-8. Mockup aprobado por el propietario antes de la implementación (evidencia en el PR).
+9. Mockup aprobado por el propietario antes de la implementación (evidencia en el PR).
 
 ## 13. Puertas de usuario
 

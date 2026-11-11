@@ -40,6 +40,7 @@ export const userPatchSchema = z
     display_name: z.string().min(1).max(80).optional(),
     locale: localeSchema.optional(),
     timezone: timezoneSchema.optional(),
+    theme: z.enum(["system", "light", "dark"]).optional(),
     role: z.enum(["super_admin", "admin", "user"]).optional(),
   })
   .strict()

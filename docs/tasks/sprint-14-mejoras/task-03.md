@@ -2,7 +2,7 @@
 id: sprint-14-task-03
 titulo: Invitaciones por email con plantilla reutilizable
 area: producto
-estado: pendiente
+estado: en curso
 plan: pendiente de redactar
 fuente: docs/superpowers/specs/2026-11-10-invitation-email-design.md
 adrs: [0002, 0004, 0007, 0008]
@@ -23,10 +23,13 @@ solo está configurado como SMTP de Supabase Auth: no hay `RESEND_API_KEY` en la
    `email_error`).
 4. Módulo `packages/core/src/email/` (layout + plantilla + catálogo 9 idiomas + check).
 5. Adaptador Resend en `apps/admin` (`fetch`, timeout 5 s, sin SDK).
-6. API: `delivery` y `locale` en el alta; `email.status` en la respuesta; endpoint
-   `POST /api/v1/invitations/:id/resend-email` con cooldown de 60 s.
-7. Panel: selectores de entrega e idioma, aviso de fallo con el enlace, estado y reenvío en el
-   detalle.
+6. API: `delivery` y `locale` en el alta; `email.status` en la respuesta; `POST
+   /api/v1/invitations/:id/resend-email` con cooldown de 60 s y `POST
+   /api/v1/invitations/:id/link` (enlace nuevo para copiar). Ambos rotan el token y solo
+   actúan sobre pendientes.
+7. Panel: selectores de entrega e idioma, aviso de fallo con el enlace, estado del email y, en
+   el detalle de una pendiente, *Reenviar email* y *Generar enlace nuevo* con aviso de que el
+   anterior deja de valer.
 8. Docs: `docs/infrastructure.md` (variables y remitente), `docs/flows/cicd.md` si toca
    despliegue.
 
@@ -43,3 +46,40 @@ logs; CI y builds en verde; mockup aprobado antes de implementar.
 
 **Riesgos**: cuota de 100 emails/día (cooldown + enlace manual), entrega en spam (HTML sobrio +
 texto plano), fallo del proveedor (no bloquea el alta). Deuda anotada: webhooks de Resend.
+
+## Diseño (2026-11-11)
+
+Tres direcciones de mockup en [`docs/mockups/email/invitation/`](../../mockups/email/invitation/README.md):
+`v1` tarjeta clásica, `v2` editorial, `v3` acción primero. Cada una con los 9 idiomas, claro y
+oscuro, HTML + PNG y datos ficticios. **Elegida por el propietario: `v1` con el logo A** (latido + wordmark sin tagline). Pendiente
+solo `RESEND_API_KEY` + dirección de prueba para el envío real; la implementación puede empezar.
+
+## Ejecución (2026-11-11)
+
+- Migración `0020_invitation_email.sql`: `locale`, `email_sent_at`, `email_failed_at`,
+  `email_error`; backfill del idioma por defecto de la instancia.
+- `packages/core/src/email/`: plantilla aprobada (`v1` + logo A), catálogo en 9 idiomas,
+  versión texto, escapado, fecha por locale y paleta oscura con `prefers-color-scheme`.
+- Lockups `email-lockup-light/dark.png` en `apps/admin/public/brand/` (610×94, se muestran a
+  156×24).
+- Tests: paridad del catálogo y render (escapado, asunto en una línea, fecha, enlaces, fallback
+  de idioma y zona). `@027apps/core` en verde (428).
+- Servicio: `locale` al crear, rotación de token con `for update`, registro del intento de
+  email y cooldown de 60 s.
+- API: `delivery`/`locale` en el alta, `POST /invitations/:id/resend-email` y
+  `POST /invitations/:id/link`; esquemas y `docs/api/openapi.json` regenerados.
+- Adaptador de Resend en el admin (`fetch`, timeout de 5 s, sin SDK); sin clave degrada a
+  `skipped`.
+- CI del PR en verde, incluido el job `supabase` con la migración `0020`.
+- Pendiente: UI del panel (selectores en el alta, estado y acciones en el detalle).
+
+### UI del panel (2026-11-11)
+
+- Alta: selectores de *Entrega* (email / solo enlace) e *Idioma* (9, por defecto el del
+  panel), y el resultado muestra si el correo se envió, se omitió o falló.
+- Detalle: idioma y estado del email en los metadatos; para pendientes, *Reenviar email* y
+  *Generar enlace nuevo* (con confirmación porque invalida el anterior), enlace construido
+  desde `instance.public_url` y botón de copiar.
+- 21 cadenas nuevas traducidas a los 8 idiomas; `i18n:check` en verde.
+- Tests: mutaciones de reenvío/enlace, selectores del alta y render de las acciones.
+  `pnpm lint`, `pnpm tsc`, 1102 tests y `pnpm --filter admin build` en verde.

@@ -30,6 +30,7 @@
     "./users/*.js": "./src/users/*.ts",
     "./user-categories/*.js": "./src/user-categories/*.ts",
     "./invitations/*.js": "./src/invitations/*.ts",
+    "./email/*.js": "./src/email/*.ts",
     "./api-keys/*.js": "./src/api-keys/*.ts",
     "./devices/*.js": "./src/devices/*.ts",
     "./modules/*.js": "./src/modules/*.ts",

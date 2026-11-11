@@ -7,6 +7,7 @@ import { PanelForbidden } from "@/components/panel-forbidden";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadCategories, loadModuleChoices, type CategoryRow } from "@/lib/panel-categories";
 import { loadPanelMessages } from "@/lib/panel-i18n";
+import { loadPanelSettings, publicUrlFromSettings } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
 
 /** The page reads the session while rendering; opt out of the static shell. */
@@ -43,11 +44,13 @@ export default async function NewInvitationPage() {
     return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
   }
 
-  const [categories, moduleChoices] = await Promise.all([
+  const [categories, moduleChoices, settings] = await Promise.all([
     loadCategories({ offset: 0, limit: 100 }),
     loadModuleChoices(),
+    loadPanelSettings(),
   ]);
   const categoryRows = readCategories(categories);
+  const publicUrl = publicUrlFromSettings(settings);
 
   return (
     <section className="flex flex-col gap-4">
@@ -71,6 +74,8 @@ export default async function NewInvitationPage() {
         categories={categoryRows.map((category) => ({ id: category.id, name: category.name }))}
         modules={moduleChoices.ok ? moduleChoices.modules : []}
         optionsUnavailable={!categories.ok || !moduleChoices.ok}
+        defaultLocale={locale}
+        publicUrl={publicUrl}
         messages={messages}
       />
     </section>

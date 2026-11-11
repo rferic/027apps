@@ -21,6 +21,14 @@ vi.mock("@/lib/panel-i18n", () => ({
   loadPanelMessages: async () => ({}),
 }));
 
+vi.mock("@/lib/panel-settings", () => ({
+  loadPanelSettings: async () => ({ "instance.public_url": "https://panel.test" }),
+  publicUrlFromSettings: (settings: Record<string, unknown>) =>
+    typeof settings["instance.public_url"] === "string"
+      ? settings["instance.public_url"]
+      : null,
+}));
+
 vi.mock("@/lib/panel-categories", () => ({
   loadCategories: () => loadCategoriesMock(),
   loadModuleChoices: () => loadModuleChoicesMock(),
