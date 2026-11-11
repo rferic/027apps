@@ -8,21 +8,38 @@ import {
   createInvitation,
   getInvitation,
   listInvitations,
+  recordEmailAttempt,
   redeemInvitation,
+  resendCooldownSeconds,
   revokeInvitation,
+  rotateInvitationToken,
   type InvitationsDeps,
+  type InvitationView,
   type RedeemInput,
 } from "./service";
+import { EMAIL_LOCALES, type EmailLocale } from "../email/types";
 
 /**
  * Invitations API (core-api spec §3.5). Admin routes require
  * `invitations:read|write`; redemption is public with its own per-IP budget.
  * The token is returned exactly once (creation) and never in list responses.
  */
+/** Outcome of handing the invitation to the email provider. */
+export type InvitationDelivery = {
+  status: "sent" | "failed" | "skipped";
+  code?: string;
+};
+
+/** Email port; the admin adapter owns Resend and the instance settings. */
+export interface InvitationsMailer {
+  sendInvitation(input: { invitation: InvitationView; token: string }): Promise<InvitationDelivery>;
+}
+
 export interface InvitationsRouteDeps {
   door: DoorDeps;
   auth: (req: Request) => Promise<Caller>;
   invitations: InvitationsDeps;
+  mailer?: InvitationsMailer;
   cors?: CorsOptions;
   rateLimits?: { read?: number; write?: number; redeem?: number };
 }
@@ -36,6 +53,8 @@ export const createInvitationSchema = z
     user_category_id: z.string().uuid().optional().nullable(),
     modules: z.array(z.string()).max(100).optional(),
     expires_in_days: z.number().int().min(1).max(365).optional(),
+    locale: z.enum(EMAIL_LOCALES).optional(),
+    delivery: z.enum(["email", "link"]).optional(),
   })
   .strict();
 
@@ -99,26 +118,46 @@ export function invitationsRoute(deps: InvitationsRouteDeps) {
     });
 }
 
+/** Sends the email when asked and records the attempt; never throws on failure. */
+async function deliver(
+  deps: InvitationsRouteDeps,
+  invitation: InvitationView,
+  token: string,
+  mode: "email" | "link",
+): Promise<InvitationDelivery> {
+  if (mode === "link") return { status: "skipped" };
+  if (!deps.mailer) return { status: "skipped", code: "not_configured" };
+
+  const result = await deps.mailer.sendInvitation({ invitation, token });
+  if (result.status !== "skipped") {
+    await recordEmailAttempt(deps.invitations, invitation.id, {
+      status: result.status,
+      ...(result.code ? { code: result.code } : {}),
+    });
+  }
+  return result;
+}
+
 export function createInvitationRoute(deps: InvitationsRouteDeps) {
   return (req: Request): Promise<Response> =>
     withDoor(
       req,
       options(deps, ["invitations:write"], createInvitationSchema),
       deps.door,
-      async (ctx) => ({
-        status: 201,
-        body: await createInvitation(
-          deps.invitations,
-          ctx.caller,
-          ctx.body as {
-            email: string;
-            name: string;
-            user_category_id?: string | null;
-            modules?: string[];
-            expires_in_days?: number;
-          },
-        ),
-      }),
+      async (ctx) => {
+        const input = ctx.body as {
+          email: string;
+          name: string;
+          user_category_id?: string | null;
+          modules?: string[];
+          expires_in_days?: number;
+          locale?: EmailLocale;
+          delivery?: "email" | "link";
+        };
+        const created = await createInvitation(deps.invitations, ctx.caller, input);
+        const email = await deliver(deps, created.invitation, created.token, input.delivery ?? "email");
+        return { status: 201, body: { ...created, email } };
+      },
     );
 }
 
@@ -134,6 +173,36 @@ export function revokeInvitationRoute(deps: InvitationsRouteDeps) {
     withDoor(req, options(deps, ["invitations:write"]), deps.door, async () => {
       await revokeInvitation(deps.invitations, uuid(rawId, "invitation id"));
       return new Response(null, { status: 204 });
+    });
+}
+
+/** Reissues the token and sends it again; only for pending invitations. */
+export function resendInvitationRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(req, options(deps, ["invitations:write"]), deps.door, async () => {
+      const id = uuid(rawId, "invitation id");
+      const current = await getInvitation(deps.invitations, id);
+      const wait = resendCooldownSeconds(current, new Date());
+      if (wait > 0) {
+        throw new DomainError("rate_limited", "Wait before resending this invitation", {
+          retry_after: wait,
+        });
+      }
+      const rotated = await rotateInvitationToken(deps.invitations, id);
+      const email = await deliver(deps, rotated.invitation, rotated.token, "email");
+      return { token: rotated.token, email };
+    });
+}
+
+/** Reissues the token without sending it, for the manual copy fallback. */
+export function invitationLinkRoute(deps: InvitationsRouteDeps) {
+  return (req: Request, rawId: string): Promise<Response> =>
+    withDoor(req, options(deps, ["invitations:write"]), deps.door, async () => {
+      const rotated = await rotateInvitationToken(
+        deps.invitations,
+        uuid(rawId, "invitation id"),
+      );
+      return { token: rotated.token, invitation: rotated.invitation };
     });
 }
 

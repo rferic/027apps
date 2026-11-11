@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cookieValue, themeCookie, themeFromCookie } from "./theme";
+import { cookieValue, themeBootstrapScript, themeCookie, themeFromCookie } from "./theme";
 
 describe("themeFromCookie", () => {
   it("keeps the three supported values", () => {
@@ -42,5 +42,24 @@ describe("cookieValue", () => {
   it("returns null when the cookie is absent", () => {
     expect(cookieValue("027_locale=es", "027_theme")).toBeNull();
     expect(cookieValue("", "027_theme")).toBeNull();
+  });
+});
+
+describe("themeBootstrapScript", () => {
+  const script = themeBootstrapScript();
+
+  it("reads the stored theme before paint", () => {
+    expect(script).toContain("027_theme");
+    expect(script).toContain('classList.toggle("dark"');
+    expect(script).toContain('classList.toggle("light"');
+  });
+
+  it("does not override an explicit ?lang", () => {
+    expect(script).toContain("[?&]lang=");
+  });
+
+  it("sets the document language from the cookie otherwise", () => {
+    expect(script).toContain("027_locale");
+    expect(script).toContain("r.lang=l[1]");
   });
 });

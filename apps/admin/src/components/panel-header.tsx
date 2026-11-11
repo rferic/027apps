@@ -75,7 +75,7 @@ export function PanelHeader({ user, locale, messages, theme, instanceName, menu 
           <hr className="border-border" />
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">{t("Theme", messages)}</span>
-            <ThemeSwitcher messages={messages} theme={theme} className="min-h-11" />
+            <ThemeSwitcher userId={user.id} messages={messages} theme={theme} className="min-h-11" />
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">
@@ -86,7 +86,12 @@ export function PanelHeader({ user, locale, messages, theme, instanceName, menu 
               server tree; the route stays the same, so the menu itself decides
               when to close. The new locale is already applied either way.
             */}
-            <LocaleSwitcher locale={locale} label={t("Language", messages)} className="min-h-11" />
+            <LocaleSwitcher
+              userId={user.id}
+              locale={locale}
+              label={t("Language", messages)}
+              className="min-h-11"
+            />
           </div>
           <hr className="border-border" />
           <form action={signOutAction}>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { invitationRoute, invitationsRoute } from "@027apps/core/invitations/api.js";
 import type { InvitationStatusFilter } from "@027apps/core/invitations/service.js";
+import { isEmailLocale, type EmailLocale } from "@027apps/core/email/types.js";
 import { invitationsRouteDeps } from "@/lib/invitations-route-deps";
 import { PANEL_PAGE_SIZE } from "@/lib/panel-pagination";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -9,6 +10,9 @@ const INTERNAL_ORIGIN = "http://panel.internal";
 
 export type InvitationStatus = "pending" | "used" | "expired" | "revoked";
 
+/** Last email attempt recorded for the invitation. */
+export type InvitationEmailMode = "sent" | "failed" | "not_sent";
+
 export interface InvitationRow {
   id: string;
   email: string;
@@ -16,9 +20,14 @@ export interface InvitationRow {
   user_category_id: string | null;
   modules: string[];
   status: InvitationStatus;
+  locale: EmailLocale;
+  mode: InvitationEmailMode;
   expires_at: string;
   used_at: string | null;
   revoked_at: string | null;
+  email_sent_at: string | null;
+  email_failed_at: string | null;
+  email_error: string | null;
   created_at: string;
 }
 
@@ -167,6 +176,28 @@ function readInvitationBase(value: Record<string, unknown>): {
   return { id, email, name, expires_at: expiresAt, created_at: createdAt };
 }
 
+function readEmailMeta(value: Record<string, unknown>): {
+  locale: EmailLocale;
+  mode: InvitationEmailMode;
+  email_sent_at: string | null;
+  email_failed_at: string | null;
+  email_error: string | null;
+} | null {
+  const sentAt = readDate(value.email_sent_at);
+  const failedAt = readDate(value.email_failed_at);
+  if (sentAt === undefined || failedAt === undefined) return null;
+  return {
+    locale: isEmailLocale(value.locale) ? value.locale : "en",
+    mode: value.mode === "sent" || value.mode === "failed" ? value.mode : "not_sent",
+    email_sent_at: sentAt,
+    email_failed_at: failedAt,
+    email_error:
+      value.email_error === null || value.email_error === undefined
+        ? null
+        : (readString(value.email_error) ?? null),
+  };
+}
+
 function readInvitation(value: unknown): InvitationRow | null {
   if (!isRecord(value)) return null;
   const base = readInvitationBase(value);
@@ -176,11 +207,13 @@ function readInvitation(value: unknown): InvitationRow | null {
   const status = readStatus(value.status);
   const usedAt = readDate(value.used_at);
   const revokedAt = readDate(value.revoked_at);
+  const email = readEmailMeta(value);
   if (categoryId === undefined) return null;
   if (modules === null) return null;
   if (status === null) return null;
   if (usedAt === undefined) return null;
   if (revokedAt === undefined) return null;
+  if (email === null) return null;
   return {
     ...base,
     user_category_id: categoryId,
@@ -188,6 +221,7 @@ function readInvitation(value: unknown): InvitationRow | null {
     status,
     used_at: usedAt,
     revoked_at: revokedAt,
+    ...email,
   };
 }
 

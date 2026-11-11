@@ -13,6 +13,8 @@ const user = {
   email: "ana@example.com",
   displayName: "Ana",
   role: "admin" as const,
+  locale: "es" as const,
+  theme: "system" as const,
 };
 
 function renderHeader(instanceName: string) {

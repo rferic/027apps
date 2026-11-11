@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>027Apps · variantes de logo para el correo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f8;
+        --surface: #ffffff;
+        --fg: #17191c;
+        --muted: #eceef0;
+        --muted-fg: #5b6472;
+        --border: #e3e5e8;
+        --accent: #09795f;
+        --on-accent: #ffffff;
+      }
+      html.dark {
+        color-scheme: dark;
+        --bg: #08090a;
+        --surface: #0e0f11;
+        --fg: #f7f8f8;
+        --muted: #1a1b1e;
+        --muted-fg: #8a8f98;
+        --border: rgba(255, 255, 255, 0.09);
+        --accent: #1cc29f;
+        --on-accent: #06110d;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 28px;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+      h1 { font-size: 18px; margin: 0 0 4px; }
+      p.lead { margin: 0 0 24px; font-size: 13px; color: var(--muted-fg); max-width: 760px; line-height: 1.6; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; max-width: 1080px; }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 22px;
+      }
+      .panel h2 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted-fg);
+        margin: 0 0 18px;
+        font-weight: 600;
+      }
+      .sample { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid var(--border); }
+      .sample:first-of-type { border-top: 0; }
+      .sample .logo { min-width: 240px; display: flex; align-items: center; }
+      .sample .meta { font-size: 12px; line-height: 1.5; color: var(--muted-fg); }
+      .sample .meta strong { display: block; color: var(--fg); font-size: 12px; }
+      .lock { display: flex; align-items: center; gap: 10px; }
+      .lock .pulse { width: 46px; height: auto; color: var(--accent); }
+      .lock .word { height: 22px; width: auto; }
+      .lock .icon { width: 30px; height: 30px; border-radius: 7px; }
+      .warn { color: #be123c; }
+      html.dark .warn { color: #fb7185; }
+      .note { margin-top: 22px; font-size: 12px; line-height: 1.6; color: var(--muted-fg); max-width: 760px; }
+      .note code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+      .dark-only { display: none; }
+      html.dark .light-only { display: none; }
+      html.dark .dark-only { display: block; }
+    </style>
+  </head>
+  <body>
+    <h1>Variantes de logo para el encabezado del correo</h1>
+    <p class="lead">
+      Mismo tamaño que en la plantilla (22 px de alto para el wordmark, 46 px de ancho para el
+      latido). La columna izquierda es la superficie clara del correo; la derecha, la oscura.
+    </p>
+
+    <div class="grid">
+      <section class="panel" style="color-scheme: light; background: #ffffff; --surface: #ffffff; --fg: #17191c; --muted-fg: #5b6472; --border: #e3e5e8; --accent: #09795f">
+        <h2>Correo en claro</h2>
+
+        <div class="sample">
+          <div class="logo">
+            <img class="word" src="../../../../docs/brand/assets/wordmark-light.svg" alt="027Apps" style="height: 22px" />
+          </div>
+          <div class="meta">
+            <strong>Actual · wordmark con tagline</strong>
+            A 22 px el ancho ronda 90 px: por debajo del mínimo de 120 px que la guía pide para
+            que la tagline se lea. <span class="warn">No recomendado.</span>
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="logo">
+            <div class="lock">
+              <svg class="pulse" viewBox="0 0 48 26" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" style="color: #0f9b7d; width: 46px; height: auto">
+                <polyline points="2,14 9,14 11.5,10 14,14 17,14 18.5,16.5 20.5,1.5 22.5,23 25,14 27,10.5 29.5,14 46,14" transform="translate(0,-1)" />
+              </svg>
+              <img class="word" src="../../../../docs/brand/assets/wordmark-bare-light.svg" alt="027Apps" style="height: 22px" />
+            </div>
+          </div>
+          <div class="meta">
+            <strong>A · latido + wordmark sin tagline</strong>
+            Lockup horizontal. Legible a este tamaño y sin repetir el «027» del icono.
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="logo">
+            <div class="lock">
+              <img class="icon" src="../../../../docs/brand/assets/icon-light.svg" alt="" />
+              <img class="word" src="../../../../docs/brand/assets/wordmark-bare-light.svg" alt="027Apps" style="height: 22px" />
+            </div>
+          </div>
+          <div class="meta">
+            <strong>B · icono de app + wordmark</strong>
+            El squircle blanco se funde con la tarjeta; se ve sobre todo el electro y el «027»
+            diminuto. Más peso visual, algo redundante.
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="logo">
+            <img class="word" src="../../../../docs/brand/assets/wordmark-bare-light.svg" alt="027Apps" style="height: 22px" />
+          </div>
+          <div class="meta">
+            <strong>C · solo wordmark sin tagline</strong>
+            La opción más limpia y la que menos compite con el nombre de la instancia.
+          </div>
+        </div>
+      </section>
+
+      <section class="panel dark" style="color-scheme: dark; background: #0e0f11; --surface: #0e0f11; --fg: #f7f8f8; --muted-fg: #8a8f98; --border: rgba(255,255,255,.09); --accent: #1cc29f">
+        <h2>Correo en oscuro</h2>
+
+        <div class="sample">
+          <div class="logo">
+            <img class="word" src="../../../../docs/brand/assets/wordmark-dark.svg" alt="027Apps" style="height: 22px" />
+          </div>
+          <div class="meta">
+            <strong>Actual · wordmark con tagline</strong>
+            Mismo problema de tamaño. <span class="warn">No recomendado.</span>
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="logo">
+            <div class="lock">
+              <svg class="pulse" viewBox="0 0 48 26" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" style="color: #1cc29f; width: 46px; height: auto">
+                <polyline points="2,14 9,14 11.5,10 14,14 17,14 18.5,16.5 20.5,1.5 22.5,23 25,14 27,10.5 29.5,14 46,14" transform="translate(0,-1)" />
+              </svg>
+              <img class="word" src="../../../../docs/brand/assets/wordmark-bare-dark.svg" alt="027Apps" style="height: 22px" />
+            </div>
+          </div>
+          <div class="meta">
+            <strong>A · latido + wordmark sin tagline</strong>
+            El latido pasa al teal brillante del tema oscuro.
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="logo">
+            <div class="lock">
+              <img class="icon" src="../../../../docs/brand/assets/icon-dark.svg" alt="" />
+              <img class="word" src="../../../../docs/brand/assets/wordmark-bare-dark.svg" alt="027Apps" style="height: 22px" />
+            </div>
+          </div>
+          <div class="meta">
+            <strong>B · icono de app + wordmark</strong>
+            El squircle oscuro se funde con la superficie; queda el electro con el «027».
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="logo">
+            <img class="word" src="../../../../docs/brand/assets/wordmark-bare-dark.svg" alt="027Apps" style="height: 22px" />
+          </div>
+          <div class="meta">
+            <strong>C · solo wordmark sin tagline</strong>
+            La opción más limpia en oscuro.
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <p class="note">
+      Para el correo real, cada variante iría como <code>PNG</code> absoluto (Outlook no pinta SVG),
+      con su versión clara y oscura. El lockup A puede exportarse como una sola imagen o montarse
+      con dos <code>&lt;img&gt;</code> alineadas; dos imágenes permiten reutilizar los assets que ya
+      existen sin generar un fichero nuevo por tema.
+    </p>
+  </body>
+</html>

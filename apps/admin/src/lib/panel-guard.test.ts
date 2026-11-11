@@ -25,7 +25,14 @@ vi.mock("@/lib/api/door", () => ({
 
 import { hasPanelRole, loadPanelUser, requirePanel, type PanelUser } from "./panel-guard";
 
-const ADMIN: PanelUser = { id: "u-1", email: "a@b.co", displayName: "Ana", role: "admin" };
+const ADMIN: PanelUser = {
+  id: "u-1",
+  email: "a@b.co",
+  displayName: "Ana",
+  role: "admin",
+  locale: "es",
+  theme: "system",
+};
 
 beforeEach(() => {
   redirectMock.mockClear();
@@ -50,12 +57,32 @@ describe("loadPanelUser", () => {
     expect(queryMock).toHaveBeenCalledWith(expect.stringContaining("deactivated_at is null"), ["u-1"]);
   });
 
-  it("reads display name and role in a single profile query", async () => {
+  it("reads display name, role and appearance in a single profile query", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "u-1", email: "a@b.co" } } });
-    queryMock.mockResolvedValue({ rows: [{ display_name: "Ana", role: "admin" }] });
+    queryMock.mockResolvedValue({
+      rows: [{ display_name: "Ana", role: "admin", locale: "es", theme: "system" }],
+    });
 
     await expect(loadPanelUser()).resolves.toEqual(ADMIN);
     expect(queryMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the stored per-user theme and locale", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "u-1", email: "a@b.co" } } });
+    queryMock.mockResolvedValue({
+      rows: [{ display_name: "Ana", role: "admin", locale: "ca", theme: "dark" }],
+    });
+
+    await expect(loadPanelUser()).resolves.toMatchObject({ locale: "ca", theme: "dark" });
+  });
+
+  it("falls back when the stored preferences are unknown", async () => {
+    getUserMock.mockResolvedValue({ data: { user: { id: "u-1", email: "a@b.co" } } });
+    queryMock.mockResolvedValue({
+      rows: [{ display_name: "Ana", role: "admin", locale: "xx", theme: "neon" }],
+    });
+
+    await expect(loadPanelUser()).resolves.toMatchObject({ locale: "en", theme: "system" });
   });
 });
 
@@ -75,7 +102,7 @@ describe("hasPanelRole", () => {
 describe("requirePanel", () => {
   it("waits for the request before reading the session (never prerenders Date.now)", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "u-1", email: "a@b.co" } } });
-    queryMock.mockResolvedValue({ rows: [{ display_name: "Ana", role: "admin" }] });
+    queryMock.mockResolvedValue({ rows: [{ display_name: "Ana", role: "admin", locale: "es", theme: "system" }] });
 
     await requirePanel("admin");
 
@@ -102,7 +129,7 @@ describe("requirePanel", () => {
 
   it("denies a user role below the minimum", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "u-1", email: "a@b.co" } } });
-    queryMock.mockResolvedValue({ rows: [{ display_name: "Ana", role: "user" }] });
+    queryMock.mockResolvedValue({ rows: [{ display_name: "Ana", role: "user", locale: "es", theme: "system" }] });
 
     await expect(requirePanel("admin")).resolves.toEqual({
       denied: true,
@@ -113,7 +140,7 @@ describe("requirePanel", () => {
 
   it("returns the user when the role meets the minimum", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "u-1", email: "a@b.co" } } });
-    queryMock.mockResolvedValue({ rows: [{ display_name: "Ana", role: "admin" }] });
+    queryMock.mockResolvedValue({ rows: [{ display_name: "Ana", role: "admin", locale: "es", theme: "system" }] });
 
     await expect(requirePanel("admin")).resolves.toEqual({ user: ADMIN });
   });

@@ -12,10 +12,23 @@ export interface CreateInvitationInput {
   user_category_id?: string;
   modules?: string[];
   expires_in_days?: number;
+  locale?: string;
+  delivery?: "email" | "link";
+}
+
+/** Result of handing the invitation to Resend. */
+export interface InvitationDelivery {
+  status: "sent" | "failed" | "skipped";
+  code?: string;
 }
 
 export type CreateInvitationResult =
-  | { ok: true; token?: string; invitationId?: string }
+  | { ok: true; token?: string; invitationId?: string; email?: InvitationDelivery }
+  | MutationFailure;
+
+/** A reissued token, plus the email outcome when the action sends one. */
+export type InvitationActionResult =
+  | { ok: true; token: string; email?: InvitationDelivery }
   | MutationFailure;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -40,7 +53,18 @@ function requestBody(input: CreateInvitationInput): Record<string, unknown> {
   if (input.user_category_id) body.user_category_id = input.user_category_id;
   if (input.modules && input.modules.length > 0) body.modules = input.modules;
   if (input.expires_in_days !== undefined) body.expires_in_days = input.expires_in_days;
+  if (input.locale) body.locale = input.locale;
+  if (input.delivery) body.delivery = input.delivery;
   return body;
+}
+
+function readDelivery(value: unknown): InvitationDelivery | undefined {
+  if (!isRecord(value)) return undefined;
+  if (value.status !== "sent" && value.status !== "failed" && value.status !== "skipped") {
+    return undefined;
+  }
+  const code = readString(value.code);
+  return { status: value.status, ...(code ? { code } : {}) };
 }
 
 function createdResult(parsed: unknown, headerRequestId: string | undefined): CreateInvitationResult {
@@ -48,11 +72,46 @@ function createdResult(parsed: unknown, headerRequestId: string | undefined): Cr
   const token = readString(parsed.token);
   const invitation = isRecord(parsed.invitation) ? parsed.invitation : {};
   const invitationId = readString(invitation.id);
+  const email = readDelivery(parsed.email);
   return {
     ok: true,
     ...(token ? { token } : {}),
     ...(invitationId ? { invitationId } : {}),
+    ...(email ? { email } : {}),
   };
+}
+
+/** Full invitation link from the instance's public URL; the token alone if unset. */
+export function invitationLink(token: string, publicUrl: string | null): string {
+  return publicUrl
+    ? `${publicUrl.replace(/\/+$/, "")}/invite/${encodeURIComponent(token)}`
+    : token;
+}
+
+async function postAction(
+  path: string,
+  fetcher: typeof fetch,
+): Promise<InvitationActionResult> {
+  let res: Response;
+  try {
+    res = await fetcher(path, { method: "POST", credentials: "same-origin" });
+  } catch {
+    return { ok: false };
+  }
+
+  if (!res.ok) return bodyOrFailure(res);
+
+  const headerRequestId = res.headers.get("x-request-id") ?? undefined;
+  try {
+    const parsed: unknown = JSON.parse(await res.text());
+    if (!isRecord(parsed)) return withoutBody(headerRequestId);
+    const token = readString(parsed.token);
+    if (!token) return withoutBody(headerRequestId);
+    const email = readDelivery(parsed.email);
+    return { ok: true, token, ...(email ? { email } : {}) };
+  } catch {
+    return withoutBody(headerRequestId);
+  }
 }
 
 /**
@@ -100,4 +159,20 @@ export async function revokeInvitation(
     return { ok: false };
   }
   return readMutation(res);
+}
+
+/** Reissues the token and sends it again; only pending invitations. */
+export function resendInvitationEmail(
+  id: string,
+  fetcher: typeof fetch = fetch,
+): Promise<InvitationActionResult> {
+  return postAction(`/api/v1/invitations/${encodeURIComponent(id)}/resend-email`, fetcher);
+}
+
+/** Reissues the token without sending it, for the manual copy fallback. */
+export function regenerateInvitationLink(
+  id: string,
+  fetcher: typeof fetch = fetch,
+): Promise<InvitationActionResult> {
+  return postAction(`/api/v1/invitations/${encodeURIComponent(id)}/link`, fetcher);
 }

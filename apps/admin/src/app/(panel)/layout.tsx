@@ -1,14 +1,12 @@
-import { cookies } from "next/headers";
 import { DocumentLang } from "@/components/document-lang";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { PanelHeader } from "@/components/panel-header";
 import { PanelMobileMenu } from "@/components/panel-mobile-menu";
 import { PanelNav } from "@/components/panel-nav";
-import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
 import { loadPanelSettings } from "@/lib/panel-settings";
-import { THEME_COOKIE, themeFromCookie } from "@/lib/theme";
+import { panelThemeScript } from "@/lib/theme";
 
 /**
  * The panel reads the session, the role and the instance settings on every
@@ -19,13 +17,16 @@ export const instant = false;
 export default async function PanelLayout({ children }: LayoutProps<"/">) {
   const gate = await requirePanel("admin");
 
-  const cookieStore = await cookies();
-  const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
-  const theme = themeFromCookie(cookieStore.get(THEME_COOKIE)?.value);
+  const locale = gate.user.locale;
+  const theme = gate.user.theme;
   const messages = await loadPanelMessages(locale);
+  const themeScript = (
+    <script dangerouslySetInnerHTML={{ __html: panelThemeScript(theme, locale) }} />
+  );
   if ("denied" in gate) {
     return (
       <>
+        {themeScript}
         <PanelForbidden locale={locale} messages={messages} user={gate.user} standalone />
         <DocumentLang locale={locale} />
       </>
@@ -41,6 +42,7 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
       lang={locale}
       className="grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[220px_1fr]"
     >
+      {themeScript}
       <aside className="hidden border-r border-border bg-muted p-3 lg:block">
         <PanelNav role={role} messages={messages} variant="sidebar" />
       </aside>

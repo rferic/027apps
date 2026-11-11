@@ -3,6 +3,7 @@ import { DOMAIN_ERROR_CODES, type ErrorEnvelope } from "../errors";
 import type { UserView } from "../users/service";
 import type { CategoryDetail, CategoryMember, CategoryView } from "../user-categories/service";
 import type { InvitationDetail, InvitationView, RedeemResult } from "../invitations/service";
+import { EMAIL_LOCALES } from "../email/types";
 import type { ApiKeyView } from "../api-keys/service";
 import type { DeviceView } from "../devices/service";
 import type {
@@ -244,9 +245,14 @@ export const invitationSchema = component(
       user_category_id: z.uuid().nullable(),
       modules: z.array(z.string()),
       status: z.enum(["pending", "used", "expired", "revoked"]),
+      locale: z.enum(EMAIL_LOCALES),
+      mode: z.enum(["sent", "failed", "not_sent"]),
       expires_at: isoDate,
       used_at: nullableDate,
       revoked_at: nullableDate,
+      email_sent_at: nullableDate,
+      email_failed_at: nullableDate,
+      email_error: z.string().nullable(),
       created_at: isoDate,
     })
     .strict() satisfies z.ZodType<InvitationView>,
@@ -264,9 +270,25 @@ export const invitationListSchema = component(
     .strict(),
 );
 
+export const invitationEmailSchema = component(
+  "InvitationEmail",
+  z
+    .object({
+      status: z.enum(["sent", "failed", "skipped"]),
+      code: z.string().optional(),
+    })
+    .strict(),
+);
+
 export const invitationCreatedSchema = component(
   "InvitationCreated",
-  z.object({ invitation: invitationSchema, token: z.string() }).strict(),
+  z
+    .object({
+      invitation: invitationSchema,
+      token: z.string(),
+      email: invitationEmailSchema,
+    })
+    .strict(),
 );
 
 export const invitationDetailSchema = component(
@@ -284,6 +306,16 @@ export const invitationDetailSchema = component(
 export const invitationDetailResponseSchema = component(
   "InvitationDetailResponse",
   z.object({ invitation: invitationDetailSchema }).strict(),
+);
+
+export const invitationResendResponseSchema = component(
+  "InvitationResendResponse",
+  z.object({ token: z.string(), email: invitationEmailSchema }).strict(),
+);
+
+export const invitationLinkResponseSchema = component(
+  "InvitationLinkResponse",
+  z.object({ token: z.string(), invitation: invitationSchema }).strict(),
 );
 
 export const redeemResultSchema = component(

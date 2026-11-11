@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invitación · v3 acción primero</title>
+    <link rel="stylesheet" href="mockup.css" />
+  </head>
+  <body class="v3">
+    <div class="preview-bar">
+      <span class="label">Vista previa · no forma parte del correo</span>
+      <button data-locale="es">ES</button>
+      <button data-locale="ca">CA</button>
+      <button data-locale="gl">GL</button>
+      <button data-locale="eu">EU</button>
+      <button data-locale="pt">PT</button>
+      <button data-locale="fr">FR</button>
+      <button data-locale="it">IT</button>
+      <button data-locale="de">DE</button>
+      <button data-locale="en">EN</button>
+      <button data-theme="light">Claro</button>
+      <button data-theme="dark">Oscuro</button>
+      <span class="subject" data-i18n="subject"></span>
+    </div>
+
+    <table
+      role="presentation"
+      class="email"
+      width="600"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+    >
+      <tr>
+        <td>
+          <div class="band">
+            <span class="lockup">
+              <svg class="pulse" viewBox="0 0 48 26" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="2,14 9,14 11.5,10 14,14 17,14 18.5,16.5 20.5,1.5 22.5,23 25,14 27,10.5 29.5,14 46,14" transform="translate(0,-1)" /></svg>
+              <img class="word-mono" src="../../../../docs/brand/assets/wordmark-mono.svg" alt="027Apps" height="22" />
+            </span>
+            <span class="tag" data-i18n="tag"></span>
+          </div>
+          <div class="body">
+            <h1 data-i18n="greeting"></h1>
+            <p class="lead" data-i18n="lead"></p>
+            <div class="action">
+              <a class="cta" href="#" data-i18n="cta"></a>
+            </div>
+            <p class="fallback">
+              <span data-i18n="fallback"></span><br />
+              <a href="#" data-link></a>
+            </p>
+            <div class="rows">
+              <div class="row">
+                <span data-i18n="invitedBy"></span><strong>Eric</strong>
+              </div>
+              <div class="row">
+                <span data-i18n="instanceLabel"></span><strong>027Apps</strong>
+              </div>
+              <div class="row">
+                <span data-i18n="expiryLabel"></span>
+                <span class="pill" data-i18n="expiryDate"></span>
+              </div>
+            </div>
+            <p class="security" data-i18n="security"></p>
+            <p class="footer" data-i18n="footer"></p>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <script src="mockup.js"></script>
+  </body>
+</html>
