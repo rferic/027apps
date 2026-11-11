@@ -26,6 +26,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      // The bootstrap script sets `lang`, the theme class and color-scheme
+      // before hydration on purpose; React would otherwise warn about attributes
+      // it did not render. This only silences that element's attributes.
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript() }} />
