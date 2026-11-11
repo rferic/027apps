@@ -3,6 +3,7 @@ import { DomainError } from "../errors";
 import { enqueueEvent } from "../realtime/service";
 import type { Caller } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
+import { isEmailLocale, type EmailLocale } from "../email/types";
 
 /**
  * Invitations (core-data-model §3.4, auth spec §3): the only self-service way
@@ -39,9 +40,14 @@ export type InvitationView = {
   user_category_id: string | null;
   modules: string[];
   status: InvitationStatus;
+  locale: EmailLocale;
   expires_at: string;
   used_at: string | null;
   revoked_at: string | null;
+  mode: "sent" | "failed" | "not_sent";
+  email_sent_at: string | null;
+  email_failed_at: string | null;
+  email_error: string | null;
   created_at: string;
 };
 
@@ -56,6 +62,8 @@ export interface CreateInvitationInput {
   user_category_id?: string | null;
   modules?: string[];
   expires_in_days?: number;
+  /** Locale of the email; defaults to the instance's default locale. */
+  locale?: EmailLocale;
 }
 
 export interface RedeemInput {
@@ -174,7 +182,14 @@ function statusOf(row: Record<string, unknown>, now: Date): InvitationStatus {
   return new Date(String(row.expires_at)).getTime() <= now.getTime() ? "expired" : "pending";
 }
 
+function emailState(row: Record<string, unknown>): InvitationView["mode"] {
+  if (row.email_sent_at !== null && row.email_sent_at !== undefined) return "sent";
+  if (row.email_failed_at !== null && row.email_failed_at !== undefined) return "failed";
+  return "not_sent";
+}
+
 function toView(row: Record<string, unknown>, modules: string[], now: Date): InvitationView {
+  const locale = isEmailLocale(row.locale) ? row.locale : "en";
   return {
     id: String(row.id),
     email: String(row.email),
@@ -182,9 +197,14 @@ function toView(row: Record<string, unknown>, modules: string[], now: Date): Inv
     user_category_id: row.user_category_id === null ? null : String(row.user_category_id),
     modules,
     status: statusOf(row, now),
+    locale,
     expires_at: toIso(row.expires_at),
     used_at: toIsoOrNull(row.used_at),
     revoked_at: toIsoOrNull(row.revoked_at),
+    mode: emailState(row),
+    email_sent_at: toIsoOrNull(row.email_sent_at),
+    email_failed_at: toIsoOrNull(row.email_failed_at),
+    email_error: row.email_error === null || row.email_error === undefined ? null : String(row.email_error),
     created_at: toIso(row.created_at),
   };
 }
@@ -219,6 +239,20 @@ async function defaultProfileLocalization(
   };
 }
 
+/** Requested locale, or the instance default when the form leaves it out. */
+async function invitationLocale(db: QueryClient, requested?: EmailLocale): Promise<EmailLocale> {
+  if (requested !== undefined) {
+    if (!isEmailLocale(requested)) throw new DomainError("validation_failed", "invalid locale");
+    return requested;
+  }
+  const { rows } = await db.query(
+    "select value from public.settings where key = $1",
+    ["localization.default_locale"],
+  );
+  const value = rows[0]?.value;
+  return isEmailLocale(value) ? value : "en";
+}
+
 export async function createInvitation(
   deps: InvitationsDeps,
   caller: Caller,
@@ -231,6 +265,7 @@ export async function createInvitation(
   const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
   const token = newInvitationToken();
   const email = normalizeEmail(input.email);
+  const locale = await invitationLocale(deps.db, input.locale);
 
   if (input.user_category_id) await assertCategory(deps.db, input.user_category_id);
 
@@ -265,14 +300,15 @@ export async function createInvitation(
     const { rows } = await db
       .query(
         `insert into public.invitations
-           (email, name, user_category_id, token_hash, expires_at, created_by, created_by_key)
-         values ($1, $2, $3, $4, $5, $6, $7)
+           (email, name, user_category_id, token_hash, locale, expires_at, created_by, created_by_key)
+         values ($1, $2, $3, $4, $5, $6, $7, $8)
          returning id`,
         [
           email,
           input.name.trim(),
           input.user_category_id ?? null,
           hashInvitationToken(token),
+          locale,
           expiresAt.toISOString(),
           actor.by,
           actor.byKey,
@@ -308,7 +344,8 @@ export async function createInvitation(
   });
 
   const { rows } = await deps.db.query(
-    `select id, email, name, user_category_id, expires_at, used_at, revoked_at, created_at
+    `select id, email, name, user_category_id, locale, expires_at, used_at, revoked_at,
+            email_sent_at, email_failed_at, email_error, created_at
        from public.invitations where id = $1`,
     [invitationId],
   );
@@ -325,7 +362,8 @@ export async function listInvitations(
   // paginator and the panel agree on how many rows the list really has.
   const { rows } = await deps.db.query(
     `with filtered as (
-       select id, email, name, user_category_id, expires_at, used_at, revoked_at, created_at
+       select id, email, name, user_category_id, locale, expires_at, used_at, revoked_at,
+              email_sent_at, email_failed_at, email_error, created_at
          from public.invitations
         where $3::text = 'all'
            or ($3::text = 'used' and used_at is not null)
@@ -365,7 +403,8 @@ export async function getInvitation(
 ): Promise<InvitationDetail> {
   const now = deps.now?.() ?? new Date();
   const { rows } = await deps.db.query(
-    `select i.id, i.email, i.name, i.user_category_id, i.expires_at, i.used_at, i.revoked_at,
+    `select i.id, i.email, i.name, i.user_category_id, i.locale, i.expires_at, i.used_at,
+            i.revoked_at, i.email_sent_at, i.email_failed_at, i.email_error,
             i.created_at, p.id as created_by_id, p.display_name as created_by_display_name
        from public.invitations i
        left join public.profiles p on p.id = i.created_by
@@ -406,6 +445,91 @@ export async function revokeInvitation(deps: InvitationsDeps, id: string): Promi
     throw new DomainError("invitation_used");
   }
   // Already revoked: revocation is idempotent.
+}
+
+/** Still-pending check shared by the resend and link actions. */
+function assertPending(row: Record<string, unknown>, now: Date): void {
+  if (row.used_at !== null && row.used_at !== undefined) throw new DomainError("invitation_used");
+  // A revoked invitation is indistinguishable from a missing one on purpose.
+  if (row.revoked_at !== null && row.revoked_at !== undefined) throw new DomainError("not_found");
+  if (new Date(String(row.expires_at)).getTime() <= now.getTime()) {
+    throw new DomainError("invitation_expired");
+  }
+}
+
+export interface RotatedInvitation {
+  invitation: InvitationView;
+  token: string;
+}
+
+/**
+ * Issues a new token for a pending invitation and invalidates the previous one.
+ * Used by both "resend" and "generate a new link": the database only keeps the
+ * hash, so the original link can never be recovered.
+ */
+export async function rotateInvitationToken(
+  deps: InvitationsDeps,
+  id: string,
+  now: Date = deps.now?.() ?? new Date(),
+): Promise<RotatedInvitation> {
+  const token = newInvitationToken();
+  const tokenHash = hashInvitationToken(token);
+
+  const row = await withTx(deps, async (db) => {
+    const { rows } = await db.query(
+      `select id, email, name, user_category_id, locale, expires_at, used_at, revoked_at,
+              email_sent_at, email_failed_at, email_error, created_at
+         from public.invitations where id = $1 for update`,
+      [id],
+    );
+    const current = rows[0];
+    if (!current) throw new DomainError("not_found");
+    assertPending(current, now);
+    await db.query("update public.invitations set token_hash = $1 where id = $2", [tokenHash, id]);
+    return current;
+  });
+
+  const modules = await modulesFor(deps.db, [id]);
+  return { invitation: toView(row, modules.get(id) ?? [], now), token };
+}
+
+export interface EmailAttempt {
+  status: "sent" | "failed";
+  code?: string;
+}
+
+/** Records the last email attempt; `email_error` is a short code, never a body. */
+export async function recordEmailAttempt(
+  deps: InvitationsDeps,
+  id: string,
+  attempt: EmailAttempt,
+): Promise<void> {
+  if (attempt.status === "sent") {
+    await deps.db.query(
+      `update public.invitations
+          set email_sent_at = now(), email_failed_at = null, email_error = null
+        where id = $1`,
+      [id],
+    );
+    return;
+  }
+  await deps.db.query(
+    "update public.invitations set email_failed_at = now(), email_error = $2 where id = $1",
+    [id, (attempt.code ?? "email_failed").slice(0, 64)],
+  );
+}
+
+export const RESEND_COOLDOWN_MS = 60_000;
+
+/** Seconds left before the invitation may send another email (0 when ready). */
+export function resendCooldownSeconds(invitation: InvitationView, now: Date): number {
+  const attempts = [invitation.email_sent_at, invitation.email_failed_at]
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => new Date(value).getTime())
+    .filter((value) => Number.isFinite(value));
+  if (attempts.length === 0) return 0;
+  const remaining = Math.max(...attempts) + RESEND_COOLDOWN_MS - now.getTime();
+  return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
 }
 
 /** Rejects a token that cannot be redeemed right now. */

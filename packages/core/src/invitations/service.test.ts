@@ -5,6 +5,10 @@ import {
   createInvitation,
   getInvitation,
   redeemInvitation,
+  resendCooldownSeconds,
+  rotateInvitationToken,
+  RESEND_COOLDOWN_MS,
+  type InvitationView,
   type InvitationsAuth,
   type InvitationsDeps,
 } from "./service.js";
@@ -232,10 +236,11 @@ function invitationTable(seed: StoredInvitation[] = []) {
         }
         if (sql.includes("insert into public.invitations")) {
           seq += 1;
-          const [email, name, categoryId, , expiresAt] = params as [
+          const [email, name, categoryId, , locale, expiresAt] = params as [
             string,
             string,
             string | null,
+            string,
             string,
             string,
           ];
@@ -245,9 +250,13 @@ function invitationTable(seed: StoredInvitation[] = []) {
             email,
             name,
             user_category_id: categoryId,
+            locale,
             expires_at: expiresAt,
             used_at: null,
             revoked_at: null,
+            email_sent_at: null,
+            email_failed_at: null,
+            email_error: null,
             created_at: NOW.toISOString(),
           });
           return { rows: [{ id }] };
@@ -445,5 +454,102 @@ describe("getInvitation", () => {
     expect(serialized).not.toContain("token");
     expect(detail).not.toHaveProperty("token");
     expect(detail).not.toHaveProperty("token_hash");
+  });
+});
+
+
+describe("rotateInvitationToken", () => {
+  const NOW = new Date("2026-01-01T00:00:00.000Z");
+  const pending = {
+    id: "i1",
+    email: "ana@example.com",
+    name: "Ana",
+    user_category_id: null,
+    locale: "es",
+    expires_at: "2099-01-01T00:00:00.000Z",
+    used_at: null,
+    revoked_at: null,
+    email_sent_at: null,
+    email_failed_at: null,
+    email_error: null,
+    created_at: "2026-01-01T00:00:00.000Z",
+  };
+
+  function depsFor(row: Record<string, unknown> | null, now = NOW) {
+    const updates: unknown[][] = [];
+    const deps: InvitationsDeps = {
+      db: {
+        async query(sql, params = []) {
+          if (sql.includes("for update")) return { rows: row ? [row] : [] };
+          if (sql.includes("set token_hash")) {
+            updates.push(params);
+            return { rows: [] };
+          }
+          if (sql.includes("invitation_modules")) return { rows: [] };
+          return { rows: [] };
+        },
+      },
+      auth: auth(),
+      now: () => now,
+    };
+    return { deps, updates };
+  }
+
+  it("issues a new token and replaces the stored hash", async () => {
+    const { deps, updates } = depsFor(pending);
+
+    const rotated = await rotateInvitationToken(deps, "i1");
+
+    expect(rotated.token).toMatch(/^027_inv_/);
+    expect(rotated.token).not.toBe(pending.id);
+    expect(rotated.invitation.locale).toBe("es");
+    expect(updates).toHaveLength(1);
+    expect(updates[0]?.[1]).toBe("i1");
+    expect(String(updates[0]?.[0])).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("refuses a redeemed invitation", async () => {
+    const { deps } = depsFor({ ...pending, used_at: "2026-01-01T00:00:00.000Z" });
+
+    await expect(rotateInvitationToken(deps, "i1")).rejects.toMatchObject({
+      code: "invitation_used",
+    });
+  });
+
+  it("refuses an expired invitation", async () => {
+    const { deps } = depsFor({ ...pending, expires_at: "2025-01-01T00:00:00.000Z" });
+
+    await expect(rotateInvitationToken(deps, "i1")).rejects.toMatchObject({
+      code: "invitation_expired",
+    });
+  });
+
+  it("hides a revoked invitation behind not_found", async () => {
+    const { deps } = depsFor({ ...pending, revoked_at: "2026-01-01T00:00:00.000Z" });
+
+    await expect(rotateInvitationToken(deps, "i1")).rejects.toMatchObject({ code: "not_found" });
+  });
+});
+
+describe("resendCooldownSeconds", () => {
+  const view = {
+    email_sent_at: "2026-01-01T00:00:00.000Z",
+    email_failed_at: null,
+  } as unknown as InvitationView;
+
+  it("counts the remaining seconds of the window", () => {
+    const now = new Date(new Date(view.email_sent_at!).getTime() + 15_000);
+    expect(resendCooldownSeconds(view, now)).toBe(45);
+  });
+
+  it("is zero once the window has passed", () => {
+    const now = new Date(new Date(view.email_sent_at!).getTime() + RESEND_COOLDOWN_MS + 1);
+    expect(resendCooldownSeconds(view, now)).toBe(0);
+  });
+
+  it("is zero when there was no attempt", () => {
+    expect(
+      resendCooldownSeconds({ email_sent_at: null, email_failed_at: null } as InvitationView, new Date()),
+    ).toBe(0);
   });
 });
