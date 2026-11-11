@@ -13,11 +13,11 @@
 
 ## Bloque 2 — páginas
 
-- [ ] Página `/` (app) en inglés: hero, módulos con pantalla, Android, FAQ, tarjeta al proyecto.
-- [ ] Página `/self-host`: panel, API, MCP, tecnologías, pasos, arquitectura, FAQ.
-- [ ] Contenido en `landing-content.ts` con fichas de módulo y claves de traducción.
-- [ ] Layout y estilos de landing (tokens; sin JS salvo el selector de idioma).
-- [ ] Rutas de idioma para las 8 variantes; inglés por defecto.
+- [x] Página `/` (app) en inglés: hero, módulos con pantalla, Android, FAQ, tarjeta al proyecto.
+- [x] Página `/self-host`: panel, API, MCP, tecnologías, pasos, arquitectura, FAQ.
+- [ ] Contenido en `landing-content.ts` con fichas de módulo y claves de traducción (las páginas usan el copy inglés del mockup).
+- [x] Layout y estilos de landing (`landing.css` con prefijo `.lp`; sin JS).
+- [ ] Rutas de idioma para las 8 variantes; inglés por defecto (el selector ya está en la UI).
 - [ ] Capturas reales del panel con datos de demo en `public/landing/`; mockups para la app.
 - [ ] `docs/ai/landing.md` + puntero en `AGENTS.md`; check de fichas y traducciones.
 - [ ] README raíz alineado con la landing.
