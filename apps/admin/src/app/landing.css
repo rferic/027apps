@@ -1496,6 +1496,11 @@
     line-height: 1;
   }
 
+  /* Panel section: the copy stays left, the two buttons centre on mobile. */
+  .lp #panel .hero-actions {
+    justify-content: center;
+  }
+
   /* Footer: brand, links and the closing line centred instead of squeezed. */
   .lp .footer {
     padding: 32px 0 48px;
