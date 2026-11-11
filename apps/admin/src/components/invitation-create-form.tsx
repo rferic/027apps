@@ -13,6 +13,7 @@ import { LOCALE_LABELS } from "@/lib/locale";
 import type { Locale } from "@027apps/i18n/types.js";
 import {
   createInvitation,
+  invitationLink,
   type CreateInvitationInput,
   type InvitationDelivery,
 } from "@/lib/invitation-mutations";
@@ -85,12 +86,14 @@ function InvitationCreateError({
 
 function TokenPanel({
   token,
+  publicUrl,
   copied,
   copyFailed = false,
   onCopy,
   messages,
 }: {
   token: string;
+  publicUrl: string | null;
   copied: boolean;
   copyFailed?: boolean;
   onCopy: () => void;
@@ -102,17 +105,17 @@ function TokenPanel({
       className="mt-3 flex flex-col gap-2 rounded-card border border-border bg-muted p-3"
     >
       <p className="text-xs font-semibold">
-        {t("Copy this token now. It will not be shown again.", messages)}
+        {t("Copy this link now. It will not be shown again.", messages)}
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <input
           readOnly
-          value={token}
-          aria-label={t("Invitation token", messages)}
+          value={invitationLink(token, publicUrl)}
+          aria-label={t("Invitation link", messages)}
           className="min-h-11 min-w-0 flex-1 rounded-control border border-border bg-background px-2.5 font-mono text-xs text-foreground"
         />
         <Button variant="secondary" className="min-h-11" onClick={onCopy}>
-          {copied ? t("Copied.", messages) : t("Copy token", messages)}
+          {copied ? t("Copied.", messages) : t("Copy link", messages)}
         </Button>
       </div>
       {copyFailed && (
@@ -137,6 +140,7 @@ function TokenPanel({
  */
 export function InvitationCreatedPanel({
   token,
+  publicUrl,
   email = null,
   copied,
   copyFailed = false,
@@ -148,6 +152,7 @@ export function InvitationCreatedPanel({
   messages,
 }: {
   token: string | null;
+  publicUrl: string | null;
   email?: InvitationDelivery | null;
   copied: boolean;
   copyFailed?: boolean;
@@ -173,6 +178,7 @@ export function InvitationCreatedPanel({
       {token ? (
         <TokenPanel
           token={token}
+          publicUrl={publicUrl}
           copied={copied}
           copyFailed={copyFailed}
           onCopy={onCopy}
@@ -344,6 +350,8 @@ interface InvitationCreateFormProps {
   optionsUnavailable?: boolean;
   /** Preselected email language: the panel locale. */
   defaultLocale: Locale;
+  /** `instance.public_url`; the success panel builds the link from it. */
+  publicUrl: string | null;
   messages: TranslationMap;
 }
 
@@ -358,6 +366,7 @@ export function InvitationCreateForm({
   modules,
   optionsUnavailable = false,
   defaultLocale,
+  publicUrl,
   messages,
 }: InvitationCreateFormProps) {
   const router = useRouter();
@@ -389,8 +398,8 @@ export function InvitationCreateForm({
 
   async function handleCopy() {
     if (!createForm.result) return;
-    // The token stays in a selectable <input> if every copy path fails.
-    const ok = await copyText(createForm.result);
+    // The link stays in a selectable <input> if every copy path fails.
+    const ok = await copyText(invitationLink(createForm.result, publicUrl));
     createForm.dispatch({ type: "copy", ok });
   }
 
@@ -398,6 +407,7 @@ export function InvitationCreateForm({
     return (
       <InvitationCreatedPanel
         token={createForm.result}
+        publicUrl={publicUrl}
         email={delivery}
         copied={createForm.copied}
         copyFailed={createForm.copyFailed}

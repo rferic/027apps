@@ -93,6 +93,7 @@
   "Copy link": "Kopiatu esteka",
   "Copy the project ID, app ID, web API key and sender ID from the Firebase app settings. These four values identify the client app; the web API key is public.": "Kopiatu proiektu ID-a, app ID-a, web API gakoa eta bidaltzailearen ID-a Firebase aplikazioaren ezarpenetatik. Lau balio hauek bezero-aplikazioa identifikatzen dute; web API gakoa publikoa da.",
   "Copy this key now. It will not be shown again.": "Kopiatu gako hau orain. Ez da berriro erakutsiko.",
+  "Copy this link now. It will not be shown again.": "Kopiatu esteka hau orain. Ez da berriro erakutsiko.",
   "Copy this token now. It will not be shown again.": "Kopiatu token hau orain. Ez da berriz erakutsiko.",
   "Copy token": "Kopiatu tokena",
   "Create API key": "Sortu API gakoa",

@@ -81,6 +81,13 @@ function createdResult(parsed: unknown, headerRequestId: string | undefined): Cr
   };
 }
 
+/** Full invitation link from the instance's public URL; the token alone if unset. */
+export function invitationLink(token: string, publicUrl: string | null): string {
+  return publicUrl
+    ? `${publicUrl.replace(/\/+$/, "")}/invite/${encodeURIComponent(token)}`
+    : token;
+}
+
 async function postAction(
   path: string,
   fetcher: typeof fetch,

@@ -24,7 +24,7 @@ import {
   type InvitationStatus,
 } from "@/lib/panel-invitations";
 import { loadPanelMessages } from "@/lib/panel-i18n";
-import { loadPanelSettings, loadPanelTimeZone } from "@/lib/panel-settings";
+import { loadPanelSettings, loadPanelTimeZone, publicUrlFromSettings } from "@/lib/panel-settings";
 import { requirePanel } from "@/lib/panel-guard";
 
 /**
@@ -55,12 +55,6 @@ function statusLabel(status: InvitationStatus, messages: TranslationMap): string
     default:
       return t("Revoked", messages);
   }
-}
-
-function publicUrlOf(settings: Record<string, unknown>): string | null {
-  return typeof settings["instance.public_url"] === "string"
-    ? settings["instance.public_url"]
-    : null;
 }
 
 function emailModeLabel(mode: InvitationEmailMode, messages: TranslationMap): string {
@@ -290,7 +284,7 @@ export default async function InvitationPage({ params }: { params: Promise<{ id:
   }
 
   const invitation = detail.invitation;
-  const publicUrl = publicUrlOf(await loadPanelSettings());
+  const publicUrl = publicUrlFromSettings(await loadPanelSettings());
   const [category, moduleChoices] = await Promise.all([
     invitation.user_category_id
       ? loadCategory(invitation.user_category_id)

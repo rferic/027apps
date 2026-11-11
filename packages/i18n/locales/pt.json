@@ -93,6 +93,7 @@
   "Copy link": "Copiar ligação",
   "Copy the project ID, app ID, web API key and sender ID from the Firebase app settings. These four values identify the client app; the web API key is public.": "Copie o ID do projeto, o ID do aplicativo, a chave da API da Web e o ID do remetente nas configurações do aplicativo do Firebase. Esses quatro valores identificam o aplicativo cliente; a chave da API da Web é pública.",
   "Copy this key now. It will not be shown again.": "Copie esta chave agora. Ela não será mostrada novamente.",
+  "Copy this link now. It will not be shown again.": "Copia esta ligação agora. Não será mostrada novamente.",
   "Copy this token now. It will not be shown again.": "Copie este token agora. Não será mostrado novamente.",
   "Copy token": "Copiar token",
   "Create API key": "Criar chave de API",

@@ -7,6 +7,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
 import { copyText } from "@/lib/clipboard";
 import {
+  invitationLink,
   regenerateInvitationLink,
   resendInvitationEmail,
   type InvitationDelivery,
@@ -51,8 +52,7 @@ export function InvitationActions({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const link =
-    token && publicUrl ? `${publicUrl.replace(/\/+$/, "")}/invite/${encodeURIComponent(token)}` : token;
+  const link = token ? invitationLink(token, publicUrl) : null;
 
   async function run(action: Action) {
     setBusy(action);
