@@ -35,6 +35,12 @@ The website presents the product; the panel is where a family runs it.
 APKs are published on [GitHub Releases](https://github.com/rferic/027apps/releases). There is no
 public signup: members join with an invitation.
 
+## Screens
+
+| The family app | The project |
+|:---:|:---:|
+| <img src="docs/brand/readme-app.png" alt="The 027Apps family app landing" width="100%"> | <img src="docs/brand/readme-selfhost.png" alt="The 027Apps self-hosting landing" width="100%"> |
+
 ## Stack
 
 <p align="center">
