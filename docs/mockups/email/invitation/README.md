@@ -21,6 +21,18 @@ asunto real aparece a la derecha de la barra.
 Cada mockup incluye los 9 idiomas (selector ES/CA/GL/EU/PT/FR/IT/DE/EN) y tema claro/oscuro. La
 fecha se formatea con `Intl.DateTimeFormat` por locale, como exige el ADR 0008.
 
+## Logo del encabezado
+
+`logo-options.html` compara las variantes sobre superficie clara y oscura:
+
+- **Actual** — wordmark con tagline. A 22 px mide ~90 px de ancho, por debajo del mínimo de
+  120 px que la guía de marca pide para que la tagline se lea.
+- **A** — latido + wordmark sin tagline (lockup horizontal). Legible y reutiliza los assets.
+- **B** — icono de app (squircle + «027») + wordmark. Más peso y algo redundante.
+- **C** — solo wordmark sin tagline.
+
+Recomendación: **A** para el encabezado del correo; **C** si se quiere lo más discreto.
+
 ## Qué es común a las tres
 
 - Logo de la instancia, saludo con el nombre, quién invita, CTA «Aceptar invitación», enlace de
