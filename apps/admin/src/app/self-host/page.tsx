@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "../landing.css";
+import { GitHubIcon } from "@/components/landing/github-icon";
 import { s } from "@/lib/landing-style";
 
 export const metadata: Metadata = {
@@ -106,7 +107,7 @@ export default function LandingPage() {
               Self-hosting guide
             </a>
             <a className="btn ghost" href="https://github.com/rferic/027apps">
-              View on GitHub
+              <GitHubIcon /> View on GitHub
             </a>
           </div>
           <p className="sub">
