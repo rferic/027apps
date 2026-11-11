@@ -39,7 +39,7 @@ En el admin los iconos viven en `apps/admin/src/app/` (`icon.svg`, `icon.png`, `
 
 `readme-banner.html` y `readme-stack.html` son las composiciones del README: el lockup sobre el
 fondo de marca y la fila de logos de tecnología. Se renderizan a PNG de 1200 px (banner
-1200×400, stack 1200×220) con Chrome headless; los PNG son los que usa `README.md`.
+1200×460, stack 1200×220) con Chrome headless; los PNG son los que usa `README.md`.
 
 ## Pipeline de assets
 

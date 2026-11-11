@@ -5,9 +5,6 @@
 <p align="center">
   <a href="https://027apps.ericrf.com"><img alt="Website" src="https://img.shields.io/badge/website-027apps.ericrf.com-1CC29F?style=flat-square&logo=vercel&logoColor=white"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-1CC29F?style=flat-square"></a>
-  <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-0A0B0D?style=flat-square&logo=nextdotjs&logoColor=white">
-  <img alt="Kotlin + Compose" src="https://img.shields.io/badge/Kotlin-Compose-7F52FF?style=flat-square&logo=kotlin&logoColor=white">
-  <img alt="9 languages" src="https://img.shields.io/badge/languages-9-1CC29F?style=flat-square">
 </p>
 
 <h3 align="center">A self-hostable, modular platform for families.</h3>
@@ -37,9 +34,13 @@ public signup: members join with an invitation.
 
 ## Screens
 
-| The family app | The project |
-|:---:|:---:|
-| <img src="docs/brand/readme-app.png" alt="The 027Apps family app landing" width="100%"> | <img src="docs/brand/readme-selfhost.png" alt="The 027Apps self-hosting landing" width="100%"> |
+<p align="center">
+  <img src="docs/brand/readme-app.png" alt="The 027Apps family app landing" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/brand/readme-selfhost.png" alt="The 027Apps self-hosting landing" width="100%">
+</p>
 
 ## Stack
 
