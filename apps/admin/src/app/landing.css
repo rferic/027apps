@@ -1550,3 +1550,10 @@
   background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.3);
   color: #fbbf24; font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
 }
+
+/* Brand mark on the right of each technology card, when the project has one. */
+.lp .tech-body { flex: 1; min-width: 0; }
+.lp .tech-logo {
+  width: 20px; height: 20px; flex: none; margin-left: auto;
+  object-fit: contain; opacity: 0.9;
+}

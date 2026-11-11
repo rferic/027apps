@@ -341,34 +341,42 @@ export default function LandingPage() {
             <div className="tech">
               <span className="tech-icon"><TechIcon name="next" /></span>
               <span className="tech-body"><b>Next.js 16</b><span>Web panel and API v1</span></span>
+              <img className="tech-logo" src="/logos/nextdotjs.svg" alt="" width="20" height="20" />
             </div>
             <div className="tech">
               <span className="tech-icon"><TechIcon name="typescript" /></span>
               <span className="tech-body"><b>React 19 + TypeScript</b><span>End-to-end typed interface</span></span>
+              <img className="tech-logo" src="/logos/react.svg" alt="" width="20" height="20" />
             </div>
             <div className="tech">
               <span className="tech-icon"><TechIcon name="supabase" /></span>
               <span className="tech-body"><b>Supabase</b><span>Postgres, Auth, Realtime and Storage</span></span>
+              <img className="tech-logo" src="/logos/supabase.svg" alt="" width="20" height="20" />
             </div>
             <div className="tech">
               <span className="tech-icon"><TechIcon name="tailwind" /></span>
               <span className="tech-body"><b>Tailwind CSS</b><span>Design with semantic tokens</span></span>
+              <img className="tech-logo" src="/logos/tailwindcss.svg" alt="" width="20" height="20" />
             </div>
             <div className="tech">
               <span className="tech-icon"><TechIcon name="kotlin" /></span>
               <span className="tech-body"><b>Kotlin + Compose</b><span>Native Android app</span></span>
+              <img className="tech-logo" src="/logos/kotlin.svg" alt="" width="20" height="20" />
             </div>
             <div className="tech">
               <span className="tech-icon"><TechIcon name="pnpm" /></span>
               <span className="tech-body"><b>pnpm monorepo</b><span>Core, i18n, admin and Android</span></span>
+              <img className="tech-logo" src="/logos/pnpm.svg" alt="" width="20" height="20" />
             </div>
             <div className="tech">
               <span className="tech-icon"><TechIcon name="vercel" /></span>
               <span className="tech-body"><b>Vercel</b><span>Deploy and functions in the EU</span></span>
+              <img className="tech-logo" src="/logos/vercel.svg" alt="" width="20" height="20" />
             </div>
             <div className="tech">
               <span className="tech-icon"><TechIcon name="resend" /></span>
               <span className="tech-body"><b>Resend</b><span>Invitations and transactional email</span></span>
+              <img className="tech-logo" src="/logos/resend.svg" alt="" width="20" height="20" />
             </div>
             <div className="tech">
               <span className="tech-icon"><TechIcon name="mit" /></span>
