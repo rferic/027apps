@@ -15,8 +15,7 @@
         </a>
         <div class="links">
           <a href="#modulos">Módulos</a>
-          <a href="#panel">Panel</a>
-          <a href="#autoalojar">Autoalojar</a>
+          <a href="v2-selfhost.html">Autoalojar</a>
           <a href="#android">Android</a>
         </div>
         <div class="actions">
@@ -184,127 +183,34 @@
       </div>
     </section>
 
+
+
+
+
     <section class="section" id="panel">
-      <div class="wrap">
-        <div class="section-head">
-          <h2 class="display">Dos formas<br /><span class="dim">de usar 027Apps.</span></h2>
-          <span class="index">05 / APP Y PANEL</span>
-        </div>
-
-        <div class="segmented" role="tablist" aria-label="App o panel">
-          <button data-view-target="app" class="on">App de la familia</button>
-          <button data-view-target="panel">Panel de control</button>
-        </div>
-
-        <div class="views">
-          <div class="view on" data-view-panel="app">
-            <div class="view-grid">
-              <div>
-                <h3 style="font-size: 26px; margin: 0 0 10px">Para el día a día.</h3>
-                <p style="font-size: 14px; line-height: 1.7; color: var(--muted); max-width: 430px">
-                  La app es la cara de la familia: consultar el mes, apuntar un gasto, ver quién
-                  está en cada categoría. Sin menús de administración.
-                </p>
-                <ul class="check-list">
-                  <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8.5 3 3 7-7"/></svg>Finanzas y categorías</li>
-                  <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8.5 3 3 7-7"/></svg>Miembros y roles</li>
-                  <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8.5 3 3 7-7"/></svg>Solo los módulos activos</li>
-                  <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8.5 3 3 7-7"/></svg>9 idiomas</li>
-                </ul>
-              </div>
-              <div class="phone">
-                <div class="notch"></div>
-                <div class="screen">
-                  <div class="ph-head"><span>Inicio</span><span>ER</span></div>
-                  <div class="ph-card"><div class="k">Hoy</div><div class="v teal">1.842,50 €</div></div>
-                  <div class="ph-card"><div class="k">Categorías</div><div class="v">3</div></div>
-                  <div class="ph-card"><div class="k">Miembros</div><div class="v">4</div></div>
-                  <div class="ph-tabs"><b>Inicio</b><span>Categorías</span><span>Miembros</span><span>Módulos</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="view" data-view-panel="panel">
-            <div class="view-grid" style="grid-template-columns: 1fr 1fr; align-items: start">
-              <div>
-                <h3 style="font-size: 26px; margin: 0 0 10px">Para administrar.</h3>
-                <p style="font-size: 14px; line-height: 1.7; color: var(--muted); max-width: 440px">
-                  El panel es donde se monta todo: miembros, invitaciones, categorías, módulos,
-                  claves de API y el servidor MCP para conectar agentes.
-                </p>
-                <div class="panel-features">
-                  <div class="pf"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="5.5" r="2.2"/><path d="M2.5 13c.4-2.2 1.8-3.4 3.5-3.4S9.1 10.8 9.5 13"/><circle cx="11.5" cy="6" r="1.6"/></svg><span><b>Miembros y roles</b><br />Altas, permisos y bajas</span></div>
-                  <div class="pf"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="3.5" width="11" height="9" rx="1.5"/><path d="m3.5 5 4.5 3.5L12.5 5"/></svg><span><b>Invitaciones</b><br />Por email o enlace</span></div>
-                  <div class="pf"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m8 2 6 3.5L8 9 2 5.5 8 2Z"/><path d="m2 8.5 6 3.5 6-3.5"/></svg><span><b>Categorías</b><br />Grupos y permisos</span></div>
-                  <div class="pf"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"/><rect x="9" y="9" width="4.5" height="4.5" rx="1"/></svg><span><b>Módulos</b><br />Activar y desactivar</span></div>
-                  <div class="pf"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m5.5 5.5-3 2.5 3 2.5M10.5 5.5l3 2.5-3 2.5M9 3.5 7 12.5"/></svg><span><b>API v1</b><br />Claves con permisos</span></div>
-                  <div class="pf"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5.5"/><path d="M8 5.5v3l2 1.2"/></svg><span><b>MCP</b><br />Agentes conectados</span></div>
-                  <div class="pf"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="2.2"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2"/></svg><span><b>Ajustes</b><br />Idioma, moneda y marca</span></div>
-                  <div class="pf"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12.5V7M8 12.5V3.5M13 12.5V9"/></svg><span><b>Estado</b><br />Salud y auditoría</span></div>
-                </div>
-              </div>
-              <div class="window">
-                <div class="bar"><i></i><i></i><i></i></div>
-                <div class="screen" style="grid-template-columns: 120px 1fr; min-height: 330px">
-                  <div class="side" style="padding: 10px 8px">
-                    <div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                  </div>
-                  <div class="main" style="padding: 14px">
-                    <div class="topbar"><span class="title">Inicio</span><span class="pill">Todo listo</span><span class="avatar">ER</span></div>
-                    <div class="kpis"><div class="card"><div class="k">Miembros</div><div class="v">4</div></div><div class="card"><div class="k">Invitaciones</div><div class="v">1</div></div></div>
-                    <div class="card"><div class="k">Módulos activos</div><div class="v">6</div></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="tecnologias">
-      <div class="wrap">
-        <div class="section-head">
-          <h2 class="display">Construido<br /><span class="dim">con lo que ya usas.</span></h2>
-          <span class="index">06 / TECNOLOGÍAS</span>
-        </div>
-        <div class="tech-grid">
-          <div class="tech"><b>Next.js 16</b><span>Panel web y API v1</span></div>
-          <div class="tech"><b>React 19 + TypeScript</b><span>Interfaz tipada de extremo a extremo</span></div>
-          <div class="tech"><b>Supabase</b><span>Postgres, Auth, Realtime y Storage</span></div>
-          <div class="tech"><b>Tailwind CSS</b><span>Diseño con tokens semánticos</span></div>
-          <div class="tech"><b>Kotlin + Compose</b><span>App Android nativa</span></div>
-          <div class="tech"><b>pnpm monorepo</b><span>Core, i18n, admin y Android</span></div>
-          <div class="tech"><b>Vercel</b><span>Deploy y funciones en la UE</span></div>
-          <div class="tech"><b>Resend</b><span>Invitaciones y correo transaccional</span></div>
-          <div class="tech"><b>MIT</b><span>Licencia libre, sin letra pequeña</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="autoalojar">
       <div class="wrap split">
         <div>
-          <p class="eyebrow"><strong>07</strong> / AUTOALOJABLE</p>
-          <h2 class="display" style="margin-top: 16px">Tu instancia.<br /><span class="dim">Tus reglas.</span></h2>
+          <p class="eyebrow"><strong>05</strong> / EL PANEL</p>
+          <h2 class="display" style="margin-top: 16px">La parte<br /><span class="dim">de escritorio.</span></h2>
           <p class="lead" style="font-size: 16px">
-            Un dominio, una base de datos y copias cifradas. Tú decides dónde viven los datos
-            y quién entra.
+            Miembros, invitaciones, categorías, módulos, claves de API y MCP. El panel vive en
+            el navegador y es donde se monta todo.
           </p>
-          <ul class="check-list">
-            <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8.5 3 3 7-7"/></svg>Altas solo por invitación</li>
-            <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8.5 3 3 7-7"/></svg>Copias diarias y cifradas</li>
-            <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8.5 3 3 7-7"/></svg>Sin anuncios ni perfiles</li>
-            <li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 8.5 3 3 7-7"/></svg>Guía de autoalojado incluida</li>
-          </ul>
+          <div class="hero-actions">
+            <a class="btn primary" href="v2-selfhost.html">Autoalojar el proyecto</a>
+            <a class="btn ghost" href="https://github.com/rferic/027apps">Ver en GitHub</a>
+          </div>
         </div>
-        <div class="panel">
-          <div class="line"><span>Web</span><strong>Next.js + Vercel</strong></div>
-          <div class="line"><span>Datos</span><strong>Supabase Postgres</strong></div>
-          <div class="line"><span>App</span><strong>Android nativo</strong></div>
-          <div class="line"><span>Idiomas</span><strong>9</strong></div>
-          <div class="term"><span>$</span> git clone <b>https://github.com/rferic/027apps</b><br /><span># guía: docs/self-hosting.md</span></div>
+        <div class="window">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <div class="screen" style="grid-template-columns: 110px 1fr; min-height: 300px">
+            <div class="side" style="padding: 10px 8px"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <div class="main" style="padding: 14px">
+              <div class="topbar"><span class="title">Inicio</span><span class="pill">Todo listo</span><span class="avatar">ER</span></div>
+              <div class="kpis"><div class="card"><div class="k">Miembros</div><div class="v">4</div></div><div class="card"><div class="k">Invitaciones</div><div class="v">1</div></div></div>
+              <div class="card"><div class="k">Módulos activos</div><div class="v">6</div></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -340,13 +246,12 @@
       <div class="wrap">
         <div class="section-head">
           <h2 class="display">Preguntas<br /><span class="dim">frecuentes.</span></h2>
-          <span class="index">09 / FAQ</span>
+          <span class="index">07 / FAQ</span>
         </div>
         <div class="faq">
           <details open><summary>¿Cuánto cuesta?</summary><p>027Apps es MIT y se autoaloja: no hay suscripción. Tú pagas tu hosting (Vercel y Supabase tienen planes gratuitos suficientes para una familia).</p></details>
           <details><summary>¿Dónde están mis datos?</summary><p>En tu instancia: tu proyecto de Supabase y tu dominio. No hay anuncios, ni perfiles, ni un servidor nuestro en medio.</p></details>
           <details><summary>¿Cómo entro?</summary><p>Con una invitación del administrador. El enlace abre la app o la web, creas tu contraseña y ya estás dentro; no hay registro público.</p></details>
-          <details><summary>¿Qué necesito para montarlo?</summary><p>Una cuenta de Vercel y un proyecto de Supabase, o un servidor propio. La guía de autoalojado del repositorio cubre los pasos.</p></details>
           <details><summary>¿La app ya está disponible?</summary><p>Está en desarrollo. Cuando haya una release, el APK firmado estará en GitHub Releases y se podrá descargar sin cuenta.</p></details>
           <details><summary>¿En qué idiomas?</summary><p>Nueve: inglés, español, catalán, gallego, euskera, portugués, francés, italiano y alemán.</p></details>
         </div>
@@ -359,7 +264,7 @@
           <svg class="pulse" viewBox="0 0 48 26" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="2,14 9,14 11.5,10 14,14 17,14 18.5,16.5 20.5,1.5 22.5,23 25,14 27,10.5 29.5,14 46,14" transform="translate(0,-1)"/></svg>
           <img src="../../brand/assets/wordmark-bare-dark.svg" alt="027Apps" height="17" />
         </span>
-        <span><a href="https://github.com/rferic/027apps">GitHub</a> · <a href="https://github.com/rferic/027apps/blob/main/docs/self-hosting.md">Autoalojar</a> · <a href="/login">Abrir panel</a> · MIT</span>
+        <span><a href="https://github.com/rferic/027apps">GitHub</a> · <a href="v2-selfhost.html">Autoalojar</a> · <a href="/login">Abrir panel</a> · MIT</span>
       </div>
       <div class="row" style="margin-top: 14px; opacity: .8">
         <span>Tu grupo, tus apps, tus datos.</span>
@@ -367,17 +272,5 @@
       </div>
     </footer>
 
-    <script>
-      document.querySelectorAll("[data-view-target]").forEach((button) => {
-        button.addEventListener("click", () => {
-          document.querySelectorAll("[data-view-target]").forEach((other) => {
-            other.classList.toggle("on", other === button);
-          });
-          document.querySelectorAll("[data-view-panel]").forEach((view) => {
-            view.classList.toggle("on", view.dataset.viewPanel === button.dataset.viewTarget);
-          });
-        });
-      });
-    </script>
   </body>
 </html>

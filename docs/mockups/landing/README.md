@@ -83,3 +83,26 @@ La lista de módulos se mantiene como contenido versionado (sin base de datos). 
 declara su ficha de landing —nombre, resumen, icono, captura, orden y si es de app o de panel—
 y el contrato de módulos (`docs/ai/module-system.md`) y la skill `new-module` deben exigirla al
 crear uno. El `README.md` raíz se reescribirá para contar lo mismo que la landing.
+
+## Dos páginas (2026-11-11, decisión del propietario)
+
+El panel es **escritorio** y no es otra pantalla de la app: se separa en dos páginas enlazadas.
+
+### `/` — la app (`v2-app.html`)
+
+- Hero con la app y dos móviles.
+- Cuatro módulos con pantalla y explicación: finanzas, categorías, miembros, módulos.
+- Tarjeta «La parte de escritorio» que enlaza a la página del proyecto.
+- Android y FAQ de familia.
+
+### `/self-host` — el proyecto (`v2-selfhost.html`)
+
+- Hero de escritorio con la captura del panel.
+- Qué incluye: panel, API v1, MCP, app, copias, 9 idiomas.
+- Tecnologías, cuatro pasos de instalación, arquitectura y FAQ técnica.
+- Guía de autoalojado y GitHub.
+
+Se enlazan entre sí: la app lleva «Autoalojar el proyecto» y el proyecto lleva «ver la app».
+La nav de ambas ofrece `App` y `Autoalojar`. La ruta inglesa será `/self-host`.
+
+Capturas: `v2-app.png`/`v2-app-mobile.png` y `v2-selfhost.png`/`v2-selfhost-mobile.png`.
