@@ -97,7 +97,9 @@ temporal (`role=user`, eliminado al terminar), sobre el mismo código:
 
 Cada request registra una sola línea `request completed` con un `session:<id>`; no hay
 verificaciones duplicadas. **No es una medida de producción**: sirve para validar el camino
-autenticado y el número de verificaciones, no para el objetivo de latencia.
+autenticado y el número de verificaciones, no para el objetivo de latencia. El propietario acepta
+esta referencia local como cierre (2026-11-12); no se mide contra producción por falta de una
+cuenta de prueba segura.
 
 ## Auditoría del cliente: sin duplicados (2026-11-10)
 

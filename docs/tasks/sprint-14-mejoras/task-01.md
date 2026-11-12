@@ -2,7 +2,7 @@
 id: sprint-14-task-01
 titulo: Rendimiento medido de la API y del panel
 area: rendimiento
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-10-api-performance.md
 fuente: docs/superpowers/specs/2026-11-10-api-performance-design.md
 adrs: [0004, 0007]
@@ -119,7 +119,14 @@ entorno. Se validó el camino con un `next start` local, Supabase local y un usu
 
 Frío real (18 min sin tráfico, primera petición a `/api/v1/instance`): **1,74 s**, por encima
 del objetivo de 1,2 s. Las peticiones siguientes ya están calientes. **Desviación aceptada por el
-propietario** (2026-11-12). La tarea sigue en `test` solo por la medida autenticada real.
+propietario** (2026-11-12).
+
+## Cierre (2026-11-12)
+
+El propietario acepta cerrar con la **referencia local** para el camino autenticado: no se mide
+contra producción porque no hay una cuenta de prueba accesible y no se quieren credenciales en
+el chat. La medida local (p95 ~141 ms, una sola verificación por request) y el frío de 1,74 s
+quedan documentados como limitaciones aceptadas. Tarea `finalizada`.
 
 ## Auditoría (2026-11-12)
 
