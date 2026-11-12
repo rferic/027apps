@@ -102,6 +102,23 @@ duplicadas**. La causa era el trabajo del servidor.
 Pendiente: frío real (≥15 min sin tráfico), rutas autenticadas, L5 (bundle/cold start) y L6
 (consultas).
 
+## Medición 2026-11-12 (Next 16.4.5)
+
+Producción, `x-vercel-id: fra1::lhr1::…`, 12 peticiones por ruta descartando la primera:
+
+| Ruta | p50 | p95 | Objetivo |
+|---|---|---|---|
+| `/api/health` | 233 ms | 454 ms | — |
+| `/api/v1/instance` | 227 ms | **267 ms** | ≤ 400 ms caliente ✅ |
+| `/login` | 220 ms | **299 ms** | ≤ 300 ms caliente ✅ |
+
+Rutas autenticadas: la producción y staging no tienen una cuenta de prueba accesible desde este
+entorno. Se validó el camino con un `next start` local, Supabase local y un usuario temporal
+(`role=user`, eliminado después): `/api/v1/instance` p95 de servidor ~141 ms y una sola línea
+`request completed` por request. No es una medida de producción.
+
+La medida en frío real (≥15 min sin tráfico) se añade al cerrar esta fase.
+
 ## Auditoría (2026-11-12)
 
 Segundo agente: **APTO CON RESERVAS**. No hay bypass de autenticación; el proxy usa
