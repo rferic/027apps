@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
+import { panelLocale } from "@/lib/panel-locale";
 import { notFound } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
@@ -7,7 +7,6 @@ import { CurrencySettings } from "@/components/currency-settings";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { SettingsForm } from "@/components/settings-form";
-import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
 import { categoryHelp, categoryLabel } from "@/lib/setting-text";
@@ -152,8 +151,7 @@ export default async function SettingsSectionPage({
 }) {
   const gate = await requirePanel("admin");
 
-  const cookieStore = await cookies();
-  const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
+  const locale = panelLocale(gate.user);
   const messages = await loadPanelMessages(locale);
 
   // Generic refusal: it never reveals which routes or roles exist.

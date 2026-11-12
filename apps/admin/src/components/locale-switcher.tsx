@@ -7,6 +7,7 @@ import type { Locale } from "@027apps/i18n/types.js";
 import { Select } from "@/components/ui/select";
 import { LOCALE_LABELS, localeCookie } from "@/lib/locale";
 import { patchMember } from "@/lib/member-mutations";
+import { applyPreference } from "@/lib/preference-change";
 
 interface LocaleSwitcherProps {
   locale: Locale;
@@ -28,18 +29,16 @@ export function LocaleSwitcher({
   const [value, setValue] = useState<Locale>(locale);
 
   async function change(next: Locale) {
-    const previous = value;
-    setValue(next);
-    document.cookie = localeCookie(next);
-
-    if (userId) {
-      const result = await patchMember(userId, { locale: next });
-      if (!result.ok) {
-        setValue(previous);
-        document.cookie = localeCookie(previous);
-        return;
-      }
-    }
+    const applied = await applyPreference({
+      next,
+      previous: value,
+      apply: (value) => {
+        setValue(value);
+        document.cookie = localeCookie(value);
+      },
+      persist: userId ? () => patchMember(userId, { locale: next }) : undefined,
+    });
+    if (!applied) return;
 
     if (onChangePath) router.replace(onChangePath(next));
     else router.refresh();

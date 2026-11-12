@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
+import { panelLocale } from "@/lib/panel-locale";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { t } from "@027apps/i18n/t.js";
@@ -9,7 +9,7 @@ import { InvitationRevokeButton } from "@/components/invitation-revoke-button";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
-import { LOCALE_COOKIE, LOCALE_LABELS, resolveLocale } from "@/lib/locale";
+import { LOCALE_LABELS } from "@/lib/locale";
 import { formatDate } from "@/lib/format-date";
 import {
   loadCategory,
@@ -255,8 +255,7 @@ function InvitationDangerZone({
 export default async function InvitationPage({ params }: { params: Promise<{ id: string }> }) {
   const gate = await requirePanel("admin");
 
-  const cookieStore = await cookies();
-  const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
+  const locale = panelLocale(gate.user);
   const messages = await loadPanelMessages(locale);
 
   // Generic refusal: it never reveals which routes or roles exist.

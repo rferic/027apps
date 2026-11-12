@@ -67,6 +67,18 @@ describe('RLS: profiles', () => {
     });
   });
 
+  it('rejects a locale outside the supported set (check constraint)', async () => {
+    const { a } = await seedTwoUsers();
+    await withClient(async (c) => {
+      await c.query('BEGIN');
+      await impersonate(c, a.id);
+      await expect(
+        query(c, 'update public.profiles set locale = $1 where id = $2', ['xx', a.id]),
+      ).rejects.toThrowError(/profiles_locale_check|check constraint/i);
+      await c.query('ROLLBACK');
+    });
+  });
+
   it('an admin can read all profiles', async () => {
     const { a, b } = await seedTwoUsers('admin');
     await withClient(async (c) => {

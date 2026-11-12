@@ -1,6 +1,6 @@
 import { getDictionary } from "@027apps/i18n/dictionary.js";
 import { t } from "@027apps/i18n/t.js";
-import { SUPPORTED_LOCALES, type Locale, type TranslationMap } from "@027apps/i18n/types.js";
+import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 
 /** Language menu order and labels (each language in its own words). */
 export const LANDING_LANGUAGES: readonly { code: Locale; label: string; short: string }[] = [

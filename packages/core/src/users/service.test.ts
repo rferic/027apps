@@ -219,6 +219,72 @@ describe('updateUser — self role changes', () => {
     expect(profiles.get('self')?.theme).toBe('dark');
   });
 
+  it('lets a plain user persist their own theme and language', async () => {
+    const { deps, profiles } = makeDeps([profile('self', { role: 'user' })]);
+
+    await updateUser(deps, session('self', 'user'), 'self', { theme: 'light', locale: 'es' });
+
+    expect(profiles.get('self')?.theme).toBe('light');
+    expect(profiles.get('self')?.locale).toBe('es');
+  });
+
+  it('refuses a plain user editing another profile', async () => {
+    const { deps, profiles } = makeDeps([
+      profile('self', { role: 'user' }),
+      profile('other', { role: 'user' }),
+    ]);
+
+    await expect(
+      updateUser(deps, session('self', 'user'), 'other', { theme: 'light' }),
+    ).rejects.toMatchObject({ code: 'insufficient_scope' });
+    expect(profiles.get('other')?.theme).toBe('system');
+  });
+
+  it('refuses an anonymous caller before reading the profile', async () => {
+    const { deps } = makeDeps([profile('self', { role: 'user' })]);
+
+    await expect(
+      updateUser(deps, { kind: 'anon' }, 'self', { theme: 'dark' }),
+    ).rejects.toMatchObject({ code: 'unauthorized' });
+  });
+
+  it('refuses a delegated key without profile:write editing its owner profile', async () => {
+    const { deps, profiles } = makeDeps([profile('self', { role: 'user' })]);
+    const readOnly: Caller = {
+      kind: 'delegated',
+      keyId: 'key-2',
+      userId: 'self',
+      scopes: ['currencies:read'],
+      roleCap: 'user',
+    };
+
+    await expect(
+      updateUser(deps, readOnly, 'self', { theme: 'dark' }),
+    ).rejects.toMatchObject({ code: 'insufficient_scope' });
+    expect(profiles.get('self')?.theme).toBe('system');
+  });
+
+  it('lets a delegated key edit its own profile but not another', async () => {
+    const { deps, profiles } = makeDeps([
+      profile('self', { role: 'user' }),
+      profile('other', { role: 'user' }),
+    ]);
+    const delegated: Caller = {
+      kind: 'delegated',
+      keyId: 'key-1',
+      userId: 'self',
+      scopes: ['profile:write'],
+      roleCap: 'user',
+    };
+
+    await updateUser(deps, delegated, 'self', { theme: 'dark' });
+    expect(profiles.get('self')?.theme).toBe('dark');
+
+    await expect(
+      updateUser(deps, delegated, 'other', { theme: 'dark' }),
+    ).rejects.toMatchObject({ code: 'insufficient_scope' });
+  });
+
   it('still lets a super_admin change another person’s role', async () => {
     const { deps, profiles } = makeDeps([
       profile('self', { role: 'super_admin' }),

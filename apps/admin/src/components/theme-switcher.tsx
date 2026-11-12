@@ -5,6 +5,7 @@ import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Select } from "@/components/ui/select";
 import { patchMember } from "@/lib/member-mutations";
+import { applyPreference } from "@/lib/preference-change";
 import { applyTheme, themeCookie, themeFromCookie, type Theme } from "@/lib/theme";
 
 const OPTIONS: Theme[] = ["system", "light", "dark"];
@@ -35,20 +36,17 @@ export function ThemeSwitcher({
   const [theme, setTheme] = useState<Theme>(initialTheme);
 
   async function change(value: string) {
-    const previous = theme;
     const next = themeFromCookie(value);
-    setTheme(next);
-    document.cookie = themeCookie(next);
-    applyTheme(document.documentElement, next);
-    if (!userId) return;
-
-    // The profile is the source of truth: a failed write reverts the UI.
-    const result = await patchMember(userId, { theme: next });
-    if (!result.ok) {
-      setTheme(previous);
-      document.cookie = themeCookie(previous);
-      applyTheme(document.documentElement, previous);
-    }
+    await applyPreference({
+      next,
+      previous: theme,
+      apply: (value) => {
+        setTheme(value);
+        document.cookie = themeCookie(value);
+        applyTheme(document.documentElement, value);
+      },
+      persist: userId ? () => patchMember(userId, { theme: next }) : undefined,
+    });
   }
 
   return (

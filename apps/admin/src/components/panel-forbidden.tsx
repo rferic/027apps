@@ -8,7 +8,7 @@ interface PanelForbiddenProps {
   locale: Locale;
   messages: TranslationMap;
   /** Present when the guard already resolved a profile; never a role hint. */
-  user?: { displayName: string; email: string };
+  user?: { id: string; displayName: string; email: string };
   /** A standalone 403 replaces the whole layout and owns the full-screen main. */
   standalone?: boolean;
 }
@@ -26,7 +26,7 @@ export function PanelForbidden({ locale, messages, user, standalone = false }: P
         {t("You do not have access to this page.", messages)}
       </p>
       {identity && <p className="max-w-full truncate text-xs text-muted-foreground">{identity}</p>}
-      <LocaleSwitcher locale={locale} label={t("Language", messages)} className="min-h-11" />
+      <LocaleSwitcher locale={locale} userId={user?.id} label={t("Language", messages)} className="min-h-11" />
       <form action={signOutAction} className="w-full">
         <Button type="submit" variant="secondary" className="min-h-11 w-full">
           {t("Log out", messages)}

@@ -61,6 +61,46 @@ Objetivo de API caliente (p95 ≤ 400 ms) cumplido en producción. `/api/health`
 `{"status":"ok"}` con la base de producción. **Pendiente**: medida en frío tras ≥15 min sin
 tráfico y rutas autenticadas (requieren una sesión de prueba).
 
+## Después — producción con Next 16.4.5 (2026-11-12)
+
+Medido con `curl` desde España contra `https://027apps.ericrf.com` (commit `3db5762`,
+`x-vercel-id: fra1::lhr1::…`), 12 peticiones por ruta y descartando la primera:
+
+| Ruta | p50 | p95 | Objetivo |
+|---|---|---|---|
+| `/api/health` | 233 ms | 454 ms | — (no es `/api/v1`) |
+| `/api/v1/instance` | 227 ms | **267 ms** | ≤ 400 ms caliente ✅ |
+| `/login` | 220 ms | **299 ms** | ≤ 300 ms caliente ✅ |
+
+Frío (18 min sin tráfico, primera petición a `/api/v1/instance`; las siguientes ya están
+calientes):
+
+| Ruta | Frío | Objetivo |
+|---|---|---|
+| `/api/v1/instance` | **1,74 s** | ≤ 1,2 s ❌ |
+| `/api/health` (después) | 240 ms | — |
+| `/login` (después) | 300 ms | — |
+
+El frío incumple el objetivo en esta muestra. **Desviación aceptada por el propietario**
+(2026-11-12): se documenta 1,74 s en lugar de repetir el ciclo. La tarea 01 sigue en `test` solo
+por la medida autenticada real.
+
+### Autenticado — referencia local (2026-11-12)
+
+La producción y staging no tienen una cuenta de prueba accesible desde este entorno, así que la
+medida autenticada se hizo contra un `next start` local con el Supabase local y un usuario
+temporal (`role=user`, eliminado al terminar), sobre el mismo código:
+
+| Ruta | p50 (servidor) | p95 (servidor) | Cliente p95 |
+|---|---|---|---|
+| `/api/v1/instance` con sesión | ~50 ms | ~141 ms | 141 ms |
+
+Cada request registra una sola línea `request completed` con un `session:<id>`; no hay
+verificaciones duplicadas. **No es una medida de producción**: sirve para validar el camino
+autenticado y el número de verificaciones, no para el objetivo de latencia. El propietario acepta
+esta referencia local como cierre (2026-11-12); no se mide contra producción por falta de una
+cuenta de prueba segura.
+
 ## Auditoría del cliente: sin duplicados (2026-11-10)
 
 Reproducido en local con un usuario de prueba y Chrome headless (CDP), sobre el mismo código:

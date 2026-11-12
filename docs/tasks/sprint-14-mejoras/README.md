@@ -67,8 +67,12 @@ Corregido el diagnóstico del cierre del sprint 13:
 
 ## Cierre (2026-11-12)
 
-Sprint **finalizado** y desplegado en producción (`b6b8b51`, PR #89). `staging` y `main` quedan
-sincronizadas (`54f7606`).
+Sprint **finalizado**. Las cinco tareas están `finalizada`. Lo entregado está desplegado en
+producción (`b6b8b51`, PR #89) y `staging`/`main` quedaron sincronizadas (`54f7606`).
+
+`task-01` se cierra con dos limitaciones aceptadas por el propietario: el frío medido fue 1,74 s
+(objetivo 1,2 s) y el camino autenticado se validó en local (~141 ms), no contra producción, por
+no disponer de una cuenta de prueba segura.
 
 | Tarea | Resultado |
 |---|---|

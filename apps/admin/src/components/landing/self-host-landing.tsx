@@ -3,7 +3,7 @@ import { GitHubIcon } from "@/components/landing/github-icon";
 import { CookieNotice } from "@/components/cookie-notice";
 import { LanguageMenu } from "@/components/landing/language-menu";
 import { LocaleSync } from "@/components/landing/locale-sync";
-import { TechIcon, type TechName } from "@/components/landing/tech-icon";
+import { TechIcon } from "@/components/landing/tech-icon";
 import { landingHref, translator } from "@/lib/landing/i18n";
 import { s } from "@/lib/landing-style";
 import type { Locale } from "@027apps/i18n/types.js";

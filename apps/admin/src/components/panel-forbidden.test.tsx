@@ -27,7 +27,7 @@ describe("PanelForbidden", () => {
       <PanelForbidden
         locale="es"
         messages={{ "Log out": "Cerrar sesión", Language: "Idioma" }}
-        user={{ displayName: "Ana", email: "ana@example.com" }}
+        user={{ id: "user-1", displayName: "Ana", email: "ana@example.com" }}
       />,
     );
 
