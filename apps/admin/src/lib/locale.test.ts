@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { filterMultiSelectOptions } from "@/components/ui/multi-select";
-import { isSupportedLocale, localeCookie, localeOptions, resolveLocale } from "./locale";
+import { isSupportedLocale, localeCookie, localeFromAcceptLanguage, localeOptions, resolveLocale } from "./locale";
 
 describe("resolveLocale", () => {
   it("defaults to English with empty input", () => {
@@ -15,8 +15,13 @@ describe("resolveLocale", () => {
     expect(resolveLocale({ query: "invalid", cookie: "ca" })).toBe("ca");
   });
 
-  it("falls back to English for an invalid cookie", () => {
-    expect(resolveLocale({ cookie: "invalid" })).toBe("en");
+  it("falls back to the browser language when there is no cookie", () => {
+    expect(resolveLocale({ acceptLanguage: "es-ES,es;q=0.9,en;q=0.8" })).toBe("es");
+    expect(resolveLocale({ acceptLanguage: "fr-CA,fr;q=0.9" })).toBe("fr");
+  });
+
+  it("defaults to English when neither the cookie nor the browser match", () => {
+    expect(resolveLocale({ cookie: "invalid", acceptLanguage: "ja-JP,ja;q=0.9" })).toBe("en");
   });
 
   it("rejects hostile locale values", () => {
@@ -65,5 +70,17 @@ describe("localeOptions", () => {
     expect(localeOptions().filter((option) => option.fixed).map((option) => option.value)).toEqual([
       "en",
     ]);
+  });
+});
+
+describe("localeFromAcceptLanguage", () => {
+  it("respects quality order and region tags", () => {
+    expect(localeFromAcceptLanguage("de-DE;q=0.5, pt-BR;q=0.9")).toBe("pt");
+    expect(localeFromAcceptLanguage("ca-ES")).toBe("ca");
+  });
+
+  it("ignores unsupported languages and defaults to English", () => {
+    expect(localeFromAcceptLanguage("ja,ko;q=0.8")).toBe("en");
+    expect(localeFromAcceptLanguage(null)).toBe("en");
   });
 });

@@ -5,22 +5,13 @@ import sitemap from "./sitemap";
 describe("sitemap", () => {
   const entries = sitemap();
 
-  it("lists both landing pages in the nine languages", () => {
-    expect(entries).toHaveLength(18);
-    expect(entries.map((entry) => entry.url)).toContain("https://027apps.ericrf.com/");
-    expect(entries.map((entry) => entry.url)).toContain(
+  it("lists the public pages", () => {
+    expect(entries).toHaveLength(3);
+    expect(entries.map((entry) => entry.url)).toEqual([
+      "https://027apps.ericrf.com/",
       "https://027apps.ericrf.com/self-host",
-    );
-    expect(entries.map((entry) => entry.url)).toContain(
-      "https://027apps.ericrf.com/l/es/self-host",
-    );
-  });
-
-  it("declares every language as an alternate of each page", () => {
-    const spanish = entries.find(
-      (entry) => entry.url === "https://027apps.ericrf.com/l/es",
-    );
-    expect(Object.keys(spanish?.alternates?.languages ?? {})).toHaveLength(9);
+      "https://027apps.ericrf.com/cookies",
+    ]);
   });
 });
 

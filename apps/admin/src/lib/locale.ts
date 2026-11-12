@@ -39,10 +39,33 @@ export function isSupportedLocale(value: string | null | undefined): value is Lo
   return value !== null && value !== undefined && (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }
 
-export function resolveLocale(input: { query?: string | null; cookie?: string | null }): Locale {
+/** First supported language in an `Accept-Language` header, or English. */
+export function localeFromAcceptLanguage(header: string | null | undefined): Locale {
+  if (!header) return "en";
+  const candidates = header
+    .split(",")
+    .map((part) => {
+      const [tag = "", quality = "1"] = part.trim().split(";q=");
+      return { tag: tag.trim().toLowerCase(), quality: Number(quality) || 0 };
+    })
+    .filter((candidate) => candidate.tag.length > 0)
+    .sort((a, b) => b.quality - a.quality);
+
+  for (const { tag } of candidates) {
+    const base = tag.split("-")[0];
+    if (isSupportedLocale(base)) return base;
+  }
+  return "en";
+}
+
+export function resolveLocale(input: {
+  query?: string | null;
+  cookie?: string | null;
+  acceptLanguage?: string | null;
+}): Locale {
   if (isSupportedLocale(input.query)) return input.query;
   if (isSupportedLocale(input.cookie)) return input.cookie;
-  return "en";
+  return localeFromAcceptLanguage(input.acceptLanguage);
 }
 
 export function localeCookie(locale: Locale): string {

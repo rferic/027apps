@@ -45,8 +45,10 @@ disparadores); capturas con datos reales (regla explícita y revisión).
 Implementada en `feature/public-landing` (PR #87, draft): dos páginas estáticas, `/panel`,
 9 idiomas con rutas `/l/<locale>`, SEO (`sitemap.xml`, `robots.txt`, canonical/hreflang,
 Open Graph), catálogo de módulos y la regla de actualizar la landing al implementar uno.
-Pendiente: revisión nativa de traducciones, capturas reales del panel con datos de demo y
-auditoría de seguridad del cambio de apariencia del panel.
+Decisión posterior (2026-11-12): el idioma de la web pública va por cookie y `Accept-Language`,
+no por URL; se añadió aviso informativo de cookies y `/cookies`. La revisión nativa de
+traducciones la descarta el propietario; las capturas reales quedan aplazadas hasta que existan
+pantallas de la app. Pendiente: auditoría de seguridad del cambio de apariencia del panel.
 
 ## Revisión (2026-11-11)
 

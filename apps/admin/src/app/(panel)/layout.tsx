@@ -1,3 +1,4 @@
+import { CookieNotice } from "@/components/cookie-notice";
 import { PanelAppearance } from "@/components/panel-appearance";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { PanelHeader } from "@/components/panel-header";
@@ -6,6 +7,7 @@ import { PanelNav } from "@/components/panel-nav";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
 import { loadPanelSettings } from "@/lib/panel-settings";
+import { t } from "@027apps/i18n/t.js";
 
 /**
  * The panel reads the session, the role and the instance settings on every
@@ -23,6 +25,12 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
     return (
       <>
         <PanelAppearance theme={theme} locale={locale} />
+        <CookieNotice
+          title={t("Cookies", messages)}
+          message={t("We only use necessary cookies for the session and preference cookies for language and theme. No analytics or advertising.", messages)}
+          policyLabel={t("Cookie policy", messages)}
+          dismissLabel={t("Got it", messages)}
+        />
         <PanelForbidden locale={locale} messages={messages} user={gate.user} standalone />
       </>
     );
@@ -38,6 +46,12 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
       className="grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[220px_1fr]"
     >
       <PanelAppearance theme={theme} locale={locale} />
+      <CookieNotice
+        title={t("Cookies", messages)}
+        message={t("We only use necessary cookies for the session and preference cookies for language and theme. No analytics or advertising.", messages)}
+        policyLabel={t("Cookie policy", messages)}
+        dismissLabel={t("Got it", messages)}
+      />
       <aside className="hidden border-r border-border bg-muted p-3 lg:block">
         <PanelNav role={role} messages={messages} variant="sidebar" />
       </aside>

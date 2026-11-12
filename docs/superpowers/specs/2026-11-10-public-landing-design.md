@@ -65,30 +65,31 @@ sustituyen por `/panel`. La redención de invitación sigue terminando en
 
 ## 4. Idiomas, SEO y cacheabilidad
 
-El conflicto a resolver: el resto de la app resuelve el idioma por cookie, lo que obliga a
-renderizar por request y **rompe la caché**; la landing necesita ser estática para cumplir su
-presupuesto de rendimiento y para SEO.
+**Decisión del propietario (2026-11-12):** el idioma se resuelve por **cookie**, no por URL.
 
-**Solución:** una página estática por idioma.
-
-- `/` → idioma por defecto de la instancia (hoy `en`), estática.
-- `/l/es`, `/l/ca`, `/l/gl`, `/l/eu`, `/l/pt`, `/l/fr`, `/l/it`, `/l/de` → estáticas, con
-  `generateStaticParams`; un locale desconocido llama `notFound()`. Se eligió `/l/<locale>`
-  (no `[locale]` raíz) y se omitió `dynamicParams`, que Next 16 rechaza con `cacheComponents`.
-- `<html lang>` correcto por página, `canonical` propio, `hreflang` de todos los idiomas +
-  `x-default` apuntando a `/`. Si el idioma por defecto cambia en los ajustes, `/` cambia de
-  contenido en el siguiente build (documentado en `docs/ai/landing.md`).
-- **Spike de viabilidad** en el plan: confirmar en la documentación de Next 16 (que vive en
-  `apps/admin/node_modules/next/dist/docs/`) que un `[locale]` raíz no captura rutas estáticas
-  como `/panel`, `/login`, `/help`, `/invite`. Si hubiera colisión, la alternativa es
-  `/l/<locale>` y se anota en el plan; `/` no cambia.
-- Selector de idioma en la landing: enlaces estáticos entre variantes (sin JS). Además fija la
-  cookie `027_locale` para que el panel abra en ese idioma (pequeño componente cliente,
-  progresivo: sin JS los enlaces siguen funcionando).
-- `sitemap.ts` con `/` y las 8 variantes; `robots.ts` permite la landing y bloquea `/panel`,
-  `/api`, `/setup` y `/invite`. Se mantiene `X-Robots-Tag: noindex` en `/invite/:token`.
+- `/` y `/self-host` se renderizan por request: leen `027_locale`; si no existe, usan el primer
+  idioma soportado de `Accept-Language`; si no hay coincidencia, inglés.
+- Una sola URL por página. No hay `/l/<locale>` ni `hreflang` por idioma; `canonical` apunta a
+  la URL única y el `sitemap.xml` lista `/`, `/self-host` y `/cookies`.
+- El selector escribe `027_locale` y refresca el servidor; no cambia la URL. `<html lang>` se
+  corrige con `LocaleSync` para que coincida con el contenido.
+- Las páginas públicas declaran `instant = false` (dependen de la petición) y se sirven con
+  `Cache-Control: no-store`, así que ninguna caché mezcla idiomas.
+- **Trade-off asumido:** se pierde el HTML estático y la caché compartida, y no hay una URL
+  indexable por idioma. El propietario lo aceptó tras explicar el coste de SEO y rendimiento.
+- `robots.ts` permite la landing y bloquea `/panel`, `/api`, `/setup` y `/invite`. Se mantiene
+  `X-Robots-Tag: noindex` en `/invite/:token`.
 - Open Graph y Twitter Card con una imagen estática `public/og/landing.png` (1200×630),
-  `metadataBase` desde `instance.public_url` o el dominio de la petición en build.
+  `metadataBase` desde `NEXT_PUBLIC_SITE_URL` o `https://027apps.ericrf.com`.
+
+### Cookies
+
+- **Necesarias:** `sb-*` (sesión de Supabase en el panel).
+- **Preferencia:** `027_locale`, `027_theme` y `027_cookie_notice` (todas un año).
+- No hay analítica, publicidad ni cookies de terceros.
+- Aviso informativo en la web pública y el panel, sin bloquear; enlaza a `/cookies`, que
+  detalla cada cookie, su finalidad y duración.
+- El aviso se guarda en `027_cookie_notice`; si ya está, no se renderiza.
 
 ## 5. Contenido
 
@@ -168,14 +169,15 @@ Hereda los objetivos de la spec de rendimiento:
 
 ## 10. Criterios de aceptación
 
-1. `/` responde `200` sin sesión, sin llamar a Supabase y con `x-vercel-cache: HIT` tras el
-   primer hit; `/panel` exige sesión y muestra el dashboard.
+1. `/` responde `200` sin sesión y sin llamar a Supabase; `/panel` exige sesión y muestra el
+   dashboard. Las páginas públicas no se cachean (`Cache-Control: no-store`).
 2. En una instalación nueva, `/` sigue redirigiendo a `/setup`; instalada, `/` nunca redirige al
    login.
 3. Login correcto aterriza en `/panel`; un usuario con sesión que abre `/login` acaba en
    `/panel`.
-4. Los 9 idiomas renderizan sin claves sin traducir; `hreflang`, `canonical` y `sitemap.xml`
-   son correctos; `robots.txt` permite la landing y bloquea lo privado.
+4. Los 9 idiomas renderizan sin claves sin traducir; la cookie manda sobre `Accept-Language` y
+   el navegador sobre inglés; `canonical` y `sitemap.xml` son correctos; `robots.txt` permite la
+   landing y bloquea lo privado. El aviso de cookies y `/cookies` funcionan en los 9 idiomas.
 5. Objetivos de §8 cumplidos en producción (evidencia con el protocolo de la spec de
    rendimiento).
 6. `docs/ai/landing.md` existe, está enlazado desde `AGENTS.md` y `check-ai-docs` pasa.
