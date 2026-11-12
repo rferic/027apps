@@ -81,8 +81,9 @@ calientes):
 | `/api/health` (después) | 240 ms | — |
 | `/login` (después) | 300 ms | — |
 
-El frío incumple el objetivo en esta muestra. Hay que repetirlo en otro ciclo o aceptar la
-desviación documentada; la tarea 01 sigue en `test`.
+El frío incumple el objetivo en esta muestra. **Desviación aceptada por el propietario**
+(2026-11-12): se documenta 1,74 s en lugar de repetir el ciclo. La tarea 01 sigue en `test` solo
+por la medida autenticada real.
 
 ### Autenticado — referencia local (2026-11-12)
 

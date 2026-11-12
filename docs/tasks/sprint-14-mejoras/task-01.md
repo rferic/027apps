@@ -118,8 +118,8 @@ entorno. Se validó el camino con un `next start` local, Supabase local y un usu
 `request completed` por request. No es una medida de producción.
 
 Frío real (18 min sin tráfico, primera petición a `/api/v1/instance`): **1,74 s**, por encima
-del objetivo de 1,2 s. Las peticiones siguientes ya están calientes. La tarea sigue en `test`
-hasta repetir la medida o aceptar la desviación.
+del objetivo de 1,2 s. Las peticiones siguientes ya están calientes. **Desviación aceptada por el
+propietario** (2026-11-12). La tarea sigue en `test` solo por la medida autenticada real.
 
 ## Auditoría (2026-11-12)
 
