@@ -108,4 +108,5 @@ Segundo agente: **APTO CON RESERVAS**. No hay bypass de autenticación; el proxy
 `getSession` y el door verifica el JWT, la caché de React está aislada por request y `/api/health`
 no filtra información. Hallazgo bajo corregido: `probeDatabase` descarta la conexión
 (`release(true)`) si la query falla o vence el timeout, con test. Queda pendiente la medición en
-frío, las rutas autenticadas y L5/L6; por eso la tarea sigue en `test`.
+frío, las rutas autenticadas y L5/L6; por eso la tarea sigue en `test`. La medición en frío y
+autenticada se completa en la fase de cierre con el protocolo de `docs/flows/performance.md`.

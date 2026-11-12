@@ -49,9 +49,10 @@ Segundo agente: **NO APTO** inicial. Corregido:
   propio con `profile:write`; editar a otro o cambiar `role` exige `users:write`. La ruta
   `PATCH /users/{id}` autentica y delega la autorización al servicio. Tests nuevos para usuario
   propio, usuario ajeno, clave delegada con y sin `profile:write`, y anónimo.
-- Riesgo residual aceptado: `profiles.locale` no tiene `CHECK` en SQL; la lectura lo valida con
-  `isSupportedLocale` y la API con zod. Los tests de reversión de los selectores en cliente
-  siguen pendientes.
+- `profiles.locale` queda limitado en SQL con el `CHECK` de la migración
+  `0022_profile_locale_check.sql`, además de la validación de zod y `isSupportedLocale`.
+- La reversión optimista de los selectores se extrae a `applyPreference` y se cubre con tests
+  (aplica, persiste y revierte si el `PATCH` falla).
 
 Veredicto final: **APTO** tras la corrección; la tarea se cierra con los riesgos residuales
 documentados.
