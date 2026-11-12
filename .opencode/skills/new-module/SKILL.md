@@ -20,8 +20,9 @@ not duplicate the manifest contract; link to `docs/ai/module-system.md`.
 2. `docs/flows/new-module.md` — methodology and questionnaire (§1.1). Use that questionnaire as
    the source of questions; do not improvise a different list.
 3. `docs/ai/manifest.schema.json` — machine-readable contract.
-4. `docs/flows/feature.md` and `docs/flows/agents.md` — base feature flow and roles/gates.
-5. `.opencode/skills/new-module/templates/` — `manifest.json`, `module-spec.md`, `state.md`.
+4. `docs/ai/landing.md` — catalog and state of the public landing, and when to update it.
+5. `docs/flows/feature.md` and `docs/flows/agents.md` — base feature flow and roles/gates.
+6. `.opencode/skills/new-module/templates/` — `manifest.json`, `module-spec.md`, `state.md`.
 
 Do not proceed without reading the canonical docs. If a document is missing, stop and report.
 
@@ -60,6 +61,11 @@ Run the phases in `docs/flows/new-module.md` in order. Do not skip gates.
    covers security, API, MCP, and tests; update `state.md` with the next step and any Core
    blockers. Then follow `feature.md` for the plan, TDD implementation, review, security
    audit, and acceptance. Do not implement before the plan is approved.
+9. **Public landing** — while implementing the module, update its entry in `docs/ai/landing.md`
+   and on both public pages: state, description, three features, and a real screenshot with
+   demo data once it is `available`. Translate the new keys in the nine languages and run
+   `pnpm i18n:scan` + `pnpm i18n:check`. This ships in the same PR; the module is not
+   `finalizada` without it.
 
 ## Gates and stop conditions
 
@@ -94,10 +100,12 @@ Copy from `.opencode/skills/new-module/templates/`:
 - Exposing MCP `write` tools by default.
 - Marking `finalizada` with Core blockers.
 - Generating the spec without an accepted mockup.
+- Implementing a module and leaving the public landing (or `docs/ai/landing.md`) stale.
 
 ## References
 
 - `docs/ai/module-system.md`
+- `docs/ai/landing.md`
 - `docs/flows/new-module.md`
 - `docs/ai/manifest.schema.json`
 - `docs/flows/feature.md`

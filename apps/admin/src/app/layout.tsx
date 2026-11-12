@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { APP_NAME } from "@/lib/brand";
+import { SITE_URL } from "@/lib/site-url";
 import { themeBootstrapScript } from "@/lib/theme";
 import "./globals.css";
 
@@ -17,6 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: APP_NAME,
   description: `Panel de administración de ${APP_NAME}`,
 };

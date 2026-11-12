@@ -230,7 +230,7 @@ export function PreferencesStep({
       return;
     }
 
-    router.push("/");
+    router.push("/panel");
     router.refresh();
   };
 

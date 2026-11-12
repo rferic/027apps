@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const cookieValues = { current: {} as Record<string, string> };
 
 vi.mock("next/headers", () => ({
+  headers: async () => new Headers(),
   cookies: async () => ({
     get: (name: string) =>
       cookieValues.current[name] ? { value: cookieValues.current[name] } : undefined,

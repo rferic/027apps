@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
 import { PanelNav } from "./panel-nav";
 
 const ALL_HREFS = [
-  "/",
+  "/panel",
   "/members",
   "/categories",
   "/invitations",
@@ -79,14 +79,14 @@ describe("PanelNav", () => {
     expect(html).toContain("min-h-11");
   });
 
-  it("matches nested routes by prefix but keeps / exact", () => {
+  it("matches nested routes by prefix", () => {
     pathname.current = "/members/u-1";
     const nested = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
     expect(currentHrefs(nested)).toEqual(["/members"]);
 
-    pathname.current = "/";
+    pathname.current = "/panel";
     const home = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
-    expect(currentHrefs(home)).toEqual(["/"]);
+    expect(currentHrefs(home)).toEqual(["/panel"]);
   });
 
   it("does not mark /members when a sibling route merely shares its prefix", () => {

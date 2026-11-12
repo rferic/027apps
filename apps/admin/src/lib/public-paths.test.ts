@@ -3,6 +3,13 @@ import { isPublicPath } from "./public-paths";
 
 describe("isPublicPath", () => {
   it.each([
+    "/",
+    "/self-host",
+    "/self-host/",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/cookies",
+    "/cookies/",
     "/help",
     "/help/firebase",
     "/help/firebase/",
@@ -13,7 +20,6 @@ describe("isPublicPath", () => {
   });
 
   it.each([
-    "/",
     "/setup",
     "/login",
     "/members",

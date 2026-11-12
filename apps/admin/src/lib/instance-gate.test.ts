@@ -10,17 +10,27 @@ const MID_SETUP_NO_SESSION = { installed: true, setupIncomplete: true, hasSessio
 
 describe("entryGate", () => {
   it("sends an uninstalled instance to /setup", () => {
-    expect(entryGate("/", UNINSTALLED)).toBe("/setup");
-    expect(entryGate("/", ANONYMOUS_SESSION)).toBe("/setup");
+    expect(entryGate("/panel", UNINSTALLED)).toBe("/setup");
+    expect(entryGate("/panel", ANONYMOUS_SESSION)).toBe("/setup");
   });
 
   it("sends an installed instance without session to /login", () => {
-    expect(entryGate("/", INSTALLED)).toBe("/login");
+    expect(entryGate("/panel", INSTALLED)).toBe("/login");
   });
 
   it("lets an installed instance with session into the panel", () => {
+    expect(entryGate("/panel", INSTALLED_WITH_SESSION)).toBeNull();
+    expect(entryGate("/panel", MID_SETUP)).toBeNull();
+  });
+
+  it("leaves the public landing ungated", () => {
+    expect(entryGate("/", INSTALLED)).toBeNull();
     expect(entryGate("/", INSTALLED_WITH_SESSION)).toBeNull();
-    expect(entryGate("/", MID_SETUP)).toBeNull();
+    expect(entryGate("/self-host", INSTALLED)).toBeNull();
+  });
+
+  it("sends a signed-in user from /login to the panel", () => {
+    expect(entryGate("/login", INSTALLED_WITH_SESSION)).toBe("/panel");
   });
 
   it("keeps the wizard open while the instance is uninstalled", () => {
@@ -37,13 +47,17 @@ describe("entryGate", () => {
   });
 
   it("closes the wizard once setup is complete", () => {
-    expect(entryGate("/setup", INSTALLED_WITH_SESSION)).toBe("/");
+    expect(entryGate("/setup", INSTALLED_WITH_SESSION)).toBe("/panel");
   });
 
   it("points /login at the wizard while the instance is uninstalled", () => {
     expect(entryGate("/login", UNINSTALLED)).toBe("/setup");
     expect(entryGate("/login", INSTALLED)).toBeNull();
-    expect(entryGate("/login", MID_SETUP)).toBeNull();
+  });
+
+  it("sends a signed-in user from /login to the panel", () => {
+    expect(entryGate("/login", MID_SETUP)).toBe("/panel");
+    expect(entryGate("/login", INSTALLED_WITH_SESSION)).toBe("/panel");
   });
 
   it("does not gate other paths", () => {

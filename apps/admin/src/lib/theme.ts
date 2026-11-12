@@ -79,26 +79,4 @@ export function themeBootstrapScript(): string {
   ].join("");
 }
 
-/**
- * Panel script: the profile's theme wins over the cookie.
- *
- * The root layout applies the cookie before the first paint; this runs later in
- * the same paint, once the server knows the signed-in profile, so changing user
- * in the same browser recovers that account's appearance. It also re-aligns the
- * cookies for the public pages (login, invitation, help).
- */
-export function panelThemeScript(theme: Theme, locale: string): string {
-  const themeCookieValue = `${THEME_COOKIE}=${theme}; Path=/; SameSite=Lax; Max-Age=31536000`;
-  const localeCookieValue = `${LOCALE_COOKIE}=${locale}; Path=/; SameSite=Lax; Max-Age=31536000`;
-  return [
-    "(function(){try{",
-    "var r=document.documentElement;",
-    `r.classList.toggle("dark",${theme === "dark"});`,
-    `r.classList.toggle("light",${theme === "light"});`,
-    `r.style.colorScheme=${JSON.stringify(theme === "system" ? "" : theme)};`,
-    `r.lang=${JSON.stringify(locale)};`,
-    `document.cookie=${JSON.stringify(themeCookieValue)};`,
-    `document.cookie=${JSON.stringify(localeCookieValue)};`,
-    "}catch(e){}})();",
-  ].join("");
-}
+

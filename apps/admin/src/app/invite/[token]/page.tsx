@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getDictionary } from "@027apps/i18n/dictionary.js";
 import { t } from "@027apps/i18n/t.js";
 import { BrandLogo } from "@/components/brand-logo";
@@ -30,8 +30,15 @@ interface InvitePageProps {
  * history entry with the login notice.
  */
 export default async function InvitePage({ params }: InvitePageProps) {
-  const [{ token }, cookieStore] = await Promise.all([params, cookies()]);
-  const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
+  const [{ token }, cookieStore, headerStore] = await Promise.all([
+    params,
+    cookies(),
+    headers(),
+  ]);
+  const locale = resolveLocale({
+    cookie: cookieStore.get(LOCALE_COOKIE)?.value,
+    acceptLanguage: headerStore.get("accept-language"),
+  });
   const messages = getDictionary(locale);
 
   return (

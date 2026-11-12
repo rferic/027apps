@@ -208,6 +208,22 @@ packages/<key>/
 Si una migración falla, se revierte la transacción y no se aplica nada. Los efectos externos
 se ejecutan después del commit.
 
+### Landing pública
+
+Implementar el módulo no termina en el panel. La web pública (`/` para la app, `/self-host`
+para el proyecto) es la carta de presentación y debe decir la verdad sobre lo que la familia
+puede usar hoy.
+
+- Al cambiar el estado de un módulo, actualiza el catálogo de `docs/ai/landing.md` y las dos
+  páginas: nombre, descripción, tres características y estado.
+- Al pasar a `available`, sustituye la maqueta por una **captura real con datos de demo**;
+  nunca datos de la familia.
+- Traduce las claves nuevas en los 9 idiomas (`pnpm i18n:scan`, `pnpm i18n:check`).
+- Un módulo `planned` o `in-development` se queda marcado como tal. Nunca se presenta como
+  disponible.
+- La actualización de la landing va en el mismo PR que implementa el módulo. Sin ella, la
+  tarea no está `finalizada`.
+
 ## 5. Seguridad
 
 Todo módulo debe documentar y cumplir:

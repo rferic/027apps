@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getDictionary } from "@027apps/i18n/dictionary.js";
 import { t } from "@027apps/i18n/t.js";
 import { BrandLogo } from "@/components/brand-logo";
@@ -13,10 +13,15 @@ interface HelpPageProps {
 }
 
 export default async function HelpPage({ searchParams }: HelpPageProps) {
-  const [{ lang }, cookieStore] = await Promise.all([searchParams, cookies()]);
+  const [{ lang }, cookieStore, headerStore] = await Promise.all([
+    searchParams,
+    cookies(),
+    headers(),
+  ]);
   const locale = resolveLocale({
     query: typeof lang === "string" ? lang : null,
     cookie: cookieStore.get(LOCALE_COOKIE)?.value,
+    acceptLanguage: headerStore.get("accept-language"),
   });
   const messages = getDictionary(locale);
 

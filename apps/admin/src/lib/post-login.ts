@@ -5,5 +5,5 @@
  * can be finished without hunting for the banner.
  */
 export function postLoginPath(setupIncomplete: boolean): string {
-  return setupIncomplete ? "/setup" : "/";
+  return setupIncomplete ? "/setup" : "/panel";
 }

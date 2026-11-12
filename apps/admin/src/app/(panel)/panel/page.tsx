@@ -97,7 +97,7 @@ function DashboardError({
           <code className="select-all font-mono">{error.requestId}</code>
         </p>
       )}
-      <Link href="/" className="mt-2 inline-block font-semibold text-accent hover:underline">
+      <Link href="/panel" className="mt-2 inline-block font-semibold text-accent hover:underline">
         {t("Try again", messages)}
       </Link>
     </div>

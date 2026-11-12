@@ -7,10 +7,14 @@
  */
 const PUBLIC_HELP_PATHS = new Set(["/help", "/help/firebase"]);
 
+/** Product pages: public and Supabase-free. */
+const PUBLIC_PAGES = new Set(["/", "/self-host", "/cookies", "/robots.txt", "/sitemap.xml"]);
+
 const INVITE_PATH = /^\/invite\/([^/]+)$/;
 
 export function isPublicPath(pathname: string): boolean {
   const normalized = pathname.replace(/\/+$/, "") || "/";
+  if (PUBLIC_PAGES.has(normalized)) return true;
   if (PUBLIC_HELP_PATHS.has(normalized)) return true;
 
   const invite = INVITE_PATH.exec(normalized);
