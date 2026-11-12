@@ -61,6 +61,33 @@ Objetivo de API caliente (p95 ≤ 400 ms) cumplido en producción. `/api/health`
 `{"status":"ok"}` con la base de producción. **Pendiente**: medida en frío tras ≥15 min sin
 tráfico y rutas autenticadas (requieren una sesión de prueba).
 
+## Después — producción con Next 16.4.5 (2026-11-12)
+
+Medido con `curl` desde España contra `https://027apps.ericrf.com` (commit `3db5762`,
+`x-vercel-id: fra1::lhr1::…`), 12 peticiones por ruta y descartando la primera:
+
+| Ruta | p50 | p95 | Objetivo |
+|---|---|---|---|
+| `/api/health` | 233 ms | 454 ms | — (no es `/api/v1`) |
+| `/api/v1/instance` | 227 ms | **267 ms** | ≤ 400 ms caliente ✅ |
+| `/login` | 220 ms | **299 ms** | ≤ 300 ms caliente ✅ |
+
+La medida en frío y la de rutas autenticadas se completan en el cierre de la tarea 01.
+
+### Autenticado — referencia local (2026-11-12)
+
+La producción y staging no tienen una cuenta de prueba accesible desde este entorno, así que la
+medida autenticada se hizo contra un `next start` local con el Supabase local y un usuario
+temporal (`role=user`, eliminado al terminar), sobre el mismo código:
+
+| Ruta | p50 (servidor) | p95 (servidor) | Cliente p95 |
+|---|---|---|---|
+| `/api/v1/instance` con sesión | ~50 ms | ~141 ms | 141 ms |
+
+Cada request registra una sola línea `request completed` con un `session:<id>`; no hay
+verificaciones duplicadas. **No es una medida de producción**: sirve para validar el camino
+autenticado y el número de verificaciones, no para el objetivo de latencia.
+
 ## Auditoría del cliente: sin duplicados (2026-11-10)
 
 Reproducido en local con un usuario de prueba y Chrome headless (CDP), sobre el mismo código:
