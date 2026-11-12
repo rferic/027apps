@@ -2,7 +2,7 @@
 id: sprint-14-mejoras
 titulo: Invitaciones por email, rendimiento, landing y deuda de infraestructura
 area: producto
-estado: en curso
+estado: finalizado
 ---
 
 Sprint **definido el 2026-11-10**, pendiente de que el propietario apruebe las specs. Tres
@@ -64,6 +64,28 @@ Corregido el diagnóstico del cierre del sprint 13:
 - **Ejecutado (2026-11-10)**: `target-branch: staging` en los tres ecosistemas y los PRs #34,
   #51, #52 y #14 retargeteados. Rebase pedido en #33 y #14. La config surte efecto cuando
   llegue a `main`.
+
+## Cierre (2026-11-12)
+
+Sprint **finalizado** y desplegado en producción (`b6b8b51`, PR #89). `staging` y `main` quedan
+sincronizadas (`54f7606`).
+
+| Tarea | Resultado |
+|---|---|
+| 01 — Rendimiento | Región `lhr1`, una sola verificación de JWT y health barato; medición antes/después. |
+| 02 — Dependabot | `target-branch: staging` en los tres ecosistemas; triaje hecho sin mergear. |
+| 03 — Invitaciones por email | Resend, elección email/enlace, reenvío, rotación y plantilla en 9 idiomas. |
+| 04 — Landing pública | `/` y `/self-host`, panel en `/panel`, idioma por cookie, cookies y SEO. |
+| 05 — Apariencia | Tema e idioma persistidos en el perfil, cookie solo como pista de carga. |
+
+**Dependabot:** #52 (Next 16.4.5, Sentry, Supabase, Tailwind, Vitest), #39 (actions) y #51
+(Gradle/Firebase/Android) rebasados para revisión; #33 (ESLint 10) queda para una migración
+dedicada; #14 (TypeScript 7) y #34 (`@types/node` 26) cerrados por desajuste con el toolchain y
+el runtime.
+
+**Fuera del sprint, pendiente:** FCM, backup 3-2-1 y Storage siguen bloqueados por credenciales
+o buckets; las capturas reales de panel/app esperan a que existan pantallas de la app. La
+revisión nativa de traducciones la descarta el propietario.
 
 ## Reglas
 
