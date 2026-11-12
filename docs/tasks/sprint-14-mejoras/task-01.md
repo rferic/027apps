@@ -2,7 +2,7 @@
 id: sprint-14-task-01
 titulo: Rendimiento medido de la API y del panel
 area: rendimiento
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-10-api-performance.md
 fuente: docs/superpowers/specs/2026-11-10-api-performance-design.md
 adrs: [0004, 0007]
