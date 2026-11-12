@@ -14,28 +14,42 @@ datos ni el estado de la instancia.
 |---|---|
 | `/` | La app para la familia (móvil). |
 | `/self-host` | El proyecto: panel de escritorio, API, MCP, tecnologías y montaje. |
-| `/l/<locale>` y `/l/<locale>/self-host` | Las 8 variantes traducidas. Inglés en `/` y `/self-host`. |
+| `/cookies` | Política de cookies, en el idioma de la petición. |
+
+El idioma **no va en la URL**: estas tres rutas se renderizan en el idioma de `027_locale`, o el
+del navegador (`Accept-Language`) si no hay cookie, o inglés.
 
 ## SEO
 
-- `src/app/sitemap.ts` publica las dos páginas en los 9 idiomas con sus alternates;
-  `src/app/robots.ts` permite la landing y bloquea `/panel`, `/api/`, `/setup` e `/invite/`.
-- Cada ruta declara `canonical`, `hreflang` de los 9 idiomas y `x-default`.
+- Una sola URL por página: `canonical` propio y sin `hreflang` (el idioma va por cookie).
+- `src/app/sitemap.ts` lista `/`, `/self-host` y `/cookies`; `src/app/robots.ts` permite la
+  landing y bloquea `/panel`, `/api/`, `/setup` e `/invite/`.
 - Open Graph y Twitter Card usan `apps/admin/public/og/landing.png` (1200×630).
 - `NEXT_PUBLIC_SITE_URL` fija el origen canónico en una instancia autoalojada; sin ella se usa
   `https://027apps.ericrf.com`.
+- Las páginas leen cookies/cabeceras, así que declaran `instant = false` y se sirven con
+  `Cache-Control: no-store`; ninguna CDN las mezcla entre idiomas.
 
 ## Idiomas
 
+- `requestLocale()` resuelve el idioma por petición: `027_locale` → primer idioma soportado de
+  `Accept-Language` → inglés.
 - Los dos componentes (`components/landing/app-landing.tsx` y `self-host-landing.tsx`) reciben
   `locale` y traducen cada cadena visible con `t("texto en inglés")`.
 - El catálogo inglés vive en `packages/i18n/catalog.en.json`; las traducciones, en
   `packages/i18n/locales/<locale>.json`.
 - Para añadir o cambiar copy: `pnpm i18n:scan`, traduce la clave en los 8 ficheros y
   `pnpm i18n:check`. El check falla si falta una clave, sobra o no coinciden los placeholders.
-- El selector enlaza a la misma página en cada idioma (`/l/<locale>`). `LocaleSync` escribe la
-  cookie `027_locale` y corrige `<html lang>` antes del primer pintado.
+- El selector (`LanguageMenu`) escribe la cookie y refresca el servidor; la URL no cambia.
+  `LocaleSync` corrige `<html lang>` y persiste el idioma detectado.
 - No hay copy literal en el JSX salvo marcas, nombres de las maquetas y los importes de ejemplo.
+
+## Cookies
+
+- **Necesarias:** `sb-*` (sesión del panel).
+- **Preferencia:** `027_locale`, `027_theme`, `027_cookie_notice`.
+- Sin analítica, publicidad ni terceros. El aviso informativo se renderiza en servidor desde la
+  cookie y enlaza a `/cookies`; no bloquea nada.
 
 ## Estados
 

@@ -10,8 +10,8 @@ describe("landingMetadata", () => {
 
   it("declares the languages, canonical and social image", () => {
     const metadata = landingMetadata("de", "selfhost");
-    expect(metadata.alternates?.canonical).toBe("/l/de/self-host");
-    expect(Object.keys(metadata.alternates?.languages ?? {})).toHaveLength(10);
+    expect(metadata.alternates?.canonical).toBe("/self-host");
+    expect(metadata.alternates?.languages).toBeUndefined();
     expect(metadata.openGraph).toMatchObject({
       locale: "de_DE",
       images: [expect.objectContaining({ url: "/og/landing.png" })],

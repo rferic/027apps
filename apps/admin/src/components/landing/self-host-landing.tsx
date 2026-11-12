@@ -1,18 +1,25 @@
 import Link from "next/link";
 import { GitHubIcon } from "@/components/landing/github-icon";
+import { CookieNotice } from "@/components/cookie-notice";
+import { LanguageMenu } from "@/components/landing/language-menu";
 import { LocaleSync } from "@/components/landing/locale-sync";
 import { TechIcon, type TechName } from "@/components/landing/tech-icon";
-import { LANDING_LANGUAGES, languageLabel, landingHref, translator, type LandingPage } from "@/lib/landing/i18n";
+import { landingHref, translator } from "@/lib/landing/i18n";
 import { s } from "@/lib/landing-style";
 import type { Locale } from "@027apps/i18n/types.js";
 
 /** Static landing ported from the approved mockup (docs/mockups/landing). */
 export function SelfHostLanding({ locale }: { locale: Locale }) {
   const t = translator(locale);
-  const page: LandingPage = "selfhost";
   return (
     <div className="lp dark v2 selfhost">
       <LocaleSync locale={locale} />
+      <CookieNotice
+        title={t("Cookies")}
+        message={t("We only use necessary cookies for the session and preference cookies for language and theme. No analytics or advertising.")}
+        policyLabel={t("Cookie policy")}
+        dismissLabel={t("Got it")}
+      />
       <div className="wrap">
         <nav className="nav">
           <Link className="brand lockup" href={landingHref(locale, "app")}>
@@ -44,21 +51,7 @@ export function SelfHostLanding({ locale }: { locale: Locale }) {
             <a href="https://github.com/rferic/027apps/blob/main/docs/self-hosting.md">{t("Documentation")}{" "}</a>
           </div>
           <div className="actions">
-            <details className="lang">
-              <summary aria-label={t("Language")}>{languageLabel(locale)} ▾</summary>
-              <div className="lang-menu">
-                {LANDING_LANGUAGES.map(({ code, label }) => (
-                  <a
-                    key={code}
-                    href={landingHref(code, page)}
-                    hrefLang={code}
-                    aria-current={code === locale ? "true" : undefined}
-                  >
-                    {label}
-                  </a>
-                ))}
-              </div>
-            </details>
+            <LanguageMenu locale={locale} label={t("Language")} />
             <a
               className="btn ghost icon-btn"
               href="https://github.com/rferic/027apps"
@@ -545,7 +538,8 @@ export function SelfHostLanding({ locale }: { locale: Locale }) {
           <span>
             <a href="https://github.com/rferic/027apps">GitHub</a> ·{" "}
             <a href="https://github.com/rferic/027apps/blob/main/docs/self-hosting.md">{t("Guide")}{" "}</a>{" "}
-            · <Link href={landingHref(locale, "app")}>{t("App")}</Link> · <Link href="/panel" prefetch={false}>{t("Open panel")}</Link> · MIT
+            · <Link href={landingHref(locale, "app")}>{t("App")}</Link> · <Link href="/panel" prefetch={false}>{t("Open panel")}</Link> ·{" "}
+            <Link href="/cookies">{t("Cookies")}</Link> · MIT
           </span>
         </div>
         <div className="row" style={s("margin-top: 14px; opacity: .8")}>

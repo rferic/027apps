@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  LANDING_LOCALES,
-  landingHref,
-  languageLabel,
-  translator,
-} from "./i18n";
+import { landingHref, languageLabel, translator } from "./i18n";
 
 describe("landingHref", () => {
   it("keeps English on the root routes", () => {
@@ -12,14 +7,10 @@ describe("landingHref", () => {
     expect(landingHref("en", "selfhost")).toBe("/self-host");
   });
 
-  it("prefixes the translated variants", () => {
-    expect(landingHref("es", "app")).toBe("/l/es");
-    expect(landingHref("es", "selfhost")).toBe("/l/es/self-host");
-  });
-
-  it("lists the eight translated languages, without English", () => {
-    expect(LANDING_LOCALES).toHaveLength(8);
-    expect(LANDING_LOCALES).not.toContain("en");
+  it("keeps one address for every language", () => {
+    expect(landingHref("es", "app")).toBe("/");
+    expect(landingHref("es", "selfhost")).toBe("/self-host");
+    expect(landingHref("de", "cookies")).toBe("/cookies");
   });
 });
 

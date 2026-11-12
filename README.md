@@ -20,13 +20,14 @@
 
 ## Public site
 
-The website presents the product; the panel is where a family runs it.
+The website presents the product; the panel is where a family runs it. The language comes from
+the visitor's cookie or browser (`Accept-Language`), with English as the default.
 
 | Route | Contents |
 |---|---|
 | [`/`](https://027apps.ericrf.com/) | The family app: modules, screenshots and roadmap. |
 | [`/self-host`](https://027apps.ericrf.com/self-host) | The project: admin panel, API v1, MCP, stack and setup. |
-| `/l/<locale>` | The same pages in the eight translated languages. |
+| `/cookies` | The cookies the site and the panel use. |
 | `/panel` | The administration panel (invitation-only, requires a session). |
 
 APKs are published on [GitHub Releases](https://github.com/rferic/027apps/releases). There is no

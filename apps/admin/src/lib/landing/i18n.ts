@@ -15,7 +15,7 @@ export const LANDING_LANGUAGES: readonly { code: Locale; label: string; short: s
   { code: "de", label: "Deutsch", short: "DE" },
 ];
 
-export type LandingPage = "app" | "selfhost";
+export type LandingPage = "app" | "selfhost" | "cookies";
 
 /** Open Graph locale codes for the nine languages. */
 const OG_LOCALES: Record<string, string> = {
@@ -34,20 +34,14 @@ export function ogLocale(locale: Locale): string {
   return OG_LOCALES[locale] ?? "en_US";
 }
 
-/** The 8 translated variants; English is served from the root routes. */
-export const LANDING_LOCALES = SUPPORTED_LOCALES.filter(
-  (locale): locale is Exclude<Locale, "en"> => locale !== "en",
-);
-
-export function isLandingLocale(value: string): value is Locale {
-  return (SUPPORTED_LOCALES as readonly string[]).includes(value);
-}
-
-/** Path of one landing page in one language (English keeps the short route). */
-export function landingHref(locale: Locale, page: LandingPage): string {
-  const base = locale === "en" ? "" : `/l/${locale}`;
-  if (page === "selfhost") return `${base}/self-host`;
-  return base || "/";
+/**
+ * Path of one landing page. The language lives in the cookie, not the URL,
+ * so every language shares the same address.
+ */
+export function landingHref(_locale: Locale, page: LandingPage): string {
+  if (page === "selfhost") return "/self-host";
+  if (page === "cookies") return "/cookies";
+  return "/";
 }
 
 export function languageLabel(locale: Locale): string {

@@ -239,7 +239,11 @@ async function preferencesStep(
 export default async function SetupPage() {
   const { settingsDeps } = await getInfra();
   const cookieStore = await cookies();
-  const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
+  const headerStore = await headers();
+  const locale = resolveLocale({
+    cookie: cookieStore.get(LOCALE_COOKIE)?.value,
+    acceptLanguage: headerStore.get("accept-language"),
+  });
   const messages = getDictionary(locale);
   if (!(await hasActiveSuperAdmin(settingsDeps))) {
     return creationStep(settingsDeps, locale, messages);
