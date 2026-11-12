@@ -2,7 +2,7 @@
 id: sprint-14-task-03
 titulo: Invitaciones por email con plantilla reutilizable
 area: producto
-estado: en curso
+estado: finalizada
 plan: pendiente de redactar
 fuente: docs/superpowers/specs/2026-11-10-invitation-email-design.md
 adrs: [0002, 0004, 0007, 0008]

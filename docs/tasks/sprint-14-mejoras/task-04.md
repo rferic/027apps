@@ -2,7 +2,7 @@
 id: sprint-14-task-04
 titulo: Landing pública y panel en /panel
 area: producto
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-11-public-landing.md
 fuente: docs/superpowers/specs/2026-11-10-public-landing-design.md
 adrs: [0001, 0002, 0003, 0004, 0008]

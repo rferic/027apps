@@ -2,7 +2,7 @@
 id: sprint-14-task-05
 titulo: Apariencia por usuario (tema e idioma en el perfil)
 area: producto
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-11-user-appearance.md
 fuente: docs/superpowers/specs/2026-11-11-user-appearance-design.md
 adrs: [0002, 0008]

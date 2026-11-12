@@ -2,7 +2,7 @@
 id: sprint-14-task-02
 titulo: Dependabot apuntando a staging y triaje de los PRs abiertos
 area: infra
-estado: en curso
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-10-dependabot-staging.md
 fuente: docs/tasks/sprint-14-mejoras/README.md §Dependabot
 adrs: [0010]
