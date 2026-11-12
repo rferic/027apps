@@ -72,7 +72,17 @@ Medido con `curl` desde España contra `https://027apps.ericrf.com` (commit `3db
 | `/api/v1/instance` | 227 ms | **267 ms** | ≤ 400 ms caliente ✅ |
 | `/login` | 220 ms | **299 ms** | ≤ 300 ms caliente ✅ |
 
-La medida en frío y la de rutas autenticadas se completan en el cierre de la tarea 01.
+Frío (18 min sin tráfico, primera petición a `/api/v1/instance`; las siguientes ya están
+calientes):
+
+| Ruta | Frío | Objetivo |
+|---|---|---|
+| `/api/v1/instance` | **1,74 s** | ≤ 1,2 s ❌ |
+| `/api/health` (después) | 240 ms | — |
+| `/login` (después) | 300 ms | — |
+
+El frío incumple el objetivo en esta muestra. Hay que repetirlo en otro ciclo o aceptar la
+desviación documentada; la tarea 01 sigue en `test`.
 
 ### Autenticado — referencia local (2026-11-12)
 

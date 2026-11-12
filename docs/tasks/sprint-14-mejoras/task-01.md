@@ -117,7 +117,9 @@ entorno. Se validó el camino con un `next start` local, Supabase local y un usu
 (`role=user`, eliminado después): `/api/v1/instance` p95 de servidor ~141 ms y una sola línea
 `request completed` por request. No es una medida de producción.
 
-La medida en frío real (≥15 min sin tráfico) se añade al cerrar esta fase.
+Frío real (18 min sin tráfico, primera petición a `/api/v1/instance`): **1,74 s**, por encima
+del objetivo de 1,2 s. Las peticiones siguientes ya están calientes. La tarea sigue en `test`
+hasta repetir la medida o aceptar la desviación.
 
 ## Auditoría (2026-11-12)
 
