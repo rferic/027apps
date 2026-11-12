@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@027apps/core": "workspace:*",
-    "@supabase/supabase-js": "^2.118.0",
+    "@supabase/supabase-js": "^2.119.0",
     "@types/node": "^22.20.5",
     "@types/pg": "^8.23.1",
     "pg": "^8.19.0",
