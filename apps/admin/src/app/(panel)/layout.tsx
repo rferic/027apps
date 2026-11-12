@@ -1,4 +1,5 @@
 import { CookieNotice } from "@/components/cookie-notice";
+import { panelLocale } from "@/lib/panel-locale";
 import { PanelAppearance } from "@/components/panel-appearance";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { PanelHeader } from "@/components/panel-header";
@@ -18,7 +19,7 @@ export const instant = false;
 export default async function PanelLayout({ children }: LayoutProps<"/">) {
   const gate = await requirePanel("admin");
 
-  const locale = gate.user.locale;
+  const locale = panelLocale(gate.user);
   const theme = gate.user.theme;
   const messages = await loadPanelMessages(locale);
   if ("denied" in gate) {

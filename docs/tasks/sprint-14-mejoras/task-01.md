@@ -100,4 +100,39 @@ documento por página y un solo fetch RSC al navegar al detalle; **no hay petici
 duplicadas**. La causa era el trabajo del servidor.
 
 Pendiente: frío real (≥15 min sin tráfico), rutas autenticadas, L5 (bundle/cold start) y L6
-(consultas). Revisión con ojos nuevos y auditoría de seguridad antes de `finalizada`.
+(consultas).
+
+## Medición 2026-11-12 (Next 16.4.5)
+
+Producción, `x-vercel-id: fra1::lhr1::…`, 12 peticiones por ruta descartando la primera:
+
+| Ruta | p50 | p95 | Objetivo |
+|---|---|---|---|
+| `/api/health` | 233 ms | 454 ms | — |
+| `/api/v1/instance` | 227 ms | **267 ms** | ≤ 400 ms caliente ✅ |
+| `/login` | 220 ms | **299 ms** | ≤ 300 ms caliente ✅ |
+
+Rutas autenticadas: la producción y staging no tienen una cuenta de prueba accesible desde este
+entorno. Se validó el camino con un `next start` local, Supabase local y un usuario temporal
+(`role=user`, eliminado después): `/api/v1/instance` p95 de servidor ~141 ms y una sola línea
+`request completed` por request. No es una medida de producción.
+
+Frío real (18 min sin tráfico, primera petición a `/api/v1/instance`): **1,74 s**, por encima
+del objetivo de 1,2 s. Las peticiones siguientes ya están calientes. **Desviación aceptada por el
+propietario** (2026-11-12).
+
+## Cierre (2026-11-12)
+
+El propietario acepta cerrar con la **referencia local** para el camino autenticado: no se mide
+contra producción porque no hay una cuenta de prueba accesible y no se quieren credenciales en
+el chat. La medida local (p95 ~141 ms, una sola verificación por request) y el frío de 1,74 s
+quedan documentados como limitaciones aceptadas. Tarea `finalizada`.
+
+## Auditoría (2026-11-12)
+
+Segundo agente: **APTO CON RESERVAS**. No hay bypass de autenticación; el proxy usa
+`getSession` y el door verifica el JWT, la caché de React está aislada por request y `/api/health`
+no filtra información. Hallazgo bajo corregido: `probeDatabase` descarta la conexión
+(`release(true)`) si la query falla o vence el timeout, con test. Queda pendiente la medición en
+frío, las rutas autenticadas y L5/L6; por eso la tarea sigue en `test`. La medición en frío y
+autenticada se completa en la fase de cierre con el protocolo de `docs/flows/performance.md`.

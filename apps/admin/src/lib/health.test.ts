@@ -3,13 +3,13 @@ import { healthResponse, probeDatabase, type DatabasePort } from "./health";
 
 interface FakeClient {
   query: Mock<(sql: string) => Promise<unknown>>;
-  release: Mock<() => void>;
+  release: Mock<(destroy?: boolean) => void>;
 }
 
 function fakeClient(
   queryImpl: (sql: string) => Promise<unknown> = async () => ({ rows: [{ "?column?": 1 }] }),
 ): FakeClient {
-  return { query: vi.fn(queryImpl), release: vi.fn<() => void>() };
+  return { query: vi.fn(queryImpl), release: vi.fn<(destroy?: boolean) => void>() };
 }
 
 function fakePort(client: FakeClient): { connect: Mock<() => Promise<FakeClient>> } {
@@ -42,7 +42,7 @@ describe("probeDatabase", () => {
     await expect(probeDatabase(port)).resolves.toBe(true);
 
     expect(client.query).toHaveBeenCalledWith("select 1");
-    expect(client.release).toHaveBeenCalledTimes(1);
+    expect(client.release).toHaveBeenCalledWith(false);
   });
 
   it("reports unhealthy and releases when the query fails", async () => {
@@ -52,7 +52,7 @@ describe("probeDatabase", () => {
     const port = fakePort(client);
 
     await expect(probeDatabase(port)).resolves.toBe(false);
-    expect(client.release).toHaveBeenCalledTimes(1);
+    expect(client.release).toHaveBeenCalledWith(true);
   });
 
   it("reports unhealthy when the connection cannot be acquired", async () => {
@@ -74,7 +74,7 @@ describe("probeDatabase", () => {
       await vi.advanceTimersByTimeAsync(60);
 
       await expect(pending).resolves.toBe(false);
-      expect(client.release).toHaveBeenCalledTimes(1);
+      expect(client.release).toHaveBeenCalledWith(true);
     } finally {
       vi.useRealTimers();
     }

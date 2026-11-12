@@ -48,7 +48,11 @@ Open Graph), catálogo de módulos y la regla de actualizar la landing al implem
 Decisión posterior (2026-11-12): el idioma de la web pública va por cookie y `Accept-Language`,
 no por URL; se añadió aviso informativo de cookies y `/cookies`. La revisión nativa de
 traducciones la descarta el propietario; las capturas reales quedan aplazadas hasta que existan
-pantallas de la app. Pendiente: auditoría de seguridad del cambio de apariencia del panel.
+pantallas de la app.
+
+**Auditoría de seguridad (2026-11-12):** APTO (PR #87). Hallazgo bajo: `/robots.txt` y
+`/sitemap.xml` no estaban en la allowlist pública y el proxy creaba cliente de Supabase para
+servirlos; corregido en `6d3de18` con test de rutas públicas.
 
 ## Revisión (2026-11-11)
 

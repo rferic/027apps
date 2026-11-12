@@ -71,7 +71,7 @@ solo `RESEND_API_KEY` + dirección de prueba para el envío real; la implementac
 - Adaptador de Resend en el admin (`fetch`, timeout de 5 s, sin SDK); sin clave degrada a
   `skipped`.
 - CI del PR en verde, incluido el job `supabase` con la migración `0020`.
-- Pendiente: UI del panel (selectores en el alta, estado y acciones en el detalle).
+- UI del panel completada en la entrega siguiente (ver abajo).
 
 ### UI del panel (2026-11-11)
 
