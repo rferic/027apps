@@ -1,4 +1,5 @@
 import { DomainError } from "../errors";
+import { effectiveScopes } from "../auth/guard";
 import { enqueueEvent } from "../realtime/service";
 import type { Caller } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
@@ -348,6 +349,21 @@ export async function updateUser(
   id: string,
   patch: UserPatch,
 ): Promise<UserView> {
+  if (caller.kind === 'anon') throw new DomainError('unauthorized');
+
+  // A session or delegated key may edit its own profile (theme, language,
+  // name, timezone); editing anyone else, or changing a role, still needs the
+  // administration scope. The route authorizes authentication only so this
+  // check can tell "self" from "someone else" without a second query.
+  const scopes = effectiveScopes(caller);
+  const canManageUsers = scopes.includes('users:write');
+  const canEditSelf =
+    (caller.kind === 'session' || caller.kind === 'delegated') &&
+    caller.userId === id &&
+    scopes.includes('profile:write');
+  if (!canEditSelf && !canManageUsers) throw new DomainError('insufficient_scope');
+  if (patch.role !== undefined && !canManageUsers) throw new DomainError('insufficient_scope');
+
   return withRoleLock(deps, async (db) => {
     const current = await getUserFrom(db, id);
     // Nobody edits their own privileges: an admin must not promote or demote

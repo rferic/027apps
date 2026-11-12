@@ -35,4 +35,23 @@ UI); el script del panel y el del layout raíz deben coincidir en el orden de pr
   (`light`, `es`). El panel arrancó en oscuro y catalán (la base manda sobre la cookie).
 - Al cambiar tema e idioma desde el menú, la base quedó en `light/es` y la interfaz pasó a
   claro y español; el `lang` se actualiza tras el refresco.
-- Usuario de prueba eliminado. Pendiente: revisión con ojos nuevos y auditoría de seguridad.
+- Usuario de prueba eliminado.
+
+## Auditoría (2026-11-12)
+
+Segundo agente: **NO APTO** inicial. Corregido:
+
+- Las 19 páginas de `(panel)` leían `027_locale` de la cookie en vez del locale del perfil y
+  mezclaban idiomas tras cambiar de cuenta; ahora usan `gate.user.locale`. `PanelForbidden`
+  recibe `userId` y su selector de idioma persiste en el perfil.
+- `updateUser` permitía que un `admin`/service key cambiara el `theme` de otro usuario y que una
+  clave delegada sin `profile:write` editara el perfil de su dueño. Ahora solo se edita el perfil
+  propio con `profile:write`; editar a otro o cambiar `role` exige `users:write`. La ruta
+  `PATCH /users/{id}` autentica y delega la autorización al servicio. Tests nuevos para usuario
+  propio, usuario ajeno, clave delegada con y sin `profile:write`, y anónimo.
+- Riesgo residual aceptado: `profiles.locale` no tiene `CHECK` en SQL; la lectura lo valida con
+  `isSupportedLocale` y la API con zod. Los tests de reversión de los selectores en cliente
+  siguen pendientes.
+
+Veredicto final: **APTO** tras la corrección; la tarea se cierra con los riesgos residuales
+documentados.

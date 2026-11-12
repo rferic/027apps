@@ -2,7 +2,7 @@
 id: sprint-14-mejoras
 titulo: Invitaciones por email, rendimiento, landing y deuda de infraestructura
 area: producto
-estado: finalizado
+estado: en curso
 ---
 
 Sprint **definido el 2026-11-10**, pendiente de que el propietario apruebe las specs. Tres
@@ -67,8 +67,9 @@ Corregido el diagnóstico del cierre del sprint 13:
 
 ## Cierre (2026-11-12)
 
-Sprint **finalizado** y desplegado en producción (`b6b8b51`, PR #89). `staging` y `main` quedan
-sincronizadas (`54f7606`).
+Sprint **casi cerrado**: 02–05 finalizadas; `task-01` sigue en `test` por las mediciones en frío
+y rutas autenticadas. Lo entregado está desplegado en producción (`b6b8b51`, PR #89). `staging`
+y `main` quedaron sincronizadas (`54f7606`).
 
 | Tarea | Resultado |
 |---|---|

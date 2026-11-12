@@ -10,7 +10,8 @@ import { NextResponse } from "next/server";
  */
 export interface DatabaseClientPort {
   query(sql: string): Promise<unknown>;
-  release(): void;
+  /** `true` destroys the connection instead of returning it to the pool. */
+  release(destroy?: boolean): void;
 }
 
 export interface DatabasePort {
@@ -38,14 +39,18 @@ export async function probeDatabase(
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
 ): Promise<boolean> {
   let client: DatabaseClientPort | null = null;
+  let healthy = false;
   try {
     client = await withTimeout(port.connect(), timeoutMs);
     await withTimeout(client.query("select 1"), timeoutMs);
+    healthy = true;
     return true;
   } catch {
     return false;
   } finally {
-    client?.release();
+    // A query that timed out may still own the socket; never return it to the
+    // pool in that state.
+    client?.release(!healthy);
   }
 }
 

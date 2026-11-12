@@ -2,7 +2,7 @@
 id: sprint-14-task-01
 titulo: Rendimiento medido de la API y del panel
 area: rendimiento
-estado: finalizada
+estado: test
 plan: docs/superpowers/plans/2026-11-10-api-performance.md
 fuente: docs/superpowers/specs/2026-11-10-api-performance-design.md
 adrs: [0004, 0007]
@@ -100,4 +100,12 @@ documento por página y un solo fetch RSC al navegar al detalle; **no hay petici
 duplicadas**. La causa era el trabajo del servidor.
 
 Pendiente: frío real (≥15 min sin tráfico), rutas autenticadas, L5 (bundle/cold start) y L6
-(consultas). Revisión con ojos nuevos y auditoría de seguridad antes de `finalizada`.
+(consultas).
+
+## Auditoría (2026-11-12)
+
+Segundo agente: **APTO CON RESERVAS**. No hay bypass de autenticación; el proxy usa
+`getSession` y el door verifica el JWT, la caché de React está aislada por request y `/api/health`
+no filtra información. Hallazgo bajo corregido: `probeDatabase` descarta la conexión
+(`release(true)`) si la query falla o vence el timeout, con test. Queda pendiente la medición en
+frío, las rutas autenticadas y L5/L6; por eso la tarea sigue en `test`.

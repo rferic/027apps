@@ -1,7 +1,6 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { panelLocale } from "@/lib/panel-locale";
 import { PanelForbidden } from "@/components/panel-forbidden";
-import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
 import { loadSettingsCategories } from "@/lib/panel-settings";
@@ -26,8 +25,7 @@ export const instant = false;
 export default async function SettingsIndexPage() {
   const gate = await requirePanel("admin");
 
-  const cookieStore = await cookies();
-  const locale = resolveLocale({ cookie: cookieStore.get(LOCALE_COOKIE)?.value });
+  const locale = panelLocale(gate.user);
   const messages = await loadPanelMessages(locale);
 
   // Generic refusal: it never reveals which routes or roles exist.

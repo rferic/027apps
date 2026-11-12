@@ -159,9 +159,11 @@ export function updateUserRoute(deps: UsersRouteDeps) {
     withDoor(
       req,
       {
-        // Role changes additionally require `roles:assign`, enforced by the
-        // service (admins can never touch a super_admin role).
-        scopes: ["users:write"],
+        // Authentication only: the service allows a caller to edit its own
+        // profile and requires `users:write` (and `roles:assign` for roles)
+        // for anyone else. Keeping the check there lets self-service theme and
+        // language work for plain users and delegated keys.
+        scopes: [],
         auth: deps.auth,
         cors: deps.cors,
         schema: userPatchSchema,
