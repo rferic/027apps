@@ -62,6 +62,7 @@ data class Strings(
     val change: String,
     val sessionNote: String,
     val welcome: String,
+    val version: String,
 )
 
 object AppStrings {
@@ -135,6 +136,7 @@ object AppStrings {
         change = "Change",
         sessionNote = "Your session is stored encrypted on this device.",
         welcome = "Welcome back",
+        version = "Version",
     )
 
     val es = Strings(
@@ -195,6 +197,7 @@ object AppStrings {
         change = "Cambiar",
         sessionNote = "Tu sesión se guarda cifrada en este dispositivo.",
         welcome = "Bienvenido de nuevo",
+        version = "Versión",
     )
 
     val ca = Strings(
@@ -255,6 +258,7 @@ object AppStrings {
         change = "Canvia",
         sessionNote = "La teva sessió es desa xifrada en aquest dispositiu.",
         welcome = "Benvingut de nou",
+        version = "Versió",
     )
 
     val it = Strings(
@@ -315,6 +319,7 @@ object AppStrings {
         change = "Cambia",
         sessionNote = "La sessione è salvata cifrata su questo dispositivo.",
         welcome = "Bentornato",
+        version = "Versione",
     )
 
     val fr = Strings(
@@ -375,6 +380,7 @@ object AppStrings {
         change = "Changer",
         sessionNote = "Votre session est stockée chiffrée sur cet appareil.",
         welcome = "Bon retour",
+        version = "Version",
     )
 
     val de = Strings(
@@ -435,6 +441,7 @@ object AppStrings {
         change = "Ändern",
         sessionNote = "Deine Sitzung wird verschlüsselt auf diesem Gerät gespeichert.",
         welcome = "Willkommen zurück",
+        version = "Version",
     )
 
     val pt = Strings(
@@ -495,6 +502,7 @@ object AppStrings {
         change = "Mudar",
         sessionNote = "A tua sessão é guardada cifrada neste dispositivo.",
         welcome = "Bem-vindo de volta",
+        version = "Versão",
     )
 
     val gl = Strings(
@@ -555,6 +563,7 @@ object AppStrings {
         change = "Cambiar",
         sessionNote = "A túa sesión gárdase cifrada neste dispositivo.",
         welcome = "Benvido de novo",
+        version = "Versión",
     )
 
     val eu = Strings(
@@ -615,5 +624,6 @@ object AppStrings {
         change = "Aldatu",
         sessionNote = "Zure saioa zifratuta gordetzen da gailu honetan.",
         welcome = "Ongi etorri berriro",
+        version = "Bertsioa",
     )
 }

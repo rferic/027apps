@@ -36,7 +36,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.BuildConfig
@@ -152,6 +151,13 @@ fun LoginScreen(
                 letterSpacing = (-0.5).sp,
                 color = palette.foreground,
             )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "${strings.version} ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" +
+                    if (BuildConfig.DEBUG) " · ${strings.debugBuild}" else "",
+                fontSize = 11.sp,
+                color = palette.mutedForeground,
+            )
             Spacer(Modifier.height(8.dp))
             Text(
                 instance.removePrefix("https://").removePrefix("http://"),
@@ -221,14 +227,6 @@ fun LoginScreen(
             UpdateNotice(update, onInstallUpdate)
             TextButton(onClick = { showPicker = true }) { Text(strings.changeInstance) }
 
-            Spacer(Modifier.height(20.dp))
-            Text(
-                "v${BuildConfig.VERSION_NAME}" +
-                    if (BuildConfig.DEBUG) " · ${strings.debugBuild}" else "",
-                fontSize = 11.sp,
-                color = palette.mutedForeground,
-                textAlign = TextAlign.Center,
-            )
         }
     }
 }

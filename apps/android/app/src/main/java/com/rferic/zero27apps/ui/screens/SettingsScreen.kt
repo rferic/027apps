@@ -13,14 +13,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,12 +35,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rferic.zero27apps.BuildConfig
 import com.rferic.zero27apps.data.UserDto
 import com.rferic.zero27apps.ui.InstancePickerDialog
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
 
-private val LOCALES = listOf("en", "es", "ca", "it", "fr", "de", "pt", "gl", "eu")
+/** Endonyms: a language is listed in its own language, never as an ISO code. */
+private val LOCALE_NAMES = listOf(
+    "en" to "English",
+    "es" to "Español",
+    "ca" to "Català",
+    "it" to "Italiano",
+    "fr" to "Français",
+    "de" to "Deutsch",
+    "pt" to "Português",
+    "gl" to "Galego",
+    "eu" to "Euskara",
+)
 private val THEMES = listOf("system", "light", "dark")
 
 /**
@@ -140,28 +154,20 @@ fun SettingsScreen(
                 .background(palette.surface, RoundedCornerShape(16.dp))
                 .border(1.dp, palette.border, RoundedCornerShape(16.dp))
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(strings.language, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                LOCALES.take(5).forEach { code ->
-                    Chip(selected = user.locale == code, label = code) { onLocale(code) }
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                LOCALES.drop(5).forEach { code ->
-                    Chip(selected = user.locale == code, label = code) { onLocale(code) }
-                }
-            }
-            Spacer(Modifier.size(2.dp))
-            Text(strings.theme, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                THEMES.forEach { value ->
-                    Chip(selected = user.theme == value, label = themeLabel(value)) {
-                        onTheme(value)
-                    }
-                }
-            }
+            SelectRow(
+                title = strings.language,
+                value = user.locale,
+                options = LOCALE_NAMES.map { (code, name) -> code to name },
+                onSelect = onLocale,
+            )
+            SelectRow(
+                title = strings.theme,
+                value = user.theme,
+                options = THEMES.map { value -> value to themeLabel(value) },
+                onSelect = onTheme,
+            )
         }
 
         // Sign out
@@ -185,28 +191,93 @@ fun SettingsScreen(
         }
 
         Text(strings.sessionNote, color = palette.mutedForeground, fontSize = 12.sp)
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                strings.version,
+                fontSize = 12.sp,
+                color = palette.mutedForeground,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" +
+                    if (BuildConfig.DEBUG) " · ${strings.debugBuild}" else "",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = palette.foreground,
+            )
+        }
     }
 }
 
+/** Label on the left, a bordered select on the right (the mockup's row). */
 @Composable
-private fun Chip(selected: Boolean, label: String, onClick: () -> Unit) {
+private fun SelectRow(
+    title: String,
+    value: String,
+    options: List<Pair<String, String>>,
+    onSelect: (String) -> Unit,
+) {
     val palette = LocalPalette.current
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label, fontSize = 12.sp) },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = palette.muted,
-            selectedLabelColor = palette.foreground,
-            labelColor = palette.mutedForeground,
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            borderColor = palette.border,
-            selectedBorderColor = palette.border,
-        ),
-    )
+    val label = options.firstOrNull { it.first == value }?.second ?: value
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            title,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            color = palette.foreground,
+            modifier = Modifier.weight(1f),
+        )
+        Select(label = label, options = options, onSelect = onSelect)
+    }
+}
+
+/** A compact select: bordered field plus a drop-down list of full names. */
+@Composable
+private fun Select(
+    label: String,
+    options: List<Pair<String, String>>,
+    onSelect: (String) -> Unit,
+) {
+    val palette = LocalPalette.current
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Box {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .border(1.dp, palette.border, RoundedCornerShape(12.dp))
+                .clickable { expanded = true }
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(label, fontSize = 13.sp, color = palette.foreground)
+            Spacer(Modifier.size(6.dp))
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                tint = palette.mutedForeground,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = palette.surface,
+        ) {
+            options.forEach { (value, name) ->
+                DropdownMenuItem(
+                    text = { Text(name, fontSize = 13.sp) },
+                    onClick = {
+                        expanded = false
+                        onSelect(value)
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable

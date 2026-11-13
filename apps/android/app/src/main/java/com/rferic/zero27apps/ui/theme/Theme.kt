@@ -1,6 +1,8 @@
 package com.rferic.zero27apps.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -62,7 +64,13 @@ fun Zero27AppsTheme(
         ThemePreference.DARK -> true
     }
     val palette = if (dark) Tokens.dark else Tokens.light
-    CompositionLocalProvider(LocalPalette provides palette) {
+    CompositionLocalProvider(
+        LocalPalette provides palette,
+        LocalTextSelectionColors provides TextSelectionColors(
+            handleColor = palette.accent,
+            backgroundColor = palette.accent.copy(alpha = 0.3f),
+        ),
+    ) {
         MaterialTheme(colorScheme = if (dark) darkScheme(palette) else scheme(palette), content = content)
     }
 }
