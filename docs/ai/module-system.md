@@ -198,9 +198,28 @@ packages/<key>/
 - DDL `up`/`down` reversible, con digests verificables.
 - Settings completos y con `is_secret` cuando corresponda.
 - i18n con claves en inglés como clave; el texto visible se traduce.
-- Scopes en código, no en BD.
+- Scopes en el manifest; el instalador los copia a `module_registry.scopes` para resolverlos
+  por petición (ver §3bis).
 - Páginas de admin con componente existente y ruta válida.
 - Sin secretos en el paquete ni en el manifest.
+
+### 3bis. Esquema, privilegios y RLS
+
+- El DDL corre como `module_installer`: crea el esquema `module_<key>` y sus objetos, y **no puede**
+  tocar `public`, `auth` ni crear `security definer`. El guard de SQL (`assertSafeModuleSql`) solo
+  permite dos referencias auditadas a `public`: `public.core_current_user_id()` en políticas y
+  `references public.profiles(...)` como destino de FK (nunca como lectura).
+- **Privilegios**: tras las migraciones el instalador concede `usage` del esquema y DML sobre
+  tablas/secuencias a `authenticated` (siempre pasa por RLS) y todo a `service_role`; las
+  migraciones futuras heredan con `alter default privileges`. Desinstalar borra el esquema y con
+  él los privilegios.
+- **Identidad**: `public.core_current_user_id()` (`security invoker`, `search_path` vacío) lee el
+  `sub` de los claims. Es la única función que un módulo puede usar para saber quién llama.
+- **FK a `profiles`**: obligatorio `on delete set null`, porque `purgeUser` borra `auth.users` y no
+  limpia los esquemas de módulo. El instalador lo comprueba en el catálogo y falla con
+  `fk_profiles_missing_set_null`; la fila del módulo sobrevive sin `user_id` (D16).
+- **Scopes por ruta**: la ruta declara `moduleKey`; el door comprueba módulo `active`, acceso
+  (admin, público o grant activo) y que el scope esté declarado. Sin acceso → `403` uniforme.
 
 ## 4. Ciclo de vida
 

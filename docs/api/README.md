@@ -96,7 +96,7 @@ Every error from `/api/v1` uses the same envelope:
 |---|---|---|---|
 | `validation_failed` | 400 | Malformed input; see `details` | No — fix the request |
 | `unauthorized` | 401 | Missing, invalid, revoked or expired credential | No — re-authenticate |
-| `insufficient_scope` | 403 | Authenticated but the credential lacks the scope (or the role) | No — request the scope |
+| `insufficient_scope` | 403 | Authenticated but the credential lacks the scope (or the role). On a module route also means: no grant for that module, the module is not `active`, or the scope is not declared by it — indistinguishable on purpose. | No — request the scope |
 | `not_found` | 404 | Resource does not exist **or** you cannot see it (deliberately indistinguishable) | No |
 | `conflict` | 409 | State conflict (already exists, already used, already installed) | Usually no — refresh and decide |
 | `rate_limited` | 429 | Too many requests; see `Retry-After` | **Yes**, with backoff |

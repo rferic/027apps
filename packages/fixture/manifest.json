@@ -1,0 +1,65 @@
+{
+  "key": "fixture",
+  "name": "Fixture",
+  "branding": {
+    "description": "Test-only module that exercises the module runtime.",
+    "icon": "assets/icon.svg",
+    "color": "slate"
+  },
+  "version": "1.0.0",
+  "is_public": false,
+  "migrations": [
+    {
+      "version": "1.0.0",
+      "up": "./sql/001-init.sql",
+      "down": "./sql/001-init.down.sql",
+      "digest": "sha256:cf45bae0760a1debbb5d328339c9a49e653feafd806ab9edeea37520f3dd64a9",
+      "down_digest": "sha256:af2f11d0088c96c2bb86d82e5cb9e75da3ccef511274fa7ead14e4bd65e732d2"
+    }
+  ],
+  "settings": [
+    {
+      "category": "fixture",
+      "label": "Fixture",
+      "icon": "box",
+      "sort_order": 90,
+      "settings": [
+        {
+          "key": "enabled",
+          "type": "bool",
+          "default": true,
+          "label": "Enabled",
+          "help": "No behaviour; it exercises the settings form.",
+          "is_public": false,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 10
+        }
+      ]
+    }
+  ],
+  "i18n": [
+    "en"
+  ],
+  "scopes": [
+    "notes:read",
+    "notes:write"
+  ],
+  "mcp_tools": [],
+  "channels": [],
+  "events": [],
+  "admin_pages": [
+    {
+      "route": "overview",
+      "label": "Fixture overview",
+      "icon": "box",
+      "group": "module",
+      "role": "admin"
+    }
+  ],
+  "docs": {
+    "readme": "docs/readme.md",
+    "api": "docs/api.md",
+    "settings": "docs/settings.md"
+  }
+}
