@@ -100,12 +100,38 @@ async function executeJob(
   }
 }
 
-/** Runs every job that is due in this minute for active modules. */
+export type DispatchOptions = {
+  /**
+   * Also evaluate the N minutes before `now`. A minute ticker leaves it at 0;
+   * a coarser scheduler (a 5-minute platform cron) passes its interval so a
+   * `0 * * * *` job still runs when the tick lands at :05. The per-minute claim
+   * keeps the lookback idempotent.
+   */
+  lookback_minutes?: number;
+};
+
+/** A late scheduler must not replay an unbounded backlog in one request. */
+export const MAX_LOOKBACK_MINUTES = 30;
+
+/**
+ * Runs every job that is due in this minute (and, with a lookback, in the
+ * previous ones) for active modules.
+ */
 export async function runDueModuleJobs(
   deps: ModulesDeps,
   now: Date = new Date(),
+  options: DispatchOptions = {},
 ): Promise<DispatchResult> {
-  const at = scheduledFor(now);
+  const last = scheduledFor(now);
+  const lookback = Math.min(
+    Math.max(Math.trunc(options.lookback_minutes ?? 0), 0),
+    MAX_LOOKBACK_MINUTES,
+  );
+  const minutes: Date[] = [];
+  for (let offset = lookback; offset >= 0; offset -= 1) {
+    minutes.push(new Date(last.getTime() - offset * 60_000));
+  }
+
   const { rows } = await deps.db.query(
     `select key, jobs from public.module_registry
       where state = 'active' and jsonb_array_length(jobs) > 0`,
@@ -118,11 +144,13 @@ export async function runDueModuleJobs(
   for (const row of rows) {
     const moduleKey = String(row.key);
     for (const job of (row.jobs as Job[] | null) ?? []) {
-      if (!isDueAt(job.schedule, at)) continue;
-      const result = await executeJob(deps, moduleKey, job, at);
-      runs.push(result);
-      if (result.status === "ok") executed += 1;
-      else if (result.status === "error") failed += 1;
+      for (const at of minutes) {
+        if (!isDueAt(job.schedule, at)) continue;
+        const result = await executeJob(deps, moduleKey, job, at);
+        runs.push(result);
+        if (result.status === "ok") executed += 1;
+        else if (result.status === "error") failed += 1;
+      }
     }
   }
 

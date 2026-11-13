@@ -95,6 +95,14 @@ Reglas de manejo de secretos:
 4. Un push directo a una rama que no sea `staging` o `main` y sin PR no despliega ni staging ni producción.
 5. `staging` está protegido por Vercel (*Standard Protection*, decisión 2026-11-09): lo prueba el propietario, y los agentes usan *Protection Bypass for Automation*. Producción (`027apps.ericrf.com`) es pública.
 
+### Trabajos de módulo (cron)
+
+Vercel **Hobby rechaza cualquier cron que corra más de una vez al día** (`Hobby accounts are limited to daily cron jobs`), y un `crons` inválido en `vercel.json` hace fallar *todo* el deployment: no es un job rojo, es el preview entero en `Error`. Por eso `apps/admin/vercel.json` ya no declara crons.
+
+El disparador vive en `.github/workflows/module-jobs.yml`: cada **5 minutos** llama a `/api/v1/maintenance/module-jobs` con `Authorization: Bearer $CRON_SECRET`. Como el tick es más grueso que un minuto, el endpoint evalúa una **ventana de 5 minutos** (`lookback_minutes`): un job de las 12:00 se ejecuta en el tick de las 12:05 y la reclamación por minuto (`module_job_runs`) impide duplicados. El tope de la ventana es 30 minutos.
+
+Los secretos son `MODULE_JOBS_URL_STAGING` + `CRON_SECRET_STAGING` y `MODULE_JOBS_URL_PRODUCTION` + `CRON_SECRET_PRODUCTION`; sin ellos el workflow no hace nada (igual que `migrations.yml`). Los workflows programados solo se ejecutan desde la rama por defecto, así que el tick empieza a funcionar cuando el fichero está en `main`; en staging se puede lanzar a mano con `workflow_dispatch` o un `curl` puntual.
+
 ## Migraciones Supabase
 
 Hay migraciones `0001`–`0019` en `supabase/migrations/`. Cada entorno aplica las suyas; el orden queda definido así:

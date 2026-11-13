@@ -124,6 +124,48 @@ describe("module jobs", () => {
     });
   });
 
+  it("catches an hourly job from a coarser tick through the lookback", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      await installModule(
+        deps(c),
+        admin,
+        manifest("jobs-module", "ping", {
+          jobs: [
+            { key: "ping", schedule: "0 * * * *", fn: "job_ping", timeout_seconds: 5 },
+          ],
+        }),
+      );
+      await activateModule(deps(c), admin, "jobs-module");
+
+      // The tick lands at 12:05; the job belongs to 12:00.
+      const result = await runDueModuleJobs(deps(c), new Date("2026-11-13T12:05:10Z"), {
+        lookback_minutes: 5,
+      });
+      const mine = result.runs.filter((run) => run.module_key === "jobs-module");
+      expect(mine).toEqual([
+        { module_key: "jobs-module", job_key: "ping", status: "ok", duration_ms: expect.any(Number) },
+      ]);
+
+      const { rows } = await query(
+        c,
+        "select scheduled_for from public.module_job_runs where module_key = 'jobs-module'",
+      );
+      expect(new Date(String(rows[0].scheduled_for)).toISOString()).toBe(
+        "2026-11-13T12:00:00.000Z",
+      );
+
+      // A second tick inside the window claims nothing new (12:00 is still in
+      // the 12:00–12:05 window; the claim is what reports it as skipped).
+      const again = await runDueModuleJobs(deps(c), new Date("2026-11-13T12:05:40Z"), {
+        lookback_minutes: 5,
+      });
+      expect(again.runs.filter((run) => run.module_key === "jobs-module")).toEqual([
+        { module_key: "jobs-module", job_key: "ping", status: "skipped" },
+      ]);
+    });
+  });
+
   it("runs a job on demand and refuses it when the module is inactive", async () => {
     await inRollback(async (c) => {
       const admin = await session(c, "admin");

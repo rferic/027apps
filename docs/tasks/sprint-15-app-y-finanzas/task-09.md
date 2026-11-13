@@ -32,6 +32,10 @@ propio, que no es autoalojable.
 
 **Dependencias**: tareas 02 y 08 `finalizadas` (registro y contrato versionado).
 
+**Cambio del 2026-11-13**: el cron por minuto de Vercel no existe en el plan Hobby (rechaza
+`* * * * *` y hace fallar el deployment entero). El disparador pasa a un workflow de GitHub Actions
+cada 5 minutos y el endpoint evalúa una ventana de 5 minutos para no perderse los jobs de las :00.
+
 **Riesgos**: un job que tarda más que el minuto y se solapa; uno que falla siempre y llena la
 tabla; un cron mal escrito; ejecutar trabajos de un módulo desactivado.
 

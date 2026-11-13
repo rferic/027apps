@@ -31,9 +31,12 @@ export async function GET(req: Request) {
   if (!sameToken(token, secret)) return new Response(null, { status: 401 });
 
   const { settingsDeps } = await getInfra();
+  // The scheduler ticks every 5 minutes, so evaluate the same window: a job due
+  // at :00 still runs when the tick lands at :05. The per-minute claim dedupes.
   const result = await runDueModuleJobs(
     { db: settingsDeps.db, withTransaction: runInTransaction },
     new Date(),
+    { lookback_minutes: 5 },
   );
   return Response.json({ executed: result.executed, failed: result.failed });
 }
