@@ -21,11 +21,12 @@ teclea en el mapeo.
 
 ## 1. CSV por grupo o amistad
 
-**Dónde está.** En la web, dentro del grupo o amistad, icono de ajustes/engranaje →
-**“Export as spreadsheet”**. La base de ayuda oficial (consultada 2026-11-12) dice que también
-está en la app móvil: en la cabecera horizontal del grupo, al final, **“Export”**. Otras guías
-dicen que solo está en web; conviene no depender de la app de Splitwise y aceptar el CSV
-compartido o descargado desde la web.
+**Dónde está.** En la **web** (`splitwise.com`), dentro del grupo o amistad, icono de
+ajustes/engranaje → **“Export as spreadsheet”**. **La app móvil no lo ofrece**: comprobado por el
+propietario el 2026-11-13, que tuvo que hacerlo desde el navegador. La base de ayuda oficial
+menciona la app, pero la app real no muestra la opción; el tutorial de OweNo dice «web» y no
+depende de que Splitwise la añada. Desde el móvil se abre la web en el navegador y el CSV se
+descarga en el dispositivo.
 
 **Alcance.** Es **por grupo o por amistad**, no por cuenta: hay que repetir la exportación por
 cada grupo. No hay “exportar todo” en CSV. No hay filtro de fechas: sale todo el historial del
@@ -80,11 +81,12 @@ usado para el fixture es todo EUR.
 
 **Cómo exportar (texto para el tutorial de la app).**
 
-1. Abre el grupo en Splitwise (web; en la app puede estar en el menú del grupo).
-2. Entra en los ajustes del grupo, el engranaje.
-3. Toca **«Export as spreadsheet»** / **«Exportar como hoja de cálculo»**.
-4. Guarda el archivo `.csv` o compártelo con el móvil.
-5. En OweNo: **⋯ → Importar de Splitwise → Elegir archivo**.
+1. Abre **`splitwise.com` en el navegador**. La app móvil no tiene esta opción.
+2. Entra al grupo.
+3. Toca el engranaje del grupo.
+4. Elige **«Export as spreadsheet»** / **«Exportar como hoja de cálculo»** y descarga el `.csv`.
+5. Si lo haces desde el móvil, la web en el navegador descarga el archivo en el dispositivo.
+6. En OweNo: **⋯ → Importar de Splitwise → Elegir archivo**.
 
 ## 2. JSON backup completo (Pro)
 

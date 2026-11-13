@@ -1143,13 +1143,13 @@ const screens = {
         <div class="card">
           <div class="section-head" style="margin-top:0"><h2 class="section-title">Cómo exportar de Splitwise</h2></div>
           <ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:var(--foreground)">
-            <li>Abre el <strong>grupo</strong> en Splitwise.</li>
+            <li>Abre <strong>splitwise.com en el navegador</strong>. La app móvil no ofrece esta opción.</li>
+            <li>Entra al <strong>grupo</strong>.</li>
             <li>Toca el <strong>engranaje</strong> del grupo.</li>
-            <li>Elige <strong>«Export as spreadsheet»</strong>.</li>
-            <li>Guarda o comparte el archivo <code>.csv</code>.</li>
+            <li>Elige <strong>«Export as spreadsheet»</strong> y descarga el CSV.</li>
             <li>Vuelve aquí y elige el archivo.</li>
           </ol>
-          <p class="note">Un archivo por grupo. El CSV sale en el idioma de tu cuenta: aceptamos cabeceras en español e inglés.</p>
+          <p class="note">Si lo haces desde el móvil, abre la web en el navegador: el archivo se descarga en el dispositivo. Un archivo por grupo; el CSV sale en el idioma de tu cuenta (aceptamos español e inglés).</p>
         </div>
         <div class="card" style="text-align:center;padding:22px 16px">
           <div class="empty-icon" style="margin-bottom:10px">⇩</div>
@@ -1482,6 +1482,18 @@ const panelScreens = {
           </table>
         </div>
       </div>
+      <div class="panel-card" style="margin-top:12px">
+        <h2>Datos de demo</h2>
+        <p>Usuarios de ejemplo, categorías y un grupo de prueba para capturas y aceptación. Se crean
+          con correos <code>@example.test</code> y no envían email. Solo aparece si la instancia
+          permite datos de demo.</p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-sm accent">Instalar datos de demo</button>
+          <button class="btn-sm">Borrar datos de demo</button>
+          <span class="pill warn">Solo fuera de producción</span>
+        </div>
+      </div>
+
       <div class="panel-card" style="margin-top:12px">
         <h2>Páginas del módulo</h2>
         <p>Se sirven dentro de Plataforma → Módulos, con esta pestaña secundaria. No hay sección «App».</p>

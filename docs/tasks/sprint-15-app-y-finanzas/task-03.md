@@ -102,6 +102,14 @@ presentar OweNo como disponible antes de que existan pantallas reales.
 - El importador de Splitwise procesa el **CSV por grupo** con preview/dry-run, errores claros y commit transaccional; **rechaza multi-divisa con aviso**; importa los pagos como liquidaciones; no deja importaciones a medias.
 - Páginas `overview`, `groups` e `imports` en el panel, dentro de Plataforma → Módulos, con
 datos de demo; landing actualizada en el mismo PR.
+- **Datos de demo (D21, B)**: OweNo declara `demo: { seed_fn, clear_fn }` y siembra un grupo de
+  prueba («Casa · Piso de Ana») con los usuarios del dataset del Core, 6 movimientos (gastos con
+  y sin el pagador, 3 de 4 participantes y un pago) y balances cuadrados; limpiar el demo borra
+  solo ese grupo. Las capturas de la landing y la aceptación de la tarea 04 usan estos datos,
+  nunca datos reales.
+- El seed de demo es idempotente y reversible: instalar dos veces no duplica, borrar deja el
+  grupo vacío y ningún movimiento huérfano, y la limpieza del Core se niega mientras el grupo de
+  demo siga enlazado.
 - `pnpm lint`, `pnpm tsc`, `pnpm test`, `pnpm --filter db-tests test`, `pnpm --filter admin build`,
   `pnpm i18n:check` en verde; CI en verde.
 

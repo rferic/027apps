@@ -79,6 +79,19 @@ completo con un módulo de fixture.
     módulo que apunta «Ana añadió un gasto» no debe avisar a Ana. Si el payload trae `actor_id`,
     el emisor lo excluye de los tokens de push (y del canal si el contrato lo permite); test con
     dos miembros y un autor. Sin esto, cada acción propia genera una notificación al autor.
+  - **Datos de demo (D21, variante B)**: capacidad del **Core**, sin módulo nuevo. Ajuste
+    `demo.enabled` (bool, por defecto `false`) que se rechaza en producción salvo override
+    explícito. Dataset con ids estables (`demo.ana@example.test`…), categorías e invitación;
+    `POST /api/v1/demo` (admin) idempotente y `DELETE /api/v1/demo` (admin) que se niega mientras
+    un módulo declare datos de demo enlazados. **Ningún email real**: correos `@example.test` y
+    las invitaciones de demo quedan marcadas como no enviadas.
+  - **Contrato de demo del módulo**: el manifest declara `demo: { seed_fn, clear_fn }` (funciones
+    del esquema del módulo que reciben un `jsonb` con los ids del dataset y devuelven recuentos).
+    El Core las ejecuta en una transacción al instalar/borrar demo, y al desinstalar un módulo
+    llama a `clear_fn` antes de borrar el esquema. Si el módulo no declara `demo`, no aparece el
+    botón. Cambio `module-contract`: esquema, docs, ejemplos y envoltorios.
+  - La **ficha del módulo** muestra «Instalar datos de demo» solo si `demo.enabled` está activo y
+    el dataset del Core existe; si no, la tarjeta no aparece (ni deshabilitada).
   - Fixture de módulo para `db-tests` (install → activate → endpoint con grant → evento en el
     outbox → miembro suscrito recibe → push encolado → uninstall) y tests unitarios del guard,
     del host de páginas y del canal.
@@ -116,6 +129,11 @@ módulos no debe abrir scopes de Core; el empaquetado no debe duplicar secretos 
   sin credenciales FCM, el evento se marca `published` y no se reintenta en bucle.- Un setting `int` con `min`/`max`/`step` se edita con deslizador en la página del módulo; un
   valor fuera de rango se rechaza en el servidor con `validation_failed`, y un manifest con
   `min > max` o `default` fuera de rango falla en CI.
+- Con `demo.enabled` apagado, `POST /api/v1/demo` responde `403` y el botón no aparece; en una
+  instancia marcada como producción también se rechaza.
+- Instalar el demo dos veces no duplica; borrar demo se niega si un módulo tiene datos enlazados
+  y, tras limpiarlos, elimina usuarios, categorías e invitaciones sin dejar huérfanos. No se
+  envía ningún email.
 - `docs/ai/module-system.md`, `docs/flows/new-module.md`, `docs/api/README.md` y
   `docs/flows/cicd.md` actualizados; `docs/ai/manifest.schema.json` y ejemplos del contrato de
   widgets, de los eventos/canales, del registro de dispositivos y de los settings con rango y
