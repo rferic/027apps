@@ -1,7 +1,9 @@
 package com.rferic.zero27apps.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,15 +13,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,7 +33,10 @@ import com.rferic.zero27apps.ui.UpdateState
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
 
-/** Inicio: who you are and what you can open. Widgets arrive with the module host. */
+/**
+ * Inicio: who you are and what you can open. The mockup's widget cards become
+ * one card per module until the widget host lands.
+ */
 @Composable
 fun HomeScreen(
     user: UserDto,
@@ -39,45 +46,108 @@ fun HomeScreen(
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
+
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text(strings.hello, style = MaterialTheme.typography.bodyMedium, color = palette.mutedForeground)
-        UpdateBanner(update, onInstallUpdate)
-
-        Text(
-            user.displayName,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(palette.surface)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(strings.yourAccount, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-            Text(user.role, color = palette.mutedForeground, fontSize = 13.sp)
-            Text(
-                "${modules.size} " + if (modules.size == 1) strings.moduleAvailable else strings.modulesAvailable,
-                color = palette.mutedForeground,
-                fontSize = 13.sp,
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Avatar(name = user.displayName)
+            Spacer(Modifier.size(12.dp))
+            Column {
+                Text(
+                    strings.hello,
+                    fontSize = 13.sp,
+                    color = palette.mutedForeground,
+                )
+                Text(
+                    user.displayName,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.foreground,
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .border(1.dp, palette.border, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Notifications,
+                    contentDescription = null,
+                    tint = palette.foreground,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
 
+        Text(
+            strings.mySpace.uppercase(),
+            fontSize = 11.sp,
+            letterSpacing = 1.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = palette.mutedForeground,
+        )
+
+        UpdateBanner(update, onInstallUpdate)
+
         if (modules.isEmpty()) {
-            Text(
-                strings.noModulesHome,
-                color = palette.mutedForeground,
-                fontSize = 13.sp,
-            )
+            Text(strings.noModulesHome, color = palette.mutedForeground, fontSize = 13.sp)
         } else {
-            Text(strings.modules, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-            modules.forEach { module -> ModuleRow(module) }
+            for (module in modules) ModuleCard(module)
+        }
+    }
+}
+
+@Composable
+private fun Avatar(name: String) {
+    val palette = LocalPalette.current
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .background(palette.accent, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            name.trim().take(1).uppercase().ifEmpty { "?" },
+            color = palette.background,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+        )
+    }
+}
+
+/** One module tile, as the mockup's dashboard card: icon, name, version. */
+@Composable
+private fun ModuleCard(module: ModuleDto) {
+    val palette = LocalPalette.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(palette.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(palette.successSubtle, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                module.name.take(1).uppercase(),
+                color = palette.accent,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+            )
+        }
+        Column(Modifier.weight(1f)) {
+            Text(module.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            Text("v${module.version}", color = palette.mutedForeground, fontSize = 12.sp)
         }
     }
 }
@@ -87,18 +157,11 @@ fun HomeScreen(
 private fun UpdateBanner(update: UpdateState, onInstall: () -> Unit) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
-    val text = when (update) {
-        UpdateState.None, is UpdateState.Available -> null
-        UpdateState.Downloading -> strings.updateDownloading
-        UpdateState.Installing -> strings.updateInstalling
-        UpdateState.Failed -> strings.updateFailed
-    }
     if (update is UpdateState.Available) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(palette.successSubtle)
+                .background(palette.successSubtle, RoundedCornerShape(16.dp))
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -113,38 +176,13 @@ private fun UpdateBanner(update: UpdateState, onInstall: () -> Unit) {
             Button(onClick = onInstall) { Text(strings.updateInstall) }
         }
     }
-    if (text != null) {
-        Text(text, color = palette.mutedForeground, fontSize = 12.sp)
+    val note = when (update) {
+        UpdateState.Downloading -> strings.updateDownloading
+        UpdateState.Installing -> strings.updateInstalling
+        UpdateState.Failed -> strings.updateFailed
+        else -> null
     }
-}
-
-@Composable
-fun ModuleRow(module: ModuleDto) {
-    val palette = LocalPalette.current
-    val strings = LocalStrings.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(palette.surface)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            module.name.take(1).uppercase(),
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(palette.muted)
-                .padding(9.dp),
-            color = palette.accent,
-            fontWeight = FontWeight.Bold,
-        )
-        Column {
-            Text(module.name, fontWeight = FontWeight.SemiBold)
-            Text("v${module.version}", color = palette.mutedForeground, fontSize = 12.sp)
-        }
+    if (note != null) {
+        Text(note, color = palette.mutedForeground, fontSize = 12.sp)
     }
-    Spacer(Modifier.height(2.dp))
 }

@@ -55,6 +55,12 @@ data class Strings(
     val updateDownloading: String,
     val updateInstalling: String,
     val updateFailed: String,
+    val connecting: String,
+    val privateSpace: String,
+    val mySpace: String,
+    val onlyActive: String,
+    val change: String,
+    val sessionNote: String,
 )
 
 object AppStrings {
@@ -121,6 +127,12 @@ object AppStrings {
         updateDownloading = "Downloading…",
         updateInstalling = "Installing… allow 027Apps to install apps if Android asks.",
         updateFailed = "Could not download the update.",
+        connecting = "Connecting to",
+        privateSpace = "Your private space",
+        mySpace = "My space",
+        onlyActive = "Only your active modules",
+        change = "Change",
+        sessionNote = "Your session is stored encrypted on this device.",
     )
 
     val es = Strings(
@@ -174,6 +186,12 @@ object AppStrings {
         updateDownloading = "Descargando…",
         updateInstalling = "Instalando… permite que 027Apps instale apps si Android lo pide.",
         updateFailed = "No se pudo descargar la actualización.",
+        connecting = "Conectando con",
+        privateSpace = "Tu espacio privado",
+        mySpace = "Mi espacio",
+        onlyActive = "Solo tus módulos activos",
+        change = "Cambiar",
+        sessionNote = "Tu sesión se guarda cifrada en este dispositivo.",
     )
 
     val ca = Strings(
@@ -227,6 +245,12 @@ object AppStrings {
         updateDownloading = "Baixant…",
         updateInstalling = "Instal·lant… permet que 027Apps instal·li apps si Android ho demana.",
         updateFailed = "No s'ha pogut baixar l'actualització.",
+        connecting = "Connectant amb",
+        privateSpace = "El teu espai privat",
+        mySpace = "El meu espai",
+        onlyActive = "Només els teus mòduls actius",
+        change = "Canvia",
+        sessionNote = "La teva sessió es desa xifrada en aquest dispositiu.",
     )
 
     val it = Strings(
@@ -280,6 +304,12 @@ object AppStrings {
         updateDownloading = "Download…",
         updateInstalling = "Installazione… consenti a 027Apps di installare app se Android lo chiede.",
         updateFailed = "Impossibile scaricare l'aggiornamento.",
+        connecting = "Connessione a",
+        privateSpace = "Il tuo spazio privato",
+        mySpace = "Il mio spazio",
+        onlyActive = "Solo i tuoi moduli attivi",
+        change = "Cambia",
+        sessionNote = "La sessione è salvata cifrata su questo dispositivo.",
     )
 
     val fr = Strings(
@@ -333,6 +363,12 @@ object AppStrings {
         updateDownloading = "Téléchargement…",
         updateInstalling = "Installation… autorisez 027Apps à installer des applications si Android le demande.",
         updateFailed = "Impossible de télécharger la mise à jour.",
+        connecting = "Connexion à",
+        privateSpace = "Votre espace privé",
+        mySpace = "Mon espace",
+        onlyActive = "Seulement vos modules actifs",
+        change = "Changer",
+        sessionNote = "Votre session est stockée chiffrée sur cet appareil.",
     )
 
     val de = Strings(
@@ -386,6 +422,12 @@ object AppStrings {
         updateDownloading = "Wird heruntergeladen…",
         updateInstalling = "Installation… erlaube 027Apps, Apps zu installieren, wenn Android fragt.",
         updateFailed = "Das Update konnte nicht geladen werden.",
+        connecting = "Verbinden mit",
+        privateSpace = "Dein privater Bereich",
+        mySpace = "Mein Bereich",
+        onlyActive = "Nur deine aktiven Module",
+        change = "Ändern",
+        sessionNote = "Deine Sitzung wird verschlüsselt auf diesem Gerät gespeichert.",
     )
 
     val pt = Strings(
@@ -439,6 +481,12 @@ object AppStrings {
         updateDownloading = "A transferir…",
         updateInstalling = "A instalar… permite que a 027Apps instale apps se o Android pedir.",
         updateFailed = "Não foi possível transferir a atualização.",
+        connecting = "A ligar a",
+        privateSpace = "O teu espaço privado",
+        mySpace = "O meu espaço",
+        onlyActive = "Apenas os teus módulos ativos",
+        change = "Mudar",
+        sessionNote = "A tua sessão é guardada cifrada neste dispositivo.",
     )
 
     val gl = Strings(
@@ -492,6 +540,12 @@ object AppStrings {
         updateDownloading = "Descargando…",
         updateInstalling = "Instalando… permite que 027Apps instale apps se Android o pide.",
         updateFailed = "Non se puido descargar a actualización.",
+        connecting = "Conectando con",
+        privateSpace = "O teu espazo privado",
+        mySpace = "O meu espazo",
+        onlyActive = "Só os teus módulos activos",
+        change = "Cambiar",
+        sessionNote = "A túa sesión gárdase cifrada neste dispositivo.",
     )
 
     val eu = Strings(
@@ -545,5 +599,11 @@ object AppStrings {
         updateDownloading = "Deskargatzen…",
         updateInstalling = "Instalatzen… baimendu 027Apps aplikazioak instalatzen Androidek eskatzen badu.",
         updateFailed = "Ezin izan da eguneraketa deskargatu.",
+        connecting = "Honekin konektatzen",
+        privateSpace = "Zure espazio pribatua",
+        mySpace = "Nire espazioa",
+        onlyActive = "Zure modulu aktiboak soilik",
+        change = "Aldatu",
+        sessionNote = "Zure saioa zifratuta gordetzen da gailu honetan.",
     )
 }

@@ -48,7 +48,9 @@ class AppStringsTest {
                 strings.theme, strings.language, strings.signOut, strings.signedInAs,
                 strings.themeSystem, strings.themeLight, strings.themeDark,
                 strings.updateAvailable, strings.updateInstall, strings.updateDownloading,
-                strings.updateInstalling, strings.updateFailed,
+                strings.updateInstalling, strings.updateFailed, strings.connecting,
+                strings.privateSpace, strings.mySpace, strings.onlyActive, strings.change,
+                strings.sessionNote,
             )
             assertTrue(texts.all { it.isNotBlank() })
         }
