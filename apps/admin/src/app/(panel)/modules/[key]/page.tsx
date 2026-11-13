@@ -2,6 +2,13 @@ import { redirect } from "next/navigation";
 import { loadModuleManifest } from "@/lib/module-manifests";
 
 /**
+ * A redirect depends on the request params, so it cannot be prerendered into
+ * an instant shell: opt the route out of instant-navigation validation, like
+ * the rest of the panel routes that read the session.
+ */
+export const instant = false;
+
+/**
  * Module entry (D20): the module opens on its summary. When the package ships
  * an `overview` page and the module is active, every other destination (the
  * list, the dashboard widget, a bookmark) lands there; otherwise it falls back
