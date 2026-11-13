@@ -3,6 +3,7 @@ id: sprint-15-task-02
 titulo: Módulo — instalación, aislamiento y scopes
 area: core
 estado: pendiente
+plan: docs/superpowers/plans/2026-11-13-module-runtime.md
 fuente: docs/ai/module-system.md; docs/superpowers/specs/2026-10-26-modulo-system.md §4; docs/superpowers/specs/2026-10-26-core-api.md §3.1
 adrs: [0007]
 ---

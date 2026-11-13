@@ -3,6 +3,7 @@ id: sprint-15-task-04
 titulo: Módulo — realtime, canales y push
 area: core
 estado: pendiente
+plan: docs/superpowers/plans/2026-11-13-module-runtime.md
 fuente: docs/ai/module-system.md; packages/core/src/realtime/service.ts; docs/flows/fcm-validation.md
 adrs: [0007]
 ---

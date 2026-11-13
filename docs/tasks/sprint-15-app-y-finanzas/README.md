@@ -89,8 +89,11 @@ obligatoria** de la tarea 01 y de la tarea 06, con su propia puerta de aceptaci�
 aprobado, la tarea no pasa a `en curso`.
 
 La **spec de OweNo** está en
-[`2026-11-13-owe-no.md`](../../superpowers/specs/2026-11-13-owe-no.md) y el **plan** en
-[`2026-11-13-owe-no.md`](../../superpowers/plans/2026-11-13-owe-no.md), ambos en borrador. La
+[`2026-11-13-owe-no.md`](../../superpowers/specs/2026-11-13-owe-no.md) y su **plan** en
+[`2026-11-13-owe-no.md`](../../superpowers/plans/2026-11-13-owe-no.md). El **plan del runtime**
+(02–05) está en
+[`2026-11-13-module-runtime.md`](../../superpowers/plans/2026-11-13-module-runtime.md), con una
+sección por tarea y una aceptación por sección. La
 spec cubre el modelo (un solo `movement`), la RLS, la liquidación exacta, el importador y el
 panel; el plan ordena el trabajo en fases con TDD y sus puertas. Spec, mockups y plan se
 aprueban juntos: sin esa aprobación no se escribe DDL ni código.

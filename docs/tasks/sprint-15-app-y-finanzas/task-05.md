@@ -3,6 +3,7 @@ id: sprint-15-task-05
 titulo: Datos de demo del Core y de los módulos
 area: core
 estado: pendiente
+plan: docs/superpowers/plans/2026-11-13-module-runtime.md
 fuente: docs/tasks/sprint-15-app-y-finanzas/README.md (D21); docs/ai/module-system.md
 adrs: [0007]
 ---
