@@ -63,6 +63,8 @@ data class Strings(
     val sessionNote: String,
     val welcome: String,
     val version: String,
+    val showPassword: String,
+    val hidePassword: String,
 )
 
 object AppStrings {
@@ -137,6 +139,8 @@ object AppStrings {
         sessionNote = "Your session is stored encrypted on this device.",
         welcome = "Welcome back",
         version = "Version",
+        showPassword = "Show password",
+        hidePassword = "Hide password",
     )
 
     val es = Strings(
@@ -198,6 +202,8 @@ object AppStrings {
         sessionNote = "Tu sesión se guarda cifrada en este dispositivo.",
         welcome = "Bienvenido de nuevo",
         version = "Versión",
+        showPassword = "Mostrar contraseña",
+        hidePassword = "Ocultar contraseña",
     )
 
     val ca = Strings(
@@ -259,6 +265,8 @@ object AppStrings {
         sessionNote = "La teva sessió es desa xifrada en aquest dispositiu.",
         welcome = "Benvingut de nou",
         version = "Versió",
+        showPassword = "Mostra la contrasenya",
+        hidePassword = "Amaga la contrasenya",
     )
 
     val it = Strings(
@@ -320,6 +328,8 @@ object AppStrings {
         sessionNote = "La sessione è salvata cifrata su questo dispositivo.",
         welcome = "Bentornato",
         version = "Versione",
+        showPassword = "Mostra password",
+        hidePassword = "Nascondi password",
     )
 
     val fr = Strings(
@@ -381,6 +391,8 @@ object AppStrings {
         sessionNote = "Votre session est stockée chiffrée sur cet appareil.",
         welcome = "Bon retour",
         version = "Version",
+        showPassword = "Afficher le mot de passe",
+        hidePassword = "Masquer le mot de passe",
     )
 
     val de = Strings(
@@ -442,6 +454,8 @@ object AppStrings {
         sessionNote = "Deine Sitzung wird verschlüsselt auf diesem Gerät gespeichert.",
         welcome = "Willkommen zurück",
         version = "Version",
+        showPassword = "Passwort anzeigen",
+        hidePassword = "Passwort verbergen",
     )
 
     val pt = Strings(
@@ -503,6 +517,8 @@ object AppStrings {
         sessionNote = "A tua sessão é guardada cifrada neste dispositivo.",
         welcome = "Bem-vindo de volta",
         version = "Versão",
+        showPassword = "Mostrar palavra-passe",
+        hidePassword = "Ocultar palavra-passe",
     )
 
     val gl = Strings(
@@ -564,6 +580,8 @@ object AppStrings {
         sessionNote = "A túa sesión gárdase cifrada neste dispositivo.",
         welcome = "Benvido de novo",
         version = "Versión",
+        showPassword = "Amosar o contrasinal",
+        hidePassword = "Ocultar o contrasinal",
     )
 
     val eu = Strings(
@@ -625,5 +643,7 @@ object AppStrings {
         sessionNote = "Zure saioa zifratuta gordetzen da gailu honetan.",
         welcome = "Ongi etorri berriro",
         version = "Bertsioa",
+        showPassword = "Erakutsi pasahitza",
+        hidePassword = "Ezkutatu pasahitza",
     )
 }

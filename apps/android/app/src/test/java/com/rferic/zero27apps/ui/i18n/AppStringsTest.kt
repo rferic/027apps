@@ -51,6 +51,7 @@ class AppStringsTest {
                 strings.updateInstalling, strings.updateFailed, strings.connecting,
                 strings.privateSpace, strings.mySpace, strings.onlyActive, strings.change,
                 strings.sessionNote, strings.welcome, strings.version,
+                strings.showPassword, strings.hidePassword,
             )
             assertTrue(texts.all { it.isNotBlank() })
         }

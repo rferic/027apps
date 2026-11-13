@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -20,6 +22,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -28,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.auth.InvitationLink
 import com.rferic.zero27apps.ui.InviteError
 import com.rferic.zero27apps.ui.InviteState
+import com.rferic.zero27apps.ui.components.EyeIcon
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
 
@@ -59,6 +64,7 @@ fun InviteScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var displayName by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     val valid = email.isNotBlank() && password.length >= 12
@@ -98,11 +104,30 @@ fun InviteScreen(
             label = { Text(strings.password) },
             singleLine = true,
             enabled = !state.pending,
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (passwordVisible) {
+                androidx.compose.ui.text.input.VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done,
             ),
+            trailingIcon = {
+                IconButton(
+                    onClick = { passwordVisible = !passwordVisible },
+                    modifier = Modifier.semantics {
+                        contentDescription =
+                            if (passwordVisible) strings.hidePassword else strings.showPassword
+                    },
+                ) {
+                    EyeIcon(
+                        visible = passwordVisible,
+                        tint = palette.mutedForeground,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            },
             supportingText = { Text(strings.invitePasswordHint, fontSize = 11.sp) },
             modifier = Modifier.fillMaxWidth(),
         )

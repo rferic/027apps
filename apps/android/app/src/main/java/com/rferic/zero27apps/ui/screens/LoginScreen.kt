@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -32,6 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,6 +47,7 @@ import com.rferic.zero27apps.ui.LoginError
 import com.rferic.zero27apps.ui.LoginState
 import com.rferic.zero27apps.ui.UpdateState
 import com.rferic.zero27apps.ui.components.BrandTile
+import com.rferic.zero27apps.ui.components.EyeIcon
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
 
@@ -105,6 +109,7 @@ fun LoginScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var showPicker by rememberSaveable { mutableStateOf(false) }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     val valid = email.isNotBlank() && password.isNotEmpty()
@@ -199,7 +204,7 @@ fun LoginScreen(
                     onValueChange = { password = it },
                     label = strings.password,
                     enabled = !state.pending,
-                    secret = true,
+                    secret = !passwordVisible,
                     keyboard = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done,
@@ -207,6 +212,21 @@ fun LoginScreen(
                     actions = KeyboardActions(
                         onDone = { if (valid && !state.pending) onLogin(email, password) },
                     ),
+                    trailing = {
+                        IconButton(
+                            onClick = { passwordVisible = !passwordVisible },
+                            modifier = Modifier.semantics {
+                                contentDescription =
+                                    if (passwordVisible) strings.hidePassword else strings.showPassword
+                            },
+                        ) {
+                            EyeIcon(
+                                visible = passwordVisible,
+                                tint = palette.mutedForeground,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    },
                 )
 
                 state.error?.let { error ->
@@ -240,6 +260,7 @@ private fun field(
     secret: Boolean = false,
     keyboard: KeyboardOptions,
     actions: KeyboardActions = KeyboardActions.Default,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val palette = LocalPalette.current
     OutlinedTextField(
@@ -252,6 +273,7 @@ private fun field(
         keyboardOptions = keyboard,
         keyboardActions = actions,
         shape = RoundedCornerShape(14.dp),
+        trailingIcon = trailing,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = palette.accent,
             unfocusedBorderColor = palette.border,
