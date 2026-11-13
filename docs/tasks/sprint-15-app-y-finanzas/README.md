@@ -48,12 +48,13 @@ y el importador se entregan al final, como tarea 07: el propietario los ha metid
   de diseño aprobada define como primer módulo **Split Expenses** (gastos compartidos,
   balances y liquidación). Hay que resolver esa contradicción antes de escribir DDL.
 
-## Alcance: ocho tareas
+## Alcance: once tareas
 
-**Sprint 15 (8 tareas: 7 obligatorias y 1 de extras):** app Android real, runtime del primer
+**Sprint 15 (11 tareas: 10 obligatorias y 1 de extras):** app Android real, runtime del primer
 módulo **partido en cuatro tareas**, OweNo usable en el panel y OweNo en la app con el
-**importador de Splitwise**. La **08** es la tarea de **extras** con la que cierra el sprint: un
-cambio pequeño de la web pública. Cada sprint puede terminar con una así.
+**importador de Splitwise**. Las **08–10** son la evolución del contrato (versionado y actualización, tareas programadas y
+actions de la app). La **11** es la de **extras** con la que cierra el sprint: un cambio pequeño
+de la web pública. Cada sprint puede terminar con una así.
 El propietario metió el importador en v1 (D3.2, C) y es una función móvil, así que las pantallas
 de OweNo y el importador no pueden quedar para el sprint 16.
 
@@ -176,12 +177,15 @@ su widget en la tarea 06. Sin cerrar el contrato, el dashboard no puede incrusta
 | 5 | [task-05](task-05.md) — Datos de demo del Core y de los módulos | feature + contrato | 02, 03 | Habilita capturas y aceptación sin datos reales (D21, B), con gate en producción y sin emails. |
 | 6 | [task-06](task-06.md) — OweNo v1: mockup, módulo, API y panel | feature + diseño | 01, 02–05 + D3, D9 | Primer módulo real; valida el runtime y deja OweNo usable en el panel. Incluye los mockups F1 y F2. |
 | 7 | [task-07](task-07.md) — OweNo en Android: pantallas, importador y capturas | feature | 01 y 06 | **Obligatoria**: el importador es móvil (D3.2) y es el producto v1. Cierra pantallas, importador, capturas y landing `available`. |
-| 8 | [task-08](task-08.md) — Extras: descarga con icono de Android y literal | feature (web) | — | **Extras**: cierra el sprint con un cambio pequeño y visible de la landing. Se hace al final, cuando el resto está en verde. |
+| 8 | [task-08](task-08.md) — Módulo: contrato versionado y actualización sin desinstalar | feature + contrato | 02, 03, 05 | Sin esto, corregir un módulo obliga a desinstalar y perder datos. Fija `contract` y `upgradeModule`. |
+| 9 | [task-09](task-09.md) — Módulo: tareas programadas | feature + contrato | 02, 08 | Da a los módulos trabajo periódico sin cron propio. Necesario para recurrencias y limpiezas. |
+| 10 | [task-10](task-10.md) — Módulo: acciones de la app en el manifest | feature + contrato | 03, 08 | Quita del FAB la lista hardcodeada; cada módulo declara sus acciones. |
+| 11 | [task-11](task-11.md) — Extras: descarga con icono de Android y literal | feature (web) | — | **Extras**: cierra el sprint con un cambio pequeño y visible de la landing. Se hace la última. |
 
 Las tareas 01 y 02 no comparten estado: pueden ejecutarse en paralelo por agentes distintos. La
 03 y la 04 también pueden ir en paralelo sobre la 02. La 05 necesita la ficha del módulo (03). La
 06 no empieza hasta que 02–05 estén `finalizadas` y el propietario haya cerrado la spec y los
-mockups F1/F2. La 07 no empieza hasta que 01 y 06 estén `finalizadas`. La 08 es independiente y va la última.
+mockups F1/F2. La 07 no empieza hasta que 01 y 06 estén `finalizadas`. La 08 necesita 02, 03 y 05; la 09 y la 10, la 08. La 11 es independiente y va la última.
 
 `task-07.md` es obligatoria en este sprint. No se mueve al sprint 16: el importador forma parte
 de la v1 y es una función de la app.
@@ -239,7 +243,7 @@ de la v1 y es una función de la app.
 
 ## Puertas del propietario
 
-1. **Aprueba este sprint** con las 8 tareas (decidido: el importador es móvil y entra en v1; la 02 se partió en 02–05; la 08 es extras).
+1. **Aprueba este sprint** con las 11 tareas (decidido: importador en v1; runtime en 02–05; evolución del contrato en 08–10; extras en 11).
 2. **Responde D3 y D9** (límites de v1 y alcance del panel). D2 (gastos compartidos) y D4
    (OweNo) ya están cerradas.
 3. **Aprueba la spec de la tarea 01** y, después, su **mockup A** (esqueleto base). El plan se
@@ -261,7 +265,7 @@ de la v1 y es una función de la app.
 
 | # | Decisión | Opciones | Recomendación |
 |---|---|---|---|
-| D1 | Alcance del sprint 15 | 3 tareas (OweNo Android al sprint 16) / 4 tareas (todo) / partir la 02 | **8 tareas** (decidido 2026-11-13: el importador entra en v1, el runtime se parte en 02–05 y la 08 es extras) |
+| D1 | Alcance del sprint 15 | 3 tareas (OweNo Android al sprint 16) / 4 tareas (todo) / partir la 02 | **11 tareas** (decidido 2026-11-13: importador en v1, runtime partido en 02–05, evolución del contrato en 08–10 y extras en 11) |
 | D2 | Qué es OweNo v1 | Gastos compartidos, balances y liquidación · presupuestos · ambos | **Gastos compartidos** (decidido 2026-11-12; la landing se corrige) |
 | D3 | Límites de OweNo v1 | Miembros ficticios con **enlace manual por admin** (sin claiming automático); **importador de Splitwise en v1** (C, decidido; CSV por grupo, **sin Pro → sin JSON/API**, autoenlace por nombre, **rechaza multi-divisa con aviso**); **reparto igual o importes exactos** por persona (sin porcentajes ni pesos); **liquidación con el mínimo exacto de transferencias** (B, decidido), con tope configurable por setting del módulo (`settlement_exact_limit`, 4–20, defecto 12, deslizador en el panel) y voraz con aviso por encima; sin presupuestos; monomoneda por grupo | **En discusión** (D3.1 ficticios, D3.2 importador, D3.3 multi-divisa, D3.4 CSV sin Pro, D3.5 reparto B, D3.6 liquidación B, D3.7 tope configurable y D3.8 sin presupuestos/recibos decididos 2026-11-12) |
 | D4 | Identidad del módulo | `owe-no` / «OweNo» · logo F billete · `branding.color` emerald | **`owe-no` / «OweNo», logo F, color emerald** (elegido 2026-11-12; la landing se actualiza en el PR del módulo) |
@@ -283,7 +287,8 @@ de la v1 y es una función de la app.
 | D20 | Entrada al módulo en el panel | `/panel/modules/<key>` = ficha · **= resumen, ficha aparte** | **Resumen** (decidido 2026-11-13): `/panel/modules/<key>` sirve el resumen y `/panel/modules/<key>/overview` redirige allí; la ficha vive en `/panel/modules/<key>/settings` (ruta reservada) y la lista de módulos ofrece **Abrir** y **Ajustes**. |
 | D21 | Datos de demo | Módulo `demo` (A) · capacidad del Core con ajuste y botón (B) · script de operador (C) | **B** (decidido 2026-11-13). El Core crea usuarios e invitaciones (el SQL del módulo no puede tocar `auth`/`public`), con correos `@example.test` **sin envío real**, solo fuera de producción, ids estables y limpieza que se niega si un módulo tiene datos enlazados. A es B más un módulo envoltorio; C no tiene botón ni gate. |
 | D22 | Literal del botón de descarga | «Descargar app» · «Descargar para Android» · «Descargar APK» · otras | **«Descargar para Android»** con el **icono de Android en los tres botones** (decidido 2026-11-13). La app solo existe para Android; «app» a secas invita a buscar iOS. Mockup: `docs/mockups/landing-buttons/`. |
-| D23 | Presencia y dependencias del módulo | Solo visible/oculto · **`app.visible` + `requires`** | **Ambos** (decidido 2026-11-13): `app.visible: false` = módulo de fondo sin lanzador; `requires` con versión mínima y reglas en instalar/activar/desactivar/desinstalar. Se descarta `requires_core` hasta tener una versión de API real, y la actualización de un módulo instalado queda como tarea futura. |
+| D23 | Presencia y dependencias del módulo | Solo visible/oculto · **`app.visible` + `requires`** | **Ambos** (decidido 2026-11-13): `app.visible: false` = módulo de fondo sin lanzador; `requires` con versión mínima y reglas en instalar/activar/desactivar/desinstalar. La compatibilidad Core↔módulo se resuelve con `contract` y la actualización sin desinstalar es la tarea 08. |
+| D24 | Versionado de módulos | Semver de plataforma · **semver del módulo + contrato entero** | **Contrato entero** (decidido 2026-11-13): `manifest.contract` debe igualar `CORE_CONTRACT`; solo sube con cambios incompatibles. `manifest.version` es semver del módulo y solo se sube al actualizar. La actualización aplica migraciones nuevas sin desinstalar (tarea 08). |
 
 ## Reglas del sprint
 

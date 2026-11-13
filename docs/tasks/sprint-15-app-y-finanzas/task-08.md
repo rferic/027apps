@@ -1,64 +1,56 @@
 ---
 id: sprint-15-task-08
-titulo: Extras — descarga de la app con icono de Android y literal revisado
-area: web
+titulo: Módulo — contrato versionado y actualización sin desinstalar
+area: core
 estado: pendiente
-fuente: apps/admin/src/components/landing/app-landing.tsx; apps/admin/src/components/landing/github-icon.tsx; docs/mockups/landing-buttons/index.html
-adrs: [0002, 0004]
+fuente: docs/ai/module-system.md; packages/core/src/modules/service.ts
+adrs: [0007]
 ---
 
-**Tarea**: cerrar el sprint con un extra pequeño de la web pública: que los botones de descarga
-de la app lleven el **icono de Android** y que el literal diga con claridad qué se descarga y
-para qué plataforma. Es la tarea **08**, la de extras: cada sprint puede terminar con una.
-
-**Punto de partida**: la landing tiene tres botones «Download app» (hero, sección Android y
-cierre) que apuntan a GitHub Releases, con un icono de GitHub solo en el botón secundario. No
-hay icono de Android y el literal no dice la plataforma, aunque la app solo existe para Android.
-
-**Decidido el 2026-11-13**: literal **«Descargar para Android» / «Download for Android»** e
-**icono de Android en los tres botones** de descarga. El mockup
-[`docs/mockups/landing-buttons/index.html`](../../mockups/landing-buttons/index.html) queda como
-referencia de la opción elegida (`?variant=1`).
+**Tarea**: que un módulo pueda evolucionar sin perder datos. Hoy la única forma de cambiar la
+versión es desinstalar (y el `down` borra el esquema): inaceptable en cuanto OweNo publique su
+primera corrección. Incluye el contrato versionado que hace segura la actualización.
 
 **Alcance**
 - Dentro:
-  - **Icono**: componente `AndroidIcon` en `apps/admin/src/components/landing/android-icon.tsx`,
-    como `GitHubIcon` (16 px, `currentColor`, `aria-hidden`, sin hex libres), y usarlo en los
-    tres botones de descarga, a la izquierda del texto.
-  - **Literal**: el que se apruebe en el mockup `docs/mockups/landing-buttons/index.html`, en los
-    **9 locales**. La propuesta recomendada es «Descargar para Android» / «Download for Android»;
-    las alternativas están en el mockup con su rationale.
-  - El botón secundario («Ver en GitHub» / «Código en GitHub») no cambia.
-  - Mantener el enlace a `https://github.com/rferic/027apps/releases`, el estado
-    «en desarrollo» y el aviso de que el APK se publica sin cuenta.
-  - Tests de la landing: los tres enlaces de descarga llevan el icono y el literal localizado;
-    el SVG es decorativo; el botón mantiene su altura y no hay salto de layout.
-- Fuera: publicar la release (tarea 07), QR de descarga, enlace a Google Play, detección de
-  plataforma, cambios de diseño de la landing, capturas nuevas.
+  - **Contrato**: `contract` (entero) en el manifest y `CORE_CONTRACT` exportado por el Core. El
+    instalador y la actualización exigen **igualdad**; un contrato distinto se rechaza con un
+    mensaje que dice cuál espera el Core. Un cambio aditivo del contrato **no** sube el número;
+    uno incompatible sí, y se documenta en `module-system.md` y en el esquema.
+  - **`upgradeModule(deps, caller, key, manifest)`**: valida manifest, `key`, `contract`, que la
+    versión sea **mayor** que la instalada, digests y ficheros; aplica solo las migraciones
+    nuevas en orden dentro de una transacción; actualiza `version`, `manifest_digest`, `scopes`,
+    `app_visible`, `requires` y `is_public`; añade settings nuevos y retira los eliminados
+    (conservando el valor de los que siguen); registra `module_migrations`. Sin downgrade.
+  - **Panel**: la ficha muestra la versión instalada y, si el paquete tiene una mayor, un botón
+    **Actualizar a vX** con confirmación; nunca ofrece bajar de versión.
+  - **Desinstalar** sigue siendo la vía destructiva y no cambia.
+  - Si una migración nueva falla, no se aplica nada (transacción) y el módulo queda como estaba.
+- Fuera: downgrades; migraciones de datos entre módulos; actualización automática sin pulsar.
 
-**Dependencias**: ninguna. Puede ir en paralelo con cualquier tarea; se coloca al final porque es
-extras. El enlace a Releases ya funciona hoy (aunque no haya APK todavía).
+**Dependencias**: tareas 02, 03 y 05 `finalizadas` (registro, settings y demo).
 
-**Riesgos**: un literal demasiado técnico («APK») para el público familiar; prometer iOS sin
-querer; que el icono cambie la altura del botón o el espaciado en móvil; traducciones
-inconsistentes entre los 9 locales.
+**Riesgos**: una migración nueva que borre datos sin querer (el `down` no se ejecuta en una
+actualización); settings eliminados que el módulo todavía usa; una versión que no sube y se
+rechaza; paquetes con el mismo contrato pero comportamiento distinto.
 
 **Criterios de aceptación**
-- El **mockup de botones** está en `docs/mockups/landing-buttons/index.html`, con las opciones de
-  literal en español e inglés, claro/oscuro y las tres colocaciones, y el propietario elige.
-- Los tres botones de descarga muestran el **icono de Android** y el literal elegido en los 9
-  locales; el secundario no cambia.
-- El icono es monocromo (`currentColor`), decorativo y de 16 px; el botón conserva su altura y su
-  espaciado en móvil.
-- `pnpm lint`, `pnpm tsc`, `pnpm test` y `pnpm --filter admin build` en verde; sin regresión de
-  Lighthouse en la landing.
-- `docs/ai/landing.md` actualizado si cambia el copy público.
+- Instalar 1.0.0, actualizar a 1.1.0 con una migración nueva: la tabla nueva existe, los datos de
+  la tabla vieja siguen, el registro dice 1.1.0 y `module_migrations` tiene las dos versiones.
+- Un manifest con `contract` distinto de `CORE_CONTRACT` no instala ni actualiza; el error nombra
+  el contrato esperado.
+- Actualizar a la misma versión o a una menor se rechaza con `conflict`.
+- Un setting nuevo aparece tras actualizar; uno retirado desaparece del panel y de la tabla;
+  los valores de los que siguen no cambian.
+- Una migración nueva que falla no deja el módulo a medias.
+- `docs/ai/module-system.md`, `docs/ai/manifest.schema.json` y `docs/flows/new-module.md`
+  actualizados con el contrato y la actualización.
+- `pnpm lint`, `pnpm tsc`, `pnpm test` y `pnpm --filter db-tests test` en verde.
 
 **Puertas de usuario**
-- Elegir el literal en el mockup.
-- Aceptar visualmente la landing en el preview.
+- Aprobar el plan.
+- Aceptar la actualización del fixture en staging.
 - Orden explícita de merge.
 
-**Auditoría de seguridad**: no aplica superficie nueva (enlace externo ya existente, sin datos);
-se revisa que el enlace siga siendo `https` y con `rel="noopener noreferrer"` si abre en pestaña
-nueva.
+**Auditoría de seguridad**: obligatoria antes de `finalizada` (DDL aplicado sobre datos reales,
+transacción, settings retirados y digests).
