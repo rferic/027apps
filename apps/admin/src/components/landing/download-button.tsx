@@ -1,7 +1,10 @@
 import { AndroidIcon } from "@/components/landing/android-icon";
 
-/** Destination of every download button: the signed APK on GitHub Releases. */
-export const DOWNLOAD_URL = "https://github.com/rferic/027apps/releases";
+/**
+ * Destination of every download button: the instance streams the latest APK
+ * itself, so the visitor is never sent to GitHub (see `app/download/android`).
+ */
+export const DOWNLOAD_URL = "/download/android";
 
 /**
  * The landing's primary call to action. One component keeps the label, the

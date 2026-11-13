@@ -51,7 +51,7 @@ export function PanelHeader({ user, locale, messages, theme, instanceName, menu 
           href="/"
           aria-label={t("Go to the public site", messages)}
           title={t("Go to the public site", messages)}
-          className="shrink-0 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="flex min-w-0 items-center gap-3 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <BrandLogo
             name={instanceName.trim() || APP_NAME}
@@ -59,8 +59,8 @@ export function PanelHeader({ user, locale, messages, theme, instanceName, menu 
             variant="mark"
             className="shrink-0"
           />
+          <span className="truncate text-sm font-semibold">{instanceName.trim() || APP_NAME}</span>
         </Link>
-        <span className="truncate text-sm font-semibold">{instanceName.trim() || APP_NAME}</span>
       </div>
       <UserMenu
         summary={

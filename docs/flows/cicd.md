@@ -184,7 +184,7 @@ La app **no** se actualiza sola: cada usuario instala la nueva APK manualmente d
 
 ### Build de desarrollo pública
 
-Mientras no exista la primera release firmada, el botón «Descargar para Android» de la web lleva a GitHub Releases y allí vive la **pre-release `dev-*`** con el APK de debug (`com.rferic.zero27apps.debug`, etiqueta «027Apps Dev»). Se etiqueta `dev-*`, no `v*`, para no disparar el job `release` (que exige un tag sobre `main` y el keystore). Se borra cuando exista la release firmada.
+Mientras no exista la primera release firmada, la **pre-release `dev-*`** es lo que descarga el botón «Descargar para Android» (vía `/download/android`, que la sirve sin salir de la web) con el APK de debug (`com.rferic.zero27apps.debug`, etiqueta «027Apps Dev»). Se etiqueta `dev-*`, no `v*`, para no disparar el job `release` (que exige un tag sobre `main` y el keystore). Se borra cuando exista la release firmada.
 
 ### Verificación de extremo a extremo (tag → instalación)
 
