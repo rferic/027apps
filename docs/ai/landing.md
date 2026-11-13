@@ -62,11 +62,11 @@ Cada módulo declara uno:
 **Regla:** nada `planned` se presenta como disponible. La sección de módulos de la app lleva el
 aviso «Coming soon» mientras la app no tenga pantallas reales.
 
-## Catálogo actual (2026-11-11)
+## Catálogo actual (2026-11-12)
 
 | Módulo | App | Panel | Estado |
 |---|---|---|---|
-| Finanzas | Sí (previsto) | Presupuestos e histórico (previsto) | `planned` |
+| OweNo | Sí (previsto) | Pagos compartidos, balances y liquidación (previsto) | `planned` |
 | Categorías | Sí (previsto) | Grupos y permisos | app `planned`, panel `available` |
 | Miembros | Sí (previsto) | Roles, invitaciones, bajas | app `planned`, panel `available` |
 | Módulos | Sí (previsto) | Activar y conceder | app `planned`, panel `available` |
