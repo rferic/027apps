@@ -287,6 +287,7 @@
   "Full history",
   "Generate new link",
   "Go to Project settings → Service accounts and generate a new private key. Keep the JSON file secret: the wizard stores it encrypted and never displays it again.",
+  "Go to the public site",
   "Got it",
   "Grant modules",
   "Grants",

@@ -274,6 +274,7 @@
   "Full history": "Historial completo",
   "Generate new link": "Generar enlace nuevo",
   "Go to Project settings → Service accounts and generate a new private key. Keep the JSON file secret: the wizard stores it encrypted and never displays it again.": "Vaya a Configuración del proyecto → Cuentas de servicio y genere una nueva clave privada. Mantenga en secreto el archivo JSON: el asistente lo almacena cifrado y no lo vuelve a mostrar.",
+  "Go to the public site": "Ir a la web pública",
   "Got it": "Entendido",
   "Grant modules": "Conceder módulos",
   "Grants": "Concesiones",

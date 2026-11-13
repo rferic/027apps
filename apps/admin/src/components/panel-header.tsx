@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
@@ -46,12 +47,19 @@ export function PanelHeader({ user, locale, messages, theme, instanceName, menu 
     <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4">
       <div className="flex min-w-0 items-center gap-3">
         {menu}
-        <BrandLogo
-          name={instanceName.trim() || APP_NAME}
-          size="md"
-          variant="mark"
-          className="shrink-0"
-        />
+        <Link
+          href="/"
+          aria-label={t("Go to the public site", messages)}
+          title={t("Go to the public site", messages)}
+          className="shrink-0 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <BrandLogo
+            name={instanceName.trim() || APP_NAME}
+            size="md"
+            variant="mark"
+            className="shrink-0"
+          />
+        </Link>
         <span className="truncate text-sm font-semibold">{instanceName.trim() || APP_NAME}</span>
       </div>
       <UserMenu

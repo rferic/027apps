@@ -182,6 +182,10 @@ La distribución familiar es **un enlace de descarga**: la página de GitHub Rel
 
 La app **no** se actualiza sola: cada usuario instala la nueva APK manualmente desde el enlace. (Un aviso in-app de nueva versión queda fuera de esta definición.)
 
+### Build de desarrollo pública
+
+Mientras no exista la primera release firmada, el botón «Descargar para Android» de la web lleva a GitHub Releases y allí vive la **pre-release `dev-*`** con el APK de debug (`com.rferic.zero27apps.debug`, etiqueta «027Apps Dev»). Se etiqueta `dev-*`, no `v*`, para no disparar el job `release` (que exige un tag sobre `main` y el keystore). Se borra cuando exista la release firmada.
+
 ### Verificación de extremo a extremo (tag → instalación)
 
 1. Tag `v0.1.0-sprint1` → CI publica el Release con el APK firmado.
