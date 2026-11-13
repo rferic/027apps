@@ -93,6 +93,23 @@ describe("manifest contract", () => {
     ).toThrow();
   });
 
+  it("validates scheduled jobs (cron, duplicate keys, timeout)", () => {
+    const job = {
+      key: "cleanup",
+      schedule: "*/5 * * * *",
+      fn: "job_cleanup",
+      timeout_seconds: 30,
+    };
+    const withJobs = (jobs: unknown[]) => validManifest({ jobs });
+
+    expect(() => manifestSchema.parse(withJobs([job]))).not.toThrow();
+    expect(() => manifestSchema.parse(withJobs([{ ...job, schedule: "*/0 * * * *" }]))).toThrow();
+    expect(() => manifestSchema.parse(withJobs([{ ...job, schedule: "every minute" }]))).toThrow();
+    expect(() => manifestSchema.parse(withJobs([job, job]))).toThrow(/duplicate/);
+    expect(() => manifestSchema.parse(withJobs([{ ...job, timeout_seconds: 0 }]))).toThrow();
+    expect(() => manifestSchema.parse(withJobs([{ ...job, timeout_seconds: 301 }]))).toThrow();
+  });
+
   it("validates dashboard widgets and their keys (D10)", () => {
     const widget = {
       key: "demo.summary",

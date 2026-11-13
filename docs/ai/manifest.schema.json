@@ -49,6 +49,7 @@
       "properties": { "visible": { "type": "boolean" } }
     },
     "requires": { "type": "array", "items": { "$ref": "#/$defs/moduleRequirement" } },
+    "jobs": { "type": "array", "items": { "$ref": "#/$defs/moduleJob" } },
     "docs": { "$ref": "#/$defs/docs" }
   },
   "allOf": [
@@ -249,6 +250,17 @@
       "properties": {
         "key": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
         "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
+      }
+    },
+    "moduleJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "schedule", "fn"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "schedule": { "type": "string", "minLength": 1 },
+        "fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" },
+        "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 300, "default": 30 }
       }
     },
     "docs": {

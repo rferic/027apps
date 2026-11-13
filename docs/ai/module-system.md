@@ -158,6 +158,13 @@ Ejemplo completo:
   Un módulo no puede requerirse a sí mismo y no se permiten duplicados; los ciclos se rechazan al
   instalar. Las reglas se resuelven contra `module_registry` (`app_visible`, `requires`), no
   leyendo paquetes en cada transición.
+- `jobs`: `[{ key, schedule, fn, timeout_seconds? }]`. `schedule` es un cron de **5 campos**
+  (`minuto hora día mes día_semana`), validado al instalar; `fn` es una función del esquema del
+  módulo que se ejecuta **sin usuario** (el Core la llama como servicio, con timeout, y nunca le
+  pasa datos de una sesión). Día del mes y día de la semana deben coincidir **ambos** cuando los
+  dos están restringidos (simplificación deliberada del OR de cron). Los trabajos de un módulo
+  inactivo no se ejecutan y se borran al desinstalar. El registro copia `jobs` para que el
+  despachador no lea paquetes en cada minuto.
 - `dashboard_widgets`: cada widget declara `key` (`modulo.dato`, con guion permitido en el
   prefijo), `type` (`summary`|`metric`|`list`), `surface` (`app`|`panel`), `title`, `icon`,
   `order` y `data_fn`, una función del esquema del módulo `(user_id uuid) returns jsonb` que

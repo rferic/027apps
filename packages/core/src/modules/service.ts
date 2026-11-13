@@ -476,8 +476,8 @@ export async function installModule(
     await db.query(
       `insert into public.module_registry
          (key, name, version, state, is_public, mcp_exposed, manifest_digest, scopes,
-          app_visible, requires)
-       values ($1, $2, $3, 'installed', $4, 'read', $5, $6::text[], $7, $8::jsonb)`,
+          app_visible, requires, jobs)
+       values ($1, $2, $3, 'installed', $4, 'read', $5, $6::text[], $7, $8::jsonb, $9::jsonb)`,
       [
         manifest.key,
         manifest.name,
@@ -487,6 +487,7 @@ export async function installModule(
         manifest.scopes,
         manifest.app.visible,
         JSON.stringify(manifest.requires),
+        JSON.stringify(manifest.jobs),
       ],
     );
     for (const channel of manifest.channels) {
@@ -715,7 +716,7 @@ export async function upgradeModule(
     const { rows: updated } = await db.query(
       `update public.module_registry
           set version = $2, manifest_digest = $3, scopes = $4, app_visible = $5,
-              requires = $6::jsonb, updated_at = now()
+              requires = $6::jsonb, jobs = $7::jsonb, updated_at = now()
         where key = $1
         returning ${MODULE_COLUMNS}`,
       [
@@ -725,6 +726,7 @@ export async function upgradeModule(
         manifest.scopes,
         manifest.app.visible,
         JSON.stringify(manifest.requires),
+        JSON.stringify(manifest.jobs),
       ],
     );
 

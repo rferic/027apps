@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { isValidCron } from "./cron";
 import { DomainError } from "../errors";
 
 /**
@@ -169,6 +170,18 @@ const dashboardWidgetSchema = z
   })
   .strict();
 
+const moduleJobSchema = z
+  .object({
+    key: z.string().regex(SNAKE),
+    schedule: z
+      .string()
+      .trim()
+      .refine(isValidCron, { message: "schedule must be a 5-field cron expression" }),
+    fn: z.string().regex(FUNCTION_NAME),
+    timeout_seconds: z.number().int().min(1).max(300).default(30),
+  })
+  .strict();
+
 const moduleRequirementSchema = z
   .object({
     key: z.string().regex(MODULE_KEY),
@@ -215,6 +228,7 @@ export const manifestSchema = z
       .strict()
       .default({ visible: true }),
     requires: z.array(moduleRequirementSchema).default([]),
+    jobs: z.array(moduleJobSchema).default([]),
     docs: docsSchema,
   })
   .strict()
@@ -285,6 +299,10 @@ export const manifestSchema = z
     const requiredKeys = manifest.requires.map((requirement) => requirement.key);
     if (new Set(requiredKeys).size !== requiredKeys.length) {
       ctx.addIssue({ code: "custom", path: ["requires"], message: "duplicate requirement" });
+    }
+    const jobKeys = manifest.jobs.map((job) => job.key);
+    if (new Set(jobKeys).size !== jobKeys.length) {
+      ctx.addIssue({ code: "custom", path: ["jobs"], message: "duplicate job key" });
     }
     const widgetKeys = manifest.dashboard_widgets.map((widget) => widget.key);
     if (new Set(widgetKeys).size !== widgetKeys.length) {
