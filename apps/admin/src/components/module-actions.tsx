@@ -58,9 +58,11 @@ function ModuleUninstall({
     setPending(false);
     const outcome = uninstallOutcome(result, confirm);
     if (outcome.kind === "success") {
+      // Close the modal before the route changes. Navigating in the same tick
+      // makes React unmount a node the browser moved to the dialog top layer,
+      // which surfaces as `removeChild` in development.
       dialogRef.current?.close();
-      router.push("/panel/modules");
-      router.refresh();
+      requestAnimationFrame(() => router.push("/panel/modules"));
       return;
     }
     if (outcome.kind === "grants") {
