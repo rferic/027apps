@@ -2,11 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": [
     "lhr1"
-  ],
-  "crons": [
-    {
-      "path": "/api/v1/maintenance/module-jobs",
-      "schedule": "* * * * *"
-    }
   ]
 }
