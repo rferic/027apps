@@ -2,7 +2,7 @@
 id: sprint-15-task-03
 titulo: Módulo — host de panel, ajustes y empaquetado
 area: core
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-11-13-module-runtime.md
 fuente: docs/ai/module-system.md; docs/superpowers/specs/2026-10-26-admin-shell.md §6; docs/superpowers/specs/2026-10-26-modulo-system.md §6
 adrs: [0004, 0007]
