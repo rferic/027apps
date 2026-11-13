@@ -257,9 +257,15 @@ export function manifestDigest(manifest: ModuleManifest): string {
  */
 export function assertSafeModuleSql(sql: string, moduleKey: string): void {
   const schema = `module_${moduleKey.replace(/-/g, "_")}`;
+  // Two audited public references are allowed: the identity helper the Core
+  // exposes for RLS, and `profiles` as a foreign-key target (never as a read).
+  // Everything else in `public` stays forbidden.
+  const audited = sql
+    .replace(/public\s*\.\s*core_current_user_id\s*\(/gi, "core_current_user_id(")
+    .replace(/references\s+public\s*\.\s*profiles\s*\(/gi, "references profiles(");
   const forbiddenSchema = /\b(auth|storage|realtime|extensions|vault|pg_catalog|information_schema|supabase_migrations)\s*\./i;
-  if (forbiddenSchema.test(sql)) throw new Error(`module SQL may not reference reserved schemas (${schema})`);
-  if (/\bpublic\s*\./i.test(sql)) throw new Error("module SQL may not reference the public schema");
+  if (forbiddenSchema.test(audited)) throw new Error(`module SQL may not reference reserved schemas (${schema})`);
+  if (/\bpublic\s*\./i.test(audited)) throw new Error("module SQL may not reference the public schema");
   // A module may only touch its own schema, never another module's.
   for (const match of sql.matchAll(/\bmodule_([a-z0-9_]+)\s*\./gi)) {
     if (`module_${match[1]}` !== schema) throw new Error("module SQL may not reference another module schema");

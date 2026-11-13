@@ -132,6 +132,29 @@ describe("manifest contract", () => {
     ).toThrow(/forbidden/);
   });
 
+  it("allows only the audited public references", () => {
+    // The identity helper and the profiles FK target are the two exceptions.
+    expect(() =>
+      assertSafeModuleSql(
+        "create policy notes_own on notes using (user_id = public.core_current_user_id());",
+        "demo-module",
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertSafeModuleSql(
+        "create table notes (user_id uuid references public.profiles(id) on delete set null);",
+        "demo-module",
+      ),
+    ).not.toThrow();
+    // Any other public reference stays forbidden.
+    expect(() =>
+      assertSafeModuleSql("select * from public.profiles;", "demo-module"),
+    ).toThrow(/public schema/);
+    expect(() =>
+      assertSafeModuleSql("select * from public.settings;", "demo-module"),
+    ).toThrow(/public schema/);
+  });
+
   it("rejects path traversal in migration files", () => {
     expect(() =>
       manifestSchema.parse(

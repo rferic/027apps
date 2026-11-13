@@ -40,19 +40,19 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 ### 2.1 Privilegios del esquema
 
-- [ ] Test rojo en `db-tests`: antes de instalar, `module_<key>` no existe; tras instalar,
+- [x] Test rojo en `db-tests`: antes de instalar, `module_<key>` no existe; tras instalar,
       `authenticated` puede leer/escribir solo lo que la RLS permite y `service_role` puede todo;
       el DDL del módulo sigue sin poder `grant`.
-- [ ] Implementar los grants en la misma transacción de la instalación: `usage` del esquema y
+- [x] Implementar los grants en la misma transacción de la instalación: `usage` del esquema y
       DML mínimo sobre tablas y secuencias; `revoke` en la desinstalación.
-- [ ] Verificar que el instalador **no** concede `create` sobre el esquema a `authenticated`.
+- [x] Verificar que el instalador **no** concede `create` sobre el esquema a `authenticated`.
 
 ### 2.2 Identidad para RLS
 
-- [ ] Test: una política del fixture con `core_current_user_id()` aísla filas por usuario.
-- [ ] Crear la función compartida con `search_path` fijo y sin acceso a otros esquemas; `grant
+- [x] Test: una política del fixture con `core_current_user_id()` aísla filas por usuario.
+- [x] Crear la función compartida con `search_path` fijo y sin acceso a otros esquemas; `grant
       execute` a `authenticated` y `service_role`.
-- [ ] `assertSafeModuleSql` sigue prohibiendo `auth.` y `security definer`; el fixture usa el
+- [x] `assertSafeModuleSql` sigue prohibiendo `auth.` y `security definer`; el fixture usa el
       helper y pasa la validación.
 
 ### 2.3 Scopes por petición
@@ -65,10 +65,10 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 ### 2.4 Claves foráneas y purga (D16)
 
-- [ ] Test en `db-tests`: el fixture apunta a `profiles(id)` con `on delete set null`; se
+- [x] Test en `db-tests`: el fixture apunta a `profiles(id)` con `on delete set null`; se
       desactiva y purga al usuario y el borrado termina sin error; las filas sobreviven sin
       `user_id`.
-- [ ] Validación en la instalación: una FK de módulo a `profiles` sin `on delete set null` falla
+- [x] Validación en la instalación: una FK de módulo a `profiles` sin `on delete set null` falla
       el instalador con un mensaje claro.
 - [ ] Documentar la regla en `module-system.md`.
 

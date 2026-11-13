@@ -300,6 +300,67 @@ async function applySql(
     await db.query(sql);
   } finally {
     await db.query("reset role");
+    // `set local` lasts until the transaction ends, and the installer shares
+    // that transaction with later work: leaving the module schema as the
+    // search_path would hide `extensions` and break unrelated queries.
+    await db.query("reset search_path");
+  }
+}
+
+/**
+ * After a module's migrations the schema exists but nobody can use it: the DDL
+ * runs as `module_installer`. Grant the minimum the API needs — `authenticated`
+ * still goes through RLS — and keep future migrations covered with default
+ * privileges, so a new table is usable without a manual grant.
+ */
+async function grantModulePrivileges(db: QueryClient, schema: string): Promise<void> {
+  const s = quoteIdent(schema);
+  await db.query(`grant usage on schema ${s} to authenticated, service_role`);
+  await db.query(
+    `grant select, insert, update, delete on all tables in schema ${s} to authenticated`,
+  );
+  await db.query(`grant all on all tables in schema ${s} to service_role`);
+  await db.query(
+    `grant usage, select on all sequences in schema ${s} to authenticated, service_role`,
+  );
+  await db.query(
+    `alter default privileges for role ${MODULE_ROLE} in schema ${s}
+       grant select, insert, update, delete on tables to authenticated`,
+  );
+  await db.query(
+    `alter default privileges for role ${MODULE_ROLE} in schema ${s}
+       grant all on tables to service_role`,
+  );
+  await db.query(
+    `alter default privileges for role ${MODULE_ROLE} in schema ${s}
+       grant usage, select on sequences to authenticated, service_role`,
+  );
+}
+
+/**
+ * A module may reference `profiles(id)` only with `on delete set null`:
+ * `purgeUser` deletes `auth.users` and cannot clean module schemas, so any
+ * other action would make deleting a user fail. Checked in the catalog, not by
+ * parsing SQL.
+ */
+async function assertProfileForeignKeys(db: QueryClient, schema: string): Promise<void> {
+  const { rows } = await db.query(
+    `select c.conname
+       from pg_constraint c
+       join pg_class t on t.oid = c.conrelid
+       join pg_namespace n on n.oid = t.relnamespace
+      where c.contype = 'f'
+        and n.nspname = $1
+        and c.confrelid = 'public.profiles'::regclass
+        and c.confdeltype <> 'n'`,
+    [schema],
+  );
+  if (rows[0]) {
+    throw new DomainError(
+      "validation_failed",
+      `module foreign key ${String(rows[0].conname)} to profiles must use on delete set null`,
+      { code: "fk_profiles_missing_set_null" },
+    );
   }
 }
 
@@ -354,6 +415,9 @@ export async function installModule(
         [manifest.key, migration.version, migration.digest],
       );
     }
+
+    await grantModulePrivileges(db, schema);
+    await assertProfileForeignKeys(db, schema);
 
     for (const group of manifest.settings) {
       await db.query(
@@ -604,6 +668,9 @@ export async function uninstallModule(
     if (reverted !== appliedVersions.size) {
       throw new DomainError("conflict", "module has applied migrations missing from the manifest");
     }
+    // The down migrations drop the module's objects; dropping the schema also
+    // removes its grants, default privileges and anything the down forgot.
+    await db.query(`drop schema if exists ${quoteIdent(schemaFor(key))} cascade`);
 
     const category = categoryFor(key);
     await db.query("delete from public.settings where category_key = $1", [category]);
