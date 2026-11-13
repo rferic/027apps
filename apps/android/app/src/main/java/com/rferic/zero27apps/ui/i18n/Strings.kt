@@ -61,6 +61,7 @@ data class Strings(
     val onlyActive: String,
     val change: String,
     val sessionNote: String,
+    val welcome: String,
 )
 
 object AppStrings {
@@ -133,6 +134,7 @@ object AppStrings {
         onlyActive = "Only your active modules",
         change = "Change",
         sessionNote = "Your session is stored encrypted on this device.",
+        welcome = "Welcome back",
     )
 
     val es = Strings(
@@ -192,6 +194,7 @@ object AppStrings {
         onlyActive = "Solo tus módulos activos",
         change = "Cambiar",
         sessionNote = "Tu sesión se guarda cifrada en este dispositivo.",
+        welcome = "Bienvenido de nuevo",
     )
 
     val ca = Strings(
@@ -251,6 +254,7 @@ object AppStrings {
         onlyActive = "Només els teus mòduls actius",
         change = "Canvia",
         sessionNote = "La teva sessió es desa xifrada en aquest dispositiu.",
+        welcome = "Benvingut de nou",
     )
 
     val it = Strings(
@@ -310,6 +314,7 @@ object AppStrings {
         onlyActive = "Solo i tuoi moduli attivi",
         change = "Cambia",
         sessionNote = "La sessione è salvata cifrata su questo dispositivo.",
+        welcome = "Bentornato",
     )
 
     val fr = Strings(
@@ -369,6 +374,7 @@ object AppStrings {
         onlyActive = "Seulement vos modules actifs",
         change = "Changer",
         sessionNote = "Votre session est stockée chiffrée sur cet appareil.",
+        welcome = "Bon retour",
     )
 
     val de = Strings(
@@ -428,6 +434,7 @@ object AppStrings {
         onlyActive = "Nur deine aktiven Module",
         change = "Ändern",
         sessionNote = "Deine Sitzung wird verschlüsselt auf diesem Gerät gespeichert.",
+        welcome = "Willkommen zurück",
     )
 
     val pt = Strings(
@@ -487,6 +494,7 @@ object AppStrings {
         onlyActive = "Apenas os teus módulos ativos",
         change = "Mudar",
         sessionNote = "A tua sessão é guardada cifrada neste dispositivo.",
+        welcome = "Bem-vindo de volta",
     )
 
     val gl = Strings(
@@ -546,6 +554,7 @@ object AppStrings {
         onlyActive = "Só os teus módulos activos",
         change = "Cambiar",
         sessionNote = "A túa sesión gárdase cifrada neste dispositivo.",
+        welcome = "Benvido de novo",
     )
 
     val eu = Strings(
@@ -605,5 +614,6 @@ object AppStrings {
         onlyActive = "Zure modulu aktiboak soilik",
         change = "Aldatu",
         sessionNote = "Zure saioa zifratuta gordetzen da gailu honetan.",
+        welcome = "Ongi etorri berriro",
     )
 }

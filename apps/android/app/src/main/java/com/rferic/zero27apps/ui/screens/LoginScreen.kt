@@ -1,19 +1,27 @@
 package com.rferic.zero27apps.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -23,20 +31,32 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.BuildConfig
 import com.rferic.zero27apps.ui.InstancePickerDialog
-import com.rferic.zero27apps.ui.components.BrandTile
 import com.rferic.zero27apps.ui.LoginError
 import com.rferic.zero27apps.ui.LoginState
 import com.rferic.zero27apps.ui.UpdateState
+import com.rferic.zero27apps.ui.components.BrandTile
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
+
+@Composable
+private fun loginErrorText(error: LoginError): String {
+    val strings = LocalStrings.current
+    return when (error) {
+        LoginError.WRONG_CREDENTIALS -> strings.loginWrong
+        LoginError.EMAIL_UNCONFIRMED -> strings.loginUnconfirmed
+        LoginError.GENERIC -> strings.loginFailed
+    }
+}
 
 /** A newer build is available: same notice as Home, before signing in. */
 @Composable
@@ -67,19 +87,10 @@ private fun UpdateNotice(update: UpdateState, onInstall: () -> Unit) {
     }
 }
 
-@Composable
-private fun loginErrorText(error: LoginError): String {
-    val strings = LocalStrings.current
-    return when (error) {
-        LoginError.WRONG_CREDENTIALS -> strings.loginWrong
-        LoginError.EMAIL_UNCONFIRMED -> strings.loginUnconfirmed
-        LoginError.GENERIC -> strings.loginFailed
-    }
-}
-
 /**
- * Email and password against the instance's Supabase. There is no URL field:
- * the instance is the one the app targets (or the one chosen in the picker).
+ * Login: the brand on a soft glow, one card with the two fields and the action,
+ * and the quiet ways out (change instance, update). No URL field: the instance
+ * is the one the app targets.
  */
 @Composable
 fun LoginScreen(
@@ -97,6 +108,7 @@ fun LoginScreen(
     var showPicker by rememberSaveable { mutableStateOf(false) }
     val palette = LocalPalette.current
     val strings = LocalStrings.current
+    val valid = email.isNotBlank() && password.isNotEmpty()
 
     if (showPicker) {
         InstancePickerDialog(
@@ -111,65 +123,145 @@ fun LoginScreen(
         )
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    0f to palette.accent.copy(alpha = 0.16f),
+                    0.30f to palette.background,
+                    1f to palette.background,
+                ),
+            ),
     ) {
-        BrandTile(size = 64.dp)
-        Spacer(Modifier.height(16.dp))
-        Text("027Apps", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = palette.foreground)
-        Spacer(Modifier.height(4.dp))
-        Text(instance, style = MaterialTheme.typography.bodySmall, color = palette.mutedForeground)
-        if (BuildConfig.DEBUG) {
-            Text(strings.debugBuild, style = MaterialTheme.typography.labelSmall, color = palette.accent)
-        }
-        Spacer(Modifier.height(12.dp))
-
-        TextButton(onClick = { showPicker = true }) { Text(strings.changeInstance) }
-        Spacer(Modifier.height(16.dp))
-
-        UpdateNotice(update, onInstallUpdate)
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text(strings.email) },
-            singleLine = true,
-            enabled = !state.pending,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next,
-            ),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text(strings.password) },
-            singleLine = true,
-            enabled = !state.pending,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done,
-            ),
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        state.error?.let { error ->
-            Spacer(Modifier.height(12.dp))
-            Text(loginErrorText(error), color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-        }
-
-        Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = { onLogin(email, password) },
-            enabled = !state.pending && email.isNotBlank() && password.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth(),
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(if (state.pending) strings.signingIn else strings.signIn)
+            BrandTile(size = 68.dp)
+            Spacer(Modifier.height(18.dp))
+            Text(
+                "027Apps",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.5).sp,
+                color = palette.foreground,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                instance.removePrefix("https://").removePrefix("http://"),
+                fontSize = 12.sp,
+                color = palette.mutedForeground,
+                modifier = Modifier
+                    .background(palette.muted, RoundedCornerShape(999.dp))
+                    .padding(horizontal = 12.dp, vertical = 5.dp),
+            )
+
+            Spacer(Modifier.height(28.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(palette.surface, RoundedCornerShape(20.dp))
+                    .border(1.dp, palette.border, RoundedCornerShape(20.dp))
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    strings.welcome,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = palette.foreground,
+                )
+                field(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = strings.email,
+                    enabled = !state.pending,
+                    keyboard = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next,
+                    ),
+                )
+                field(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = strings.password,
+                    enabled = !state.pending,
+                    secret = true,
+                    keyboard = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
+                    ),
+                    actions = KeyboardActions(
+                        onDone = { if (valid && !state.pending) onLogin(email, password) },
+                    ),
+                )
+
+                state.error?.let { error ->
+                    Text(loginErrorText(error), color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+                }
+
+                Button(
+                    onClick = { onLogin(email, password) },
+                    enabled = !state.pending && valid,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                ) {
+                    Text(if (state.pending) strings.signingIn else strings.signIn)
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            UpdateNotice(update, onInstallUpdate)
+            TextButton(onClick = { showPicker = true }) { Text(strings.changeInstance) }
+
+            Spacer(Modifier.height(20.dp))
+            Text(
+                "v${BuildConfig.VERSION_NAME}" +
+                    if (BuildConfig.DEBUG) " · ${strings.debugBuild}" else "",
+                fontSize = 11.sp,
+                color = palette.mutedForeground,
+                textAlign = TextAlign.Center,
+            )
         }
     }
+}
+
+@Composable
+private fun field(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    enabled: Boolean,
+    secret: Boolean = false,
+    keyboard: KeyboardOptions,
+    actions: KeyboardActions = KeyboardActions.Default,
+) {
+    val palette = LocalPalette.current
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label, fontSize = 13.sp) },
+        singleLine = true,
+        enabled = enabled,
+        visualTransformation = if (secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        keyboardOptions = keyboard,
+        keyboardActions = actions,
+        shape = RoundedCornerShape(14.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = palette.accent,
+            unfocusedBorderColor = palette.border,
+            focusedLabelColor = palette.accent,
+            cursorColor = palette.accent,
+            focusedContainerColor = palette.background,
+            unfocusedContainerColor = palette.background,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
