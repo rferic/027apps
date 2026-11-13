@@ -31,44 +31,60 @@ compartido o descargado desde la web.
 cada grupo. No hay “exportar todo” en CSV. No hay filtro de fechas: sale todo el historial del
 grupo.
 
-**Formato.** CSV plano, una fila por transacción. Las columnas que describen las fuentes son:
+**Formato confirmado** con un export real (2026-11-13, cuenta en español, grupo de dos
+personas; muestra anonimizada en [`fixtures/splitwise-demo.csv`](fixtures/splitwise-demo.csv)):
 
-- `Date`
-- `Description`
-- `Category`
-- `Cost` (total de la transacción)
-- `Currency` (divisa de esa fila)
-- `Paid by` / quién pagó (según la versión del export)
-- **una columna por persona** del grupo, con el **impacto en su balance** en esa transacción:
-  positivo si pagó/gastó, negativo si debe.
+```text
+Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis
+2023-07-22,Vuelos,Avíon,567.46,EUR,-283.73,283.73
+2023-09-18,Pago,Pago,180.76,EUR,180.76,-180.76
+```
 
-La suma de las columnas de personas de una fila es cero (lo que uno paga, los demás lo deben).
-Eso permite reconstruir el pagador y las partes sin depender de un formato de “shares” aparte.
+- **La cabecera va en el idioma de la cuenta**, no en inglés. Este export trae `Fecha`,
+  `Descripción`, `Categoría`, `Coste` y `Moneda`. El importador acepta **ES y EN** como mínimo
+  (`Date`, `Description`, `Category`, `Cost`, `Currency`) y rechaza con un error claro si falta
+  alguna columna obligatoria.
+- **Una columna por persona**, con el **impacto en su balance**: positivo si puso dinero,
+  negativo si debe. La cabecera de esa columna es el **nombre** de la persona.
+- La suma de las columnas de personas de una fila es el coste (lo que uno paga, los demás lo
+  deben). Eso reconstruye el pagador y las participaciones sin un formato de «shares» aparte.
+- **Fecha** en ISO `YYYY-MM-DD`.
+- **Decimales** con `.` y sin separador de miles. Los importes son positivos; el signo vive en
+  las columnas de personas.
+- **Pagos**: la fila trae `Categoría = Pago` (o `Payment` en inglés) y el impacto es `+coste` en
+  quien paga y `-coste` en quien recibe. Es un marcador fiable: se importan como
+  **liquidaciones** (`kind: settlement`).
+- **Filas en blanco o con celdas de espacios**: se descartan y se cuentan aparte. El export real
+  trae una fila final con `Coste` vacío pero impactos válidos (`+212.50/-212.50`): el importador
+  **deriva el importe** de los impactos, lo marca como «derivado» en el preview y no la rechaza.
+- **Sin emails**: las personas van por nombre. El autoenlace por email no es posible desde el
+  CSV (decisión D3.4: sin Pro, sin JSON ni API).
 
 **Qué incluye:**
 
-- Gastos y **pagos** (“cuando gastan o hacen un pago, positivo; cuando deben, negativo”). Los
-  pagos aparecen como transacciones; el importador puede convertirlos en liquidaciones.
-- Categorías.
+- Gastos y **pagos** (ver arriba).
+- Categorías del catálogo de Splitwise, en el idioma de la cuenta.
 - Nombres de los participantes en las cabeceras.
 
 **Qué no incluye:**
 
-- **Emails.** El CSV identifica a las personas por **nombre**, no por email. Es el hallazgo que
-  rompe el autoenlace por email desde el CSV.
-- Comentarios, fotos de recibos, adjuntos, recordatorios, solicitudes de pago.
+- **Emails**, comentarios, fotos de recibos, adjuntos, recordatorios ni solicitudes de pago.
 - Un identificador estable de gasto o de grupo (el archivo es del grupo; no hay `expense_id`).
-- Un desglose de “reparto” separado: se deduce del impacto por persona.
-- Garantía de que los gastos borrados no aparezcan o aparezcan; depende del momento del export.
+- Un desglose de «reparto» separado: se deduce del impacto por persona.
+- Garantía sobre gastos borrados: depende del momento del export.
 
-**Multi-divisa.** Cada fila lleva su `Currency`. Un grupo de Splitwise puede tener gastos en
-varias divisas. OweNo v1 es monomoneda por grupo, así que el importador **rechaza el archivo y
-avisa** si encuentra más de una divisa; el usuario tendrá que separar o convertir antes.
+**Multi-divisa.** Cada fila lleva su `Moneda`/`Currency`. Un grupo de Splitwise puede mezclar
+divisas. OweNo v1 es monomoneda por grupo, así que el importador **rechaza el archivo entero** y
+avisa si encuentra más de una; el usuario tendrá que separar o convertir antes. El export real
+usado para el fixture es todo EUR.
 
-**Pagos.** La base de ayuda confirma que los pagos van en el CSV como transacciones. Aun así,
-el marcador exacto (categoría “Payment”, descripción, o solo el patrón de una persona positiva
-y otra negativa) hay que verificarlo con un export real: es la diferencia entre importar una
-liquidación y inventarse un gasto.
+**Cómo exportar (texto para el tutorial de la app).**
+
+1. Abre el grupo en Splitwise (web; en la app puede estar en el menú del grupo).
+2. Entra en los ajustes del grupo, el engranaje.
+3. Toca **«Export as spreadsheet»** / **«Exportar como hoja de cálculo»**.
+4. Guarda el archivo `.csv` o compártelo con el móvil.
+5. En OweNo: **⋯ → Importar de Splitwise → Elegir archivo**.
 
 ## 2. JSON backup completo (Pro)
 
@@ -128,13 +144,17 @@ para la app; se documenta por si el propietario necesita recuperar datos que el 
 - No hay autoenlace por email en v1.
 - Multi-divisa: se **rechaza y avisa**. El usuario separa o convierte antes de importar.
 
-## Lo que falta para cerrar el parser
+## Estado del parser
 
-- Un **CSV redactado** de un grupo real (nombres y emails cambiados; importes pueden ser dummy).
-- Si se quiere autoenlace por email: un **JSON backup redactado** (Pro) o confirmar que la API
-  expone emails.
-- Verificar en la muestra: cabeceras exactas, formato de fecha, separador decimal, fila de pago,
-  fila de gasto negativo/reembolso, y si el grupo es mono o multi-divisa.
+**Cerrado con la muestra del 2026-11-13** (grupo real, anonimizado en
+`fixtures/splitwise-demo.csv`: 622 filas, 6 pagos, una sola divisa, una fila con coste vacío y
+otra con celdas de espacios). Verificado: cabeceras en español, fecha ISO, decimal `.`, marcador
+de pago en `Categoría`, impactos por persona que suman el coste.
+
+Queda por confirmar solo si Splitwise **localiza las cabeceras en los otros idiomas** que soporta
+la instancia (ca, it, fr, de, pt, gl, eu). El importador acepta ES y EN; si aparece otro idioma,
+el error dirá qué columnas faltan y el usuario podrá exportar en ES/EN mientras se añade el
+alias. No bloquea la implementación.
 
 ## Fuentes
 

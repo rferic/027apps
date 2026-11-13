@@ -1,0 +1,623 @@
+Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis
+2023-07-22,Compra semanal,Avión,567.46,EUR,-283.73,283.73
+2023-07-22,Cena,Hotel,1117.80,EUR,558.90,-558.90
+2023-07-26,Gasolina,Coche,95.00,EUR,47.50,-47.50
+2023-07-27,Hotel,General,70.00,EUR,-35.00,35.00
+2023-07-30,Vuelos,General,60.00,EUR,-60.00,60.00
+2023-07-30,Supermercado,Alimentos,95.00,EUR,-47.50,47.50
+2023-08-09,Luz,Estacionamiento,95.00,EUR,-47.50,47.50
+2023-08-09,Agua,Restaurantes,10.00,EUR,-5.00,5.00
+2023-08-09,Coche de alquiler,General,14.30,EUR,-7.15,7.15
+2023-08-09,Entradas,Estacionamiento,5.00,EUR,-2.50,2.50
+2023-08-09,Farmacia,Restaurantes,26.00,EUR,-13.00,13.00
+2023-08-10,Muebles,Restaurantes,17.20,EUR,-8.60,8.60
+2023-08-10,Ropa,Restaurantes,27.00,EUR,-13.50,13.50
+2023-08-10,Regalo,General,2.50,EUR,-1.25,1.25
+2023-08-10,Parking,Alimentos,25.18,EUR,-12.59,12.59
+2023-08-10,Restaurante,General,3.80,EUR,-1.90,1.90
+2023-08-10,Café,General,12.82,EUR,-6.41,6.41
+2023-08-10,Tren,Gasolina,55.43,EUR,-27.72,27.72
+2023-08-10,Gasolina,Restaurantes,36.40,EUR,-18.20,18.20
+2023-08-11,Alquiler,Restaurantes,62.00,EUR,-31.00,31.00
+2023-08-11,Compra semanal,Restaurantes,49.40,EUR,-24.70,24.70
+2023-08-12,Cena,Restaurantes,30.50,EUR,-15.25,15.25
+2023-08-13,Gasolina,General,62.00,EUR,-31.00,31.00
+2023-08-13,Hotel,General,22.00,EUR,-11.00,11.00
+2023-08-13,Vuelos,Restaurantes,11.15,EUR,-5.57,5.57
+2023-08-13,Supermercado,Electricidad,40.00,EUR,-20.00,20.00
+2023-08-14,Luz,Gasolina,40.00,EUR,20.00,-20.00
+2023-08-14,Agua,General,29.00,EUR,-14.50,14.50
+2023-08-14,Coche de alquiler,Licor,3.60,EUR,-1.80,1.80
+2023-08-14,Entradas,Restaurantes,52.30,EUR,26.15,-26.15
+2023-08-15,Farmacia,Restaurantes,16.00,EUR,-8.00,8.00
+2023-08-15,Muebles,Restaurantes,25.90,EUR,12.95,-12.95
+2023-08-16,Ropa,Restaurantes,18.50,EUR,9.25,-9.25
+2023-08-16,Regalo,General,60.00,EUR,-60.00,60.00
+2023-08-21,Parking,General,89.00,EUR,-44.50,44.50
+2023-08-26,Restaurante,Restaurantes,58.00,EUR,29.00,-29.00
+2023-08-29,Café,General,27.00,EUR,-13.50,13.50
+2023-08-29,Tren,Alimentos,41.26,EUR,-41.26,41.26
+2023-08-30,Gasolina,General,17.90,EUR,-8.95,8.95
+2023-08-31,Alquiler,Transporte - Otro,41.55,EUR,20.77,-20.77
+2023-09-07,Compra semanal,General,20.00,EUR,-10.00,10.00
+2023-09-08,Cena,Alimentos,41.70,EUR,-20.85,20.85
+2023-09-16,Gasolina,Alimentos,10.00,EUR,-5.00,5.00
+2023-09-17,Hotel,Avión,106.30,EUR,53.15,-53.15
+2023-09-18,Pago,Pago,180.76,EUR,180.76,-180.76
+2023-09-20,Supermercado,General,36.62,EUR,-18.31,18.31
+2023-09-20,Luz,General,14.38,EUR,-14.38,14.38
+2023-09-21,Agua,General,12.00,EUR,12.00,-12.00
+2023-09-22,Coche de alquiler,Restaurantes,17.00,EUR,-8.50,8.50
+2023-09-25,Entradas,General,15.80,EUR,-7.90,7.90
+2023-09-25,Farmacia,General,17.00,EUR,-17.00,17.00
+2023-09-26,Muebles,General,80.00,EUR,-40.00,40.00
+2023-09-28,Ropa,General,8.98,EUR,-8.98,8.98
+2023-10-02,Regalo,Alimentos,25.00,EUR,-12.50,12.50
+2023-10-08,Parking,General,18.00,EUR,-18.00,18.00
+2023-10-15,Restaurante,Restaurantes,15.00,EUR,-7.50,7.50
+2023-10-15,Café,Restaurantes,2.00,EUR,1.00,-1.00
+2023-10-23,Tren,General,60.00,EUR,60.00,-60.00
+2023-10-25,Gasolina,General,139.00,EUR,69.50,-69.50
+2023-10-27,Alquiler,General,50.00,EUR,-25.00,25.00
+2023-10-29,Compra semanal,Restaurantes,25.00,EUR,-12.50,12.50
+2023-10-29,Cena,Entretenimiento - Otro,12.00,EUR,6.00,-6.00
+2023-10-30,Gasolina,General,5.00,EUR,5.00,-5.00
+2023-10-31,Hotel,General,141.00,EUR,-70.50,70.50
+2023-11-03,Vuelos,General,400.00,EUR,-400.00,400.00
+2023-11-03,Pago,Pago,507.57,EUR,507.57,-507.57
+2023-11-04,Luz,General,50.00,EUR,-50.00,50.00
+2023-11-04,Agua,General,23.00,EUR,-11.50,11.50
+2023-11-11,Coche de alquiler,General,14.99,EUR,-7.50,7.50
+2023-11-11,Entradas,Alimentos,34.10,EUR,17.05,-17.05
+2023-11-12,Farmacia,General,239.00,EUR,-119.50,119.50
+2023-11-14,Muebles,General,50.00,EUR,-50.00,50.00
+2023-11-16,Ropa,Hotel,210.90,EUR,105.45,-105.45
+2023-11-19,Regalo,General,20.70,EUR,-10.35,10.35
+2023-11-23,Parking,General,10.99,EUR,-5.50,5.50
+2023-11-23,Restaurante,Alimentos,61.50,EUR,-30.75,30.75
+2023-11-26,Café,General,12.90,EUR,-6.45,6.45
+2023-12-03,Tren,General,8.99,EUR,-8.99,8.99
+2023-12-05,Gasolina,General,75.00,EUR,-37.50,37.50
+2023-12-09,Alquiler,Gasolina,75.00,EUR,37.50,-37.50
+2023-12-09,Compra semanal,Estacionamiento,16.00,EUR,8.00,-8.00
+2023-12-11,Cena,Estacionamiento,39.00,EUR,-19.50,19.50
+2023-12-13,Gasolina,General,15.84,EUR,7.92,-7.92
+2023-12-15,Hotel,Restaurantes,79.00,EUR,39.50,-39.50
+2023-12-16,Vuelos,General,14.00,EUR,7.00,-7.00
+2023-12-17,Supermercado,Restaurantes,33.80,EUR,16.90,-16.90
+2023-12-17,Luz,General,26.99,EUR,-26.99,26.99
+2023-12-17,Agua,Restaurantes,9.20,EUR,4.60,-4.60
+2023-12-19,Coche de alquiler,General,100.00,EUR,-50.00,50.00
+2023-12-23,Entradas,Alimentos,65.00,EUR,-32.50,32.50
+2023-12-24,Farmacia,General,30.00,EUR,-15.00,15.00
+2023-12-28,Muebles,General,4.63,EUR,4.63,-4.63
+2023-12-29,Ropa,General,30.97,EUR,-30.97,30.97
+2023-12-31,Regalo,Avión,49.80,EUR,-49.80,49.80
+2023-12-31,Parking,General,39.99,EUR,-39.99,39.99
+2024-01-03,Restaurante,Transporte - Otro,21.94,EUR,-10.97,10.97
+2024-01-04,Café,General,36.00,EUR,-18.00,18.00
+2024-01-10,Tren,General,14.95,EUR,-7.48,7.48
+2024-01-13,Gasolina,Avión,67.65,EUR,-67.65,67.65
+2024-01-17,Alquiler,Alimentos,54.00,EUR,-27.00,27.00
+2024-01-19,Compra semanal,General,19.67,EUR,-9.84,9.84
+2024-01-23,Cena,Alimentos,106.90,EUR,53.45,-53.45
+2024-01-31,Gasolina,General,48.00,EUR,-48.00,48.00
+2024-02-02,Hotel,General,21.90,EUR,10.95,-10.95
+2024-02-02,Vuelos,Transporte - Otro,11.50,EUR,-5.75,5.75
+2024-02-05,Supermercado,General,24.98,EUR,-12.49,12.49
+2024-02-05,Luz,General,71.17,EUR,-35.58,35.58
+2024-02-06,Agua,General,75.00,EUR,37.50,-37.50
+2024-02-06,Coche de alquiler,Restaurantes,43.00,EUR,21.50,-21.50
+2024-02-13,Entradas,Hotel,311.50,EUR,-155.75,155.75
+2024-02-13,Farmacia,General,75.50,EUR,-37.75,37.75
+2024-02-16,Muebles,General,9.00,EUR,4.50,-4.50
+2024-02-17,Ropa,Restaurantes,84.00,EUR,42.00,-42.00
+2024-02-17,Regalo,Licor,13.00,EUR,6.50,-6.50
+2024-02-17,Parking,Licor,16.00,EUR,8.00,-8.00
+2024-02-17,Restaurante,General,5.30,EUR,2.65,-2.65
+2024-02-17,Café,General,45.80,EUR,22.90,-22.90
+2024-02-18,Tren,Restaurantes,80.70,EUR,40.35,-40.35
+2024-02-18,Gasolina,General,9.80,EUR,-4.90,4.90
+2024-02-18,Alquiler,Restaurantes,33.20,EUR,16.60,-16.60
+2024-02-18,Compra semanal,General,5.30,EUR,-2.65,2.65
+2024-02-19,Cena,Estacionamiento,45.00,EUR,22.50,-22.50
+2024-02-19,Gasolina,Gasolina,56.00,EUR,28.00,-28.00
+2024-02-21,Hotel,Transporte - Otro,21.00,EUR,-10.50,10.50
+2024-02-22,Vuelos,General,85.00,EUR,-42.50,42.50
+2024-02-29,Pago,Pago,533.65,EUR,533.65,-533.65
+2024-03-22,Luz,General,75.00,EUR,75.00,-75.00
+2024-03-27,Agua,Licor,17.30,EUR,8.65,-8.65
+2024-03-27,Coche de alquiler,General,75.10,EUR,37.55,-37.55
+2024-03-27,Entradas,Alimentos,236.58,EUR,118.29,-118.29
+2024-03-29,Farmacia,General,35.00,EUR,17.50,-17.50
+2024-03-29,Muebles,Restaurantes,75.50,EUR,37.75,-37.75
+2024-03-30,Ropa,General,32.00,EUR,16.00,-16.00
+2024-04-01,Regalo,General,28.80,EUR,-14.40,14.40
+2024-04-01,Parking,General,36.18,EUR,-36.18,36.18
+2024-04-02,Restaurante,Alimentos,79.29,EUR,-39.65,39.65
+2024-04-06,Café,General,10.00,EUR,-10.00,10.00
+2024-04-08,Tren,Suministros del hogar,22.00,EUR,-11.00,11.00
+2024-04-11,Gasolina,General,17.99,EUR,-17.99,17.99
+2024-04-15,Alquiler,General,30.00,EUR,-30.00,30.00
+2024-04-16,Compra semanal,General,70.00,EUR,-35.00,35.00
+2024-04-18,Cena,General,6.90,EUR,-3.45,3.45
+2024-04-20,Gasolina,Alimentos,27.00,EUR,-13.50,13.50
+2024-04-20,Hotel,General,15.50,EUR,-7.75,7.75
+2024-04-22,Vuelos,General,23.00,EUR,-11.50,11.50
+2024-04-22,Supermercado,Avión,232.96,EUR,-116.48,116.48
+2024-04-26,Luz,General,124.35,EUR,62.18,-62.18
+2024-04-26,Agua,Restaurantes,22.00,EUR,11.00,-11.00
+2024-04-26,Coche de alquiler,General,22.45,EUR,-22.45,22.45
+2024-04-28,Entradas,General,20.70,EUR,-10.35,10.35
+2024-04-30,Farmacia,Restaurantes,15.00,EUR,7.50,-7.50
+2024-05-04,Muebles,Alimentos,26.00,EUR,-13.00,13.00
+2024-05-04,Ropa,General,8.00,EUR,-4.00,4.00
+2024-05-06,Regalo,Transporte - Otro,194.20,EUR,-194.20,194.20
+2024-05-07,Parking,General,22.99,EUR,-22.99,22.99
+2024-05-07,Restaurante,General,53.49,EUR,-26.74,26.74
+2024-05-09,Café,Alquiler,600.00,EUR,-300.00,300.00
+2024-05-09,Tren,Coche,14.86,EUR,-7.43,7.43
+2024-05-13,Gasolina,Alimentos,94.40,EUR,-47.20,47.20
+2024-05-20,Alquiler,General,455.00,EUR,227.50,-227.50
+2024-05-29,Compra semanal,Restaurantes,38.00,EUR,19.00,-19.00
+2024-05-30,Cena,Alimentos,86.57,EUR,43.29,-43.29
+2024-06-01,Gasolina,General,13.00,EUR,6.50,-6.50
+2024-06-05,Hotel,General,200.00,EUR,-200.00,200.00
+2024-06-17,Vuelos,General,50.00,EUR,25.00,-25.00
+2024-06-26,Supermercado,Deportes,30.00,EUR,-15.00,15.00
+2024-06-26,Luz,General,33.77,EUR,-16.88,16.88
+2024-06-26,Agua,Deportes,200.00,EUR,100.00,-100.00
+2024-06-30,Coche de alquiler,General,15.00,EUR,15.00,-15.00
+2024-07-06,Entradas,General,10.00,EUR,10.00,-10.00
+2024-07-06,Farmacia,Restaurantes,14.00,EUR,7.00,-7.00
+2024-07-12,Muebles,General,81.24,EUR,40.62,-40.62
+2024-07-12,Ropa,Restaurantes,14.00,EUR,7.00,-7.00
+2024-07-15,Regalo,Alimentos,40.87,EUR,20.43,-20.43
+2024-07-16,Parking,General,149.99,EUR,75.00,-75.00
+2024-07-16,Restaurante,General,72.83,EUR,-72.83,72.83
+2024-07-16,Café,General,28.79,EUR,-14.40,14.40
+2024-07-17,Tren,General,91.96,EUR,91.96,-91.96
+2024-07-23,Gasolina,General,29.90,EUR,14.95,-14.95
+2024-07-26,Alquiler,Restaurantes,7.50,EUR,7.50,-7.50
+2024-08-03,Compra semanal,Restaurantes,49.00,EUR,49.00,-49.00
+2024-08-07,Cena,General,600.00,EUR,-300.00,300.00
+2024-08-08,Gasolina,Gasolina,66.97,EUR,33.49,-33.49
+2024-08-09,Hotel,Gastos médicos,58.31,EUR,29.16,-29.16
+2024-08-10,Vuelos,General,10.25,EUR,5.12,-5.12
+2024-08-10,Supermercado,Restaurantes,51.00,EUR,25.50,-25.50
+2024-08-10,Luz,Gasolina,71.00,EUR,35.50,-35.50
+2024-08-10,Agua,Alimentos,7.00,EUR,3.50,-3.50
+2024-08-11,Coche de alquiler,Restaurantes,9.00,EUR,4.50,-4.50
+2024-08-12,Entradas,General,15.00,EUR,15.00,-15.00
+2024-08-12,Farmacia,Restaurantes,69.00,EUR,34.50,-34.50
+2024-08-12,Muebles,Gasolina,84.75,EUR,42.38,-42.38
+2024-08-13,Ropa,Deportes,36.97,EUR,18.49,-18.49
+2024-08-13,Regalo,Estacionamiento,10.00,EUR,5.00,-5.00
+2024-08-13,Parking,Restaurantes,25.00,EUR,12.50,-12.50
+2024-08-14,Restaurante,Muebles,147.97,EUR,73.98,-73.98
+2024-08-14,Café,General,18.30,EUR,-9.15,9.15
+2024-08-14,Tren,Restaurantes,52.00,EUR,26.00,-26.00
+2024-08-15,Gasolina,General,32.60,EUR,16.30,-16.30
+2024-08-16,Alquiler,Gasolina,21.00,EUR,10.50,-10.50
+2024-08-16,Compra semanal,Gasolina,50.00,EUR,25.00,-25.00
+2024-08-18,Cena,General,24.90,EUR,-12.45,12.45
+2024-08-18,Gasolina,General,14.55,EUR,-14.55,14.55
+2024-08-18,Hotel,Alimentos,74.00,EUR,-37.00,37.00
+2024-08-19,Vuelos,General,50.00,EUR,-50.00,50.00
+2024-08-19,Supermercado,General,115.00,EUR,-57.50,57.50
+2024-08-19,Luz,Alimentos,45.00,EUR,-22.50,22.50
+2024-08-20,Agua,General,16.00,EUR,-8.00,8.00
+2024-08-23,Coche de alquiler,General,40.00,EUR,-20.00,20.00
+2024-08-26,Entradas,Alimentos,58.20,EUR,-29.10,29.10
+2024-08-31,Farmacia,General,300.00,EUR,-150.00,150.00
+2024-08-31,Muebles,Coche,9.00,EUR,-9.00,9.00
+2024-08-31,Ropa,General,30.00,EUR,15.00,-15.00
+2024-09-01,Regalo,General,22.00,EUR,11.00,-11.00
+2024-09-02,Parking,Restaurantes,9.30,EUR,4.65,-4.65
+2024-09-02,Restaurante,Coche,148.49,EUR,74.24,-74.24
+2024-09-02,Café,Gasolina,54.67,EUR,27.34,-27.34
+2024-09-02,Tren,Restaurantes,78.00,EUR,39.00,-39.00
+2024-09-02,Gasolina,Alimentos,8.00,EUR,4.00,-4.00
+2024-09-03,Alquiler,Hotel,67.85,EUR,33.92,-33.92
+2024-09-03,Compra semanal,Restaurantes,50.50,EUR,25.25,-25.25
+2024-09-03,Cena,Alimentos,26.37,EUR,13.19,-13.19
+2024-09-03,Gasolina,Alquiler,430.00,EUR,-215.00,215.00
+2024-09-03,Hotel,Restaurantes,52.50,EUR,26.25,-26.25
+2024-09-04,Vuelos,Restaurantes,12.10,EUR,6.05,-6.05
+2024-09-04,Supermercado,Restaurantes,17.00,EUR,8.50,-8.50
+2024-09-04,Luz,Restaurantes,46.00,EUR,23.00,-23.00
+2024-09-04,Agua,Alimentos,5.00,EUR,2.50,-2.50
+2024-09-05,Coche de alquiler,Estacionamiento,5.00,EUR,-2.50,2.50
+2024-09-05,Entradas,General,6.00,EUR,-3.00,3.00
+2024-09-05,Farmacia,General,12.00,EUR,-6.00,6.00
+2024-09-05,Muebles,Restaurantes,69.00,EUR,34.50,-34.50
+2024-09-06,Ropa,General,26.00,EUR,-13.00,13.00
+2024-09-06,Regalo,Restaurantes,40.30,EUR,20.15,-20.15
+2024-09-06,Parking,Restaurantes,47.50,EUR,23.75,-23.75
+2024-09-06,Restaurante,Alimentos,7.00,EUR,3.50,-3.50
+2024-09-07,Café,Gasolina,46.29,EUR,-23.15,23.15
+2024-09-07,Tren,General,8.00,EUR,4.00,-4.00
+2024-09-07,Gasolina,Restaurantes,17.50,EUR,8.75,-8.75
+2024-09-07,Alquiler,Alquiler,21.50,EUR,-10.75,10.75
+2024-09-07,Compra semanal,Restaurantes,28.00,EUR,14.00,-14.00
+2024-09-08,Cena,Restaurantes,13.00,EUR,6.50,-6.50
+2024-09-08,Gasolina,General,10.00,EUR,-5.00,5.00
+2024-09-08,Hotel,General,10.00,EUR,-5.00,5.00
+2024-09-08,Vuelos,Restaurantes,28.50,EUR,14.25,-14.25
+2024-09-08,Supermercado,Alimentos,8.00,EUR,4.00,-4.00
+2024-09-08,Luz,Restaurantes,28.50,EUR,14.25,-14.25
+2024-09-09,Agua,Restaurantes,9.60,EUR,4.80,-4.80
+2024-09-09,Coche de alquiler,Restaurantes,72.00,EUR,36.00,-36.00
+2024-09-09,Entradas,Estacionamiento,12.00,EUR,6.00,-6.00
+2024-09-09,Farmacia,Restaurantes,34.50,EUR,17.25,-17.25
+2024-09-10,Muebles,Restaurantes,12.00,EUR,6.00,-6.00
+2024-09-10,Ropa,Restaurantes,37.00,EUR,18.50,-18.50
+2024-09-10,Regalo,General,10.00,EUR,-5.00,5.00
+2024-09-10,Parking,Restaurantes,50.50,EUR,25.25,-25.25
+2024-09-10,Restaurante,General,6.00,EUR,6.00,-6.00
+2024-09-11,Café,Restaurantes,9.70,EUR,4.85,-4.85
+2024-09-11,Tren,Restaurantes,32.50,EUR,16.25,-16.25
+2024-09-11,Gasolina,General,10.00,EUR,-5.00,5.00
+2024-09-11,Alquiler,Restaurantes,24.00,EUR,12.00,-12.00
+2024-09-11,Compra semanal,Alimentos,3.00,EUR,-3.00,3.00
+2024-09-12,Cena,Restaurantes,12.00,EUR,6.00,-6.00
+2024-09-12,Gasolina,Avión,26.40,EUR,13.20,-13.20
+2024-09-12,Hotel,General,10.00,EUR,-5.00,5.00
+2024-09-12,Vuelos,Restaurantes,54.50,EUR,27.25,-27.25
+2024-09-12,Supermercado,General,4.00,EUR,4.00,-4.00
+2024-09-13,Luz,Restaurantes,16.00,EUR,-16.00,16.00
+2024-09-16,Agua,General,10.00,EUR,-5.00,5.00
+2024-09-17,Coche de alquiler,Alimentos,55.00,EUR,-27.50,27.50
+2024-09-22,Entradas,Entretenimiento - Otro,20.90,EUR,-20.90,20.90
+2024-09-22,Farmacia,TV/teléfono/Internet,17.99,EUR,-9.00,9.00
+2024-09-25,Muebles,Avión,108.86,EUR,-108.86,108.86
+2024-09-27,Ropa,Restaurantes,14.00,EUR,-7.00,7.00
+2024-09-30,Regalo,General,130.00,EUR,-65.00,65.00
+2024-10-10,Parking,General,166.50,EUR,166.50,-166.50
+2024-10-12,Restaurante,General,310.00,EUR,-155.00,155.00
+2024-10-12,Café,General,10.00,EUR,5.00,-5.00
+2024-10-12,Tren,Restaurantes,7.50,EUR,7.50,-7.50
+2024-10-23,Gasolina,General,37.74,EUR,-18.87,18.87
+2024-10-23,Alquiler,Restaurantes,30.00,EUR,-15.00,15.00
+2024-10-31,Compra semanal,General,130.00,EUR,-65.00,65.00
+2024-10-31,Cena,Transporte - Otro,232.33,EUR,-116.17,116.17
+2024-10-31,Gasolina,General,106.70,EUR,-106.70,106.70
+2024-10-31,Hotel,General,300.00,EUR,300.00,-300.00
+2024-11-01,Vuelos,General,97.67,EUR,48.84,-48.84
+2024-11-03,Supermercado,Restaurantes,60.00,EUR,30.00,-30.00
+2024-11-05,Luz,Alquiler,300.00,EUR,-150.00,150.00
+2024-11-05,Agua,General,12.99,EUR,-6.50,6.50
+2024-11-06,Coche de alquiler,Muebles,167.30,EUR,-83.65,83.65
+2024-11-09,Entradas,Alimentos,477.00,EUR,238.50,-238.50
+2024-11-12,Farmacia,Alimentos,55.40,EUR,-27.70,27.70
+2024-11-13,Muebles,General,71.76,EUR,35.88,-35.88
+2024-11-17,Ropa,Coche,199.00,EUR,99.50,-99.50
+2024-11-24,Regalo,General,110.00,EUR,-55.00,55.00
+2024-11-24,Parking,General,39.67,EUR,-19.84,19.84
+2024-12-03,Restaurante,General,130.00,EUR,-65.00,65.00
+2024-12-06,Café,General,138.50,EUR,69.25,-69.25
+2024-12-08,Tren,General,9.99,EUR,-4.99,4.99
+2024-12-08,Gasolina,General,17.89,EUR,-8.95,8.95
+2024-12-12,Alquiler,Alimentos,101.70,EUR,-50.85,50.85
+2024-12-17,Compra semanal,General,23.00,EUR,-11.50,11.50
+2024-12-21,Cena,General,42.00,EUR,21.00,-21.00
+2024-12-30,Gasolina,General,130.00,EUR,-65.00,65.00
+2025-01-06,Hotel,General,23.00,EUR,-11.50,11.50
+2025-01-11,Vuelos,General,117.23,EUR,58.61,-58.61
+2025-01-19,Supermercado,Restaurantes,19.00,EUR,9.50,-9.50
+2025-01-20,Luz,General,14.00,EUR,7.00,-7.00
+2025-01-21,Agua,General,17.00,EUR,8.50,-8.50
+2025-01-21,Coche de alquiler,Gastos médicos,17.25,EUR,17.25,-17.25
+2025-01-22,Entradas,Gastos médicos,26.00,EUR,13.00,-13.00
+2025-01-24,Farmacia,General,23.00,EUR,11.50,-11.50
+2025-01-24,Muebles,Alimentos,13.00,EUR,6.50,-6.50
+2025-01-25,Ropa,General,23.00,EUR,-11.50,11.50
+2025-01-26,Regalo,Restaurantes,14.00,EUR,7.00,-7.00
+2025-01-31,Parking,General,130.00,EUR,-65.00,65.00
+2025-02-01,Restaurante,General,13.00,EUR,6.50,-6.50
+2025-02-02,Café,General,114.93,EUR,-57.46,57.46
+2025-02-02,Tren,General,39.38,EUR,-19.69,19.69
+2025-02-02,Gasolina,General,35.96,EUR,-17.98,17.98
+2025-02-03,Alquiler,General,19.50,EUR,-9.75,9.75
+2025-02-04,Compra semanal,Alquiler,450.00,EUR,225.00,-225.00
+2025-02-04,Cena,Muebles,22.85,EUR,-11.43,11.43
+2025-02-05,Gasolina,Restaurantes,18.00,EUR,9.00,-9.00
+2025-02-07,Hotel,General,38.13,EUR,-19.07,19.07
+2025-02-07,Vuelos,General,57.59,EUR,-28.79,28.79
+2025-02-08,Supermercado,General,22.70,EUR,-11.35,11.35
+2025-02-08,Luz,Alimentos,47.50,EUR,-23.75,23.75
+2025-02-09,Agua,General,23.00,EUR,-11.50,11.50
+2025-02-09,Coche de alquiler,Alimentos,10.60,EUR,-5.30,5.30
+2025-02-10,Entradas,Alimentos,43.95,EUR,-21.97,21.97
+2025-02-11,Farmacia,General,25.50,EUR,-12.75,12.75
+2025-02-14,Pago,Pago,300.00,EUR,300.00,-300.00
+2025-02-15,Ropa,General,148.09,EUR,74.04,-74.04
+2025-02-16,Regalo,Alimentos,7.10,EUR,-3.55,3.55
+2025-02-16,Parking,General,43.12,EUR,-21.56,21.56
+2025-02-16,Restaurante,Restaurantes,20.00,EUR,-10.00,10.00
+2025-02-20,Café,General,25.00,EUR,-12.50,12.50
+2025-02-21,Tren,General,157.90,EUR,78.95,-78.95
+2025-02-22,Gasolina,General,39.47,EUR,-19.74,19.74
+2025-02-22,Alquiler,General,24.90,EUR,-12.45,12.45
+2025-02-22,Compra semanal,Alimentos,21.12,EUR,-10.56,10.56
+2025-02-24,Cena,General,135.00,EUR,-67.50,67.50
+2025-02-24,Gasolina,General,23.00,EUR,-11.50,11.50
+2025-02-26,Hotel,General,19.90,EUR,9.95,-9.95
+2025-02-26,Vuelos,General,98.42,EUR,49.21,-49.21
+2025-02-28,Supermercado,Alimentos,19.60,EUR,-9.80,9.80
+2025-03-03,Luz,General,130.00,EUR,-65.00,65.00
+2025-03-07,Agua,General,23.00,EUR,-11.50,11.50
+2025-03-12,Coche de alquiler,General,10.00,EUR,-5.00,5.00
+2025-03-22,Entradas,Alimentos,21.00,EUR,-10.50,10.50
+2025-03-29,Farmacia,Gastos médicos,50.00,EUR,25.00,-25.00
+2025-03-31,Muebles,General,130.00,EUR,-65.00,65.00
+2025-03-31,Ropa,Restaurantes,17.00,EUR,8.50,-8.50
+2025-04-12,Regalo,Avión,31.28,EUR,-31.28,31.28
+2025-04-27,Parking,Transporte - Otro,236.10,EUR,-236.10,236.10
+2025-04-27,Restaurante,General,6.99,EUR,-6.99,6.99
+2025-04-27,Café,General,17.99,EUR,-8.99,8.99
+2025-04-27,Pago,Pago,398.85,EUR,398.85,-398.85
+2025-05-02,Gasolina,General,130.00,EUR,-65.00,65.00
+2025-05-05,Alquiler,General,100.00,EUR,-50.00,50.00
+2025-05-08,Compra semanal,General,450.00,EUR,225.00,-225.00
+2025-05-09,Cena,General,8.00,EUR,-4.00,4.00
+2025-05-10,Gasolina,Alimentos,14.70,EUR,-7.35,7.35
+2025-05-12,Hotel,General,400.00,EUR,-200.00,200.00
+2025-05-12,Vuelos,General,10.00,EUR,-5.00,5.00
+2025-05-16,Supermercado,General,20.00,EUR,-10.00,10.00
+2025-05-18,Luz,General,10.00,EUR,-5.00,5.00
+2025-05-24,Agua,Alimentos,74.70,EUR,37.35,-37.35
+2025-05-26,Coche de alquiler,Alquiler,105.33,EUR,-52.66,52.66
+2025-05-30,Entradas,General,130.00,EUR,-65.00,65.00
+2025-06-02,Farmacia,Gasolina,71.00,EUR,35.50,-35.50
+2025-06-02,Muebles,General,18.00,EUR,9.00,-9.00
+2025-06-02,Ropa,Restaurantes,60.20,EUR,30.10,-30.10
+2025-06-02,Regalo,Licor,17.60,EUR,8.80,-8.80
+2025-06-03,Parking,Restaurantes,6.00,EUR,3.00,-3.00
+2025-06-03,Restaurante,Alimentos,180.48,EUR,90.24,-90.24
+2025-06-03,Café,Restaurantes,7.20,EUR,3.60,-3.60
+2025-06-03,Tren,Restaurantes,7.30,EUR,3.65,-3.65
+2025-06-04,Gasolina,Restaurantes,19.75,EUR,9.87,-9.87
+2025-06-04,Alquiler,Restaurantes,27.50,EUR,13.75,-13.75
+2025-06-05,Compra semanal,Restaurantes,8.90,EUR,4.45,-4.45
+2025-06-05,Cena,Restaurantes,8.35,EUR,4.18,-4.18
+2025-06-05,Gasolina,Restaurantes,55.40,EUR,27.70,-27.70
+2025-06-06,Hotel,Restaurantes,5.50,EUR,-2.75,2.75
+2025-06-06,Vuelos,Restaurantes,4.80,EUR,2.40,-2.40
+2025-06-06,Supermercado,General,400.00,EUR,200.00,-200.00
+2025-06-07,Luz,Restaurantes,7.40,EUR,3.70,-3.70
+2025-06-07,Agua,Restaurantes,28.00,EUR,14.00,-14.00
+2025-06-07,Coche de alquiler,Gasolina,77.63,EUR,38.82,-38.82
+2025-06-07,Entradas,General,55.00,EUR,27.50,-27.50
+2025-06-08,Farmacia,Restaurantes,9.30,EUR,4.65,-4.65
+2025-06-08,Muebles,Restaurantes,24.20,EUR,12.10,-12.10
+2025-06-10,Ropa,General,6.10,EUR,-3.05,3.05
+2025-06-11,Regalo,General,19.99,EUR,-19.99,19.99
+2025-06-15,Parking,General,31.00,EUR,-15.50,15.50
+2025-06-20,Restaurante,General,20.00,EUR,-20.00,20.00
+2025-06-26,Café,Restaurantes,8.00,EUR,-8.00,8.00
+2025-06-29,Tren,General,16.30,EUR,-8.15,8.15
+2025-06-29,Gasolina,General,8.50,EUR,-4.25,4.25
+2025-06-30,Alquiler,General,130.00,EUR,-65.00,65.00
+2025-07-08,Compra semanal,General,48.00,EUR,-24.00,24.00
+2025-07-12,Cena,General,50.00,EUR,-25.00,25.00
+2025-07-12,Gasolina,General,14.00,EUR,-14.00,14.00
+2025-07-12,Hotel,General,7.00,EUR,-7.00,7.00
+2025-07-12,Vuelos,General,24.99,EUR,-24.99,24.99
+2025-07-22,Supermercado,General,93.76,EUR,-46.88,46.88
+2025-07-28,Luz,Alimentos,213.46,EUR,-106.73,106.73
+2025-07-29,Agua,General,23.00,EUR,-11.50,11.50
+2025-07-30,Coche de alquiler,General,12.00,EUR,-12.00,12.00
+2025-07-30,Entradas,General,1000.00,EUR,500.00,-500.00
+2025-08-06,Farmacia,General,450.00,EUR,-225.00,225.00
+2025-08-08,Muebles,General,12.60,EUR,-6.30,6.30
+2025-08-10,Ropa,Avión,71.46,EUR,-71.46,71.46
+2025-08-11,Regalo,General,18.95,EUR,-18.95,18.95
+2025-08-12,Parking,General,6.50,EUR,-6.50,6.50
+2025-08-16,Restaurante,General,50.00,EUR,-25.00,25.00
+2025-08-16,Café,Alimentos,62.00,EUR,-31.00,31.00
+2025-08-17,Tren,Alquiler,94.36,EUR,47.18,-47.18
+2025-08-27,Gasolina,Ropa,35.40,EUR,17.70,-17.70
+2025-09-05,Alquiler,Restaurantes,12.00,EUR,-12.00,12.00
+2025-09-10,Compra semanal,General,300.00,EUR,150.00,-150.00
+2025-09-10,Cena,General,60.90,EUR,-60.90,60.90
+2025-09-16,Gasolina,Gasolina,26.00,EUR,13.00,-13.00
+2025-09-17,Hotel,General,376.00,EUR,188.00,-188.00
+2025-09-17,Vuelos,Gasolina,50.00,EUR,25.00,-25.00
+2025-09-18,Supermercado,Restaurantes,41.00,EUR,20.50,-20.50
+2025-09-19,Luz,Restaurantes,32.00,EUR,16.00,-16.00
+2025-09-20,Agua,Restaurantes,6.90,EUR,3.45,-3.45
+2025-09-20,Coche de alquiler,Restaurantes,50.00,EUR,25.00,-25.00
+2025-09-21,Entradas,Gasolina,78.00,EUR,39.00,-39.00
+2025-09-21,Farmacia,Restaurantes,54.00,EUR,27.00,-27.00
+2025-09-23,Muebles,Gasolina,20.00,EUR,10.00,-10.00
+2025-09-23,Ropa,General,11.80,EUR,5.90,-5.90
+2025-09-25,Regalo,Gasolina,50.00,EUR,25.00,-25.00
+2025-09-25,Parking,General,16.00,EUR,-8.00,8.00
+2025-09-26,Restaurante,Regalos,20.00,EUR,10.00,-10.00
+2025-10-08,Café,Avión,85.99,EUR,-85.99,85.99
+2025-10-08,Tren,Gastos médicos,8.50,EUR,-8.50,8.50
+2025-10-12,Gasolina,Restaurantes,53.90,EUR,26.95,-26.95
+2025-10-15,Alquiler,General,90.00,EUR,-90.00,90.00
+2025-10-16,Compra semanal,General,19.75,EUR,-9.88,9.88
+2025-10-16,Cena,Gastos médicos,21.95,EUR,-21.95,21.95
+2025-10-16,Gasolina,General,103.50,EUR,-51.75,51.75
+2025-10-18,Hotel,General,30.95,EUR,-15.48,15.48
+2025-10-23,Vuelos,General,102.27,EUR,-51.13,51.13
+2025-10-24,Supermercado,Restaurantes,23.50,EUR,11.75,-11.75
+2025-10-25,Luz,Alimentos,77.00,EUR,-38.50,38.50
+2025-10-25,Agua,General,46.95,EUR,-23.47,23.47
+2025-10-28,Coche de alquiler,General,47.47,EUR,-23.73,23.73
+2025-10-28,Entradas,General,18.50,EUR,-9.25,9.25
+2025-11-03,Farmacia,Restaurantes,23.00,EUR,11.50,-11.50
+2025-11-05,Muebles,Transporte - Otro,190.75,EUR,-95.37,95.37
+2025-11-06,Ropa,Alquiler,400.00,EUR,-200.00,200.00
+2025-11-27,Regalo,General,638.89,EUR,319.44,-319.44
+2025-11-27,Parking,Ropa,17.00,EUR,-8.50,8.50
+2025-11-28,Restaurante,Avión,72.36,EUR,-72.36,72.36
+2025-11-29,Café,General,14.95,EUR,-14.95,14.95
+2025-12-02,Tren,Avión,32.99,EUR,-32.99,32.99
+2025-12-06,Gasolina,General,300.00,EUR,150.00,-150.00
+2025-12-11,Alquiler,General,649.00,EUR,324.50,-324.50
+2025-12-12,Compra semanal,General,21.53,EUR,-10.77,10.77
+2025-12-13,Cena,General,28.66,EUR,-14.33,14.33
+2025-12-13,Gasolina,General,9.00,EUR,-4.50,4.50
+2025-12-15,Hotel,Gastos médicos,26.40,EUR,-13.20,13.20
+2025-12-19,Vuelos,General,50.00,EUR,-25.00,25.00
+2025-12-23,Supermercado,Avión,61.00,EUR,-61.00,61.00
+2025-12-24,Luz,Regalos,300.00,EUR,-150.00,150.00
+2025-12-26,Agua,Avión,26.00,EUR,-26.00,26.00
+2025-12-27,Coche de alquiler,General,39.14,EUR,-39.14,39.14
+2025-12-27,Entradas,Gasolina,76.76,EUR,-76.76,76.76
+2025-12-30,Farmacia,Gastos médicos,43.70,EUR,-43.70,43.70
+2026-01-10,Muebles,Alimentos,47.00,EUR,-23.50,23.50
+2026-01-10,Ropa,Alimentos,67.00,EUR,-33.50,33.50
+2026-01-10,Regalo,General,13.00,EUR,-6.50,6.50
+2026-01-17,Parking,General,35.00,EUR,-17.50,17.50
+2026-01-18,Restaurante,Restaurantes,10.00,EUR,10.00,-10.00
+2026-01-23,Café,General,25.00,EUR,-12.50,12.50
+2026-01-23,Tren,General,29.99,EUR,-29.99,29.99
+2026-01-27,Gasolina,General,1000.00,EUR,500.00,-500.00
+2026-01-27,Alquiler,General,450.00,EUR,-225.00,225.00
+2026-01-28,Compra semanal,Gastos médicos,41.70,EUR,-41.70,41.70
+2026-02-02,Cena,General,283.25,EUR,-141.63,141.63
+2026-02-02,Gasolina,General,84.77,EUR,42.39,-42.39
+2026-02-02,Hotel,General,63.88,EUR,31.94,-31.94
+2026-02-05,Vuelos,General,7.00,EUR,-3.50,3.50
+2026-02-11,Supermercado,Gastos médicos,99.50,EUR,-49.75,49.75
+2026-02-13,Luz,General,53.99,EUR,-26.99,26.99
+2026-02-21,Agua,Alimentos,24.49,EUR,-12.25,12.25
+2026-02-21,Coche de alquiler,General,22.46,EUR,-11.23,11.23
+2026-02-21,Entradas,General,81.17,EUR,-40.59,40.59
+2026-02-24,Farmacia,Coche,170.00,EUR,-170.00,170.00
+2026-03-09,Muebles,Gastos médicos,73.49,EUR,-73.49,73.49
+2026-03-09,Ropa,General,70.00,EUR,-70.00,70.00
+2026-03-16,Regalo,General,28.58,EUR,-14.29,14.29
+2026-03-19,Parking,Gastos médicos,30.00,EUR,-15.00,15.00
+2026-03-19,Restaurante,Alimentos,40.00,EUR,-20.00,20.00
+2026-04-02,Café,General,26.00,EUR,13.00,-13.00
+2026-04-02,Tren,General,9.00,EUR,4.50,-4.50
+2026-04-02,Gasolina,Restaurantes,20.00,EUR,10.00,-10.00
+2026-04-03,Alquiler,Alimentos,122.00,EUR,61.00,-61.00
+2026-04-06,Pago,Pago,255.96,EUR,255.96,-255.96
+2026-04-17,Cena,General,289.56,EUR,144.78,-144.78
+2026-04-17,Gasolina,General,34.50,EUR,-34.50,34.50
+2026-04-18,Hotel,Alimentos,53.00,EUR,26.50,-26.50
+2026-04-22,Vuelos,Gastos médicos,24.00,EUR,-12.00,12.00
+2026-04-22,Supermercado,General,26.85,EUR,-13.43,13.43
+2026-04-27,Luz,General,52.95,EUR,-26.47,26.47
+2026-04-29,Agua,General,13.96,EUR,-13.96,13.96
+2026-04-30,Coche de alquiler,Gastos médicos,34.80,EUR,-17.40,17.40
+2026-04-30,Entradas,General,15.39,EUR,-7.70,7.70
+2026-05-04,Farmacia,General,19.24,EUR,19.24,-19.24
+2026-05-06,Muebles,General,13.18,EUR,-6.59,6.59
+2026-05-06,Ropa,Gasolina,50.00,EUR,-25.00,25.00
+2026-05-06,Regalo,General,17.60,EUR,-8.80,8.80
+2026-05-06,Parking,General,52.16,EUR,-26.08,26.08
+2026-05-07,Restaurante,General,58.83,EUR,-29.41,29.41
+2026-05-07,Café,Alquiler,350.00,EUR,-175.00,175.00
+2026-05-07,Tren,Avión,60.98,EUR,-60.98,60.98
+2026-05-08,Gasolina,General,34.74,EUR,17.37,-17.37
+2026-05-09,Alquiler,General,14.63,EUR,7.32,-7.32
+2026-05-21,Compra semanal,Gasolina,71.81,EUR,-35.91,35.91
+2026-05-21,Cena,General,26.79,EUR,-13.39,13.39
+2026-05-21,Gasolina,General,73.23,EUR,-36.62,36.62
+2026-05-23,Hotel,Restaurantes,58.00,EUR,29.00,-29.00
+2026-05-24,Vuelos,General,6.32,EUR,3.16,-3.16
+2026-05-24,Supermercado,Restaurantes,46.50,EUR,23.25,-23.25
+2026-05-26,Luz,Hotel,750.00,EUR,375.00,-375.00
+2026-05-26,Agua,Hotel,10.00,EUR,-5.00,5.00
+2026-05-26,Coche de alquiler,Restaurantes,38.20,EUR,19.10,-19.10
+2026-05-27,Entradas,General,33.90,EUR,-16.95,16.95
+2026-05-28,Farmacia,General,71.18,EUR,-35.59,35.59
+2026-05-31,Muebles,Restaurantes,22.00,EUR,11.00,-11.00
+2026-06-08,Ropa,General,227.00,EUR,-113.50,113.50
+2026-06-08,Regalo,Restaurantes,20.00,EUR,10.00,-10.00
+2026-06-12,Parking,General,400.00,EUR,200.00,-200.00
+2026-06-12,Restaurante,General,38.39,EUR,19.20,-19.20
+2026-06-12,Café,General,41.44,EUR,20.72,-20.72
+2026-06-20,Tren,Alimentos,27.41,EUR,-13.71,13.71
+2026-06-21,Gasolina,General,61.51,EUR,-30.76,30.76
+2026-06-26,Alquiler,General,19.89,EUR,-9.95,9.95
+2026-06-26,Compra semanal,General,18.30,EUR,-9.15,9.15
+2026-06-26,Cena,General,64.90,EUR,-32.45,32.45
+2026-06-26,Gasolina,General,75.00,EUR,-37.50,37.50
+2026-07-01,Hotel,Gastos médicos,54.55,EUR,-27.27,27.27
+2026-07-04,Vuelos,Deportes,84.90,EUR,-42.45,42.45
+2026-07-11,Supermercado,General,37.85,EUR,-18.92,18.92
+2026-07-11,Luz,Alimentos,31.30,EUR,-15.65,15.65
+2026-07-11,Agua,General,25.00,EUR,-12.50,12.50
+2026-07-12,Coche de alquiler,General,12.00,EUR,6.00,-6.00
+2026-07-12,Entradas,Alimentos,36.50,EUR,-18.25,18.25
+2026-07-15,Farmacia,General,50.91,EUR,-25.45,25.45
+2026-07-18,Muebles,Alimentos,44.78,EUR,-22.39,22.39
+2026-07-18,Ropa,Gastos médicos,11.90,EUR,-5.95,5.95
+2026-07-25,Regalo,Basura,100.00,EUR,-50.00,50.00
+2026-08-06,Parking,General,400.00,EUR,200.00,-200.00
+2026-08-08,Restaurante,General,29.26,EUR,-14.63,14.63
+2026-08-08,Café,General,46.00,EUR,23.00,-23.00
+2026-08-09,Tren,General,31.00,EUR,15.50,-15.50
+2026-08-09,Gasolina,Restaurantes,80.90,EUR,40.45,-40.45
+2026-08-16,Alquiler,General,31.50,EUR,-15.75,15.75
+2026-08-17,Compra semanal,General,44.20,EUR,-22.10,22.10
+2026-08-18,Cena,General,68.97,EUR,-34.48,34.48
+2026-08-18,Gasolina,Alimentos,10.60,EUR,-5.30,5.30
+2026-08-20,Hotel,General,20.00,EUR,-10.00,10.00
+2026-08-20,Vuelos,Restaurantes,18.60,EUR,9.30,-9.30
+2026-08-21,Supermercado,Alimentos,100.00,EUR,-50.00,50.00
+2026-08-22,Luz,Restaurantes,12.20,EUR,-6.10,6.10
+2026-08-22,Agua,Avión,82.22,EUR,-82.22,82.22
+2026-08-22,Coche de alquiler,General,89.00,EUR,-89.00,89.00
+2026-08-29,Entradas,General,62.94,EUR,-31.47,31.47
+2026-08-29,Farmacia,Restaurantes,41.00,EUR,41.00,-41.00
+2026-09-01,Muebles,General,13.55,EUR,-13.55,13.55
+2026-09-01,Ropa,Hotel,200.00,EUR,-100.00,100.00
+2026-09-02,Regalo,Transporte - Otro,32.80,EUR,-16.40,16.40
+2026-09-08,Parking,General,10.00,EUR,-5.00,5.00
+2026-09-08,Restaurante,Basura,198.00,EUR,-99.00,99.00
+2026-09-09,Café,Restaurantes,12.40,EUR,6.20,-6.20
+2026-09-09,Tren,Suministros del hogar,23.00,EUR,11.50,-11.50
+2026-09-09,Gasolina,Restaurantes,49.00,EUR,24.50,-24.50
+2026-09-11,Alquiler,Restaurantes,64.50,EUR,-32.25,32.25
+2026-09-12,Compra semanal,Estacionamiento,9.20,EUR,-4.60,4.60
+2026-09-12,Cena,Alimentos,24.50,EUR,-12.25,12.25
+2026-09-13,Gasolina,Restaurantes,30.50,EUR,15.25,-15.25
+2026-09-14,Hotel,Restaurantes,74.00,EUR,37.00,-37.00
+2026-09-14,Vuelos,General,200.00,EUR,100.00,-100.00
+2026-09-15,Supermercado,Restaurantes,38.00,EUR,19.00,-19.00
+2026-09-16,Luz,Hotel,977.00,EUR,488.50,-488.50
+2026-09-16,Agua,Gasolina,50.00,EUR,-25.00,25.00
+2026-09-16,Coche de alquiler,Restaurantes,37.50,EUR,18.75,-18.75
+2026-09-17,Entradas,Ropa,47.86,EUR,-47.86,47.86
+2026-09-17,Farmacia,General,52.40,EUR,-26.20,26.20
+2026-09-25,Muebles,General,166.00,EUR,-83.00,83.00
+2026-09-26,Ropa,Gastos médicos,20.00,EUR,-10.00,10.00
+2026-09-26,Regalo,General,51.41,EUR,-25.71,25.71
+2026-09-26,Parking,Alquiler,400.00,EUR,-200.00,200.00
+2026-10-01,Restaurante,General,170.00,EUR,-85.00,85.00
+2026-10-04,Café,General,31.00,EUR,15.50,-15.50
+2026-10-05,Tren,General,400.00,EUR,200.00,-200.00
+2026-10-06,Gasolina,Avión,30.99,EUR,-30.99,30.99
+2026-10-06,Alquiler,General,52.99,EUR,-52.99,52.99
+2026-10-06,Compra semanal,General,57.20,EUR,28.60,-28.60
+2026-10-10,Cena,General,21.36,EUR,10.68,-10.68
+2026-10-12,Gasolina,General,14.90,EUR,7.45,-7.45
+2026-10-12,Hotel,General,27.00,EUR,13.50,-13.50
+2026-10-12,Vuelos,General,14.50,EUR,7.25,-7.25
+2026-10-20,Supermercado,General,83.59,EUR,-41.79,41.79
+2026-10-22,Luz,Restaurantes,29.50,EUR,14.75,-14.75
+2026-10-23,Agua,Gastos médicos,102.60,EUR,-51.30,51.30
+2026-10-24,Coche de alquiler,General,27.00,EUR,13.50,-13.50
+2026-10-24,Entradas,General,27.00,EUR,13.50,-13.50
+2026-10-25,Farmacia,Restaurantes,13.50,EUR,6.75,-6.75
+2026-10-27,Muebles,General,69.04,EUR,-34.52,34.52
+2026-10-27,Ropa,Gastos médicos,14.65,EUR,-7.33,7.33
+2026-10-27,Regalo,Gastos médicos,32.70,EUR,16.35,-16.35
+2026-10-30,Parking,General,51.00,EUR,25.50,-25.50
+2026-11-01,Restaurante,Restaurantes,23.00,EUR,11.50,-11.50
+2026-11-05,Café,General,17.00,EUR,8.50,-8.50
+2026-11-05,Tren,Restaurantes,50.00,EUR,25.00,-25.00
+2026-11-07,Gasolina,Alimentos,496.00,EUR,248.00,-248.00
+2026-11-07,Alquiler,Alimentos,28.00,EUR,-14.00,14.00
+2026-11-10,Compra semanal,General,62.00,EUR,31.00,-31.00
+2026-11-13,Cena, , ,EUR,212.50,-212.50

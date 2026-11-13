@@ -1140,11 +1140,21 @@ const screens = {
             <dt>Quien puede</dt><dd>Solo la creadora</dd>
           </div>
         </div>
-        <div class="card" style="text-align:center;padding:28px 16px">
+        <div class="card">
+          <div class="section-head" style="margin-top:0"><h2 class="section-title">Cómo exportar de Splitwise</h2></div>
+          <ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:var(--foreground)">
+            <li>Abre el <strong>grupo</strong> en Splitwise.</li>
+            <li>Toca el <strong>engranaje</strong> del grupo.</li>
+            <li>Elige <strong>«Export as spreadsheet»</strong>.</li>
+            <li>Guarda o comparte el archivo <code>.csv</code>.</li>
+            <li>Vuelve aquí y elige el archivo.</li>
+          </ol>
+          <p class="note">Un archivo por grupo. El CSV sale en el idioma de tu cuenta: aceptamos cabeceras en español e inglés.</p>
+        </div>
+        <div class="card" style="text-align:center;padding:22px 16px">
           <div class="empty-icon" style="margin-bottom:10px">⇩</div>
           <h3 style="margin:0 0 6px;font-size:15px">Elige el CSV del grupo</h3>
-          <p class="note" style="margin-top:0">Splitwise → grupo → ajustes → <strong>Export as spreadsheet</strong>. Un archivo por grupo.</p>
-          <button class="btn ghost" style="margin-top:14px">Elegir archivo</button>
+          <button class="btn ghost" style="margin-top:10px">Elegir archivo</button>
         </div>
         <div class="alert warn">El archivo debe estar en <strong>una sola divisa</strong>. Si mezcla divisas, se rechaza entero.</div>
         <p class="note">Se lee en el servidor: no se ejecuta nada del archivo y no se guardan adjuntos.</p>
@@ -1159,9 +1169,9 @@ const screens = {
         ${pageTitle("Preview")}
         <div class="steps"><i class="step done"></i><i class="step current"></i><i class="step"></i><i class="step"></i></div>
         <div class="card">
-          <div class="widget-head"><div class="widget-title">splitwise-casa.csv</div><span class="badge">128 filas</span></div>
+          <div class="widget-head"><div class="widget-title">splitwise-casa.csv</div><span class="badge">622 filas</span></div>
           <div class="metric-row">
-            <div class="metric-item"><div class="k">Gastos</div><div class="v">122</div></div>
+            <div class="metric-item"><div class="k">Gastos</div><div class="v">616</div></div>
             <div class="metric-item"><div class="k">Pagos</div><div class="v">6</div></div>
             <div class="metric-item"><div class="k">Divisa</div><div class="v">EUR</div></div>
           </div>
@@ -1223,7 +1233,7 @@ const screens = {
         </div>
         <div class="alert warn">Si enlazas a alguien que <strong>no es miembro</strong>, recibirá una invitación y verá su historial al aceptar.</div>
         <p class="note">Dos nombres del CSV que acaben en el mismo usuario se fusionan en un solo miembro; el preview lo muestra antes de confirmar.</p>
-        <button class="btn accent">Importar 128 movimientos</button>
+        <button class="btn accent">Importar 622 movimientos</button>
       </div>
       ${tabbar("modules")}`;
   },
@@ -1237,7 +1247,7 @@ const screens = {
         <div class="card accent-emerald">
           <div class="widget-head"><div class="widget-icon">✓</div><div class="widget-title">Todo importado</div></div>
           <div class="metric-row">
-            <div class="metric-item"><div class="k">Gastos</div><div class="v">122</div></div>
+            <div class="metric-item"><div class="k">Gastos</div><div class="v">616</div></div>
             <div class="metric-item"><div class="k">Liquidaciones</div><div class="v">6</div></div>
             <div class="metric-item"><div class="k">Saltados</div><div class="v">0</div></div>
           </div>
@@ -1252,7 +1262,7 @@ const screens = {
         </div>
         <button class="btn accent">Ver el grupo</button>
         <button class="btn ghost">Volver a OweNo</button>
-        <p class="note">Si repites el mismo archivo, las 128 filas se detectan como duplicadas y no se importan salvo que lo confirmes.</p>
+        <p class="note">Si repites el mismo archivo, las 622 filas se detectan como duplicadas y no se importan salvo que lo confirmes.</p>
       </div>
       ${tabbar("modules")}`;
   },
@@ -1583,7 +1593,7 @@ const panelScreens = {
         <table class="data">
           <thead><tr><th>Fecha</th><th>Grupo</th><th>Archivo</th><th class="num">Filas</th><th class="num">Saltadas</th><th>Resultado</th></tr></thead>
           <tbody>
-            <tr><td>12 nov</td><td>Casa · Piso de Ana</td><td>splitwise-casa.csv</td><td class="num">128</td><td class="num">0</td><td><span class="pill ok">Completada</span></td></tr>
+            <tr><td>12 nov</td><td>Casa · Piso de Ana</td><td>splitwise-casa.csv</td><td class="num">622</td><td class="num">0</td><td><span class="pill ok">Completada</span></td></tr>
             <tr><td>10 nov</td><td>Viaje a Lisboa</td><td>lisboa.csv</td><td class="num">0</td><td class="num">—</td><td><span class="pill warn">Rechazada: multi-divisa</span></td></tr>
           </tbody>
         </table>
