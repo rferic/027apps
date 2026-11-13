@@ -88,7 +88,9 @@ pública»).
 - **Un módulo pasa a `available`**: cambia su estado en las dos páginas y en esta tabla,
   sustituye la maqueta por una **captura real**, y actualiza el README.
 - **Se crea un módulo**: rellena su ficha (abajo) y decide si va a la app, al panel o a ambos.
-- **Release del APK**: cambia «Descargar app» para que apunte a la release publicada.
+- **Release del APK**: cambia el destino de `DownloadButton` (`apps/admin/src/components/
+  landing/download-button.tsx`) para que apunte a la release publicada. Hoy el botón se llama
+  «Descargar para Android» y lleva el icono de Android; el enlace secundario a GitHub no cambia.
 - **Nuevo idioma**: añade la ruta y las traducciones; el selector ya lista los 9.
 - **Cambia el stack o el precio**: actualiza `/self-host` y el README.
 

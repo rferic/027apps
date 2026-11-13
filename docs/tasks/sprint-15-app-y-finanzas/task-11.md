@@ -2,7 +2,7 @@
 id: sprint-15-task-11
 titulo: Extras — descarga de la app con icono de Android y literal revisado
 area: web
-estado: pendiente
+estado: test
 fuente: apps/admin/src/components/landing/app-landing.tsx; apps/admin/src/components/landing/github-icon.tsx; docs/mockups/landing-buttons/index.html
 adrs: [0002, 0004]
 ---
@@ -11,9 +11,10 @@ adrs: [0002, 0004]
 de la app lleven el **icono de Android** y que el literal diga con claridad qué se descarga y
 para qué plataforma. Es la tarea **11**, la de extras: cada sprint puede terminar con una.
 
-**Punto de partida**: la landing tiene tres botones «Download app» (hero, sección Android y
-cierre) que apuntan a GitHub Releases, con un icono de GitHub solo en el botón secundario. No
-hay icono de Android y el literal no dice la plataforma, aunque la app solo existe para Android.
+**Punto de partida**: la landing tiene dos botones «Download app» (hero y sección Android, que
+es el cierre de la página) que apuntan a GitHub Releases, con un icono de GitHub solo en el botón
+secundario. No hay icono de Android y el literal no dice la plataforma, aunque la app solo existe
+para Android.
 
 **Decidido el 2026-11-13**: literal **«Descargar para Android» / «Download for Android»** e
 **icono de Android en los tres botones** de descarga. El mockup
@@ -23,8 +24,8 @@ referencia de la opción elegida (`?variant=1`).
 **Alcance**
 - Dentro:
   - **Icono**: componente `AndroidIcon` en `apps/admin/src/components/landing/android-icon.tsx`,
-    como `GitHubIcon` (16 px, `currentColor`, `aria-hidden`, sin hex libres), y usarlo en los
-    tres botones de descarga, a la izquierda del texto.
+    como `GitHubIcon` (16 px, `currentColor`, `aria-hidden`, sin hex libres), dentro del
+    `DownloadButton` compartido que usan los dos botones de descarga, a la izquierda del texto.
   - **Literal**: el que se apruebe en el mockup `docs/mockups/landing-buttons/index.html`, en los
     **9 locales**. La propuesta recomendada es «Descargar para Android» / «Download for Android»;
     las alternativas están en el mockup con su rationale.
@@ -46,7 +47,7 @@ inconsistentes entre los 9 locales.
 **Criterios de aceptación**
 - El **mockup de botones** está en `docs/mockups/landing-buttons/index.html`, con las opciones de
   literal en español e inglés, claro/oscuro y las tres colocaciones, y el propietario elige.
-- Los tres botones de descarga muestran el **icono de Android** y el literal elegido en los 9
+- Los dos botones de descarga muestran el **icono de Android** y el literal elegido en los 9
   locales; el secundario no cambia.
 - El icono es monocromo (`currentColor`), decorativo y de 16 px; el botón conserva su altura y su
   espaciado en móvil.

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DownloadButton } from "@/components/landing/download-button";
 import { GitHubIcon } from "@/components/landing/github-icon";
 import { CookieNotice } from "@/components/cookie-notice";
 import { LanguageMenu } from "@/components/landing/language-menu";
@@ -79,10 +80,7 @@ export function AppLanding({ locale }: { locale: Locale }) {
           </h1>
           <p className="lead">{t("Finances, categories and members on your phone. One instance you own, without ads or a closed platform.")}{" "}</p>
           <div className="hero-actions">
-            <a
-              className="btn primary"
-              href="https://github.com/rferic/027apps/releases"
-            >{t("Download app")}{" "}</a>
+            <DownloadButton label={t("Download for Android")} />
             <a className="btn ghost" href="https://github.com/rferic/027apps">
               <GitHubIcon />{" "}{t("View on GitHub")}{" "}</a>
           </div>
@@ -473,10 +471,7 @@ export function AppLanding({ locale }: { locale: Locale }) {
             </h2>
             <p className="lead" style={s("font-size: 16px")}>{t("The app is in development. The signed APK will be published on GitHub Releases and can be downloaded without an account.")}{" "}</p>
             <div className="hero-actions">
-              <a
-                className="btn primary"
-                href="https://github.com/rferic/027apps/releases"
-              >{t("Download app")}{" "}</a>
+              <DownloadButton label={t("Download for Android")} />
               <a className="btn ghost" href="https://github.com/rferic/027apps">
                 <GitHubIcon />{" "}{t("Code on GitHub")}{" "}</a>
             </div>
