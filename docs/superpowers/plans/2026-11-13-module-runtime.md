@@ -122,10 +122,11 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 ### 3.5 Empaquetado serverless
 
-- [ ] Copiar `manifest.json`, `sql/`, `docs/`, `admin/`, `locales/` y assets al build;
+- [x] Copiar `manifest.json`, `sql/`, `docs/`, `admin/`, `locales/` y assets al build;
       `MODULES_ROOT` y `outputFileTracingIncludes` en `next.config.ts`.
 - [ ] Test de build: el paquete del fixture aparece en el bundle; instalar desde el panel
-      funciona en un preview de Vercel.
+      funciona en un preview de Vercel. (El bundle local ya lo incluye: 89 entradas de
+      `packages/` en el trace; falta el preview.)
 - [ ] No se copian secretos ni `.env`.
 
 ### 3.6 Documentación y contrato

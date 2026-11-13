@@ -225,6 +225,14 @@ packages/<key>/
     resources/
 ```
 
+### Dónde se leen en producción
+
+El runtime lee el paquete con `readFile`: en local, `MODULES_ROOT` o el `packages/` del monorepo
+junto a `apps/admin`; en Vercel, el `packages/` que `outputFileTracingIncludes` copia junto al
+root de la función (`apps/admin/next.config.ts`). Un manifiesto, SQL, docs, locales, iconos o
+páginas de admin nuevos entran en `MODULE_PACKAGE_FILES`; si falta uno, el módulo instala en
+local y falla en el preview. Nunca se copian `.env` ni secretos.
+
 ### Requisitos
 
 - `README.md` obligatorio. Documenta el propósito, las capacidades y cómo se usa.
