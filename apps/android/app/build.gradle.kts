@@ -3,6 +3,7 @@ import java.util.Base64
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -27,6 +28,14 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
+
+        // The shell opens against one instance without asking for a URL; a
+        // different one is a Settings action. Override per build with
+        // -PdefaultInstanceUrl=http://192.168.1.108:3003 for LAN testing.
+        val defaultInstance = providers.gradleProperty("defaultInstanceUrl")
+            .orElse("https://027apps.ericrf.com")
+            .get()
+        buildConfigField("String", "DEFAULT_INSTANCE_URL", "\"$defaultInstance\"")
     }
 
     if (releaseSigningEnabled) {
@@ -51,6 +60,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -60,6 +70,16 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
+    implementation(libs.supabase.auth)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     testImplementation(libs.junit)
+    testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
