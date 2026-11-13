@@ -6,7 +6,7 @@
     "icon": "assets/icon.svg",
     "color": "indigo"
   },
-  "version": "1.1.0",
+  "version": "1.2.0",
   "is_public": false,
   "migrations": [
     {
@@ -94,6 +94,14 @@
       "schedule": "* * * * *",
       "fn": "job_ping",
       "timeout_seconds": 10
+    }
+  ],
+  "app_actions": [
+    {
+      "key": "add_note",
+      "label": "Add note",
+      "icon": "plus",
+      "screen": "notes"
     }
   ]
 }

@@ -93,6 +93,19 @@ describe("manifest contract", () => {
     ).toThrow();
   });
 
+  it("validates app actions and keeps them out of background modules", () => {
+    const action = { key: "add_note", label: "Add note", icon: "plus", screen: "notes" };
+    const withActions = (actions: unknown[], app = { visible: true }) =>
+      validManifest({ app, app_actions: actions });
+
+    expect(() => manifestSchema.parse(withActions([action]))).not.toThrow();
+    expect(() => manifestSchema.parse(withActions([action, action]))).toThrow(/duplicate/);
+    expect(() => manifestSchema.parse(withActions([{ ...action, screen: "Notes" }]))).toThrow();
+    expect(() =>
+      manifestSchema.parse(withActions([action], { visible: false })),
+    ).toThrow(/background/);
+  });
+
   it("validates scheduled jobs (cron, duplicate keys, timeout)", () => {
     const job = {
       key: "cleanup",

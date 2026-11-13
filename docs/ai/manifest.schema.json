@@ -50,6 +50,7 @@
     },
     "requires": { "type": "array", "items": { "$ref": "#/$defs/moduleRequirement" } },
     "jobs": { "type": "array", "items": { "$ref": "#/$defs/moduleJob" } },
+    "app_actions": { "type": "array", "items": { "$ref": "#/$defs/appAction" } },
     "docs": { "$ref": "#/$defs/docs" }
   },
   "allOf": [
@@ -261,6 +262,17 @@
         "schedule": { "type": "string", "minLength": 1 },
         "fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" },
         "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 300, "default": 30 }
+      }
+    },
+    "appAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "icon", "screen"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "label": { "type": "string", "minLength": 1 },
+        "icon": { "type": "string", "minLength": 1 },
+        "screen": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
       }
     },
     "docs": {

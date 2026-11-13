@@ -413,6 +413,18 @@ export const moduleSettingSchema = component(
     .strict() satisfies z.ZodType<ModuleSettingView>,
 );
 
+export const moduleAppActionSchema = component(
+  "ModuleAppAction",
+  z
+    .object({
+      key: z.string(),
+      label: z.string(),
+      icon: z.string(),
+      screen: z.string(),
+    })
+    .strict(),
+);
+
 export const moduleSchema = component(
   "Module",
   z
@@ -426,6 +438,7 @@ export const moduleSchema = component(
       manifest_digest: z.string(),
       installed_at: isoDate,
       updated_at: isoDate,
+      app_actions: z.array(moduleAppActionSchema),
     })
     .strict() satisfies z.ZodType<ModuleView>,
 );

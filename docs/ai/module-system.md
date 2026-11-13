@@ -158,6 +158,11 @@ Ejemplo completo:
   Un módulo no puede requerirse a sí mismo y no se permiten duplicados; los ciclos se rechazan al
   instalar. Las reglas se resuelven contra `module_registry` (`app_visible`, `requires`), no
   leyendo paquetes en cada transición.
+- `app_actions`: `[{ key, label, icon, screen }]`; solo en módulos con `app.visible: true`. `screen`
+  es un identificador del registro de pantallas de la app (nunca una URL ni HTML) y `label` es la
+  clave de traducción que la app resuelve en sus 9 idiomas. `GET /api/v1/me/modules` las expone
+  solo para módulos `active` a los que el llamante tiene acceso; el FAB de la app se compone de
+  ellas y no hay lista hardcodeada.
 - `jobs`: `[{ key, schedule, fn, timeout_seconds? }]`. `schedule` es un cron de **5 campos**
   (`minuto hora día mes día_semana`), validado al instalar; `fn` es una función del esquema del
   módulo que se ejecuta **sin usuario** (el Core la llama como servicio, con timeout, y nunca le

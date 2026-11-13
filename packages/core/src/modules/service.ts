@@ -51,6 +51,8 @@ export interface ModulePage {
   offset: number;
 }
 
+export type ModuleAppAction = { key: string; label: string; icon: string; screen: string };
+
 export type ModuleView = {
   key: string;
   name: string;
@@ -61,6 +63,7 @@ export type ModuleView = {
   manifest_digest: string;
   installed_at: string;
   updated_at: string;
+  app_actions: ModuleAppAction[];
 };
 
 /** Access holder of a module: a user grant or a category assignment. */
@@ -150,6 +153,7 @@ function toModuleView(row: Record<string, unknown>): ModuleView {
     manifest_digest: String(row.manifest_digest ?? ""),
     installed_at: toIso(row.installed_at),
     updated_at: toIso(row.updated_at),
+    app_actions: Array.isArray(row.app_actions) ? (row.app_actions as ModuleView["app_actions"]) : [],
   };
 }
 
@@ -171,7 +175,7 @@ function toSettingView(row: Record<string, unknown>): ModuleSettingView {
 }
 
 const MODULE_COLUMNS =
-  "key, name, version, state, is_public, mcp_exposed, manifest_digest, installed_at, updated_at";
+  "key, name, version, state, is_public, mcp_exposed, manifest_digest, installed_at, updated_at, app_actions";
 
 async function getModuleRow(db: QueryClient, key: string): Promise<Record<string, unknown>> {
   const { rows } = await db.query(`select ${MODULE_COLUMNS} from public.module_registry where key = $1`, [
@@ -476,8 +480,8 @@ export async function installModule(
     await db.query(
       `insert into public.module_registry
          (key, name, version, state, is_public, mcp_exposed, manifest_digest, scopes,
-          app_visible, requires, jobs)
-       values ($1, $2, $3, 'installed', $4, 'read', $5, $6::text[], $7, $8::jsonb, $9::jsonb)`,
+          app_visible, requires, jobs, app_actions)
+       values ($1, $2, $3, 'installed', $4, 'read', $5, $6::text[], $7, $8::jsonb, $9::jsonb, $10::jsonb)`,
       [
         manifest.key,
         manifest.name,
@@ -488,6 +492,7 @@ export async function installModule(
         manifest.app.visible,
         JSON.stringify(manifest.requires),
         JSON.stringify(manifest.jobs),
+        JSON.stringify(manifest.app_actions),
       ],
     );
     for (const channel of manifest.channels) {
@@ -716,7 +721,8 @@ export async function upgradeModule(
     const { rows: updated } = await db.query(
       `update public.module_registry
           set version = $2, manifest_digest = $3, scopes = $4, app_visible = $5,
-              requires = $6::jsonb, jobs = $7::jsonb, updated_at = now()
+              requires = $6::jsonb, jobs = $7::jsonb, app_actions = $8::jsonb,
+              updated_at = now()
         where key = $1
         returning ${MODULE_COLUMNS}`,
       [
@@ -727,6 +733,7 @@ export async function upgradeModule(
         manifest.app.visible,
         JSON.stringify(manifest.requires),
         JSON.stringify(manifest.jobs),
+        JSON.stringify(manifest.app_actions),
       ],
     );
 

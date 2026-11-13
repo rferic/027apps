@@ -2,7 +2,7 @@
 id: sprint-15-task-10
 titulo: Módulo — acciones de la app declaradas en el manifest
 area: core
-estado: pendiente
+estado: en curso
 fuente: docs/ai/module-system.md; docs/superpowers/specs/2026-11-12-android-access-shell.md (§FAB)
 adrs: [0004, 0007]
 ---

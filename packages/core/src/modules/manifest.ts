@@ -170,6 +170,15 @@ const dashboardWidgetSchema = z
   })
   .strict();
 
+const appActionSchema = z
+  .object({
+    key: z.string().regex(SNAKE),
+    label: z.string().trim().min(1),
+    icon: z.string().trim().min(1),
+    screen: z.string().regex(/^[a-z][a-z0-9_]*$/),
+  })
+  .strict();
+
 const moduleJobSchema = z
   .object({
     key: z.string().regex(SNAKE),
@@ -229,6 +238,7 @@ export const manifestSchema = z
       .default({ visible: true }),
     requires: z.array(moduleRequirementSchema).default([]),
     jobs: z.array(moduleJobSchema).default([]),
+    app_actions: z.array(appActionSchema).default([]),
     docs: docsSchema,
   })
   .strict()
@@ -299,6 +309,17 @@ export const manifestSchema = z
     const requiredKeys = manifest.requires.map((requirement) => requirement.key);
     if (new Set(requiredKeys).size !== requiredKeys.length) {
       ctx.addIssue({ code: "custom", path: ["requires"], message: "duplicate requirement" });
+    }
+    if (manifest.app_actions.length > 0 && !manifest.app.visible) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["app_actions"],
+        message: "a background module (app.visible: false) cannot declare app actions",
+      });
+    }
+    const actionKeys = manifest.app_actions.map((action) => action.key);
+    if (new Set(actionKeys).size !== actionKeys.length) {
+      ctx.addIssue({ code: "custom", path: ["app_actions"], message: "duplicate app action key" });
     }
     const jobKeys = manifest.jobs.map((job) => job.key);
     if (new Set(jobKeys).size !== jobKeys.length) {

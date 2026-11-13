@@ -496,6 +496,32 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
         </section>
       ) : null}
 
+      {manifest?.app_actions && manifest.app_actions.length > 0 ? (
+        <section
+          aria-labelledby="module-app-actions-title"
+          className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+        >
+          <h2 id="module-app-actions-title" className="text-sm font-semibold">
+            {t("App actions", messages)}
+          </h2>
+          <ul className="flex flex-col gap-2 text-xs">
+            {manifest.app_actions.map((action) => (
+              <li
+                key={action.key}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
+              >
+                <span className="font-semibold">{action.label}</span>
+                <code className="font-mono text-[11px] text-muted-foreground">{action.key}</code>
+                <code className="text-[11px] text-muted-foreground">{action.screen}</code>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            {t("Read-only: the app composes its add button from these actions.", messages)}
+          </p>
+        </section>
+      ) : null}
+
       {grants.ok ? (
         <ModuleGrants grants={grants.grants} messages={messages} />
       ) : (
