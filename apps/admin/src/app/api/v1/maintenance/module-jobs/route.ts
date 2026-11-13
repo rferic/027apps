@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { getInfra, withTransactionClient } from "@/lib/api/door";
+import { getInfra, runInTransaction } from "@/lib/api/door";
 import { runDueModuleJobs } from "@027apps/core/modules/jobs.js";
 
 /** Constant-time comparison that never throws on length mismatch. */
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 
   const { settingsDeps } = await getInfra();
   const result = await runDueModuleJobs(
-    { db: settingsDeps.db, withTransaction: withTransactionClient },
+    { db: settingsDeps.db, withTransaction: runInTransaction },
     new Date(),
   );
   return Response.json({ executed: result.executed, failed: result.failed });
