@@ -59,6 +59,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Retry from a failure screen, or after changing the instance. */
+    /** The active instance, for screens that are not signed in yet. */
+    fun currentInstance(): String = instanceStore.current()
+
     fun refresh() {
         viewModelScope.launch { boot() }
     }

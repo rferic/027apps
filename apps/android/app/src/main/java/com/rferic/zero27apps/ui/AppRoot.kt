@@ -12,6 +12,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,7 +60,14 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 onChangeInstance = viewModel::changeInstance,
             )
             is AppState.SignedIn -> Shell(current, viewModel, instances)
-            is AppState.Failure -> FailureScreen(current.message, viewModel::refresh)
+            is AppState.Failure -> FailureScreen(
+                message = current.message,
+                knownInstances = instances,
+                currentInstance = viewModel.currentInstance(),
+                onRememberInstance = viewModel::rememberInstance,
+                onChangeInstance = viewModel::changeInstance,
+                onRetry = viewModel::refresh,
+            )
         }
     }
 }
@@ -70,8 +79,32 @@ private fun LoadingScreen() {
     }
 }
 
+/**
+ * A failure never traps the user: if the saved instance is unreachable, the
+ * same picker that the login screen offers is right here.
+ */
 @Composable
-private fun FailureScreen(message: String, onRetry: () -> Unit) {
+private fun FailureScreen(
+    message: String,
+    knownInstances: List<String>,
+    currentInstance: String,
+    onRememberInstance: (String) -> String?,
+    onChangeInstance: (String) -> Boolean,
+    onRetry: () -> Unit,
+) {
+    var showPicker by rememberSaveable { mutableStateOf(false) }
+    if (showPicker) {
+        InstancePickerDialog(
+            known = knownInstances,
+            current = currentInstance,
+            onAdd = onRememberInstance,
+            onPick = { url ->
+                showPicker = false
+                onChangeInstance(url)
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
@@ -79,6 +112,7 @@ private fun FailureScreen(message: String, onRetry: () -> Unit) {
     ) {
         Text(message, textAlign = TextAlign.Center)
         Button(onClick = onRetry, modifier = Modifier.padding(top = 16.dp)) { Text("Try again") }
+        TextButton(onClick = { showPicker = true }) { Text("Change instance") }
     }
 }
 
