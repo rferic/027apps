@@ -8,8 +8,13 @@ const notFoundMock = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
 
+const redirectMock = vi.fn(() => {
+  throw new Error("NEXT_REDIRECT");
+});
+
 vi.mock("next/navigation", () => ({
   notFound: () => notFoundMock(),
+  redirect: (href: string) => redirectMock(href),
 }));
 
 vi.mock("@/lib/panel-guard", () => ({ requirePanel: () => requirePanelMock() }));
@@ -57,9 +62,10 @@ describe("module admin page host", () => {
     await expect(ModuleAdminPage(params("imports"))).rejects.toThrow("NEXT_NOT_FOUND");
   });
 
-  it("404s when the module is not active", async () => {
-    loadModuleDetailMock.mockResolvedValue(detail("disabled"));
-    await expect(ModuleAdminPage(params())).rejects.toThrow("NEXT_NOT_FOUND");
+  it("sends an inactive module to its settings page, where it can be activated", async () => {
+    loadModuleDetailMock.mockResolvedValue(detail("installed"));
+    await expect(ModuleAdminPage(params())).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirectMock).toHaveBeenCalledWith("/modules/fixture/settings");
   });
 
   it("404s when the package has no component for a declared route", async () => {

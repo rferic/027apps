@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { panelLocale } from "@/lib/panel-locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
@@ -37,7 +37,12 @@ export default async function ModuleAdminPage({
 
   const detail = await loadModuleDetail(key);
   if (!detail.ok) notFound();
-  if (detail.module.state !== "active") notFound();
+  // Installed but not active: there is nothing to render yet, and a 404 here
+  // would look like a broken package. Send the admin to the page with the
+  // Activate button instead.
+  if (detail.module.state !== "active") {
+    redirect(`/modules/${encodeURIComponent(key)}/settings`);
+  }
   if (page.role === "super_admin" && gate.user.role !== "super_admin") {
     const locale = panelLocale(gate.user);
     const messages = await loadPanelMessages(locale);
