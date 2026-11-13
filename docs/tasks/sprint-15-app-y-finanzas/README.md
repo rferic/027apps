@@ -282,6 +282,7 @@ de la v1 y es una función de la app.
 | D19 | Gasto y pago: una entidad o dos | Dos tablas inmutables · **un solo movimiento** con edición y baja lógica | **Un solo `movement`** (decidido 2026-11-13): gasto = N participaciones, pago = una (el receptor). Se edita y se borra (baja lógica) siendo autor o creador; nunca se reescribe el historial de otro. |
 | D20 | Entrada al módulo en el panel | `/modules/<key>` = ficha · **= resumen, ficha aparte** | **Resumen** (decidido 2026-11-13): `/modules/<key>` redirige a `overview`; la ficha vive en `/modules/<key>/settings` (ruta reservada) y la lista de módulos ofrece **Abrir** y **Ajustes**. |
 | D21 | Datos de demo | Módulo `demo` (A) · capacidad del Core con ajuste y botón (B) · script de operador (C) | **B** (decidido 2026-11-13). El Core crea usuarios e invitaciones (el SQL del módulo no puede tocar `auth`/`public`), con correos `@example.test` **sin envío real**, solo fuera de producción, ids estables y limpieza que se niega si un módulo tiene datos enlazados. A es B más un módulo envoltorio; C no tiene botón ni gate. |
+| D22 | Literal del botón de descarga | «Descargar app» · «Descargar para Android» · «Descargar APK» · otras | **«Descargar para Android»** con el **icono de Android en los tres botones** (decidido 2026-11-13). La app solo existe para Android; «app» a secas invita a buscar iOS. Mockup: `docs/mockups/landing-buttons/`. |
 
 ## Reglas del sprint
 

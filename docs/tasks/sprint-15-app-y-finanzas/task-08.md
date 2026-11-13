@@ -15,6 +15,11 @@ para qué plataforma. Es la tarea **08**, la de extras: cada sprint puede termin
 cierre) que apuntan a GitHub Releases, con un icono de GitHub solo en el botón secundario. No
 hay icono de Android y el literal no dice la plataforma, aunque la app solo existe para Android.
 
+**Decidido el 2026-11-13**: literal **«Descargar para Android» / «Download for Android»** e
+**icono de Android en los tres botones** de descarga. El mockup
+[`docs/mockups/landing-buttons/index.html`](../../mockups/landing-buttons/index.html) queda como
+referencia de la opción elegida (`?variant=1`).
+
 **Alcance**
 - Dentro:
   - **Icono**: componente `AndroidIcon` en `apps/admin/src/components/landing/android-icon.tsx`,
