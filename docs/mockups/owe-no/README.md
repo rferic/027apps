@@ -1,13 +1,13 @@
 # Mockup — OweNo (F1 móvil y F2 panel)
 
-Mockup de la **tarea 03** del sprint 15. No es una imagen: es un HTML+JS navegable con las dos
+Mockup de la **tarea 06** del sprint 15. No es una imagen: es un HTML+JS navegable con las dos
 superficies del módulo, para que el propietario recorra los flujos y apruebe antes de que se
 escriba DDL, API o UI.
 
 > **Estado:** **aprobado por el propietario el 2026-11-13**, junto con la spec
 > [`2026-11-13-owe-no.md`](../../superpowers/specs/2026-11-13-owe-no.md) y el plan
 > [`2026-11-13-owe-no.md`](../../superpowers/plans/2026-11-13-owe-no.md). Es el contrato de UI de
-> las tareas 03 (panel) y 04 (móvil).
+> las tareas 06 (panel) y 07 (móvil).
 
 ## Cómo abrirlo
 

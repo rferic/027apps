@@ -1,60 +1,60 @@
 ---
 id: sprint-15-task-04
-titulo: OweNo en Android: pantallas, importador y capturas
-area: app
+titulo: Módulo — realtime, canales y push
+area: core
 estado: pendiente
-fuente: docs/superpowers/specs/2026-11-12-android-access-shell.md; spec de OweNo (pendiente); docs/tasks/sprint-15-app-y-finanzas/splitwise-export.md
-adrs: [0002, 0004, 0007, 0008]
+fuente: docs/ai/module-system.md; packages/core/src/realtime/service.ts; docs/flows/fcm-validation.md
+adrs: [0007]
 ---
 
-**Tarea**: llevar OweNo a la app Android **respetando el mockup F1 aprobado**, incluido el
-**importador de Splitwise en la app** para el creador del grupo, y sustituir las maquetas de la
-landing por capturas reales con datos de demo. Es **obligatoria en el sprint 15** porque el
-propietario metió el importador en v1 (D3.2, C) y es una función móvil, no del panel.
+**Tarea**: que un módulo pueda emitir eventos que de verdad lleguen: canal suscribible por grupo,
+autorización de `realtime.messages`, push a los miembros correctos y nunca al autor. El runtime
+del Core ya existe; falta cerrar el canal de módulo y fijar el contrato.
 
 **Alcance**
-- Dentro: **inicio del módulo** (cabecera fija con logo y nombre, tarjeta de resumen y lista de
-  grupos) y menú ⋯ con Grupos, Invitaciones, Importar y Ajustes del módulo; detalle con balances,
-  alta de gasto con **reparto igual o importes exactos**, liquidación, **invitaciones pendientes (aceptar/rechazar)**, **gestión de miembros
-  para el creador (invitar, echar, bloquear)** y **salir del grupo**,
-  historial y estados de error/carga; **importador de Splitwise**: elegir el CSV **por grupo**,
-  preview/dry-run, **rechazar multi-divisa con aviso**, mapear identidades no enlazadas a
-  **cualquier usuario activo de la instancia** (selector por id + nombre) o crear ficticios,
-  fusionar identidades del mismo usuario y confirmar; solo el creador del grupo. Sin Pro: solo
-  CSV; autoenlace por nombre exacto y único; el CSV no trae emails, así que no hay autoenlace
-  por email; **realtime (D12)**: suscripción al topic del grupo por Supabase Broadcast privado
-  con el token de la sesión (reconexión con backoff y resincronización al volver del segundo
-  plano); **push**: permiso `POST_NOTIFICATIONS`, alta del token FCM al entrar y baja al cerrar
-  sesión con el token cifrado en Keystore (sustituye la pantalla manual y el token en
-  `SharedPreferences`), y **aviso localizado** con las claves `push.<tipo>` en los 9 idiomas en
-  vez de pintar la clave y el JSON crudo; reutiliza el cliente, la sesión y los tokens de la
-  tarea 01; capturas reales de la app con datos de demo; landing `/` y `/self-host` con OweNo
-  `available`; release del APK con tag (puerta del propietario).
-- Fuera: offline, presupuestos, multi-divisa, edición avanzada de repartos y push en iOS.
+- Dentro:
+  - **Canal de módulo suscribible (hueco real)**: `module_channels.members_fn` se resuelve como
+    `public.<fn>`, pero el SQL del módulo no puede referenciar `public` ni crear `security
+    definer`. Cerrar con una vía, decidida en el plan: (a) el instalador crea un envoltorio en
+    `public` que delega en `module_<key>.<fn>`, o (b) el manifest declara tabla y columna del
+    miembro y el Core construye la consulta. Verificar que `module_channels` se rellena al
+    instalar y se limpia al desinstalar.
+  - **Contrato del `notify` y del payload**: `events[].notify` acepta `push`; el push es
+    **data-only** (`key` + `payload`) y la app traduce. Fijar la clave
+    (`push.<tipo_con_puntos_a_guiones_bajos>`), el tamaño máximo y qué eventos no notifican al
+    autor. Cambio `module-contract` si toca esquema.
+  - **No notificar al autor**: `recipients()` hoy envía a todos los miembros del canal. Si el
+    payload trae `actor_id`, el emisor lo excluye de los tokens de push. Test con dos miembros y
+    un autor.
+  - **Verificación de push**: el envío ya está (cuenta de servicio cifrada, reintentos,
+    revocación de tokens). Se prueba con el fixture; sin credenciales, `createPushFromSettings`
+    devuelve `undefined` y el evento se publica y marca `published` sin bucle.
+  - Fixture: emite un evento, un miembro se suscribe, un no miembro no puede, y el push encola
+    solo para los miembros.
+- Fuera: la UI móvil del realtime (07); los eventos concretos de OweNo (06); credenciales reales.
 
-**Dependencias**: tareas 01, 02 y 03 `finalizadas`; datos de demo; dispositivo Android;
-**Firebase configurado en la instancia** por el propietario (panel → Notificaciones, guía
-`/help/firebase`). Sin esas credenciales la app compila y funciona, el realtime sigue, y la
-tarea se acepta sin push: no se inventan tokens ni se pide la cuenta de servicio por chat.
+**Dependencias**: tarea 02 `finalizada`. Puede ir en paralelo con la 03.
 
-**Riesgos**: la app puede duplicar reglas de negocio que ya viven en el dominio; la aceptación
-móvil llega tarde; el release firmado exige subir `versionCode` y una orden explícita de tag.
+**Riesgos**: la autorización del canal es una superficie de fuga entre grupos; el envoltorio en
+`public` debe ser mínimo y auditable; sin credenciales FCM el push no se puede probar de extremo
+a extremo (se acepta el evento publicado y el envío deshabilitado).
 
 **Criterios de aceptación**
-- La app lista los grupos del usuario, muestra balances correctos y permite crear un gasto y
-  liquidar contra staging; la UI corresponde con el mockup F1 aprobado.
-- Las capturas reales de la landing usan datos de demo y coinciden con las pantallas aceptadas
-  (no con las maquetas antiguas).
-- Los importes se formatean con la moneda y el locale del perfil; las fechas son de calendario.
-- Sin conexión muestra error y reintento, no un estado vacío falso.
-- Landings actualizadas con capturas reales de demo (sin datos de la familia), 9 idiomas.
-- APK de release firmado y publicado solo con orden explícita; `versionCode` incrementado.
-- CI (`android`, `admin`, `guard-secrets`, `commitlint`, `ai-docs`) en verde.
+- El fixture declara un canal, emite un evento y un miembro se suscribe; un usuario que no es
+  miembro no puede (`core_can_subscribe` = false) y un módulo desactivado cierra el canal.
+- La `members_fn` funciona sin que el SQL del módulo escriba en `public`; el mecanismo queda
+  probado y documentado.
+- Un evento con `notify: ["push"]` resuelve los tokens de los miembros y no del autor; sin
+  credenciales, el evento se marca `published` y no se reintenta en bucle.
+- `docs/ai/module-system.md`, `docs/ai/manifest.schema.json`, `docs/infrastructure.md` (FCM por
+  instancia) y los envoltorios actualizados.
+- `pnpm lint`, `pnpm tsc`, `pnpm test` y `pnpm --filter db-tests test` en verde.
 
 **Puertas de usuario**
-- Aceptar la UI en la app (dispositivo o emulador).
-- Aprobar las capturas y la landing.
-- Orden explícita de release/tag y de merge.
+- Aprobar el plan.
+- Configurar Firebase en el panel (Ajustes → Notificaciones) o aceptar el push deshabilitado.
+  Las credenciales no pasan por el chat.
+- Orden explícita de merge.
 
-**Auditoría de seguridad**: obligatoria antes de `finalizada` (autorización de las pantallas,
-manejo de importes, logs y release).
+**Auditoría de seguridad**: obligatoria antes de `finalizada` (autorización de canales, filtrado
+por grupo, manejo de la cuenta de servicio).

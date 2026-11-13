@@ -24,7 +24,7 @@ Splitwise no necesita presupuesto mensual. La v1 no debe hacer las dos cosas.
 | B. Presupuestos e histórico | Ingresos/gastos por categoría, presupuesto mensual, gráficos. | Coincide con la landing actual; más simple de explicar. | No resuelve «quién debe a quién»; el dominio es más plano; no usa el modelo de participantes que previó el diseño. |
 | C. Ambos en v1 | Gastos compartidos + presupuesto. | Producto completo. | Demasiado grande para una v1; dos modelos de datos y dos UX; retrasa la validación del runtime. |
 
-**Recomendación: A.** Si se elige A, la landing se corrige en el mismo PR de la tarea 03 y el
+**Recomendación: A.** Si se elige A, la landing se corrige en el mismo PR de la tarea 06 y el
 módulo se llama OweNo (D4, decidido).
 
 ## Cuestionario (fases 1–5)
@@ -68,7 +68,7 @@ módulo se llama OweNo (D4, decidido).
 |---|---|---|
 | 14 | Límites de v1 y no-objetivos | Ver «Límites v1» abajo. |
 | 15 | Tablas, UI, scopes, settings, eventos, locales, moneda, `is_public` | Ver «Modelo y superficie» abajo. |
-| 16 | Dependencias del Core | Instalador (existe), `/me/modules` (tarea 01), runtime de módulos (tarea 02), RLS suite (existe), DS (existe), i18n (existe), host de admin (tarea 02), empaquetado Vercel (tarea 02). |
+| 16 | Dependencias del Core | Instalador (existe), `/me/modules` (tarea 01), aislamiento y scopes (tarea 02), RLS suite (existe), DS (existe), i18n (existe), host de admin y empaquetado (tarea 03), realtime y push (tarea 04), demo (tarea 05). |
 
 ## Límites v1 (propuesta)
 
@@ -104,8 +104,8 @@ módulo se llama OweNo (D4, decidido).
 - Panel: overview del grupo, gastos, balances y miembros.
 - **Realtime y notificaciones (D12)**: OweNo declara `channels` y `events`; el servidor publica
   en el topic privado del grupo (Supabase Broadcast) y envía push FCM data-only. El runtime ya
-  existe; falta que el canal de módulo sea suscribible (tarea 02) y el cliente en la app
-  (tarea 04).
+  existe; falta que el canal de módulo sea suscribible (tarea 04) y el cliente en la app
+  (tarea 07).
 
 **Fuera**
 - Presupuestos mensuales.
@@ -184,17 +184,17 @@ Paginación, filtros por fecha/categoría, idempotencia en escrituras y envelope
 - `settings`: categoría `owe_no`, `default_currency` (hereda la de la instancia) y
   `settlement_exact_limit` (`int`, `min: 4`, `max: 20`, `step: 1`, defecto 12, con deslizador en
   el panel), `is_public: false`, `mcp_access: read`. Requiere que el contrato de settings acepte
-  rango y control (tarea 02).
+  rango y control (tarea 03).
 - `events`/`channels`: **sí** (D12). Canales por grupo con la `members_fn` que aporta el Core
   (el DDL del módulo no puede declarar `security definer`); eventos `owe_no.movement_created`,
   `owe_no.movement_updated`, `owe_no.movement_deleted` y `owe_no.member_linked` (el `type` no
   admite guiones; el prefijo del módulo va con guion bajo), con `notify: ["push"]` en los tres
-  primeros. El runtime de eventos, Broadcast y push ya existe en el Core; la tarea 02 cierra el
+  primeros. El runtime de eventos, Broadcast y push ya existe en el Core; la tarea 04 cierra el
   canal de módulo y lo prueba con el fixture.
 - `admin_pages`: `overview`, `groups` e `imports` (`admin`), servidas dentro de Plataforma → Módulos.
 - `dashboard_widgets`: propuesta `owe-no.summary` (surface `app`) y `owe-no.metric`
   (surface `panel`), pendiente de D10: título, icono, orden y datos de saldo/actividad del grupo
-  activo; sin HTML. El contrato exacto lo fija la tarea 02. Un módulo puede aportar app, panel,
+  activo; sin HTML. El contrato exacto lo fija la tarea 03. Un módulo puede aportar app, panel,
   ambos o ninguno; cada superficie tiene su propio tipo/componente.
 - `docs`: readme, api, settings (no mcp/events si no se declaran tools/canales; si se declaran
   tools, `docs/mcp.md` es obligatorio).
@@ -253,5 +253,5 @@ y los **mockups** ([`docs/mockups/owe-no/`](../../mockups/owe-no/index.html), F1
 panel) están **en borrador, pendientes de aprobación**. Los mockups **reutilizan** el esqueleto
 A aprobado en la tarea 01; si obligan a cambiar la navegación, se vuelve a la puerta del mockup
 A. Sin spec y sin mockups aceptados no hay plan ni DDL. La landing se actualiza en el mismo PR:
-`in-development` al terminar la tarea 03 y `available` con captura real cuando la tarea 04 esté
+`in-development` al terminar la tarea 06 y `available` con captura real cuando la tarea 07 esté
 aceptada.

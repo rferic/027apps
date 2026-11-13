@@ -62,8 +62,8 @@ i18n. La landing dice que la app está «en desarrollo» y que sus pantallas son
   - **Idioma y tema**: el locale del perfil se aplica al entrar; Ajustes permite cambiarlo con
     `PATCH /me`; el tema se guarda igual. Sin AppCompat: override de configuración.
   - **Campana y FAB**: bandeja vacía honesta (el registro de dispositivos y la bandeja real
-    llegan con el push en la tarea 04) y hoja de añadir con acciones de módulos; OweNo aporta
-    «Gasto» en la tarea 04.
+    llegan con el push en la tarea 07) y hoja de añadir con acciones de módulos; OweNo aporta
+    «Gasto» en la tarea 07.
   - Core: `GET/PATCH /api/v1/me`, `GET /api/v1/me/modules`, bloque `auth` en `/instance`,
     `/.well-known/assetlinks.json`, locale de la invitación; `theme` en `UserView`.
   - App: Ktor, Supabase Auth, sesión cifrada con Keystore, refresco, navegación, pantallas de

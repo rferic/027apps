@@ -28,7 +28,7 @@ construye ese primer cliente real y, de paso, cierra el hueco de seguridad.
 Que una persona de la familia pueda instalar la APK, escribir la URL de su instancia, entrar con
 su email y contraseña, y ver su nombre y los módulos que tiene activos. La sesión sobrevive al
 cierre de la app, se refresca sola y se puede cerrar. Sin pantallas de producto todavía: el
-shell es la base sobre la que la tarea 04 monta OweNo.
+shell es la base sobre la que la tarea 07 monta OweNo.
 
 ## 3. Alcance v1
 
@@ -44,7 +44,7 @@ shell es la base sobre la que la tarea 04 monta OweNo.
   **ajustes** (cuenta, instancia, **selector de idioma**, **selector de tema**, cerrar sesión).
   El dashboard compone los widgets que aportan los módulos; si un módulo declara uno, se
   incrusta. En esta tarea el host se prueba con un widget de demo; el contrato real llega en la
-  tarea 02 y el widget de OweNo en la 03.
+  tarea 03 y el widget de OweNo en la 06.
 - **Sin selector global de grupo**: las categorías del Core son etiquetas/acceso y todos ven a
   todos; cada módulo tiene sus propios grupos. El contexto de grupo vive dentro del módulo.
 - **Campana** (bandeja vacía mientras FCM esté bloqueado) y **FAB** global con hoja de acciones
@@ -54,7 +54,7 @@ shell es la base sobre la que la tarea 04 monta OweNo.
 - Retirada de la pantalla manual de FCM y del JWT en texto plano.
 
 **Fuera**
-- Pantallas de OweNo o de cualquier módulo (tarea 04).
+- Pantallas de OweNo o de cualquier módulo (tarea 07).
 - QR de invitación y emparejamiento móvil→móvil; el deep link cubre el alta con enlace.
 - Registro de dispositivos FCM y notificaciones push (bloqueado por credenciales). La campana
   existe como pantalla vacía; no hay eventos ni push.
@@ -72,7 +72,7 @@ shell es la base sobre la que la tarea 04 monta OweNo.
 | D4 | Sin FCM en v1: se retira la pantalla manual y no se registra el dispositivo. La **campana** existe con estado vacío. | FCM está bloqueado por falta de proyecto Firebase/`google-services.json`; el registro llegará con esa tarea. |
 | D5 | La app trae **`027apps.ericrf.com` por defecto** y no pide URL al arrancar. El cambio vive en **Ajustes → Instancia** (cierra la sesión); el login deja un enlace discreto «Usar otra instancia» para autoalojados. **No hay selector global de grupo**. | El propietario lo pidió así (2026-11-12): la familia no debe escribir una URL. El enlace del login evita dejar atrapado a quien autoaloja sin haber entrado. Las categorías del Core son etiquetas/acceso y los grupos son de cada módulo. |
 | D6 | En release solo HTTPS; en debug se permite HTTP local para desarrollo. | Evita enviar contraseñas por HTTP en una APK distribuida. |
-| D7 | **FAB global** en el shell: abre una hoja de «añadir» con las acciones de los módulos. OweNo aporta «Gasto» en la tarea 03. | El propietario lo pidió; el shell no hardcodea la acción de un módulo. |
+| D7 | **FAB global** en el shell: abre una hoja de «añadir» con las acciones de los módulos. OweNo aporta «Gasto» en la tarea 06. | El propietario lo pidió; el shell no hardcodea la acción de un módulo. |
 | D8 | **Sesión persistente**: el refresh se guarda cifrado y se renueva en silencio; no se vuelve a pedir login en uso normal. Si se revoca o el refresh falla, se pide login. | «Login para siempre» del propietario, con revocación real. |
 | D9 | **Navegación: variante B** (`Inicio · Módulos · Ajustes`), elegida por el propietario. OweNo se abre dentro de Módulos, no como pestaña. | Elegida el 2026-11-12; escala mejor con varios módulos. |
 | D10 | **Lanzador de módulos en cuadrícula**, solo módulos activos, **logo grande sobre tile sólido del acento** y tarjeta teñida (6 %, borde 22 %). Lista y Destacado son comparaciones de revisión; no se envían como preferencia. | El propietario eligió cuadrícula (2026-11-12) y pidió logos, no iconos de línea. El tile sólido da presencia de logo; el tinte de tarjeta da identidad sin llenar la pantalla de colores y el texto sigue sobre superficie. |
@@ -301,7 +301,7 @@ shell en `modules` en vez de reintentar en bucle.
 | `NotificationsScreen` | Bandeja de eventos; sin push, estado vacío honesto. | Vacío; con eventos cuando existan. |
 | `ModuleLauncher` | **Cuadrícula** (elegida); solo módulos activos; **logo** grande sobre tile sólido con el acento del módulo y tarjeta teñida; texto legible en claro/oscuro; sin «Próximamente». Lista/Destacado solo en el mockup. Al abrir un módulo se guarda `module:<key>` (D18). | Normal; vacío (ningún módulo activo); tema oscuro. |
 | `SettingsScreen` | Cuenta (nombre, email de la sesión), **cambiar instancia**, **selector de idioma**, **selector de tema** (sistema/claro/oscuro), notificaciones, cerrar sesión. | Guardando idioma/tema, error al cerrar sesión (se limpia igual). |
-| `AddSheet` | Hoja del FAB con las acciones de los módulos; OweNo aporta «Gasto» en la tarea 03. | — |
+| `AddSheet` | Hoja del FAB con las acciones de los módulos; OweNo aporta «Gasto» en la tarea 06. | — |
 | `ModuleComingSoon` | Hoja inferior al tocar un módulo sin pantalla. | — |
 
 - El login ya no es la única entrada: la invitación por deep link abre `InviteScreen`; la web
@@ -317,7 +317,7 @@ shell en `modules` en vez de reintentar en bucle.
 
 El propietario quiere que **cada módulo pueda aportar un widget al dashboard** y que, si lo
 aporta, se incruste. El contrato canónico del manifest **no tiene `widgets`** hoy; esta spec
-solo fija el host de la app y deja el contrato para la tarea 02 (decisión D10).
+solo fija el host de la app y deja el contrato para la tarea 03 (decisión D10).
 
 Propuesta para D10 (a confirmar):
 
@@ -332,7 +332,7 @@ Propuesta para D10 (a confirmar):
   visual).
 - Si un módulo no declara widget, no aparece. El dashboard vacío muestra un estado honesto, no
   tarjetas inventadas.
-- El host es de esta tarea; el widget real de OweNo llega en la tarea 03.
+- El host es de esta tarea; el widget real de OweNo llega en la tarea 06.
 
 Si D10 elige «componente nativo por módulo», la app necesita una release por cada widget nuevo;
 no es recomendable. Si elige HTML/JS del módulo, se rechaza por seguridad.
@@ -432,14 +432,14 @@ completa hasta que el mockup se acepta».
 5. **Notificaciones**: campana y estado vacío honesto (push bloqueado).
 6. **Ajustes**: cuenta, host, **selector de idioma**, **selector de tema** (sistema/claro/
    oscuro), notificaciones, cerrar sesión, estado de cierre.
-7. **Añadir (FAB)**: hoja de acciones de módulos; OweNo aporta «Gasto» en la tarea 03.
+7. **Añadir (FAB)**: hoja de acciones de módulos; OweNo aporta «Gasto» en la tarea 06.
 8. **Módulos**: lanzador en **cuadrícula** (elegida) con **solo módulos activos** (sin
    «Próximamente»), **logo grande** sobre tile sólido del **acento de cada módulo**
    (`branding.color`) y tarjeta teñida al 6 %. «Solo icono» deja la tarjeta limpia; Lista y
    Destacado son comparaciones de revisión, no una preferencia de producto. Estado vacío. El
    logo manda sobre el texto y el texto se ve en claro y oscuro.
 9. **Navegación**: qué es una pestaña, qué es una pantalla, qué hace el botón atrás en cada
-   sitio; el shell debe admitir que la tarea 03 añada OweNo sin rediseñar la base.
+   sitio; el shell debe admitir que la tarea 06 añada OweNo sin rediseñar la base.
 10. **Claro y oscuro**: todas las pantallas en ambos modos.
 11. **Accesibilidad**: foco visible, tamaños táctiles, contraste, textos de 200 % sin romper.
 
@@ -448,9 +448,9 @@ completa hasta que el mockup se acepta».
 - El mockup A **fue aprobado** el 2026-11-12: **variante B**, OweNo, logo **F · Billete** y color
   **esmeralda**. Si el propietario pide cambios, se iteran en el HTML y se vuelve a aprobar; no
   se implementa una versión intermedia.
-- El mockup F1 de la tarea 03 **reutiliza** este esqueleto: añade OweNo al home y las
+- El mockup F1 de la tarea 06 **reutiliza** este esqueleto: añade OweNo al home y las
   pantallas del módulo, pero no cambia la navegación base sin volver a la puerta del mockup A.
-- El mockup F2 de la tarea 03 cubre el panel de control (catálogo/ficha, overview, grupos,
+- El mockup F2 de la tarea 06 cubre el panel de control (catálogo/ficha, overview, grupos,
   gastos, balances, miembros). No se diseña aquí para no mezclar dos superficies antes de
   cerrar el esqueleto.
 - El copy del mockup va en español para revisar tono; la implementación publica los 9 idiomas.
@@ -584,7 +584,7 @@ sprint 16, no se finge que existe.
 
 | Riesgo | Mitigación |
 |---|---|
-| El mockup A no se aprueba o cambia tarde | Se implementa una navegación que luego no encaja con OweNo y hay que rehacer pantallas | Puerta del mockup antes de código; F1 y F2 de la tarea 03 reutilizan el esqueleto; los cambios vuelven a la puerta. |
+| El mockup A no se aprueba o cambia tarde | Se implementa una navegación que luego no encaja con OweNo y hay que rehacer pantallas | Puerta del mockup antes de código; F1 y F2 de la tarea 06 reutilizan el esqueleto; los cambios vuelven a la puerta. |
 | La anon key expuesta se percibe como fuga | Documentar que es pública por diseño; el test verifica que no se filtra la service role; la auditoría lo revisa. |
 | Keystore invalida la clave tras un cambio de bloqueo/biometría | Borrar sesión y pedir login; nunca caer a texto plano; test de descifrado fallido. |
 | No hay cuenta de prueba en producción | Invitación temporal creada y canjeada por el propietario; purga al terminar; alternativa local con Supabase. |

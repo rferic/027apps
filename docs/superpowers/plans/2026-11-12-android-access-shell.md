@@ -66,7 +66,7 @@ del DoD de Diseño.
 - [ ] Ajustes: cuenta, host, **selector de idioma**, **selector de tema** (sistema/claro/
       oscuro), notificaciones, cerrar sesión, estado de cierre.
 - [ ] Navegación: dos variantes (A: Inicio · OweNo · Ajustes; B: Inicio · Módulos · Ajustes),
-      qué es pestaña/pantalla, botón atrás, y un hueco preparado para que la tarea 03 añada
+      qué es pestaña/pantalla, botón atrás, y un hueco preparado para que la tarea 06 añada
       OweNo sin rediseñar la base.
 - [ ] Claro y oscuro en todas las pantallas; foco visible; tamaños táctiles ≥ 48 dp; textos al
       200 % sin romper.
@@ -81,7 +81,7 @@ open docs/mockups/app-shell/index.html
 - [ ] **Puerta:** el propietario aprueba el mockup A por escrito (sesión o PR). Sin esta
       aprobación no se implementa la Parte B.
 - [ ] Si la aprobación cambia la navegación o el home, se actualiza la spec §6bis antes de
-      seguir; F1 y F2 de la tarea 03 partirán de esta versión.
+      seguir; F1 y F2 de la tarea 06 partirán de esta versión.
 
 ## Parte A — Core (API mínima para el cliente)
 
@@ -276,7 +276,7 @@ pnpm --filter admin build
       si falla, revierten; al cambiar el idioma se recrea la actividad.
 - [ ] `ui/NotificationsViewModel.kt`: estado vacío (sin endpoint de eventos en v1); no inventa
       datos.
-- [ ] `ui/AddSheetViewModel.kt`: acciones de los módulos; OweNo se conecta en la tarea 03.
+- [ ] `ui/AddSheetViewModel.kt`: acciones de los módulos; OweNo se conecta en la tarea 06.
 - [ ] Tests `AppViewModelTest` con fakes: sin instancia, instancia sin `auth`, sin sesión,
       sesión válida, logout, error de red con reintento, 401 persistente.
 
@@ -298,7 +298,7 @@ pnpm --filter admin build
       tema; cerrar sesión; nota de sesión persistente.
 - [ ] `ChangeInstanceScreen`: aviso de cierre de sesión y borrado local; guardar → login.
 - [ ] `NotificationsScreen`: estado vacío honesto; no promete push.
-- [ ] `AddSheet`: acciones de módulos; OweNo aporta «Gasto» en la tarea 03.
+- [ ] `AddSheet`: acciones de módulos; OweNo aporta «Gasto» en la tarea 06.
 - [ ] Estados de carga/error/vacío; reintento; `contentDescription`; tamaños táctiles ≥ 48 dp.
 - [ ] **La UI corresponde con el mockup A aprobado, variante B** (`Inicio · Módulos · Ajustes`;
       OweNo dentro de Módulos): navegación, jerarquía, espaciado, tokens y estados. Cualquier
@@ -377,7 +377,7 @@ cd apps/android && ./gradlew :app:testDebugUnitTest :app:assembleDebug
 - [ ] `docs/ai/landing.md`: actualizar la fila «App Android» del catálogo, que hoy dice «solo
       configuración de FCM»; pasa a «in-development (acceso y shell; pantallas de producto
       pendientes)». No se toca el copy público ni las maquetas: la app sigue «en desarrollo»
-      hasta la tarea 04.
+      hasta la tarea 07.
 
 ## Verificación de diseño (contra el mockup A)
 
