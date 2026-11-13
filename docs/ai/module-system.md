@@ -121,7 +121,14 @@ Ejemplo completo:
   `migrations[].version` es única en el manifest.
 - `settings[].category` = `snake_case(key)` del módulo; `settings[].icon` es opcional; se
   respeta `is_public`.
-- `scopes` siguen `recurso:acción`; viven en código; no se siembran en BD.
+- `scopes` siguen `recurso:acción`; viven en el manifest y el instalador los copia a
+  `module_registry.scopes` para resolverlos por petición. **Un scope no es global**: dos módulos
+  pueden declarar `expenses:read` y no se abren el uno al otro. La ruta de un módulo declara su
+  `moduleKey`; el door comprueba que el módulo está `active`, que el llamante tiene acceso
+  (`admin`/`super_admin`, módulo público o `user_modules` activo) y que el scope pedido está
+  entre los declarados. Sin acceso, un módulo desconocido y un módulo desactivado responden el
+  mismo `403 insufficient_scope`; `anon` recibe `401`. Un scope de Core nunca satisface una ruta
+  de módulo.
 - Las tools MCP referencian un scope declarado.
 - Cada evento declara `type`, `target` (`admins`|`all`|`user`|`channel:<pattern>`) y
   opcionalmente `notify`; un target de canal exige un `channels[].pattern`.

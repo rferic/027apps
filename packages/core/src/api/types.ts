@@ -29,6 +29,12 @@ export interface CorsOptions {
 export interface DoorOptions {
   /** Scopes the action requires. Consumed by the authorization guard (task-02). */
   scopes: string[];
+  /**
+   * Module the route belongs to. When set, the door resolves the caller's
+   * access to that module and validates `scopes` against its manifest, instead
+   * of the Core role scopes.
+   */
+  moduleKey?: string;
   auth: (req: Request) => Promise<Caller>;
   /** Fixed one-minute window. Identity is derived from the caller. */
   rateLimit?: { identity: 'user' | 'key' | 'ip'; limit: number };
@@ -55,6 +61,11 @@ export interface LogEntry {
 
 export interface DoorDeps {
   rateLimitStorage: RateLimitStorage;
+  /**
+   * Scopes the caller holds for a module, or `null` when it has no access
+   * (unknown, inactive or ungranted). Used by routes that set `moduleKey`.
+   */
+  moduleScopes?: (caller: Caller, moduleKey: string) => Promise<readonly string[] | null>;
   logger: (entry: LogEntry) => void;
   /** Optional 5xx reporter (e.g. Sentry). Never called for 4xx. */
   captureError?: (

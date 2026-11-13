@@ -388,9 +388,9 @@ export async function installModule(
 
     await db.query(
       `insert into public.module_registry
-         (key, name, version, state, is_public, mcp_exposed, manifest_digest)
-       values ($1, $2, $3, 'installed', $4, 'read', $5)`,
-      [manifest.key, manifest.name, manifest.version, manifest.is_public, digest],
+         (key, name, version, state, is_public, mcp_exposed, manifest_digest, scopes)
+       values ($1, $2, $3, 'installed', $4, 'read', $5, $6::text[])`,
+      [manifest.key, manifest.name, manifest.version, manifest.is_public, digest, manifest.scopes],
     );
     for (const channel of manifest.channels) {
       await db.query(
@@ -683,6 +683,42 @@ export async function uninstallModule(
       resource: { key },
     });
   });
+}
+
+/**
+ * Scopes the caller holds for one module, or `null` when it has no access.
+ *
+ * The door uses this for module routes (option B): the route names its module
+ * and the guard checks the grant against that module, so two modules that use
+ * the same scope name never open each other's endpoints. Access mirrors
+ * `listModules`: active module and (admin, public, or an active grant).
+ */
+export async function moduleScopesForCaller(
+  deps: ModulesDeps,
+  caller: Caller,
+  key: string,
+): Promise<readonly string[] | null> {
+  if (!MODULE_KEY.test(key)) return null;
+  const userId =
+    caller.kind === "session" || caller.kind === "delegated" ? caller.userId : null;
+  if (caller.kind === "anon") return null;
+  if (!isAdmin(caller) && !userId) return null;
+  const { rows } = await deps.db.query(
+    `select m.scopes
+       from public.module_registry m
+      where m.key = $1
+        and m.state = 'active'
+        and ($2::boolean
+             or m.is_public
+             or exists (
+               select 1 from public.user_modules u
+                where u.user_id = $3 and u.module_key = m.key and u.revoked_at is null
+             ))`,
+    [key, isAdmin(caller), userId],
+  );
+  if (!rows[0]) return null;
+  const scopes = rows[0].scopes;
+  return Array.isArray(scopes) ? scopes.map(String) : [];
 }
 
 export async function getModuleSettings(

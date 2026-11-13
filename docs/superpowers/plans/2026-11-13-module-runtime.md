@@ -57,11 +57,11 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 ### 2.3 Scopes por petición
 
-- [ ] Tests: sesión con grant y scope → 200; sin grant → `403`; módulo inactivo → `403`/`404`
+- [x] Tests: sesión con grant y scope → 200; sin grant → `403`; módulo inactivo → `403`/`404`
       uniforme; clave delegada con scopes de Core no abre scopes de módulo.
-- [ ] Resolver por petición con `has_module_access` + scopes del manifest; cachear por petición,
-      no entre usuarios.
-- [ ] El guard de Core no cambia su comportamiento sin módulo.
+- [x] Resolver por petición: `moduleKey` en la ruta, `module_registry.scopes` + grant activo;
+      sin acceso → `403` uniforme; sin caché entre usuarios.
+- [x] El guard de Core no cambia su comportamiento sin módulo.
 
 ### 2.4 Claves foráneas y purga (D16)
 

@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { ClientBase } from "pg";
 import { createTestUser, impersonate, impersonateAnon, query, withClient } from "../pg.js";
 import {
+  activateModule,
+  deactivateModule,
+  grantUserModule,
   installModule,
+  moduleScopesForCaller,
   uninstallModule,
   type ModulesDeps,
 } from "@027apps/core/modules/service.js";
@@ -73,6 +77,7 @@ function deps(c: ClientBase, overrides: Partial<ModulesDeps> = {}): ModulesDeps 
       if (path.endsWith("assets/icon.svg")) {
         return '<svg xmlns="http://www.w3.org/2000/svg"><path fill="currentColor"/></svg>';
       }
+      if (path.endsWith("docs/api.md")) return "notes:read";
       throw new Error(`missing ${path}`);
     },
     ...overrides,
@@ -91,12 +96,12 @@ function manifest(up = UP, down = DOWN, overrides: Record<string, unknown> = {})
     ],
     settings: [],
     i18n: ["en"],
-    scopes: [],
+    scopes: ["notes:read"],
     mcp_tools: [],
     channels: [],
     events: [],
     admin_pages: [],
-    docs: { readme: "README.md" },
+    docs: { readme: "README.md", api: "docs/api.md" },
     ...overrides,
   };
 }
@@ -156,6 +161,32 @@ describe("module runtime", () => {
         { body: "ana", user_id: null },
         { body: "luis", user_id: luis.userId },
       ]);
+    });
+  });
+
+  it("resolves module scopes only for callers with access", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      await installModule(deps(c), admin, manifest());
+      await activateModule(deps(c), admin, MODULE);
+
+      const user = await session(c, "user");
+      // No grant yet, and the module is private.
+      expect(await moduleScopesForCaller(deps(c), user, MODULE)).toBeNull();
+
+      await grantUserModule(deps(c), admin, user.userId, MODULE);
+      expect(await moduleScopesForCaller(deps(c), user, MODULE)).toEqual(["notes:read"]);
+
+      // An admin sees every active module without a grant.
+      expect(await moduleScopesForCaller(deps(c), admin, MODULE)).toEqual(["notes:read"]);
+
+      // A disabled module exposes nothing, not even to an admin.
+      await deactivateModule(deps(c), admin, MODULE);
+      expect(await moduleScopesForCaller(deps(c), user, MODULE)).toBeNull();
+      expect(await moduleScopesForCaller(deps(c), admin, MODULE)).toBeNull();
+
+      // Unknown keys answer the same null, never a different error.
+      expect(await moduleScopesForCaller(deps(c), admin, "missing-module")).toBeNull();
     });
   });
 

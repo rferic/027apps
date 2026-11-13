@@ -415,6 +415,88 @@ describe('withDoor — validation', () => {
   });
 });
 
+describe('withDoor — module routes (option B)', () => {
+  const member: Caller = { kind: 'session', userId: 'u2', role: 'user' };
+  const granted = (scopes: readonly string[] | null, spy?: (key: string) => void) =>
+    makeDeps({
+      moduleScopes: async (_caller, key) => {
+        spy?.(key);
+        return scopes;
+      },
+    });
+
+  it('allows a caller with a grant and passes it to the handler', async () => {
+    const handler = vi.fn().mockResolvedValue({ ok: true });
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({ scopes: ['notes:read'], moduleKey: 'demo', auth: async () => member }),
+      granted(['notes:read']),
+      handler,
+    );
+    expect(res.status).toBe(200);
+    expect(handler.mock.calls[0]?.[0]?.caller).toEqual(member);
+  });
+
+  it('asks the resolver for the route module only', async () => {
+    const seen: string[] = [];
+    await withDoor(
+      new Request(URL_BASE),
+      makeOptions({ scopes: ['notes:read'], moduleKey: 'owe-no', auth: async () => member }),
+      granted(['notes:read'], (key) => seen.push(key)),
+      async () => ({ ok: true }),
+    );
+    expect(seen).toEqual(['owe-no']);
+  });
+
+  it('rejects without a grant (403) and never calls the handler', async () => {
+    const handler = vi.fn().mockResolvedValue({ ok: true });
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({ scopes: ['notes:read'], moduleKey: 'demo', auth: async () => member }),
+      granted(null),
+      handler,
+    );
+    expect(res.status).toBe(403);
+    expect(((await res.json()) as ErrorEnvelope).error.code).toBe('insufficient_scope');
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('rejects a scope the module does not declare', async () => {
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({ scopes: ['notes:write'], moduleKey: 'demo', auth: async () => member }),
+      granted(['notes:read']),
+      async () => ({ ok: true }),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('never falls back to Core role scopes, not even for an admin', async () => {
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({
+        scopes: ['settings:read'],
+        moduleKey: 'demo',
+        auth: async () => sessionCaller,
+      }),
+      granted([]),
+      async () => ({ ok: true }),
+    );
+    // sessionCaller holds settings:read in Core, but the module grants nothing.
+    expect(res.status).toBe(403);
+  });
+
+  it('rejects an anon caller with 401', async () => {
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({ scopes: ['notes:read'], moduleKey: 'demo', auth: async () => ({ kind: 'anon' }) }),
+      granted(['notes:read']),
+      async () => ({ ok: true }),
+    );
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('withDoor — scopes (F8)', () => {
   it('rejects a caller lacking a required scope with 403 insufficient_scope', async () => {
     const deps = makeDeps();
