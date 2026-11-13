@@ -6,7 +6,7 @@
     "icon": "assets/icon.svg",
     "color": "indigo"
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "is_public": false,
   "migrations": [
     {
@@ -15,6 +15,13 @@
       "down": "./sql/001-init.down.sql",
       "digest": "sha256:cf45bae0760a1debbb5d328339c9a49e653feafd806ab9edeea37520f3dd64a9",
       "down_digest": "sha256:af2f11d0088c96c2bb86d82e5cb9e75da3ccef511274fa7ead14e4bd65e732d2"
+    },
+    {
+      "version": "1.1.0",
+      "up": "./sql/002-jobs.sql",
+      "down": "./sql/002-jobs.down.sql",
+      "digest": "sha256:515c7ef2c919e73dbfca5a07f059317fa8cf355bd207b0252e9be76d8d3864c5",
+      "down_digest": "sha256:4454172f38e90c3a21fcb1c4a5a15813503d64832fe9ade547b82f49fc717e57"
     }
   ],
   "settings": [
@@ -80,5 +87,13 @@
   "app": {
     "visible": true
   },
-  "contract": 1
+  "contract": 1,
+  "jobs": [
+    {
+      "key": "ping",
+      "schedule": "* * * * *",
+      "fn": "job_ping",
+      "timeout_seconds": 10
+    }
+  ]
 }

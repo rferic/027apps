@@ -165,6 +165,10 @@ Ejemplo completo:
   dos están restringidos (simplificación deliberada del OR de cron). Los trabajos de un módulo
   inactivo no se ejecutan y se borran al desinstalar. El registro copia `jobs` para que el
   despachador no lea paquetes en cada minuto.
+  El despachador evalúa el cron en **UTC**, ejecuta cada trabajo en una transacción con
+  `statement_timeout` y `search_path` del esquema del módulo (las tablas se resuelven sin
+  cualificar, igual que en las migraciones), y reclama la fila de `module_job_runs` antes de
+  ejecutar: dos llamadas en el mismo minuto no duplican. Un fallo se registra y no aborta el lote.
 - `dashboard_widgets`: cada widget declara `key` (`modulo.dato`, con guion permitido en el
   prefijo), `type` (`summary`|`metric`|`list`), `surface` (`app`|`panel`), `title`, `icon`,
   `order` y `data_fn`, una función del esquema del módulo `(user_id uuid) returns jsonb` que

@@ -21,7 +21,7 @@ describe("cron", () => {
   });
 
   it("fires only in the matching minute", () => {
-    const date = new Date(2026, 10, 13, 10, 5, 42);
+    const date = new Date(Date.UTC(2026, 10, 13, 10, 5, 42));
     expect(isDueAt("5 10 * * *", date)).toBe(true);
     expect(isDueAt("*/5 * * * *", date)).toBe(true);
     expect(isDueAt("6 10 * * *", date)).toBe(false);
@@ -29,7 +29,7 @@ describe("cron", () => {
   });
 
   it("requires day-of-month and weekday to match together", () => {
-    const friday13 = new Date(2026, 10, 13, 9, 0, 0);
+    const friday13 = new Date(Date.UTC(2026, 10, 13, 9, 0, 0));
     expect(isDueAt("0 9 13 * 5", friday13)).toBe(true);
     expect(isDueAt("0 9 14 * 5", friday13)).toBe(false);
   });

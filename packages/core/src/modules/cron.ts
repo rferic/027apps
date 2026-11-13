@@ -2,9 +2,9 @@
  * Minimal 5-field cron for module jobs: `minute hour day month weekday`.
  *
  * Supported per field: `*`, a number, `a-b`, `* / n`, `a-b/n` and comma lists.
- * Sunday is `0` (or `7`). Month and weekday are evaluated as calendar values,
- * and day-of-month and weekday must **both** match when both are restricted —
- * a deliberate simplification of cron's OR, documented in the module contract.
+ * Sunday is `0` (or `7`). Fields are evaluated in **UTC**, and day-of-month and
+ * weekday must **both** match when both are restricted — a deliberate
+ * simplification of cron's OR, documented in the module contract.
  */
 const FIELDS = [
   { min: 0, max: 59 },
@@ -55,7 +55,7 @@ export function isValidCron(schedule: string): boolean {
   return fields.every((field, index) => parseCronField(field, index) !== null);
 }
 
-/** Whether the schedule fires in the given minute (seconds ignored). */
+/** Whether the schedule fires in the given minute (UTC, seconds ignored). */
 export function isDueAt(schedule: string, date: Date): boolean {
   const fields = schedule.trim().split(/\s+/);
   if (fields.length !== 5) return false;
@@ -63,10 +63,10 @@ export function isDueAt(schedule: string, date: Date): boolean {
   if (parsed.some((field) => field === null)) return false;
   const [minute, hour, day, month, weekday] = parsed as Set<number>[];
   return (
-    minute.has(date.getMinutes()) &&
-    hour.has(date.getHours()) &&
-    day.has(date.getDate()) &&
-    month.has(date.getMonth() + 1) &&
-    weekday.has(date.getDay())
+    minute.has(date.getUTCMinutes()) &&
+    hour.has(date.getUTCHours()) &&
+    day.has(date.getUTCDate()) &&
+    month.has(date.getUTCMonth() + 1) &&
+    weekday.has(date.getUTCDay())
   );
 }

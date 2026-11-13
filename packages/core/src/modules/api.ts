@@ -21,6 +21,7 @@ import {
   type ModulesDeps,
 } from "./service";
 import { validateManifest } from "./manifest";
+import { listModuleJobRuns } from "./jobs";
 
 /**
  * Modules API (core-api spec §3.4). The manifest is loaded server-side from the
@@ -153,6 +154,14 @@ export function installModuleRoute(deps: ModulesRouteDeps) {
         },
       }),
     );
+}
+
+/** GET /api/v1/modules/{key}/jobs — last runs of the module's scheduled jobs. */
+export function moduleJobRunsRoute(deps: ModulesRouteDeps) {
+  return (req: Request, rawKey: string): Promise<Response> =>
+    withDoor(req, readOptions(deps, ["modules:read"]), deps.door, async () => ({
+      runs: await listModuleJobRuns(deps.modules, moduleKey(rawKey)),
+    }));
 }
 
 /** POST /api/v1/modules/{key}/upgrade — apply a newer package over the installed one. */

@@ -15,7 +15,7 @@ y [`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-
 | Servicio | Uso | Plan / límite | Si se pierde |
 |---|---|---|---|
 | GitHub (`rferic/027apps`) | Código, CI, releases del APK | Free (repo público: minutos de Actions sin coste) | El código vive en clones locales; el APK firmado requiere el keystore (gestor de contraseñas) |
-| Vercel | Admin + `/api/v1` | Hobby | Se recrea desde el repo; solo hay que reponer env vars |
+| Vercel | Admin + `/api/v1` | Hobby | Se recrea desde el repo; solo hay que reponer env vars. El cron `* * * * *` llama a `/api/v1/maintenance/module-jobs` con `MAINTENANCE_CRON_SECRET`; sin esa variable el endpoint responde 503 y los jobs de módulo no se ejecutan. |
 | Supabase | Postgres, Auth, Storage, Realtime | Free: **sin backups**, 500 MB de BD, pausa por inactividad (~1 semana) | **Se reconstruye** desde el backup + migraciones (este documento) |
 | Supabase local (dev) | BD/Auth/Storage/Realtime para desarrollar y para el TDD de migraciones + RLS | Docker, sin coste; lo levanta `supabase start` | Se recrea con `supabase start`; `supabase db reset` deja la BD limpia y aplica las migraciones |
 | **Supabase `027apps-dev`** (cloud) | **Project ref `wrigkwhrihawvwiciouy`** (`https://wrigkwhrihawvwiciouy.supabase.co`, eu-west) | Env vars solo en Vercel y en el gestor del propietario (nunca en git) | Se recupera con `supabase link --project-ref wrigkwhrihawvwiciouy` + migraciones |
