@@ -8,7 +8,7 @@ const notFoundMock = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
 
-const redirectMock = vi.fn(() => {
+const redirectMock = vi.fn((_href: string) => {
   throw new Error("NEXT_REDIRECT");
 });
 
