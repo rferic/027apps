@@ -1854,6 +1854,29 @@
       "Instance": {
         "additionalProperties": false,
         "properties": {
+          "auth": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "supabase_anon_key": {
+                    "type": "string"
+                  },
+                  "supabase_url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "supabase_url",
+                  "supabase_anon_key"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "requires_setup": {
             "type": "boolean"
           },
@@ -1874,6 +1897,7 @@
           "version",
           "requires_setup",
           "setup_incomplete",
+          "auth",
           "settings_public"
         ],
         "type": "object"
@@ -5491,6 +5515,14 @@
             ],
             "type": "string"
           },
+          "theme": {
+            "enum": [
+              "system",
+              "light",
+              "dark"
+            ],
+            "type": "string"
+          },
           "timezone": {
             "type": "string"
           }
@@ -5500,6 +5532,7 @@
           "display_name",
           "locale",
           "timezone",
+          "theme",
           "role",
           "created_at",
           "deactivated_at",
@@ -5642,6 +5675,14 @@
                   ],
                   "type": "string"
                 },
+                "theme": {
+                  "enum": [
+                    "system",
+                    "light",
+                    "dark"
+                  ],
+                  "type": "string"
+                },
                 "timezone": {
                   "type": "string"
                 }
@@ -5651,6 +5692,7 @@
                 "display_name",
                 "locale",
                 "timezone",
+                "theme",
                 "role",
                 "created_at",
                 "deactivated_at",
@@ -5822,6 +5864,14 @@
                 ],
                 "type": "string"
               },
+              "theme": {
+                "enum": [
+                  "system",
+                  "light",
+                  "dark"
+                ],
+                "type": "string"
+              },
               "timezone": {
                 "type": "string"
               }
@@ -5831,6 +5881,7 @@
               "display_name",
               "locale",
               "timezone",
+              "theme",
               "role",
               "created_at",
               "deactivated_at",
@@ -7061,6 +7112,120 @@
         "summary": "Last run per job, outbox counters and health (super_admin)."
       }
     },
+    "/me": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "The caller's own profile (session or delegated key).",
+        "x-027-scopes": [
+          "profile:read"
+        ]
+      },
+      "patch": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "display_name": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "locale": {
+                    "enum": [
+                      "en",
+                      "es",
+                      "ca",
+                      "it",
+                      "fr",
+                      "de",
+                      "pt",
+                      "gl",
+                      "eu"
+                    ],
+                    "type": "string"
+                  },
+                  "theme": {
+                    "enum": [
+                      "system",
+                      "light",
+                      "dark"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Edit the caller's display name, locale and theme; never the role.",
+        "x-027-scopes": [
+          "profile:write"
+        ]
+      }
+    },
     "/me/dashboard": {
       "get": {
         "parameters": [
@@ -7108,6 +7273,97 @@
           }
         ],
         "summary": "Dashboard widgets of the active modules the caller can use.",
+        "x-027-scopes": [
+          "profile:read"
+        ]
+      }
+    },
+    "/me/modules": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "description": "Page size (1..100, default 20).",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "description": "Rows to skip (default 0).",
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "description": "Filter by lifecycle state; omitted or all removes the filter. total reflects it.",
+              "enum": [
+                "all",
+                "installed",
+                "active",
+                "disabled"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "public",
+            "required": false,
+            "schema": {
+              "description": "Filter by public visibility; omitted or all removes the filter. total reflects it.",
+              "enum": [
+                "all",
+                "yes",
+                "no"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleList"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Modules the caller can open: public plus granted, or every active one for admins.",
         "x-027-scopes": [
           "profile:read"
         ]

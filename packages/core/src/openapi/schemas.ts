@@ -88,6 +88,7 @@ export const userSchema = component(
       display_name: z.string(),
       locale: z.string(),
       timezone: z.string(),
+      theme: z.enum(["system", "light", "dark"]),
       role,
       created_at: isoDate,
       deactivated_at: nullableDate,
@@ -734,6 +735,10 @@ export const instanceResponseSchema = component(
       version: z.string(),
       requires_setup: z.boolean(),
       setup_incomplete: z.boolean(),
+      auth: z
+        .object({ supabase_url: z.string(), supabase_anon_key: z.string() })
+        .strict()
+        .nullable(),
       settings_public: z.record(z.string(), z.json()),
     })
     .strict(),

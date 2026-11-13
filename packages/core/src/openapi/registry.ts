@@ -11,6 +11,7 @@ import {
 } from "../modules/api";
 import { patchSettingBodySchema, patchSettingsBodySchema } from "../settings/api";
 import { setupSuperAdminSchema } from "../setup/api";
+import { mePatchSchema } from "../users/api";
 import {
   userCategoryCreateSchema,
   userCategoryRenameSchema,
@@ -196,6 +197,32 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: ["users:write"],
     response: setupTestEmailResponseSchema,
     auth: "session-only",
+  },
+  {
+    method: "get",
+    path: "/me",
+    summary: "The caller's own profile (session or delegated key).",
+    scopes: ["profile:read"],
+    response: userResponseSchema,
+    auth: "session",
+  },
+  {
+    method: "patch",
+    path: "/me",
+    summary: "Edit the caller's display name, locale and theme; never the role.",
+    scopes: ["profile:write"],
+    request: mePatchSchema,
+    response: userResponseSchema,
+    auth: "session",
+  },
+  {
+    method: "get",
+    path: "/me/modules",
+    summary: "Modules the caller can open: public plus granted, or every active one for admins.",
+    scopes: ["profile:read"],
+    query: modulesQuerySchema,
+    response: moduleListSchema,
+    auth: "session",
   },
   {
     method: "get",

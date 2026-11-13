@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Caller, DoorDeps } from "../api/types";
 import type { RateLimitStorage } from "../api/rate-limit-storage";
-import { modulesRoute, moduleGrantsRoute, type ModulesRouteDeps } from "./api.js";
+import {
+  modulesRoute,
+  moduleGrantsRoute,
+  myModulesRoute,
+  type ModulesRouteDeps,
+} from "./api.js";
 
 const admin: Caller = { kind: "session", userId: "admin-1", role: "admin" };
 
@@ -28,7 +33,7 @@ function countingStorage(): RateLimitStorage {
 }
 
 /** A fake registry that applies the same filters the SQL applies. */
-function pagedDeps(rows: ModuleRow[], who: Caller = admin): ModulesRouteDeps {
+function pagedDeps(rows: ModuleRow[], who: Caller = admin, grants: string[] = []): ModulesRouteDeps {
   const door: DoorDeps = { rateLimitStorage: countingStorage(), logger: () => {} };
   return {
     door,
@@ -37,6 +42,15 @@ function pagedDeps(rows: ModuleRow[], who: Caller = admin): ModulesRouteDeps {
     modules: {
       db: {
         async query(_sql: string, params: unknown[] = []) {
+          // The non-admin branch binds the user id first and filters in SQL.
+          if (typeof params[0] === "string") {
+            const [limit, offset] = [Number(params[1]), Number(params[2])];
+            const filtered = rows.filter(
+              (row) => row.state === "active" && (row.is_public || grants.includes(row.key)),
+            );
+            const page = filtered.slice(offset, offset + limit);
+            return { rows: page.length === 0 ? [{ total: filtered.length }] : page.map((row) => ({ ...row, total: filtered.length })) };
+          }
           const [limit, offset] = params.filter(
             (value): value is number => typeof value === "number",
           ) as [number, number];
@@ -303,5 +317,32 @@ describe("modules route filters", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: { code: string } };
     expect(body.error.code).toBe("validation_failed");
+  });
+});
+
+describe("GET /api/v1/me/modules", () => {
+  it("gives a user the active public modules and the granted private ones", async () => {
+    const user: Caller = { kind: "session", userId: "user-1", role: "user" };
+    const deps = pagedDeps(mixedRows(), user, ["active-private"]);
+    const result = await list(myModulesRoute(deps), "/api/v1/me/modules");
+
+    expect(result.status).toBe(200);
+    expect(result.body.modules.map((module) => module.key).sort()).toEqual([
+      "active-private",
+      "active-public",
+    ]);
+    expect(result.body.total).toBe(2);
+  });
+
+  it("gives an admin every module, including installed and disabled ones", async () => {
+    const result = await list(myModulesRoute(pagedDeps(mixedRows())), "/api/v1/me/modules");
+    expect(result.status).toBe(200);
+    expect(result.body.total).toBe(5);
+  });
+
+  it("answers 401 for an anonymous caller", async () => {
+    const deps = pagedDeps(mixedRows(), { kind: "anon" });
+    const res = await myModulesRoute(deps)(new Request("http://local/api/v1/me/modules"));
+    expect(res.status).toBe(401);
   });
 });

@@ -103,6 +103,10 @@ El disparador vive en `.github/workflows/module-jobs.yml`: cada **5 minutos** ll
 
 Los secretos son `MODULE_JOBS_URL_STAGING` + `CRON_SECRET_STAGING` y `MODULE_JOBS_URL_PRODUCTION` + `CRON_SECRET_PRODUCTION`; sin ellos el workflow no hace nada (igual que `migrations.yml`). Los workflows programados solo se ejecutan desde la rama por defecto, así que el tick empieza a funcionar cuando el fichero está en `main`; en staging se puede lanzar a mano con `workflow_dispatch` o un `curl` puntual.
 
+## App Links (invitaciones en la app)
+
+`GET /.well-known/assetlinks.json` verifica que los enlaces `https://<instancia>/invite/<token>` los abre la app Android. Se publica solo con huellas **públicas** del certificado: `ANDROID_APP_SHA256` en Vercel (lista separada por comas, la del keystore de release y, si quieres probar en debug, la del keystore de debug). Sin la variable responde `[]`, que significa «ningún enlace verificado», no un error. El keystore y su contraseña nunca se publican.
+
 ## Migraciones Supabase
 
 Hay migraciones `0001`–`0019` en `supabase/migrations/`. Cada entorno aplica las suyas; el orden queda definido así:

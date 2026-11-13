@@ -203,7 +203,7 @@ An instance has a **catalogue of modules** (e.g. Split Expenses). A module is in
 | `GET /api/v1/modules` | **implemented** | Catalogue: `key`, `name`, `version`, `state`, `is_public` and `manifest_digest` (the list and the detail share the module schema); paginated and filterable by `state` and `public`, with `total` counting the filtered set |
 | `GET /api/v1/modules/{key}` | **implemented** | Detail: state, version, `is_public`, `manifest_digest` and its **public settings** |
 | `GET /api/v1/modules/{key}/grants` | **implemented** | Who has the module: active `users` (`id` + `display_name`) and assigned `categories` (`id` + `name`); admins only (`modules:manage`), empty arrays when there are no grants |
-| `GET /api/v1/me/modules` | **previsto** | **Your** modules (public + granted); admins see all |
+| `GET /api/v1/me/modules` | **implemented** | **Your** modules: active public plus the granted ones; admins see every module. Paginated like the catalogue |
 
 **Module documentation is part of the module contract.** Each module ships, inside its package:
 
@@ -222,18 +222,18 @@ The CI **fails** if a declared capability is not documented, and checks that eve
 
 ### Core endpoints (at a glance)
 
-The table reflects the **68 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
+The table reflects the **71 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
 
 | Area | Endpoints | Notes |
 |---|---|---|
-| Health & instance | `GET /health`, `GET /instance`, `GET /openapi.json` | public, non-sensitive; `/health` answers 200 or 503 |
+| Health & instance | `GET /health`, `GET /instance`, `GET /openapi.json` | public, non-sensitive; `/health` answers 200 or 503; `/instance` carries an `auth` block with `supabase_url` and `supabase_anon_key` (public by design, `null` when unset) so a native client can sign in against this instance |
 | Setup | `GET /setup/environment`, `POST /setup/super-admin`, `POST /setup/test-email` | public while uninstalled (environment/super-admin); test-email is **session-only** super_admin |
 | Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}`, `POST /users/{id}/restore`, `DELETE /users/{id}/purge` | list defaults to `state=active`; `category` filters by category and every user carries `categories`; soft-deactivate and restore (**super-admin**); purge is **irreversible, super-admin only, and requires a deactivated profile**; root protected; restore is idempotent |
 | Categories (admin) | `/user-categories`, `/{id}/members`, `/{id}/modules` | assign module ∈ category materializes access |
 | Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET /modules/{key}/grants`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate\|upgrade`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin**; `upgrade` applies a newer package over the installed one without touching data or settings and never downgrades; `manifest_digest` is part of the module representation; grants need `modules:manage` (never `modules:read`, which delegated keys hold) |
 | Module jobs | `GET /modules/{key}/jobs`, `POST /modules/{key}/jobs/{job}/run` | last runs of the module's scheduled jobs, and **run now** (`modules:manage`); the dispatcher itself is the platform cron |
 | Module docs | `GET /modules/{key}/docs/{doc}` | **previsto** |
-| You | `GET /me/dashboard` (**implemented**), `GET/PATCH /me`, `GET /me/modules` (**previsto**) | `/me/dashboard?surface=app\|panel` composes the widgets of the active modules the caller can use; a module whose data function fails is omitted, never the page |
+| You | `GET/PATCH /me` (**implemented**), `GET /me/modules` (**implemented**), `GET /me/dashboard` (**implemented**) | `/me` returns the caller's profile, now with `theme`; `PATCH /me` edits only `display_name`, `locale` and `theme` (never `role` or `timezone`); `/me/modules` lists what the caller can open; `/me/dashboard?surface=app\|panel` composes the module widgets the caller can use |
 | Access (admin) | `GET /users/{id}/modules`, `POST/DELETE /users/{id}/modules/{key}` | per-user grants: `GET` lists the live grants on installed/active modules (`key` + `name`, empty list when none); grant/revoke |
 | Invitations | `POST/GET /invitations`, `GET/DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | detail adds `created_by` (`null` when a key created it) and **never** the token or its hash; redeem is the public join step (single use) |
 | API keys | `POST/GET /api-keys`, `GET/PATCH/DELETE /api-keys/{id}` | secret returned once; delegated keys act as a plain user; `user_id` optional for a super_admin; list filters `kind`, `user` and `state` (`all|active|revoked|expired`; a revoked key never counts as expired; `user` + `kind=service` → 400, another owner for a non-super_admin → 404); 5 active delegated keys per owner (409 `conflict`, `details.code = "key_limit"`); `PATCH` edits `name`, `scopes` and `expires_at` only (`expires_at: null` removes the expiry; `kind`/`role_cap`/`user_id` → 400), re-scopes inside the stored cap/owner grants and never resurrects a revoked key (409, `details.code = "revoked"`); `/keys` panel is super_admin only |

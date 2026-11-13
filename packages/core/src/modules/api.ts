@@ -172,6 +172,21 @@ export function moduleJobRunRoute(deps: ModulesRouteDeps) {
     }));
 }
 
+/**
+ * GET /api/v1/me/modules — the modules this caller can open. Derived from the
+ * same query as the catalogue: admins see every module, a user sees the active
+ * public ones plus the active grants. `profile:read` is the closest thing to
+ * "signed in": anon gets 401 and a service key 403.
+ */
+export function myModulesRoute(deps: ModulesRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(req, readOptions(deps, ["profile:read"]), deps.door, async (ctx) => {
+      const page = pageParams(ctx.searchParams);
+      const result = await listModules(deps.modules, ctx.caller, page, {});
+      return { ...result, limit: page.limit, offset: page.offset };
+    });
+}
+
 /** GET /api/v1/me/dashboard — widgets of the active modules the caller can use. */
 export function dashboardRoute(deps: ModulesRouteDeps) {
   return (req: Request): Promise<Response> =>
