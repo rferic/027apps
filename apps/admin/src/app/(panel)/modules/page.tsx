@@ -9,6 +9,7 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { RowLink, clickableRowClass } from "@/components/ui/row-link";
+import { ModuleIcon } from "@/components/ui/module-icon";
 import { modulesRouteDeps } from "@/lib/modules-route-deps";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
@@ -290,6 +291,7 @@ function ModulesTable({
             <tr key={module.key} className={clickableRowClass}>
               <td className="border-b border-border py-2 pr-3 font-mono text-[11px]">{module.key}</td>
               <td className="border-b border-border py-2 pr-3 font-semibold">
+                <ModuleIcon moduleKey={module.key} size={16} className="mr-2 text-accent align-[-2px]" />
                 <RowLink
                   href={`/modules/${encodeURIComponent(module.key)}`}
                   label={module.name}

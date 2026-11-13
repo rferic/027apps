@@ -8,6 +8,7 @@ import { ModuleActions } from "@/components/module-actions";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { ModuleIcon } from "@/components/ui/module-icon";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { loadPanelTimeZone } from "@/lib/panel-settings";
@@ -88,6 +89,7 @@ function ModuleBreadcrumb({ name, messages }: { name: string; messages: Translat
 function ModuleHeader({ module, messages }: { module: ModuleDetail; messages: TranslationMap }) {
   return (
     <header className="flex flex-wrap items-center gap-2">
+      <ModuleIcon moduleKey={module.key} size={28} className="text-accent" />
       <h1 className="text-base font-bold">{module.name}</h1>
       <Badge variant={stateVariant(module.state)}>{stateLabel(module.state, messages)}</Badge>
       <Badge variant={module.is_public ? "success" : "neutral"}>
