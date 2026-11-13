@@ -56,6 +56,12 @@ const settingSchema = z
     default: z.unknown().optional(),
     label: z.string().trim().min(1),
     help: z.string().trim().min(1).optional(),
+    /** Numeric range, only meaningful for `int` (D3.7). */
+    min: z.number().int().optional(),
+    max: z.number().int().optional(),
+    step: z.number().positive().optional(),
+    /** How the panel renders it; `slider` requires `min` and `max`. */
+    control: z.enum(["number", "slider"]).optional(),
     is_public: z.boolean(),
     is_secret: z.boolean(),
     mcp_access: z.enum(["none", "read", "write"]),
@@ -67,6 +73,43 @@ const settingSchema = z
   })
   .refine((setting) => !(setting.is_secret && setting.is_public), {
     message: "a secret setting cannot be public",
+  })
+  .superRefine((setting, ctx) => {
+    const ranged =
+      setting.min !== undefined ||
+      setting.max !== undefined ||
+      setting.step !== undefined ||
+      setting.control !== undefined;
+    if (ranged && setting.type !== "int") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["type"],
+        message: "only an int setting declares min, max, step or control",
+      });
+      return;
+    }
+    if (setting.min !== undefined && setting.max !== undefined && setting.min > setting.max) {
+      ctx.addIssue({ code: "custom", path: ["min"], message: "min cannot be greater than max" });
+    }
+    if (setting.control === "slider" && (setting.min === undefined || setting.max === undefined)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["control"],
+        message: "a slider needs min and max",
+      });
+    }
+    if (setting.default === undefined || setting.default === null) return;
+    if (setting.type !== "int" || !Number.isInteger(setting.default)) return;
+    const value = setting.default as number;
+    if (setting.min !== undefined && value < setting.min) {
+      ctx.addIssue({ code: "custom", path: ["default"], message: "default is below min" });
+    }
+    if (setting.max !== undefined && value > setting.max) {
+      ctx.addIssue({ code: "custom", path: ["default"], message: "default is above max" });
+    }
+    if (setting.step !== undefined && (value - (setting.min ?? 0)) % setting.step !== 0) {
+      ctx.addIssue({ code: "custom", path: ["default"], message: "default is off the step" });
+    }
   });
 
 const settingsCategorySchema = z

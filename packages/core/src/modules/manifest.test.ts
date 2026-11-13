@@ -92,6 +92,48 @@ describe("manifest contract", () => {
     ).toThrow();
   });
 
+  it("validates the range of an int setting (slider)", () => {
+    const withSetting = (setting: Record<string, unknown>) =>
+      validManifest({
+        settings: [
+          {
+            category: "demo_module",
+            label: "Demo",
+            sort_order: 10,
+            settings: [
+              {
+                key: "limit",
+                type: "int",
+                min: 4,
+                max: 20,
+                step: 1,
+                control: "slider",
+                default: 12,
+                label: "Limit",
+                is_public: false,
+                is_secret: false,
+                mcp_access: "read",
+                sort_order: 10,
+                ...setting,
+              },
+            ],
+          },
+        ],
+      });
+
+    expect(() => manifestSchema.parse(withSetting({}))).not.toThrow();
+    // A range belongs to int only.
+    expect(() => manifestSchema.parse(withSetting({ type: "string", default: "x" }))).toThrow();
+    // min > max.
+    expect(() => manifestSchema.parse(withSetting({ min: 21 }))).toThrow();
+    // default out of range.
+    expect(() => manifestSchema.parse(withSetting({ default: 21 }))).toThrow();
+    // slider without min and max.
+    expect(() => manifestSchema.parse(withSetting({ min: undefined, max: undefined }))).toThrow();
+    // default off the step.
+    expect(() => manifestSchema.parse(withSetting({ default: 13, step: 2 }))).toThrow();
+  });
+
   it("rejects secret defaults and unsafe SQL", () => {
     expect(() =>
       manifestSchema.parse(

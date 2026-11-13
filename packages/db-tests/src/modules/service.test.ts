@@ -44,7 +44,7 @@ function deps(c: ClientBase, overrides: Partial<ModulesDeps> = {}): ModulesDeps 
     moduleRoot: (key) => `/modules/${key}`,
     readFile: async (path) => {
       if (path.endsWith("README.md")) return "# Demo module";
-      if (path.endsWith("docs/settings.md")) return "enabled";
+      if (path.endsWith("docs/settings.md")) return "enabled limit";
       if (path.endsWith("assets/icon.svg")) {
         return '<svg xmlns="http://www.w3.org/2000/svg"><path fill="currentColor"/></svg>';
       }
@@ -244,9 +244,68 @@ describe("modules installer", () => {
         admin,
         "demo-module",
         { key: "enabled", value: false },
-        "bool",
+        { type: "bool" },
       );
       expect(updated.value).toBe(false);
+    });
+  });
+
+  it("enforces the range of an int setting with a slider", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      const ranged = manifest({
+        settings: [
+          {
+            category: "demo_module",
+            label: "Demo",
+            sort_order: 10,
+            settings: [
+              {
+                key: "limit",
+                type: "int",
+                min: 4,
+                max: 20,
+                step: 1,
+                control: "slider",
+                default: 12,
+                label: "Limit",
+                is_public: false,
+                is_secret: false,
+                mcp_access: "read",
+                sort_order: 10,
+              },
+            ],
+          },
+        ],
+        docs: { readme: "README.md", settings: "docs/settings.md" },
+      });
+      await installModule(deps(c), admin, ranged);
+
+      await expect(
+        updateModuleSetting(deps(c), admin, "demo-module", { key: "limit", value: 21 }, {
+          type: "int",
+          min: 4,
+          max: 20,
+          step: 1,
+        }),
+      ).rejects.toMatchObject({ code: "validation_failed" });
+      await expect(
+        updateModuleSetting(deps(c), admin, "demo-module", { key: "limit", value: 4.5 }, {
+          type: "int",
+          min: 4,
+          max: 20,
+          step: 1,
+        }),
+      ).rejects.toMatchObject({ code: "validation_failed" });
+
+      const updated = await updateModuleSetting(
+        deps(c),
+        admin,
+        "demo-module",
+        { key: "limit", value: 18 },
+        { type: "int", min: 4, max: 20, step: 1 },
+      );
+      expect(updated.value).toBe(18);
     });
   });
 
@@ -309,7 +368,7 @@ describe("modules installer", () => {
       const d = deps(c);
       await installModule(d, admin, manifest());
       await expect(
-        updateModuleSetting(d, admin, "demo-module", { key: "enabled", value: "yes" }, "bool"),
+        updateModuleSetting(d, admin, "demo-module", { key: "enabled", value: "yes" }, { type: "bool" }),
       ).rejects.toMatchObject({ code: "validation_failed" });
     });
   });

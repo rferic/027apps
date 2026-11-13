@@ -114,8 +114,8 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 ### 3.4 Settings con rango y control (D3.7)
 
-- [ ] Test: `min > max`, `default` fuera de rango o `control` desconocido → manifest inválido.
-- [ ] `min`/`max`/`step`/`control` (`number`|`slider`) para `int`; validación **en servidor** en
+- [x] Test: `min > max`, `default` fuera de rango o `control` desconocido → manifest inválido.
+- [x] `min`/`max`/`step`/`control` (`number`|`slider`) para `int`; validación **en servidor** en
       `PATCH/PUT /modules/<key>/settings` con `validation_failed`.
 - [ ] Formulario editable en la página del módulo (hoy solo muestra valores): deslizador
       accesible, valor actual visible, guardar y revertir; `is_secret` nunca se muestra.

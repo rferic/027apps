@@ -739,14 +739,27 @@ export async function getModuleSettings(
   return rows.map(toSettingView);
 }
 
-function validateSettingValue(type: string, value: unknown): void {
+type SettingRules = {
+  type: string;
+  min?: number;
+  max?: number;
+  step?: number;
+};
+
+function validateSettingValue(setting: SettingRules, value: unknown): void {
+  const type = setting.type;
   const fail = (): never => {
     throw new DomainError("validation_failed", `value does not match the setting type ${type}`);
   };
   switch (type) {
-    case "int":
+    case "int": {
       if (!Number.isInteger(value)) fail();
+      const int = value as number;
+      if (setting.min !== undefined && int < setting.min) fail();
+      if (setting.max !== undefined && int > setting.max) fail();
+      if (setting.step !== undefined && (int - (setting.min ?? 0)) % setting.step !== 0) fail();
       break;
+    }
     case "bool":
       if (typeof value !== "boolean") fail();
       break;
@@ -787,9 +800,9 @@ export async function updateModuleSetting(
   caller: Caller,
   key: string,
   input: { key: string; value: unknown },
-  type: string,
+  setting: SettingRules,
 ): Promise<ModuleSettingView> {
-  validateSettingValue(type, input.value);
+  validateSettingValue(setting, input.value);
   if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
   await getModuleRow(deps.db, key);
   const category = categoryFor(key);

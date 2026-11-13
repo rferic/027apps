@@ -127,12 +127,36 @@
         "default": {},
         "label": { "type": "string", "minLength": 1 },
         "help": { "type": "string", "minLength": 1 },
+        "min": { "type": "integer" },
+        "max": { "type": "integer" },
+        "step": { "type": "number", "exclusiveMinimum": 0 },
+        "control": { "type": "string", "enum": ["number", "slider"] },
         "is_public": { "type": "boolean" },
         "is_secret": { "type": "boolean" },
         "mcp_access": { "type": "string", "enum": ["read", "write", "none"] },
         "sort_order": { "type": "integer", "minimum": 0 }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "not": { "const": "int" } } },
+            "required": ["type"]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                { "required": ["min"] },
+                { "required": ["max"] },
+                { "required": ["step"] },
+                { "required": ["control"] }
+              ]
+            }
+          }
+        },
+        {
+          "if": { "properties": { "control": { "const": "slider" } }, "required": ["control"] },
+          "then": { "required": ["min", "max"] }
+        },
         {
           "if": { "properties": { "is_secret": { "const": true } }, "required": ["is_secret"] },
           "then": { "not": { "required": ["default"] } }

@@ -230,7 +230,7 @@ export function updateModuleSettingRoute(deps: ModulesRouteDeps) {
             ctx.caller,
             key,
             body,
-            setting.type,
+            setting,
           ),
         };
       },
