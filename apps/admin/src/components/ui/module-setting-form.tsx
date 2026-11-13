@@ -19,10 +19,16 @@ export type ModuleSettingItem = {
 
 const IDLE: SaveState = { status: "idle" };
 
+const FIELD_CLASS =
+  "min-h-11 w-full rounded-control border border-border bg-surface px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
 function BoolField({ item }: { item: ModuleSettingItem }) {
   return (
     <label className="flex min-h-11 items-center gap-2 text-sm">
+      {/* Keyed by the stored value: after a save the server re-renders with the
+          new prop and the input remounts, instead of keeping the DOM value. */}
       <input
+        key={item.value}
         type="checkbox"
         name="value"
         defaultChecked={item.value === "true"}
@@ -35,14 +41,17 @@ function BoolField({ item }: { item: ModuleSettingItem }) {
 
 function SliderField({
   item,
+  live,
   onChange,
 }: {
   item: ModuleSettingItem;
+  live: string;
   onChange?: (value: string) => void;
 }) {
   return (
     <div className="flex items-center gap-3">
       <input
+        key={item.value}
         type="range"
         name="value"
         min={item.min}
@@ -52,17 +61,15 @@ function SliderField({
         onChange={(event) => onChange?.(event.target.value)}
         className="h-11 w-full accent-accent"
       />
-      <output className="w-14 text-right text-sm font-semibold tabular-nums">{item.value}</output>
+      <output className="w-14 text-right text-sm font-semibold tabular-nums">{live}</output>
     </div>
   );
 }
 
-const FIELD_CLASS =
-  "min-h-11 w-full rounded-control border border-border bg-surface px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
-
 function JsonField({ item }: { item: ModuleSettingItem }) {
   return (
     <textarea
+      key={item.value}
       name="value"
       defaultValue={item.value}
       rows={4}
@@ -73,7 +80,7 @@ function JsonField({ item }: { item: ModuleSettingItem }) {
 
 function LocaleField({ item }: { item: ModuleSettingItem }) {
   return (
-    <select name="value" defaultValue={item.value} className={FIELD_CLASS}>
+    <select key={item.value} name="value" defaultValue={item.value} className={FIELD_CLASS}>
       {["en", "es", "ca", "it", "fr", "de", "pt", "gl", "eu"].map((locale) => (
         <option key={locale} value={locale}>
           {locale}
@@ -86,6 +93,7 @@ function LocaleField({ item }: { item: ModuleSettingItem }) {
 function PlainField({ item }: { item: ModuleSettingItem }) {
   return (
     <input
+      key={item.value}
       type={item.isSecret ? "password" : item.type === "int" ? "number" : "text"}
       name="value"
       defaultValue={item.value}
@@ -98,10 +106,18 @@ function PlainField({ item }: { item: ModuleSettingItem }) {
   );
 }
 
-function Field({ item, onChange }: { item: ModuleSettingItem; onChange?: (value: string) => void }) {
+function Field({
+  item,
+  live,
+  onChange,
+}: {
+  item: ModuleSettingItem;
+  live: string;
+  onChange?: (value: string) => void;
+}) {
   if (item.type === "bool") return <BoolField item={item} />;
   if (item.type === "int" && item.control === "slider" && item.min !== undefined && item.max !== undefined) {
-    return <SliderField item={item} onChange={onChange} />;
+    return <SliderField item={item} live={live} onChange={onChange} />;
   }
   if (item.type === "json") return <JsonField item={item} />;
   if (item.type === "locale") return <LocaleField item={item} />;
@@ -118,7 +134,9 @@ function SettingRow({
   labels: { save: string; saved: string; failed: string };
 }) {
   const [state, action, pending] = useActionState(saveSettingAction, IDLE);
-  const [value, setValue] = useState(item.value);
+  // Only the slider needs a live value while dragging; the rest read the prop
+  // and remount on change, which keeps the stored value on screen after a save.
+  const [live, setLive] = useState(item.value);
 
   return (
     <form action={action} className="flex flex-col gap-2 border-b border-border py-3 last:border-b-0">
@@ -134,7 +152,7 @@ function SettingRow({
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-48 flex-1">
-          <Field item={{ ...item, value }} onChange={setValue} />
+          <Field item={item} live={live} onChange={setLive} />
         </div>
         <button
           type="submit"

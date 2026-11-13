@@ -404,7 +404,18 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
   return (
     <section className="flex flex-col gap-5">
       <ModuleBreadcrumb name={installedModule.name} messages={messages} />
-      <ModuleHeader module={installedModule} messages={messages} color={manifest?.branding?.color} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ModuleHeader module={installedModule} messages={messages} color={manifest?.branding?.color} />
+        {manifest?.admin_pages?.some((page) => page.route === "overview") &&
+        installedModule.state === "active" ? (
+          <Link
+            href={`/modules/${encodeURIComponent(installedModule.key)}`}
+            className="inline-flex min-h-9 items-center rounded-control border border-border px-3 text-xs font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {t("Open module", messages)}
+          </Link>
+        ) : null}
+      </div>
       <ModuleDetails
         module={installedModule}
         locale={locale}

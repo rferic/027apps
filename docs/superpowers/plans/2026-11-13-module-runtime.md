@@ -98,8 +98,8 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 ### 3.2 Entrada del módulo (D20)
 
-- [x] `/modules/<key>` redirige a `overview` si el módulo está `active` y declara esa página; si
-      no, cae en `settings`.
+- [x] `/modules/<key>` sirve `overview` si el módulo está `active` y la declara (la URL es la del
+      módulo); `/overview` redirige allí y, sin overview, la entrada cae en `settings`.
 - [x] La ficha pasa a `/modules/<key>/settings`; `settings` queda **reservada**: un manifest con
       `admin_pages.route: "settings"` falla en la validación y en CI.
 - [x] La lista de módulos gana **Abrir** (el nombre) y **Ajustes**; los enlaces conservan el rol.

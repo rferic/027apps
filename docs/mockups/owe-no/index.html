@@ -1500,7 +1500,7 @@ const panelScreens = {
         <table class="data">
           <thead><tr><th>Página</th><th>Ruta</th><th>Rol</th></tr></thead>
           <tbody>
-            <tr><td>Resumen</td><td><code>/modules/owe-no/overview</code></td><td>admin</td></tr>
+            <tr><td>Resumen</td><td><code>/modules/owe-no</code></td><td>admin</td></tr>
             <tr><td>Grupos</td><td><code>/modules/owe-no/groups</code></td><td>admin</td></tr>
             <tr><td>Importaciones</td><td><code>/modules/owe-no/imports</code></td><td>admin</td></tr>
           </tbody>
@@ -1664,7 +1664,7 @@ function render() {
     const fn = panelScreens[state.screen] || panelScreens.dashboard;
     const paths = {
       dashboard: "/panel", catalog: "/modules", settings: "/modules/owe-no/settings",
-      overview: "/modules/owe-no/overview", groups: "/modules/owe-no/groups",
+      overview: "/modules/owe-no", groups: "/modules/owe-no/groups",
       group: "/modules/owe-no/groups?id=casa", imports: "/modules/owe-no/imports"
     };
     const nav = state.screen === "dashboard" ? "dashboard" : "catalog";

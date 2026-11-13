@@ -446,6 +446,7 @@
   "Only the scopes you tick are granted to this key.",
   "Open Firebase console",
   "Open menu",
+  "Open module",
   "Open panel",
   "Opens in a new tab",
   "Optional: add SENTRY_DSN to report server errors.",
