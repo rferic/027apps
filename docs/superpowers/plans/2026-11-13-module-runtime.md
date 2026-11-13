@@ -106,7 +106,7 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 ### 3.3 Widgets de dashboard (D10)
 
-- [ ] Test: manifest con `dashboard_widgets` válido; `type` desconocido o HTML → error de
+- [x] Test: manifest con `dashboard_widgets` válido; `type` desconocido o HTML → error de
       validación.
 - [ ] `GET /api/v1/me/dashboard` compone los widgets de módulos activos **con acceso**; sin
       acceso no aparece; sin datos, el widget no inventa cifras.

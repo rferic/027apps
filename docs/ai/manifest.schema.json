@@ -40,6 +40,7 @@
       "additionalProperties": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" }
     },
     "admin_pages": { "type": "array", "items": { "$ref": "#/$defs/adminPage" } },
+    "dashboard_widgets": { "type": "array", "items": { "$ref": "#/$defs/dashboardWidget" } },
     "docs": { "$ref": "#/$defs/docs" }
   },
   "allOf": [
@@ -216,6 +217,20 @@
         "icon": { "type": "string", "minLength": 1 },
         "group": { "type": "string", "enum": ["module"] },
         "role": { "type": "string", "enum": ["admin", "super_admin"] }
+      }
+    },
+    "dashboardWidget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "type", "surface", "title", "icon", "order", "data_fn"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*\\.[a-z][a-z0-9_]*$" },
+        "type": { "type": "string", "enum": ["summary", "metric", "list"] },
+        "surface": { "type": "string", "enum": ["app", "panel"] },
+        "title": { "type": "string", "minLength": 1 },
+        "icon": { "type": "string", "minLength": 1 },
+        "order": { "type": "integer", "minimum": 0 },
+        "data_fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" }
       }
     },
     "docs": {

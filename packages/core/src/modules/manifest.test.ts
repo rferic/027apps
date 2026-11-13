@@ -92,6 +92,28 @@ describe("manifest contract", () => {
     ).toThrow();
   });
 
+  it("validates dashboard widgets and their keys (D10)", () => {
+    const widget = {
+      key: "demo.summary",
+      type: "summary",
+      surface: "app",
+      title: "Summary",
+      icon: "chart",
+      order: 10,
+      data_fn: "widget_summary",
+    };
+    const withWidgets = (widgets: unknown[]) => validManifest({ dashboard_widgets: widgets });
+
+    expect(() => manifestSchema.parse(withWidgets([widget]))).not.toThrow();
+    expect(() => manifestSchema.parse(withWidgets([widget, widget]))).toThrow(/duplicate/);
+    expect(() => manifestSchema.parse(withWidgets([{ ...widget, surface: "web" }]))).toThrow();
+    expect(() => manifestSchema.parse(withWidgets([{ ...widget, type: "html" }]))).toThrow();
+    expect(() => manifestSchema.parse(withWidgets([{ ...widget, key: "summary" }]))).toThrow();
+    expect(() =>
+      manifestSchema.parse(withWidgets([{ ...widget, data_fn: "Bad Name" }])),
+    ).toThrow();
+  });
+
   it("reserves the settings route for the module ficha (D20)", () => {
     expect(() =>
       manifestSchema.parse(

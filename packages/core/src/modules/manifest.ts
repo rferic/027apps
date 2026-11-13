@@ -156,6 +156,19 @@ const adminPageSchema = z
   })
   .strict();
 
+const dashboardWidgetSchema = z
+  .object({
+    key: z.string().regex(/^[a-z][a-z0-9_-]*\.[a-z][a-z0-9_]*$/),
+    type: z.enum(["summary", "metric", "list"]),
+    surface: z.enum(["app", "panel"]),
+    title: z.string().trim().min(1),
+    icon: z.string().trim().min(1),
+    order: z.number().int().min(0),
+    /** Function in the module schema: `(user_id uuid) returns jsonb`. */
+    data_fn: z.string().regex(FUNCTION_NAME),
+  })
+  .strict();
+
 const docsSchema = z
   .object({
     readme: z.string().regex(RELATIVE_FILE),
@@ -188,6 +201,7 @@ export const manifestSchema = z
     events: z.array(eventSchema).default([]),
     hooks: z.record(z.string(), z.string().regex(FUNCTION_NAME)).default({}),
     admin_pages: z.array(adminPageSchema).default([]),
+    dashboard_widgets: z.array(dashboardWidgetSchema).default([]),
     docs: docsSchema,
   })
   .strict()
@@ -245,6 +259,14 @@ export const manifestSchema = z
           });
         }
       }
+    }
+    const widgetKeys = manifest.dashboard_widgets.map((widget) => widget.key);
+    if (new Set(widgetKeys).size !== widgetKeys.length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dashboard_widgets"],
+        message: "duplicate widget key",
+      });
     }
     const routes = manifest.admin_pages.map((page) => page.route);
     if (new Set(routes).size !== routes.length) {

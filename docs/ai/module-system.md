@@ -146,6 +146,11 @@ Ejemplo completo:
   `user_id` con acceso).
 - Los `hooks` referencian eventos del Core o del propio módulo; el valor es el nombre de la
   función `snake_case` que los atiende.
+- `dashboard_widgets`: cada widget declara `key` (`modulo.dato`, con guion permitido en el
+  prefijo), `type` (`summary`|`metric`|`list`), `surface` (`app`|`panel`), `title`, `icon`,
+  `order` y `data_fn`, una función del esquema del módulo `(user_id uuid) returns jsonb` que
+  **filtra por ese usuario**. El Core la llama al componer `GET /api/v1/me/dashboard`; si la
+  función falla, el widget se omite y el dashboard sigue. Sin HTML ni JS del módulo.
 - `admin_pages`: `route` de un solo segmento (`^[a-z0-9]+(-[a-z0-9]+)*$`, sin `/`, `..`,
   `%2e` ni rutas reservadas), `label` en inglés, `icon` del DS, `group` (`module`) y `role`
   (`admin`|`super_admin`). El componente vive en `packages/<key>/admin/<route>/page.tsx` y el
