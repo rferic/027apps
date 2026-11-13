@@ -658,6 +658,7 @@
   "This month": "Hilabete hau",
   "This package's manifest is not valid.": "Pakete honen manifestua ez da baliozkoa.",
   "This panel is not affected: it is served from the same origin as the API.": "Panel hau ez da kaltetua: APIaren jatorri beretik zerbitzatzen da.",
+  "This removes the demo members, the category and the invitation. It cannot be undone.": "Honek demo kideak, kategoria eta gonbidapena ezabatuko ditu. Ezin da desegin.",
   "This user has reached the limit of {count} active keys.": "Erabiltzaile honek {count} gako aktiboen muga iritsi du.",
   "This value is not valid.": "Balio hau ez da baliozkoa.",
   "This value is read-only.": "Balio hau irakurtzeko soilik da.",

@@ -26,23 +26,127 @@ function failureLabel(reason: Extract<DemoActionState, { ok: false }>["reason"],
   }
 }
 
-/** Presentational half: both buttons, the counts and the last message. */
+/** Install, and a two-step clear: the dataset is shared by every module. */
+function DemoActions({
+  demo,
+  pending,
+  confirming,
+  messages,
+  onSeed,
+  onAskClear,
+  onConfirmClear,
+  onCancelClear,
+}: {
+  demo: DemoStatus;
+  pending: boolean;
+  confirming: boolean;
+  messages: TranslationMap;
+  onSeed: () => void;
+  onAskClear: () => void;
+  onConfirmClear: () => void;
+  onCancelClear: () => void;
+}) {
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" className="min-h-9" onClick={onSeed} disabled={pending}>
+          {pending ? t("Working…", messages) : t("Install demo data", messages)}
+        </Button>
+        {confirming ? (
+          <>
+            <Button
+              type="button"
+              variant="destructive"
+              className="min-h-9"
+              onClick={onConfirmClear}
+              disabled={pending}
+            >
+              {t("Confirm", messages)}
+            </Button>
+            <Button type="button" variant="ghost" className="min-h-9" onClick={onCancelClear}>
+              {t("Cancel", messages)}
+            </Button>
+          </>
+        ) : (
+          <Button
+            type="button"
+            variant="secondary"
+            className="min-h-9"
+            onClick={onAskClear}
+            disabled={pending || !demo.seeded}
+          >
+            {t("Clear demo data", messages)}
+          </Button>
+        )}
+      </div>
+      {confirming ? (
+        <p className="text-xs text-destructive">
+          {t(
+            "This removes the demo members, the category and the invitation. It cannot be undone.",
+            messages,
+          )}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+/** What the last action did: a failure, or the outcome with the removed count. */
+function DemoOutcome({
+  saved,
+  cleared,
+  failure,
+  messages,
+}: {
+  saved: DemoActionState | null;
+  cleared: number | null;
+  failure: DemoActionState | null;
+  messages: TranslationMap;
+}) {
+  if (failure && !failure.ok) {
+    return (
+      <p role="alert" className="text-xs font-semibold text-destructive">
+        {failureLabel(failure.reason, messages)}
+      </p>
+    );
+  }
+  if (!saved?.ok) return null;
+  return (
+    <p role="status" className="text-xs font-semibold text-muted-foreground">
+      {saved.demo.seeded
+        ? t("Demo data installed.", messages)
+        : t("Demo data cleared.", messages)}
+      {cleared !== null ? ` · ${cleared} ${t("members", messages)}` : null}
+    </p>
+  );
+}
+
+/** Presentational half: the counts, both buttons and the last message. */
 export function DemoCardView({
   demo,
   pending,
   failure,
   saved,
+  cleared,
+  confirming,
   messages,
   onSeed,
-  onClear,
+  onAskClear,
+  onConfirmClear,
+  onCancelClear,
 }: {
   demo: DemoStatus;
   pending: boolean;
   failure: DemoActionState | null;
   saved: DemoActionState | null;
+  /** Members removed by the last clear, or `null` when it was not a clear. */
+  cleared: number | null;
+  confirming: boolean;
   messages: TranslationMap;
   onSeed: () => void;
-  onClear: () => void;
+  onAskClear: () => void;
+  onConfirmClear: () => void;
+  onCancelClear: () => void;
 }) {
   return (
     <section
@@ -75,37 +179,27 @@ export function DemoCardView({
           ))}
         </ul>
       ) : null}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" className="min-h-9" onClick={onSeed} disabled={pending}>
-          {pending ? t("Working…", messages) : t("Install demo data", messages)}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          className="min-h-9"
-          onClick={onClear}
-          disabled={pending || !demo.seeded}
-        >
-          {t("Clear demo data", messages)}
-        </Button>
-      </div>
-      {failure && !failure.ok ? (
-        <p role="alert" className="text-xs font-semibold text-destructive">
-          {failureLabel(failure.reason, messages)}
-        </p>
-      ) : null}
-      {saved?.ok ? (
-        <p role="status" className="text-xs font-semibold text-muted-foreground">
-          {saved.demo.seeded
-            ? t("Demo data installed.", messages)
-            : t("Demo data cleared.", messages)}
-        </p>
-      ) : null}
+      <DemoActions
+        demo={demo}
+        pending={pending}
+        confirming={confirming}
+        messages={messages}
+        onSeed={onSeed}
+        onAskClear={onAskClear}
+        onConfirmClear={onConfirmClear}
+        onCancelClear={onCancelClear}
+      />
+      <DemoOutcome saved={saved} cleared={cleared} failure={failure} messages={messages} />
     </section>
   );
 }
 
-/** One demo dataset for the whole instance; a module contributes its own rows. */
+/**
+ * One demo dataset for the whole instance; a module contributes its own rows.
+ * Clearing asks for confirmation first, and the card keeps the outcome on screen
+ * instead of revalidating the page (a revalidation remounts it and the operator
+ * would never see what happened).
+ */
 export function ModuleDemoCard({
   demo,
   messages,
@@ -117,15 +211,20 @@ export function ModuleDemoCard({
   const [pending, startTransition] = useTransition();
   const [failure, setFailure] = useState<DemoActionState | null>(null);
   const [saved, setSaved] = useState<DemoActionState | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [cleared, setCleared] = useState<number | null>(null);
 
   function run(action: () => Promise<DemoActionState>) {
     setFailure(null);
     setSaved(null);
+    setConfirming(false);
+    const membersBefore = status.members;
     startTransition(async () => {
       const result = await action();
       if (result.ok) {
         setStatus(result.demo);
         setSaved(result);
+        setCleared(result.demo.seeded ? null : membersBefore);
       } else {
         setFailure(result);
       }
@@ -138,9 +237,17 @@ export function ModuleDemoCard({
       pending={pending}
       failure={failure}
       saved={saved}
+      cleared={cleared}
+      confirming={confirming}
       messages={messages}
       onSeed={() => run(seedDemoAction)}
-      onClear={() => run(clearDemoAction)}
+      onAskClear={() => {
+        setFailure(null);
+        setSaved(null);
+        setConfirming(true);
+      }}
+      onConfirmClear={() => run(clearDemoAction)}
+      onCancelClear={() => setConfirming(false)}
     />
   );
 }

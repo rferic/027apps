@@ -684,6 +684,7 @@
   "This month",
   "This package's manifest is not valid.",
   "This panel is not affected: it is served from the same origin as the API.",
+  "This removes the demo members, the category and the invitation. It cannot be undone.",
   "This user has reached the limit of {count} active keys.",
   "This value is not valid.",
   "This value is read-only.",

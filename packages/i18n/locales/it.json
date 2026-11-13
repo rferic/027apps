@@ -658,6 +658,7 @@
   "This month": "Questo mese",
   "This package's manifest is not valid.": "Il manifest di questo pacchetto non è valido.",
   "This panel is not affected: it is served from the same origin as the API.": "Questo pannello non è interessato: viene servito dalla stessa origine dell'API.",
+  "This removes the demo members, the category and the invitation. It cannot be undone.": "Questo elimina i membri demo, la categoria e l'invito. Non può essere annullato.",
   "This user has reached the limit of {count} active keys.": "Questo utente ha raggiunto il limite di {count} chiavi attive.",
   "This value is not valid.": "Questo valore non è valido.",
   "This value is read-only.": "Questo valore è di sola lettura.",

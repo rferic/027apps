@@ -658,6 +658,7 @@
   "This month": "Aquest mes",
   "This package's manifest is not valid.": "El manifest d'aquest paquet no és vàlid.",
   "This panel is not affected: it is served from the same origin as the API.": "Aquest tauler no es veu afectat: es mostra des del mateix origen que l'API.",
+  "This removes the demo members, the category and the invitation. It cannot be undone.": "Això esborra els membres de demo, la categoria i la invitació. No es pot desfer.",
   "This user has reached the limit of {count} active keys.": "Aquest usuari ha arribat al límit de {count} claus actives.",
   "This value is not valid.": "Aquest valor no és vàlid.",
   "This value is read-only.": "Aquest valor és de només lectura.",

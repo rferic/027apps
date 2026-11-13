@@ -24,9 +24,13 @@ function render(overrides: Partial<Parameters<typeof DemoCardView>[0]> = {}): st
       pending={false}
       failure={null}
       saved={null}
+      cleared={null}
+      confirming={false}
       messages={{}}
       onSeed={() => undefined}
-      onClear={() => undefined}
+      onAskClear={() => undefined}
+      onConfirmClear={() => undefined}
+      onCancelClear={() => undefined}
       {...overrides}
     />,
   );
@@ -39,6 +43,17 @@ describe("demo card", () => {
     expect(html).toContain("Clear demo data");
     expect(html).toContain("disabled");
     expect(html).toContain("Demo data not installed");
+  });
+
+  it("asks for confirmation before clearing", () => {
+    const html = render({
+      demo: { ...DEMO, seeded: true, members: 3 },
+      confirming: true,
+    });
+    expect(html).toContain("Confirm");
+    expect(html).toContain("Cancel");
+    expect(html).toContain("cannot be undone");
+    expect(html).not.toContain("Clear demo data");
   });
 
   it("shows the members, the module counts and the production refusal", () => {
@@ -58,8 +73,9 @@ describe("demo card", () => {
     expect(html).toContain("still holds demo data");
   });
 
-  it("reports a cleared run", () => {
-    const html = render({ saved: { ok: true, demo: DEMO } });
+  it("reports a cleared run with the number of members removed", () => {
+    const html = render({ saved: { ok: true, demo: DEMO }, cleared: 3 });
     expect(html).toContain("Demo data cleared.");
+    expect(html).toContain("3 members");
   });
 });

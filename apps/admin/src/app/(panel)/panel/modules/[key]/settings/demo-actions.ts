@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { clearDemo, seedDemo, type DemoStatus } from "@027apps/core/demo/service.js";
 import { demoRouteDeps } from "@/lib/demo-route-deps";
 import { requirePanel } from "@/lib/panel-guard";
@@ -37,9 +36,9 @@ export async function seedDemoAction(): Promise<DemoActionState> {
   if ("denied" in gate) return { ok: false, reason: "forbidden" };
   try {
     const { demo } = await demoRouteDeps();
-    const status = await seedDemo(demo);
-    revalidatePath("/panel/modules", "layout");
-    return { ok: true, demo: status };
+    // No revalidation: the card renders the returned status and keeps the
+    // outcome on screen. The next page load reads the same values from the DB.
+    return { ok: true, demo: await seedDemo(demo) };
   } catch (error) {
     return failureReason(error);
   }
@@ -51,9 +50,7 @@ export async function clearDemoAction(): Promise<DemoActionState> {
   if ("denied" in gate) return { ok: false, reason: "forbidden" };
   try {
     const { demo } = await demoRouteDeps();
-    const status = await clearDemo(demo);
-    revalidatePath("/panel/modules", "layout");
-    return { ok: true, demo: status };
+    return { ok: true, demo: await clearDemo(demo) };
   } catch (error) {
     return failureReason(error);
   }
