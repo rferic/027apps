@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { panelLocale } from "@/lib/panel-locale";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -60,12 +61,21 @@ export default async function ModuleAdminPage({
   const messages = await loadPanelMessages(panelLocale(gate.user));
   return (
     <section className="flex flex-col gap-5">
-      <nav aria-label={messages["Breadcrumb"] ?? "Breadcrumb"} className="text-xs text-muted-foreground">
-        <span>Platform</span> / <span>Modules</span> /{" "}
-        <a className="font-semibold text-foreground hover:underline" href={`/modules/${encodeURIComponent(key)}/settings`}>
-          {detail.module.name}
-        </a>
-      </nav>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <nav
+          aria-label={messages["Breadcrumb"] ?? "Breadcrumb"}
+          className="text-xs text-muted-foreground"
+        >
+          <span>Platform</span> / <span>Modules</span> /{" "}
+          <span className="font-semibold text-foreground">{detail.module.name}</span>
+        </nav>
+        <Link
+          href={`/modules/${encodeURIComponent(key)}/settings`}
+          className="inline-flex min-h-9 items-center rounded-control border border-border px-3 text-xs font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {messages["Settings"] ?? "Settings"}
+        </Link>
+      </div>
       <Page />
     </section>
   );
