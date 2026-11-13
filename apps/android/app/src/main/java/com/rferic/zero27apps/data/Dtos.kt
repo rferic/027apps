@@ -72,3 +72,15 @@ data class PatchMeRequest(
     val locale: String? = null,
     val theme: String? = null,
 )
+
+@Serializable
+data class RedeemRequest(
+    val email: String,
+    val password: String,
+    @SerialName("display_name") val displayName: String? = null,
+)
+
+@Serializable
+data class RedeemResponse(
+    val invitation_id: String = "",
+)

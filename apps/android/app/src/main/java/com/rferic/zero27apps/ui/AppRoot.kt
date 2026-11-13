@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rferic.zero27apps.ui.screens.HomeScreen
+import com.rferic.zero27apps.ui.screens.InviteScreen
 import com.rferic.zero27apps.ui.screens.LoginScreen
 import com.rferic.zero27apps.ui.screens.ModulesScreen
 import com.rferic.zero27apps.ui.screens.SettingsScreen
@@ -41,10 +43,15 @@ import com.rferic.zero27apps.ui.theme.Zero27AppsTheme
  * reach a tab without a session.
  */
 @Composable
-fun AppRoot(viewModel: AppViewModel = viewModel()) {
+fun AppRoot(deepLink: String? = null, viewModel: AppViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val login by viewModel.login.collectAsStateWithLifecycle()
+    val invite by viewModel.invite.collectAsStateWithLifecycle()
     val instances by viewModel.instances.collectAsStateWithLifecycle()
+
+    LaunchedEffect(deepLink) {
+        if (deepLink != null) viewModel.onInviteLink(deepLink)
+    }
     val theme = (state as? AppState.SignedIn)?.user?.theme?.toThemePreference()
         ?: com.rferic.zero27apps.ui.theme.ThemePreference.SYSTEM
 
@@ -58,6 +65,12 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 onLogin = viewModel::login,
                 onRememberInstance = viewModel::rememberInstance,
                 onChangeInstance = viewModel::changeInstance,
+            )
+            is AppState.NeedsInvite -> InviteScreen(
+                link = current.link,
+                state = invite,
+                onSubmit = viewModel::acceptInvite,
+                onCancel = viewModel::cancelInvite,
             )
             is AppState.SignedIn -> Shell(current, viewModel, instances)
             is AppState.Failure -> FailureScreen(

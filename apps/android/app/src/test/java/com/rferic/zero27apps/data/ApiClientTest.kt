@@ -76,6 +76,28 @@ class ApiClientTest {
     }
 
     @Test
+    fun `redeems an invitation on the public endpoint`() = runTest {
+        var seenPath = ""
+        var seenBody = ""
+        val engine = MockEngine { request ->
+            seenPath = request.url.encodedPath
+            seenBody = (request.body as io.ktor.http.content.TextContent).text
+            respond(
+                content = """{"user":{"id":"u1","email":"a@example.test"},"invitation_id":"i1"}""",
+                status = HttpStatusCode.Created,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        val result = client(engine, token = { null })
+            .redeemInvitation("027_inv_abcdefghijklmnop", RedeemRequest("a@example.test", "long-password-123"))
+
+        assertEquals("/api/v1/invitations/027_inv_abcdefghijklmnop/redeem", seenPath)
+        assertTrue(seenBody.contains("a@example.test"))
+        assertEquals("i1", result.invitation_id)
+    }
+
+    @Test
     fun `refreshes the session once after a 401 and retries`() = runTest {
         var calls = 0
         var token = "old"

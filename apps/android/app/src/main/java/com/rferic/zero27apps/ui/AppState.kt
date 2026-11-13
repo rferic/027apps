@@ -1,5 +1,6 @@
 package com.rferic.zero27apps.ui
 
+import com.rferic.zero27apps.auth.InvitationLink
 import com.rferic.zero27apps.data.ModuleDto
 import com.rferic.zero27apps.data.UserDto
 import com.rferic.zero27apps.ui.theme.ThemePreference
@@ -10,6 +11,9 @@ sealed interface AppState {
 
     /** Signed out: the instance is known, the session is not. */
     data class NeedsLogin(val instance: String) : AppState
+
+    /** An invitation link was opened: ask for the account to redeem it. */
+    data class NeedsInvite(val link: InvitationLink) : AppState
 
     data class SignedIn(
         val instance: String,
@@ -25,3 +29,6 @@ fun String.toThemePreference(): ThemePreference = when (this) {
     "dark" -> ThemePreference.DARK
     else -> ThemePreference.SYSTEM
 }
+
+/** Result of the last invitation attempt. */
+data class InviteState(val pending: Boolean = false, val error: String? = null)

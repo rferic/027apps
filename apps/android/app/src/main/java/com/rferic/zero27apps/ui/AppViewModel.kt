@@ -7,11 +7,13 @@ import com.rferic.zero27apps.BuildConfig
 import com.rferic.zero27apps.InstanceStore
 import com.rferic.zero27apps.ServerUrl
 import com.rferic.zero27apps.auth.EncryptedStringStore
+import com.rferic.zero27apps.auth.InvitationLink
 import com.rferic.zero27apps.auth.KeystoreSecretCipher
 import com.rferic.zero27apps.auth.SupabaseFactory
 import com.rferic.zero27apps.data.ApiClient
 import com.rferic.zero27apps.data.ApiException
 import com.rferic.zero27apps.data.PatchMeRequest
+import com.rferic.zero27apps.data.RedeemRequest
 import com.rferic.zero27apps.prefs.PrefsStringStore
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -47,6 +49,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _login = MutableStateFlow(LoginState())
     val login: StateFlow<LoginState> = _login.asStateFlow()
 
+    private val _invite = MutableStateFlow(InviteState())
+    val invite: StateFlow<InviteState> = _invite.asStateFlow()
+
+    private var pendingLink: InvitationLink? = null
+
     /** Instances the chooser offers: the build default plus the saved ones. */
     private val _instances = MutableStateFlow(instanceStore.known())
     val instances: StateFlow<List<String>> = _instances.asStateFlow()
@@ -64,6 +71,63 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refresh() {
         viewModelScope.launch { boot() }
+    }
+
+    /** Entry point for an invitation deep link, from either activity callback. */
+    fun onInviteLink(raw: String) {
+        val link = InvitationLink.parse(raw) ?: return
+        pendingLink = link
+        _invite.value = InviteState()
+        _state.value = AppState.NeedsInvite(link)
+    }
+
+    fun cancelInvite() {
+        pendingLink = null
+        _invite.value = InviteState()
+        refresh()
+    }
+
+    /**
+     * Redeems the invitation on the link's own instance, then signs the new
+     * account in and loads the shell. The instance is remembered, so the next
+     * launch opens there.
+     */
+    fun acceptInvite(email: String, password: String, displayName: String?) {
+        val link = pendingLink ?: return
+        _invite.value = InviteState(pending = true)
+        viewModelScope.launch {
+            try {
+                val api = apiFor(link.instance)
+                api.redeemInvitation(
+                    link.token,
+                    RedeemRequest(
+                        email = email.trim(),
+                        password = password,
+                        displayName = displayName?.trim()?.takeIf { it.isNotEmpty() },
+                    ),
+                )
+                val instance = api.instance()
+                val auth = instance.auth ?: throw ApiException("auth_unavailable", 503)
+                val supabaseClient = supabaseFactory.create(auth.supabaseUrl, auth.supabaseAnonKey)
+                supabase = supabaseClient
+                supabaseClient.auth.awaitInitialization()
+                supabaseClient.auth.signInWith(Email) {
+                    this.email = email.trim()
+                    this.password = password
+                }
+                val me = api.me()
+                val modules = api.myModules().modules
+                instanceStore.save(link.instance)
+                _instances.value = instanceStore.known()
+                pendingLink = null
+                _invite.value = InviteState()
+                _state.value = AppState.SignedIn(link.instance, me, modules)
+            } catch (error: ApiException) {
+                _invite.value = InviteState(error = inviteMessage(error))
+            } catch (error: Exception) {
+                _invite.value = InviteState(error = "We couldn't accept the invitation.")
+            }
+        }
     }
 
     fun login(email: String, password: String) {
@@ -186,6 +250,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         error.network -> "Can't reach the instance. Check the connection and try again."
         error.code == "auth_unavailable" -> "This instance is not configured for the app."
         else -> error.message
+    }
+
+    private fun inviteMessage(error: ApiException): String = when (error.code) {
+        "invitation_expired" -> "This invitation has expired. Ask for a new one."
+        "invitation_used" -> "This invitation has already been used."
+        "not_found" -> "This invitation does not exist."
+        "email_mismatch" -> "Use the email address the invitation was sent to."
+        else -> if (error.network) {
+            "Can't reach the instance. Check the connection and try again."
+        } else {
+            "We couldn't accept the invitation."
+        }
     }
 
     private fun loginMessage(error: Exception): String {
