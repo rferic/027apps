@@ -9,6 +9,10 @@ const notFoundMock = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
 
+vi.mock("@/lib/module-manifests", () => ({
+  loadModuleManifest: async () => null,
+}));
+
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
 }));

@@ -1,10 +1,10 @@
 {
   "key": "fixture",
-  "name": "Fixture",
+  "name": "Demo",
   "branding": {
     "description": "Test-only module that exercises the module runtime.",
     "icon": "assets/icon.svg",
-    "color": "slate"
+    "color": "indigo"
   },
   "version": "1.0.0",
   "is_public": false,

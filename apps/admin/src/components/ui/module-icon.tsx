@@ -7,10 +7,13 @@ export function ModuleIcon({
   moduleKey,
   size = 16,
   className = "",
+  color,
 }: {
   moduleKey: string;
   size?: number;
   className?: string;
+  /** Manifest `branding.color`; falls back to the surrounding text color. */
+  color?: string;
 }) {
   const url = `url(/modules/${encodeURIComponent(moduleKey)}/icon)`;
   return (
@@ -20,6 +23,7 @@ export function ModuleIcon({
       style={{
         width: size,
         height: size,
+        color: color ? `var(--module-${color}, currentColor)` : undefined,
         maskImage: url,
         WebkitMaskImage: url,
         maskSize: "contain",

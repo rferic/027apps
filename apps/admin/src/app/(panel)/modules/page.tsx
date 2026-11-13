@@ -10,6 +10,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { RowLink, clickableRowClass } from "@/components/ui/row-link";
 import { ModuleIcon } from "@/components/ui/module-icon";
+import { loadModuleManifest } from "@/lib/module-manifests";
 import { modulesRouteDeps } from "@/lib/modules-route-deps";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { requirePanel } from "@/lib/panel-guard";
@@ -259,9 +260,11 @@ function ModulesFilter({
 function ModulesTable({
   modules,
   messages,
+  colors,
 }: {
   modules: ModuleRow[];
   messages: TranslationMap;
+  colors: Map<string, string>;
 }) {
   return (
     <div className="hidden overflow-x-auto sm:block">
@@ -291,7 +294,7 @@ function ModulesTable({
             <tr key={module.key} className={clickableRowClass}>
               <td className="border-b border-border py-2 pr-3 font-mono text-[11px]">{module.key}</td>
               <td className="border-b border-border py-2 pr-3 font-semibold">
-                <ModuleIcon moduleKey={module.key} size={16} className="mr-2 text-accent align-[-2px]" />
+                <ModuleIcon moduleKey={module.key} size={16} color={colors.get(module.key)} className="mr-2 align-[-2px]" />
                 <RowLink
                   href={`/modules/${encodeURIComponent(module.key)}`}
                   label={module.name}
@@ -326,9 +329,11 @@ function ModulesTable({
 function ModulesCards({
   modules,
   messages,
+  colors,
 }: {
   modules: ModuleRow[];
   messages: TranslationMap;
+  colors: Map<string, string>;
 }) {
   return (
     <ul className="flex flex-col gap-2 sm:hidden">
@@ -445,14 +450,16 @@ function CatalogueEmpty({
 function CatalogueList({
   modules,
   messages,
+  colors,
 }: {
   modules: ModuleRow[];
   messages: TranslationMap;
+  colors: Map<string, string>;
 }) {
   return (
     <>
-      <ModulesTable modules={modules} messages={messages} />
-      <ModulesCards modules={modules} messages={messages} />
+      <ModulesTable modules={modules} messages={messages} colors={colors} />
+      <ModulesCards modules={modules} messages={messages} colors={colors} />
     </>
   );
 }
@@ -463,12 +470,14 @@ function ModulesBody({
   visibility,
   page,
   messages,
+  colors,
 }: {
   catalogue: Catalogue;
   state: StateFilter;
   visibility: PublicFilter;
   page: number;
   messages: TranslationMap;
+  colors: Map<string, string>;
 }) {
   if (!catalogue.ok) return <CatalogueError error={catalogue} messages={messages} />;
 
@@ -485,7 +494,7 @@ function ModulesBody({
       {catalogue.total === 0 || catalogue.modules.length === 0 ? (
         <CatalogueEmpty filtered={filtered} messages={messages} />
       ) : (
-        <CatalogueList modules={catalogue.modules} messages={messages} />
+        <CatalogueList modules={catalogue.modules} messages={messages} colors={colors} />
       )}
       <Pagination
         page={page}
@@ -532,6 +541,21 @@ export default async function ModulesPage({
     );
   }
 
+  // Branding color for each icon, read from the package manifests (cached per request).
+  const colors = new Map(
+    catalogue.ok
+      ? await Promise.all(
+          catalogue.modules.map(
+            async (module) =>
+              [
+                module.key,
+                (await loadModuleManifest(module.key))?.branding.color ?? "slate",
+              ] as const,
+          ),
+        )
+      : [],
+  );
+
   return (
     <section className="flex flex-col gap-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -552,6 +576,7 @@ export default async function ModulesPage({
       <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4">
         <ModulesBody
           catalogue={catalogue}
+          colors={colors}
           state={state}
           visibility={visibility}
           page={page}

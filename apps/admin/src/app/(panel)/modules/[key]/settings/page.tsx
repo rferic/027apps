@@ -9,6 +9,7 @@ import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { ModuleIcon } from "@/components/ui/module-icon";
+import { loadModuleManifest } from "@/lib/module-manifests";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { loadPanelTimeZone } from "@/lib/panel-settings";
@@ -86,10 +87,18 @@ function ModuleBreadcrumb({ name, messages }: { name: string; messages: Translat
   );
 }
 
-function ModuleHeader({ module, messages }: { module: ModuleDetail; messages: TranslationMap }) {
+function ModuleHeader({
+  module,
+  messages,
+  color,
+}: {
+  module: ModuleDetail;
+  messages: TranslationMap;
+  color?: string;
+}) {
   return (
     <header className="flex flex-wrap items-center gap-2">
-      <ModuleIcon moduleKey={module.key} size={28} className="text-accent" />
+      <ModuleIcon moduleKey={module.key} size={28} color={color} />
       <h1 className="text-base font-bold">{module.name}</h1>
       <Badge variant={stateVariant(module.state)}>{stateLabel(module.state, messages)}</Badge>
       <Badge variant={module.is_public ? "success" : "neutral"}>
@@ -328,13 +337,16 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
     loadModuleGrants(key),
   ]);
 
-  const timeZone = await loadPanelTimeZone();
+  const [timeZone, manifest] = await Promise.all([
+    loadPanelTimeZone(),
+    loadModuleManifest(key),
+  ]);
   const installedModule = detail.module;
 
   return (
     <section className="flex flex-col gap-5">
       <ModuleBreadcrumb name={installedModule.name} messages={messages} />
-      <ModuleHeader module={installedModule} messages={messages} />
+      <ModuleHeader module={installedModule} messages={messages} color={manifest?.branding.color} />
       <ModuleDetails
         module={installedModule}
         locale={locale}
