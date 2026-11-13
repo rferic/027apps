@@ -57,7 +57,7 @@ describe("module page host", () => {
   it("renders a declared page of an active module", async () => {
     const html = renderToStaticMarkup(await render());
     expect(html).toContain("Fixture");
-    expect(html).toContain("/modules/fixture/settings");
+    expect(html).toContain("/panel/modules/fixture/settings");
   });
 
   it("404s a route the manifest does not declare", async () => {
@@ -67,7 +67,7 @@ describe("module page host", () => {
   it("sends an inactive module to its settings page, where it can be activated", async () => {
     loadModuleDetailMock.mockResolvedValue(detail("installed"));
     await expect(render()).rejects.toThrow("NEXT_REDIRECT");
-    expect(redirectMock).toHaveBeenCalledWith("/modules/fixture/settings");
+    expect(redirectMock).toHaveBeenCalledWith("/panel/modules/fixture/settings");
   });
 
   it("404s when the package has no component for a declared route", async () => {

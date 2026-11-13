@@ -5,7 +5,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 
-vi.mock("@/app/(panel)/modules/install/actions", () => ({
+vi.mock("@/app/(panel)/panel/modules/install/actions", () => ({
   installModuleAction: vi.fn(),
 }));
 

@@ -52,8 +52,12 @@ interface NavGroup {
   items: NavItem[];
 }
 
-/** Every destination owns its sub-routes. */
+/**
+ * Every destination owns its sub-routes, except the dashboard: `/panel` is the
+ * parent of every other panel route, so it only lights up on its own URL.
+ */
 function isActive(pathname: string, href: string): boolean {
+  if (href === "/panel") return pathname === "/panel";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -140,17 +144,17 @@ export function PanelNav({ role, messages, variant = "sidebar", onNavigate }: Pa
     {
       label: t("Users", messages),
       items: [
-        { label: t("Members", messages), href: "/members", icon: UsersIcon },
-        { label: t("Categories", messages), href: "/categories", icon: TagIcon },
-        { label: t("Invitations", messages), href: "/invitations", icon: MailIcon },
+        { label: t("Members", messages), href: "/panel/members", icon: UsersIcon },
+        { label: t("Categories", messages), href: "/panel/categories", icon: TagIcon },
+        { label: t("Invitations", messages), href: "/panel/invitations", icon: MailIcon },
       ],
     },
     {
       label: t("Platform", messages),
       items: [
-        { label: t("Modules", messages), href: "/modules", icon: BoxIcon },
+        { label: t("Modules", messages), href: "/panel/modules", icon: BoxIcon },
         ...(role === "super_admin"
-          ? [{ label: t("API keys", messages), href: "/keys", icon: KeyIcon }]
+          ? [{ label: t("API keys", messages), href: "/panel/keys", icon: KeyIcon }]
           : []),
       ],
     },
@@ -158,17 +162,17 @@ export function PanelNav({ role, messages, variant = "sidebar", onNavigate }: Pa
       label: t("Settings", messages),
       items: settingsSections.map((section, index) => ({
         label: settingsSectionLabel(section, messages),
-        href: `/settings/${section.slug}`,
+        href: `/panel/settings/${section.slug}`,
         icon: SETTINGS_ICONS[section.slug],
         // `/settings` redirects to the first visible section; light it up while
         // the redirect resolves.
-        activeOn: index === 0 ? "/settings" : undefined,
+        activeOn: index === 0 ? "/panel/settings" : undefined,
       })),
     },
     {
       label: t("Documentation", messages),
       items: [
-        { label: t("API", messages), href: "/docs/api", icon: BookIcon },
+        { label: t("API", messages), href: "/panel/docs/api", icon: BookIcon },
         {
           label: t("Firebase guide", messages),
           href: "/help/firebase",

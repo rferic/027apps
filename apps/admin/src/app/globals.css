@@ -1,6 +1,25 @@
 @import "tailwindcss";
 @import "../design-tokens.css";
 
+/*
+ * Module branding slots (manifest `branding.color`). They are not semantic
+ * roles, so they live outside design-tokens.css: `light-dark()` follows the
+ * `color-scheme` the semantic tokens set.
+ */
+:root {
+  /* Module branding slots (manifest `branding.color`). Light/dark in one place:
+     `light-dark()` follows the `color-scheme` the blocks below set. */
+  --module-teal: light-dark(#09795f, #1cc29f);
+  --module-emerald: light-dark(#047857, #34d399);
+  --module-indigo: light-dark(#4f46e5, #818cf8);
+  --module-violet: light-dark(#7624f4, #9d6cff);
+  --module-amber: light-dark(#b45309, #fbbf24);
+  --module-rose: light-dark(#be123c, #fb7185);
+  --module-sky: light-dark(#035ade, #5b9bff);
+  --module-slate: light-dark(#5b6472, #8a8f98);
+
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);

@@ -38,6 +38,6 @@ describe("MemberPurgeAction", () => {
   });
 
   it("returns to the member list after a successful purge", () => {
-    expect(PURGE_REDIRECT).toBe("/members");
+    expect(PURGE_REDIRECT).toBe("/panel/members");
   });
 });

@@ -30,7 +30,7 @@ async function resolvePage(moduleKey: string, route: string) {
   if (!page) {
     // The module entry opens its overview; without one there is nothing to
     // show, so fall back to the page that can enable or configure it.
-    if (route === "overview") redirect(`/modules/${encodeURIComponent(moduleKey)}/settings`);
+    if (route === "overview") redirect(`/panel/modules/${encodeURIComponent(moduleKey)}/settings`);
     notFound();
   }
   const detail = await loadModuleDetail(moduleKey);
@@ -50,7 +50,7 @@ export async function ModulePageHost({
 
   const { page, detail } = await resolvePage(moduleKey, route);
   if (detail.module.state !== "active") {
-    redirect(`/modules/${encodeURIComponent(moduleKey)}/settings`);
+    redirect(`/panel/modules/${encodeURIComponent(moduleKey)}/settings`);
   }
   if (page.role === "super_admin" && gate.user.role !== "super_admin") {
     return renderForbidden(gate.user);
@@ -71,7 +71,7 @@ export async function ModulePageHost({
           <span className="font-semibold text-foreground">{detail.module.name}</span>
         </nav>
         <Link
-          href={`/modules/${encodeURIComponent(moduleKey)}/settings`}
+          href={`/panel/modules/${encodeURIComponent(moduleKey)}/settings`}
           className="inline-flex min-h-9 items-center rounded-control border border-border px-3 text-xs font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           {messages["Settings"] ?? "Settings"}

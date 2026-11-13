@@ -59,7 +59,7 @@ function ModuleUninstall({
     const outcome = uninstallOutcome(result, confirm);
     if (outcome.kind === "success") {
       dialogRef.current?.close();
-      router.push("/modules");
+      router.push("/panel/modules");
       router.refresh();
       return;
     }

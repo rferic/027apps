@@ -112,14 +112,14 @@ describe("FormAlert", () => {
       <FormAlert
         message="We couldn't load it."
         details={["First detail.", "Second detail."]}
-        retryHref="/members"
+        retryHref="/panel/members"
         messages={{}}
       />,
     );
 
     expect(html).toContain("First detail.");
     expect(html).toContain("Second detail.");
-    expect(html).toContain('href="/members"');
+    expect(html).toContain('href="/panel/members"');
     expect(html).toContain("Try again");
   });
 

@@ -78,7 +78,7 @@ describe("DashboardPage", () => {
     expect(html).toContain(">6<");
     expect(html).toContain("Expenses");
     expect(html).toContain("Notes");
-    expect(html).toContain('href="/modules"');
+    expect(html).toContain('href="/panel/modules"');
     expect(html).not.toContain("Setup is incomplete.");
     expect(html).not.toContain("The service is degraded.");
   });
@@ -165,7 +165,7 @@ describe("DashboardPage", () => {
 
     expect(html).toContain("No modules are installed yet.");
     expect(html).toContain("Install a module to make its features available to the instance.");
-    expect(html).toContain('href="/modules"');
+    expect(html).toContain('href="/panel/modules"');
     expect(html).toContain("Install a module");
     expect(html).not.toContain("Expenses");
     expect(html).toContain("Active members");
@@ -213,7 +213,7 @@ describe("DashboardPage", () => {
 
     expect(html).toContain("No members or modules yet.");
     expect(html).toContain("Invite members or install a module to get started.");
-    expect(html).toContain('href="/invitations"');
+    expect(html).toContain('href="/panel/invitations"');
     expect(html).not.toContain("Active members");
   });
 

@@ -8,7 +8,7 @@ function categories(deps: Awaited<ReturnType<typeof getInfra>>["settingsDeps"]) 
   return { db: deps.db, withTransaction: withTransactionClient };
 }
 
-/** POST/DELETE /api/v1/user-categories/{id}/members/{userId}. */
+/** POST/DELETE /api/v1/user-categories/{id}/panel/members/{userId}. */
 export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string; userId: string }> },

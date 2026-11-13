@@ -54,7 +54,7 @@ i18n. La landing dice que la app está «en desarrollo» y que sus pantallas son
     la sesión y borra datos locales; el login deja un enlace discreto «Usar otra instancia» para
     autoalojados.
   - **Invitación por deep link**: App Links para el dominio canónico + esquema propio
-    `027apps://invite` para instancias autoalojadas; `POST /invitations/{token}/redeem` → login
+    `027apps://invite` para instancias autoalojadas; `POST /panel/invitations/{token}/redeem` → login
     → `/me`; el perfil nace con el locale de la invitación.
   - **Web `/invite/<token>`**: mantiene el alta en el navegador y añade «Descargar app» (GitHub
     Releases) para quien no tiene la app; el token sigue en la URL. Sin deferred deep link en

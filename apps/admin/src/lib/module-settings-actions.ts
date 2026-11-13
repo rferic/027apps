@@ -36,6 +36,6 @@ export async function saveSettingAction(
 
   const result = await saveModuleSetting(moduleKey, settingKey, value);
   if (!result.ok) return { status: "error" };
-  revalidatePath(`/modules/${encodeURIComponent(moduleKey)}/settings`);
+  revalidatePath(`/panel/modules/${encodeURIComponent(moduleKey)}/settings`);
   return { status: "ok" };
 }

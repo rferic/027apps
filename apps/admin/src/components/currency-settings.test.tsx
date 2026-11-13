@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 const resetOnRoute = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/settings/localization",
+  usePathname: () => "/panel/settings/localization",
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 

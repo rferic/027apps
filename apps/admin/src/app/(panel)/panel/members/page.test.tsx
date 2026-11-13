@@ -1,0 +1,393 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const requirePanelMock = vi.fn();
+const loadMembersMock = vi.fn();
+const loadCategoriesMock = vi.fn();
+const redirectMock = vi.fn((url: string) => {
+  throw new Error(`NEXT_REDIRECT:${url}`);
+});
+
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+}));
+
+vi.mock("next/navigation", () => ({
+  redirect: (url: string) => redirectMock(url),
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
+}));
+
+vi.mock("@/lib/panel-guard", () => ({
+  requirePanel: (min: string) => requirePanelMock(min),
+}));
+
+vi.mock("@/lib/panel-i18n", () => ({
+  loadPanelMessages: async () => ({}),
+}));
+
+vi.mock("@/lib/panel-settings", () => ({
+  loadPanelTimeZone: async () => "UTC",
+}));
+
+vi.mock("@/lib/panel-members", () => ({
+  MEMBERS_PAGE_SIZE: 20,
+  loadMembers: (input: unknown) => loadMembersMock(input),
+}));
+
+vi.mock("@/lib/panel-categories", () => ({
+  loadCategories: (input: unknown) => loadCategoriesMock(input),
+}));
+
+vi.mock("@/app/(auth)/actions", () => ({
+  signOutAction: "sign-out",
+}));
+
+import MembersPage, { instant } from "./page";
+
+const MEMBERS = [
+  {
+    id: "u1",
+    display_name: "Ana",
+    email: "ana@example.com",
+    locale: "es",
+    timezone: "Europe/Madrid",
+    role: "super_admin" as const,
+    created_at: "2026-01-01T00:00:00.000Z",
+    deactivated_at: null,
+    categories: [
+      { id: "c1", name: "Alpha" },
+      { id: "c2", name: "Beta" },
+      { id: "c3", name: "Gamma" },
+      { id: "c4", name: "Delta" },
+    ],
+  },
+  {
+    id: "u2",
+    display_name: "Luis",
+    email: "luis@example.com",
+    locale: "en",
+    timezone: "UTC",
+    role: "user" as const,
+    created_at: "2026-02-01T00:00:00.000Z",
+    deactivated_at: "2026-03-01T00:00:00.000Z",
+    categories: [],
+  },
+];
+
+const ALPHA = "11111111-1111-4111-8111-111111111111";
+
+const CATEGORIES = [
+  { id: ALPHA, name: "Alpha", slug: "alpha", created_at: "2026-01-01T00:00:00.000Z", member_count: 1, modules: [] },
+];
+
+function render(searchParams: Record<string, string> = {}) {
+  return MembersPage({ searchParams: Promise.resolve(searchParams) });
+}
+
+/** Every anchor tag of a rendered fragment, to assert on attributes alone. */
+function anchors(html: string): string[] {
+  return [...html.matchAll(/<a\b[^>]*>/g)].map((match) => match[0]);
+}
+
+beforeEach(() => {
+  requirePanelMock.mockReset();
+  requirePanelMock.mockResolvedValue({
+    user: { id: "u1", email: "admin@example.com", displayName: "Admin", role: "admin" },
+  });
+  loadMembersMock.mockReset();
+  loadCategoriesMock.mockReset();
+  loadCategoriesMock.mockResolvedValue({ ok: true, categories: CATEGORIES, total: 1 });
+  redirectMock.mockClear();
+});
+
+describe("MembersPage", () => {
+  it("opts the segment out of the static shell (the layout opt-out is not inherited)", () => {
+    expect(instant).toBe(false);
+  });
+
+  it("lists name, email, role and status for every member", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("Ana");
+    expect(html).toContain('class="flex flex-col gap-4 rounded-card border border-border bg-surface p-4"');
+    expect(html).toContain("ana@example.com");
+    expect(html).toContain("Super admin");
+    expect(html).toContain("Active");
+    expect(html).toContain("Luis");
+    expect(html).toContain("luis@example.com");
+    expect(html).toContain("User");
+    expect(html).toContain("Deactivated");
+    expect(html).toContain("<table");
+    expect(html).toContain("<caption");
+    expect(html).toContain('href="/panel/members/u1"');
+    expect(html).toContain('href="/panel/members/u2"');
+  });
+
+  it("stretches the row link over the whole row of a separate-border table", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+    const table = html.slice(html.indexOf("<table"), html.indexOf("</table>"));
+    const rowLinks = anchors(table).filter((tag) => tag.includes("after:absolute"));
+
+    expect(table).toContain("border-separate");
+    expect(rowLinks).toHaveLength(2);
+    expect(rowLinks[0]).toContain('href="/panel/members/u1"');
+    expect(rowLinks[1]).toContain('href="/panel/members/u2"');
+  });
+
+  it("keeps the mobile card as a single block link", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: [MEMBERS[0]], total: 1, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+    const cards = html.slice(html.indexOf("</table>"));
+    const card = anchors(cards).find((tag) => tag.includes('href="/panel/members/u1"'));
+
+    expect(card).toBeDefined();
+    expect(card).toContain("flex min-h-11 flex-col");
+  });
+
+  it("shows the empty state with the invitation action when there are no members", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: [], total: 0, activeTotal: 0 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("No members yet.");
+    expect(html).toContain("Invite a member");
+    expect(html).toContain('href="/panel/invitations"');
+    expect(html).not.toContain("<table");
+  });
+
+  it("shows the empty state for a filter with no matches and lets the reader clear it", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: [], total: 0, activeTotal: 0 });
+
+    const html = renderToStaticMarkup(await render({ q: "nobody" }));
+
+    expect(html).toContain("No members match nobody.");
+    expect(html).toContain("Clear search");
+    expect(html).toContain('href="/panel/members"');
+    expect(loadMembersMock).toHaveBeenCalledWith({ q: "nobody", state: "active", offset: 0 });
+  });
+
+  it("shows the error with the translated code, the request id and a retry link", async () => {
+    loadMembersMock.mockResolvedValue({ ok: false, code: "internal", requestId: "req-500" });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("load the members.");
+    expect(html).toContain("Something went wrong on the server.");
+    expect(html).toContain("req-500");
+    expect(html).toContain("Try again");
+    expect(html).toContain('href="/panel/members"');
+    expect(html).not.toContain("<table");
+  });
+
+  it("paginates with the instance-wide total and links to the next page", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 45, activeTotal: 44 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("Page 1 of 3");
+    expect(html).toContain('href="/panel/members?page=2"');
+    expect(html).toContain("Next");
+    expect(html).not.toContain('href="/panel/members?page=0"');
+  });
+
+  it("keeps the filter in the pagination links", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 45, activeTotal: 44 });
+
+    const html = renderToStaticMarkup(await render({ q: "ana", page: "2" }));
+
+    expect(loadMembersMock).toHaveBeenCalledWith({ q: "ana", state: "active", offset: 20 });
+    expect(html).toContain("Page 2 of 3");
+    expect(html).toContain('href="/panel/members?q=ana"');
+    expect(html).toContain('href="/panel/members?q=ana&amp;page=3"');
+  });
+
+  it("redirects only when the requested page is past the last one", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: [], total: 40, activeTotal: 39 });
+
+    await expect(render({ page: "3" })).rejects.toThrow("NEXT_REDIRECT:/panel/members?page=2");
+    expect(redirectMock).toHaveBeenCalledWith("/panel/members?page=2");
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "active", offset: 40 });
+  });
+
+  it("shows the empty state on the last page instead of redirecting in a loop", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: [], total: 40, activeTotal: 39 });
+
+    const html = renderToStaticMarkup(await render({ page: "2" }));
+
+    expect(html).toContain("No members yet.");
+    expect(redirectMock).not.toHaveBeenCalled();
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "active", offset: 20 });
+  });
+
+  it("renders the live search field and the filter selects without a search button", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain('name="q"');
+    expect(html).toContain('role="search"');
+    expect(html).toContain('name="role"');
+    expect(html).toContain('id="members-role"');
+    expect(html).toContain('name="state"');
+    expect(html).toContain('id="members-state"');
+    expect(html).toContain("All roles");
+    expect(html).toContain("All states");
+    expect(html).toContain("Search by name or email");
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain('type="submit"');
+    expect(html).not.toContain(">Search<");
+  });
+
+  it("sends the role and state filters and keeps them in the pagination links", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 45, activeTotal: 44 });
+
+    const html = renderToStaticMarkup(
+      await render({ role: "user", state: "deactivated", page: "2" }),
+    );
+
+    expect(loadMembersMock).toHaveBeenCalledWith({
+      role: "user",
+      state: "deactivated",
+      offset: 20,
+    });
+    expect(html).toContain('href="/panel/members?role=user&amp;state=deactivated&amp;page=3"');
+    expect(html).toContain('href="/panel/members?role=user&amp;state=deactivated"');
+  });
+
+  it("combines the search with the filters in the query", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 45, activeTotal: 44 });
+
+    const html = renderToStaticMarkup(await render({ q: "ana", role: "admin", state: "active" }));
+
+    expect(loadMembersMock).toHaveBeenCalledWith({
+      q: "ana",
+      role: "admin",
+      state: "active",
+      offset: 0,
+    });
+    // Active is the default, so it stays out of the canonical URL.
+    expect(html).toContain('href="/panel/members?q=ana&amp;role=admin&amp;page=2"');
+  });
+
+  it("shows a filter-specific empty state and lets the reader clear every filter", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: [], total: 0, activeTotal: 0 });
+
+    const html = renderToStaticMarkup(await render({ role: "admin", state: "active" }));
+
+    expect(html).toContain("No members match this filter.");
+    expect(html).toContain("Clear filters");
+    expect(html).toContain('href="/panel/members"');
+  });
+
+  it("ignores an unknown role or state instead of sending it to the API", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    await render({ role: "owner", state: "disabled" });
+
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "active", offset: 0 });
+  });
+
+  it("renders the generic 403 and never loads the list when the role is denied", async () => {
+    requirePanelMock.mockResolvedValue({
+      denied: true,
+      user: { id: "u9", email: "user@example.com", displayName: "User", role: "user" },
+    });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("You do not have access to this page.");
+    expect(html).toContain("Log out");
+    expect(loadMembersMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("MembersPage filters", () => {
+  it("applies every filter on change: no submit button and no hidden fields", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render({ role: "admin" }));
+
+    expect(html).toContain('name="role"');
+    expect(html).toContain('name="state"');
+    expect(html).not.toContain(">Apply<");
+    expect(html).not.toContain('type="submit"');
+    expect(html).not.toContain('type="hidden"');
+  });
+
+  it("defaults to active even without a state parameter", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "active", offset: 0 });
+    expect(html).toContain('id="members-state"');
+    expect(html).toContain('<option value="active" selected=""');
+    expect(html).toContain('<option value="all"');
+    expect(html).not.toContain('<input type="hidden" name="state"');
+  });
+
+  it("sends All as an explicit state=all and keeps it in the pagination", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 45, activeTotal: 44 });
+
+    const html = renderToStaticMarkup(await render({ state: "all", page: "2" }));
+
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "all", offset: 20 });
+    expect(html).toContain('<option value="all"');
+    expect(html).toContain("All states");
+    expect(html).toContain('<option value="all" selected=""');
+    expect(html).not.toContain('type="hidden"');
+    expect(html).toContain('href="/panel/members?state=all&amp;page=3"');
+    expect(html).toContain('href="/panel/members?state=all"');
+  });
+});
+
+describe("MembersPage categories", () => {
+  it("renders up to three category chips per member plus a +N counter", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(html).toContain("Categories");
+    expect(html).toContain("Alpha");
+    expect(html).toContain("Beta");
+    expect(html).toContain("Gamma");
+    expect(html).not.toContain(">Delta<");
+    expect(html).toContain("+1");
+    expect(html).toContain("—");
+  });
+
+  it("sends the category filter and keeps it in the pagination and the search form", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 45, activeTotal: 44 });
+
+    const html = renderToStaticMarkup(await render({ category: ALPHA, page: "2" }));
+
+    expect(loadMembersMock).toHaveBeenCalledWith({ category: ALPHA, state: "active", offset: 20 });
+    expect(html).toContain(`href="/panel/members?category=${ALPHA}&amp;page=3"`);
+    expect(html).not.toContain('type="hidden"');
+    expect(html).toContain('name="q"');
+  });
+
+  it("renders the category select with All categories and the loaded choices", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    const html = renderToStaticMarkup(await render());
+
+    expect(loadCategoriesMock).toHaveBeenCalledWith({ limit: 100, offset: 0 });
+    expect(html).toContain('id="members-category"');
+    expect(html).toContain("All categories");
+    expect(html).toContain(`<option value="${ALPHA}">Alpha</option>`);
+  });
+
+  it("ignores a category that is not a uuid instead of sending it to the API", async () => {
+    loadMembersMock.mockResolvedValue({ ok: true, users: MEMBERS, total: 2, activeTotal: 1 });
+
+    await render({ category: "alpha" });
+
+    expect(loadMembersMock).toHaveBeenCalledWith({ state: "active", offset: 0 });
+  });
+});

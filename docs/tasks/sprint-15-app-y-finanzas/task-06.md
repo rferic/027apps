@@ -69,8 +69,8 @@ presentar OweNo como disponible antes de que existan pantallas reales.
 - **Un solo `movement`** (D19): un gasto y un pago comparten tabla, historial y política; un pago
   es un movimiento con una sola participación. Editar y eliminar (baja lógica) funciona para
   ambos, solo para el autor o el creador.
-- **Entrada del módulo** (D20): `/modules/owe-no` lleva al resumen; la ficha está en
-  `/modules/owe-no/settings`; la lista de módulos ofrece Abrir y Ajustes; el widget del panel
+- **Entrada del módulo** (D20): `/panel/modules/owe-no` lleva al resumen; la ficha está en
+  `/panel/modules/owe-no/settings`; la lista de módulos ofrece Abrir y Ajustes; el widget del panel
   enlaza al resumen.
 - Manifest válido, digests correctos, docs por capacidad e i18n en los 9 locales.
 - Instalar/activar/desinstalar en staging; `down` reversible y sin pérdida silenciosa de datos.

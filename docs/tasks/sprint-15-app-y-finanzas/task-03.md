@@ -14,10 +14,10 @@ entrada del módulo por su resumen.
 
 **Alcance**
 - Dentro:
-  - Servir `packages/<key>/admin/<route>/page.tsx` en `/modules/<key>/<route>` con un registro
+  - Servir `packages/<key>/admin/<route>/page.tsx` en `/panel/modules/<key>/<route>` con un registro
     estático generado en build, gate por rol (`admin`/`super_admin`) y estado `active`.
-  - **Entrada del módulo (D20)**: `/modules/<key>` redirige a `overview` si el módulo está
-    `active` y la declara; si no, muestra la ficha. La ficha se mueve a `/modules/<key>/settings`
+  - **Entrada del módulo (D20)**: `/panel/modules/<key>` redirige a `overview` si el módulo está
+    `active` y la declara; si no, muestra la ficha. La ficha se mueve a `/panel/modules/<key>/settings`
     y `settings` queda **reservada** (un `admin_pages.route` con ese nombre falla). La lista de
     módulos gana **Abrir** y **Ajustes**.
   - **Contrato de widgets (D10)**: el manifest declara `dashboard_widgets` (`key`, `type`,
@@ -38,9 +38,9 @@ módulo que ya la use (no hay ninguno); el formulario editable toca settings de 
 respetar secretos.
 
 **Criterios de aceptación**
-- La página de admin del fixture se renderiza en `/modules/<fixture>/<route>` solo si está
+- La página de admin del fixture se renderiza en `/panel/modules/<fixture>/<route>` solo si está
   `active` y el rol alcanza; una página de otro módulo no es accesible.
-- `/modules/<fixture>` lleva a `overview`; la ficha vive en `/modules/<fixture>/settings`; un
+- `/panel/modules/<fixture>` lleva a `overview`; la ficha vive en `/panel/modules/<fixture>/settings`; un
   manifest con `route: "settings"` falla en CI.
 - El fixture declara un widget, `GET /api/v1/me/dashboard` lo devuelve solo a quien tiene acceso
   y el contrato rechaza un `type` desconocido o HTML.

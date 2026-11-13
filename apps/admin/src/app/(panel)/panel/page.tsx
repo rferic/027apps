@@ -160,7 +160,7 @@ function ModuleCards({
       {modules.map((module) => (
         <li key={module.key}>
           <Link
-            href="/modules"
+            href="/panel/modules"
             className="flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-surface p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <span className="text-sm font-semibold">{module.name}</span>
@@ -190,7 +190,7 @@ function DashboardModules({
         <h2 id="dashboard-modules" className="text-sm font-semibold">
           {t("Modules", messages)}
         </h2>
-        <Link href="/modules" className="text-xs font-semibold text-accent hover:underline">
+        <Link href="/panel/modules" className="text-xs font-semibold text-accent hover:underline">
           {t("View all modules", messages)}
         </Link>
       </div>
@@ -200,7 +200,7 @@ function DashboardModules({
           <p className="mt-1 text-xs text-muted-foreground">
             {t("Install a module to make its features available to the instance.", messages)}
           </p>
-          <Link href="/modules" className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
+          <Link href="/panel/modules" className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
             {t("Install a module", messages)}
           </Link>
         </div>
@@ -219,10 +219,10 @@ function DashboardEmpty({ messages }: { messages: TranslationMap }) {
         {t("Invite members or install a module to get started.", messages)}
       </p>
       <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-accent">
-        <Link href="/invitations" className="hover:underline">
+        <Link href="/panel/invitations" className="hover:underline">
           {t("Invite members", messages)}
         </Link>
-        <Link href="/modules" className="hover:underline">
+        <Link href="/panel/modules" className="hover:underline">
           {t("Install a module", messages)}
         </Link>
       </div>

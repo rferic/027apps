@@ -15,7 +15,7 @@ export function ModuleIcon({
   /** Manifest `branding.color`; falls back to the surrounding text color. */
   color?: string;
 }) {
-  const url = `url(/modules/${encodeURIComponent(moduleKey)}/icon)`;
+  const url = `url(/panel/modules/${encodeURIComponent(moduleKey)}/icon)`;
   return (
     <span
       aria-hidden="true"

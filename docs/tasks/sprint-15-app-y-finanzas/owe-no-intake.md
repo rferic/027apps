@@ -159,17 +159,17 @@ el contrato y lo prueba con el fixture; la 03 lo prueba con OweNo.
 | `POST /owe-no/groups` | crear grupo | `expenses:read_write` |
 | `GET /owe-no/groups/{id}` | detalle + miembros | `expenses:read` |
 | `PATCH /owe-no/groups/{id}` | nombre, moneda, archivar | `expenses:read_write` |
-| `GET/POST /owe-no/groups/{id}/members` | listar miembros / invitar (creador; el invitado acepta) | `expenses:read` / `read_write` + creador |
+| `GET/POST /owe-no/groups/{id}/panel/members` | listar miembros / invitar (creador; el invitado acepta) | `expenses:read` / `read_write` + creador |
 | `GET /owe-no/invitations` | invitaciones pendientes del usuario | `expenses:read` |
 | `POST /owe-no/invitations/{id}/accept` | aceptar la invitación | `expenses:read_write` |
 | `POST /owe-no/invitations/{id}/decline` | rechazar la invitación | `expenses:read_write` |
-| `DELETE /owe-no/groups/{id}/members/{memberId}` | echar a un miembro (creador) | `expenses:read_write` + creador |
-| `POST /owe-no/groups/{id}/members/{memberId}/block` | bloquear (creador) | `expenses:read_write` + creador |
+| `DELETE /owe-no/groups/{id}/panel/members/{memberId}` | echar a un miembro (creador) | `expenses:read_write` + creador |
+| `POST /owe-no/groups/{id}/panel/members/{memberId}/block` | bloquear (creador) | `expenses:read_write` + creador |
 | `POST /owe-no/groups/{id}/leave` | salir del grupo (conserva el historial) | `expenses:read_write` |
-| `POST /owe-no/groups/{id}/members/{memberId}/link` | enlazar un ficticio con una cuenta (admin; conserva historial) | `expenses:read_write` + admin |
+| `POST /owe-no/groups/{id}/panel/members/{memberId}/link` | enlazar un ficticio con una cuenta (admin; conserva historial) | `expenses:read_write` + admin |
 | `POST /owe-no/imports/splitwise` | preview/dry-run y commit de un export CSV (app; creador del grupo) | `expenses:read_write` + creador del grupo |
 | `GET /owe-no/groups/{id}/linkable-users` | usuarios activos para enlazar una identidad importada (id + display_name) | `expenses:read_write` + creador del grupo |
-| `GET/POST /owe-no/groups/{id}/categories` | categorías | `expenses:read` / `read_write` |
+| `GET/POST /owe-no/groups/{id}/panel/categories` | categorías | `expenses:read` / `read_write` |
 | `GET/POST /owe-no/groups/{id}/movements` | historial / alta de gasto o pago | `expenses:read` / `read_write` |
 | `PATCH /owe-no/groups/{id}/movements/{id}` | editar (autor o creador) | `expenses:read_write` |
 | `DELETE /owe-no/groups/{id}/movements/{id}` | baja lógica (autor o creador) | `expenses:read_write` |

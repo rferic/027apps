@@ -5,7 +5,7 @@ import { getDictionary } from "@027apps/i18n/dictionary.js";
 const resetOnRoute = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/settings/instance",
+  usePathname: () => "/panel/settings/instance",
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
 }));
 

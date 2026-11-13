@@ -313,7 +313,7 @@ export function ApiKeyCreatedPanel({
         </p>
       )}
       <FormActions>
-        <Link href="/keys" className={secondaryLinkClass}>
+        <Link href="/panel/keys" className={secondaryLinkClass}>
           {t("Done", messages)}
         </Link>
       </FormActions>
@@ -683,7 +683,7 @@ function ApiKeyCreateFormBody({
       {error && <ApiKeyCreateError error={error} messages={messages} />}
 
       <FormActions>
-        <Link href="/keys" className={cancelClass}>
+        <Link href="/panel/keys" className={cancelClass}>
           {t("Cancel", messages)}
         </Link>
         <Button

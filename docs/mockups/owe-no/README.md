@@ -55,7 +55,7 @@ También se puede abrir una pantalla concreta por URL:
 |---|---|
 | **Dashboard del panel** | El panel real con el **widget de panel** de OweNo entre los widgets de módulos. |
 | Catálogo | Módulos dentro de Plataforma; OweNo activo y el resto no instalado. |
-| **Ajustes del módulo** | Pestaña propia en `/modules/owe-no/settings`: **deslizador** de `settlement_exact_limit` (4–20, por defecto 12) con **hoja** a la izquierda y **llama** a la derecha, permisos y páginas. |
+| **Ajustes del módulo** | Pestaña propia en `/panel/modules/owe-no/settings`: **deslizador** de `settlement_exact_limit` (4–20, por defecto 12) con **hoja** a la izquierda y **llama** a la derecha, permisos y páginas. |
 | Resumen | Migas `Plataforma / Módulos / OweNo` y pestañas secundarias; totales, actividad y deuda pendiente. |
 | Grupos | Tabla con búsqueda y filtro; el admin crea, edita y archiva. |
 | Detalle de grupo | Gastos (con «3 de 4» participantes), balances y miembros, sin editar dinero. |

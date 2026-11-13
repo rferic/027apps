@@ -90,7 +90,7 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 ### 3.1 Host de páginas de admin
 
-- [x] Test rojo: una página del fixture se sirve en `/modules/fixture/<route>` solo si está
+- [x] Test rojo: una página del fixture se sirve en `/panel/modules/fixture/<route>` solo si está
       `active`, el rol alcanza y la ruta está declarada; otra ruta da 404.
 - [x] Registro **estático** (Next/Turbopack no bundlea rutas arbitrarias): mapa `key/route →
       componente` importado explícitamente; falta el script que lo genere y su check de CI.
@@ -98,9 +98,9 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 ### 3.2 Entrada del módulo (D20)
 
-- [x] `/modules/<key>` sirve `overview` si el módulo está `active` y la declara (la URL es la del
+- [x] `/panel/modules/<key>` sirve `overview` si el módulo está `active` y la declara (la URL es la del
       módulo); `/overview` redirige allí y, sin overview, la entrada cae en `settings`.
-- [x] La ficha pasa a `/modules/<key>/settings`; `settings` queda **reservada**: un manifest con
+- [x] La ficha pasa a `/panel/modules/<key>/settings`; `settings` queda **reservada**: un manifest con
       `admin_pages.route: "settings"` falla en la validación y en CI.
 - [x] La lista de módulos gana **Abrir** (el nombre) y **Ajustes**; los enlaces conservan el rol.
 
@@ -116,7 +116,7 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 - [x] Test: `min > max`, `default` fuera de rango o `control` desconocido → manifest inválido.
 - [x] `min`/`max`/`step`/`control` (`number`|`slider`) para `int`; validación **en servidor** en
-      `PATCH/PUT /modules/<key>/settings` con `validation_failed`.
+      `PATCH/PUT /panel/modules/<key>/settings` con `validation_failed`.
 - [x] Formulario editable en la página del módulo: deslizador accesible, valor actual visible,
       guardar y revertir; `is_secret` nunca se muestra (se escribe a ciegas).
 
@@ -223,7 +223,7 @@ pnpm check:openapi
 ## Aceptación manual (propietario)
 
 - [ ] Instalar el fixture desde el panel y ver su página; desinstalarlo.
-- [ ] Abrir `/modules/fixture` y comprobar que lleva al resumen; la ficha en `/settings`.
+- [ ] Abrir `/panel/modules/fixture` y comprobar que lleva al resumen; la ficha en `/panel/settings`.
 - [ ] Mover el deslizador de un setting, guardar y recargar; probar un valor fuera de rango por
       API.
 - [ ] Ver el widget del fixture en el Dashboard del panel.

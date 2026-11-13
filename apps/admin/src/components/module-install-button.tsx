@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
-import { installModuleAction } from "@/app/(panel)/modules/install/actions";
+import { installModuleAction } from "@/app/(panel)/panel/modules/install/actions";
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form";
 import type { InstallFailureReason } from "@/lib/module-install";

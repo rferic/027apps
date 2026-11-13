@@ -12,8 +12,8 @@ import { useRouter } from "next/navigation";
 import type { MutationFailure } from "@/lib/mutation-result";
 
 /**
- * Flow state shared by every creation page (`/categories/new`, `/keys/new`,
- * `/invitations/new`). The one-time result is a plaintext secret or token the
+ * Flow state shared by every creation page (`/panel/categories/new`, `/panel/keys/new`,
+ * `/panel/invitations/new`). The one-time result is a plaintext secret or token the
  * Core only returns in the create response, so it lives in client state and is
  * shown once: never a URL, a cookie, storage or a log.
  */
