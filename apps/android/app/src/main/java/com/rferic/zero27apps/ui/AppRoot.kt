@@ -42,6 +42,7 @@ import com.rferic.zero27apps.ui.theme.Zero27AppsTheme
 fun AppRoot(viewModel: AppViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val login by viewModel.login.collectAsStateWithLifecycle()
+    val instances by viewModel.instances.collectAsStateWithLifecycle()
     val theme = (state as? AppState.SignedIn)?.user?.theme?.toThemePreference()
         ?: com.rferic.zero27apps.ui.theme.ThemePreference.SYSTEM
 
@@ -50,11 +51,13 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             AppState.Loading -> LoadingScreen()
             is AppState.NeedsLogin -> LoginScreen(
                 instance = current.instance,
+                knownInstances = instances,
                 state = login,
                 onLogin = viewModel::login,
+                onRememberInstance = viewModel::rememberInstance,
                 onChangeInstance = viewModel::changeInstance,
             )
-            is AppState.SignedIn -> Shell(current, viewModel)
+            is AppState.SignedIn -> Shell(current, viewModel, instances)
             is AppState.Failure -> FailureScreen(current.message, viewModel::refresh)
         }
     }
@@ -80,7 +83,11 @@ private fun FailureScreen(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun Shell(state: AppState.SignedIn, viewModel: AppViewModel) {
+private fun Shell(
+    state: AppState.SignedIn,
+    viewModel: AppViewModel,
+    instances: List<String>,
+) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     Scaffold(
         bottomBar = {
@@ -111,7 +118,9 @@ private fun Shell(state: AppState.SignedIn, viewModel: AppViewModel) {
                 1 -> ModulesScreen(state.modules)
                 2 -> SettingsScreen(
                     instance = state.instance,
+                    knownInstances = instances,
                     user = state.user,
+                    onRememberInstance = viewModel::rememberInstance,
                     onChangeInstance = viewModel::changeInstance,
                     onTheme = { viewModel.updateProfile(theme = it) },
                     onLocale = { viewModel.updateProfile(locale = it) },

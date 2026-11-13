@@ -38,7 +38,40 @@ class InstanceStoreTest {
 
         assertEquals("http://192.168.1.108:3003", store.current())
         assertTrue(store.isOverridden())
-        assertEquals("http://192.168.1.108:3003", prefs.values[InstanceStore.KEY])
+        assertEquals("http://192.168.1.108:3003", prefs.values[InstanceStore.CURRENT])
+    }
+
+    @Test
+    fun `known starts with the build default and keeps what the user added`() {
+        val store = InstanceStore(FakeStore(), default)
+        store.remember("http://192.168.1.108:3003")
+        store.remember("https://staging.example.test")
+
+        assertEquals(
+            listOf(default, "http://192.168.1.108:3003", "https://staging.example.test"),
+            store.known(),
+        )
+    }
+
+    @Test
+    fun `remember adds an instance without switching to it`() {
+        val store = InstanceStore(FakeStore(), default)
+        store.remember("http://192.168.1.108:3003")
+
+        assertEquals(default, store.current())
+        assertTrue(store.known().contains("http://192.168.1.108:3003"))
+    }
+
+    @Test
+    fun `forget removes an instance and falls back to the default`() {
+        val prefs = FakeStore()
+        val store = InstanceStore(prefs, default)
+        store.save("http://192.168.1.108:3003")
+
+        store.forget("http://192.168.1.108:3003")
+
+        assertEquals(default, store.current())
+        assertFalse(store.known().contains("http://192.168.1.108:3003"))
     }
 
     @Test
@@ -49,6 +82,6 @@ class InstanceStoreTest {
         store.save(default)
 
         assertEquals(default, store.current())
-        assertNull(prefs.values[InstanceStore.KEY])
+        assertNull(prefs.values[InstanceStore.CURRENT])
     }
 }

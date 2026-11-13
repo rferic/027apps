@@ -4,14 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.data.UserDto
+import com.rferic.zero27apps.ui.InstancePickerDialog
 import com.rferic.zero27apps.ui.theme.LocalPalette
 
 private val LOCALES = listOf("en", "es", "ca", "it", "fr", "de", "pt", "gl", "eu")
@@ -36,15 +35,29 @@ private val THEMES = listOf("system", "light", "dark")
 @Composable
 fun SettingsScreen(
     instance: String,
+    knownInstances: List<String>,
     user: UserDto,
+    onRememberInstance: (String) -> String?,
     onChangeInstance: (String) -> Boolean,
     onTheme: (String) -> Unit,
     onLocale: (String) -> Unit,
     onSignOut: () -> Unit,
 ) {
     val palette = LocalPalette.current
-    var newInstance by rememberSaveable { mutableStateOf(instance) }
-    var instanceError by rememberSaveable { mutableStateOf(false) }
+    var showPicker by rememberSaveable { mutableStateOf(false) }
+
+    if (showPicker) {
+        InstancePickerDialog(
+            known = knownInstances,
+            current = instance,
+            onAdd = onRememberInstance,
+            onPick = { url ->
+                showPicker = false
+                onChangeInstance(url)
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -78,26 +91,8 @@ fun SettingsScreen(
 
         Section("Instance") {
             Text(instance, color = palette.mutedForeground, fontSize = 12.sp)
-            OutlinedTextField(
-                value = newInstance,
-                onValueChange = {
-                    newInstance = it
-                    instanceError = false
-                },
-                label = { Text("Instance URL") },
-                singleLine = true,
-                isError = instanceError,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { instanceError = !onChangeInstance(newInstance) }) {
-                    Text("Change")
-                }
-                TextButton(onClick = onSignOut) { Text("Sign out") }
-            }
-            if (instanceError) {
-                Text("That is not a valid instance URL.", color = palette.destructive, fontSize = 12.sp)
-            }
+            Button(onClick = { showPicker = true }) { Text("Change instance") }
+            TextButton(onClick = onSignOut) { Text("Sign out") }
         }
 
         Text(

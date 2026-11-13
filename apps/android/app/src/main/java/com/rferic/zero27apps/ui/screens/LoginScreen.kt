@@ -3,7 +3,6 @@ package com.rferic.zero27apps.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,6 +26,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.BuildConfig
+import com.rferic.zero27apps.ui.InstancePickerDialog
 import com.rferic.zero27apps.ui.LoginState
 import com.rferic.zero27apps.ui.theme.LocalPalette
 
@@ -37,16 +37,29 @@ import com.rferic.zero27apps.ui.theme.LocalPalette
 @Composable
 fun LoginScreen(
     instance: String,
+    knownInstances: List<String>,
     state: LoginState,
     onLogin: (email: String, password: String) -> Unit,
+    onRememberInstance: (String) -> String?,
     onChangeInstance: (String) -> Boolean,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
-    var editingInstance by rememberSaveable { mutableStateOf(false) }
-    var url by rememberSaveable { mutableStateOf(instance) }
-    var invalidInstance by rememberSaveable { mutableStateOf(false) }
+    var showPicker by rememberSaveable { mutableStateOf(false) }
     val palette = LocalPalette.current
+
+    if (showPicker) {
+        InstancePickerDialog(
+            known = knownInstances,
+            current = instance,
+            onAdd = onRememberInstance,
+            onPick = { url ->
+                showPicker = false
+                onChangeInstance(url)
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -61,34 +74,8 @@ fun LoginScreen(
         }
         Spacer(Modifier.height(12.dp))
 
-        if (editingInstance) {
-            OutlinedTextField(
-                value = url,
-                onValueChange = {
-                    url = it
-                    invalidInstance = false
-                },
-                label = { Text("Instance URL") },
-                singleLine = true,
-                isError = invalidInstance,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { invalidInstance = !onChangeInstance(url) }) { Text("Use") }
-                TextButton(onClick = { editingInstance = false }) { Text("Cancel") }
-            }
-            if (invalidInstance) {
-                Text(
-                    "That URL is not valid for this build.",
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 12.sp,
-                )
-            }
-            Spacer(Modifier.height(16.dp))
-        } else {
-            TextButton(onClick = { editingInstance = true }) { Text("Change instance") }
-            Spacer(Modifier.height(16.dp))
-        }
+        TextButton(onClick = { showPicker = true }) { Text("Change instance") }
+        Spacer(Modifier.height(16.dp))
 
         OutlinedTextField(
             value = email,

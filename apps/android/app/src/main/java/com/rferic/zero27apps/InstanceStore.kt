@@ -1,39 +1,63 @@
 package com.rferic.zero27apps
 
-/**
- * Small port over `SharedPreferences` so [InstanceStore] is testable without
- * Android. Only the instance override lives here; the session has its own
- * encrypted store.
- */
-interface StringStore {
-    fun get(key: String): String?
-    fun put(key: String, value: String)
-    fun remove(key: String)
-}
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 
 /**
- * Remembers a non-default instance. Empty means "the one this build targets":
- * [defaultUrl] comes from `BuildConfig.DEFAULT_INSTANCE_URL`, so the first
- * launch never asks for a URL and a tester can point it at the LAN.
+ * Remembers the instances this install has used, and which one is active. The
+ * build-time instance is always first and cannot be removed, so a tester can
+ * always come back to production after adding a LAN stack.
  */
 class InstanceStore(
     private val store: StringStore,
     private val defaultUrl: String,
 ) {
-    fun current(): String = store.get(KEY) ?: defaultUrl
+    private val json = Json { ignoreUnknownKeys = true }
 
-    fun isOverridden(): Boolean = store.get(KEY) != null
+    fun current(): String = store.get(CURRENT) ?: defaultUrl
 
-    fun save(url: String) {
-        if (url == defaultUrl) store.remove(KEY) else store.put(KEY, url)
+    fun isOverridden(): Boolean = store.get(CURRENT) != null
+
+    /** The build default plus every instance the user added, in that order. */
+    fun known(): List<String> {
+        val saved = decode(store.get(KNOWN))
+        return (listOf(defaultUrl) + saved + listOf(current())).distinct()
     }
 
-    /** Called when switching instance: the session belongs to the old one. */
-    fun clear() {
-        store.remove(KEY)
+    /** Adds the instance to the list without switching to it. */
+    fun remember(url: String) {
+        if (url == defaultUrl) return
+        val next = (known() + url).distinct()
+        store.put(KNOWN, json.encodeToString(ListSerializer(String.serializer()), next))
+    }
+
+    /** Switches the active instance (and remembers it). */
+    fun save(url: String) {
+        remember(url)
+        if (url == defaultUrl) store.remove(CURRENT) else store.put(CURRENT, url)
+    }
+
+    /** Removes a saved instance; the active one falls back to the default. */
+    fun forget(url: String) {
+        if (url == defaultUrl) return
+        val next = known().filterNot { it == url }
+        store.put(
+            KNOWN,
+            json.encodeToString(ListSerializer(String.serializer()), next.filterNot { it == defaultUrl }),
+        )
+        if (current() == url) store.remove(CURRENT)
+    }
+
+    private fun decode(raw: String?): List<String> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return runCatching {
+            json.decodeFromString(ListSerializer(String.serializer()), raw)
+        }.getOrDefault(emptyList())
     }
 
     companion object {
-        const val KEY = "instance_url"
+        const val CURRENT = "instance_url"
+        const val KNOWN = "instance_history"
     }
 }

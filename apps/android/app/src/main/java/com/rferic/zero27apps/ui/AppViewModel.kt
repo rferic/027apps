@@ -47,6 +47,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _login = MutableStateFlow(LoginState())
     val login: StateFlow<LoginState> = _login.asStateFlow()
 
+    /** Instances the chooser offers: the build default plus the saved ones. */
+    private val _instances = MutableStateFlow(instanceStore.known())
+    val instances: StateFlow<List<String>> = _instances.asStateFlow()
+
     private var supabase: SupabaseClient? = null
     private var client: ApiClient? = null
 
@@ -102,6 +106,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Adds an instance to the chooser without switching to it. Returns the
+     * normalised URL, or null when the build cannot accept it.
+     */
+    fun rememberInstance(raw: String): String? {
+        val normalized = ServerUrl.normalize(raw, requireHttps = !BuildConfig.DEBUG) ?: return null
+        instanceStore.remember(normalized)
+        _instances.value = instanceStore.known()
+        return normalized
+    }
+
     /** Points the app at another instance and starts signed out. */
     fun changeInstance(raw: String): Boolean {
         val normalized = ServerUrl.normalize(raw, requireHttps = !BuildConfig.DEBUG) ?: return false
@@ -112,6 +127,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             client = null
             supabase = null
             instanceStore.save(normalized)
+            _instances.value = instanceStore.known()
             boot()
         }
         return true
