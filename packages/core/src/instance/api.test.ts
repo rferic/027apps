@@ -10,9 +10,13 @@ function deps(authConfig?: { supabaseUrl: string; supabaseAnonKey: string } | nu
   return {
     door,
     auth: async (): Promise<Caller> => ({ kind: "anon" }),
-    settings: { db: { query: async () => ({ rows: [] }) }, encryption: null },
+    settings: {
+      db: { query: async () => ({ rows: [] }) },
+      encryption: null,
+      currencies: { isEnabled: async () => true },
+    },
     version: "1.2.3",
-    ...(authConfig === undefined ? {} : { authConfig }),
+    authConfig: authConfig ?? null,
   };
 }
 
