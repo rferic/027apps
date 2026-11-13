@@ -41,6 +41,13 @@
     },
     "admin_pages": { "type": "array", "items": { "$ref": "#/$defs/adminPage" } },
     "dashboard_widgets": { "type": "array", "items": { "$ref": "#/$defs/dashboardWidget" } },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visible"],
+      "properties": { "visible": { "type": "boolean" } }
+    },
+    "requires": { "type": "array", "items": { "$ref": "#/$defs/moduleRequirement" } },
     "docs": { "$ref": "#/$defs/docs" }
   },
   "allOf": [
@@ -231,6 +238,15 @@
         "icon": { "type": "string", "minLength": 1 },
         "order": { "type": "integer", "minimum": 0 },
         "data_fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" }
+      }
+    },
+    "moduleRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "version"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
       }
     },
     "docs": {

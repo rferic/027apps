@@ -146,6 +146,15 @@ Ejemplo completo:
   `user_id` con acceso).
 - Los `hooks` referencian eventos del Core o del propio módulo; el valor es el nombre de la
   función `snake_case` que los atiende.
+- `app`: `{ "visible": boolean }`, por defecto `true`. Un módulo con `visible: false` es de
+  **fondo**: no aparece en el lanzador de la app ni tiene pantallas móviles, pero conserva panel,
+  ajustes, eventos y workers. `is_public` sigue siendo visibilidad de acceso, no de UI.
+- `requires`: lista de `{ key, version }`; la versión es un **mínimo** (`1.2.0`, no rangos).
+  Instalar exige que la dependencia esté **instalada** (y con versión suficiente); activar, que
+  esté **activa**. Desactivar o desinstalar se niega mientras otro módulo instalado la requiera.
+  Un módulo no puede requerirse a sí mismo y no se permiten duplicados; los ciclos se rechazan al
+  instalar. Las reglas se resuelven contra `module_registry` (`app_visible`, `requires`), no
+  leyendo paquetes en cada transición.
 - `dashboard_widgets`: cada widget declara `key` (`modulo.dato`, con guion permitido en el
   prefijo), `type` (`summary`|`metric`|`list`), `surface` (`app`|`panel`), `title`, `icon`,
   `order` y `data_fn`, una función del esquema del módulo `(user_id uuid) returns jsonb` que

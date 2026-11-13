@@ -169,6 +169,13 @@ const dashboardWidgetSchema = z
   })
   .strict();
 
+const moduleRequirementSchema = z
+  .object({
+    key: z.string().regex(MODULE_KEY),
+    version: z.string().regex(/^[0-9]+\.[0-9]+\.[0-9]+$/),
+  })
+  .strict();
+
 const docsSchema = z
   .object({
     readme: z.string().regex(RELATIVE_FILE),
@@ -202,6 +209,11 @@ export const manifestSchema = z
     hooks: z.record(z.string(), z.string().regex(FUNCTION_NAME)).default({}),
     admin_pages: z.array(adminPageSchema).default([]),
     dashboard_widgets: z.array(dashboardWidgetSchema).default([]),
+    app: z
+      .object({ visible: z.boolean() })
+      .strict()
+      .default({ visible: true }),
+    requires: z.array(moduleRequirementSchema).default([]),
     docs: docsSchema,
   })
   .strict()
@@ -259,6 +271,19 @@ export const manifestSchema = z
           });
         }
       }
+    }
+    for (const requirement of manifest.requires) {
+      if (requirement.key === manifest.key) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["requires", requirement.key],
+          message: "a module cannot require itself",
+        });
+      }
+    }
+    const requiredKeys = manifest.requires.map((requirement) => requirement.key);
+    if (new Set(requiredKeys).size !== requiredKeys.length) {
+      ctx.addIssue({ code: "custom", path: ["requires"], message: "duplicate requirement" });
     }
     const widgetKeys = manifest.dashboard_widgets.map((widget) => widget.key);
     if (new Set(widgetKeys).size !== widgetKeys.length) {

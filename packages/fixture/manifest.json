@@ -76,5 +76,8 @@
     "readme": "docs/readme.md",
     "api": "docs/api.md",
     "settings": "docs/settings.md"
+  },
+  "app": {
+    "visible": true
   }
 }

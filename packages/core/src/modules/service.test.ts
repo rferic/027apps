@@ -194,6 +194,9 @@ const UNINSTALL_MANIFEST = {
 function uninstallDeps(input: { grants?: number; applied?: string[] }): ModulesDeps {
   const db: QueryClient = {
     async query(sql: string) {
+      // "Who requires this module" is a different query than the registry row:
+      // the fake must answer it with an empty set, not with the module itself.
+      if (sql.includes("jsonb_array_elements(r.requires)")) return { rows: [] };
       if (sql.includes("from public.module_registry")) {
         return {
           rows: [

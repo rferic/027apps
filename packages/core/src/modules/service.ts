@@ -364,6 +364,84 @@ async function assertProfileForeignKeys(db: QueryClient, schema: string): Promis
   }
 }
 
+/** `1.2.3` compared by number, no range syntax: a requirement is a minimum. */
+export function compareVersions(left: string, right: string): number {
+  const a = left.split(".").map((part) => Number(part));
+  const b = right.split(".").map((part) => Number(part));
+  for (let index = 0; index < 3; index += 1) {
+    const diff = (a[index] ?? 0) - (b[index] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+type Requirement = { key: string; version: string };
+
+/**
+ * Install needs the dependency present; activate needs it active. The version
+ * is a minimum, so a newer dependency always satisfies it.
+ */
+async function assertRequirements(
+  db: QueryClient,
+  requires: readonly Requirement[],
+  mode: "installed" | "active",
+): Promise<void> {
+  for (const requirement of requires) {
+    const { rows } = await db.query(
+      "select state, version from public.module_registry where key = $1",
+      [requirement.key],
+    );
+    const row = rows[0];
+    if (!row) {
+      throw new DomainError(
+        "validation_failed",
+        `requires module ${requirement.key}`,
+        { code: "missing_dependency", key: requirement.key },
+      );
+    }
+    if (mode === "active" && row.state !== "active") {
+      throw new DomainError(
+        "conflict",
+        `requires ${requirement.key} to be active`,
+        { code: "dependency_inactive", key: requirement.key },
+      );
+    }
+    if (compareVersions(String(row.version), requirement.version) < 0) {
+      throw new DomainError(
+        "validation_failed",
+        `requires ${requirement.key} >= ${requirement.version}`,
+        { code: "dependency_version", key: requirement.key },
+      );
+    }
+  }
+}
+
+/** Refuses when another module that requires this one is `active` (or any state). */
+async function assertNotRequired(
+  db: QueryClient,
+  key: string,
+  states: readonly string[],
+): Promise<void> {
+  const { rows } = await db.query(
+    `select r.key from public.module_registry r
+      where r.key <> $1
+        and r.state = any($2::text[])
+        and exists (
+          select 1 from jsonb_array_elements(r.requires) item
+           where item->>'key' = $1
+        )
+      limit 1`,
+    [key, states],
+  );
+  if (rows[0]) {
+    throw new DomainError(
+      "conflict",
+      `module ${String(rows[0].key)} requires this one`,
+      { code: "required_by_module", key: String(rows[0].key) },
+    );
+  }
+}
+
 export async function installModule(
   deps: ModulesDeps,
   caller: Caller,
@@ -382,15 +460,26 @@ export async function installModule(
       [manifest.key],
     );
     if (existing[0]) throw new DomainError("conflict", "Module is already installed");
+    await assertRequirements(db, manifest.requires, "installed");
 
     await db.query(`create schema if not exists ${quoteIdent(schema)}`);
     await db.query(`grant usage, create on schema ${quoteIdent(schema)} to ${MODULE_ROLE}`);
 
     await db.query(
       `insert into public.module_registry
-         (key, name, version, state, is_public, mcp_exposed, manifest_digest, scopes)
-       values ($1, $2, $3, 'installed', $4, 'read', $5, $6::text[])`,
-      [manifest.key, manifest.name, manifest.version, manifest.is_public, digest, manifest.scopes],
+         (key, name, version, state, is_public, mcp_exposed, manifest_digest, scopes,
+          app_visible, requires)
+       values ($1, $2, $3, 'installed', $4, 'read', $5, $6::text[], $7, $8::jsonb)`,
+      [
+        manifest.key,
+        manifest.name,
+        manifest.version,
+        manifest.is_public,
+        digest,
+        manifest.scopes,
+        manifest.app.visible,
+        JSON.stringify(manifest.requires),
+      ],
     );
     for (const channel of manifest.channels) {
       await db.query(
@@ -580,42 +669,57 @@ export async function updateModule(
   return toModuleView(rows[0]);
 }
 
-async function transition(
-  deps: ModulesDeps,
+async function transitionOn(
+  db: QueryClient,
   caller: Caller,
   key: string,
   target: ModuleState,
   from: ModuleState[],
 ): Promise<ModuleView> {
   if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
+  const { rows } = await db.query(
+    `update public.module_registry
+        set state = $1, updated_at = now()
+      where key = $2 and state = any($3::text[])
+      returning ${MODULE_COLUMNS}`,
+    [target, key, from],
+  );
+  if (rows[0]) {
+    await enqueueEvent(db, {
+      type: target === "active" ? "module.activated" : "module.deactivated",
+      target: "admins",
+      module_key: key,
+      resource: toModuleView(rows[0]),
+    });
+    return toModuleView(rows[0]);
+  }
+  const row = await getModuleRow(db, key);
+  throw new DomainError("conflict", `Cannot move the module from ${String(row.state)} to ${target}`);
+}
+
+export async function activateModule(
+  deps: ModulesDeps,
+  caller: Caller,
+  key: string,
+): Promise<ModuleView> {
   return withTx(deps, async (db) => {
-    const { rows } = await db.query(
-      `update public.module_registry
-          set state = $1, updated_at = now()
-        where key = $2 and state = any($3::text[])
-        returning ${MODULE_COLUMNS}`,
-      [target, key, from],
-    );
-    if (rows[0]) {
-      await enqueueEvent(db, {
-        type: target === "active" ? "module.activated" : "module.deactivated",
-        target: "admins",
-        module_key: key,
-        resource: toModuleView(rows[0]),
-      });
-      return toModuleView(rows[0]);
-    }
     const row = await getModuleRow(db, key);
-    throw new DomainError("conflict", `Cannot move the module from ${String(row.state)} to ${target}`);
+    const { rows } = await db.query("select requires from public.module_registry where key = $1", [key]);
+    const requires = (rows[0]?.requires as Requirement[] | undefined) ?? [];
+    await assertRequirements(db, requires, "active");
+    return transitionOn(db, caller, key, "active", ["installed", "disabled"]);
   });
 }
 
-export function activateModule(deps: ModulesDeps, caller: Caller, key: string): Promise<ModuleView> {
-  return transition(deps, caller, key, "active", ["installed", "disabled"]);
-}
-
-export function deactivateModule(deps: ModulesDeps, caller: Caller, key: string): Promise<ModuleView> {
-  return transition(deps, caller, key, "disabled", ["active"]);
+export async function deactivateModule(
+  deps: ModulesDeps,
+  caller: Caller,
+  key: string,
+): Promise<ModuleView> {
+  return withTx(deps, async (db) => {
+    await assertNotRequired(db, key, ["active"]);
+    return transitionOn(db, caller, key, "disabled", ["active"]);
+  });
 }
 
 export async function uninstallModule(
@@ -632,6 +736,7 @@ export async function uninstallModule(
 
   await withTx(deps, async (db) => {
     await getModuleRow(db, key);
+    await assertNotRequired(db, key, ["installed", "active", "disabled"]);
 
     const { rows: usage } = await db.query(
       `select
