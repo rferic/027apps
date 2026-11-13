@@ -2,12 +2,15 @@ package com.rferic.zero27apps.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -31,8 +34,38 @@ import com.rferic.zero27apps.ui.InstancePickerDialog
 import com.rferic.zero27apps.ui.components.BrandTile
 import com.rferic.zero27apps.ui.LoginError
 import com.rferic.zero27apps.ui.LoginState
+import com.rferic.zero27apps.ui.UpdateState
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
+
+/** A newer build is available: same notice as Home, before signing in. */
+@Composable
+private fun UpdateNotice(update: UpdateState, onInstall: () -> Unit) {
+    val palette = LocalPalette.current
+    val strings = LocalStrings.current
+    when (update) {
+        is UpdateState.Available -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(palette.successSubtle, RoundedCornerShape(12.dp))
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                "${strings.updateAvailable} · v${update.version}",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            Button(onClick = onInstall) { Text(strings.updateInstall, fontSize = 12.sp) }
+        }
+        UpdateState.Downloading -> Text(strings.updateDownloading, fontSize = 12.sp, color = palette.mutedForeground)
+        UpdateState.Installing -> Text(strings.updateInstalling, fontSize = 12.sp, color = palette.mutedForeground)
+        UpdateState.Failed -> Text(strings.updateFailed, fontSize = 12.sp, color = palette.destructive)
+        UpdateState.None -> Unit
+    }
+}
 
 @Composable
 private fun loginErrorText(error: LoginError): String {
@@ -53,9 +86,11 @@ fun LoginScreen(
     instance: String,
     knownInstances: List<String>,
     state: LoginState,
+    update: UpdateState,
     onLogin: (email: String, password: String) -> Unit,
     onRememberInstance: (String) -> String?,
     onChangeInstance: (String) -> Boolean,
+    onInstallUpdate: () -> Unit,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -93,6 +128,8 @@ fun LoginScreen(
 
         TextButton(onClick = { showPicker = true }) { Text(strings.changeInstance) }
         Spacer(Modifier.height(16.dp))
+
+        UpdateNotice(update, onInstallUpdate)
 
         OutlinedTextField(
             value = email,

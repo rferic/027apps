@@ -90,9 +90,11 @@ fun AppRoot(deepLink: String? = null, viewModel: AppViewModel = viewModel()) {
                         instance = current.instance,
                         knownInstances = instances,
                         state = login,
+                        update = update,
                         onLogin = viewModel::login,
                         onRememberInstance = viewModel::rememberInstance,
                         onChangeInstance = viewModel::changeInstance,
+                        onInstallUpdate = viewModel::installUpdate,
                     )
                     is AppState.NeedsInvite -> InviteScreen(
                         link = current.link,

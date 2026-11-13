@@ -245,11 +245,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val supabaseClient = supabaseFactory.create(auth.supabaseUrl, auth.supabaseAnonKey)
             supabase = supabaseClient
             supabaseClient.auth.awaitInitialization()
+            // Before the session branch: a fresh install must be able to update
+            // from the login screen, without signing in first.
+            checkForUpdate()
             if (supabaseClient.auth.currentSessionOrNull() == null) {
                 _state.value = AppState.NeedsLogin(base)
                 return
             }
-            checkForUpdate()
             val me = api.me()
             val modules = api.myModules().modules
             _state.value = AppState.SignedIn(base, me, modules)
