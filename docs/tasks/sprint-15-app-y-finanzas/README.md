@@ -48,10 +48,12 @@ y el importador se entregan al final, como tarea 07: el propietario los ha metid
   de diseño aprobada define como primer módulo **Split Expenses** (gastos compartidos,
   balances y liquidación). Hay que resolver esa contradicción antes de escribir DDL.
 
-## Alcance: siete tareas
+## Alcance: ocho tareas
 
-**Sprint 15 (7 tareas, obligatorias):** app Android real, runtime del primer módulo **partido en
-cuatro tareas**, OweNo usable en el panel y OweNo en la app con el **importador de Splitwise**.
+**Sprint 15 (8 tareas: 7 obligatorias y 1 de extras):** app Android real, runtime del primer
+módulo **partido en cuatro tareas**, OweNo usable en el panel y OweNo en la app con el
+**importador de Splitwise**. La **08** es la tarea de **extras** con la que cierra el sprint: un
+cambio pequeño de la web pública. Cada sprint puede terminar con una así.
 El propietario metió el importador en v1 (D3.2, C) y es una función móvil, así que las pantallas
 de OweNo y el importador no pueden quedar para el sprint 16.
 
@@ -174,11 +176,12 @@ su widget en la tarea 06. Sin cerrar el contrato, el dashboard no puede incrusta
 | 5 | [task-05](task-05.md) — Datos de demo del Core y de los módulos | feature + contrato | 02, 03 | Habilita capturas y aceptación sin datos reales (D21, B), con gate en producción y sin emails. |
 | 6 | [task-06](task-06.md) — OweNo v1: mockup, módulo, API y panel | feature + diseño | 01, 02–05 + D3, D9 | Primer módulo real; valida el runtime y deja OweNo usable en el panel. Incluye los mockups F1 y F2. |
 | 7 | [task-07](task-07.md) — OweNo en Android: pantallas, importador y capturas | feature | 01 y 06 | **Obligatoria**: el importador es móvil (D3.2) y es el producto v1. Cierra pantallas, importador, capturas y landing `available`. |
+| 8 | [task-08](task-08.md) — Extras: descarga con icono de Android y literal | feature (web) | — | **Extras**: cierra el sprint con un cambio pequeño y visible de la landing. Se hace al final, cuando el resto está en verde. |
 
 Las tareas 01 y 02 no comparten estado: pueden ejecutarse en paralelo por agentes distintos. La
 03 y la 04 también pueden ir en paralelo sobre la 02. La 05 necesita la ficha del módulo (03). La
 06 no empieza hasta que 02–05 estén `finalizadas` y el propietario haya cerrado la spec y los
-mockups F1/F2. La 07 no empieza hasta que 01 y 06 estén `finalizadas`.
+mockups F1/F2. La 07 no empieza hasta que 01 y 06 estén `finalizadas`. La 08 es independiente y va la última.
 
 `task-07.md` es obligatoria en este sprint. No se mueve al sprint 16: el importador forma parte
 de la v1 y es una función de la app.
@@ -194,7 +197,7 @@ de la v1 y es una función de la app.
 - El runtime del módulo tiene cinco huecos de plataforma que deben cerrarse **antes** de
   escribir el dominio de OweNo; si se mezclan, un fallo del instalador se confunde con un
   fallo del módulo.
-- Un sprint de siete tareas con una sola puerta de aceptación al final es el escenario que
+- Un sprint de ocho tareas con una sola puerta de aceptación al final es el escenario que
   el flujo de `feature.md` evita. Aquí la aceptación no se deja al final: 01 se acepta sola, 03
   tiene sus mockups y preview, y 04 llega con el importador y las capturas. Las puertas
   intermedias son la mitigación.
@@ -236,7 +239,7 @@ de la v1 y es una función de la app.
 
 ## Puertas del propietario
 
-1. **Aprueba este sprint** con las 7 tareas (decidido: el importador es móvil y entra en v1; la 02 se partió en 02–05).
+1. **Aprueba este sprint** con las 8 tareas (decidido: el importador es móvil y entra en v1; la 02 se partió en 02–05; la 08 es extras).
 2. **Responde D3 y D9** (límites de v1 y alcance del panel). D2 (gastos compartidos) y D4
    (OweNo) ya están cerradas.
 3. **Aprueba la spec de la tarea 01** y, después, su **mockup A** (esqueleto base). El plan se
@@ -258,7 +261,7 @@ de la v1 y es una función de la app.
 
 | # | Decisión | Opciones | Recomendación |
 |---|---|---|---|
-| D1 | Alcance del sprint 15 | 3 tareas (OweNo Android al sprint 16) / 4 tareas (todo) / partir la 02 | **7 tareas** (decidido 2026-11-13: el importador entra en v1 y el runtime se parte en 02–05) |
+| D1 | Alcance del sprint 15 | 3 tareas (OweNo Android al sprint 16) / 4 tareas (todo) / partir la 02 | **8 tareas** (decidido 2026-11-13: el importador entra en v1, el runtime se parte en 02–05 y la 08 es extras) |
 | D2 | Qué es OweNo v1 | Gastos compartidos, balances y liquidación · presupuestos · ambos | **Gastos compartidos** (decidido 2026-11-12; la landing se corrige) |
 | D3 | Límites de OweNo v1 | Miembros ficticios con **enlace manual por admin** (sin claiming automático); **importador de Splitwise en v1** (C, decidido; CSV por grupo, **sin Pro → sin JSON/API**, autoenlace por nombre, **rechaza multi-divisa con aviso**); **reparto igual o importes exactos** por persona (sin porcentajes ni pesos); **liquidación con el mínimo exacto de transferencias** (B, decidido), con tope configurable por setting del módulo (`settlement_exact_limit`, 4–20, defecto 12, deslizador en el panel) y voraz con aviso por encima; sin presupuestos; monomoneda por grupo | **En discusión** (D3.1 ficticios, D3.2 importador, D3.3 multi-divisa, D3.4 CSV sin Pro, D3.5 reparto B, D3.6 liquidación B, D3.7 tope configurable y D3.8 sin presupuestos/recibos decididos 2026-11-12) |
 | D4 | Identidad del módulo | `owe-no` / «OweNo» · logo F billete · `branding.color` emerald | **`owe-no` / «OweNo», logo F, color emerald** (elegido 2026-11-12; la landing se actualiza en el PR del módulo) |
