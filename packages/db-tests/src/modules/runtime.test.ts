@@ -90,6 +90,7 @@ function manifest(up = UP, down = DOWN, overrides: Record<string, unknown> = {})
     name: "Runtime",
     branding: { description: "Runtime module", icon: "assets/icon.svg", color: "teal" },
     version: "1.0.0",
+    contract: 1,
     is_public: false,
     migrations: [
       { version: "1.0.0", up, down, digest: sha256(up), down_digest: sha256(down) },

@@ -146,6 +146,9 @@ Ejemplo completo:
   `user_id` con acceso).
 - Los `hooks` referencian eventos del Core o del propio módulo; el valor es el nombre de la
   función `snake_case` que los atiende.
+- `contract`: entero obligatorio; debe **igualar** `CORE_CONTRACT`. Solo sube con cambios
+  incompatibles del contrato (campos obligatorios, semántica); los aditivos no lo mueven. Un
+  módulo de otra generación no instala ni actualiza, y el error dice cuál espera el Core.
 - `app`: `{ "visible": boolean }`, por defecto `true`. Un módulo con `visible: false` es de
   **fondo**: no aparece en el lanzador de la app ni tiene pantallas móviles, pero conserva panel,
   ajustes, eventos y workers. `is_public` sigue siendo visibilidad de acceso, no de UI.

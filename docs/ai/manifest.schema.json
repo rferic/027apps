@@ -16,6 +16,7 @@
     "name": { "type": "string", "minLength": 1 },
     "branding": { "$ref": "#/$defs/branding" },
     "version": { "$ref": "#/$defs/semver" },
+    "contract": { "type": "integer", "minimum": 1 },
     "is_public": { "type": "boolean" },
     "migrations": { "type": "array", "items": { "$ref": "#/$defs/migration" } },
     "settings": { "type": "array", "items": { "$ref": "#/$defs/settingsCategory" } },
@@ -92,6 +93,7 @@
       "required": ["version", "up", "down", "digest", "down_digest"],
       "properties": {
         "version": { "$ref": "#/$defs/semver" },
+    "contract": { "type": "integer", "minimum": 1 },
         "up": { "type": "string", "minLength": 1 },
         "down": { "type": "string", "minLength": 1 },
         "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },

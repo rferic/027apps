@@ -198,6 +198,7 @@ export const manifestSchema = z
       })
       .strict(),
     version: z.string().regex(SEMVER),
+    contract: z.number().int().min(1),
     is_public: z.boolean(),
     migrations: z.array(migrationSchema).default([]),
     settings: z.array(settingsCategorySchema).default([]),

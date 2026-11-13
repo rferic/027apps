@@ -1,5 +1,6 @@
 import { resolve, sep } from "node:path";
 import { DomainError } from "../errors";
+import { CORE_CONTRACT } from "../version.js";
 import { enqueueEvent } from "../realtime/service";
 import type { Caller, JsonValue } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
@@ -449,6 +450,13 @@ export async function installModule(
 ): Promise<ModuleView> {
   if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
   const manifest = validateManifest(value);
+  if (manifest.contract !== CORE_CONTRACT) {
+    throw new DomainError(
+      "validation_failed",
+      `module contract ${manifest.contract} does not match this Core (${CORE_CONTRACT})`,
+      { code: "contract_mismatch", expected: CORE_CONTRACT },
+    );
+  }
   const files = await verifyModuleFiles(deps, manifest);
   const actor = actorFor(caller);
   const digest = manifestDigest(manifest);

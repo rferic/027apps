@@ -60,6 +60,7 @@ function manifest(overrides: Record<string, unknown> = {}) {
     name: "Demo",
     branding: { description: "Demo module", icon: "assets/icon.svg", color: "teal" },
     version: "1.0.0",
+    contract: 1,
     is_public: false,
     migrations: [
       {
@@ -256,6 +257,15 @@ describe("modules installer", () => {
         { type: "bool" },
       );
       expect(updated.value).toBe(false);
+    });
+  });
+
+  it("refuses a module built for another contract generation", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      await expect(
+        installModule(deps(c), admin, manifest({ contract: 2 })),
+      ).rejects.toMatchObject({ details: { code: "contract_mismatch", expected: 1 } });
     });
   });
 

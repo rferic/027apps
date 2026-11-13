@@ -79,5 +79,6 @@
   },
   "app": {
     "visible": true
-  }
+  },
+  "contract": 1
 }

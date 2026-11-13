@@ -178,6 +178,7 @@ const UNINSTALL_MANIFEST = {
   name: "Inventory",
   branding: { description: "Stock", icon: "assets/icon.svg", color: "teal" },
   version: "1.0.0",
+  contract: 1,
   is_public: false,
   migrations: [],
   settings: [],
