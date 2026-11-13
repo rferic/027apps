@@ -2,8 +2,6 @@ import { timingSafeEqual } from "node:crypto";
 import { getInfra, withTransactionClient } from "@/lib/api/door";
 import { runDueModuleJobs } from "@027apps/core/modules/jobs.js";
 
-export const dynamic = "force-dynamic";
-
 /** Constant-time comparison that never throws on length mismatch. */
 function sameToken(left: string, right: string): boolean {
   const a = Buffer.from(left);

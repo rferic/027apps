@@ -5,6 +5,7 @@ const requirePanelMock = vi.fn();
 const loadModuleDetailMock = vi.fn();
 const loadModuleSettingsMock = vi.fn();
 const loadModuleGrantsMock = vi.fn();
+const loadModuleJobRunsMock = vi.fn();
 const notFoundMock = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
@@ -40,6 +41,7 @@ vi.mock("@/lib/panel-modules", () => ({
   loadModuleDetail: (key: string) => loadModuleDetailMock(key),
   loadModuleSettings: (key: string) => loadModuleSettingsMock(key),
   loadModuleGrants: (key: string) => loadModuleGrantsMock(key),
+  loadModuleJobRuns: (key: string) => loadModuleJobRunsMock(key),
 }));
 
 vi.mock("@/app/(auth)/actions", () => ({
@@ -103,6 +105,8 @@ beforeEach(() => {
   loadModuleSettingsMock.mockResolvedValue({ ok: true, settings: [SETTING] });
   loadModuleGrantsMock.mockReset();
   loadModuleGrantsMock.mockResolvedValue({ ok: true, grants: GRANTS });
+  loadModuleJobRunsMock.mockReset();
+  loadModuleJobRunsMock.mockResolvedValue({ ok: true, runs: [] });
   loadModuleManifestMock.mockReset();
   loadModuleManifestMock.mockResolvedValue(null);
   notFoundMock.mockClear();

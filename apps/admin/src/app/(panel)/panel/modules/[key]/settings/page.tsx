@@ -19,6 +19,7 @@ import { requirePanel } from "@/lib/panel-guard";
 import {
   loadModuleDetail,
   loadModuleGrants,
+  loadModuleJobRuns,
   loadModuleSettings,
   type ModuleDetail,
   type ModuleGrants,
@@ -387,9 +388,10 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
     );
   }
 
-  const [settings, grants] = await Promise.all([
+  const [settings, grants, jobRuns] = await Promise.all([
     loadModuleSettings(key),
     loadModuleGrants(key),
+    loadModuleJobRuns(key),
   ]);
 
   const [timeZone, manifest] = await Promise.all([
@@ -456,6 +458,36 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
           messages={messages}
         />
       )}
+
+      {manifest?.jobs && manifest.jobs.length > 0 ? (
+        <section
+          aria-labelledby="module-jobs-title"
+          className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+        >
+          <h2 id="module-jobs-title" className="text-sm font-semibold">
+            {t("Scheduled jobs", messages)}
+          </h2>
+          <ul className="flex flex-col gap-2 text-xs">
+            {manifest.jobs.map((job) => {
+              const last = jobRuns.ok ? jobRuns.runs.find((run) => run.job_key === job.key) : undefined;
+              return (
+                <li key={job.key} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0">
+                  <span className="font-mono text-[11px]">{job.key}</span>
+                  <code className="text-[11px] text-muted-foreground">{job.schedule}</code>
+                  {last ? (
+                    <span className={last.status === "error" ? "text-destructive" : "text-muted-foreground"}>
+                      {last.status}
+                      {last.duration_ms === undefined ? "" : ` · ${last.duration_ms} ms`}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       {grants.ok ? (
         <ModuleGrants grants={grants.grants} messages={messages} />

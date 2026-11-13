@@ -4,6 +4,7 @@ import {
   moduleGrantsRoute,
   moduleRoute,
   modulesRoute,
+  moduleJobRunsRoute,
   moduleSettingsRoute,
   updateModuleSettingRoute,
 } from "@027apps/core/modules/api.js";
@@ -463,6 +464,47 @@ export async function loadModuleSettings(key: string): Promise<ModuleSettingsRes
     settings.push(setting);
   }
   return { ok: true, settings };
+}
+
+function readJobRun(entry: unknown): ModuleJobRun | null {
+  if (!isRecord(entry)) return null;
+  const jobKey = readString(entry.job_key);
+  const status = readString(entry.status);
+  if (!jobKey || (status !== "ok" && status !== "error" && status !== "skipped")) return null;
+  const duration = typeof entry.duration_ms === "number" ? entry.duration_ms : undefined;
+  const error = readString(entry.error);
+  return {
+    job_key: jobKey,
+    status,
+    ...(duration === undefined ? {} : { duration_ms: duration }),
+    ...(error === undefined ? {} : { error }),
+  };
+}
+
+export interface ModuleJobRun {
+  job_key: string;
+  status: "ok" | "error" | "skipped";
+  duration_ms?: number;
+  error?: string;
+}
+
+export type ModuleJobRunsResult =
+  | { ok: true; runs: ModuleJobRun[] }
+  | { ok: false; requestId?: string };
+
+/** GET /api/v1/modules/{key}/jobs — last runs, newest first (scope `modules:read`). */
+export async function loadModuleJobRuns(key: string): Promise<ModuleJobRunsResult> {
+  const token = await sessionToken();
+  const deps = await modulesRouteDeps();
+  const handler = moduleJobRunsRoute(deps);
+  const call = await callRoute((req) => handler(req, key), pathFor(key, "/jobs"), token);
+  if (!call.ok) return call;
+
+  const entries = Array.isArray(call.body.runs) ? call.body.runs : [];
+  return {
+    ok: true,
+    runs: entries.map(readJobRun).filter((run): run is ModuleJobRun => run !== null),
+  };
 }
 
 /** GET /api/v1/modules/{key}/grants — who holds the module (scope `modules:manage`). */
