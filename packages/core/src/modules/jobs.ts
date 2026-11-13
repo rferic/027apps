@@ -21,7 +21,7 @@ function schemaFor(key: string): string {
   return `module_${key.replace(/-/g, "_")}`;
 }
 
-/** Minute precision: the claim key for one execution. */
+/** Minute precision: the claim key for one scheduled execution. */
 function scheduledFor(now: Date): Date {
   const minute = new Date(now);
   minute.setUTCSeconds(0, 0);
@@ -34,16 +34,72 @@ function message(error: unknown): string {
 }
 
 /**
- * Runs every job that is due in this minute for active modules. The row in
- * `module_job_runs` is claimed first (unique per module/job/minute), so a
- * second dispatcher call in the same minute skips it. A job failure is recorded
- * and never aborts the batch; the function runs with the module's timeout.
+ * Claims one execution and runs it. The row in `module_job_runs` is the claim
+ * (unique per module/job/timestamp), so a second dispatcher call in the same
+ * minute gets `skipped`. The function runs inside a real transaction: that is
+ * what makes `SET LOCAL statement_timeout` and `search_path` survive to the
+ * call. A failure is recorded and returned, never thrown to the batch.
  */
+async function executeJob(
+  deps: ModulesDeps,
+  moduleKey: string,
+  job: Job,
+  claimAt: Date,
+): Promise<JobRunResult> {
+  if (!deps.withTransaction) throw new DomainError("internal", "jobs need a transaction runner");
+  if (!IDENT.test(job.fn)) {
+    return { module_key: moduleKey, job_key: job.key, status: "error", error: "invalid function" };
+  }
+
+  const { rows: claim } = await deps.db.query(
+    `insert into public.module_job_runs (module_key, job_key, scheduled_for)
+     values ($1, $2, $3)
+     on conflict (module_key, job_key, scheduled_for) do nothing
+     returning id`,
+    [moduleKey, job.key, claimAt.toISOString()],
+  );
+  const runId = claim[0]?.id;
+  if (!runId) return { module_key: moduleKey, job_key: job.key, status: "skipped" };
+
+  const started = Date.now();
+  try {
+    await deps.withTransaction(async (db: QueryClient) => {
+      await db.query(`set local statement_timeout = ${Number(job.timeout_seconds) * 1000}`);
+      // Unqualified tables resolve against the module schema, as in migrations.
+      await db.query(`set local search_path to ${quote(schemaFor(moduleKey))}`);
+      await db.query(`select ${quote(job.fn)}()`);
+    });
+    const duration = Date.now() - started;
+    await deps.db.query(
+      `update public.module_job_runs
+          set status = 'ok', finished_at = now(), duration_ms = $2
+        where id = $1`,
+      [runId, duration],
+    );
+    return { module_key: moduleKey, job_key: job.key, status: "ok", duration_ms: duration };
+  } catch (error) {
+    const duration = Date.now() - started;
+    await deps.db.query(
+      `update public.module_job_runs
+          set status = 'error', finished_at = now(), duration_ms = $2, error = $3
+        where id = $1`,
+      [runId, duration, message(error)],
+    );
+    return {
+      module_key: moduleKey,
+      job_key: job.key,
+      status: "error",
+      duration_ms: duration,
+      error: message(error),
+    };
+  }
+}
+
+/** Runs every job that is due in this minute for active modules. */
 export async function runDueModuleJobs(
   deps: ModulesDeps,
   now: Date = new Date(),
 ): Promise<DispatchResult> {
-  if (!deps.withTransaction) throw new DomainError("internal", "jobs need a transaction runner");
   const at = scheduledFor(now);
   const { rows } = await deps.db.query(
     `select key, jobs from public.module_registry
@@ -56,67 +112,40 @@ export async function runDueModuleJobs(
 
   for (const row of rows) {
     const moduleKey = String(row.key);
-    const jobs = (row.jobs as Job[] | null) ?? [];
-    for (const job of jobs) {
+    for (const job of (row.jobs as Job[] | null) ?? []) {
       if (!isDueAt(job.schedule, at)) continue;
-      if (!IDENT.test(job.fn)) {
-        runs.push({ module_key: moduleKey, job_key: job.key, status: "error", error: "invalid function" });
-        failed += 1;
-        continue;
-      }
-
-      const { rows: claim } = await deps.db.query(
-        `insert into public.module_job_runs (module_key, job_key, scheduled_for)
-         values ($1, $2, $3)
-         on conflict (module_key, job_key, scheduled_for) do nothing
-         returning id`,
-        [moduleKey, job.key, at.toISOString()],
-      );
-      const runId = claim[0]?.id;
-      if (!runId) {
-        runs.push({ module_key: moduleKey, job_key: job.key, status: "skipped" });
-        continue;
-      }
-
-      const started = Date.now();
-      try {
-        await deps.withTransaction(async (db: QueryClient) => {
-          await db.query(`set local statement_timeout = ${Number(job.timeout_seconds) * 1000}`);
-          // The function resolves unqualified tables against its own schema,
-          // exactly like the migrations did when it was created.
-          await db.query(`set local search_path to ${quote(schemaFor(moduleKey))}`);
-          await db.query(`select ${quote(job.fn)}()`);
-        });
-        const duration = Date.now() - started;
-        await deps.db.query(
-          `update public.module_job_runs
-              set status = 'ok', finished_at = now(), duration_ms = $2
-            where id = $1`,
-          [runId, duration],
-        );
-        runs.push({ module_key: moduleKey, job_key: job.key, status: "ok", duration_ms: duration });
-        executed += 1;
-      } catch (error) {
-        const duration = Date.now() - started;
-        await deps.db.query(
-          `update public.module_job_runs
-              set status = 'error', finished_at = now(), duration_ms = $2, error = $3
-            where id = $1`,
-          [runId, duration, message(error)],
-        );
-        runs.push({
-          module_key: moduleKey,
-          job_key: job.key,
-          status: "error",
-          duration_ms: duration,
-          error: message(error),
-        });
-        failed += 1;
-      }
+      const result = await executeJob(deps, moduleKey, job, at);
+      runs.push(result);
+      if (result.status === "ok") executed += 1;
+      else if (result.status === "error") failed += 1;
     }
   }
 
   return { runs, executed, failed };
+}
+
+/**
+ * Manual run from the panel. The claim uses the exact timestamp, not the
+ * minute, so a manual click never steals the scheduled slot (and vice versa).
+ */
+export async function runModuleJobNow(
+  deps: ModulesDeps,
+  key: string,
+  jobKey: string,
+  now: Date = new Date(),
+): Promise<JobRunResult> {
+  const { rows } = await deps.db.query(
+    "select state, jobs from public.module_registry where key = $1",
+    [key],
+  );
+  const row = rows[0];
+  if (!row) throw new DomainError("not_found");
+  if (row.state !== "active") {
+    throw new DomainError("conflict", "module is not active", { code: "module_inactive" });
+  }
+  const job = ((row.jobs as Job[] | null) ?? []).find((candidate) => candidate.key === jobKey);
+  if (!job) throw new DomainError("not_found");
+  return executeJob(deps, key, job, now);
 }
 
 /** Job history for the panel, newest first. */

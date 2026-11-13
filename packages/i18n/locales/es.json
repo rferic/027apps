@@ -515,6 +515,7 @@
   "Roles: admin and user": "Roles: admin y user",
   "Run 027Apps on your own Vercel and Supabase: the desktop panel, API v1 and MCP.": "Ejecuta 027Apps en tu Vercel y Supabase: el panel de escritorio, API v1 y MCP.",
   "Run maintenance": "Ejecutar mantenimiento",
+  "Run now": "Ejecutar ahora",
   "SETTINGS_ENCRYPTION_KEY must decode to exactly 32 bytes. Generate a new one and redeploy.": "SETTINGS_ENCRYPTION_KEY debe decodificarse a exactamente 32 bytes. Genere uno nuevo y vuelva a implementar.",
   "Salary": "Nómina",
   "Same flow as development:": "El mismo flujo que en desarrollo:",

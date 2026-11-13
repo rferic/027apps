@@ -515,6 +515,7 @@
   "Roles: admin and user": "Rolak: admin eta user",
   "Run 027Apps on your own Vercel and Supabase: the desktop panel, API v1 and MCP.": "Jarri 027Apps martxan zure Vercel eta Supabase propioetan: mahaigaineko panela, API v1 eta MCP.",
   "Run maintenance": "Mantentzea exekutatu",
+  "Run now": "Exekutatu orain",
   "SETTINGS_ENCRYPTION_KEY must decode to exactly 32 bytes. Generate a new one and redeploy.": "SETTINGS_ENCRYPTION_KEY-ek 32 byte zehatzak erabili beharko ditu. Sortu bat berriro eta birraginatu.",
   "Salary": "Soldata",
   "Same flow as development:": "Garapeneko fluxu bera:",

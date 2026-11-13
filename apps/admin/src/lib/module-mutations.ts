@@ -39,6 +39,19 @@ export async function deactivateModule(
   return post(`/api/v1/modules/${encodeURIComponent(key)}/deactivate`, undefined, fetcher);
 }
 
+/** POST /api/v1/modules/{key}/jobs/{job}/run — run one scheduled job now. */
+export async function runModuleJob(
+  key: string,
+  job: string,
+  fetcher: typeof fetch = fetch,
+): Promise<MutationResult> {
+  return post(
+    `/api/v1/modules/${encodeURIComponent(key)}/jobs/${encodeURIComponent(job)}/run`,
+    undefined,
+    fetcher,
+  );
+}
+
 /** POST /api/v1/modules/{key}/upgrade — apply a newer trusted package, keeping data. */
 export async function upgradeModule(
   key: string,

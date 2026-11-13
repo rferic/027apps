@@ -2,7 +2,7 @@
 id: sprint-15-task-09
 titulo: Módulo — tareas programadas
 area: core
-estado: en curso
+estado: test
 fuente: docs/ai/module-system.md; vercel.json; docs/infrastructure.md
 plan: docs/superpowers/plans/2026-11-13-module-jobs.md
 adrs: [0007]

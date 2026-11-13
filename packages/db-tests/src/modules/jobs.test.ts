@@ -7,7 +7,7 @@ import {
   installModule,
   type ModulesDeps,
 } from "@027apps/core/modules/service.js";
-import { runDueModuleJobs } from "@027apps/core/modules/jobs.js";
+import { runDueModuleJobs, runModuleJobNow } from "@027apps/core/modules/jobs.js";
 import { sha256 } from "@027apps/core/modules/manifest.js";
 import type { Caller } from "@027apps/core/api/types.js";
 
@@ -121,6 +121,36 @@ describe("module jobs", () => {
       await runDueModuleJobs(deps(c), new Date("2026-11-13T10:07:00Z"));
       const { rows: disabled } = await query(c, "select count(*)::int as n from module_jobs_module.job_log");
       expect(disabled[0].n).toBe(2);
+    });
+  });
+
+  it("runs a job on demand and refuses it when the module is inactive", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      await installModule(deps(c), admin, manifest("jobs-module", "ping"));
+      await activateModule(deps(c), admin, "jobs-module");
+
+      const first = await runModuleJobNow(
+        deps(c),
+        "jobs-module",
+        "ping",
+        new Date("2026-11-13T10:05:00.100Z"),
+      );
+      const second = await runModuleJobNow(
+        deps(c),
+        "jobs-module",
+        "ping",
+        new Date("2026-11-13T10:05:00.900Z"),
+      );
+      expect(first.status).toBe("ok");
+      expect(second.status).toBe("ok");
+      const { rows } = await query(c, "select count(*)::int as n from module_jobs_module.job_log");
+      expect(rows[0].n).toBe(2);
+
+      await deactivateModule(deps(c), admin, "jobs-module");
+      await expect(
+        runModuleJobNow(deps(c), "jobs-module", "ping", new Date("2026-11-13T10:06:00Z")),
+      ).rejects.toMatchObject({ details: { code: "module_inactive" } });
     });
   });
 

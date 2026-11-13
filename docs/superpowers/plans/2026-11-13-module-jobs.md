@@ -27,11 +27,13 @@
 - [x] Tests `db-tests`: una vez por minuto, sin duplicar, siguiente minuto sí, desactivado no, y
       fallo registrado.
 
-## Parte C — Panel (pendiente)
+## Parte C — Panel (hecho)
 
-- [ ] Sección «Trabajos programados» en la ficha: schedule, último estado y duración.
-- [ ] Botón **Ejecutar ahora** (admin) con su endpoint y su claim.
-- [ ] `GET /api/v1/modules/{key}/jobs` ya existe; falta conectarlo a la página.
+- [x] Sección «Scheduled jobs» en la ficha: schedule, último estado y duración.
+- [x] Botón **Run now** con `POST /modules/{key}/jobs/{job}/run` y claim por timestamp exacto
+      (no roba el turno programado del minuto).
+- [x] `runModuleJobNow` se niega si el módulo no está activo (`module_inactive`).
+- [x] Tests: dos ejecuciones manuales seguidas cuentan dos, y el módulo inactivo se rechaza.
 
 ## Verificación
 

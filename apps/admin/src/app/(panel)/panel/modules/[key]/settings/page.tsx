@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { ModuleActions } from "@/components/module-actions";
+import { ModuleJobRunButton } from "@/components/module-job-run-button";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
@@ -482,6 +483,12 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
                   ) : (
                     <span className="text-muted-foreground">—</span>
                   )}
+                  <ModuleJobRunButton
+                    moduleKey={installedModule.key}
+                    jobKey={job.key}
+                    label={t("Run now", messages)}
+                    failedLabel={t("Save failed", messages)}
+                  />
                 </li>
               );
             })}

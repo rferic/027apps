@@ -21,7 +21,7 @@ import {
   type ModulesDeps,
 } from "./service";
 import { validateManifest } from "./manifest";
-import { listModuleJobRuns } from "./jobs";
+import { listModuleJobRuns, runModuleJobNow } from "./jobs";
 
 /**
  * Modules API (core-api spec §3.4). The manifest is loaded server-side from the
@@ -61,6 +61,13 @@ export const moduleListFiltersSchema = z
     public: z.enum(["all", "yes", "no"]).optional(),
   })
   .strict();
+
+function jobKey(value: string): string {
+  if (!/^[a-z][a-z0-9_]{0,62}$/.test(value)) {
+    throw new DomainError("validation_failed", "invalid job key");
+  }
+  return value;
+}
 
 function moduleKey(value: string): string {
   if (!MODULE_KEY.test(value)) throw new DomainError("validation_failed", "invalid module key");
@@ -154,6 +161,14 @@ export function installModuleRoute(deps: ModulesRouteDeps) {
         },
       }),
     );
+}
+
+/** POST /api/v1/modules/{key}/jobs/{job}/run — run one job now (admin). */
+export function moduleJobRunRoute(deps: ModulesRouteDeps) {
+  return (req: Request, rawKey: string, rawJob: string): Promise<Response> =>
+    withDoor(req, options(deps, ["modules:manage"], moduleEmptySchema), deps.door, async () => ({
+      run: await runModuleJobNow(deps.modules, moduleKey(rawKey), jobKey(rawJob)),
+    }));
 }
 
 /** GET /api/v1/modules/{key}/jobs — last runs of the module's scheduled jobs. */
