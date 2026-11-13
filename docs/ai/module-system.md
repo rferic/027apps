@@ -202,6 +202,9 @@ packages/<key>/
   por petición (ver §3bis).
 - Páginas de admin con componente existente y ruta válida.
 - Sin secretos en el paquete ni en el manifest.
+- Un paquete de pruebas puede marcarse `027apps.devOnly: true` en su `package.json` (no en el
+  manifest: el esquema es estricto). El catálogo del panel no lo ofrece con
+  `NODE_ENV=production`; en local y staging sí, para poder ejercitar el runtime.
 
 ### 3bis. Esquema, privilegios y RLS
 

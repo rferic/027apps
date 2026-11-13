@@ -79,7 +79,20 @@ function isMissingFile(error: unknown): boolean {
  * and returns `null`: the default root holds workspace folders such as `core`
  * or `test-utils` next to the real packages.
  */
+/** A package marked `027apps.devOnly` never reaches a production catalog. */
+async function isDevOnly(directory: string): Promise<boolean> {
+  try {
+    const raw = JSON.parse(
+      await readFile(join(modulesRoot(), directory, "package.json"), "utf8"),
+    ) as { "027apps"?: { devOnly?: unknown } };
+    return raw?.["027apps"]?.devOnly === true;
+  } catch {
+    return false;
+  }
+}
+
 async function readPackage(directory: string): Promise<ModulePackage | null> {
+  if (process.env.NODE_ENV === "production" && (await isDevOnly(directory))) return null;
   let text: string;
   try {
     text = await readFile(join(modulesRoot(), directory, "manifest.json"), "utf8");

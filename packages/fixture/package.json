@@ -12,5 +12,8 @@
   "devDependencies": {
     "@types/react": "^19",
     "react": "19.3.1"
+  },
+  "027apps": {
+    "devOnly": true
   }
 }
