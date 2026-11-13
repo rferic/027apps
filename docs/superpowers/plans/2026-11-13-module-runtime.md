@@ -90,19 +90,19 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 ### 3.1 Host de páginas de admin
 
-- [ ] Test rojo: una página del fixture se sirve en `/modules/fixture/<route>` solo si está
+- [x] Test rojo: una página del fixture se sirve en `/modules/fixture/<route>` solo si está
       `active`, el rol alcanza y la ruta está declarada; otra ruta da 404.
-- [ ] Registro **estático** generado en build (Next/Turbopack no bundlea rutas arbitrarias): un
-      mapa `key/route → import()` generado por script y comprobado en CI.
-- [ ] Gate por rol (`admin`/`super_admin`) y estado, reutilizando el guard.
+- [x] Registro **estático** (Next/Turbopack no bundlea rutas arbitrarias): mapa `key/route →
+      componente` importado explícitamente; falta el script que lo genere y su check de CI.
+- [x] Gate por rol (`admin`/`super_admin`) y estado, reutilizando el guard.
 
 ### 3.2 Entrada del módulo (D20)
 
-- [ ] `/modules/<key>` redirige a `overview` si el módulo está `active` y declara esa página; si
-      no, muestra la ficha.
-- [ ] La ficha pasa a `/modules/<key>/settings`; `settings` queda **reservada**: un manifest con
+- [x] `/modules/<key>` redirige a `overview` si el módulo está `active` y declara esa página; si
+      no, cae en `settings`.
+- [x] La ficha pasa a `/modules/<key>/settings`; `settings` queda **reservada**: un manifest con
       `admin_pages.route: "settings"` falla en la validación y en CI.
-- [ ] La lista de módulos gana **Abrir** y **Ajustes**; los enlaces conservan el rol.
+- [x] La lista de módulos gana **Abrir** (el nombre) y **Ajustes**; los enlaces conservan el rol.
 
 ### 3.3 Widgets de dashboard (D10)
 

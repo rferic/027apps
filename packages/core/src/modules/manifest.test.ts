@@ -92,6 +92,27 @@ describe("manifest contract", () => {
     ).toThrow();
   });
 
+  it("reserves the settings route for the module ficha (D20)", () => {
+    expect(() =>
+      manifestSchema.parse(
+        validManifest({
+          admin_pages: [
+            { route: "settings", label: "Settings", icon: "gear", group: "module", role: "admin" },
+          ],
+        }),
+      ),
+    ).toThrow(/reserved/);
+    expect(() =>
+      manifestSchema.parse(
+        validManifest({
+          admin_pages: [
+            { route: "overview", label: "Overview", icon: "chart", group: "module", role: "admin" },
+          ],
+        }),
+      ),
+    ).not.toThrow();
+  });
+
   it("validates the range of an int setting (slider)", () => {
     const withSetting = (setting: Record<string, unknown>) =>
       validManifest({

@@ -296,7 +296,13 @@ function ModulesTable({
                   className="text-accent"
                 >
                   {module.name}
-                </RowLink>
+                </RowLink>{" "}
+                <Link
+                  href={`/modules/${encodeURIComponent(module.key)}/settings`}
+                  className="ml-2 text-[11px] font-normal text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  {t("Settings", messages)}
+                </Link>
               </td>
               <td className="border-b border-border py-2 pr-3">{module.version}</td>
               <td className="border-b border-border py-2 pr-3">

@@ -175,7 +175,7 @@ describe("ModuleDetailPage", () => {
     expect(html).toContain("load this module");
     expect(html).toContain("Something went wrong on the server.");
     expect(html).toContain("req-500");
-    expect(html).toContain('href="/modules/inventory"');
+    expect(html).toContain('href="/modules/inventory/settings"');
   });
 
   it("offers Deactivate while the module is active", async () => {
