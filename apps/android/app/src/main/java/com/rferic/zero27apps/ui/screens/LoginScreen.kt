@@ -27,12 +27,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.BuildConfig
 import com.rferic.zero27apps.ui.InstancePickerDialog
+import com.rferic.zero27apps.ui.LoginError
 import com.rferic.zero27apps.ui.LoginState
+import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
+
+@Composable
+private fun loginErrorText(error: LoginError): String {
+    val strings = LocalStrings.current
+    return when (error) {
+        LoginError.WRONG_CREDENTIALS -> strings.loginWrong
+        LoginError.EMAIL_UNCONFIRMED -> strings.loginUnconfirmed
+        LoginError.GENERIC -> strings.loginFailed
+    }
+}
 
 /**
  * Email and password against the instance's Supabase. There is no URL field:
- * the instance is the one the app targets (or the one chosen in Settings).
+ * the instance is the one the app targets (or the one chosen in the picker).
  */
 @Composable
 fun LoginScreen(
@@ -47,6 +59,7 @@ fun LoginScreen(
     var password by rememberSaveable { mutableStateOf("") }
     var showPicker by rememberSaveable { mutableStateOf(false) }
     val palette = LocalPalette.current
+    val strings = LocalStrings.current
 
     if (showPicker) {
         InstancePickerDialog(
@@ -70,17 +83,17 @@ fun LoginScreen(
         Spacer(Modifier.height(4.dp))
         Text(instance, style = MaterialTheme.typography.bodySmall, color = palette.mutedForeground)
         if (BuildConfig.DEBUG) {
-            Text("debug build", style = MaterialTheme.typography.labelSmall, color = palette.accent)
+            Text(strings.debugBuild, style = MaterialTheme.typography.labelSmall, color = palette.accent)
         }
         Spacer(Modifier.height(12.dp))
 
-        TextButton(onClick = { showPicker = true }) { Text("Change instance") }
+        TextButton(onClick = { showPicker = true }) { Text(strings.changeInstance) }
         Spacer(Modifier.height(16.dp))
 
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text(strings.email) },
             singleLine = true,
             enabled = !state.pending,
             keyboardOptions = KeyboardOptions(
@@ -93,7 +106,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text(strings.password) },
             singleLine = true,
             enabled = !state.pending,
             visualTransformation = PasswordVisualTransformation(),
@@ -104,13 +117,9 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        if (state.error != null) {
+        state.error?.let { error ->
             Spacer(Modifier.height(12.dp))
-            Text(
-                state.error,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 13.sp,
-            )
+            Text(loginErrorText(error), color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
         }
 
         Spacer(Modifier.height(20.dp))
@@ -119,7 +128,7 @@ fun LoginScreen(
             enabled = !state.pending && email.isNotBlank() && password.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (state.pending) "Signing in…" else "Sign in")
+            Text(if (state.pending) strings.signingIn else strings.signIn)
         }
     }
 }

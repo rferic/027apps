@@ -26,8 +26,23 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.auth.InvitationLink
+import com.rferic.zero27apps.ui.InviteError
 import com.rferic.zero27apps.ui.InviteState
+import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
+
+@Composable
+private fun inviteErrorText(error: InviteError): String {
+    val strings = LocalStrings.current
+    return when (error) {
+        InviteError.EXPIRED -> strings.inviteExpired
+        InviteError.USED -> strings.inviteUsed
+        InviteError.NOT_FOUND -> strings.inviteNotFound
+        InviteError.EMAIL_MISMATCH -> strings.inviteEmailMismatch
+        InviteError.NETWORK -> strings.failureNetwork
+        InviteError.GENERIC -> strings.inviteFailed
+    }
+}
 
 /**
  * Invitation redemption: the invitee picks email, name and password here, the
@@ -45,6 +60,7 @@ fun InviteScreen(
     var displayName by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     val palette = LocalPalette.current
+    val strings = LocalStrings.current
     val valid = email.isNotBlank() && password.length >= 12
 
     Column(
@@ -52,7 +68,7 @@ fun InviteScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("You're invited", style = MaterialTheme.typography.headlineSmall)
+        Text(strings.inviteTitle, style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(4.dp))
         Text(link.instance, style = MaterialTheme.typography.bodySmall, color = palette.mutedForeground)
         Spacer(Modifier.height(20.dp))
@@ -60,7 +76,7 @@ fun InviteScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text(strings.email) },
             singleLine = true,
             enabled = !state.pending,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
@@ -70,7 +86,7 @@ fun InviteScreen(
         OutlinedTextField(
             value = displayName,
             onValueChange = { displayName = it },
-            label = { Text("Your name (optional)") },
+            label = { Text(strings.inviteName) },
             singleLine = true,
             enabled = !state.pending,
             modifier = Modifier.fillMaxWidth(),
@@ -79,7 +95,7 @@ fun InviteScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text(strings.password) },
             singleLine = true,
             enabled = !state.pending,
             visualTransformation = PasswordVisualTransformation(),
@@ -87,13 +103,13 @@ fun InviteScreen(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done,
             ),
-            supportingText = { Text("At least 12 characters.", fontSize = 11.sp) },
+            supportingText = { Text(strings.invitePasswordHint, fontSize = 11.sp) },
             modifier = Modifier.fillMaxWidth(),
         )
 
-        if (state.error != null) {
+        state.error?.let { error ->
             Spacer(Modifier.height(10.dp))
-            Text(state.error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+            Text(inviteErrorText(error), color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
         }
 
         Spacer(Modifier.height(18.dp))
@@ -102,8 +118,8 @@ fun InviteScreen(
             enabled = !state.pending && valid,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (state.pending) "Joining…" else "Join")
+            Text(if (state.pending) strings.joining else strings.join)
         }
-        TextButton(onClick = onCancel) { Text("Not now") }
+        TextButton(onClick = onCancel) { Text(strings.notNow) }
     }
 }

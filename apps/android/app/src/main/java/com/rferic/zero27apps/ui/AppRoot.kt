@@ -18,7 +18,9 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -30,11 +32,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.util.Locale
 import com.rferic.zero27apps.ui.screens.HomeScreen
 import com.rferic.zero27apps.ui.screens.InviteScreen
 import com.rferic.zero27apps.ui.screens.LoginScreen
 import com.rferic.zero27apps.ui.screens.ModulesScreen
 import com.rferic.zero27apps.ui.screens.SettingsScreen
+import com.rferic.zero27apps.ui.i18n.AppStrings
+import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.Zero27AppsTheme
 
 /**
@@ -48,6 +53,7 @@ fun AppRoot(deepLink: String? = null, viewModel: AppViewModel = viewModel()) {
     val login by viewModel.login.collectAsStateWithLifecycle()
     val invite by viewModel.invite.collectAsStateWithLifecycle()
     val instances by viewModel.instances.collectAsStateWithLifecycle()
+    val update by viewModel.update.collectAsStateWithLifecycle()
 
     LaunchedEffect(deepLink) {
         if (deepLink != null) viewModel.onInviteLink(deepLink)
@@ -55,7 +61,10 @@ fun AppRoot(deepLink: String? = null, viewModel: AppViewModel = viewModel()) {
     val theme = (state as? AppState.SignedIn)?.user?.theme?.toThemePreference()
         ?: com.rferic.zero27apps.ui.theme.ThemePreference.SYSTEM
 
+    val strings = remember { AppStrings.forLanguage(Locale.getDefault().language) }
+
     Zero27AppsTheme(preference = theme) {
+      CompositionLocalProvider(LocalStrings provides strings) {
         when (val current = state) {
             AppState.Loading -> LoadingScreen()
             is AppState.NeedsLogin -> LoginScreen(
@@ -72,9 +81,9 @@ fun AppRoot(deepLink: String? = null, viewModel: AppViewModel = viewModel()) {
                 onSubmit = viewModel::acceptInvite,
                 onCancel = viewModel::cancelInvite,
             )
-            is AppState.SignedIn -> Shell(current, viewModel, instances)
+            is AppState.SignedIn -> Shell(current, viewModel, instances, update)
             is AppState.Failure -> FailureScreen(
-                message = current.message,
+                reason = current.reason,
                 knownInstances = instances,
                 currentInstance = viewModel.currentInstance(),
                 onRememberInstance = viewModel::rememberInstance,
@@ -82,6 +91,7 @@ fun AppRoot(deepLink: String? = null, viewModel: AppViewModel = viewModel()) {
                 onRetry = viewModel::refresh,
             )
         }
+      }
     }
 }
 
@@ -98,7 +108,7 @@ private fun LoadingScreen() {
  */
 @Composable
 private fun FailureScreen(
-    message: String,
+    reason: FailureReason,
     knownInstances: List<String>,
     currentInstance: String,
     onRememberInstance: (String) -> String?,
@@ -123,9 +133,17 @@ private fun FailureScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        val strings = LocalStrings.current
+        val message = when (reason) {
+            FailureReason.NETWORK -> strings.failureNetwork
+            FailureReason.AUTH_UNAVAILABLE -> strings.failureAuthUnavailable
+            FailureReason.UNKNOWN -> strings.failureNetwork
+        }
         Text(message, textAlign = TextAlign.Center)
-        Button(onClick = onRetry, modifier = Modifier.padding(top = 16.dp)) { Text("Try again") }
-        TextButton(onClick = { showPicker = true }) { Text("Change instance") }
+        Button(onClick = onRetry, modifier = Modifier.padding(top = 16.dp)) {
+            Text(strings.tryAgain)
+        }
+        TextButton(onClick = { showPicker = true }) { Text(strings.changeInstance) }
     }
 }
 
@@ -134,8 +152,10 @@ private fun Shell(
     state: AppState.SignedIn,
     viewModel: AppViewModel,
     instances: List<String>,
+    update: UpdateState,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    val strings = LocalStrings.current
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -143,19 +163,19 @@ private fun Shell(
                     selected = tab == 0,
                     onClick = { tab = 0 },
                     icon = { Icon(Icons.Filled.Home, contentDescription = null) },
-                    label = { Text("Home") },
+                    label = { Text(strings.home) },
                 )
                 NavigationBarItem(
                     selected = tab == 1,
                     onClick = { tab = 1 },
                     icon = { Icon(Icons.Filled.Menu, contentDescription = null) },
-                    label = { Text("Modules") },
+                    label = { Text(strings.modules) },
                 )
                 NavigationBarItem(
                     selected = tab == 2,
                     onClick = { tab = 2 },
                     icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                    label = { Text("Settings") },
+                    label = { Text(strings.settings) },
                 )
             }
         },
@@ -173,7 +193,12 @@ private fun Shell(
                     onLocale = { viewModel.updateProfile(locale = it) },
                     onSignOut = viewModel::signOut,
                 )
-                else -> HomeScreen(state.user, state.modules)
+                else -> HomeScreen(
+                    user = state.user,
+                    modules = state.modules,
+                    update = update,
+                    onInstallUpdate = viewModel::installUpdate,
+                )
             }
         }
     }

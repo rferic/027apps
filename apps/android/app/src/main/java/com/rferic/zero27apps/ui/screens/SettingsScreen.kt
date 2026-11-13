@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.data.UserDto
 import com.rferic.zero27apps.ui.InstancePickerDialog
+import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
 
 private val LOCALES = listOf("en", "es", "ca", "it", "fr", "de", "pt", "gl", "eu")
@@ -44,6 +45,7 @@ fun SettingsScreen(
     onSignOut: () -> Unit,
 ) {
     val palette = LocalPalette.current
+    val strings = LocalStrings.current
     var showPicker by rememberSaveable { mutableStateOf(false) }
 
     if (showPicker) {
@@ -63,21 +65,29 @@ fun SettingsScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(strings.settings, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
 
-        Section("Theme") {
+        Section(strings.theme) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 THEMES.forEach { value ->
                     FilterChip(
                         selected = user.theme == value,
                         onClick = { onTheme(value) },
-                        label = { Text(value.replaceFirstChar { it.uppercase() }) },
+                        label = {
+                            Text(
+                                when (value) {
+                                    "light" -> strings.themeLight
+                                    "dark" -> strings.themeDark
+                                    else -> strings.themeSystem
+                                },
+                            )
+                        },
                     )
                 }
             }
         }
 
-        Section("Language") {
+        Section(strings.language) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 LOCALES.forEach { code ->
                     FilterChip(
@@ -89,14 +99,14 @@ fun SettingsScreen(
             }
         }
 
-        Section("Instance") {
+        Section(strings.instance) {
             Text(instance, color = palette.mutedForeground, fontSize = 12.sp)
-            Button(onClick = { showPicker = true }) { Text("Change instance") }
-            TextButton(onClick = onSignOut) { Text("Sign out") }
+            Button(onClick = { showPicker = true }) { Text(strings.changeInstance) }
+            TextButton(onClick = onSignOut) { Text(strings.signOut) }
         }
 
         Text(
-            "Signed in as ${user.displayName}",
+            "${strings.signedInAs} ${user.displayName}",
             color = palette.mutedForeground,
             fontSize = 12.sp,
         )

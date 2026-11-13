@@ -18,6 +18,7 @@ import {
 } from "../user-categories/api";
 import { userPatchSchema } from "../users/api";
 import {
+  androidReleaseSchema,
   apiKeyCreatedSchema,
   apiKeyListSchema,
   apiKeyResponseSchema,
@@ -155,6 +156,14 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
       },
     },
     errorDefault: false,
+  },
+  {
+    method: "get",
+    path: "/app/android",
+    summary: "Latest Android build the app can update to (public).",
+    scopes: [],
+    response: androidReleaseSchema,
+    auth: "public",
   },
   {
     method: "get",

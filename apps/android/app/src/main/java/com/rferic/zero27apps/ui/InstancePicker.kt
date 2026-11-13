@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
 
 /**
@@ -44,10 +45,11 @@ fun InstancePickerDialog(
     var newUrl by rememberSaveable { mutableStateOf("") }
     var invalid by rememberSaveable { mutableStateOf(false) }
     val palette = LocalPalette.current
+    val strings = LocalStrings.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Instance") },
+        title = { Text(strings.instance) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(
@@ -78,7 +80,7 @@ fun InstancePickerDialog(
                         newUrl = it
                         invalid = false
                     },
-                    label = { Text("New instance URL") },
+                    label = { Text(strings.newInstanceUrl) },
                     singleLine = true,
                     isError = invalid,
                     modifier = Modifier.fillMaxWidth(),
@@ -95,11 +97,11 @@ fun InstancePickerDialog(
                     },
                     enabled = newUrl.isNotBlank(),
                 ) {
-                    Text("Add")
+                    Text(strings.add)
                 }
                 if (invalid) {
                     Text(
-                        "That is not a valid URL for this build.",
+                        strings.invalidUrl,
                         color = MaterialTheme.colorScheme.error,
                         fontSize = 12.sp,
                     )
@@ -107,10 +109,10 @@ fun InstancePickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onPick(selected) }) { Text("Use") }
+            TextButton(onClick = { onPick(selected) }) { Text(strings.use) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(strings.cancel) }
         },
     )
 }

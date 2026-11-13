@@ -50,6 +50,9 @@ class ApiClient(
     suspend fun myModules(limit: Int = 50): MyModulesResponse =
         read(request(HttpMethod.Get, "/api/v1/me/modules?limit=$limit"))
 
+    /** Latest Android build published by this instance (public, no session). */
+    suspend fun androidApp(): AndroidReleaseDto = read(request(HttpMethod.Get, "/api/v1/app/android"))
+
     /** Public invitation redemption; the token travels in the path, never logged. */
     suspend fun redeemInvitation(token: String, request: RedeemRequest): RedeemResponse =
         read(request(HttpMethod.Post, "/api/v1/invitations/$token/redeem", request))

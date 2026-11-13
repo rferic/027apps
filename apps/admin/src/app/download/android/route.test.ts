@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GET, resetDownloadCache } from "./route";
+import { resetAndroidReleaseCache } from "@/lib/android-release";
+import { GET } from "./route";
 
 const RELEASES = [
   {
@@ -31,7 +32,7 @@ function bytes(size = 4): Response {
   });
 }
 
-beforeEach(() => resetDownloadCache());
+beforeEach(() => resetAndroidReleaseCache());
 afterEach(() => vi.unstubAllGlobals());
 
 describe("GET /download/android", () => {

@@ -728,6 +728,18 @@ export const healthResponseSchema = component(
   ]),
 );
 
+export const androidReleaseSchema = component(
+  "AndroidRelease",
+  z
+    .object({
+      version_code: z.number().int(),
+      version_name: z.string(),
+      tag: z.string(),
+      apk_url: z.string(),
+    })
+    .strict(),
+);
+
 export const instanceResponseSchema = component(
   "Instance",
   z

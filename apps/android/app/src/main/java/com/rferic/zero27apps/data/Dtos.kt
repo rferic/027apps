@@ -84,3 +84,11 @@ data class RedeemRequest(
 data class RedeemResponse(
     val invitation_id: String = "",
 )
+
+@Serializable
+data class AndroidReleaseDto(
+    @SerialName("version_code") val versionCode: Int,
+    @SerialName("version_name") val versionName: String,
+    val tag: String = "",
+    @SerialName("apk_url") val apkUrl: String,
+)

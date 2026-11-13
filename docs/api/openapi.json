@@ -1,6 +1,32 @@
 {
   "components": {
     "schemas": {
+      "AndroidRelease": {
+        "additionalProperties": false,
+        "properties": {
+          "apk_url": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "version_code": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "version_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version_code",
+          "version_name",
+          "tag",
+          "apk_url"
+        ],
+        "type": "object"
+      },
       "ApiKey": {
         "additionalProperties": false,
         "properties": {
@@ -6207,6 +6233,34 @@
         "x-027-scopes": [
           "api_keys:write"
         ]
+      }
+    },
+    "/app/android": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AndroidRelease"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [],
+        "summary": "Latest Android build the app can update to (public)."
       }
     },
     "/currencies": {

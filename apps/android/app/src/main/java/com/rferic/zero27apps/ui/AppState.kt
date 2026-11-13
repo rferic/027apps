@@ -21,7 +21,7 @@ sealed interface AppState {
         val modules: List<ModuleDto>,
     ) : AppState
 
-    data class Failure(val message: String) : AppState
+    data class Failure(val reason: FailureReason) : AppState
 }
 
 fun String.toThemePreference(): ThemePreference = when (this) {
@@ -30,5 +30,10 @@ fun String.toThemePreference(): ThemePreference = when (this) {
     else -> ThemePreference.SYSTEM
 }
 
+/** Why the app could not boot; the screen turns it into localised copy. */
+enum class FailureReason { NETWORK, AUTH_UNAVAILABLE, UNKNOWN }
+
 /** Result of the last invitation attempt. */
-data class InviteState(val pending: Boolean = false, val error: String? = null)
+enum class InviteError { EXPIRED, USED, NOT_FOUND, EMAIL_MISMATCH, NETWORK, GENERIC }
+
+data class InviteState(val pending: Boolean = false, val error: InviteError? = null)

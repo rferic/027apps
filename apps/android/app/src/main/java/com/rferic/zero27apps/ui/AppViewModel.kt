@@ -15,6 +15,7 @@ import com.rferic.zero27apps.data.ApiException
 import com.rferic.zero27apps.data.PatchMeRequest
 import com.rferic.zero27apps.data.RedeemRequest
 import com.rferic.zero27apps.prefs.PrefsStringStore
+import com.rferic.zero27apps.update.Updater
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
@@ -24,8 +25,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+enum class LoginError { WRONG_CREDENTIALS, EMAIL_UNCONFIRMED, GENERIC }
+
 /** Result of the last login attempt, so the form can show a message. */
-data class LoginState(val pending: Boolean = false, val error: String? = null)
+data class LoginState(val pending: Boolean = false, val error: LoginError? = null)
 
 /**
  * Owns the session: boots against the build-time instance, restores the
@@ -49,6 +52,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _login = MutableStateFlow(LoginState())
     val login: StateFlow<LoginState> = _login.asStateFlow()
 
+    private val updater = Updater(application)
+
+    private val _update = MutableStateFlow<UpdateState>(UpdateState.None)
+    val update: StateFlow<UpdateState> = _update.asStateFlow()
+
     private val _invite = MutableStateFlow(InviteState())
     val invite: StateFlow<InviteState> = _invite.asStateFlow()
 
@@ -66,6 +74,33 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Retry from a failure screen, or after changing the instance. */
+    /**
+     * Asks the instance for its latest Android build. Silent on failure: an
+     * updater that cannot check is not worth a screen.
+     */
+    fun checkForUpdate() {
+        val api = client ?: return
+        viewModelScope.launch {
+            runCatching { api.androidApp() }.onSuccess { release ->
+                if (release.versionCode > BuildConfig.VERSION_CODE) {
+                    _update.value = UpdateState.Available(release.versionName, release.apkUrl)
+                }
+            }
+        }
+    }
+
+    /** Downloads the new APK and hands it to the system installer. */
+    fun installUpdate() {
+        val available = _update.value as? UpdateState.Available ?: return
+        _update.value = UpdateState.Downloading
+        updater.downloadAndInstall(available.apkUrl, instanceStore.current()) { result ->
+            _update.value = result.fold(
+                onSuccess = { UpdateState.Installing },
+                onFailure = { UpdateState.Failed },
+            )
+        }
+    }
+
     /** The active instance, for screens that are not signed in yet. */
     fun currentInstance(): String = instanceStore.current()
 
@@ -123,9 +158,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 _invite.value = InviteState()
                 _state.value = AppState.SignedIn(link.instance, me, modules)
             } catch (error: ApiException) {
-                _invite.value = InviteState(error = inviteMessage(error))
-            } catch (error: Exception) {
-                _invite.value = InviteState(error = "We couldn't accept the invitation.")
+                _invite.value = InviteState(error = inviteError(error))
+            } catch (_: Exception) {
+                _invite.value = InviteState(error = InviteError.GENERIC)
             }
         }
     }
@@ -145,7 +180,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 _login.value = LoginState()
                 _state.value = AppState.SignedIn(instanceStore.current(), me, modules)
             } catch (error: Exception) {
-                _login.value = LoginState(error = loginMessage(error))
+                _login.value = LoginState(error = loginError(error))
             }
         }
     }
@@ -214,13 +249,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 _state.value = AppState.NeedsLogin(base)
                 return
             }
+            checkForUpdate()
             val me = api.me()
             val modules = api.myModules().modules
             _state.value = AppState.SignedIn(base, me, modules)
         } catch (error: ApiException) {
-            _state.value = AppState.Failure(failureMessage(error))
-        } catch (error: Exception) {
-            _state.value = AppState.Failure(error.message ?: "Unexpected error")
+            _state.value = AppState.Failure(failureReason(error))
+        } catch (_: Exception) {
+            _state.value = AppState.Failure(FailureReason.UNKNOWN)
         }
     }
 
@@ -246,30 +282,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         return api
     }
 
-    private fun failureMessage(error: ApiException): String = when {
-        error.network -> "Can't reach the instance. Check the connection and try again."
-        error.code == "auth_unavailable" -> "This instance is not configured for the app."
-        else -> error.message
+    private fun failureReason(error: ApiException): FailureReason = when {
+        error.network -> FailureReason.NETWORK
+        error.code == "auth_unavailable" -> FailureReason.AUTH_UNAVAILABLE
+        else -> FailureReason.UNKNOWN
     }
 
-    private fun inviteMessage(error: ApiException): String = when (error.code) {
-        "invitation_expired" -> "This invitation has expired. Ask for a new one."
-        "invitation_used" -> "This invitation has already been used."
-        "not_found" -> "This invitation does not exist."
-        "email_mismatch" -> "Use the email address the invitation was sent to."
-        else -> if (error.network) {
-            "Can't reach the instance. Check the connection and try again."
-        } else {
-            "We couldn't accept the invitation."
-        }
+    private fun inviteError(error: ApiException): InviteError = when {
+        error.code == "invitation_expired" -> InviteError.EXPIRED
+        error.code == "invitation_used" -> InviteError.USED
+        error.code == "not_found" -> InviteError.NOT_FOUND
+        error.code == "email_mismatch" -> InviteError.EMAIL_MISMATCH
+        error.network -> InviteError.NETWORK
+        else -> InviteError.GENERIC
     }
 
-    private fun loginMessage(error: Exception): String {
+    private fun loginError(error: Exception): LoginError {
         val text = error.message.orEmpty()
         return when {
-            text.contains("Invalid login", ignoreCase = true) -> "Wrong email or password."
-            text.contains("Email not confirmed", ignoreCase = true) -> "Confirm your email first."
-            else -> "Can't sign in right now."
+            text.contains("Invalid login", ignoreCase = true) -> LoginError.WRONG_CREDENTIALS
+            text.contains("Email not confirmed", ignoreCase = true) -> LoginError.EMAIL_UNCONFIRMED
+            else -> LoginError.GENERIC
         }
     }
 
