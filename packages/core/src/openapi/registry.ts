@@ -726,7 +726,7 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     auth: "service-key",
     responses: {
       "401": { description: "The bearer token does not match the cron secret." },
-      "503": { description: "MAINTENANCE_CRON_SECRET is not configured." },
+      "503": { description: "Neither CRON_SECRET nor MAINTENANCE_CRON_SECRET is configured." },
     },
   },
 ];

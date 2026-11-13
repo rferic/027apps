@@ -10,13 +10,21 @@ function sameToken(left: string, right: string): boolean {
 }
 
 /**
+ * The credential the platform attaches. Vercel signs its cron requests with
+ * `CRON_SECRET`; `MAINTENANCE_CRON_SECRET` stays for manual calls and local dev,
+ * so one missing variable never turns a working cron into 401/503.
+ */
+export function cronSecret(): string | undefined {
+  return process.env.CRON_SECRET ?? process.env.MAINTENANCE_CRON_SECRET;
+}
+
+/**
  * Vercel Cron entry point for module jobs. It does not go through the door on
- * purpose: the caller is a platform cron, not a user or an API key, and the only
- * credential is `MAINTENANCE_CRON_SECRET` (Vercel sends it as a Bearer when the
- * env var exists). No secret is echoed and no stack is returned.
+ * purpose: the caller is a platform cron, not a user or an API key. No secret is
+ * echoed and no stack is returned.
  */
 export async function GET(req: Request) {
-  const secret = process.env.MAINTENANCE_CRON_SECRET;
+  const secret = cronSecret();
   if (!secret) return new Response(null, { status: 503 });
   const header = req.headers.get("authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";

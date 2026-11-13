@@ -242,7 +242,7 @@ The table reflects the **68 operations currently documented** (the authoritative
 | Settings & currency | `GET /settings`, `PATCH /settings`, `PATCH /settings/{category}/{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
 | i18n | `GET /translations?locale=` | ETag-cached (304 on `If-None-Match`) |
 | i18n admin | `GET /translations/status`, `POST /translations/import`, `PUT /translations/{locale}/{hash}` | **previsto** |
-| Operations | `GET /maintenance/status` (**session-only**, super_admin); `POST /maintenance/run` (**service key**, `maintenance:run`); `GET /maintenance/module-jobs` (**cron secret**) | `maintenance/run` needs an instance key with `role_cap=super_admin`; `module-jobs` is what Vercel Cron calls and answers 503 while `MAINTENANCE_CRON_SECRET` is unset |
+| Operations | `GET /maintenance/status` (**session-only**, super_admin); `POST /maintenance/run` (**service key**, `maintenance:run`); `GET /maintenance/module-jobs` (**cron secret**) | `maintenance/run` needs an instance key with `role_cap=super_admin`; `module-jobs` is what Vercel Cron calls and answers 503 while neither `CRON_SECRET` nor `MAINTENANCE_CRON_SECRET` is set |
 | Audit | `GET /admin-actions`, `GET /audit` | **previsto** |
 
 Full request/response shapes: the generated OpenAPI (§11) or the normative spec while it is not published.

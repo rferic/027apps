@@ -6963,7 +6963,7 @@
             "description": "The bearer token does not match the cron secret."
           },
           "503": {
-            "description": "MAINTENANCE_CRON_SECRET is not configured."
+            "description": "Neither CRON_SECRET nor MAINTENANCE_CRON_SECRET is configured."
           },
           "default": {
             "content": {
