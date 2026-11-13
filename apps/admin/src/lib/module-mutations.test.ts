@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { activateModule, deactivateModule, uninstallModule } from "./module-mutations";
+import { activateModule, deactivateModule, uninstallModule, upgradeModule } from "./module-mutations";
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), { status, headers });
@@ -59,6 +59,17 @@ describe("deactivateModule", () => {
     const fetcher = vi.fn(async () => new Response("", { status: 404 }));
 
     await expect(deactivateModule("missing", fetcher)).resolves.toEqual({ ok: false });
+  });
+});
+
+describe("upgradeModule", () => {
+  it("POSTs the upgrade endpoint", async () => {
+    const fetcher = vi.fn(async () => json({ module: { key: "inventory", version: "1.1.0" } }));
+
+    await expect(upgradeModule("inventory", fetcher)).resolves.toEqual({ ok: true });
+    const [url, init] = call(fetcher);
+    expect(url).toBe("/api/v1/modules/inventory/upgrade");
+    expect(init.method).toBe("POST");
   });
 });
 

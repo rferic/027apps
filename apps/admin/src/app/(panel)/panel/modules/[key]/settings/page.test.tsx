@@ -246,6 +246,7 @@ describe("ModuleDetailPage", () => {
     });
     loadModuleManifestMock.mockResolvedValue({
       key: "inventory",
+      version: "1.0.0",
       branding: { description: "Inventory", icon: "assets/icon.svg", color: "indigo" },
       settings: [
         {
@@ -294,6 +295,30 @@ describe("ModuleDetailPage", () => {
     expect(html).toContain('type="password"');
     expect(html).not.toContain("secret-value");
     expect(html).not.toContain('href="/panel/modules/inventory/settings"');
+  });
+
+  it("offers an update only when the package is newer than the installed version", async () => {
+    loadModuleManifestMock.mockResolvedValue({
+      key: "inventory",
+      version: "2.0.0",
+      branding: { description: "Inventory", icon: "assets/icon.svg", color: "indigo" },
+      admin_pages: [],
+      settings: [],
+    });
+
+    const html = renderToStaticMarkup(await render());
+    expect(html).toContain("Update");
+    expect(html).toContain("v2.0.0");
+
+    loadModuleManifestMock.mockResolvedValue({
+      key: "inventory",
+      version: "1.0.0",
+      branding: { description: "Inventory", icon: "assets/icon.svg", color: "indigo" },
+      admin_pages: [],
+      settings: [],
+    });
+    const same = renderToStaticMarkup(await render());
+    expect(same).not.toContain("v2.0.0");
   });
 
   it("explains an empty settings list", async () => {

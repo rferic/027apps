@@ -7,7 +7,7 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { FormActions, FormAlert } from "@/components/ui/form";
-import { activateModule, deactivateModule, uninstallModule } from "@/lib/module-mutations";
+import { activateModule, deactivateModule, uninstallModule, upgradeModule } from "@/lib/module-mutations";
 import type { MutationFailure, MutationResult } from "@/lib/mutation-result";
 import type { ModuleState } from "@/lib/panel-modules";
 
@@ -164,6 +164,7 @@ export function ModuleActions({
   name,
   state,
   canUninstall,
+  updateTo,
   messages,
 }: {
   moduleKey: string;
@@ -171,12 +172,29 @@ export function ModuleActions({
   state: ModuleState;
   /** Only a super_admin may uninstall; the Core enforces it again. */
   canUninstall: boolean;
+  /** Package version newer than the installed one, when there is an update. */
+  updateTo?: string;
   messages: TranslationMap;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<{ failure: MutationFailure; message: string } | null>(null);
   const deactivating = state === "active";
+
+  async function handleUpgrade() {
+    setPending(true);
+    setError(null);
+    const result = await upgradeModule(moduleKey);
+    setPending(false);
+    if (!result.ok) {
+      setError({
+        failure: result,
+        message: t("We couldn't save the changes.", messages),
+      });
+      return;
+    }
+    router.refresh();
+  }
 
   async function handleToggle() {
     setPending(true);
@@ -206,6 +224,11 @@ export function ModuleActions({
         {t("Actions", messages)}
       </h2>
       <div className="flex flex-wrap items-center gap-2" aria-busy={pending}>
+        {updateTo ? (
+          <Button variant="secondary" className="min-h-11" onClick={handleUpgrade} disabled={pending}>
+            {t("Update", messages)} v{updateTo}
+          </Button>
+        ) : null}
         <Button variant="secondary" className="min-h-11" onClick={handleToggle} disabled={pending}>
           {deactivating ? t("Deactivate", messages) : t("Activate", messages)}
         </Button>

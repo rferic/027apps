@@ -2,8 +2,9 @@
 id: sprint-15-task-08
 titulo: Módulo — contrato versionado y actualización sin desinstalar
 area: core
-estado: pendiente
+estado: test
 fuente: docs/ai/module-system.md; packages/core/src/modules/service.ts
+plan: docs/superpowers/plans/2026-11-13-module-upgrade.md
 adrs: [0007]
 ---
 

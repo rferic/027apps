@@ -16,6 +16,7 @@ import {
   revokeUserModule,
   uninstallModule,
   updateModule,
+  upgradeModule,
   updateModuleSetting,
   type ModulesDeps,
 } from "./service";
@@ -152,6 +153,22 @@ export function installModuleRoute(deps: ModulesRouteDeps) {
         },
       }),
     );
+}
+
+/** POST /api/v1/modules/{key}/upgrade — apply a newer package over the installed one. */
+export function upgradeModuleRoute(deps: ModulesRouteDeps) {
+  return (req: Request, rawKey: string): Promise<Response> =>
+    withDoor(req, options(deps, ["modules:manage"], moduleEmptySchema), deps.door, async (ctx) => {
+      const key = moduleKey(rawKey);
+      return {
+        module: await upgradeModule(
+          deps.modules,
+          ctx.caller,
+          key,
+          await loadManifest(deps, key),
+        ),
+      };
+    });
 }
 
 export function activateModuleRoute(deps: ModulesRouteDeps) {

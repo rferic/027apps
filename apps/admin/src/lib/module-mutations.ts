@@ -39,6 +39,14 @@ export async function deactivateModule(
   return post(`/api/v1/modules/${encodeURIComponent(key)}/deactivate`, undefined, fetcher);
 }
 
+/** POST /api/v1/modules/{key}/upgrade — apply a newer trusted package, keeping data. */
+export async function upgradeModule(
+  key: string,
+  fetcher: typeof fetch = fetch,
+): Promise<MutationResult> {
+  return post(`/api/v1/modules/${encodeURIComponent(key)}/upgrade`, undefined, fetcher);
+}
+
 /**
  * POST /api/v1/modules/{key}/uninstall — a module with active grants answers
  * `409 conflict` until the caller confirms again with `confirm: true`.

@@ -11,6 +11,7 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { ModuleIcon } from "@/components/ui/module-icon";
 import { ModuleSettingsForm, type ModuleSettingItem } from "@/components/ui/module-setting-form";
 import { loadModuleManifest } from "@/lib/module-manifests";
+import { compareVersions } from "@027apps/core/modules/service.js";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
 import { loadPanelTimeZone } from "@/lib/panel-settings";
@@ -472,6 +473,11 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
         name={installedModule.name}
         state={installedModule.state}
         canUninstall={gate.user.role === "super_admin"}
+        updateTo={
+          manifest?.version && compareVersions(manifest.version, installedModule.version) > 0
+            ? manifest.version
+            : undefined
+        }
         messages={messages}
       />
     </section>

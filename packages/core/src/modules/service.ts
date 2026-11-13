@@ -1,6 +1,6 @@
 import { resolve, sep } from "node:path";
 import { DomainError } from "../errors";
-import { CORE_CONTRACT } from "../version.js";
+import { CORE_CONTRACT } from "../version";
 import { enqueueEvent } from "../realtime/service";
 import type { Caller, JsonValue } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
@@ -642,6 +642,155 @@ export async function getModule(
     [categoryFor(key)],
   );
   return { ...toModuleView(row), settings_public: rows.map(toSettingView) };
+}
+
+/**
+ * Applies a newer package over an installed module: only the migrations that
+ * are not applied yet run, in manifest order; settings are added, updated in
+ * their labels and removed, never resetting the stored values. Anything that
+ * is not a strictly newer version is refused, and a failed migration rolls the
+ * whole upgrade back.
+ */
+export async function upgradeModule(
+  deps: ModulesDeps,
+  caller: Caller,
+  key: string,
+  manifestValue: unknown,
+): Promise<ModuleView> {
+  if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
+  const manifest = validateManifest(manifestValue);
+  if (manifest.key !== key) throw new DomainError("validation_failed", "manifest does not match the key");
+  if (manifest.contract !== CORE_CONTRACT) {
+    throw new DomainError(
+      "validation_failed",
+      `module contract ${manifest.contract} does not match this Core (${CORE_CONTRACT})`,
+      { code: "contract_mismatch", expected: CORE_CONTRACT },
+    );
+  }
+  const files = await verifyModuleFiles(deps, manifest);
+  const digest = manifestDigest(manifest);
+  const category = categoryFor(manifest.key);
+
+  return withTx(deps, async (db) => {
+    const current = await getModuleRow(db, manifest.key);
+    const installedVersion = String(current.version);
+    if (compareVersions(manifest.version, installedVersion) <= 0) {
+      throw new DomainError(
+        "conflict",
+        `module ${manifest.key} is at ${installedVersion}; ${manifest.version} is not newer`,
+        { code: "not_newer", installed: installedVersion },
+      );
+    }
+    await assertRequirements(
+      db,
+      manifest.requires,
+      current.state === "active" ? "active" : "installed",
+    );
+
+    const { rows } = await db.query(
+      `select version from public.module_migrations
+        where module_key = $1 and direction = 'up'`,
+      [manifest.key],
+    );
+    const applied = new Set(rows.map((row) => String(row.version)));
+    const declared = new Set(manifest.migrations.map((migration) => migration.version));
+    for (const version of applied) {
+      if (!declared.has(version)) {
+        throw new DomainError("conflict", `applied migration ${version} is missing from the manifest`);
+      }
+    }
+
+    for (const migration of manifest.migrations) {
+      if (applied.has(migration.version)) continue;
+      const sql = files.up.get(migration.version);
+      if (!sql) throw new DomainError("internal", `missing SQL for ${migration.version}`);
+      await applySql(db, manifest.key, sql);
+      await db.query(
+        `insert into public.module_migrations (module_key, version, direction, ddl_digest)
+         values ($1, $2, 'up', $3)`,
+        [manifest.key, migration.version, migration.digest],
+      );
+    }
+
+    const { rows: updated } = await db.query(
+      `update public.module_registry
+          set version = $2, manifest_digest = $3, scopes = $4, app_visible = $5,
+              requires = $6::jsonb, updated_at = now()
+        where key = $1
+        returning ${MODULE_COLUMNS}`,
+      [
+        manifest.key,
+        manifest.version,
+        digest,
+        manifest.scopes,
+        manifest.app.visible,
+        JSON.stringify(manifest.requires),
+      ],
+    );
+
+    await syncModuleSettings(db, manifest, category);
+
+    await enqueueEvent(db, {
+      type: "module.upgraded",
+      target: "admins",
+      module_key: manifest.key,
+      resource: toModuleView(updated[0]),
+      payload: { from: installedVersion, to: manifest.version },
+    });
+    return toModuleView(updated[0]);
+  });
+}
+
+/** Settings follow the new manifest: added, relabelled or removed; values stay. */
+async function syncModuleSettings(
+  db: QueryClient,
+  manifest: ModuleManifest,
+  category: string,
+): Promise<void> {
+  const keep: string[] = [];
+  for (const group of manifest.settings) {
+    await db.query(
+      `insert into public.settings_categories
+         (category_key, label, help, icon, sort_order, source)
+       values ($1, $2, $3, $4, $5, $6)
+       on conflict (category_key) do update
+         set label = excluded.label, help = excluded.help,
+             icon = excluded.icon, sort_order = excluded.sort_order`,
+      [group.category, group.label, null, group.icon ?? null, group.sort_order, `module:${manifest.key}`],
+    );
+    for (const setting of group.settings) {
+      keep.push(`${group.category}.${setting.key}`);
+      await db.query(
+        `insert into public.settings
+           (category_key, key, label, help, value, is_secret, is_public, mcp_access, sort_order)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         on conflict (category_key, key) do update
+           set label = excluded.label, help = excluded.help,
+               is_secret = excluded.is_secret, is_public = excluded.is_public,
+               mcp_access = excluded.mcp_access, sort_order = excluded.sort_order`,
+        [
+          group.category,
+          `${group.category}.${setting.key}`,
+          setting.label,
+          setting.help ?? null,
+          setting.is_secret ? null : JSON.stringify(setting.default ?? null),
+          setting.is_secret,
+          setting.is_public,
+          setting.mcp_access,
+          setting.sort_order,
+        ],
+      );
+    }
+  }
+  if (manifest.settings.length === 0) {
+    await db.query("delete from public.settings where category_key = $1", [category]);
+    await db.query("delete from public.settings_categories where category_key = $1", [category]);
+    return;
+  }
+  await db.query(
+    "delete from public.settings where category_key = $1 and key <> all($2::text[])",
+    [category, keep],
+  );
 }
 
 export async function updateModule(
