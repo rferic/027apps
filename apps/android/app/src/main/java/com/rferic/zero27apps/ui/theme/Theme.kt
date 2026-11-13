@@ -17,6 +17,9 @@ enum class ThemePreference { SYSTEM, LIGHT, DARK }
 /** Identity D tokens the Material scheme has no slot for (border, success…). */
 val LocalPalette = staticCompositionLocalOf { Tokens.light }
 
+/** Which palette is active, for the few assets that ship two drawings. */
+val LocalIsDark = staticCompositionLocalOf { false }
+
 private fun scheme(palette: Palette) = lightColorScheme(
     primary = palette.primary,
     onPrimary = palette.primaryForeground,
@@ -66,6 +69,7 @@ fun Zero27AppsTheme(
     val palette = if (dark) Tokens.dark else Tokens.light
     CompositionLocalProvider(
         LocalPalette provides palette,
+        LocalIsDark provides dark,
         LocalTextSelectionColors provides TextSelectionColors(
             handleColor = palette.accent,
             backgroundColor = palette.accent.copy(alpha = 0.3f),

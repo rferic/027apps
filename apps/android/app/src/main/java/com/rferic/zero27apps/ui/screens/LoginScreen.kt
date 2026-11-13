@@ -47,6 +47,7 @@ import com.rferic.zero27apps.ui.LoginError
 import com.rferic.zero27apps.ui.LoginState
 import com.rferic.zero27apps.ui.UpdateState
 import com.rferic.zero27apps.ui.components.BrandTile
+import com.rferic.zero27apps.ui.components.BrandWordmark
 import com.rferic.zero27apps.ui.components.EyeIcon
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
@@ -148,14 +149,8 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             BrandTile(size = 68.dp)
-            Spacer(Modifier.height(18.dp))
-            Text(
-                "027Apps",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.5).sp,
-                color = palette.foreground,
-            )
+            Spacer(Modifier.height(20.dp))
+            BrandWordmark(height = 30.dp)
             Spacer(Modifier.height(10.dp))
             Text(
                 "${strings.version} ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" +

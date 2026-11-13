@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.BuildConfig
+import com.rferic.zero27apps.ui.components.BrandWordmark
 import com.rferic.zero27apps.data.UserDto
 import com.rferic.zero27apps.ui.InstancePickerDialog
 import com.rferic.zero27apps.ui.i18n.LocalStrings
@@ -190,26 +191,20 @@ fun SettingsScreen(
             )
         }
 
-        Text(strings.sessionNote, color = palette.mutedForeground, fontSize = 12.sp)
-
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                strings.version,
-                fontSize = 12.sp,
-                color = palette.mutedForeground,
-                modifier = Modifier.weight(1f),
-            )
+            BrandWordmark(height = 18.dp)
+            Spacer(Modifier.weight(1f))
             Text(
                 "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" +
                     if (BuildConfig.DEBUG) " · ${strings.debugBuild}" else "",
                 fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = palette.foreground,
+                color = palette.mutedForeground,
             )
         }
+        Text(strings.sessionNote, color = palette.mutedForeground, fontSize = 12.sp)
     }
 }
 

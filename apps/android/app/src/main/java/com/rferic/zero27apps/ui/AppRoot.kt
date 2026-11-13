@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rferic.zero27apps.ui.components.BrandTile
+import com.rferic.zero27apps.ui.components.BrandWordmark
 import com.rferic.zero27apps.ui.components.GridIcon
 import com.rferic.zero27apps.ui.i18n.AppStrings
 import com.rferic.zero27apps.ui.i18n.LocalStrings
@@ -128,9 +129,9 @@ private fun Splash(instance: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         BrandTile(size = 72.dp)
-        Spacer(Modifier.height(20.dp))
-        Text("027Apps", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = palette.foreground)
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(22.dp))
+        BrandWordmark(height = 30.dp)
+        Spacer(Modifier.height(10.dp))
         Text(
             "${strings.connecting} $instance",
             fontSize = 13.sp,
