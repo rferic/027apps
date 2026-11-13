@@ -5,8 +5,9 @@ area: producto
 estado: pendiente
 ---
 
-Sprint **propuesto el 2026-11-12**, pendiente de aprobación del propietario. No se ha creado
-rama, PR ni código: solo la definición, la spec y el plan de la primera tarea.
+Sprint **aprobado por el propietario el 2026-11-13**, incluidos spec, plan y mockups. La
+definición vive en la rama `sprint/15-app-and-oweno` y el **PR #97** (draft contra `staging`).
+Todavía no hay código de implementación.
 
 El objetivo es doble: convertir la app Android en un **cliente real** (acceso, sesión y shell)
 y preparar el **primer módulo de producto** (OweNo) sobre un runtime de módulos que hoy
@@ -260,6 +261,7 @@ de la v1 y es una función de la app.
 | D18 | Recordar la última ubicación | Abrir siempre en el inicio · recordar módulo o página | **Recordar** (decidido 2026-11-13): se guarda `home`, `modules` o `module:<key>`; al abrir se restaura la **pantalla raíz** del módulo (nunca un formulario). Lo implementa el shell (tarea 01). |
 | D19 | Gasto y pago: una entidad o dos | Dos tablas inmutables · **un solo movimiento** con edición y baja lógica | **Un solo `movement`** (decidido 2026-11-13): gasto = N participaciones, pago = una (el receptor). Se edita y se borra (baja lógica) siendo autor o creador; nunca se reescribe el historial de otro. |
 | D20 | Entrada al módulo en el panel | `/modules/<key>` = ficha · **= resumen, ficha aparte** | **Resumen** (decidido 2026-11-13): `/modules/<key>` redirige a `overview`; la ficha vive en `/modules/<key>/settings` (ruta reservada) y la lista de módulos ofrece **Abrir** y **Ajustes**. |
+| D21 | Datos de demo | Módulo `demo` · capacidad del Core con ajuste y botón · script de operador | **En evaluación** (2026-11-13). Requisitos si se hace, en cualquier variante: los usuarios e invitaciones los crea el **Core** (el SQL del módulo no puede tocar `auth`/`public`), correos `@example.test` **sin envío real**, solo fuera de producción, ids estables, siembra idempotente y limpieza que se niega si un módulo tiene datos enlazados. Sin decidir la variante. |
 
 ## Reglas del sprint
 
