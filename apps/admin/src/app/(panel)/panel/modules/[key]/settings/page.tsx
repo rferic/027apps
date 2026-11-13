@@ -178,6 +178,7 @@ function ModuleDetails({
 function buildSettingItems(
   settings: ModuleSetting[],
   manifest: Awaited<ReturnType<typeof loadModuleManifest>>,
+  messages: TranslationMap,
 ): ModuleSettingItem[] {
   const defs = new Map<
     string,
@@ -188,7 +189,7 @@ function buildSettingItems(
       defs.set(`${group.category}.${setting.key}`, setting);
     }
   }
-  return settings.map((setting) => toSettingItem(setting, defs.get(setting.key)));
+  return settings.map((setting) => toSettingItem(setting, messages, defs.get(setting.key)));
 }
 
 function serializeSettingValue(value: ModuleSetting["value"], type: string): string {
@@ -199,6 +200,7 @@ function serializeSettingValue(value: ModuleSetting["value"], type: string): str
 
 function toSettingItem(
   setting: ModuleSetting,
+  messages: TranslationMap,
   def:
     | {
         type: string;
@@ -212,8 +214,10 @@ function toSettingItem(
   const type = def?.type ?? "string";
   return {
     key: setting.key,
-    label: setting.label,
-    help: setting.help,
+    // Module rows live in `translations` (source `module:<key>`); `t` falls back
+    // to the manifest's English text when the module ships no translation.
+    label: t(setting.label, messages),
+    help: setting.help === null ? null : t(setting.help, messages),
     isSecret: setting.is_secret,
     type,
     min: def?.min,
@@ -238,7 +242,7 @@ function ModuleSettingCards({
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
             <dt className="text-muted-foreground">{t("Key", messages)}</dt>
             <dd>
-              <span className="block font-semibold">{setting.label}</span>
+              <span className="block font-semibold">{t(setting.label, messages)}</span>
               <code className="font-mono text-[11px] text-muted-foreground">{setting.key}</code>
             </dd>
             <dt className="text-muted-foreground">{t("Value", messages)}</dt>
@@ -286,7 +290,7 @@ function ModuleSettings({
                 {settings.map((setting) => (
                   <tr key={setting.key} className="border-b border-border">
                     <th scope="row" className="py-2 pr-3 text-left font-normal">
-                      <span className="block font-semibold">{setting.label}</span>
+                      <span className="block font-semibold">{t(setting.label, messages)}</span>
                       <code className="font-mono text-[11px] text-muted-foreground">{setting.key}</code>
                     </th>
                     <td className="py-2 align-top">{settingValue(setting, messages)}</td>
@@ -405,7 +409,7 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
   const installedModule = detail.module;
 
   const settingItems: ModuleSettingItem[] = settings.ok
-    ? buildSettingItems(settings.settings, manifest)
+    ? buildSettingItems(settings.settings, manifest, messages)
     : [];
 
   return (

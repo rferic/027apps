@@ -93,13 +93,16 @@ function demoDeps(
   };
 }
 
-async function enableDemo(c: ClientBase): Promise<void> {
+async function setDemoEnabled(c: ClientBase, enabled: boolean): Promise<void> {
   await c.query(
     `insert into public.settings (category_key, key, label, value, is_secret, is_public, mcp_access, sort_order)
-     values ('instance', 'demo.enabled', 'Demo data', 'true', false, false, 'none', 30)
-     on conflict (category_key, key) do update set value = 'true'`,
+     values ('instance', 'demo.enabled', 'Demo data', $1::jsonb, false, false, 'none', 30)
+     on conflict (category_key, key) do update set value = excluded.value`,
+    [JSON.stringify(enabled)],
   );
 }
+
+const enableDemo = (c: ClientBase) => setDemoEnabled(c, true);
 
 async function session(
   c: ClientBase,
@@ -143,6 +146,8 @@ function manifest(overrides: Record<string, unknown> = {}) {
 describe("demo data", () => {
   it("is refused while the setting is off or the build is production", async () => {
     await inRollback(async (c) => {
+      // The developer's local instance may already have it on: force the gate.
+      await setDemoEnabled(c, false);
       const deps = demoDeps(c);
       expect((await demoStatus(deps)).enabled).toBe(false);
       await expect(seedDemo(deps)).rejects.toMatchObject({

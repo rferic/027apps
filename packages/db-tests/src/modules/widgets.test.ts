@@ -124,8 +124,14 @@ describe("dashboard widgets", () => {
       ]);
 
       // An admin sees it without a grant, and another surface filters it out.
-      expect(await getDashboardWidgets(deps(c), admin, "panel")).toHaveLength(1);
-      expect(await getDashboardWidgets(deps(c), admin, "app")).toEqual([]);
+      // Scoped by module: a developer's local instance may hold other widgets.
+      const adminWidgets = await getDashboardWidgets(deps(c), admin, "panel");
+      expect(adminWidgets.filter((widget) => widget.module_key === "widget-module")).toHaveLength(1);
+      expect(
+        (await getDashboardWidgets(deps(c), admin, "app")).filter(
+          (widget) => widget.module_key === "widget-module",
+        ),
+      ).toEqual([]);
       // Anon gets nothing.
       expect(await getDashboardWidgets(deps(c), { kind: "anon" })).toEqual([]);
     });

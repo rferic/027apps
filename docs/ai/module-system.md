@@ -164,6 +164,13 @@ Ejemplo completo:
   (`GET /api/v1/me/modules`, tarea 01 del sprint 15) las devolverá solo para módulos `active` a
   los que tiene acceso; el FAB de la app se compone de ellas y no hay lista hardcodeada. Hoy el
   registry las guarda y la ficha del panel las muestra en solo lectura.
+- **i18n del paquete**: `locales/<locale>.json` es un mapa plano `{ "texto en inglés":
+  "texto traducido" }` para cada locale declarado en `i18n`. El instalador y la actualización los
+  copian a `public.translations` con `source = 'module:<key>'`; el panel los superpone a su
+  diccionario, así que las etiquetas y ayudas del manifest se ven en el idioma de la interfaz.
+  Un fichero ausente o inválido solo deja ese texto en inglés (no rompe la instalación) y las
+  filas `manual`, `import` y `code` **nunca** se sobrescriben. Al desinstalar se borran por
+  `source`. La clave es el texto inglés exacto del manifest, no un identificador propio.
 - `demo`: `{ seed_fn, clear_fn }` (objeto: ambas o ninguna). `seed_fn(ids jsonb) returns jsonb`
   recibe los ids del dataset del Core (`{ users: [{ email, id }], category_id, invitation_id }`) y
   devuelve recuentos; `clear_fn() returns jsonb` borra solo lo que sembró. El Core las ejecuta en

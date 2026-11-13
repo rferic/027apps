@@ -125,6 +125,14 @@ describe("fixture package", () => {
         "notes:write",
       ]);
 
+      // The package's `locales/es.json` lands in `translations` as module copy.
+      const { rows: copy } = await query(
+        c,
+        `select translated_text from public.translations
+          where source = 'module:fixture' and locale = 'es' and text_en = 'Slider limit'`,
+      );
+      expect(copy[0]?.translated_text).toBe("Límite del deslizador");
+
       await impersonate(c, ana.userId);
       await query(c, "insert into module_fixture.notes (user_id, body) values ($1, 'ana')", [
         ana.userId,
@@ -154,6 +162,11 @@ describe("fixture package", () => {
       await uninstallModule(deps(c), superAdmin, "fixture", manifest, true);
       const { rows } = await query(c, "select 1 from pg_namespace where nspname = 'module_fixture'");
       expect(rows).toHaveLength(0);
+      const { rows: leftovers } = await query(
+        c,
+        "select 1 from public.translations where source = 'module:fixture'",
+      );
+      expect(leftovers).toHaveLength(0);
     });
   });
 

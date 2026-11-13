@@ -9,3 +9,5 @@ page and uninstall) and is never installed in production. Nothing here is produc
 - `1.1.0`: a scheduled job (`ping`) that writes to `job_log`.
 - `1.3.0`: a dashboard widget (`fixture.notes`) reading `widget_metric(uid)`, plus the
   `add_note` app action declared in the manifest.
+- `1.5.0`: the settings copy in `locales/es.json`, so the panel shows the fixture's labels and
+  help texts in Spanish.

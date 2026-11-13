@@ -6,7 +6,7 @@
     "icon": "assets/icon.svg",
     "color": "indigo"
   },
-  "version": "1.4.0",
+  "version": "1.5.0",
   "is_public": false,
   "migrations": [
     {
@@ -75,7 +75,8 @@
     }
   ],
   "i18n": [
-    "en"
+    "en",
+    "es"
   ],
   "scopes": [
     "notes:read",

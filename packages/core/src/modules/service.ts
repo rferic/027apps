@@ -305,6 +305,49 @@ async function verifyModuleFiles(
   return { up, down };
 }
 
+/**
+ * Mirrors the module's `locales/<locale>.json` files into `translations`. Each
+ * file is a flat `{ "English text": "translated text" }` map; a missing or
+ * malformed file only means the panel keeps the English text. Module rows never
+ * overwrite `manual`, `import` or `code` entries, so an operator edit wins.
+ */
+async function syncModuleTranslations(
+  deps: ModulesDeps,
+  db: QueryClient,
+  manifest: ModuleManifest,
+): Promise<void> {
+  if (!deps.readFile || !deps.moduleRoot) return;
+  const source = `module:${manifest.key}`;
+  await db.query("delete from public.translations where source = $1", [source]);
+  for (const locale of manifest.i18n) {
+    let raw: unknown;
+    try {
+      raw = JSON.parse(
+        await deps.readFile(`${deps.moduleRoot(manifest.key)}/locales/${locale}.json`),
+      );
+    } catch {
+      continue;
+    }
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) continue;
+    for (const [textEn, translated] of Object.entries(raw as Record<string, unknown>)) {
+      if (textEn.trim() === "" || typeof translated !== "string" || translated.trim() === "") {
+        continue;
+      }
+      await db.query(
+        `insert into public.translations (locale, text_hash, text_en, translated_text, source)
+         values ($1, $2, $3, $4, $5)
+         on conflict (locale, text_hash) do update set
+           translated_text = excluded.translated_text,
+           source = excluded.source,
+           updated_at = now()
+         where public.translations.source = 'module'
+            or public.translations.source like 'module:%'`,
+        [locale, sha256(textEn).slice("sha256:".length), textEn, translated, source],
+      );
+    }
+  }
+}
+
 async function applySql(
   db: QueryClient,
   key: string,
@@ -508,6 +551,7 @@ export async function installModule(
         JSON.stringify(manifest.demo ?? null),
       ],
     );
+    await syncModuleTranslations(deps, db, manifest);
     for (const channel of manifest.channels) {
       await db.query(
         "insert into public.module_channels (module_key, pattern, members_fn) values ($1, $2, $3)",
@@ -752,6 +796,7 @@ export async function upgradeModule(
       ],
     );
 
+    await syncModuleTranslations(deps, db, manifest);
     await syncModuleSettings(db, manifest, category);
 
     await enqueueEvent(db, {
