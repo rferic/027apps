@@ -54,6 +54,22 @@ export function parseVersion(tag: string): { versionName: string; versionCode: n
  * Latest published release with an APK. Pre-releases count: while there is no
  * signed build, the `dev-*` pre-release is the only downloadable one.
  */
+function toRelease(release: Release): AndroidRelease | null {
+  if (release.draft === true || !release.tag_name) return null;
+  const asset = release.assets?.find((entry) => entry.name?.endsWith(".apk"));
+  if (!asset?.browser_download_url) return null;
+  const version = parseVersion(release.tag_name);
+  if (!version) return null;
+  return {
+    tag: release.tag_name,
+    versionName: version.versionName,
+    versionCode: version.versionCode,
+    assetUrl: asset.browser_download_url,
+  };
+}
+
+/** Latest published release with an APK. Pre-releases count: while there is no
+ * signed build, the `dev-*` pre-release is the only downloadable one. */
 export async function latestAndroidRelease(
   fetcher: typeof fetch = fetch,
 ): Promise<AndroidRelease | null> {
@@ -67,20 +83,7 @@ export async function latestAndroidRelease(
 
   const releases = (await response.json()) as Release[];
   cachedAt = Date.now();
-  cache = null;
-  for (const release of releases) {
-    if (release.draft === true || !release.tag_name) continue;
-    const asset = release.assets?.find((entry) => entry.name?.endsWith(".apk"));
-    if (!asset?.browser_download_url) continue;
-    const version = parseVersion(release.tag_name);
-    if (!version) continue;
-    cache = {
-      tag: release.tag_name,
-      versionName: version.versionName,
-      versionCode: version.versionCode,
-      assetUrl: asset.browser_download_url,
-    };
-    break;
-  }
+  const found = releases.map(toRelease).find((release) => release !== null) ?? null;
+  cache = found;
   return cache;
 }
