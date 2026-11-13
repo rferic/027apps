@@ -19,6 +19,16 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  async redirects() {
+    // The panel sections now live under `/panel`; old bookmarks keep working.
+    return ["modules", "members", "categories", "invitations", "keys", "settings", "docs"].map(
+      (section) => ({
+        source: `/${section}/:path*`,
+        destination: `/panel/${section}/:path*`,
+        permanent: false,
+      }),
+    );
+  },
   async headers() {
     return [
       {
