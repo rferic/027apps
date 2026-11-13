@@ -1215,6 +1215,191 @@
           }
         ]
       },
+      "DemoResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "demo": {
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "members": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "modules": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "module_key": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/DemoResponse____schema0"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "module_key",
+                    "result"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "production": {
+                "type": "boolean"
+              },
+              "seeded": {
+                "type": "boolean"
+              },
+              "seeded_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "enabled",
+              "production",
+              "seeded",
+              "seeded_at",
+              "members",
+              "modules"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "demo"
+        ],
+        "type": "object"
+      },
+      "DemoResponse____schema0": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/DemoResponse____schema0"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DemoResponse____schema0"
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "DemoStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "members": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "modules": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "module_key": {
+                  "type": "string"
+                },
+                "result": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/DemoStatus____schema0"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "module_key",
+                "result"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "production": {
+            "type": "boolean"
+          },
+          "seeded": {
+            "type": "boolean"
+          },
+          "seeded_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "production",
+          "seeded",
+          "seeded_at",
+          "members",
+          "modules"
+        ],
+        "type": "object"
+      },
+      "DemoStatus____schema0": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/DemoStatus____schema0"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DemoStatus____schema0"
+            },
+            "type": "object"
+          }
+        ]
+      },
       "Device": {
         "additionalProperties": false,
         "properties": {
@@ -3138,6 +3323,29 @@
             },
             "type": "array"
           },
+          "demo": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "clear_fn": {
+                    "type": "string"
+                  },
+                  "seed_fn": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "seed_fn",
+                  "clear_fn"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "installed_at": {
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
@@ -3190,7 +3398,8 @@
           "manifest_digest",
           "installed_at",
           "updated_at",
-          "app_actions"
+          "app_actions",
+          "demo"
         ],
         "type": "object"
       },
@@ -3215,6 +3424,22 @@
           "label",
           "icon",
           "screen"
+        ],
+        "type": "object"
+      },
+      "ModuleDemo": {
+        "additionalProperties": false,
+        "properties": {
+          "clear_fn": {
+            "type": "string"
+          },
+          "seed_fn": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "seed_fn",
+          "clear_fn"
         ],
         "type": "object"
       },
@@ -3247,6 +3472,29 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "demo": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "clear_fn": {
+                    "type": "string"
+                  },
+                  "seed_fn": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "seed_fn",
+                  "clear_fn"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "installed_at": {
             "format": "date-time",
@@ -3375,6 +3623,7 @@
           "installed_at",
           "updated_at",
           "app_actions",
+          "demo",
           "settings_public"
         ],
         "type": "object"
@@ -3439,6 +3688,29 @@
                   "type": "object"
                 },
                 "type": "array"
+              },
+              "demo": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "clear_fn": {
+                        "type": "string"
+                      },
+                      "seed_fn": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "seed_fn",
+                      "clear_fn"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "installed_at": {
                 "format": "date-time",
@@ -3567,6 +3839,7 @@
               "installed_at",
               "updated_at",
               "app_actions",
+              "demo",
               "settings_public"
             ],
             "type": "object"
@@ -3872,6 +4145,29 @@
                   },
                   "type": "array"
                 },
+                "demo": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "clear_fn": {
+                          "type": "string"
+                        },
+                        "seed_fn": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "seed_fn",
+                        "clear_fn"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "installed_at": {
                   "format": "date-time",
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
@@ -3924,7 +4220,8 @@
                 "manifest_digest",
                 "installed_at",
                 "updated_at",
-                "app_actions"
+                "app_actions",
+                "demo"
               ],
               "type": "object"
             },
@@ -3982,6 +4279,29 @@
                 },
                 "type": "array"
               },
+              "demo": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "clear_fn": {
+                        "type": "string"
+                      },
+                      "seed_fn": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "seed_fn",
+                      "clear_fn"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "installed_at": {
                 "format": "date-time",
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
@@ -4034,7 +4354,8 @@
               "manifest_digest",
               "installed_at",
               "updated_at",
-              "app_actions"
+              "app_actions",
+              "demo"
             ],
             "type": "object"
           }
@@ -5976,6 +6297,116 @@
         "summary": "Enable or disable a currency; the default cannot be disabled.",
         "x-027-scopes": [
           "currencies:write"
+        ]
+      }
+    },
+    "/demo": {
+      "delete": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Clear the demo dataset; refuses while a module still holds it.",
+        "x-027-scopes": [
+          "settings:write"
+        ]
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Demo dataset status: enabled, seeded and what each module seeded.",
+        "x-027-scopes": [
+          "settings:read"
+        ]
+      },
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Seed the demo dataset (admins; refused in production).",
+        "x-027-scopes": [
+          "settings:write"
         ]
       }
     },

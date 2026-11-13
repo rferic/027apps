@@ -355,3 +355,12 @@ reutilizar el proyecto dev como prod; ningún secreto se comparte entre dev y pr
 de PR y `staging` comparten `027apps-dev`: pueden pisarse datos (riesgo aceptado, son datos de
 desarrollo) y `staging` puede divergir de `main` (se mitiga con el merge `main → staging`
 tras cada release). `027apps-dev` contiene **solo datos de prueba**: nunca se cargan datos reales de la familia en `staging`. Los previews reciben las variables de dev (incluida la service-role de dev), así que tener escritura en el repo implica confianza sobre `027apps-dev`; no se da escritura a terceros.
+
+## Datos de demo
+
+El ajuste `demo.enabled` (apagado por defecto) habilita `POST/DELETE /api/v1/demo`. Además, un
+build de producción (`NODE_ENV=production`) los rechaza salvo que la instancia declare
+`ALLOW_DEMO_DATA=true`: esa variable se pone **solo** en staging para las capturas y la aceptación
+del móvil, nunca en producción. Los usuarios de demo (`demo.*@example.test`) comparten la
+contraseña que muestra el panel, la invitación de demo no se envía por correo y el borrado se
+niega mientras un módulo declare datos enlazados (`demo_linked`).

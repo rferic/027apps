@@ -176,32 +176,32 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 
 ### 5.1 Ajuste y gate
 
-- [ ] Test: `demo.enabled` apagado → `POST /api/v1/demo` responde `403` y la tarjeta no aparece;
+- [x] Test: `demo.enabled` apagado → `POST /api/v1/demo` responde `403` y la tarjeta no aparece;
       instancia marcada como producción → también se rechaza.
-- [ ] Ajuste `demo.enabled` (bool, por defecto `false`) en el catálogo del Core; la detección de
+- [x] Ajuste `demo.enabled` (bool, por defecto `false`) en el catálogo del Core; la detección de
       producción no se basa en el host.
 
 ### 5.2 Dataset del Core
 
-- [ ] Test: la siembra crea usuarios con ids estables (`demo.ana@example.test`…), categorías e
+- [x] Test: la siembra crea usuarios con ids estables (`demo.ana@example.test`…), categorías e
       invitación; ejecutarla dos veces **no duplica**.
-- [ ] `POST /api/v1/demo` y `DELETE /api/v1/demo` (admin), en transacción; el borrado se niega
+- [x] `POST /api/v1/demo` y `DELETE /api/v1/demo` (admin), en transacción; el borrado se niega
       mientras un módulo declare datos enlazados.
-- [ ] **Sin email**: las invitaciones de demo quedan marcadas como no enviadas y no llaman a
+- [x] **Sin email**: las invitaciones de demo quedan marcadas como no enviadas y no llaman a
       Resend; test con el puerto de email espiado.
 
 ### 5.3 Contrato del módulo
 
-- [ ] `demo: { seed_fn, clear_fn }` en el manifest; ambos o ninguno; nombres `snake_case`.
-- [ ] El Core ejecuta `seed_fn(ids jsonb)` al instalar demo y `clear_fn()` al borrar y al
+- [x] `demo: { seed_fn, clear_fn }` en el manifest; ambos o ninguno; nombres `snake_case`.
+- [x] El Core ejecuta `seed_fn(ids jsonb)` al instalar demo y `clear_fn()` al borrar y al
       desinstalar el módulo, antes de borrar el esquema; test del orden.
-- [ ] Fixture con `seed_demo`/`clear_demo`: siembra, segunda siembra sin duplicar, borrado limpio.
+- [x] Fixture con `seed_demo`/`clear_demo`: siembra, segunda siembra sin duplicar, borrado limpio.
 
 ### 5.4 UI y documentación
 
-- [ ] Tarjeta «Datos de demo» en la ficha del módulo, solo con `demo.enabled` y dataset
+- [x] Tarjeta «Datos de demo» en la ficha del módulo, solo con `demo.enabled` y dataset
       existente; instalar/borrar con confirmación y estado.
-- [ ] `module-system.md` (bloque `demo`), `manifest.schema.json`, `new-module.md`,
+- [x] `module-system.md` (bloque `demo`), `manifest.schema.json`, `new-module.md`,
       `infrastructure.md` y envoltorios.
 
 ## Verificación completa antes de `test`

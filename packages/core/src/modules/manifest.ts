@@ -170,6 +170,13 @@ const dashboardWidgetSchema = z
   })
   .strict();
 
+const demoHooksSchema = z
+  .object({
+    seed_fn: z.string().regex(FUNCTION_NAME),
+    clear_fn: z.string().regex(FUNCTION_NAME),
+  })
+  .strict();
+
 const appActionSchema = z
   .object({
     key: z.string().regex(SNAKE),
@@ -232,6 +239,7 @@ export const manifestSchema = z
     hooks: z.record(z.string(), z.string().regex(FUNCTION_NAME)).default({}),
     admin_pages: z.array(adminPageSchema).default([]),
     dashboard_widgets: z.array(dashboardWidgetSchema).default([]),
+    demo: demoHooksSchema.optional(),
     app: z
       .object({ visible: z.boolean() })
       .strict()

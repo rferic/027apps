@@ -93,6 +93,17 @@ describe("manifest contract", () => {
     ).toThrow();
   });
 
+  it("validates the demo hooks as a pair", () => {
+    const hooks = { seed_fn: "seed_demo", clear_fn: "clear_demo" };
+    expect(() => manifestSchema.parse(validManifest({ demo: hooks }))).not.toThrow();
+    expect(() =>
+      manifestSchema.parse(validManifest({ demo: { seed_fn: "seed_demo" } })),
+    ).toThrow();
+    expect(() =>
+      manifestSchema.parse(validManifest({ demo: { ...hooks, clear_fn: "ClearDemo" } })),
+    ).toThrow();
+  });
+
   it("validates app actions and keeps them out of background modules", () => {
     const action = { key: "add_note", label: "Add note", icon: "plus", screen: "notes" };
     const withActions = (actions: unknown[], app = { visible: true }) =>

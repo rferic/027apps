@@ -1,6 +1,7 @@
 import { resolve, sep } from "node:path";
 import { DomainError } from "../errors";
 import { CORE_CONTRACT } from "../version";
+import { clearDemoForModule } from "../demo/service";
 import { enqueueEvent } from "../realtime/service";
 import type { Caller, JsonValue } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
@@ -53,6 +54,8 @@ export interface ModulePage {
 
 export type ModuleAppAction = { key: string; label: string; icon: string; screen: string };
 
+export type ModuleDemo = { seed_fn: string; clear_fn: string };
+
 export type ModuleView = {
   key: string;
   name: string;
@@ -64,6 +67,7 @@ export type ModuleView = {
   installed_at: string;
   updated_at: string;
   app_actions: ModuleAppAction[];
+  demo: ModuleDemo | null;
 };
 
 /** Access holder of a module: a user grant or a category assignment. */
@@ -142,6 +146,12 @@ function quoteIdent(value: string): string {
   return `"${value}"`;
 }
 
+function isDemoHooks(value: unknown): value is ModuleDemo {
+  if (typeof value !== "object" || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.seed_fn === "string" && typeof record.clear_fn === "string";
+}
+
 function toModuleView(row: Record<string, unknown>): ModuleView {
   return {
     key: String(row.key),
@@ -154,6 +164,7 @@ function toModuleView(row: Record<string, unknown>): ModuleView {
     installed_at: toIso(row.installed_at),
     updated_at: toIso(row.updated_at),
     app_actions: Array.isArray(row.app_actions) ? (row.app_actions as ModuleView["app_actions"]) : [],
+    demo: isDemoHooks(row.demo) ? row.demo : null,
   };
 }
 
@@ -175,7 +186,7 @@ function toSettingView(row: Record<string, unknown>): ModuleSettingView {
 }
 
 const MODULE_COLUMNS =
-  "key, name, version, state, is_public, mcp_exposed, manifest_digest, installed_at, updated_at, app_actions";
+  "key, name, version, state, is_public, mcp_exposed, manifest_digest, installed_at, updated_at, app_actions, demo";
 
 async function getModuleRow(db: QueryClient, key: string): Promise<Record<string, unknown>> {
   const { rows } = await db.query(`select ${MODULE_COLUMNS} from public.module_registry where key = $1`, [
@@ -480,8 +491,8 @@ export async function installModule(
     await db.query(
       `insert into public.module_registry
          (key, name, version, state, is_public, mcp_exposed, manifest_digest, scopes,
-          app_visible, requires, jobs, app_actions, dashboard_widgets)
-       values ($1, $2, $3, 'installed', $4, 'read', $5, $6::text[], $7, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb)`,
+          app_visible, requires, jobs, app_actions, dashboard_widgets, demo)
+       values ($1, $2, $3, 'installed', $4, 'read', $5, $6::text[], $7, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb)`,
       [
         manifest.key,
         manifest.name,
@@ -494,6 +505,7 @@ export async function installModule(
         JSON.stringify(manifest.jobs),
         JSON.stringify(manifest.app_actions),
         JSON.stringify(manifest.dashboard_widgets),
+        JSON.stringify(manifest.demo ?? null),
       ],
     );
     for (const channel of manifest.channels) {
@@ -723,7 +735,7 @@ export async function upgradeModule(
       `update public.module_registry
           set version = $2, manifest_digest = $3, scopes = $4, app_visible = $5,
               requires = $6::jsonb, jobs = $7::jsonb, app_actions = $8::jsonb,
-              dashboard_widgets = $9::jsonb, updated_at = now()
+              dashboard_widgets = $9::jsonb, demo = $10::jsonb, updated_at = now()
         where key = $1
         returning ${MODULE_COLUMNS}`,
       [
@@ -736,6 +748,7 @@ export async function upgradeModule(
         JSON.stringify(manifest.jobs),
         JSON.stringify(manifest.app_actions),
         JSON.stringify(manifest.dashboard_widgets),
+        JSON.stringify(manifest.demo ?? null),
       ],
     );
 
@@ -920,6 +933,10 @@ export async function uninstallModule(
         code: "grants_active",
       });
     }
+
+    // A module that seeded demo data gets a last chance to clear it before the
+    // schema goes; failures never block the uninstall.
+    await clearDemoForModule(db, key);
 
     await db.query("delete from public.invitation_modules where module_key = $1", [key]);
 

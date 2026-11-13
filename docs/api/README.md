@@ -222,7 +222,7 @@ The CI **fails** if a declared capability is not documented, and checks that eve
 
 ### Core endpoints (at a glance)
 
-The table reflects the **65 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
+The table reflects the **68 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
 
 | Area | Endpoints | Notes |
 |---|---|---|
@@ -238,6 +238,7 @@ The table reflects the **65 operations currently documented** (the authoritative
 | Invitations | `POST/GET /invitations`, `GET/DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | detail adds `created_by` (`null` when a key created it) and **never** the token or its hash; redeem is the public join step (single use) |
 | API keys | `POST/GET /api-keys`, `GET/PATCH/DELETE /api-keys/{id}` | secret returned once; delegated keys act as a plain user; `user_id` optional for a super_admin; list filters `kind`, `user` and `state` (`all|active|revoked|expired`; a revoked key never counts as expired; `user` + `kind=service` → 400, another owner for a non-super_admin → 404); 5 active delegated keys per owner (409 `conflict`, `details.code = "key_limit"`); `PATCH` edits `name`, `scopes` and `expires_at` only (`expires_at: null` removes the expiry; `kind`/`role_cap`/`user_id` → 400), re-scopes inside the stored cap/owner grants and never resurrects a revoked key (409, `details.code = "revoked"`); `/keys` panel is super_admin only |
 | Devices | `POST/GET /devices`, `DELETE /devices/{id}` | push registration and revocation |
+| Demo data | `GET/POST/DELETE /demo` | sample members, one category and an invitation with `@example.test` addresses; **can only be seeded with `demo.enabled` and never in production** unless `ALLOW_DEMO_DATA=true`; clearing refuses while a module still holds demo rows |
 | Settings & currency | `GET /settings`, `PATCH /settings`, `PATCH /settings/{category}/{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
 | i18n | `GET /translations?locale=` | ETag-cached (304 on `If-None-Match`) |
 | i18n admin | `GET /translations/status`, `POST /translations/import`, `PUT /translations/{locale}/{hash}` | **previsto** |

@@ -5,12 +5,14 @@ import type { ReactNode } from "react";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { ModuleActions } from "@/components/module-actions";
+import { ModuleDemoCard } from "@/components/module-demo-card";
 import { ModuleJobRunButton } from "@/components/module-job-run-button";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { ModuleIcon } from "@/components/ui/module-icon";
 import { ModuleSettingsForm, type ModuleSettingItem } from "@/components/ui/module-setting-form";
+import { loadDemoStatus } from "@/lib/demo";
 import { loadModuleManifest } from "@/lib/module-manifests";
 import { compareVersions } from "@027apps/core/modules/service.js";
 import { formatDate } from "@/lib/format-date";
@@ -395,9 +397,10 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
     loadModuleJobRuns(key),
   ]);
 
-  const [timeZone, manifest] = await Promise.all([
+  const [timeZone, manifest, demo] = await Promise.all([
     loadPanelTimeZone(),
     loadModuleManifest(key),
+    loadDemoStatus(),
   ]);
   const installedModule = detail.module;
 
@@ -426,6 +429,10 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
         timeZone={timeZone}
         messages={messages}
       />
+
+      {manifest?.demo && demo?.enabled && !demo.production ? (
+        <ModuleDemoCard demo={demo} messages={messages} />
+      ) : null}
 
       {settings.ok ? (
         <section

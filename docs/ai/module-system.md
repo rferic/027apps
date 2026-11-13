@@ -164,6 +164,12 @@ Ejemplo completo:
   (`GET /api/v1/me/modules`, tarea 01 del sprint 15) las devolverá solo para módulos `active` a
   los que tiene acceso; el FAB de la app se compone de ellas y no hay lista hardcodeada. Hoy el
   registry las guarda y la ficha del panel las muestra en solo lectura.
+- `demo`: `{ seed_fn, clear_fn }` (objeto: ambas o ninguna). `seed_fn(ids jsonb) returns jsonb`
+  recibe los ids del dataset del Core (`{ users: [{ email, id }], category_id, invitation_id }`) y
+  devuelve recuentos; `clear_fn() returns jsonb` borra solo lo que sembró. El Core las ejecuta en
+  una transacción al sembrar y al borrar demo, y llama a `clear_fn` **antes** de borrar el esquema
+  al desinstalar. Solo corren con `demo.enabled` y nunca en producción (`ALLOW_DEMO_DATA=true` es
+  el opt-in explícito de staging); nunca reciben datos reales ni envían correo.
 - `jobs`: `[{ key, schedule, fn, timeout_seconds? }]`. `schedule` es un cron de **5 campos**
   (`minuto hora día mes día_semana`), validado al instalar; `fn` es una función del esquema del
   módulo que se ejecuta **sin usuario** (el Core la llama como servicio, con timeout, y nunca le

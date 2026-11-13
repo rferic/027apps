@@ -34,6 +34,7 @@
     "./api-keys/*.js": "./src/api-keys/*.ts",
     "./devices/*.js": "./src/devices/*.ts",
     "./modules/*.js": "./src/modules/*.ts",
+    "./demo/*.js": "./src/demo/*.ts",
     "./realtime/*.js": "./src/realtime/*.ts",
     "./push/*.js": "./src/push/*.ts",
     "./maintenance/*.js": "./src/maintenance/*.ts",

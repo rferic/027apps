@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
@@ -13,6 +14,7 @@ import {
   type ModulesDeps,
 } from "@027apps/core/modules/service.js";
 import { getDashboardWidgets } from "@027apps/core/modules/widgets.js";
+import { seedDemo, type DemoDeps } from "@027apps/core/demo/service.js";
 import type { Caller } from "@027apps/core/api/types.js";
 
 /** The real package on disk, not an inline manifest: digests, docs and guard included. */
@@ -48,6 +50,40 @@ function deps(c: ClientBase): ModulesDeps {
     },
     moduleRoot: () => ROOT,
     readFile: (path) => readFile(path, "utf8"),
+  };
+}
+
+function demoDeps(c: ClientBase): DemoDeps {
+  const db = { query: (sql: string, params: unknown[] = []) => query(c, sql, params) };
+  return {
+    db,
+    withTransaction: async <T,>(fn: (tx: typeof db) => Promise<T>): Promise<T> => {
+      await c.query("savepoint demo_op");
+      try {
+        const result = await fn(db);
+        await c.query("release savepoint demo_op");
+        return result;
+      } catch (error) {
+        await c.query("rollback to savepoint demo_op");
+        throw error;
+      }
+    },
+    auth: {
+      async createUser(email) {
+        const id = randomUUID();
+        await c.query(
+          `insert into auth.users (id, instance_id, email, encrypted_password, email_confirmed_at,
+                                   raw_app_meta_data, raw_user_meta_data, aud, role)
+           values ($1, '00000000-0000-0000-0000-000000000000', $2, 'x', now(),
+                   '{"provider":"email","providers":["email"]}', '{}', 'authenticated', 'authenticated')`,
+          [id, email],
+        );
+        return { userId: id };
+      },
+      async deleteUser(userId) {
+        await c.query("delete from auth.users where id = $1", [userId]);
+      },
+    },
   };
 }
 
@@ -118,6 +154,54 @@ describe("fixture package", () => {
       await uninstallModule(deps(c), superAdmin, "fixture", manifest, true);
       const { rows } = await query(c, "select 1 from pg_namespace where nspname = 'module_fixture'");
       expect(rows).toHaveLength(0);
+    });
+  });
+
+  it("seeds its demo hooks and clears them before the schema goes", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      const manifest = JSON.parse(await readFile(resolve(ROOT, "manifest.json"), "utf8"));
+      const { rows: installed } = await query(
+        c,
+        "select state from public.module_registry where key = 'fixture'",
+      );
+      if (installed[0]) {
+        await uninstallModule(deps(c), await session(c, "super_admin"), "fixture", manifest, true);
+      }
+
+      await installModule(deps(c), admin, manifest);
+      await activateModule(deps(c), admin, "fixture");
+      await query(
+        c,
+        `insert into public.settings (category_key, key, label, value, is_secret, is_public, mcp_access, sort_order)
+         values ('instance', 'demo.enabled', 'Demo data', 'true', false, false, 'none', 30)
+         on conflict (category_key, key) do update set value = 'true'`,
+      );
+
+      const first = await seedDemo(demoDeps(c));
+      expect(first.modules).toEqual([{ module_key: "fixture", result: { notes: 1 } }]);
+      const second = await seedDemo(demoDeps(c));
+      expect(second.modules).toEqual([{ module_key: "fixture", result: { notes: 0 } }]);
+
+      // Uninstall calls `clear_demo` before dropping the schema.
+      const statements: string[] = [];
+      const inner = deps(c);
+      const recording: ModulesDeps = {
+        ...inner,
+        db: {
+          query: (sql: string, params?: unknown[]) => {
+            statements.push(sql);
+            return inner.db.query(sql, params ?? []);
+          },
+        },
+        withTransaction: async <T,>(fn: (tx: typeof inner.db) => Promise<T>): Promise<T> =>
+          inner.withTransaction!(async () => fn(recording.db)),
+      };
+      await uninstallModule(recording, await session(c, "super_admin"), "fixture", manifest, true);
+      const clearAt = statements.findIndex((sql) => sql.includes("clear_demo"));
+      const dropAt = statements.findIndex((sql) => sql.includes("drop schema"));
+      expect(clearAt).toBeGreaterThanOrEqual(0);
+      expect(dropAt).toBeGreaterThan(clearAt);
     });
   });
 });

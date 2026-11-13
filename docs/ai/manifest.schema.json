@@ -42,6 +42,7 @@
     },
     "admin_pages": { "type": "array", "items": { "$ref": "#/$defs/adminPage" } },
     "dashboard_widgets": { "type": "array", "items": { "$ref": "#/$defs/dashboardWidget" } },
+    "demo": { "$ref": "#/$defs/demoHooks" },
     "app": {
       "type": "object",
       "additionalProperties": false,
@@ -262,6 +263,15 @@
         "schedule": { "type": "string", "minLength": 1 },
         "fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" },
         "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 300, "default": 30 }
+      }
+    },
+    "demoHooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seed_fn", "clear_fn"],
+      "properties": {
+        "seed_fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" },
+        "clear_fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" }
       }
     },
     "appAction": {

@@ -14,6 +14,7 @@ import type {
 } from "../modules/service";
 import type { JobRunResult } from "../modules/jobs";
 import type { DashboardWidget } from "../modules/widgets";
+import type { DemoStatus } from "../demo/service";
 import type { SettingView } from "../settings/service";
 import type { SettingCategoryMeta } from "../settings/catalog";
 import type { CurrencyView } from "../currencies/service";
@@ -427,6 +428,13 @@ export const moduleAppActionSchema = component(
     .strict(),
 );
 
+export const moduleDemoSchema = component(
+  "ModuleDemo",
+  z
+    .object({ seed_fn: z.string(), clear_fn: z.string() })
+    .strict(),
+);
+
 export const moduleSchema = component(
   "Module",
   z
@@ -441,6 +449,7 @@ export const moduleSchema = component(
       installed_at: isoDate,
       updated_at: isoDate,
       app_actions: z.array(moduleAppActionSchema),
+      demo: moduleDemoSchema.nullable(),
     })
     .strict() satisfies z.ZodType<ModuleView>,
 );
@@ -571,6 +580,27 @@ export const moduleJobRunResponseSchema = component(
 export const moduleJobDispatchSchema = component(
   "ModuleJobDispatch",
   z.object({ executed: z.number().int(), failed: z.number().int() }).strict(),
+);
+
+export const demoStatusSchema = component(
+  "DemoStatus",
+  z
+    .object({
+      enabled: z.boolean(),
+      production: z.boolean(),
+      seeded: z.boolean(),
+      seeded_at: z.string().nullable(),
+      members: z.number().int(),
+      modules: z.array(
+        z.object({ module_key: z.string(), result: z.json().nullable() }).strict(),
+      ),
+    })
+    .strict() satisfies z.ZodType<DemoStatus>,
+);
+
+export const demoResponseSchema = component(
+  "DemoResponse",
+  z.object({ demo: demoStatusSchema }).strict(),
 );
 
 export const dashboardWidgetSchema = component(
