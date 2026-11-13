@@ -6,7 +6,7 @@
 
     <application
         android:name=".Zero27AppsApplication"
-        android:label="027Apps"
+        android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.Zero27Apps">
@@ -16,6 +16,14 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Fallback for any instance: the app's own scheme. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="027apps" android:host="invite" />
             </intent-filter>
         </activity>
 

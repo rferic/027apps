@@ -28,6 +28,7 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
+        resValue("string", "app_name", "027Apps")
 
         // The shell opens against one instance without asking for a URL; a
         // different one is a Settings action. Override per build with
@@ -61,12 +62,25 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        resValues = true
+    }
+
+    buildTypes {
+        debug {
+            // Installable next to the real app: a different application id means
+            // separate data, separate keystore keys and no "uninstall the other
+            // one first". The label and the version make it obvious on screen.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            resValue("string", "app_name", "027Apps Dev")
+        }
     }
 }
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)

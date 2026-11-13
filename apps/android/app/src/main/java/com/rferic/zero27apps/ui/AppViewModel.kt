@@ -1,0 +1,185 @@
+package com.rferic.zero27apps.ui
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.rferic.zero27apps.BuildConfig
+import com.rferic.zero27apps.InstanceStore
+import com.rferic.zero27apps.ServerUrl
+import com.rferic.zero27apps.auth.EncryptedStringStore
+import com.rferic.zero27apps.auth.KeystoreSecretCipher
+import com.rferic.zero27apps.auth.SupabaseFactory
+import com.rferic.zero27apps.data.ApiClient
+import com.rferic.zero27apps.data.ApiException
+import com.rferic.zero27apps.data.PatchMeRequest
+import com.rferic.zero27apps.prefs.PrefsStringStore
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.Email
+import io.ktor.client.engine.okhttp.OkHttp
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+/** Result of the last login attempt, so the form can show a message. */
+data class LoginState(val pending: Boolean = false, val error: String? = null)
+
+/**
+ * Owns the session: boots against the build-time instance, restores the
+ * encrypted Supabase session, and loads the profile and modules through the
+ * Core API. Everything the UI does is one method here, so previews and tests
+ * never build their own clients.
+ */
+class AppViewModel(application: Application) : AndroidViewModel(application) {
+    private val prefs = PrefsStringStore(application)
+    private val instanceStore = InstanceStore(prefs, BuildConfig.DEFAULT_INSTANCE_URL)
+    private val sessionStore = EncryptedStringStore(
+        KeystoreSecretCipher(),
+        prefs,
+        "session",
+    )
+    private val supabaseFactory = SupabaseFactory(sessionStore)
+
+    private val _state = MutableStateFlow<AppState>(AppState.Loading)
+    val state: StateFlow<AppState> = _state.asStateFlow()
+
+    private val _login = MutableStateFlow(LoginState())
+    val login: StateFlow<LoginState> = _login.asStateFlow()
+
+    private var supabase: SupabaseClient? = null
+    private var client: ApiClient? = null
+
+    init {
+        refresh()
+    }
+
+    /** Retry from a failure screen, or after changing the instance. */
+    fun refresh() {
+        viewModelScope.launch { boot() }
+    }
+
+    fun login(email: String, password: String) {
+        val api = client ?: return
+        _login.value = LoginState(pending = true)
+        viewModelScope.launch {
+            try {
+                val auth = supabase ?: error("Supabase client is not ready")
+                auth.auth.signInWith(Email) {
+                    this.email = email.trim()
+                    this.password = password
+                }
+                val me = api.me()
+                val modules = api.myModules().modules
+                _login.value = LoginState()
+                _state.value = AppState.SignedIn(instanceStore.current(), me, modules)
+            } catch (error: Exception) {
+                _login.value = LoginState(error = loginMessage(error))
+            }
+        }
+    }
+
+    fun signOut() {
+        viewModelScope.launch {
+            runCatching { supabase?.auth?.signOut() }
+            sessionStore.clear()
+            _login.value = LoginState()
+            awaitLogin()
+        }
+    }
+
+    /** Theme or locale: PATCH /me and refresh the cached profile. */
+    fun updateProfile(theme: String? = null, locale: String? = null) {
+        val api = client ?: return
+        val current = _state.value as? AppState.SignedIn ?: return
+        viewModelScope.launch {
+            try {
+                val user = api.patchMe(PatchMeRequest(theme = theme, locale = locale))
+                _state.value = current.copy(user = user)
+            } catch (_: ApiException) {
+                // Keep the old value: the picker re-renders from the state.
+            }
+        }
+    }
+
+    /** Points the app at another instance and starts signed out. */
+    fun changeInstance(raw: String): Boolean {
+        val normalized = ServerUrl.normalize(raw, requireHttps = !BuildConfig.DEBUG) ?: return false
+        viewModelScope.launch {
+            runCatching { supabase?.auth?.signOut() }
+            sessionStore.clear()
+            client?.close()
+            client = null
+            supabase = null
+            instanceStore.save(normalized)
+            boot()
+        }
+        return true
+    }
+
+    private suspend fun boot() {
+        _state.value = AppState.Loading
+        val base = instanceStore.current()
+        try {
+            val api = apiFor(base)
+            val instance = api.instance()
+            val auth = instance.auth ?: throw ApiException("auth_unavailable", 503)
+            val supabaseClient = supabaseFactory.create(auth.supabaseUrl, auth.supabaseAnonKey)
+            supabase = supabaseClient
+            supabaseClient.auth.awaitInitialization()
+            if (supabaseClient.auth.currentSessionOrNull() == null) {
+                _state.value = AppState.NeedsLogin(base)
+                return
+            }
+            val me = api.me()
+            val modules = api.myModules().modules
+            _state.value = AppState.SignedIn(base, me, modules)
+        } catch (error: ApiException) {
+            _state.value = AppState.Failure(failureMessage(error))
+        } catch (error: Exception) {
+            _state.value = AppState.Failure(error.message ?: "Unexpected error")
+        }
+    }
+
+    private suspend fun awaitLogin() {
+        _state.value = AppState.NeedsLogin(instanceStore.current())
+    }
+
+    private fun apiFor(base: String): ApiClient {
+        client?.close()
+        val api = ApiClient(
+            baseUrl = base,
+            engine = OkHttp.create(),
+            token = { supabase?.auth?.currentSessionOrNull()?.accessToken },
+            refresh = {
+                val auth = supabase ?: return@ApiClient false
+                runCatching {
+                    auth.auth.refreshCurrentSession()
+                    true
+                }.getOrDefault(false)
+            },
+        )
+        client = api
+        return api
+    }
+
+    private fun failureMessage(error: ApiException): String = when {
+        error.network -> "Can't reach the instance. Check the connection and try again."
+        error.code == "auth_unavailable" -> "This instance is not configured for the app."
+        else -> error.message
+    }
+
+    private fun loginMessage(error: Exception): String {
+        val text = error.message.orEmpty()
+        return when {
+            text.contains("Invalid login", ignoreCase = true) -> "Wrong email or password."
+            text.contains("Email not confirmed", ignoreCase = true) -> "Confirm your email first."
+            else -> "Can't sign in right now."
+        }
+    }
+
+    override fun onCleared() {
+        client?.close()
+        super.onCleared()
+    }
+}
