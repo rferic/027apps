@@ -1,4 +1,5 @@
 import { DomainError } from "../errors";
+import { resetSessionSettings } from "./session-settings";
 import type { QueryClient } from "../api/rate-limit-storage";
 import { isDueAt } from "./cron";
 import type { ModulesDeps } from "./service";
@@ -64,10 +65,14 @@ async function executeJob(
   const started = Date.now();
   try {
     await deps.withTransaction(async (db: QueryClient) => {
-      await db.query(`set local statement_timeout = ${Number(job.timeout_seconds) * 1000}`);
-      // Unqualified tables resolve against the module schema, as in migrations.
-      await db.query(`set local search_path to ${quote(schemaFor(moduleKey))}`);
-      await db.query(`select ${quote(job.fn)}()`);
+      try {
+        await db.query(`set local statement_timeout = ${Number(job.timeout_seconds) * 1000}`);
+        // Unqualified tables resolve against the module schema, as in migrations.
+        await db.query(`set local search_path to ${quote(schemaFor(moduleKey))}`);
+        await db.query(`select ${quote(job.fn)}()`);
+      } finally {
+        await resetSessionSettings(db);
+      }
     });
     const duration = Date.now() - started;
     await deps.db.query(

@@ -12,6 +12,8 @@ import type {
   ModuleSettingView,
   ModuleView,
 } from "../modules/service";
+import type { JobRunResult } from "../modules/jobs";
+import type { DashboardWidget } from "../modules/widgets";
 import type { SettingView } from "../settings/service";
 import type { SettingCategoryMeta } from "../settings/catalog";
 import type { CurrencyView } from "../currencies/service";
@@ -543,6 +545,55 @@ const settingCategorySchema = z
   })
   .strict();
 // The catalog type has no `settings` field: the route composes both.
+export const moduleJobRunSchema = component(
+  "ModuleJobRun",
+  z
+    .object({
+      module_key: z.string(),
+      job_key: z.string(),
+      status: z.enum(["ok", "error", "skipped"]),
+      duration_ms: z.number().int().optional(),
+      error: z.string().optional(),
+    })
+    .strict() satisfies z.ZodType<JobRunResult>,
+);
+
+export const moduleJobRunListSchema = component(
+  "ModuleJobRunList",
+  z.object({ runs: z.array(moduleJobRunSchema) }).strict(),
+);
+
+export const moduleJobRunResponseSchema = component(
+  "ModuleJobRunResponse",
+  z.object({ run: moduleJobRunSchema }).strict(),
+);
+
+export const moduleJobDispatchSchema = component(
+  "ModuleJobDispatch",
+  z.object({ executed: z.number().int(), failed: z.number().int() }).strict(),
+);
+
+export const dashboardWidgetSchema = component(
+  "DashboardWidget",
+  z
+    .object({
+      key: z.string(),
+      type: z.enum(["summary", "metric", "list"]),
+      surface: z.enum(["app", "panel"]),
+      title: z.string(),
+      icon: z.string(),
+      order: z.number().int(),
+      module_key: z.string(),
+      data: z.json(),
+    })
+    .strict() satisfies z.ZodType<DashboardWidget>,
+);
+
+export const dashboardWidgetListSchema = component(
+  "DashboardWidgetList",
+  z.object({ widgets: z.array(dashboardWidgetSchema) }).strict(),
+);
+
 export const settingsCategoriesSchema = component(
   "SettingsCategories",
   z

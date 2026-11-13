@@ -1045,6 +1045,176 @@
         ],
         "type": "object"
       },
+      "DashboardWidget": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DashboardWidget____schema0"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "module_key": {
+            "type": "string"
+          },
+          "order": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "surface": {
+            "enum": [
+              "app",
+              "panel"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "summary",
+              "metric",
+              "list"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "surface",
+          "title",
+          "icon",
+          "order",
+          "module_key",
+          "data"
+        ],
+        "type": "object"
+      },
+      "DashboardWidget____schema0": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/DashboardWidget____schema0"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DashboardWidget____schema0"
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "DashboardWidgetList": {
+        "additionalProperties": false,
+        "properties": {
+          "widgets": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/DashboardWidgetList____schema0"
+                },
+                "icon": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "module_key": {
+                  "type": "string"
+                },
+                "order": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                },
+                "surface": {
+                  "enum": [
+                    "app",
+                    "panel"
+                  ],
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "type": {
+                  "enum": [
+                    "summary",
+                    "metric",
+                    "list"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "type",
+                "surface",
+                "title",
+                "icon",
+                "order",
+                "module_key",
+                "data"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "widgets"
+        ],
+        "type": "object"
+      },
+      "DashboardWidgetList____schema0": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/DashboardWidgetList____schema0"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DashboardWidgetList____schema0"
+            },
+            "type": "object"
+          }
+        ]
+      },
       "Device": {
         "additionalProperties": false,
         "properties": {
@@ -2941,6 +3111,33 @@
       "Module": {
         "additionalProperties": false,
         "properties": {
+          "app_actions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "icon": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "screen": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "label",
+                "icon",
+                "screen"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "installed_at": {
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
@@ -2992,13 +3189,65 @@
           "mcp_exposed",
           "manifest_digest",
           "installed_at",
-          "updated_at"
+          "updated_at",
+          "app_actions"
+        ],
+        "type": "object"
+      },
+      "ModuleAppAction": {
+        "additionalProperties": false,
+        "properties": {
+          "icon": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "screen": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "icon",
+          "screen"
         ],
         "type": "object"
       },
       "ModuleDetail": {
         "additionalProperties": false,
         "properties": {
+          "app_actions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "icon": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "screen": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "label",
+                "icon",
+                "screen"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "installed_at": {
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
@@ -3125,6 +3374,7 @@
           "manifest_digest",
           "installed_at",
           "updated_at",
+          "app_actions",
           "settings_public"
         ],
         "type": "object"
@@ -3163,6 +3413,33 @@
           "module": {
             "additionalProperties": false,
             "properties": {
+              "app_actions": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "icon": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "screen": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "label",
+                    "icon",
+                    "screen"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
               "installed_at": {
                 "format": "date-time",
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
@@ -3289,6 +3566,7 @@
               "manifest_digest",
               "installed_at",
               "updated_at",
+              "app_actions",
               "settings_public"
             ],
             "type": "object"
@@ -3415,6 +3693,146 @@
         ],
         "type": "object"
       },
+      "ModuleJobDispatch": {
+        "additionalProperties": false,
+        "properties": {
+          "executed": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "failed": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "executed",
+          "failed"
+        ],
+        "type": "object"
+      },
+      "ModuleJobRun": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_ms": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "job_key": {
+            "type": "string"
+          },
+          "module_key": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "error",
+              "skipped"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_key",
+          "job_key",
+          "status"
+        ],
+        "type": "object"
+      },
+      "ModuleJobRunList": {
+        "additionalProperties": false,
+        "properties": {
+          "runs": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "duration_ms": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                },
+                "error": {
+                  "type": "string"
+                },
+                "job_key": {
+                  "type": "string"
+                },
+                "module_key": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "ok",
+                    "error",
+                    "skipped"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "module_key",
+                "job_key",
+                "status"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "runs"
+        ],
+        "type": "object"
+      },
+      "ModuleJobRunResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "run": {
+            "additionalProperties": false,
+            "properties": {
+              "duration_ms": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "error": {
+                "type": "string"
+              },
+              "job_key": {
+                "type": "string"
+              },
+              "module_key": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "ok",
+                  "error",
+                  "skipped"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "module_key",
+              "job_key",
+              "status"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "run"
+        ],
+        "type": "object"
+      },
       "ModuleList": {
         "additionalProperties": false,
         "properties": {
@@ -3427,6 +3845,33 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "app_actions": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "icon": {
+                        "type": "string"
+                      },
+                      "key": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "screen": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "label",
+                      "icon",
+                      "screen"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
                 "installed_at": {
                   "format": "date-time",
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
@@ -3478,7 +3923,8 @@
                 "mcp_exposed",
                 "manifest_digest",
                 "installed_at",
-                "updated_at"
+                "updated_at",
+                "app_actions"
               ],
               "type": "object"
             },
@@ -3509,6 +3955,33 @@
           "module": {
             "additionalProperties": false,
             "properties": {
+              "app_actions": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "icon": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "screen": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "label",
+                    "icon",
+                    "screen"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
               "installed_at": {
                 "format": "date-time",
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
@@ -3560,7 +4033,8 @@
               "mcp_exposed",
               "manifest_digest",
               "installed_at",
-              "updated_at"
+              "updated_at",
+              "app_actions"
             ],
             "type": "object"
           }
@@ -6041,6 +6515,44 @@
         ]
       }
     },
+    "/maintenance/module-jobs": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleJobDispatch"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "401": {
+            "description": "The bearer token does not match the cron secret."
+          },
+          "503": {
+            "description": "MAINTENANCE_CRON_SECRET is not configured."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Run the module jobs that are due now (platform cron, cron secret)."
+      }
+    },
     "/maintenance/run": {
       "post": {
         "requestBody": {
@@ -6116,6 +6628,58 @@
           }
         ],
         "summary": "Last run per job, outbox counters and health (super_admin)."
+      }
+    },
+    "/me/dashboard": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "surface",
+            "required": false,
+            "schema": {
+              "enum": [
+                "app",
+                "panel"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardWidgetList"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Dashboard widgets of the active modules the caller can use.",
+        "x-027-scopes": [
+          "profile:read"
+        ]
       }
     },
     "/modules": {
@@ -6505,6 +7069,110 @@
         ]
       }
     },
+    "/modules/{key}/jobs": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleJobRunList"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Last runs of the module's scheduled jobs.",
+        "x-027-scopes": [
+          "modules:read"
+        ]
+      }
+    },
+    "/modules/{key}/jobs/{job}/run": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleJobRunResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Run one scheduled job now (admins).",
+        "x-027-scopes": [
+          "modules:manage"
+        ]
+      }
+    },
     "/modules/{key}/settings": {
       "get": {
         "parameters": [
@@ -6657,6 +7325,54 @@
           }
         ],
         "summary": "Reverse migrations and remove the module (super_admin).",
+        "x-027-scopes": [
+          "modules:manage"
+        ]
+      }
+    },
+    "/modules/{key}/upgrade": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Apply the newer trusted package, keeping data and settings.",
         "x-027-scopes": [
           "modules:manage"
         ]

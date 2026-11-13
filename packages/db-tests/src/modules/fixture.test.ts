@@ -12,6 +12,7 @@ import {
   uninstallModule,
   type ModulesDeps,
 } from "@027apps/core/modules/service.js";
+import { getDashboardWidgets } from "@027apps/core/modules/widgets.js";
 import type { Caller } from "@027apps/core/api/types.js";
 
 /** The real package on disk, not an inline manifest: digests, docs and guard included. */
@@ -98,6 +99,21 @@ describe("fixture package", () => {
       expect((await query(c, "select body from module_fixture.notes")).rows).toHaveLength(0);
 
       await c.query("reset role");
+
+      // 1.3.0 adds a widget: the manifest, the registry and the function agree.
+      expect(await getDashboardWidgets(deps(c), ana, "panel")).toEqual([
+        {
+          key: "fixture.notes",
+          type: "metric",
+          surface: "panel",
+          title: "Your notes",
+          icon: "note",
+          order: 90,
+          module_key: "fixture",
+          data: { value: 1, label: "notes", detail: "owned by you" },
+        },
+      ]);
+
       const superAdmin = await session(c, "super_admin");
       await uninstallModule(deps(c), superAdmin, "fixture", manifest, true);
       const { rows } = await query(c, "select 1 from pg_namespace where nspname = 'module_fixture'");

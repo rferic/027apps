@@ -22,6 +22,7 @@ import {
 } from "./service";
 import { validateManifest } from "./manifest";
 import { listModuleJobRuns, runModuleJobNow } from "./jobs";
+import { getDashboardWidgets } from "./widgets";
 
 /**
  * Modules API (core-api spec §3.4). The manifest is loaded server-side from the
@@ -169,6 +170,21 @@ export function moduleJobRunRoute(deps: ModulesRouteDeps) {
     withDoor(req, options(deps, ["modules:manage"], moduleEmptySchema), deps.door, async () => ({
       run: await runModuleJobNow(deps.modules, moduleKey(rawKey), jobKey(rawJob)),
     }));
+}
+
+/** GET /api/v1/me/dashboard — widgets of the active modules the caller can use. */
+export function dashboardRoute(deps: ModulesRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(req, readOptions(deps, ["profile:read"]), deps.door, async (ctx) => {
+      const surface = ctx.searchParams.get("surface");
+      return {
+        widgets: await getDashboardWidgets(
+          deps.modules,
+          ctx.caller,
+          surface === "app" || surface === "panel" ? surface : undefined,
+        ),
+      };
+    });
 }
 
 /** GET /api/v1/modules/{key}/jobs — last runs of the module's scheduled jobs. */

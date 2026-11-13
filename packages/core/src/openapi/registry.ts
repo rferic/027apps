@@ -1,4 +1,4 @@
-import type { ZodType } from "zod";
+import { z, type ZodType } from "zod";
 import { createApiKeySchema, updateApiKeySchema } from "../api-keys/api";
 import { patchCurrenciesBodySchema, patchCurrencyBodySchema } from "../currencies/api";
 import { registerDeviceSchema } from "../devices/api";
@@ -27,6 +27,7 @@ import {
   component,
   currencyListSchema,
   currencyResponseSchema,
+  dashboardWidgetListSchema,
   deviceListSchema,
   deviceResponseSchema,
   environmentResponseSchema,
@@ -42,6 +43,9 @@ import {
   maintenanceStatusSchema,
   moduleDetailResponseSchema,
   moduleGrantsSchema,
+  moduleJobDispatchSchema,
+  moduleJobRunListSchema,
+  moduleJobRunResponseSchema,
   moduleListSchema,
   moduleResponseSchema,
   moduleSettingListSchema,
@@ -542,6 +546,30 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     status: 204,
   },
   {
+    method: "post",
+    path: "/modules/{key}/upgrade",
+    summary: "Apply the newer trusted package, keeping data and settings.",
+    scopes: ["modules:manage"],
+    response: moduleResponseSchema,
+    auth: "session",
+  },
+  {
+    method: "get",
+    path: "/modules/{key}/jobs",
+    summary: "Last runs of the module's scheduled jobs.",
+    scopes: ["modules:read"],
+    response: moduleJobRunListSchema,
+    auth: "session",
+  },
+  {
+    method: "post",
+    path: "/modules/{key}/jobs/{job}/run",
+    summary: "Run one scheduled job now (admins).",
+    scopes: ["modules:manage"],
+    response: moduleJobRunResponseSchema,
+    auth: "session",
+  },
+  {
     method: "get",
     path: "/modules/{key}/grants",
     summary: "Users and categories with access to the module (admins, aggregated once).",
@@ -564,6 +592,15 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: ["modules:manage", "settings:write"],
     request: moduleSettingWrite,
     response: moduleSettingResponseSchema,
+    auth: "session",
+  },
+  {
+    method: "get",
+    path: "/me/dashboard",
+    summary: "Dashboard widgets of the active modules the caller can use.",
+    scopes: ["profile:read"],
+    query: z.object({ surface: z.enum(["app", "panel"]).optional() }),
+    response: dashboardWidgetListSchema,
     auth: "session",
   },
   {
@@ -654,5 +691,17 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: [],
     response: maintenanceStatusSchema,
     auth: "session-only",
+  },
+  {
+    method: "get",
+    path: "/maintenance/module-jobs",
+    summary: "Run the module jobs that are due now (platform cron, cron secret).",
+    scopes: [],
+    response: moduleJobDispatchSchema,
+    auth: "service-key",
+    responses: {
+      "401": { description: "The bearer token does not match the cron secret." },
+      "503": { description: "MAINTENANCE_CRON_SECRET is not configured." },
+    },
   },
 ];

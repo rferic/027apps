@@ -26,6 +26,10 @@ vi.mock("@/lib/panel-dashboard", () => ({
   loadPanelDashboard: () => loadDashboardMock(),
 }));
 
+vi.mock("@/lib/panel-modules", () => ({
+  loadModuleWidgets: async () => ({ ok: true, widgets: [] }),
+}));
+
 vi.mock("@/app/(auth)/actions", () => ({
   signOutAction: "sign-out",
 }));

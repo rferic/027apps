@@ -222,7 +222,7 @@ The CI **fails** if a declared capability is not documented, and checks that eve
 
 ### Core endpoints (at a glance)
 
-The table reflects the **58 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
+The table reflects the **65 operations currently documented** (the authoritative list and shapes are in §11). Endpoints marked **previsto** belong to the v1 target and are not implemented yet.
 
 | Area | Endpoints | Notes |
 |---|---|---|
@@ -230,9 +230,10 @@ The table reflects the **58 operations currently documented** (the authoritative
 | Setup | `GET /setup/environment`, `POST /setup/super-admin`, `POST /setup/test-email` | public while uninstalled (environment/super-admin); test-email is **session-only** super_admin |
 | Users (admin) | `GET /users`, `GET/PATCH /users/{id}`, `DELETE /users/{id}`, `POST /users/{id}/restore`, `DELETE /users/{id}/purge` | list defaults to `state=active`; `category` filters by category and every user carries `categories`; soft-deactivate and restore (**super-admin**); purge is **irreversible, super-admin only, and requires a deactivated profile**; root protected; restore is idempotent |
 | Categories (admin) | `/user-categories`, `/{id}/members`, `/{id}/modules` | assign module ∈ category materializes access |
-| Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET /modules/{key}/grants`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin**; `manifest_digest` is part of the module representation; grants need `modules:manage` (never `modules:read`, which delegated keys hold) |
+| Modules (admin) | `GET /modules`, `GET /modules/{key}`, `GET /modules/{key}/grants`, `GET/PATCH /modules/{key}/settings`, `POST /modules/{key}/install\|activate\|deactivate\|upgrade`, `POST /modules/{key}/uninstall`, `PATCH /modules/{key}` | install requires reviewing the schema changes; **uninstall is super-admin**; `upgrade` applies a newer package over the installed one without touching data or settings and never downgrades; `manifest_digest` is part of the module representation; grants need `modules:manage` (never `modules:read`, which delegated keys hold) |
+| Module jobs | `GET /modules/{key}/jobs`, `POST /modules/{key}/jobs/{job}/run` | last runs of the module's scheduled jobs, and **run now** (`modules:manage`); the dispatcher itself is the platform cron |
 | Module docs | `GET /modules/{key}/docs/{doc}` | **previsto** |
-| You | `GET/PATCH /me`, `GET /me/modules` | **previsto** |
+| You | `GET /me/dashboard` (**implemented**), `GET/PATCH /me`, `GET /me/modules` (**previsto**) | `/me/dashboard?surface=app\|panel` composes the widgets of the active modules the caller can use; a module whose data function fails is omitted, never the page |
 | Access (admin) | `GET /users/{id}/modules`, `POST/DELETE /users/{id}/modules/{key}` | per-user grants: `GET` lists the live grants on installed/active modules (`key` + `name`, empty list when none); grant/revoke |
 | Invitations | `POST/GET /invitations`, `GET/DELETE /invitations/{id}`, `POST /invitations/{token}/redeem` | detail adds `created_by` (`null` when a key created it) and **never** the token or its hash; redeem is the public join step (single use) |
 | API keys | `POST/GET /api-keys`, `GET/PATCH/DELETE /api-keys/{id}` | secret returned once; delegated keys act as a plain user; `user_id` optional for a super_admin; list filters `kind`, `user` and `state` (`all|active|revoked|expired`; a revoked key never counts as expired; `user` + `kind=service` → 400, another owner for a non-super_admin → 404); 5 active delegated keys per owner (409 `conflict`, `details.code = "key_limit"`); `PATCH` edits `name`, `scopes` and `expires_at` only (`expires_at: null` removes the expiry; `kind`/`role_cap`/`user_id` → 400), re-scopes inside the stored cap/owner grants and never resurrects a revoked key (409, `details.code = "revoked"`); `/keys` panel is super_admin only |
@@ -240,7 +241,7 @@ The table reflects the **58 operations currently documented** (the authoritative
 | Settings & currency | `GET /settings`, `PATCH /settings`, `PATCH /settings/{category}/{key}`, `GET /settings-categories`, `GET /currencies`, `PATCH /currencies`, `PATCH /currencies/{code}` | `security.*`, `instance.public_url` and `cors_allowlist` are **super-admin** only |
 | i18n | `GET /translations?locale=` | ETag-cached (304 on `If-None-Match`) |
 | i18n admin | `GET /translations/status`, `POST /translations/import`, `PUT /translations/{locale}/{hash}` | **previsto** |
-| Operations | `GET /maintenance/status` (**session-only**, super_admin); `POST /maintenance/run` (**service key**, `maintenance:run`) | `maintenance/run` needs an instance key with `role_cap=super_admin` |
+| Operations | `GET /maintenance/status` (**session-only**, super_admin); `POST /maintenance/run` (**service key**, `maintenance:run`); `GET /maintenance/module-jobs` (**cron secret**) | `maintenance/run` needs an instance key with `role_cap=super_admin`; `module-jobs` is what Vercel Cron calls and answers 503 while `MAINTENANCE_CRON_SECRET` is unset |
 | Audit | `GET /admin-actions`, `GET /audit` | **previsto** |
 
 Full request/response shapes: the generated OpenAPI (§11) or the normative spec while it is not published.

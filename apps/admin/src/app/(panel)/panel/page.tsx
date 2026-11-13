@@ -4,6 +4,7 @@ import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { loadModuleWidgets, type ModuleWidget } from "@/lib/panel-modules";
 import {
   loadPanelDashboard,
   type DashboardFailure,
@@ -261,6 +262,70 @@ function DashboardBody({
  * The header already carries the instance identity, so the page leads with the
  * real state and the action that resolves it. It never repeats the name.
  */
+function widgetValue(
+  data: unknown,
+): { value: string; label?: string; detail?: string } | null {
+  if (typeof data !== "object" || data === null) return null;
+  const record = data as Record<string, unknown>;
+  const value = record.value;
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const label = typeof record.label === "string" ? record.label : undefined;
+  const detail = typeof record.detail === "string" ? record.detail : undefined;
+  return {
+    value: String(value),
+    ...(label ? { label } : {}),
+    ...(detail ? { detail } : {}),
+  };
+}
+
+/** Native render of the widgets modules declare; no module HTML reaches this tree. */
+function ModuleWidgets({
+  widgets,
+  messages,
+}: {
+  widgets: ModuleWidget[];
+  messages: TranslationMap;
+}) {
+  return (
+    <section aria-labelledby="dashboard-widgets" className="flex flex-col gap-3">
+      <h2
+        id="dashboard-widgets"
+        className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground"
+      >
+        {t("Modules", messages)}
+      </h2>
+      <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {widgets.map((widget) => {
+          const value = widgetValue(widget.data);
+          return (
+            <li
+              key={`${widget.module_key}:${widget.key}`}
+              className="flex flex-col gap-1 rounded-card border border-border bg-surface p-4"
+            >
+              <span className="text-xs font-semibold text-muted-foreground">{widget.title}</span>
+              {value ? (
+                <span className="text-2xl font-bold tabular-nums">
+                  {value.value}
+                  {value.label ? (
+                    <span className="ml-2 text-xs font-medium text-muted-foreground">
+                      {value.label}
+                    </span>
+                  ) : null}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">{t("No data", messages)}</span>
+              )}
+              {value?.detail ? (
+                <span className="text-xs text-muted-foreground">{value.detail}</span>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 export default async function DashboardPage() {
   const gate = await requirePanel("admin");
 
@@ -272,7 +337,10 @@ export default async function DashboardPage() {
     return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
   }
 
-  const dashboard = await loadPanelDashboard();
+  const [dashboard, moduleWidgets] = await Promise.all([
+    loadPanelDashboard(),
+    loadModuleWidgets("panel"),
+  ]);
 
   if (!dashboard.ok) {
     return (
@@ -307,6 +375,10 @@ export default async function DashboardPage() {
       )}
 
       <DashboardBody dashboard={dashboard} messages={messages} />
+
+      {moduleWidgets.ok && moduleWidgets.widgets.length > 0 ? (
+        <ModuleWidgets widgets={moduleWidgets.widgets} messages={messages} />
+      ) : null}
     </section>
   );
 }

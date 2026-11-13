@@ -160,9 +160,10 @@ Ejemplo completo:
   leyendo paquetes en cada transición.
 - `app_actions`: `[{ key, label, icon, screen }]`; solo en módulos con `app.visible: true`. `screen`
   es un identificador del registro de pantallas de la app (nunca una URL ni HTML) y `label` es la
-  clave de traducción que la app resuelve en sus 9 idiomas. `GET /api/v1/me/modules` las expone
-  solo para módulos `active` a los que el llamante tiene acceso; el FAB de la app se compone de
-  ellas y no hay lista hardcodeada.
+  clave de traducción que la app resuelve en sus 9 idiomas. El catálogo del llamante
+  (`GET /api/v1/me/modules`, tarea 01 del sprint 15) las devolverá solo para módulos `active` a
+  los que tiene acceso; el FAB de la app se compone de ellas y no hay lista hardcodeada. Hoy el
+  registry las guarda y la ficha del panel las muestra en solo lectura.
 - `jobs`: `[{ key, schedule, fn, timeout_seconds? }]`. `schedule` es un cron de **5 campos**
   (`minuto hora día mes día_semana`), validado al instalar; `fn` es una función del esquema del
   módulo que se ejecuta **sin usuario** (el Core la llama como servicio, con timeout, y nunca le
@@ -179,6 +180,9 @@ Ejemplo completo:
   `order` y `data_fn`, una función del esquema del módulo `(user_id uuid) returns jsonb` que
   **filtra por ese usuario**. El Core la llama al componer `GET /api/v1/me/dashboard`; si la
   función falla, el widget se omite y el dashboard sigue. Sin HTML ni JS del módulo.
+  La función devuelve `{ "value": string | number, "label"?: string, "detail"?: string }`; el
+  panel pinta `value` con `label` y `detail` como texto secundario, y nunca interpreta claves
+  que no conozca. Cualquier otro campo se ignora.
 - `admin_pages`: `route` de un solo segmento (`^[a-z0-9]+(-[a-z0-9]+)*$`, sin `/`, `..`,
   `%2e` ni rutas reservadas), `label` en inglés, `icon` del DS, `group` (`module`) y `role`
   (`admin`|`super_admin`). El componente vive en `packages/<key>/admin/<route>/page.tsx` y el
