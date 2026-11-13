@@ -64,6 +64,17 @@ describe("fixture package", () => {
       const admin = await session(c, "admin");
       const manifest = JSON.parse(await readFile(resolve(ROOT, "manifest.json"), "utf8"));
 
+      // The developer may have the Demo installed in their local instance: this
+      // test needs a clean slate, and the surrounding transaction restores it.
+      const { rows: installed } = await query(
+        c,
+        "select state from public.module_registry where key = 'fixture'",
+      );
+      if (installed[0]) {
+        const superAdmin = await session(c, "super_admin");
+        await uninstallModule(deps(c), superAdmin, "fixture", manifest, true);
+      }
+
       await installModule(deps(c), admin, manifest);
       await activateModule(deps(c), admin, "fixture");
 

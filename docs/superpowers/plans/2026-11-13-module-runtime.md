@@ -117,8 +117,8 @@ y datos de demo (05). Cada sección se acepta sola y comparte un único módulo 
 - [x] Test: `min > max`, `default` fuera de rango o `control` desconocido → manifest inválido.
 - [x] `min`/`max`/`step`/`control` (`number`|`slider`) para `int`; validación **en servidor** en
       `PATCH/PUT /modules/<key>/settings` con `validation_failed`.
-- [ ] Formulario editable en la página del módulo (hoy solo muestra valores): deslizador
-      accesible, valor actual visible, guardar y revertir; `is_secret` nunca se muestra.
+- [x] Formulario editable en la página del módulo: deslizador accesible, valor actual visible,
+      guardar y revertir; `is_secret` nunca se muestra (se escribe a ciegas).
 
 ### 3.5 Empaquetado serverless
 

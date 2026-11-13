@@ -9,6 +9,7 @@ import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { ModuleIcon } from "@/components/ui/module-icon";
+import { ModuleSettingsForm, type ModuleSettingItem } from "@/components/ui/module-setting-form";
 import { loadModuleManifest } from "@/lib/module-manifests";
 import { formatDate } from "@/lib/format-date";
 import { loadPanelMessages } from "@/lib/panel-i18n";
@@ -169,6 +170,55 @@ function ModuleDetails({
   );
 }
 
+function buildSettingItems(
+  settings: ModuleSetting[],
+  manifest: Awaited<ReturnType<typeof loadModuleManifest>>,
+): ModuleSettingItem[] {
+  const defs = new Map<
+    string,
+    NonNullable<typeof manifest>["settings"][number]["settings"][number]
+  >();
+  for (const group of manifest?.settings ?? []) {
+    for (const setting of group.settings) {
+      defs.set(`${group.category}.${setting.key}`, setting);
+    }
+  }
+  return settings.map((setting) => toSettingItem(setting, defs.get(setting.key)));
+}
+
+function serializeSettingValue(value: ModuleSetting["value"], type: string): string {
+  if (type === "bool") return String(value === true);
+  if (type === "json") return JSON.stringify(value ?? null, null, 2);
+  return value === null || value === undefined ? "" : String(value);
+}
+
+function toSettingItem(
+  setting: ModuleSetting,
+  def:
+    | {
+        type: string;
+        min?: number;
+        max?: number;
+        step?: number;
+        control?: string;
+      }
+    | undefined,
+): ModuleSettingItem {
+  const type = def?.type ?? "string";
+  return {
+    key: setting.key,
+    label: setting.label,
+    help: setting.help,
+    isSecret: setting.is_secret,
+    type,
+    min: def?.min,
+    max: def?.max,
+    step: def?.step,
+    control: def?.control,
+    value: serializeSettingValue(setting.value, type),
+  };
+}
+
 function ModuleSettingCards({
   settings,
   messages,
@@ -302,6 +352,10 @@ function ModuleGrants({ grants, messages }: { grants: ModuleGrants; messages: Tr
   );
 }
 
+// The page composes the header, details, settings, grants and actions, each
+// with its own loading/error branch; a lower complexity score would only hide
+// the flow behind more indirection.
+// eslint-disable-next-line complexity
 export default async function ModulePage({ params }: { params: Promise<{ key: string }> }) {
   const gate = await requirePanel("admin");
 
@@ -343,10 +397,14 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
   ]);
   const installedModule = detail.module;
 
+  const settingItems: ModuleSettingItem[] = settings.ok
+    ? buildSettingItems(settings.settings, manifest)
+    : [];
+
   return (
     <section className="flex flex-col gap-5">
       <ModuleBreadcrumb name={installedModule.name} messages={messages} />
-      <ModuleHeader module={installedModule} messages={messages} color={manifest?.branding.color} />
+      <ModuleHeader module={installedModule} messages={messages} color={manifest?.branding?.color} />
       <ModuleDetails
         module={installedModule}
         locale={locale}
@@ -355,7 +413,29 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
       />
 
       {settings.ok ? (
-        <ModuleSettings settings={settings.settings} messages={messages} />
+        <section
+          aria-labelledby="module-settings-title"
+          className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+        >
+          <h2 id="module-settings-title" className="text-sm font-semibold">
+            {t("Settings", messages)}
+          </h2>
+          {settingItems.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {t("This module has no settings.", messages)}
+            </p>
+          ) : (
+            <ModuleSettingsForm
+              moduleKey={installedModule.key}
+              items={settingItems}
+              labels={{
+                save: t("Save changes", messages),
+                saved: t("Changes saved.", messages),
+                failed: t("Save failed", messages),
+              }}
+            />
+          )}
+        </section>
       ) : (
         <PanelError
           error={settings}

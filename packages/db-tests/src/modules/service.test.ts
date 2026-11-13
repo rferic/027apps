@@ -135,7 +135,11 @@ describe("modules installer", () => {
       );
       expect(migrations).toEqual([{ version: "1.0.0", direction: "up" }]);
 
-      const { rows: event } = await query(c, "select type, target from public.event_outbox where type = 'module.installed'");
+      const { rows: event } = await query(
+        c,
+        "select type, target from public.event_outbox where type = 'module.installed' and module_key = $1",
+        ["demo-module"],
+      );
       expect(event).toEqual([{ type: "module.installed", target: "admins" }]);
 
       await expect(installModule(deps(c), admin, manifest())).rejects.toMatchObject({
@@ -156,7 +160,11 @@ describe("modules installer", () => {
       await expect(installModule(deps(c), admin, tampered)).rejects.toMatchObject({
         code: "validation_failed",
       });
-      const { rows } = await query(c, "select 1 from public.module_registry");
+      const { rows } = await query(
+        c,
+        "select 1 from public.module_registry where key = $1",
+        ["demo-module"],
+      );
       expect(rows).toHaveLength(0);
     });
   });
@@ -197,7 +205,8 @@ describe("modules installer", () => {
       await expect(activateModule(deps(c), admin, "demo-module")).resolves.toMatchObject({
         state: "active",
       });
-      expect((await listModules(deps(c), admin, PAGE)).modules).toHaveLength(1);
+      const listed = (await listModules(deps(c), admin, PAGE)).modules;
+      expect(listed.filter((module) => module.key === "demo-module")).toHaveLength(1);
     });
   });
 
@@ -323,7 +332,11 @@ describe("modules installer", () => {
 
       await uninstallModule(deps(c), superAdmin, "demo-module", manifest(), true);
 
-      const { rows: registry } = await query(c, "select 1 from public.module_registry");
+      const { rows: registry } = await query(
+        c,
+        "select 1 from public.module_registry where key = $1",
+        ["demo-module"],
+      );
       expect(registry).toHaveLength(0);
       const { rows: table } = await query(
         c,
@@ -347,14 +360,21 @@ describe("modules installer", () => {
       const d = deps(c);
       await installModule(d, admin, manifest());
 
-      expect((await listModules(d, admin, PAGE)).modules).toHaveLength(1);
-      expect((await listModules(d, user, PAGE)).modules).toHaveLength(0);
+      const adminList = (await listModules(d, admin, PAGE)).modules;
+      expect(adminList.filter((module) => module.key === "demo-module")).toHaveLength(1);
+      expect(
+        (await listModules(d, user, PAGE)).modules.filter((module) => module.key === "demo-module"),
+      ).toHaveLength(0);
 
       await activateModule(d, admin, "demo-module");
-      expect((await listModules(d, user, PAGE)).modules).toHaveLength(0);
+      expect(
+        (await listModules(d, user, PAGE)).modules.filter((module) => module.key === "demo-module"),
+      ).toHaveLength(0);
 
       await grantUserModule(d, admin, user.userId, "demo-module");
-      expect((await listModules(d, user, PAGE)).modules).toHaveLength(1);
+      expect(
+        (await listModules(d, user, PAGE)).modules.filter((module) => module.key === "demo-module"),
+      ).toHaveLength(1);
 
       await expect(
         installModule({ ...d, withTransaction: undefined }, admin, manifest()),

@@ -18,6 +18,16 @@ import { PanelForbidden } from "@/components/panel-forbidden";
  */
 export const instant = false;
 
+/** A missing manifest, an undeclared route and an unknown module are one 404. */
+async function resolvePage(key: string, route: string) {
+  const manifest = await loadModuleManifest(key);
+  const page = manifest?.admin_pages.find((candidate) => candidate.route === route);
+  if (!page) notFound();
+  const detail = await loadModuleDetail(key);
+  if (!detail.ok) notFound();
+  return { page, detail };
+}
+
 export default async function ModuleAdminPage({
   params,
 }: {
@@ -31,12 +41,7 @@ export default async function ModuleAdminPage({
   }
 
   const { key, route } = await params;
-  const manifest = await loadModuleManifest(key);
-  const page = manifest?.admin_pages.find((candidate) => candidate.route === route);
-  if (!manifest || !page) notFound();
-
-  const detail = await loadModuleDetail(key);
-  if (!detail.ok) notFound();
+  const { page, detail } = await resolvePage(key, route);
   // Installed but not active: there is nothing to render yet, and a 404 here
   // would look like a broken package. Send the admin to the page with the
   // Activate button instead.

@@ -34,6 +34,21 @@
           "is_secret": false,
           "mcp_access": "read",
           "sort_order": 10
+        },
+        {
+          "key": "limit",
+          "type": "int",
+          "min": 4,
+          "max": 20,
+          "step": 1,
+          "control": "slider",
+          "default": 12,
+          "label": "Slider limit",
+          "help": "Exercises the ranged setting with a slider.",
+          "is_public": false,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 20
         }
       ]
     }

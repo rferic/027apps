@@ -9,8 +9,10 @@ const notFoundMock = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
 
+const loadModuleManifestMock = vi.fn(async (_key: string): Promise<unknown> => null);
+
 vi.mock("@/lib/module-manifests", () => ({
-  loadModuleManifest: async () => null,
+  loadModuleManifest: (key: string) => loadModuleManifestMock(key),
 }));
 
 vi.mock("next/headers", () => ({
@@ -101,6 +103,8 @@ beforeEach(() => {
   loadModuleSettingsMock.mockResolvedValue({ ok: true, settings: [SETTING] });
   loadModuleGrantsMock.mockReset();
   loadModuleGrantsMock.mockResolvedValue({ ok: true, grants: GRANTS });
+  loadModuleManifestMock.mockReset();
+  loadModuleManifestMock.mockResolvedValue(null);
   notFoundMock.mockClear();
 });
 
@@ -235,22 +239,60 @@ describe("ModuleDetailPage", () => {
     expect(html).not.toContain('href="/members/u1"');
   });
 
-  it("shows the settings as a read-only table and never links to an edit page", async () => {
+  it("renders an editable form for each setting, secrets as write-only", async () => {
     loadModuleSettingsMock.mockResolvedValue({
       ok: true,
       settings: [SETTING, SECRET_SETTING],
+    });
+    loadModuleManifestMock.mockResolvedValue({
+      key: "inventory",
+      branding: { description: "Inventory", icon: "assets/icon.svg", color: "indigo" },
+      settings: [
+        {
+          category: "inventory",
+          label: "Inventory",
+          sort_order: 10,
+          settings: [
+            {
+              key: "low_stock_threshold",
+              type: "int",
+              min: 1,
+              max: 20,
+              step: 1,
+              control: "slider",
+              default: 5,
+              label: "Low stock threshold",
+              is_public: false,
+              is_secret: false,
+              mcp_access: "read",
+              sort_order: 10,
+            },
+            {
+              key: "api_token",
+              type: "string",
+              label: "API token",
+              is_public: false,
+              is_secret: true,
+              mcp_access: "none",
+              sort_order: 20,
+            },
+          ],
+        },
+      ],
     });
 
     const html = renderToStaticMarkup(await render());
 
     expect(html).toContain("Low stock threshold");
-    expect(html).toContain("<td");
-    expect(html).toContain("5");
     expect(html).toContain("API token");
-    // A secret is reported as configured, never with its stored value.
-    expect(html).toContain("Configured");
-    expect(html).not.toContain("<input");
-    expect(html).not.toContain("<textarea");
+    expect(html).toContain("name=\"value\"");
+    // The int setting is a slider with its range from the manifest.
+    expect(html).toContain('type="range"');
+    expect(html).toContain('min="1"');
+    expect(html).toContain('max="20"');
+    // A secret is editable but never shows the stored value.
+    expect(html).toContain('type="password"');
+    expect(html).not.toContain("secret-value");
     expect(html).not.toContain('href="/modules/inventory/settings"');
   });
 

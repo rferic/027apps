@@ -5,6 +5,7 @@ import {
   moduleRoute,
   modulesRoute,
   moduleSettingsRoute,
+  updateModuleSettingRoute,
 } from "@027apps/core/modules/api.js";
 import { PANEL_PAGE_SIZE } from "@/lib/panel-pagination";
 import { modulesRouteDeps } from "@/lib/modules-route-deps";
@@ -405,6 +406,44 @@ export async function loadModuleDetail(key: string): Promise<ModuleDetailResult>
 }
 
 /** GET /api/v1/modules/{key}/settings — every setting, secrets without their value. */
+/**
+ * Writes one setting through the Core route, in process and with the panel
+ * session. Range and type validation live in the Core; this only carries the
+ * session and maps the envelope to a boolean plus the error code.
+ */
+export async function saveModuleSetting(
+  moduleKey: string,
+  settingKey: string,
+  value: unknown,
+): Promise<{ ok: true } | { ok: false; code?: string }> {
+  const token = await sessionToken();
+  const handler = updateModuleSettingRoute(await modulesRouteDeps());
+  let res: Response;
+  try {
+    res = await handler(
+      new Request(
+        `${INTERNAL_ORIGIN}/api/v1/modules/${encodeURIComponent(moduleKey)}/settings`,
+        {
+          method: "PATCH",
+          headers: {
+            authorization: `Bearer ${token}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ key: settingKey, value }),
+        },
+      ),
+      moduleKey,
+    );
+  } catch {
+    return { ok: false };
+  }
+  if (res.ok) return { ok: true };
+  const body = (await res.json().catch(() => null)) as
+    | { error?: { code?: string } }
+    | null;
+  return { ok: false, code: body?.error?.code };
+}
+
 export async function loadModuleSettings(key: string): Promise<ModuleSettingsResult> {
   const token = await sessionToken();
   const deps = await modulesRouteDeps();
