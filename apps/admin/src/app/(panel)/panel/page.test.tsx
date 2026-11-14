@@ -26,6 +26,28 @@ vi.mock("@/lib/panel-dashboard", () => ({
   loadPanelDashboard: () => loadDashboardMock(),
 }));
 
+const loadModuleWidgetsMock = vi.fn(async () => ({ ok: true, widgets: [] }));
+
+vi.mock("@/lib/panel-modules", () => ({
+  loadModuleWidgets: () => loadModuleWidgetsMock(),
+}));
+
+vi.mock("@/lib/module-messages", () => ({
+  loadModuleMessages: async () => ({
+    Groups: "Grupos",
+    groups: "grupos",
+    "{members} members": "{members} miembros",
+  }),
+}));
+
+vi.mock("@/lib/module-manifests", () => ({
+  loadModuleManifest: async (key: string) => ({
+    key,
+    name: "OweNo",
+    branding: { color: "teal" },
+  }),
+}));
+
 vi.mock("@/app/(auth)/actions", () => ({
   signOutAction: "sign-out",
 }));
@@ -78,7 +100,7 @@ describe("DashboardPage", () => {
     expect(html).toContain(">6<");
     expect(html).toContain("Expenses");
     expect(html).toContain("Notes");
-    expect(html).toContain('href="/modules"');
+    expect(html).toContain('href="/panel/modules"');
     expect(html).not.toContain("Setup is incomplete.");
     expect(html).not.toContain("The service is degraded.");
   });
@@ -165,7 +187,7 @@ describe("DashboardPage", () => {
 
     expect(html).toContain("No modules are installed yet.");
     expect(html).toContain("Install a module to make its features available to the instance.");
-    expect(html).toContain('href="/modules"');
+    expect(html).toContain('href="/panel/modules"');
     expect(html).toContain("Install a module");
     expect(html).not.toContain("Expenses");
     expect(html).toContain("Active members");
@@ -213,7 +235,7 @@ describe("DashboardPage", () => {
 
     expect(html).toContain("No members or modules yet.");
     expect(html).toContain("Invite members or install a module to get started.");
-    expect(html).toContain('href="/invitations"');
+    expect(html).toContain('href="/panel/invitations"');
     expect(html).not.toContain("Active members");
   });
 
@@ -236,5 +258,31 @@ describe("DashboardPage", () => {
     expect(html).not.toContain("No members or modules yet.");
     expect(html).toContain("Active members");
     expect(html).toContain(">1<");
+  });
+
+  it("translates, brands and links every module widget", async () => {
+    loadModuleWidgetsMock.mockResolvedValueOnce({
+      ok: true,
+      widgets: [
+        {
+          key: "owe-no.groups",
+          type: "metric",
+          surface: "panel",
+          title: "Groups",
+          icon: "wallet",
+          order: 80,
+          module_key: "owe-no",
+          data: { value: 3, label: "groups", detail: "{members} members", params: { members: 7 } },
+        },
+      ],
+    } as never);
+
+    const html = renderToStaticMarkup(await DashboardPage());
+
+    expect(html).toContain("Grupos");
+    expect(html).toContain("3");
+    expect(html).toContain("7 miembros");
+    expect(html).toContain('href="/panel/owe-no"');
+    expect(html).toContain("url(/panel/modules/owe-no/icon)");
   });
 });

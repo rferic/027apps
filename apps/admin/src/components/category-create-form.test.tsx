@@ -17,7 +17,7 @@ describe("CategoryCreateForm", () => {
     expect(html).toContain("category-name");
     expect(html).toContain("category-slug");
     expect(html).toContain("Cancel");
-    expect(html).toContain('href="/categories"');
+    expect(html).toContain('href="/panel/categories"');
     expect(html).not.toContain("<dialog");
   });
 
@@ -31,10 +31,10 @@ describe("CategoryCreateForm", () => {
 
 describe("categoryCreatedHref", () => {
   it("lands on the new detail so members and modules can be added", () => {
-    expect(categoryCreatedHref("c1")).toBe("/categories/c1");
+    expect(categoryCreatedHref("c1")).toBe("/panel/categories/c1");
   });
 
   it("falls back to the list when the API returned no id", () => {
-    expect(categoryCreatedHref(undefined)).toBe("/categories");
+    expect(categoryCreatedHref(undefined)).toBe("/panel/categories");
   });
 });

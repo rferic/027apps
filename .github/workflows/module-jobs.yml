@@ -1,0 +1,48 @@
+name: Module jobs
+
+# Drives the per-minute module job dispatcher without Vercel Cron: the Hobby
+# plan rejects any schedule that runs more than once a day, so the platform cron
+# would break every deployment. GitHub's minimum is 5 minutes, which is why the
+# endpoint evaluates a 5-minute lookback window: a job due at :00 still runs on a
+# tick that lands at :05, and the per-minute claim keeps it idempotent.
+#
+# Inactive until the secrets exist, like `migrations.yml`: without them the job
+# is a no-op, not a failure.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: module-jobs
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      STAGING_URL: ${{ secrets.MODULE_JOBS_URL_STAGING }}
+      STAGING_SECRET: ${{ secrets.CRON_SECRET_STAGING }}
+      PRODUCTION_URL: ${{ secrets.MODULE_JOBS_URL_PRODUCTION }}
+      PRODUCTION_SECRET: ${{ secrets.CRON_SECRET_PRODUCTION }}
+    steps:
+      - name: Tick staging
+        if: env.STAGING_URL != '' && env.STAGING_SECRET != ''
+        run: |
+          code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --max-time 30 -H "Authorization: Bearer $STAGING_SECRET" "$STAGING_URL")
+          echo "staging dispatcher answered $code"
+          [ "$code" = "200" ] || exit 1
+
+      - name: Tick production
+        if: env.PRODUCTION_URL != '' && env.PRODUCTION_SECRET != ''
+        run: |
+          code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --max-time 30 -H "Authorization: Bearer $PRODUCTION_SECRET" "$PRODUCTION_URL")
+          echo "production dispatcher answered $code"
+          [ "$code" = "200" ] || exit 1

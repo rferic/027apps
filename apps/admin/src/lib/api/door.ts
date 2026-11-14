@@ -9,6 +9,7 @@ import type { DoorDeps } from "@027apps/core/api/types.js";
 import type { QueryClient } from "@027apps/core/api/rate-limit-storage.js";
 import { resolveCaller, type CallerResolverDeps, type ProfilesPort } from "@027apps/core/auth/caller.js";
 import { resolveApiKey } from "@027apps/core/api-keys/service.js";
+import { moduleScopesForCaller } from "@027apps/core/modules/service.js";
 import { createSettingsEncryption } from "@027apps/core/crypto.js";
 import type { SettingsDeps } from "@027apps/core/settings/service.js";
 import type { CurrenciesDeps } from "@027apps/core/currencies/service.js";
@@ -93,6 +94,21 @@ async function createInfra() {
     resolveCallerForCredential(req.headers.get("authorization") ?? "");
 
   const deps: DoorDeps = {
+    // Module routes name their module; access is resolved per request against
+    // `module_registry` + the caller's grant (see moduleScopesForCaller).
+    moduleScopes: (caller, key) =>
+      moduleScopesForCaller(
+        {
+          db: {
+            async query(sql: string, params: unknown[] = []) {
+              const result = await pool.query(sql, params);
+              return { rows: result.rows as Record<string, unknown>[] };
+            },
+          },
+        },
+        caller,
+        key,
+      ),
     rateLimitStorage: createPostgresRateLimitStorage({
       async query(sql: string, params: unknown[]) {
         const result = await pool.query(sql, params);

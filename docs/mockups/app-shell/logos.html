@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>027Apps · Logos de módulo</title>
+  <style>
+    :root {
+      --background: #F6F7F8;
+      --surface: #FFFFFF;
+      --surface-2: #F6F7F8;
+      --muted: #ECEEF0;
+      --muted-foreground: #5B6472;
+      --foreground: #17191C;
+      --primary: #17191C;
+      --primary-foreground: #FFFFFF;
+      --accent: #09795F;
+      --accent-foreground: #FFFFFF;
+      --border: #E3E5E8;
+      --stage: #E7EAEE;
+      --card-radius: 18px;
+    }
+    [data-theme="dark"] {
+      --background: #08090A;
+      --surface: #0E0F11;
+      --surface-2: #141517;
+      --muted: #1A1B1E;
+      --muted-foreground: #8A8F98;
+      --foreground: #F7F8F8;
+      --primary: #F7F8F8;
+      --primary-foreground: #08090A;
+      --accent: #1CC29F;
+      --accent-foreground: #05231C;
+      --border: rgba(255, 255, 255, .09);
+      --stage: #050607;
+    }
+    .accent-teal { --module-accent: #09795F; --module-contrast: #FFFFFF; }
+    .accent-indigo { --module-accent: #4F46E5; --module-contrast: #FFFFFF; }
+    [data-theme="dark"] .accent-teal { --module-accent: #1CC29F; --module-contrast: #08090A; }
+    [data-theme="dark"] .accent-indigo { --module-accent: #818CF8; --module-contrast: #08090A; }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: var(--stage);
+      color: var(--foreground);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-feature-settings: "cv11";
+    }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 14px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .toolbar strong { display: block; font-size: 14px; }
+    .toolbar span { display: block; margin-top: 2px; font-size: 12px; color: var(--muted-foreground); }
+    .toolbar button {
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--foreground);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+    .intro { max-width: 760px; margin: 0 0 28px; }
+    .intro h1 { margin: 0 0 8px; font-size: 26px; letter-spacing: -.03em; }
+    .intro p { margin: 0 0 10px; font-size: 14px; line-height: 1.6; color: var(--muted-foreground); }
+    .intro strong { color: var(--foreground); }
+    .directions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .directions.wallets { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 8px; }
+    .directions.bills { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
+    .direction {
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      background: var(--surface);
+    }
+    .direction-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .direction h2 { margin: 0; font-size: 15px; }
+    .direction .tag {
+      padding: 3px 7px;
+      border-radius: 6px;
+      background: var(--muted);
+      color: var(--muted-foreground);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .tile {
+      width: 84px;
+      height: 84px;
+      border-radius: 22px;
+      background: var(--module-accent);
+      color: var(--module-contrast);
+      display: grid;
+      place-items: center;
+      flex: none;
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-contrast) 16%, transparent);
+    }
+    .tile svg { width: 46px; height: 46px; }
+    .hero .name { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+    .hero .sub { margin-top: 3px; font-size: 12px; color: var(--muted-foreground); }
+    .direction p { margin: 0 0 16px; font-size: 13px; line-height: 1.55; color: var(--muted-foreground); }
+    .sizes {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+    .size {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-size: 9px;
+      color: var(--muted-foreground);
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+    .size .mark {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--foreground);
+    }
+    .size .mark svg { width: 24px; height: 24px; }
+    .size .mark.on-accent { background: var(--module-accent); color: var(--module-contrast); }
+    .section-title { margin: 34px 0 14px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted-foreground); }
+    .event-demo { display: grid; grid-template-columns: 160px 1fr; gap: 18px; align-items: center; padding: 20px; border: 1px solid var(--border); border-radius: var(--card-radius); background: var(--surface); }
+    .event-demo .tile { width: 72px; height: 72px; border-radius: 20px; }
+    .event-demo .tile svg { width: 38px; height: 38px; }
+    .event-demo h2 { margin: 0 0 4px; font-size: 15px; }
+    .event-demo p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--muted-foreground); }
+    .notes { margin-top: 28px; padding: 18px 20px; border: 1px solid var(--border); border-radius: var(--card-radius); background: var(--surface); font-size: 13px; line-height: 1.6; color: var(--muted-foreground); }
+    .notes strong { color: var(--foreground); }
+    .notes ul { margin: 8px 0 0; padding-left: 18px; }
+    @media (max-width: 900px) {
+      .directions { grid-template-columns: 1fr; }
+      .event-demo { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="mark-a" viewBox="0 0 32 32">
+      <ellipse cx="16" cy="9.5" rx="8.5" ry="3.2" fill="none" stroke="currentColor" stroke-width="2.6"/>
+      <path d="M7.5 9.5v6c0 1.8 3.8 3.2 8.5 3.2s8.5-1.4 8.5-3.2v-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M7.5 15.5v6c0 1.8 3.8 3.2 8.5 3.2s8.5-1.4 8.5-3.2v-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="mark-b" viewBox="0 0 32 32">
+      <circle cx="10.5" cy="20" r="6.2" fill="none" stroke="currentColor" stroke-width="2.6"/>
+      <circle cx="16" cy="13" r="6.2" fill="none" stroke="currentColor" stroke-width="2.6"/>
+      <circle cx="21.5" cy="20" r="6.2" fill="none" stroke="currentColor" stroke-width="2.6"/>
+    </symbol>
+    <symbol id="mark-c" viewBox="0 0 32 32">
+      <circle cx="10.5" cy="16" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/>
+      <circle cx="21.5" cy="16" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/>
+    </symbol>
+    <symbol id="mark-events" viewBox="0 0 32 32">
+      <path d="M7 4h18v6.5H13.5V14H22v6H13.5v5H25V28H7V4Z" fill="currentColor"/>
+    </symbol>
+    <symbol id="mark-wallet" viewBox="0 0 32 32">
+      <path d="M5 11a3 3 0 0 1 3-3h16a3 3 0 0 1 3 3v13a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V11Z" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M5 15.5h22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="22.5" cy="19.5" r="2.3" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <circle cx="21" cy="7" r="3.1" fill="none" stroke="currentColor" stroke-width="2.4"/>
+    </symbol>
+    <symbol id="mark-wallet-min" viewBox="0 0 32 32">
+      <path d="M5 10a3 3 0 0 1 3-3h16a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V10Z" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M5 14.5h22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="22.5" cy="19.5" r="2.3" fill="none" stroke="currentColor" stroke-width="2.2"/>
+    </symbol>
+    <symbol id="mark-bill" viewBox="0 0 32 32">
+      <rect x="4.5" y="8" width="23" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2.6"/>
+      <circle cx="16" cy="16" r="4.2" fill="none" stroke="currentColor" stroke-width="2.4"/>
+      <path d="M8 12.5h3.5M8 19.5h3.5M20.5 12.5H24M20.5 19.5H24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="mark-bill-coin" viewBox="0 0 32 32">
+      <rect x="4" y="7" width="22" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <circle cx="15" cy="14.5" r="3.6" fill="none" stroke="currentColor" stroke-width="2.3"/>
+      <circle cx="23" cy="23" r="3.8" fill="none" stroke="currentColor" stroke-width="2.4"/>
+    </symbol>
+    <symbol id="mark-wallet-bills" viewBox="0 0 32 32">
+      <path d="M7.5 9 8.5 6.5h11L18.5 9" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/>
+      <path d="M10 9 11 4.5h12L22 9" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/>
+      <path d="M5 12a3 3 0 0 1 3-3h16a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V12Z" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/>
+      <path d="M5 16.5h22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="22.5" cy="20.5" r="2.3" fill="none" stroke="currentColor" stroke-width="2.2"/>
+    </symbol>
+  </svg>
+
+  <header class="toolbar">
+    <div>
+      <strong>027Apps · Logos de módulo</strong>
+      <span>Siete direcciones propias para OweNo · no son iconos de librería</span>
+    </div>
+    <button id="theme">Cambiar a oscuro</button>
+  </header>
+
+  <main>
+    <section class="intro">
+      <h1>Marcas para OweNo</h1>
+      <p><strong>OweNo</strong> es el nombre elegido (2026-11-12) para el módulo de pagos compartidos. La broma está en el nombre: suena a <em>oh no</em> y significa <em>owe no</em>. El tick no daba la pista de dinero, así que lo he quitado. Abajo tienes <strong>monedas</strong>, <strong>carteras</strong> y <strong>billetes</strong>. La elegida es el billete, con el color esmeralda; la cartera y el recibo quedan como finalistas alternativos. Todo dibujado para 027Apps, sin packs de iconos, y monocromo para el tile del acento.</p>
+      <p>El contrato del manifest pide un SVG monocromo con safe-zone 24/48. La elegida será el `branding.icon` de OweNo en <code>packages/owe-no/assets/icon.svg</code>.</p>
+    </section>
+
+    <section class="directions">
+      <article class="direction accent-teal">
+        <div class="direction-head"><h2>Dirección A · Pila de monedas</h2><span class="tag">Monedas</span></div>
+        <div class="hero">
+          <div class="tile"><svg><use href="#mark-a"/></svg></div>
+          <div><div class="name">OweNo</div><div class="sub">Varias monedas apiladas</div></div>
+        </div>
+        <p>Tres monedas apiladas: dinero sin ambigüedad y sin tick. Es la que se lee primero como «varias monedas» a 24 px y la que mejor aguanta el tile del acento.</p>
+        <div class="sizes">
+          <div class="size"><div class="mark"><svg><use href="#mark-a"/></svg></div><span>24</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-a"/></svg></div><span>32</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-a"/></svg></div><span>40</span></div>
+          <div class="size"><div class="mark on-accent"><svg><use href="#mark-a"/></svg></div><span>tile</span></div>
+        </div>
+      </article>
+
+      <article class="direction accent-teal">
+        <div class="direction-head"><h2>Dirección B · Monedas en abanico</h2><span class="tag">Propuesta</span></div>
+        <div class="hero">
+          <div class="tile"><svg><use href="#mark-b"/></svg></div>
+          <div><div class="name">OweNo</div><div class="sub">Tres monedas en triángulo</div></div>
+        </div>
+        <p>Tres monedas en abanico: varias aportaciones y un mismo bote. Es más geométrica y más de marca que la pila; a 24 px se lee como un grupo de monedas.</p>
+        <div class="sizes">
+          <div class="size"><div class="mark"><svg><use href="#mark-b"/></svg></div><span>24</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-b"/></svg></div><span>32</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-b"/></svg></div><span>40</span></div>
+          <div class="size"><div class="mark on-accent"><svg><use href="#mark-b"/></svg></div><span>tile</span></div>
+        </div>
+      </article>
+
+      <article class="direction accent-teal">
+        <div class="direction-head"><h2>Dirección C · Dos monedas</h2><span class="tag">Propuesta</span></div>
+        <div class="hero">
+          <div class="tile"><svg><use href="#mark-c"/></svg></div>
+          <div><div class="name">OweNo</div><div class="sub">Dos monedas, lo mínimo</div></div>
+        </div>
+        <p>Dos monedas separadas: lo compartido sin más. Es la más sobria y la más fácil de reproducir; también la menos «dinero» si no hay contexto.</p>
+        <div class="sizes">
+          <div class="size"><div class="mark"><svg><use href="#mark-c"/></svg></div><span>24</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-c"/></svg></div><span>32</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-c"/></svg></div><span>40</span></div>
+          <div class="size"><div class="mark on-accent"><svg><use href="#mark-c"/></svg></div><span>tile</span></div>
+        </div>
+      </article>
+    </section>
+
+    <h2 class="section-title">Carteras</h2>
+    <section class="directions wallets">
+      <article class="direction accent-teal">
+        <div class="direction-head"><h2>Dirección D · Cartera + moneda</h2><span class="tag">Cartera</span></div>
+        <div class="hero">
+          <div class="tile"><svg><use href="#mark-wallet"/></svg></div>
+          <div><div class="name">OweNo</div><div class="sub">Cartera con moneda</div></div>
+        </div>
+        <p>Una cartera con una moneda asomando y un cierre. Es la lectura más natural de «dinero» sin tick: la cartera es el objeto y la moneda el contenido. A 24 px se reconoce antes que la pila.</p>
+        <div class="sizes">
+          <div class="size"><div class="mark"><svg><use href="#mark-wallet"/></svg></div><span>24</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-wallet"/></svg></div><span>32</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-wallet"/></svg></div><span>40</span></div>
+          <div class="size"><div class="mark on-accent"><svg><use href="#mark-wallet"/></svg></div><span>tile</span></div>
+        </div>
+      </article>
+
+      <article class="direction accent-teal">
+        <div class="direction-head"><h2>Dirección E · Cartera minimalista</h2><span class="tag">Propuesta</span></div>
+        <div class="hero">
+          <div class="tile"><svg><use href="#mark-wallet-min"/></svg></div>
+          <div><div class="name">OweNo</div><div class="sub">Cartera sin moneda</div></div>
+        </div>
+        <p>La cartera sola, con la solapa y el cierre. Más limpia y más de marca, pero el «dinero» depende del contexto y del tagline. A 24 px es la más sobria.</p>
+        <div class="sizes">
+          <div class="size"><div class="mark"><svg><use href="#mark-wallet-min"/></svg></div><span>24</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-wallet-min"/></svg></div><span>32</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-wallet-min"/></svg></div><span>40</span></div>
+          <div class="size"><div class="mark on-accent"><svg><use href="#mark-wallet-min"/></svg></div><span>tile</span></div>
+        </div>
+      </article>
+    </section>
+
+    <h2 class="section-title">Billetes</h2>
+    <section class="directions bills">
+      <article class="direction accent-teal">
+        <div class="direction-head"><h2>Dirección F · Billete</h2><span class="tag">Elegida</span></div>
+        <div class="hero">
+          <div class="tile"><svg><use href="#mark-bill"/></svg></div>
+          <div><div class="name">OweNo</div><div class="sub">Billete con círculo central</div></div>
+        </div>
+        <p>Un billete con círculo central y marcas de esquina: la lectura más directa de dinero sin moneda ni tick. A 24 px el rectángulo con el círculo se reconoce como billete.</p>
+        <div class="sizes">
+          <div class="size"><div class="mark"><svg><use href="#mark-bill"/></svg></div><span>24</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-bill"/></svg></div><span>32</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-bill"/></svg></div><span>40</span></div>
+          <div class="size"><div class="mark on-accent"><svg><use href="#mark-bill"/></svg></div><span>tile</span></div>
+        </div>
+      </article>
+
+      <article class="direction accent-teal">
+        <div class="direction-head"><h2>Dirección G · Billete + moneda</h2><span class="tag">Propuesta</span></div>
+        <div class="hero">
+          <div class="tile"><svg><use href="#mark-bill-coin"/></svg></div>
+          <div><div class="name">OweNo</div><div class="sub">Billete con moneda</div></div>
+        </div>
+        <p>Un billete con una moneda asomando: dos pistas de dinero en un solo símbolo. Es la más literal, pero a 24 px lleva más elementos que el billete solo.</p>
+        <div class="sizes">
+          <div class="size"><div class="mark"><svg><use href="#mark-bill-coin"/></svg></div><span>24</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-bill-coin"/></svg></div><span>32</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-bill-coin"/></svg></div><span>40</span></div>
+          <div class="size"><div class="mark on-accent"><svg><use href="#mark-bill-coin"/></svg></div><span>tile</span></div>
+        </div>
+      </article>
+
+      <article class="direction accent-teal">
+        <div class="direction-head"><h2>Dirección H · Cartera con billetes</h2><span class="tag">Propuesta</span></div>
+        <div class="hero">
+          <div class="tile"><svg><use href="#mark-wallet-bills"/></svg></div>
+          <div><div class="name">OweNo</div><div class="sub">Cartera + billetes</div></div>
+        </div>
+        <p>Una cartera con dos billetes asomando. Es la más literal de «cartera + dinero»; a 24 px lleva más líneas que el billete solo, pero no hay que interpretar nada.</p>
+        <div class="sizes">
+          <div class="size"><div class="mark"><svg><use href="#mark-wallet-bills"/></svg></div><span>24</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-wallet-bills"/></svg></div><span>32</span></div>
+          <div class="size"><div class="mark"><svg><use href="#mark-wallet-bills"/></svg></div><span>40</span></div>
+          <div class="size"><div class="mark on-accent"><svg><use href="#mark-wallet-bills"/></svg></div><span>tile</span></div>
+        </div>
+      </article>
+    </section>
+
+    <h2 class="section-title">Segundo módulo de demo</h2>
+    <section class="event-demo accent-indigo">
+      <div class="tile"><svg><use href="#mark-events"/></svg></div>
+      <div>
+        <h2>Eventos · monograma E</h2>
+        <p>El segundo módulo del mockup es solo para enseñar otro acento. Su marca sigue la misma familia de monogramas geométricos; no es un módulo real ni el logo definitivo.</p>
+      </div>
+    </section>
+
+    <section class="notes">
+      <strong>Cómo se elige.</strong> Dime A, B o C. La elegida se convierte en el logo de OweNo en el mockup y, cuando exista el módulo, en <code>packages/owe-no/assets/icon.svg</code> declarado como <code>branding.icon</code> (SVG monocromo, <code>currentColor</code>, safe-zone 24/48).
+      <ul>
+        <li><strong>F</strong> es la elegida: billete + esmeralda; la lectura más directa de dinero.</li>
+        <li><strong>D</strong> si prefieres una cartera con moneda; <strong>E</strong> si la quieres más limpia.</li>
+        <li><strong>A</strong> si prefieres monedas; <strong>H</strong> si quieres cartera + billetes; <strong>G</strong> si quieres billete y moneda; <strong>B/C</strong> son las más geométricas o mínimas.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    const button = document.getElementById('theme');
+    button.addEventListener('click', () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+      button.textContent = dark ? 'Cambiar a oscuro' : 'Cambiar a claro';
+    });
+  </script>
+</body>
+</html>

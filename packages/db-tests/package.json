@@ -15,5 +15,8 @@
     "pg": "^8.19.0",
     "typescript": "^5",
     "vitest": "^5"
+  },
+  "dependencies": {
+    "@027apps/owe-no": "workspace:*"
   }
 }

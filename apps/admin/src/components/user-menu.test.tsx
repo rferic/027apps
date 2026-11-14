@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/settings/instance",
+  usePathname: () => "/panel/settings/instance",
 }));
 
 import { UserMenu, closesUserMenu } from "./user-menu";

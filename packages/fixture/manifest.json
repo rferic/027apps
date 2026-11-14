@@ -1,0 +1,146 @@
+{
+  "key": "fixture",
+  "name": "Demo",
+  "branding": {
+    "description": "Test-only module that exercises the module runtime.",
+    "icon": "assets/icon.svg",
+    "color": "indigo"
+  },
+  "version": "1.5.0",
+  "is_public": false,
+  "migrations": [
+    {
+      "version": "1.0.0",
+      "up": "./sql/001-init.sql",
+      "down": "./sql/001-init.down.sql",
+      "digest": "sha256:cf45bae0760a1debbb5d328339c9a49e653feafd806ab9edeea37520f3dd64a9",
+      "down_digest": "sha256:af2f11d0088c96c2bb86d82e5cb9e75da3ccef511274fa7ead14e4bd65e732d2"
+    },
+    {
+      "version": "1.1.0",
+      "up": "./sql/002-jobs.sql",
+      "down": "./sql/002-jobs.down.sql",
+      "digest": "sha256:515c7ef2c919e73dbfca5a07f059317fa8cf355bd207b0252e9be76d8d3864c5",
+      "down_digest": "sha256:4454172f38e90c3a21fcb1c4a5a15813503d64832fe9ade547b82f49fc717e57"
+    },
+    {
+      "version": "1.2.0",
+      "up": "./sql/003-widgets.sql",
+      "down": "./sql/003-widgets.down.sql",
+      "digest": "sha256:3f9fb91af75ce8d727145f1a0de5b43c1301b8033e05e83d1fea872f2334ef5c",
+      "down_digest": "sha256:0e488bdd92a8d883e11f8d40cbf3bffb00ce97ca2615a50e1578123353facaf4"
+    },
+    {
+      "version": "1.3.0",
+      "up": "./sql/004-demo.sql",
+      "down": "./sql/004-demo.down.sql",
+      "digest": "sha256:a1238ec98ca1f73119d4152f8f5480b812ef97d7cb94cbdbe8cfb60ec052ffa1",
+      "down_digest": "sha256:21dbaa64e90f5984bec2c11908ca2f300ae7c3823dafcdce5b13224026c37908"
+    }
+  ],
+  "settings": [
+    {
+      "category": "fixture",
+      "label": "Fixture",
+      "icon": "box",
+      "sort_order": 90,
+      "settings": [
+        {
+          "key": "enabled",
+          "type": "bool",
+          "default": true,
+          "label": "Enabled",
+          "help": "No behaviour; it exercises the settings form.",
+          "is_public": false,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 10
+        },
+        {
+          "key": "limit",
+          "type": "int",
+          "min": 4,
+          "max": 20,
+          "step": 1,
+          "control": "slider",
+          "default": 12,
+          "label": "Slider limit",
+          "help": "Exercises the ranged setting with a slider.",
+          "is_public": false,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 20
+        }
+      ]
+    }
+  ],
+  "i18n": [
+    "en",
+    "es"
+  ],
+  "scopes": [
+    "notes:read",
+    "notes:write"
+  ],
+  "mcp_tools": [],
+  "channels": [],
+  "events": [],
+  "admin_pages": [
+    {
+      "route": "overview",
+      "label": "Fixture overview",
+      "icon": "box",
+      "group": "module",
+      "role": "admin"
+    }
+  ],
+  "docs": {
+    "readme": "docs/readme.md",
+    "api": "docs/api.md",
+    "settings": "docs/settings.md"
+  },
+  "app": {
+    "visible": true
+  },
+  "contract": 1,
+  "jobs": [
+    {
+      "key": "ping",
+      "schedule": "* * * * *",
+      "fn": "job_ping",
+      "timeout_seconds": 10
+    }
+  ],
+  "app_actions": [
+    {
+      "key": "add_note",
+      "label": "Add note",
+      "icon": "plus",
+      "screen": "notes"
+    }
+  ],
+  "dashboard_widgets": [
+    {
+      "key": "fixture.notes",
+      "type": "metric",
+      "surface": "panel",
+      "title": "Your notes",
+      "icon": "note",
+      "order": 90,
+      "data_fn": "widget_metric"
+    },
+    {
+      "key": "fixture.notes_app",
+      "type": "summary",
+      "surface": "app",
+      "title": "Your notes",
+      "icon": "note",
+      "order": 90,
+      "data_fn": "widget_metric"
+    }
+  ],
+  "demo": {
+    "seed_fn": "seed_demo",
+    "clear_fn": "clear_demo"
+  }
+}

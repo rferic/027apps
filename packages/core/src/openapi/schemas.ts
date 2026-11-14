@@ -12,6 +12,9 @@ import type {
   ModuleSettingView,
   ModuleView,
 } from "../modules/service";
+import type { JobRunResult } from "../modules/jobs";
+import type { DashboardWidget } from "../modules/widgets";
+import type { DemoStatus } from "../demo/service";
 import type { SettingView } from "../settings/service";
 import type { SettingCategoryMeta } from "../settings/catalog";
 import type { CurrencyView } from "../currencies/service";
@@ -85,6 +88,7 @@ export const userSchema = component(
       display_name: z.string(),
       locale: z.string(),
       timezone: z.string(),
+      theme: z.enum(["system", "light", "dark"]),
       role,
       created_at: isoDate,
       deactivated_at: nullableDate,
@@ -413,6 +417,25 @@ export const moduleSettingSchema = component(
     .strict() satisfies z.ZodType<ModuleSettingView>,
 );
 
+export const moduleAppActionSchema = component(
+  "ModuleAppAction",
+  z
+    .object({
+      key: z.string(),
+      label: z.string(),
+      icon: z.string(),
+      screen: z.string(),
+    })
+    .strict(),
+);
+
+export const moduleDemoSchema = component(
+  "ModuleDemo",
+  z
+    .object({ seed_fn: z.string(), clear_fn: z.string() })
+    .strict(),
+);
+
 export const moduleSchema = component(
   "Module",
   z
@@ -426,6 +449,8 @@ export const moduleSchema = component(
       manifest_digest: z.string(),
       installed_at: isoDate,
       updated_at: isoDate,
+      app_actions: z.array(moduleAppActionSchema),
+      demo: moduleDemoSchema.nullable(),
     })
     .strict() satisfies z.ZodType<ModuleView>,
 );
@@ -530,6 +555,76 @@ const settingCategorySchema = z
   })
   .strict();
 // The catalog type has no `settings` field: the route composes both.
+export const moduleJobRunSchema = component(
+  "ModuleJobRun",
+  z
+    .object({
+      module_key: z.string(),
+      job_key: z.string(),
+      status: z.enum(["ok", "error", "skipped"]),
+      duration_ms: z.number().int().optional(),
+      error: z.string().optional(),
+    })
+    .strict() satisfies z.ZodType<JobRunResult>,
+);
+
+export const moduleJobRunListSchema = component(
+  "ModuleJobRunList",
+  z.object({ runs: z.array(moduleJobRunSchema) }).strict(),
+);
+
+export const moduleJobRunResponseSchema = component(
+  "ModuleJobRunResponse",
+  z.object({ run: moduleJobRunSchema }).strict(),
+);
+
+export const moduleJobDispatchSchema = component(
+  "ModuleJobDispatch",
+  z.object({ executed: z.number().int(), failed: z.number().int() }).strict(),
+);
+
+export const demoStatusSchema = component(
+  "DemoStatus",
+  z
+    .object({
+      enabled: z.boolean(),
+      production: z.boolean(),
+      seeded: z.boolean(),
+      seeded_at: z.string().nullable(),
+      members: z.number().int(),
+      modules: z.array(
+        z.object({ module_key: z.string(), result: z.json().nullable() }).strict(),
+      ),
+    })
+    .strict() satisfies z.ZodType<DemoStatus>,
+);
+
+export const demoResponseSchema = component(
+  "DemoResponse",
+  z.object({ demo: demoStatusSchema }).strict(),
+);
+
+export const dashboardWidgetSchema = component(
+  "DashboardWidget",
+  z
+    .object({
+      key: z.string(),
+      type: z.enum(["summary", "metric", "list"]),
+      surface: z.enum(["app", "panel"]),
+      title: z.string(),
+      icon: z.string(),
+      order: z.number().int(),
+      module_key: z.string(),
+      data: z.json(),
+    })
+    .strict() satisfies z.ZodType<DashboardWidget>,
+);
+
+export const dashboardWidgetListSchema = component(
+  "DashboardWidgetList",
+  z.object({ widgets: z.array(dashboardWidgetSchema) }).strict(),
+);
+
 export const settingsCategoriesSchema = component(
   "SettingsCategories",
   z
@@ -633,6 +728,180 @@ export const healthResponseSchema = component(
   ]),
 );
 
+const oweGroup = z
+  .object({
+    id: z.uuid(),
+    name: z.string(),
+    currency: z.string(),
+    archived: z.boolean(),
+    created_by: z.uuid().nullable(),
+    members: z.number().int(),
+    role: z.enum(["invited", "active", "left", "removed"]),
+  })
+  .strict();
+
+const oweMember = z
+  .object({
+    id: z.uuid(),
+    display_name: z.string(),
+    state: z.enum(["invited", "active", "left", "removed"]),
+    user_id: z.uuid().nullable(),
+    kind: z.enum(["user", "fictitious"]),
+  })
+  .strict();
+
+const oweShare = z
+  .object({ memberId: z.uuid(), amount_minor: z.number().int() })
+  .strict();
+
+const oweMovement = z
+  .object({
+    id: z.uuid(),
+    kind: z.enum(["expense", "settlement"]),
+    description: z.string(),
+    amount_minor: z.number().int(),
+    currency: z.string(),
+    paid_by: z.uuid(),
+    occurred_on: z.string(),
+    category_id: z.uuid().nullable(),
+    shares: z.array(oweShare),
+  })
+  .strict();
+
+export const oweGroupListSchema = component(
+  "OweGroupList",
+  z.object({ groups: z.array(oweGroup) }).strict(),
+);
+export const oweGroupResponseSchema = component(
+  "OweGroupResponse",
+  z.object({ group: oweGroup }).strict(),
+);
+export const oweGroupDetailSchema = component(
+  "OweGroupDetail",
+  z.object({ group: oweGroup, members: z.array(oweMember) }).strict(),
+);
+export const oweMemberListSchema = component(
+  "OweMemberList",
+  z.object({ members: z.array(oweMember) }).strict(),
+);
+export const oweMemberResponseSchema = component(
+  "OweMemberResponse",
+  z.object({ member: oweMember }).strict(),
+);
+export const oweMovementListSchema = component(
+  "OweMovementList",
+  z.object({ movements: z.array(oweMovement) }).strict(),
+);
+export const oweMovementResponseSchema = component(
+  "OweMovementResponse",
+  z.object({ movement: oweMovement }).strict(),
+);
+export const oweBalanceListSchema = component(
+  "OweBalanceList",
+  z
+    .object({
+      balances: z.array(
+        z
+          .object({ member_id: z.uuid(), display_name: z.string(), amount_minor: z.number().int() })
+          .strict(),
+      ),
+    })
+    .strict(),
+);
+export const oweSettlementSchema = component(
+  "OweSettlement",
+  z
+    .object({
+      exact: z.boolean(),
+      transfers: z.array(
+        z.object({ from: z.uuid(), to: z.uuid(), amount_minor: z.number().int() }).strict(),
+      ),
+    })
+    .strict(),
+);
+
+export const oweImportPreviewSchema = component(
+  "OweImportPreview",
+  z
+    .object({
+      movements: z.number().int(),
+      payments: z.number().int(),
+      derived: z.number().int(),
+      skipped: z.number().int(),
+      errors: z.array(z.object({ line: z.number().int(), message: z.string() }).strict()),
+      currencies: z.array(z.string()),
+      unresolved: z.array(z.string()),
+      duplicates: z.number().int(),
+      sample: z.array(z.json()),
+    })
+    .strict(),
+);
+
+export const oweImportResultSchema = component(
+  "OweImportResult",
+  z
+    .object({
+      created: z.number().int(),
+      skipped_duplicates: z.number().int(),
+      errors: z.number().int(),
+      categories: z.number().int(),
+    })
+    .strict(),
+);
+
+export const oweCategorySchema = component(
+  "OweCategory",
+  z.object({ id: z.uuid(), name: z.string() }).strict(),
+);
+
+export const oweCategoryListSchema = component(
+  "OweCategoryList",
+  z.object({ categories: z.array(oweCategorySchema) }).strict(),
+);
+
+export const oweIdentitySchema = component(
+  "OweIdentity",
+  z.object({ id: z.uuid(), display_name: z.string() }).strict(),
+);
+
+export const oweIdentityListSchema = component(
+  "OweIdentityList",
+  z.object({ identities: z.array(oweIdentitySchema) }).strict(),
+);
+
+export const oweImportListSchema = component(
+  "OweImportList",
+  z
+    .object({
+      imports: z.array(
+        z
+          .object({
+            id: z.uuid(),
+            group_id: z.uuid(),
+            group_name: z.string(),
+            imported_by: z.uuid().nullable(),
+            row_count: z.number().int(),
+            created_count: z.number().int(),
+            created_at: z.string(),
+          })
+          .strict(),
+      ),
+    })
+    .strict(),
+);
+
+export const androidReleaseSchema = component(
+  "AndroidRelease",
+  z
+    .object({
+      version_code: z.number().int(),
+      version_name: z.string(),
+      tag: z.string(),
+      apk_url: z.string(),
+    })
+    .strict(),
+);
+
 export const instanceResponseSchema = component(
   "Instance",
   z
@@ -640,6 +909,10 @@ export const instanceResponseSchema = component(
       version: z.string(),
       requires_setup: z.boolean(),
       setup_incomplete: z.boolean(),
+      auth: z
+        .object({ supabase_url: z.string(), supabase_anon_key: z.string() })
+        .strict()
+        .nullable(),
       settings_public: z.record(z.string(), z.json()),
     })
     .strict(),

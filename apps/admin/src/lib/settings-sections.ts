@@ -20,7 +20,7 @@ export interface SettingsSection {
 /**
  * Canonical order of the settings sections. A category with its own page keeps
  * the route slug stable even when it differs from the catalog key
- * (`rate_limit` → `/settings/rate-limits`).
+ * (`rate_limit` → `/panel/settings/rate-limits`).
  */
 export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
   { slug: "instance", categoryKey: "instance", label: "Instance", minRole: "admin" },

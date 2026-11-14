@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>027Apps · OweNo administrado desde el panel</title>
+<style>
+  /* Tokens de identidad (espejo de apps/admin/tokens.json). Nada de hex libres. */
+  :root {
+    --background: #F6F7F8; --surface: #FFFFFF; --surface-2: #F6F7F8;
+    --muted: #ECEEF0; --muted-foreground: #5B6472; --foreground: #17191C;
+    --accent: #09795F; --accent-foreground: #FFFFFF; --border: #E3E5E8;
+    --destructive: #BE123C; --destructive-subtle: rgba(190,18,60,.08);
+    --success: #15803D; --warning: #B93815;
+    --stage: #E7EAEE; --shadow: 0 18px 50px rgba(23,25,28,.14);
+    --card-radius: 16px; --control-radius: 12px;
+  }
+  [data-theme="dark"] {
+    --background: #08090A; --surface: #0E0F11; --surface-2: #141517;
+    --muted: #1A1B1E; --muted-foreground: #8A8F98; --foreground: #F7F8F8;
+    --accent: #1CC29F; --accent-foreground: #05231C; --border: rgba(255,255,255,.09);
+    --destructive: #FB7185; --destructive-subtle: rgba(251,113,133,.12);
+    --success: #4ADE80; --warning: #FF8A5C;
+    --stage: #050607; --shadow: 0 18px 50px rgba(0,0,0,.55);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--stage); color: var(--foreground);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .toolbar {
+    position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: 10px;
+    align-items: center; padding: 10px 16px; background: var(--surface);
+    border-bottom: 1px solid var(--border); font-size: 12px;
+  }
+  .toolbar label { color: var(--muted-foreground); font-weight: 600; }
+  .toolbar select, .toolbar button {
+    font: inherit; color: var(--foreground); background: var(--background);
+    border: 1px solid var(--border); border-radius: 9px; padding: 6px 10px;
+  }
+  .toolbar .spacer { flex: 1; }
+  .stage { padding: 22px; display: flex; justify-content: center; }
+  .app {
+    width: min(1180px, 100%); min-height: 720px; display: grid;
+    grid-template-columns: 208px 1fr; background: var(--background);
+    border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .stage.mobile .app { width: 390px; grid-template-columns: 1fr; }
+  .stage.mobile .side { display: none; }
+  .side { background: var(--surface); border-right: 1px solid var(--border); padding: 14px 10px; }
+  .brand { display: flex; align-items: center; gap: 8px; padding: 4px 8px 14px; font-weight: 700; }
+  .brand .mark {
+    width: 24px; height: 24px; border-radius: 7px; background: var(--accent);
+    color: var(--accent-foreground); display: grid; place-items: center; font-size: 12px;
+  }
+  .side .nav-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+    color: var(--muted-foreground); font-size: 12px; font-weight: 600;
+  }
+  .side .nav-item.active { background: var(--muted); color: var(--foreground); }
+  .main { padding: 20px 22px 28px; min-width: 0; }
+  .crumbs { font-size: 11px; color: var(--muted-foreground); margin-bottom: 10px; }
+  .crumbs strong { color: var(--foreground); }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 16px; }
+  .tab {
+    font-size: 12px; font-weight: 600; color: var(--muted-foreground); padding: 7px 12px;
+    border-radius: 10px; border: 0; background: transparent; font-family: inherit;
+  }
+  .tab.current { background: var(--muted); color: var(--foreground); }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 13px; margin: 0; }
+  .lead { margin: 0; font-size: 12px; color: var(--muted-foreground); }
+  .page-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+  .page-head .grow { flex: 1; min-width: 220px; }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 14px 0 18px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 12px 14px; }
+  .stat .k { font-size: 11px; color: var(--muted-foreground); }
+  .stat .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .d { font-size: 11px; color: var(--muted-foreground); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 14px; }
+  .card + .card { margin-top: 12px; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .card-head .hint { font-size: 11px; color: var(--muted-foreground); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 13px;
+    border-radius: var(--control-radius); border: 1px solid var(--border); background: var(--surface);
+    color: var(--foreground); font: inherit; font-size: 12px; font-weight: 600;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-foreground); }
+  .btn.ghost { border-color: transparent; color: var(--muted-foreground); background: transparent; }
+  .btn.danger { color: var(--destructive); border-color: var(--border); background: var(--surface); }
+  .btn.sm { min-height: 28px; padding: 0 9px; font-size: 11px; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+  .pill.ok { background: rgba(21,128,61,.12); color: var(--success); }
+  .pill.warn { background: rgba(185,56,21,.12); color: var(--warning); }
+  .pill.neutral { background: var(--muted); color: var(--muted-foreground); }
+  .pill.money { background: var(--destructive-subtle); color: var(--destructive); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-foreground); padding: 8px 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  .num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .pos { color: var(--success); font-weight: 700; }
+  .neg { color: var(--destructive); font-weight: 700; }
+  .sub { font-size: 11px; color: var(--muted-foreground); }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 8px; display: inline-grid; place-items: center;
+    background: var(--muted); font-size: 11px; font-weight: 700;
+  }
+  .who { display: flex; align-items: center; gap: 7px; }
+  .search {
+    display: flex; align-items: center; gap: 8px; border: 1px solid var(--border);
+    border-radius: var(--control-radius); padding: 0 10px; background: var(--surface);
+    min-height: 34px; font-size: 12px; color: var(--muted-foreground); flex: 1; min-width: 180px;
+  }
+  .movement-actions { display: flex; gap: 4px; justify-content: flex-end; }
+  .dialog-backdrop { background: rgba(8,9,10,.42); padding: 22px; border-radius: var(--card-radius); margin-top: 12px; }
+  .dialog {
+    width: min(560px, 100%); margin: 0 auto; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--card-radius); box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .dialog header { padding: 16px 18px 8px; }
+  .dialog header h2 { font-size: 15px; }
+  .dialog header p { margin: 4px 0 0; font-size: 11px; color: var(--muted-foreground); }
+  .dialog .body { padding: 8px 18px 16px; display: grid; gap: 12px; }
+  .dialog footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); background: var(--surface-2); }
+  .field { display: grid; gap: 5px; }
+  .field label { font-size: 11px; font-weight: 700; color: var(--muted-foreground); }
+  .input {
+    min-height: 36px; display: flex; align-items: center; padding: 0 10px; font-size: 12px;
+    background: var(--background); border: 1px solid var(--border); border-radius: 10px;
+  }
+  .input.amount { justify-content: flex-end; font-variant-numeric: tabular-nums; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .checklist { display: grid; gap: 2px; border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+  .check {
+    display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; font-size: 12px;
+  }
+  .check.on { background: var(--muted); }
+  .check input { accent-color: var(--accent); }
+  .check .amount { margin-left: auto; font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted-foreground); }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .seg button { border: 0; background: var(--surface); color: var(--muted-foreground); font: inherit; font-size: 11px; font-weight: 700; padding: 7px 10px; }
+  .seg button.on { background: var(--muted); color: var(--foreground); }
+  .notice { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; font-size: 11px; background: var(--muted); color: var(--muted-foreground); }
+  .notice.warn { background: rgba(185,56,21,.1); color: var(--warning); }
+  .transfer { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .transfer:last-child { border-bottom: 0; }
+  .transfer .amount { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .widget { display: grid; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 14px; }
+  .widget .top { display: flex; align-items: center; gap: 8px; }
+  .widget .logo { width: 26px; height: 26px; border-radius: 8px; background: rgba(9,121,95,.12); color: var(--accent); display: grid; place-items: center; font-weight: 800; font-size: 12px; }
+  .widget .name { font-size: 12px; font-weight: 700; }
+  .widget .value { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .widget .detail { font-size: 11px; color: var(--muted-foreground); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .screen { display: none; }
+  .screen.on { display: block; }
+  .footer-note { text-align: center; font-size: 11px; color: var(--muted-foreground); padding: 14px; }
+  @media (max-width: 720px) {
+    .stage { padding: 10px; }
+    .app { grid-template-columns: 1fr; min-height: 0; }
+    .side { display: none; }
+    .main { padding: 16px; }
+    .hide-sm { display: none; }
+    .two { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <label for="screen">Pantalla</label>
+  <select id="screen">
+    <option value="widgets">Dashboard · widgets</option>
+    <option value="settings">Módulos · ficha de OweNo</option>
+    <option value="list">OweNo · grupos</option>
+    <option value="detail">OweNo · ficha de grupo</option>
+    <option value="moving">Ficha · alta de movimiento</option>
+    <option value="editing">Ficha · edición de movimiento</option>
+    <option value="settle">Ficha · liquidación</option>
+    <option value="members">Ficha · miembros</option>
+    <option value="confirm">Ficha · confirmar borrado</option>
+  </select>
+  <label for="theme">Tema</label>
+  <select id="theme">
+    <option value="light">Claro</option>
+    <option value="dark">Oscuro</option>
+  </select>
+  <button id="width" type="button">Vista móvil</button>
+  <span class="spacer"></span>
+  <span class="sub">Mockup de revisión · no es la UI final</span>
+</div>
+
+<div class="stage" id="stage">
+  <div class="app">
+    <aside class="side">
+      <div class="brand"><span class="mark">027</span> Plataforma</div>
+      <div class="nav-item">Inicio</div>
+      <div class="nav-item">Usuarios</div>
+      <div class="nav-item">Categorías</div>
+      <div class="nav-item">Catálogo</div>
+      <div class="nav-item">Ajustes</div>
+      <div style="margin:12px 10px 4px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-foreground)">Módulos</div>
+      <div class="nav-item active" style="background:rgba(9,121,95,.10);color:var(--foreground)">
+        <span style="width:18px;height:18px;border-radius:5px;display:grid;place-items:center;background:rgba(9,121,95,.16);color:var(--accent);font-size:10px;font-weight:800">≡</span>
+        OweNo
+      </div>
+    </aside>
+    <main class="main">
+      <div class="crumbs">Plataforma / <a href="#" data-go="widgets" style="color:inherit;text-decoration:none">OweNo</a> / <strong>Grupos</strong></div>
+      <div class="tabs">
+        <button class="tab" type="button" data-go="detail">Resumen</button>
+        <button class="tab current" type="button">Grupos</button>
+        <button class="tab" type="button">Importaciones</button>
+        <button class="tab" type="button" data-go="settings">Ajustes ↗</button>
+      </div>
+
+      <!-- Dashboard widgets -->
+      <section class="screen" data-screen="widgets">
+        <div class="page-head"><div class="grow"><h1>Dashboard</h1><p class="lead">Estado de la instancia y widgets de los módulos activos.</p></div></div>
+        <div class="grid-stats">
+          <div class="stat"><div class="k">Servicio</div><div class="v" style="font-size:16px;color:var(--success)">Todo listo</div><div class="d">Sin incidencias</div></div>
+          <div class="stat"><div class="k">Usuarios</div><div class="v">4</div><div class="d">3 activos</div></div>
+          <div class="stat"><div class="k">Módulos</div><div class="v">2</div><div class="d">OweNo activo</div></div>
+        </div>
+        <h2 class="sub" style="text-transform:uppercase;letter-spacing:.06em;font-size:10px;margin-bottom:8px">Módulos</h2>
+        <div class="grid-2">
+          <a class="widget" href="#" data-go="detail" style="text-decoration:none;color:inherit">
+            <div class="top"><span class="logo">≡</span><span class="name">OweNo · Grupos</span><span class="pill ok" style="margin-left:auto">Activo</span></div>
+            <div class="value">3</div>
+            <div class="detail">7 miembros · 42 movimientos</div>
+          </a>
+          <a class="widget" href="#" data-go="detail" style="text-decoration:none;color:inherit">
+            <div class="top"><span class="logo">≡</span><span class="name">OweNo · Con saldo</span></div>
+            <div class="value">2</div>
+            <div class="detail">grupos pendientes de liquidar</div>
+          </a>
+        </div>
+        <div class="notice" style="margin-top:12px">Cada tarjeta lleva a la casa del módulo (<strong>/panel/owe-no</strong>), muestra su logo y se traduce con los locales del módulo. Con cero grupos muestran <strong>0</strong>, no desaparecen.</div>
+      </section>
+
+      <!-- Groups list -->
+      <section class="screen on" data-screen="list">
+        <div class="page-head">
+          <div class="grow"><h1>Grupos</h1><p class="lead">3 activos · 1 archivado. Entra en uno para ver y editar sus movimientos.</p></div>
+          <button class="btn primary" type="button" data-go="detail">Nuevo grupo</button>
+        </div>
+        <div class="row" style="margin-bottom:12px">
+          <div class="search">Buscar por nombre…</div>
+          <button class="btn" type="button">Todos</button>
+          <button class="btn" type="button">Activos</button>
+          <button class="btn" type="button">Archivados</button>
+        </div>
+        <div class="card" style="padding:0">
+          <table>
+            <thead><tr><th>Grupo</th><th>Miembros</th><th>Movimientos</th><th>Estado</th><th class="num">Acciones</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><a href="#" data-go="detail" style="color:var(--accent);font-weight:700;text-decoration:none">Casa</a><div class="sub">EUR</div></td>
+                <td>4 activos</td><td>18</td><td><span class="pill ok">Activo</span></td>
+                <td class="num"><button class="btn sm" type="button" data-go="detail">Abrir</button></td>
+              </tr>
+              <tr>
+                <td><a href="#" data-go="detail" style="color:var(--accent);font-weight:700;text-decoration:none">Viaje a Cádiz</a><div class="sub">EUR</div></td>
+                <td>5 activos</td><td>12</td><td><span class="pill ok">Activo</span></td>
+                <td class="num"><button class="btn sm" type="button" data-go="detail">Abrir</button></td>
+              </tr>
+              <tr>
+                <td><a href="#" data-go="detail" style="color:var(--accent);font-weight:700;text-decoration:none">Cena de Navidad</a><div class="sub">EUR</div></td>
+                <td>6 activos</td><td>12</td><td><span class="pill ok">Activo</span></td>
+                <td class="num"><button class="btn sm" type="button" data-go="detail">Abrir</button></td>
+              </tr>
+              <tr>
+                <td><a href="#" data-go="detail" style="color:var(--accent);font-weight:700;text-decoration:none">Piso de Marta</a><div class="sub">EUR</div></td>
+                <td>2 activos</td><td>0</td><td><span class="pill neutral">Archivado</span></td>
+                <td class="num"><button class="btn sm" type="button" data-go="detail">Abrir</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Group detail -->
+      <section class="screen" data-screen="detail">
+        <div class="page-head">
+          <div class="grow">
+            <div class="row"><h1>Casa</h1><span class="pill ok">Activo</span><span class="pill neutral">EUR</span></div>
+            <p class="lead">4 miembros · 18 movimientos · creado por Eric</p>
+          </div>
+          <div class="row">
+            <button class="btn" type="button">Archivar</button>
+            <button class="btn" type="button" data-go="settle">Liquidar</button>
+            <button class="btn primary" type="button" data-go="moving">Añadir gasto</button>
+          </div>
+        </div>
+
+        <div class="grid-stats">
+          <div class="stat"><div class="k">Ana</div><div class="v pos" style="font-size:18px">+28,50 €</div><div class="d">le deben</div></div>
+          <div class="stat"><div class="k">Luis</div><div class="v pos" style="font-size:18px">+12,00 €</div><div class="d">le deben</div></div>
+          <div class="stat"><div class="k">Marta</div><div class="v neg" style="font-size:18px">−22,50 €</div><div class="d">debe</div></div>
+          <div class="stat"><div class="k">Pablo</div><div class="v neg" style="font-size:18px">−18,00 €</div><div class="d">debe</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Movimientos</h2><span class="hint">Últimos 18 · el importe va en la moneda del grupo</span></div>
+          <table>
+            <thead><tr><th>Fecha</th><th>Descripción</th><th>Pagó</th><th>Reparto</th><th class="num">Importe</th><th class="num">Acciones</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="hide-sm">12 nov</td>
+                <td><strong>Compra semanal</strong><div class="sub">Alimentos · registrado por Eric (admin)</div></td>
+                <td><span class="who"><span class="avatar">A</span> Ana</span></td>
+                <td class="sub">4 de 4 · a partes iguales</td>
+                <td class="num">64,20 €</td>
+                <td><div class="movement-actions"><button class="btn sm" type="button" data-go="editing">Editar</button><button class="btn sm danger" type="button" data-go="confirm">Borrar</button></div></td>
+              </tr>
+              <tr>
+                <td class="hide-sm">10 nov</td>
+                <td><strong>Gasolina</strong><div class="sub">Transporte · registrado por Ana</div></td>
+                <td><span class="who"><span class="avatar">L</span> Luis</span></td>
+                <td class="sub">3 de 4 · Ana, Luis, Pablo</td>
+                <td class="num">40,00 €</td>
+                <td><div class="movement-actions"><button class="btn sm" type="button" data-go="editing">Editar</button><button class="btn sm danger" type="button" data-go="confirm">Borrar</button></div></td>
+              </tr>
+              <tr>
+                <td class="hide-sm">8 nov</td>
+                <td><strong>Pago a Ana</strong><div class="sub">Liquidación · registrado por Eric (admin)</div></td>
+                <td><span class="who"><span class="avatar">M</span> Marta</span></td>
+                <td class="sub">Liquidación</td>
+                <td class="num">15,00 €</td>
+                <td><div class="movement-actions"><button class="btn sm" type="button" data-go="editing">Editar</button><button class="btn sm danger" type="button" data-go="confirm">Borrar</button></div></td>
+              </tr>
+              <tr>
+                <td class="hide-sm">5 nov</td>
+                <td><strong>Helados</strong><div class="sub">Ocio · registrado por Eric (admin)</div></td>
+                <td><span class="who"><span class="avatar">P</span> Pablo</span></td>
+                <td class="sub">3 de 4 · importes exactos</td>
+                <td class="num">13,50 €</td>
+                <td><div class="movement-actions"><button class="btn sm" type="button" data-go="editing">Editar</button><button class="btn sm danger" type="button" data-go="confirm">Borrar</button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Miembros</h2><button class="btn sm" type="button" data-go="members">Añadir o enlazar</button></div>
+          <div class="row" style="gap:10px">
+            <span class="who"><span class="avatar">A</span> Ana <span class="pill ok">Cuenta</span></span>
+            <span class="who"><span class="avatar">L</span> Luis <span class="pill ok">Cuenta</span></span>
+            <span class="who"><span class="avatar">M</span> Marta <span class="pill neutral">Ficticio</span></span>
+            <span class="who"><span class="avatar">P</span> Pablo <span class="pill ok">Cuenta</span></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- New movement dialog -->
+      <section class="screen" data-screen="moving">
+        <div class="page-head"><div class="grow"><h1>Casa</h1><p class="lead">Alta de gasto desde el panel · grupo activo</p></div><button class="btn ghost" type="button" data-go="detail">← Volver a la ficha</button></div>
+        <div class="dialog-backdrop">
+          <div class="dialog">
+            <header><h2>Añadir gasto</h2><p>Se guarda como movimiento del grupo; queda registrado quién lo creó.</p></header>
+            <div class="body">
+              <div class="two">
+                <div class="field"><label>Descripción</label><div class="input">Compra semanal</div></div>
+                <div class="field"><label>Fecha</label><div class="input">2026-11-14</div></div>
+              </div>
+              <div class="two">
+                <div class="field"><label>Importe (EUR)</label><div class="input amount">64,20</div></div>
+                <div class="field"><label>Pagó</label><div class="input">Ana ▾</div></div>
+              </div>
+              <div class="field">
+                <label>Participantes</label>
+                <div class="checklist">
+                  <label class="check on"><input type="checkbox" checked> <span class="avatar" style="width:22px;height:22px">A</span> Ana <span class="amount">16,05 €</span></label>
+                  <label class="check on"><input type="checkbox" checked> <span class="avatar" style="width:22px;height:22px">L</span> Luis <span class="amount">16,05 €</span></label>
+                  <label class="check on"><input type="checkbox" checked> <span class="avatar" style="width:22px;height:22px">M</span> Marta <span class="amount">16,05 €</span></label>
+                  <label class="check on"><input type="checkbox" checked> <span class="avatar" style="width:22px;height:22px">P</span> Pablo <span class="amount">16,05 €</span></label>
+                </div>
+              </div>
+              <div class="row" style="justify-content:space-between">
+                <div class="seg"><button class="on" type="button">Partes iguales</button><button type="button">Importes exactos</button></div>
+                <span class="sub">Repartido 64,20 € de 64,20 € · resto 0,00 €</span>
+              </div>
+              <div class="notice">El tipo (gasto o liquidación) no se cambia al editar: para convertirlo se borra y se crea de nuevo.</div>
+            </div>
+            <footer><button class="btn" type="button" data-go="detail">Cancelar</button><button class="btn primary" type="button" data-go="detail">Guardar gasto</button></footer>
+          </div>
+        </div>
+      </section>
+
+      <!-- Edit movement dialog -->
+      <section class="screen" data-screen="editing">
+        <div class="page-head"><div class="grow"><h1>Casa</h1><p class="lead">Edición de un movimiento existente · los repartos se recalculan</p></div><button class="btn ghost" type="button" data-go="detail">← Volver a la ficha</button></div>
+        <div class="dialog-backdrop">
+          <div class="dialog">
+            <header><h2>Editar gasto</h2><p>Compra semanal · creado por Eric el 12 nov · última edición por Eric</p></header>
+            <div class="body">
+              <div class="two">
+                <div class="field"><label>Descripción</label><div class="input">Compra semanal</div></div>
+                <div class="field"><label>Fecha</label><div class="input">2026-11-12</div></div>
+              </div>
+              <div class="two">
+                <div class="field"><label>Importe (EUR)</label><div class="input amount">72,00</div></div>
+                <div class="field"><label>Pagó</label><div class="input">Ana ▾</div></div>
+              </div>
+              <div class="field">
+                <label>Participantes</label>
+                <div class="checklist">
+                  <label class="check on"><input type="checkbox" checked> <span class="avatar" style="width:22px;height:22px">A</span> Ana <span class="amount">24,00 €</span></label>
+                  <label class="check on"><input type="checkbox" checked> <span class="avatar" style="width:22px;height:22px">L</span> Luis <span class="amount">24,00 €</span></label>
+                  <label class="check"><input type="checkbox"> <span class="avatar" style="width:22px;height:22px">M</span> Marta <span class="amount">—</span></label>
+                  <label class="check on"><input type="checkbox" checked> <span class="avatar" style="width:22px;height:22px">P</span> Pablo <span class="amount">24,00 €</span></label>
+                </div>
+              </div>
+              <div class="notice warn">Cambiar el importe o los participantes mueve los balances de los cuatro. Se guarda con la fecha de edición y quién la hizo.</div>
+            </div>
+            <footer><button class="btn danger" type="button" data-go="confirm">Borrar</button><span style="flex:1"></span><button class="btn" type="button" data-go="detail">Cancelar</button><button class="btn primary" type="button" data-go="detail">Guardar cambios</button></footer>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settlement dialog -->
+      <section class="screen" data-screen="settle">
+        <div class="page-head"><div class="grow"><h1>Casa</h1><p class="lead">Liquidación sugerida con los saldos de ahora mismo</p></div><button class="btn ghost" type="button" data-go="detail">← Volver a la ficha</button></div>
+        <div class="dialog-backdrop">
+          <div class="dialog">
+            <header><h2>Liquidar</h2><p>2 pagos dejan el grupo a cero · plan exacto</p></header>
+            <div class="body">
+              <div class="transfer">
+                <span class="who"><span class="avatar">M</span> Marta</span><span>→</span>
+                <span class="who"><span class="avatar">A</span> Ana</span>
+                <span class="amount">22,50 €</span>
+                <button class="btn sm primary" type="button">Registrar pago</button>
+              </div>
+              <div class="transfer">
+                <span class="who"><span class="avatar">P</span> Pablo</span><span>→</span>
+                <span class="who"><span class="avatar">L</span> Luis</span>
+                <span class="amount">12,00 €</span>
+                <button class="btn sm primary" type="button">Registrar pago</button>
+              </div>
+              <div class="notice">Cada pago se guarda como un movimiento de liquidación. Si el grupo pasa del tope de miembros, el plan es simplificado y se avisa aquí.</div>
+              <div class="field"><label>O registra un pago manual</label><div class="two"><div class="input">Deudor ▾</div><div class="input">Receptor ▾</div></div></div>
+              <div class="two"><div class="input amount">15,00 (EUR)</div><div class="input">2026-11-14</div></div>
+            </div>
+            <footer><button class="btn" type="button" data-go="detail">Cerrar</button><button class="btn primary" type="button" data-go="detail">Registrar pago manual</button></footer>
+          </div>
+        </div>
+      </section>
+
+      <!-- Members -->
+      <section class="screen" data-screen="members">
+        <div class="page-head"><div class="grow"><h1>Casa · miembros</h1><p class="lead">Quien tiene cuenta entra en la app; un ficticio solo existe aquí hasta enlazarlo.</p></div><button class="btn ghost" type="button" data-go="detail">← Volver a la ficha</button></div>
+        <div class="card">
+          <div class="card-head"><h2>Miembros del grupo</h2><span class="hint">4 activos</span></div>
+          <table>
+            <thead><tr><th>Nombre</th><th>Cuenta</th><th class="num">Saldo</th><th class="num">Acciones</th></tr></thead>
+            <tbody>
+              <tr><td><span class="who"><span class="avatar">A</span> Ana</span></td><td><span class="pill ok">ana@casa.test</span></td><td class="num pos">+28,50 €</td><td class="num"><button class="btn sm danger" type="button">Quitar</button></td></tr>
+              <tr><td><span class="who"><span class="avatar">L</span> Luis</span></td><td><span class="pill ok">luis@casa.test</span></td><td class="num pos">+12,00 €</td><td class="num"><button class="btn sm danger" type="button">Quitar</button></td></tr>
+              <tr><td><span class="who"><span class="avatar">M</span> Marta</span></td><td><span class="pill neutral">Ficticio</span></td><td class="num neg">−22,50 €</td><td class="num"><div class="movement-actions"><button class="btn sm" type="button">Enlazar cuenta</button><button class="btn sm danger" type="button">Quitar</button></div></td></tr>
+              <tr><td><span class="who"><span class="avatar">P</span> Pablo</span></td><td><span class="pill ok">pablo@casa.test</span></td><td class="num">0,00 €</td><td class="num"><button class="btn sm danger" type="button">Quitar</button></td></tr>
+            </tbody>
+          </table>
+          <div class="notice warn" style="margin-top:10px">Con saldo distinto de cero no se puede quitar (los pagos exigen miembros activos): Ana, Luis y Marta quedan bloqueados hasta liquidar; Pablo está en paz y sí se puede quitar. El panel explica el motivo en vez de esconder el botón.</div>
+        </div>
+        <div class="dialog-backdrop">
+          <div class="dialog">
+            <header><h2>Añadir miembro</h2><p>Activo desde el momento en que se añade; sin invitación por correo.</p></header>
+            <div class="body">
+              <div class="field"><label>Nombre</label><div class="input">Sobrina de Luis</div></div>
+              <div class="field"><label>Cuenta (opcional)</label><div class="input">Sin cuenta · ficticio ▾</div></div>
+              <div class="notice">Si eliges una cuenta existente, el miembro queda enlazado a ella y puede ver el grupo en la app.</div>
+            </div>
+            <footer><button class="btn" type="button" data-go="members">Cancelar</button><button class="btn primary" type="button" data-go="members">Añadir</button></footer>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module settings (old /panel/modules/<key>) -->
+      <section class="screen" data-screen="settings">
+        <div class="page-head">
+          <div class="grow">
+            <div class="row"><h1>OweNo</h1><span class="pill ok">Activo</span><span class="pill neutral">1.3.0</span></div>
+            <p class="lead">Ficha del módulo en el catálogo. Aquí se configura; la administración vive en /panel/owe-no.</p>
+          </div>
+          <button class="btn" type="button" data-go="detail">Ir a OweNo →</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Ajustes</h2><span class="hint">Moneda por defecto · límite de liquidación</span></div>
+          <div class="two">
+            <div class="field"><label>Moneda por defecto</label><div class="input">EUR</div></div>
+            <div class="field"><label>Límite de liquidación exacta</label><div class="input">12 miembros</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Gestión</h2><span class="hint">Lo que ya existía en la ficha</span></div>
+          <div class="row">
+            <span class="pill neutral">Concesiones</span>
+            <span class="pill neutral">Datos de demo</span>
+            <span class="pill neutral">Trabajos</span>
+            <span class="pill ok">Desactivar</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Delete confirmation -->
+      <section class="screen" data-screen="confirm">
+        <div class="page-head"><div class="grow"><h1>Casa</h1><p class="lead">Borrado de un movimiento · baja lógica</p></div><button class="btn ghost" type="button" data-go="detail">← Volver a la ficha</button></div>
+        <div class="dialog-backdrop">
+          <div class="dialog">
+            <header><h2>¿Borrar «Compra semanal»?</h2><p>64,20 € pagados por Ana el 12 nov.</p></header>
+            <div class="body">
+              <div class="notice warn">El movimiento sale del historial y de los balances, pero la fila se conserva para auditoría. Podrás comprobar quién lo borró y cuándo.</div>
+            </div>
+            <footer><button class="btn" type="button" data-go="detail">Cancelar</button><button class="btn primary" type="button" data-go="detail" style="background:var(--destructive);border-color:var(--destructive)">Borrar movimiento</button></footer>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div class="footer-note">Datos inventados · tokens reales del panel · este mockup sustituye la parte de panel de <code>docs/mockups/owe-no</code></div>
+
+<script>
+  const state = { screen: "list" };
+  const select = document.getElementById("screen");
+  const stage = document.getElementById("stage");
+
+  function show(screen) {
+    state.screen = screen;
+    select.value = screen;
+    document.querySelectorAll(".screen").forEach((section) => {
+      section.classList.toggle("on", section.dataset.screen === screen);
+    });
+  }
+
+  select.addEventListener("change", () => show(select.value));
+  document.getElementById("theme").addEventListener("change", (event) => {
+    document.documentElement.dataset.theme = event.target.value;
+  });
+  document.getElementById("width").addEventListener("click", (event) => {
+    stage.classList.toggle("mobile");
+    event.target.textContent = stage.classList.contains("mobile") ? "Vista escritorio" : "Vista móvil";
+  });
+  document.addEventListener("click", (event) => {
+    const target = event.target.closest("[data-go]");
+    if (!target) return;
+    event.preventDefault();
+    show(target.dataset.go);
+  });
+  show(state.screen);
+</script>
+</body>
+</html>

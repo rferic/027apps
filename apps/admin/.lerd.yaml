@@ -1,0 +1,7 @@
+domains:
+  - 027apps
+framework: nextjs
+secured: true
+proxy:
+  command: pnpm dev
+  port: 3003

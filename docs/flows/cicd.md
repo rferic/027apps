@@ -95,6 +95,18 @@ Reglas de manejo de secretos:
 4. Un push directo a una rama que no sea `staging` o `main` y sin PR no despliega ni staging ni producción.
 5. `staging` está protegido por Vercel (*Standard Protection*, decisión 2026-11-09): lo prueba el propietario, y los agentes usan *Protection Bypass for Automation*. Producción (`027apps.ericrf.com`) es pública.
 
+### Trabajos de módulo (cron)
+
+Vercel **Hobby rechaza cualquier cron que corra más de una vez al día** (`Hobby accounts are limited to daily cron jobs`), y un `crons` inválido en `vercel.json` hace fallar *todo* el deployment: no es un job rojo, es el preview entero en `Error`. Por eso `apps/admin/vercel.json` ya no declara crons.
+
+El disparador vive en `.github/workflows/module-jobs.yml`: cada **5 minutos** llama a `/api/v1/maintenance/module-jobs` con `Authorization: Bearer $CRON_SECRET`. Como el tick es más grueso que un minuto, el endpoint evalúa una **ventana de 5 minutos** (`lookback_minutes`): un job de las 12:00 se ejecuta en el tick de las 12:05 y la reclamación por minuto (`module_job_runs`) impide duplicados. El tope de la ventana es 30 minutos.
+
+Los secretos son `MODULE_JOBS_URL_STAGING` + `CRON_SECRET_STAGING` y `MODULE_JOBS_URL_PRODUCTION` + `CRON_SECRET_PRODUCTION`; sin ellos el workflow no hace nada (igual que `migrations.yml`). Los workflows programados solo se ejecutan desde la rama por defecto, así que el tick empieza a funcionar cuando el fichero está en `main`; en staging se puede lanzar a mano con `workflow_dispatch` o un `curl` puntual.
+
+## App Links (invitaciones en la app)
+
+`GET /.well-known/assetlinks.json` verifica que los enlaces `https://<instancia>/invite/<token>` los abre la app Android. Se publica solo con huellas **públicas** del certificado: `ANDROID_APP_SHA256` en Vercel (lista separada por comas, la del keystore de release y, si quieres probar en debug, la del keystore de debug). Sin la variable responde `[]`, que significa «ningún enlace verificado», no un error. El keystore y su contraseña nunca se publican.
+
 ## Migraciones Supabase
 
 Hay migraciones `0001`–`0019` en `supabase/migrations/`. Cada entorno aplica las suyas; el orden queda definido así:
@@ -169,6 +181,10 @@ La distribución familiar es **un enlace de descarga**: la página de GitHub Rel
 | 5 | Los usuarios abren el enlace de Releases en su móvil, descargan la APK e instalan (la primera vez habilitan "instalar apps de orígenes desconocidos" para su navegador) | Usuarios | Android instala la actualización sobre la versión anterior solo si la clave de firma y el `applicationId` coinciden y `versionCode` es mayor |
 
 La app **no** se actualiza sola: cada usuario instala la nueva APK manualmente desde el enlace. (Un aviso in-app de nueva versión queda fuera de esta definición.)
+
+### Build de desarrollo pública
+
+Mientras no exista la primera release firmada, la **pre-release `dev-*`** es lo que descarga el botón «Descargar para Android» (vía `/download/android`, que la sirve sin salir de la web) con el APK de debug (`com.rferic.zero27apps.debug`, etiqueta «027Apps Dev»). Se etiqueta `dev-*`, no `v*`, para no disparar el job `release` (que exige un tag sobre `main` y el keystore). Se borra cuando exista la release firmada.
 
 ### Verificación de extremo a extremo (tag → instalación)
 

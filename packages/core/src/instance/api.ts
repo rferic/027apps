@@ -13,6 +13,12 @@ export interface InstanceRouteDeps {
   door: DoorDeps;
   auth: (req: Request) => Promise<Caller>;
   settings: SettingsDeps;
+  /**
+   * Public Supabase coordinates so a native client can sign in against this
+   * instance without hardcoding them. Both are public by design (the browser
+   * already receives the anon key); `null` when the instance is not configured.
+   */
+  authConfig?: { supabaseUrl: string; supabaseAnonKey: string } | null;
   /** Deployed Core version (package.json). */
   version: string;
   cors?: CorsOptions;
@@ -76,6 +82,12 @@ export function instanceRoute(deps: InstanceRouteDeps) {
           version: deps.version,
           requires_setup: !superAdminExists,
           setup_incomplete: superAdminExists && missingRequired(settingsPublic).length > 0,
+          auth: deps.authConfig
+            ? {
+                supabase_url: deps.authConfig.supabaseUrl,
+                supabase_anon_key: deps.authConfig.supabaseAnonKey,
+              }
+            : null,
           settings_public: settingsPublic,
         };
       },

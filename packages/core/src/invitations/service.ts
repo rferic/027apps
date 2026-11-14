@@ -588,7 +588,7 @@ export async function redeemInvitation(
   try {
     return await withTx(deps, async (db) => {
       const { rows } = await db.query(
-        `select id, email, name, user_category_id, expires_at, used_at, revoked_at,
+        `select id, email, name, user_category_id, locale, expires_at, used_at, revoked_at,
                 created_by, created_by_key
            from public.invitations
           where token_hash = $1
@@ -612,13 +612,18 @@ export async function redeemInvitation(
 
       const invitationId = String(invitation.id);
 
-      // The wizard's localization seeds the profile instead of `en`/`UTC`.
+      // The wizard's localization seeds the profile instead of `en`/`UTC`;
+      // the invitation's own locale wins so the invitee lands in the language
+      // they were invited in, and only a missing/invalid value falls back.
       const localization = await defaultProfileLocalization(db);
+      const profileLocale = isEmailLocale(invitation.locale)
+        ? (invitation.locale as string)
+        : localization.locale;
       await db.query(
         `insert into public.profiles (id, display_name, role, locale, timezone)
          values ($1, $2, 'user', $3, $4)
          on conflict (id) do nothing`,
-        [userId, displayName, localization.locale, localization.timezone],
+        [userId, displayName, profileLocale, localization.timezone],
       );
 
       if (invitation.user_category_id) {

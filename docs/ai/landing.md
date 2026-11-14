@@ -62,22 +62,24 @@ Cada módulo declara uno:
 **Regla:** nada `planned` se presenta como disponible. La sección de módulos de la app lleva el
 aviso «Coming soon» mientras la app no tenga pantallas reales.
 
-## Catálogo actual (2026-11-11)
+## Catálogo actual (2026-11-12)
 
 | Módulo | App | Panel | Estado |
 |---|---|---|---|
-| Finanzas | Sí (previsto) | Presupuestos e histórico (previsto) | `planned` |
+| OweNo | Sí | Grupos, gastos, balances, liquidación e importador de Splitwise | app `available` (APK de pruebas), panel `available` |
 | Categorías | Sí (previsto) | Grupos y permisos | app `planned`, panel `available` |
 | Miembros | Sí (previsto) | Roles, invitaciones, bajas | app `planned`, panel `available` |
 | Módulos | Sí (previsto) | Activar y conceder | app `planned`, panel `available` |
 | API v1 | — | Claves con permisos | `available` |
 | MCP | — | Agentes con OAuth | `available` |
-| App Android | Sí | — | `in-development` (solo configuración de FCM) |
+| App Android | Sí | — | `in-development` (APK de pruebas; release firmado pendiente; push bloqueado) |
 | Copias y recuperación | — | Dump diario y simulacro | `available` |
 | 9 idiomas | Sí | Sí | `available`; revisión nativa de las traducciones pendiente |
 
-La app Android aún no tiene pantallas de producto: las de la landing son **maquetas de diseño**
-y el hero lo dice («App in development · these screens are the planned design»).
+La app Android ya tiene pantallas de producto: la sección Android usa una **captura real** de la
+compilación actual (OweNo, 2026-11-14) y el hero lo dice («App in development · these screens are
+from the current build»). Las maquetas de las demás secciones siguen siendo diseño hasta que
+cada módulo tenga captura.
 
 ## Cuándo actualizar
 
@@ -88,7 +90,10 @@ pública»).
 - **Un módulo pasa a `available`**: cambia su estado en las dos páginas y en esta tabla,
   sustituye la maqueta por una **captura real**, y actualiza el README.
 - **Se crea un módulo**: rellena su ficha (abajo) y decide si va a la app, al panel o a ambos.
-- **Release del APK**: cambia «Descargar app» para que apunte a la release publicada.
+- **Release del APK**: el botón «Descargar para Android» apunta a `/download/android`, una ruta
+  de la instancia que resuelve la última release con APK en GitHub y **la sirve en streaming**,
+  así que el visitante no sale de la web. No hay que tocar el botón al publicar una release: en
+  cuanto el asset `.apk` existe, se descarga. El enlace secundario a GitHub no cambia.
 - **Nuevo idioma**: añade la ruta y las traducciones; el selector ya lista los 9.
 - **Cambia el stack o el precio**: actualiza `/self-host` y el README.
 

@@ -226,8 +226,12 @@ todas las tablas, accesos cruzados, scopes mínimos, tools `write` no expuestas,
 cifrados). Críticos/altos sin resolver bloquean `finalizada`.
 
 **Instalación y activación (cuando exista el Core):** validar el manifest, verificar digests,
-aplicar migraciones `up` en transacción, sembrar settings/i18n y registrar. Activar/desactivar
-sin tocar DDL; desinstalar revierte `down`, limpia settings/translations con
+aplicar migraciones `up` en transacción y conceder los privilegios del esquema (lo hace el
+instalador: `usage` + DML a `authenticated`, todo a `service_role`), sembrar settings/i18n y
+registrar. El DDL corre como `module_installer` y solo puede referenciar `public` en
+`public.core_current_user_id()` (RLS) y `references public.profiles(...)` con
+`on delete set null` (D16). Activar/desactivar sin tocar DDL; desinstalar revierte `down`, borra
+el esquema y limpia settings/translations con
 `source: module:<key>` y borra el registry. Confirmación explícita del super_admin del diff del
 DDL antes de install/uninstall.
 

@@ -15,7 +15,7 @@ y [`docs/superpowers/specs/2026-10-26-backups.md`](superpowers/specs/2026-10-26-
 | Servicio | Uso | Plan / límite | Si se pierde |
 |---|---|---|---|
 | GitHub (`rferic/027apps`) | Código, CI, releases del APK | Free (repo público: minutos de Actions sin coste) | El código vive en clones locales; el APK firmado requiere el keystore (gestor de contraseñas) |
-| Vercel | Admin + `/api/v1` | Hobby | Se recrea desde el repo; solo hay que reponer env vars |
+| Vercel | Admin + `/api/v1` | Hobby | Se recrea desde el repo; solo hay que reponer env vars. El cron de módulos **no** usa Vercel Cron: el plan Hobby lo rechaza (solo permite una ejecución diaria) y un `crons` inválido tumba el deployment completo. Lo dispara `.github/workflows/module-jobs.yml` cada 5 minutos contra `/api/v1/maintenance/module-jobs`, firmado con `CRON_SECRET`; el endpoint evalúa una ventana de 5 minutos para no perderse un job de las :00. `MAINTENANCE_CRON_SECRET` sigue valiendo para llamadas manuales y local. Sin ninguna de las dos el endpoint responde 503 y los jobs de módulo no se ejecutan. |
 | Supabase | Postgres, Auth, Storage, Realtime | Free: **sin backups**, 500 MB de BD, pausa por inactividad (~1 semana) | **Se reconstruye** desde el backup + migraciones (este documento) |
 | Supabase local (dev) | BD/Auth/Storage/Realtime para desarrollar y para el TDD de migraciones + RLS | Docker, sin coste; lo levanta `supabase start` | Se recrea con `supabase start`; `supabase db reset` deja la BD limpia y aplica las migraciones |
 | **Supabase `027apps-dev`** (cloud) | **Project ref `wrigkwhrihawvwiciouy`** (`https://wrigkwhrihawvwiciouy.supabase.co`, eu-west) | Env vars solo en Vercel y en el gestor del propietario (nunca en git) | Se recupera con `supabase link --project-ref wrigkwhrihawvwiciouy` + migraciones |
@@ -355,3 +355,12 @@ reutilizar el proyecto dev como prod; ningún secreto se comparte entre dev y pr
 de PR y `staging` comparten `027apps-dev`: pueden pisarse datos (riesgo aceptado, son datos de
 desarrollo) y `staging` puede divergir de `main` (se mitiga con el merge `main → staging`
 tras cada release). `027apps-dev` contiene **solo datos de prueba**: nunca se cargan datos reales de la familia en `staging`. Los previews reciben las variables de dev (incluida la service-role de dev), así que tener escritura en el repo implica confianza sobre `027apps-dev`; no se da escritura a terceros.
+
+## Datos de demo
+
+El ajuste `demo.enabled` (apagado por defecto) habilita `POST/DELETE /api/v1/demo`. Además, un
+build de producción (`NODE_ENV=production`) los rechaza salvo que la instancia declare
+`ALLOW_DEMO_DATA=true`: esa variable se pone **solo** en staging para las capturas y la aceptación
+del móvil, nunca en producción. Los usuarios de demo (`demo.*@example.test`) comparten la
+contraseña que muestra el panel, la invitación de demo no se envía por correo y el borrado se
+niega mientras un módulo declare datos enlazados (`demo_linked`).

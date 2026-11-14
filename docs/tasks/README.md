@@ -17,7 +17,9 @@ estable: no se reutiliza ni se reordena. Este índice es la fuente del orden rea
 | 10 | `sprint-10-mcp` | 2026-10-27 | pendiente |
 | 11 | `sprint-11-prod-activation` | 2026-11-01 | absorbida por sprint-13 |
 | 12 | `sprint-12-new-module-skill` | 2026-11-06 | finalizada |
-| 13 | `sprint-13-staging-prod` | 2026-11-08 | en curso |
+| 13 | `sprint-13-staging-prod` | 2026-11-08 | finalizada |
+| 14 | `sprint-14-mejoras` | 2026-11-10 | finalizada |
+| 15 | `sprint-15-app-y-finanzas` | 2026-11-12 | aprobado 2026-11-13 (11 tareas) · PR #97 |
 
 ## Regla
 

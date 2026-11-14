@@ -1,6 +1,36 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
+/**
+ * Module packages are read with `readFile`, so the tracer cannot see them. The
+ * trace root moves to the monorepo and every path a module can be read from is
+ * included: manifests and install metadata, plus the SQL, docs, locales, icons
+ * and admin pages the panel serves. Keeping the list explicit avoids shipping
+ * the whole repository into every function.
+ */
+const MODULE_PACKAGE_FILES = [
+  "../../packages/*/manifest.json",
+  "../../packages/*/package.json",
+  "../../packages/*/sql/**/*",
+  "../../packages/*/docs/**/*",
+  "../../packages/*/locales/**/*",
+  "../../packages/*/assets/**/*",
+  "../../packages/*/admin/**/*",
+];
+
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.join(__dirname, "../.."),
+  outputFileTracingIncludes: { "/*": MODULE_PACKAGE_FILES },
+  // The trace root is the monorepo, so workspace folders follow it into the
+  // function. Tests and their harness never run there.
+  outputFileTracingExcludes: {
+    "/*": [
+      "../../packages/db-tests/**",
+      "../../packages/*/src/**/*.test.*",
+      "../../packages/*/vitest.config.*",
+      "../../packages/*/tsconfig.json",
+    ],
+  },
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
@@ -9,8 +39,8 @@ const nextConfig: NextConfig = {
   // socket from unknown cross-origin hosts, which stops the client from
   // hydrating (the language switcher would render but never run; the same
   // happens when the phone opens the LAN address). Matched on the Origin hostname.
-  allowedDevOrigins: ["127.0.0.1", "*.trycloudflare.com", "*.ngrok-free.app", "*.ngrok.io", "192.168.1.*", "027apps.local"],
-  transpilePackages: ["@027apps/core", "@027apps/i18n"],
+  allowedDevOrigins: ["127.0.0.1", "*.trycloudflare.com", "*.ngrok-free.app", "*.ngrok.io", "192.168.1.*", "027apps.local", "027apps.test"],
+  transpilePackages: ["@027apps/core", "@027apps/i18n", "@027apps/fixture", "@027apps/owe-no"],
   turbopack: {
     rules: {
       "*.css": {
@@ -18,6 +48,16 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  async redirects() {
+    // The panel sections now live under `/panel`; old bookmarks keep working.
+    return ["modules", "members", "categories", "invitations", "keys", "settings", "docs"].map(
+      (section) => ({
+        source: `/${section}/:path*`,
+        destination: `/panel/${section}/:path*`,
+        permanent: false,
+      }),
+    );
   },
   async headers() {
     return [

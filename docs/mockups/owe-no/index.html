@@ -1,0 +1,1707 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>027Apps · OweNo · Mockup F1 (móvil) y F2 (panel)</title>
+<style>
+  /* Tokens de identidad D. Espejo de apps/admin/tokens.json; no son colores libres. */
+  :root {
+    --background: #F6F7F8;
+    --surface: #FFFFFF;
+    --surface-2: #F6F7F8;
+    --muted: #ECEEF0;
+    --muted-foreground: #5B6472;
+    --foreground: #17191C;
+    --primary: #17191C;
+    --primary-foreground: #FFFFFF;
+    --accent: #09795F;
+    --accent-foreground: #FFFFFF;
+    --border: #E3E5E8;
+    --destructive: #BE123C;
+    --destructive-foreground: #FFFFFF;
+    --destructive-subtle: rgba(190, 18, 60, .08);
+    --success: #15803D;
+    --warning: #B93815;
+    --stage: #E7EAEE;
+    --shadow: 0 18px 50px rgba(23, 25, 28, .14);
+    --card-radius: 16px;
+    --control-radius: 12px;
+  }
+  [data-theme="dark"] {
+    --background: #08090A;
+    --surface: #0E0F11;
+    --surface-2: #141517;
+    --muted: #1A1B1E;
+    --muted-foreground: #8A8F98;
+    --foreground: #F7F8F8;
+    --primary: #F7F8F8;
+    --primary-foreground: #08090A;
+    --accent: #1CC29F;
+    --accent-foreground: #05231C;
+    --border: rgba(255, 255, 255, .09);
+    --destructive: #FB7185;
+    --destructive-foreground: #2A0A10;
+    --destructive-subtle: rgba(251, 113, 133, .12);
+    --success: #4ADE80;
+    --warning: #FF8A5C;
+    --stage: #050607;
+    --shadow: 0 18px 50px rgba(0, 0, 0, .55);
+  }
+
+  .accent-emerald { --module-accent: #047857; --module-contrast: #FFFFFF; }
+  [data-theme="dark"] .accent-emerald { --module-accent: #34D399; --module-contrast: #08090A; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--stage);
+    color: var(--foreground);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "cv11";
+    min-height: 100vh;
+  }
+  button, input, select { font: inherit; }
+  button { cursor: pointer; }
+
+  .toolbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .toolbar strong { display: block; font-size: 14px; }
+  .toolbar .muted { display: block; font-size: 12px; color: var(--muted-foreground); margin-top: 2px; }
+  .controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .controls label {
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--muted-foreground);
+  }
+  .controls select {
+    height: 34px; max-width: 260px; padding: 0 10px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface); color: var(--foreground); font-size: 12px;
+  }
+
+  .stage { display: flex; justify-content: center; padding: 32px 20px 40px; }
+  .stage.panel { padding: 24px 20px 40px; }
+
+  .phone {
+    width: 406px; height: 860px;
+    border: 8px solid #15171B; border-radius: 38px;
+    background: var(--background);
+    box-shadow: var(--shadow);
+    overflow: hidden; position: relative;
+  }
+  .status {
+    height: 28px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px; font-size: 10px; font-weight: 700;
+    color: var(--muted-foreground); background: var(--background);
+    position: relative; z-index: 2;
+  }
+  .status .pill {
+    position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
+    width: 78px; height: 16px; border-radius: 999px; background: #15171B;
+  }
+  .app { height: calc(100% - 28px); display: flex; flex-direction: column; position: relative; overflow: hidden; background: var(--background); }
+  .scroll { flex: 1; overflow-y: auto; padding: 10px 18px 24px; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+  .scroll.has-nav { padding-bottom: 92px; }
+
+  .module-head { display: flex; align-items: center; gap: 10px; padding: 6px 0 12px; }
+  .module-head .back { width: 34px; height: 34px; border-radius: 10px; }
+  .module-head .avatar.module { width: 34px; height: 34px; border-radius: 10px; }
+  .module-head .mhead-text { flex: 1; min-width: 0; }
+  .module-head .mhead-text strong { display: block; font-size: 14px; letter-spacing: -.01em; }
+  .module-head .mhead-text span { display: block; font-size: 11px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .module-head .icon-btn { width: 34px; height: 34px; border-radius: 10px; }
+  .page-title { margin: 2px 0 14px; }
+  .page-title h2 { margin: 0; font-size: 22px; letter-spacing: -.02em; }
+  .page-title p { margin: 3px 0 0; font-size: 12px; color: var(--muted-foreground); }
+
+  .sheet-backdrop { position: absolute; inset: 0; background: rgba(8, 9, 10, .45); z-index: 30; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 31; padding: 12px 20px 24px; border-top: 1px solid var(--border); border-radius: 20px 20px 0 0; background: var(--surface); }
+  .sheet-handle { width: 40px; height: 4px; margin: 0 auto 14px; border-radius: 999px; background: var(--border); }
+  .sheet h3 { margin: 0 0 4px; font-size: 17px; }
+  .sheet p { margin: 0 0 12px; font-size: 12px; color: var(--muted-foreground); }
+  .sheet-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-top: 1px solid var(--border); }
+  .sheet-row:first-of-type { border-top: 0; }
+  .sheet-icon { width: 34px; height: 34px; border-radius: 10px; background: var(--muted); color: var(--accent); display: grid; place-items: center; flex: none; }
+  .sheet-row strong { display: block; font-size: 14px; }
+  .sheet-row span { display: block; margin-top: 1px; font-size: 11px; color: var(--muted-foreground); }
+  .sheet-row .chev { margin-left: auto; color: var(--muted-foreground); }
+  .sheet-row .sheet-badge { display: inline-block; margin: 0 0 0 8px; padding: 2px 6px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-size: 10px; font-weight: 800; vertical-align: middle; }
+  .sheet-cancel { width: 100%; height: 44px; margin-top: 8px; border: 1px solid var(--border); border-radius: 12px; background: transparent; color: var(--foreground); font-weight: 700; }
+
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 8px 0 12px; }
+  .back {
+    width: 38px; height: 38px; flex: none; border: 1px solid var(--border);
+    border-radius: 12px; background: var(--surface); color: var(--foreground);
+    display: grid; place-items: center; padding: 0;
+  }
+  .topbar-title { font-size: 16px; font-weight: 800; letter-spacing: -.01em; }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-foreground);
+    display: grid; place-items: center; font-size: 14px; font-weight: 800; flex: none;
+  }
+  .avatar.sm { width: 32px; height: 32px; font-size: 12px; }
+  .avatar.fict { background: var(--muted); color: var(--muted-foreground); }
+  .avatar.module { background: var(--module-accent); color: var(--module-contrast); border-radius: 12px; }
+  .hello { font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+  .sub { font-size: 12px; color: var(--muted-foreground); margin-top: 1px; }
+  .spacer { flex: 1; }
+  .icon-btn {
+    width: 40px; height: 40px; border: 1px solid var(--border); border-radius: 12px;
+    background: var(--surface); color: var(--foreground);
+    display: grid; place-items: center; padding: 0;
+  }
+
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 18px 0 10px; }
+  .section-title { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+  .section-link { font-size: 12px; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 0; }
+
+  .card {
+    padding: 16px; margin-bottom: 12px;
+    border: 1px solid var(--border); border-radius: var(--card-radius);
+    background: var(--surface);
+  }
+  .card.tight { padding: 12px 14px; }
+  .card.accent-emerald {
+    background: color-mix(in srgb, var(--module-accent) 6%, var(--surface));
+    border-color: color-mix(in srgb, var(--module-accent) 22%, var(--border));
+  }
+  .widget-head { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+  .widget-icon {
+    width: 30px; height: 30px; border-radius: 10px;
+    background: color-mix(in srgb, var(--module-accent) 14%, var(--surface));
+    color: var(--module-accent);
+    display: grid; place-items: center; flex: none;
+  }
+  .widget-title { font-size: 14px; font-weight: 800; }
+  .badge {
+    margin-left: auto; padding: 4px 6px; border-radius: 6px;
+    background: var(--muted); color: var(--muted-foreground);
+    font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .metric { font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .metric small { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--muted-foreground); }
+  .metric-row { display: flex; gap: 18px; margin-top: 14px; }
+  .metric-item { flex: 1; }
+  .metric-item .k { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-foreground); }
+  .metric-item .v { margin-top: 3px; font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  .list { margin-top: 8px; }
+  .list-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 0; border-top: 1px solid var(--border); font-size: 13px;
+  }
+  .list-row:first-child { border-top: 0; }
+  .list-row .who { color: var(--muted-foreground); }
+  .list-row .amount { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .amount.pos { color: var(--success); }
+  .amount.neg { color: var(--warning); }
+  .amount.zero { color: var(--muted-foreground); }
+
+  .group-row {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 14px; margin-bottom: 10px; text-align: left;
+    border: 1px solid var(--border); border-radius: 16px; background: var(--surface);
+    color: var(--foreground);
+  }
+  .group-row .avatar.module { width: 44px; height: 44px; border-radius: 14px; }
+  .group-row strong { display: block; font-size: 14px; }
+  .group-row .sub { margin-top: 2px; }
+  .group-row .amount { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+  .group-row .amount span { display: block; font-size: 10px; font-weight: 600; color: var(--muted-foreground); margin-top: 2px; }
+
+  .tabs-summary { display: flex; gap: 6px; margin: 14px 0 8px; }
+  .chip {
+    padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--muted-foreground);
+    font-size: 11px; font-weight: 700;
+  }
+  .chip.active { background: var(--foreground); border-color: var(--foreground); color: var(--background); }
+
+  .member {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 0; border-top: 1px solid var(--border);
+  }
+  .member:first-child { border-top: 0; }
+  .member .who { flex: 1; }
+  .member strong { display: block; font-size: 13px; }
+  .member .sub { margin-top: 1px; }
+  .member .amount { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  .expense { display: flex; align-items: flex-start; gap: 10px; padding: 11px 0; border-top: 1px solid var(--border); }
+  .expense:first-child { border-top: 0; }
+  .expense .body { flex: 1; }
+  .expense strong { display: block; font-size: 13px; }
+  .expense .sub { margin-top: 2px; }
+  .expense .amount { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .expense .amount span { display: block; font-size: 10px; font-weight: 600; color: var(--muted-foreground); margin-top: 2px; text-align: right; }
+  .expense .chev { align-self: center; color: var(--muted-foreground); font-size: 16px; }
+
+  .btn {
+    width: 100%; height: 48px; border: 0; border-radius: var(--control-radius);
+    background: var(--primary); color: var(--primary-foreground);
+    font-size: 15px; font-weight: 700;
+  }
+  .btn.accent { background: var(--accent); color: var(--accent-foreground); }
+  .btn.danger { background: var(--destructive); color: var(--destructive-foreground); }
+  .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--foreground); }
+  .btn.sm { height: 38px; font-size: 13px; border-radius: 10px; }
+  .btn + .btn { margin-top: 10px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .text-link { display: inline-block; color: var(--accent); font-size: 13px; font-weight: 700; text-decoration: none; background: none; border: 0; padding: 0; }
+  .text-link.danger { color: var(--destructive); }
+  .note { margin: 12px 0 0; font-size: 12px; line-height: 1.55; color: var(--muted-foreground); }
+  .note strong { color: var(--foreground); }
+
+  .alert {
+    margin: 0 0 14px; padding: 10px 12px; border-radius: 10px;
+    background: var(--destructive-subtle); color: var(--destructive);
+    font-size: 12px; line-height: 1.45;
+  }
+  .alert.warn { background: color-mix(in srgb, var(--warning) 10%, transparent); color: var(--warning); }
+  .alert.info { background: color-mix(in srgb, var(--accent) 9%, transparent); color: var(--accent); }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 700; color: var(--muted-foreground); }
+  .field input, .field select {
+    width: 100%; height: 46px; padding: 0 14px;
+    border: 1px solid var(--border); border-radius: var(--control-radius);
+    background: var(--surface); color: var(--foreground); font-size: 15px; outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .field .hint { margin-top: 5px; font-size: 11px; color: var(--muted-foreground); }
+  .amount-input { font-size: 30px !important; font-weight: 800; letter-spacing: -.02em; height: 60px !important; font-variant-numeric: tabular-nums; }
+
+  .segmented { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--muted); }
+  .seg { flex: 1; padding: 8px 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted-foreground); font-size: 12px; font-weight: 700; }
+  .seg.active { background: var(--surface); color: var(--foreground); box-shadow: 0 1px 3px rgba(0, 0, 0, .08); }
+
+  .split-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); }
+  .split-row:first-child { border-top: 0; }
+  .split-row .who { flex: 1; font-size: 13px; }
+  .split-row .who span { display: block; font-size: 10px; color: var(--muted-foreground); }
+  .split-row input {
+    width: 104px; height: 38px; padding: 0 10px; text-align: right;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface); color: var(--foreground);
+    font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+  }
+  .picks { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pick { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--muted-foreground); font-size: 12px; font-weight: 700; }
+  .pick.on { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); color: var(--foreground); }
+  .pick .tick { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--border); display: grid; place-items: center; font-size: 9px; background: var(--surface); }
+  .pick.on .tick { background: var(--accent); border-color: var(--accent); color: var(--accent-foreground); }
+  .picks-actions { display: flex; gap: 12px; margin-top: 8px; }
+  .split-total { display: flex; justify-content: space-between; gap: 10px; padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--border); font-size: 12px; }
+  .split-total strong { font-variant-numeric: tabular-nums; }
+  .split-total .ok { color: var(--success); }
+  .split-total .bad { color: var(--destructive); }
+
+  .tabs {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 68px;
+    padding: 6px 8px 8px; display: flex; gap: 4px;
+    border-top: 1px solid var(--border); background: var(--surface); z-index: 10;
+  }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; border-radius: 10px; background: transparent; color: var(--muted-foreground); font-size: 10px; font-weight: 600; }
+  .tab.active { color: var(--accent); }
+
+  .fab {
+    position: absolute; right: 18px; bottom: 82px; width: 54px; height: 54px;
+    border: 0; border-radius: 50%; background: var(--accent); color: var(--accent-foreground);
+    display: grid; place-items: center; box-shadow: 0 12px 26px color-mix(in srgb, var(--accent) 38%, transparent);
+    z-index: 12;
+  }
+
+  .empty { text-align: center; padding: 46px 10px 26px; }
+  .empty-icon { width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%; background: var(--muted); color: var(--muted-foreground); display: grid; place-items: center; }
+  .empty h3 { margin: 0 0 6px; font-size: 16px; }
+  .empty p { max-width: 280px; margin: 0 auto; font-size: 13px; line-height: 1.55; color: var(--muted-foreground); }
+
+  .spinner { width: 28px; height: 28px; margin: 18px auto 0; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .steps { display: flex; gap: 6px; margin: 6px 0 18px; }
+  .step { flex: 1; height: 4px; border-radius: 999px; background: var(--muted); }
+  .step.done { background: var(--accent); }
+  .step.current { background: color-mix(in srgb, var(--accent) 55%, var(--muted)); }
+
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 12px; }
+  .kv dt { color: var(--muted-foreground); }
+  .kv dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .divider { height: 1px; margin: 16px 0; background: var(--border); }
+
+  /* ---------- Panel (F2) ---------- */
+  .browser { width: min(1280px, calc(100vw - 48px)); height: 860px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; }
+  .browser-bar { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  .lights { display: flex; gap: 6px; }
+  .lights i { width: 10px; height: 10px; border-radius: 50%; background: var(--border); display: block; }
+  .url { flex: 1; height: 30px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--muted-foreground); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .browser-body { flex: 1; display: flex; min-height: 0; }
+  .side { width: 220px; flex: none; padding: 14px 12px; border-right: 1px solid var(--border); background: var(--surface-2); display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+  .pcol { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+  .phead { height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .pbrand { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .pbrand .dot { width: 28px; height: 28px; flex: none; border-radius: 8px; background: var(--accent); color: var(--accent-foreground); display: grid; place-items: center; font-size: 10px; font-weight: 800; }
+  .pbrand strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .puser { display: flex; align-items: center; gap: 8px; }
+  .nav-group { margin: 12px 8px 4px; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+  .nav-group:first-child { margin-top: 0; }
+  .crumbs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; font-size: 11px; color: var(--muted-foreground); }
+  .crumbs strong { color: var(--foreground); }
+  .crumb-link { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--accent); }
+  .range-end { display: grid; place-items: center; color: var(--muted-foreground); opacity: .7; }
+  .range-end.hot { color: var(--warning); opacity: .85; }
+  .range-legend { display: flex; justify-content: space-between; padding-right: 74px; margin-top: 2px; font-size: 10px; color: var(--muted-foreground); }
+  .module-logo.sm { width: 34px; height: 34px; border-radius: 10px; }
+  .widget-panel { background: color-mix(in srgb, var(--module-accent) 5%, var(--surface)); border-color: color-mix(in srgb, var(--module-accent) 20%, var(--border)); }
+  .widget-link { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--module-accent) 35%, transparent); text-underline-offset: 3px; }
+  .widget-link:hover strong, .widget-link:hover { color: var(--module-accent); text-decoration-color: currentColor; }
+  .side .brand { display: flex; align-items: center; gap: 9px; padding: 4px 8px 16px; }
+  .side .dot { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); color: var(--accent-foreground); display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+  .side .brand strong { font-size: 13px; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 9px; font-size: 12px; font-weight: 600; color: var(--muted-foreground); }
+  .nav-item.active { background: var(--surface); color: var(--foreground); border: 1px solid var(--border); }
+  .nav-item .ico { width: 16px; display: grid; place-items: center; }
+  .side .foot { margin-top: auto; font-size: 10px; color: var(--muted-foreground); padding: 8px; line-height: 1.5; }
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px 40px; background: var(--background); min-width: 0; }
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+  .page-head h1 { margin: 0; font-size: 22px; letter-spacing: -.02em; }
+  .page-head p { margin: 4px 0 0; font-size: 12px; color: var(--muted-foreground); max-width: 640px; line-height: 1.5; }
+  .row { display: flex; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .stat { padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+  .stat .k { font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted-foreground); }
+  .stat .v { margin-top: 6px; font-size: 24px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .stat .d { margin-top: 3px; font-size: 11px; color: var(--muted-foreground); }
+  .panel-card { padding: 18px 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+  .panel-card h2 { margin: 0 0 4px; font-size: 14px; }
+  .panel-card > p { margin: 0 0 14px; font-size: 12px; color: var(--muted-foreground); line-height: 1.5; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.data th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--muted-foreground); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+  table.data td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  table.data tr:last-child td { border-bottom: 0; }
+  table.data .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; }
+  .pill.ok { background: color-mix(in srgb, var(--success) 14%, transparent); color: var(--success); }
+  .pill.warn { background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); }
+  .pill.muted { background: var(--muted); color: var(--muted-foreground); }
+  .toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .input-sm { height: 34px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--foreground); font-size: 12px; }
+  .btn-sm { height: 34px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--foreground); font-size: 12px; font-weight: 700; }
+  .btn-sm.accent { background: var(--accent); border-color: var(--accent); color: var(--accent-foreground); }
+  .slider-row { display: flex; align-items: center; gap: 14px; }
+  .slider-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+  .slider-value { min-width: 62px; text-align: right; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .tabs-panel { display: flex; gap: 4px; margin: 0 0 14px; border-bottom: 1px solid var(--border); }
+  .tabs-panel button { padding: 9px 12px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted-foreground); font-size: 12px; font-weight: 700; }
+  .tabs-panel button.active { color: var(--foreground); border-bottom-color: var(--accent); }
+  .module-card { display: flex; gap: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+  .module-logo { width: 56px; height: 56px; flex: none; border-radius: 16px; background: var(--module-accent); color: var(--module-contrast); display: grid; place-items: center; }
+
+  .notes { max-width: 980px; margin: 0 auto 60px; padding: 0 20px; font-size: 12px; line-height: 1.65; color: var(--muted-foreground); }
+  .notes h2 { margin: 0 0 8px; font-size: 14px; color: var(--foreground); }
+  .notes strong { color: var(--foreground); }
+  .notes ul { margin: 6px 0 0; padding-left: 18px; }
+  .notes code { font-size: 11px; }
+
+  @media (max-width: 900px) {
+    .phone { width: min(406px, 100%); }
+    .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    .side { display: none; }
+  }
+</style>
+</head>
+<body class="accent-emerald">
+<header class="toolbar">
+  <div>
+    <strong>027Apps · OweNo</strong>
+    <span class="muted">F1 móvil y F2 panel · datos de demo ficticios · claro/oscuro</span>
+  </div>
+  <div class="controls">
+    <label>Superficie
+      <select id="surface">
+        <option value="mobile">F1 · Móvil (390 px)</option>
+        <option value="panel">F2 · Panel (1440 px)</option>
+      </select>
+    </label>
+    <label>Pantalla
+      <select id="screen"></select>
+    </label>
+    <label>Tema
+      <select id="theme">
+        <option value="light">Claro</option>
+        <option value="dark">Oscuro</option>
+      </select>
+    </label>
+  </div>
+</header>
+
+<main id="stage" class="stage"></main>
+
+<section class="notes">
+  <h2>Qué estás viendo</h2>
+  <ul>
+    <li><strong>F1 (móvil)</strong>: el esqueleto aprobado en la tarea 01, con OweNo dentro. El
+      grupo se elige dentro del módulo; no hay selector global.</li>
+    <li><strong>F2 (panel)</strong>: solo páginas del módulo (D9), incluida la configuración con
+      el deslizador de <code>settlement_exact_limit</code>.</li>
+    <li><strong>Datos</strong>: familia e importes inventados. Nunca datos reales.</li>
+    <li><strong>Estados</strong>: vacío, cargando, error, invitación pendiente, grupo grande con
+      liquidación simplificada y mapeo del CSV.</li>
+    <li><strong>Copy en español</strong> para revisar tono; la implementación publica los 9
+      idiomas. Los importes están en céntimos y se formatean con coma decimal.</li>
+  </ul>
+</section>
+
+<script>
+const params = new URLSearchParams(location.search);
+const state = {
+  surface: params.get("surface") === "panel" ? "panel" : "mobile",
+  screen: params.get("screen") || (params.get("surface") === "panel" ? "dashboard" : "home"),
+  theme: params.get("theme") === "dark" ? "dark" : "light"
+};
+
+const MOBILE_SCREENS = [
+  ["home", "Inicio · widget de OweNo"],
+  ["module-home", "OweNo · al abrir el módulo"],
+  ["module-menu", "OweNo · menú ⋯"],
+  ["groups", "Grupos"],
+  ["group", "Detalle del grupo"],
+  ["history", "Historial"],
+  ["movement-detail", "Movimiento · editar o eliminar"],
+  ["movement-delete", "Movimiento · confirmar borrado"],
+  ["expense-new", "Alta de gasto · igual"],
+  ["expense-subset", "Alta de gasto · solo 3 de 5"],
+  ["expense-exact", "Alta de gasto · importes exactos"],
+  ["settle", "Liquidación"],
+  ["invitations", "Invitaciones"],
+  ["members", "Miembros (creador)"],
+  ["leave", "Salir del grupo"],
+  ["import-file", "Importar · 1 archivo"],
+  ["import-preview", "Importar · 2 preview"],
+  ["import-map", "Importar · 3 mapeo"],
+  ["import-done", "Importar · 4 resultado"],
+  ["group-large", "Grupo grande · aviso"],
+  ["states", "Estados: vacío, carga y error"]
+];
+
+const PANEL_SCREENS = [
+  ["dashboard", "Inicio del panel · widget de OweNo"],
+  ["catalog", "Módulos · catálogo"],
+  ["settings", "OweNo · ajustes del módulo"],
+  ["overview", "OweNo · resumen"],
+  ["groups", "OweNo · grupos"],
+  ["group", "OweNo · detalle de grupo"],
+  ["imports", "OweNo · importaciones"]
+];
+
+function euro(minor) {
+  const sign = minor < 0 ? "-" : "";
+  const abs = Math.abs(minor);
+  const units = Math.floor(abs / 100);
+  const cents = String(abs % 100).padStart(2, "0");
+  return sign + units.toLocaleString("es-ES") + "," + cents + " €";
+}
+
+const members = [
+  { name: "Ana", initials: "A", balance: 2850, kind: "user" },
+  { name: "Luis", initials: "L", balance: -2850, kind: "user" },
+  { name: "Marta", initials: "M", balance: 1920, kind: "user" },
+  { name: "Javi", initials: "J", balance: -1920, kind: "fict" }
+];
+
+const expenses = [
+  { d: "Compra semanal", by: "Ana", amount: 6240, when: "Hoy", split: "Igual · 3 de 4" },
+  { d: "Luz de octubre", by: "Luis", amount: 5800, when: "Ayer", split: "Igual · 4" },
+  { d: "Cena del sábado", by: "Marta", amount: 4800, when: "8 nov", split: "Exacto · 4" },
+  { d: "Limpieza", by: "Javi", amount: 3000, when: "5 nov", split: "Igual · 3 de 4" }
+];
+
+const tabbar = (active) => `
+  <nav class="tabs">
+    <button class="tab ${active === "home" ? "active" : ""}">Inicio</button>
+    <button class="tab ${active === "modules" ? "active" : ""}">Módulos</button>
+    <button class="tab ${active === "settings" ? "active" : ""}">Ajustes</button>
+  </nav>`;
+
+const topbar = (title, opts = {}) => `
+  <div class="topbar">
+    ${opts.back ? `<button class="back" aria-label="Atrás">←</button>` : ""}
+    <div class="${opts.back ? "topbar-title" : "hello"}">${title}</div>
+    <div class="spacer"></div>
+    ${opts.action || ""}
+    ${opts.bell ? `<button class="icon-btn" aria-label="Notificaciones">◔</button>` : ""}
+  </div>`;
+
+const moduleHead = (context) => `
+  <div class="module-head">
+    <button class="back" aria-label="Atrás">←</button>
+    <div class="avatar module">▤</div>
+    <div class="mhead-text"><strong>OweNo</strong><span>${context}</span></div>
+    <button class="icon-btn" aria-label="Menú del módulo">⋯</button>
+  </div>`;
+
+const pageTitle = (title, sub) => `
+  <div class="page-title"><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ""}</div>`;
+
+function balanceRow(m) {
+  const cls = m.balance > 0 ? "pos" : m.balance < 0 ? "neg" : "zero";
+  const label = m.balance > 0 ? "le deben" : m.balance < 0 ? "debe" : "en paz";
+  return `
+    <div class="member">
+      <div class="avatar sm ${m.kind === "fict" ? "fict" : ""}">${m.initials}</div>
+      <div class="who">
+        <strong>${m.name}${m.kind === "fict" ? " · ficticio" : ""}</strong>
+        <div class="sub">${label}</div>
+      </div>
+      <div class="amount ${cls}">${euro(m.balance)}</div>
+    </div>`;
+}
+
+function expenseRow(e) {
+  return `
+    <div class="expense" data-go="movement-detail" style="cursor:pointer">
+      <div class="body">
+        <strong>${e.d}</strong>
+        <div class="sub">${e.when} · pagó ${e.by} · ${e.split}</div>
+      </div>
+      <div class="amount">${euro(e.amount)}</div>
+      <div class="chev">›</div>
+    </div>`;
+}
+
+const screens = {
+  home() {
+    return `
+      <div class="scroll has-nav">
+        ${topbar("Hola, Ana", { bell: true })}
+        <div class="sub" style="margin-top:-8px">Casa · Piso de Ana</div>
+
+        <div class="card accent-emerald" style="margin-top:16px">
+          <div class="widget-head">
+            <div class="widget-icon">▤</div>
+            <div class="widget-title">OweNo</div>
+            <span class="badge">4 miembros</span>
+          </div>
+          <div class="metric">${euro(4770)}<small>te deben</small></div>
+          <div class="metric-row">
+            <div class="metric-item"><div class="k">Grupos</div><div class="v">3</div></div>
+            <div class="metric-item"><div class="k">Miembros</div><div class="v">4</div></div>
+            <div class="metric-item"><div class="k">Este mes</div><div class="v">${euro(20140)}</div></div>
+          </div>
+          <div class="list">
+            <div class="list-row"><span class="who">Luis te debe</span><span class="amount pos">${euro(2850)}</span></div>
+            <div class="list-row"><span class="who">Javi te debe</span><span class="amount pos">${euro(1920)}</span></div>
+          </div>
+          <div style="margin-top:12px"><button class="text-link">Abrir OweNo →</button></div>
+        </div>
+
+        <div class="section-head"><h2 class="section-title">Invitan a</h2></div>
+        <div class="card tight">
+          <div class="member">
+            <div class="avatar sm module" style="border-radius:10px">▤</div>
+            <div class="who">
+              <strong>Piso de Marta</strong>
+              <div class="sub">Marta te ha invitado · OweNo</div>
+            </div>
+            <button class="btn sm accent" style="width:auto;padding:0 12px">Ver</button>
+          </div>
+        </div>
+
+        <div class="section-head"><h2 class="section-title">Otros módulos</h2><button class="section-link">Ver todos</button></div>
+        <div class="card tight">
+          <div class="member">
+            <div class="avatar sm" style="border-radius:10px;background:var(--muted);color:var(--muted-foreground)">＋</div>
+            <div class="who"><strong>Sin más módulos activos</strong><div class="sub">El administrador instala desde el panel</div></div>
+          </div>
+        </div>
+      </div>
+      <button class="fab" aria-label="Añadir">＋</button>
+      ${tabbar("home")}`;
+  },
+
+  "module-home"() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Gastos compartidos")}
+        <div class="card accent-emerald" style="margin-top:2px">
+          <div class="widget-head">
+            <div class="widget-icon">▤</div>
+            <div class="widget-title">Resumen</div>
+            <span class="badge">3 grupos</span>
+          </div>
+          <div class="metric">${euro(4770)}<small>te deben</small></div>
+          <div class="metric-row">
+            <div class="metric-item"><div class="k">Te deben</div><div class="v">${euro(4770)}</div></div>
+            <div class="metric-item"><div class="k">Debes</div><div class="v">${euro(4500)}</div></div>
+            <div class="metric-item"><div class="k">Este mes</div><div class="v">${euro(20140)}</div></div>
+          </div>
+        </div>
+        <div class="section-head"><h2 class="section-title">Tus grupos</h2><button class="section-link" data-go="groups">Ver todos</button></div>
+        <button class="group-row" data-go="group">
+          <div class="avatar module">▤</div>
+          <div style="flex:1"><strong>Casa · Piso de Ana</strong><div class="sub">4 miembros · EUR</div></div>
+          <div class="amount pos">${euro(2850)}<span>te deben</span></div>
+        </button>
+        <button class="group-row">
+          <div class="avatar module">▤</div>
+          <div style="flex:1"><strong>Viaje a Lisboa</strong><div class="sub">5 miembros · EUR</div></div>
+          <div class="amount neg">${euro(-4500)}<span>debes</span></div>
+        </button>
+        <button class="group-row">
+          <div class="avatar module">▤</div>
+          <div style="flex:1"><strong>Cena de Navidad</strong><div class="sub">6 miembros · EUR · archivado</div></div>
+          <div class="amount zero">${euro(0)}<span>en paz</span></div>
+        </button>
+        <p class="note" style="border:1px dashed var(--border);border-radius:10px;padding:8px 10px"><strong>Nota de revisión:</strong> este es el inicio del módulo (resumen + grupos). El menú ⋯ de la cabecera lleva a Grupos, Invitaciones e Importar de Splitwise.</p>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  "module-menu"() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Gastos compartidos")}
+        <div class="card accent-emerald">
+          <div class="widget-head"><div class="widget-icon">▤</div><div class="widget-title">Resumen</div><span class="badge">3 grupos</span></div>
+          <div class="metric">${euro(4770)}<small>te deben</small></div>
+        </div>
+        <div class="section-head"><h2 class="section-title">Tus grupos</h2></div>
+        <button class="group-row">
+          <div class="avatar module">▤</div>
+          <div style="flex:1"><strong>Casa · Piso de Ana</strong><div class="sub">4 miembros · EUR</div></div>
+          <div class="amount pos">${euro(2850)}<span>te deben</span></div>
+        </button>
+      </div>
+      <div class="sheet-backdrop"></div>
+      <div class="sheet" role="dialog" aria-label="Menú de OweNo">
+        <div class="sheet-handle"></div>
+        <h3>OweNo</h3>
+        <p>Gastos compartidos · 3 grupos</p>
+        <div class="sheet-row">
+          <div class="sheet-icon">☰</div>
+          <div style="flex:1"><strong>Grupos</strong><span>Todos tus grupos, activos y archivados</span></div>
+          <span class="chev">›</span>
+        </div>
+        <div class="sheet-row">
+          <div class="sheet-icon">✉</div>
+          <div style="flex:1"><strong>Invitaciones<span class="sheet-badge">1</span></strong><span>Te han invitado a un grupo</span></div>
+          <span class="chev">›</span>
+        </div>
+        <div class="sheet-row">
+          <div class="sheet-icon">⇩</div>
+          <div style="flex:1"><strong>Importar de Splitwise</strong><span>Solo el creador del grupo · CSV</span></div>
+          <span class="chev">›</span>
+        </div>
+        <div class="sheet-row">
+          <div class="sheet-icon">⚙</div>
+          <div style="flex:1"><strong>Ajustes del módulo</strong><span>Moneda por defecto del grupo nuevo</span></div>
+          <span class="chev">›</span>
+        </div>
+        <button class="sheet-cancel">Volver a Módulos</button>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  groups() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Grupos")}
+        <div class="tabs-summary">
+          <span class="chip active">Activos 3</span>
+          <span class="chip">Archivados 1</span>
+        </div>
+        <button class="group-row" data-go="group">
+          <div class="avatar module">▤</div>
+          <div style="flex:1"><strong>Casa · Piso de Ana</strong><div class="sub">4 miembros · EUR</div></div>
+          <div class="amount pos">${euro(2850)}<span>te deben</span></div>
+        </button>
+        <button class="group-row">
+          <div class="avatar module">▤</div>
+          <div style="flex:1"><strong>Viaje a Lisboa</strong><div class="sub">5 miembros · EUR</div></div>
+          <div class="amount neg">${euro(-4500)}<span>debes</span></div>
+        </button>
+        <button class="group-row">
+          <div class="avatar module">▤</div>
+          <div style="flex:1"><strong>Cena de Navidad</strong><div class="sub">6 miembros · EUR · archivado</div></div>
+          <div class="amount zero">${euro(0)}<span>en paz</span></div>
+        </button>
+        <button class="btn ghost" style="margin-top:14px">Crear grupo</button>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  group() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Casa · Piso de Ana")}
+        <div class="sub" style="margin:-6px 0 12px">4 miembros · EUR</div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="section-head" style="margin-top:0"><h2 class="section-title">Balances</h2><button class="section-link">Ver todos</button></div>
+          ${members.map(balanceRow).join("")}
+        </div>
+
+        <div class="card accent-emerald">
+          <div class="widget-head">
+            <div class="widget-icon">⇄</div>
+            <div class="widget-title">Liquidar</div>
+            <span class="badge">Mínimo · 2 pagos</span>
+          </div>
+          <div class="list">
+            <div class="list-row"><span class="who">Luis paga a Ana</span><span class="amount">${euro(2850)}</span></div>
+            <div class="list-row"><span class="who">Javi paga a Marta</span><span class="amount">${euro(1920)}</span></div>
+          </div>
+          <div style="margin-top:12px"><button class="text-link">Ver y confirmar →</button></div>
+        </div>
+
+        <div class="section-head"><h2 class="section-title">Gastos recientes</h2><button class="section-link" data-go="history">Historial</button></div>
+        <div class="card tight">${expenses.slice(0, 3).map(expenseRow).join("")}</div>
+      </div>
+      <button class="fab" aria-label="Añadir gasto">＋</button>
+      ${tabbar("modules")}`;
+  },
+
+  history() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Casa · Piso de Ana")}
+        ${pageTitle("Historial")}
+        <div class="tabs-summary">
+          <span class="chip active">Todo</span>
+          <span class="chip">Gastos</span>
+          <span class="chip">Pagos</span>
+        </div>
+        <div class="card tight">
+          ${expenses.map(expenseRow).join("")}
+          <div class="expense" style="background:color-mix(in srgb, var(--accent) 7%, transparent);border-radius:10px;padding:10px;margin-top:6px">
+            <div class="body">
+              <strong>Pago</strong>
+              <div class="sub">Hace 3 días · Luis pagó a Ana</div>
+            </div>
+            <div class="amount">${euro(2500)}</div>
+          </div>
+        </div>
+        <p class="note">Un gasto y un pago son el mismo tipo de movimiento. Si eres el autor o el creador del grupo puedes editarlo o eliminarlo; los balances se recalculan.</p>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  "expense-new"() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Casa · Piso de Ana")}
+        ${pageTitle("Nuevo gasto")}
+        <div class="field">
+          <label for="amount">Importe</label>
+          <input id="amount" class="amount-input" value="62,40 €">
+        </div>
+        <div class="field">
+          <label for="desc">Descripción</label>
+          <input id="desc" value="Compra semanal">
+        </div>
+        <div class="field">
+          <label for="date">Fecha</label>
+          <input id="date" value="13 nov 2026">
+        </div>
+        <div class="field">
+          <label for="payer">Pagó</label>
+          <select id="payer"><option>Ana (tú)</option><option>Luis</option><option>Marta</option><option>Javi (ficticio)</option></select>
+        </div>
+        <div class="field">
+          <label for="cat">Categoría</label>
+          <select id="cat"><option>Casa</option><option>Comida</option><option>Suministros</option><option>Ocio</option></select>
+        </div>
+        <div class="field">
+          <label>Participan</label>
+          <div class="picks">
+            <button class="pick on"><span class="tick">✓</span> Ana</button>
+            <button class="pick on"><span class="tick">✓</span> Luis</button>
+            <button class="pick on"><span class="tick">✓</span> Marta</button>
+            <button class="pick"><span class="tick"></span> Javi</button>
+          </div>
+          <div class="picks-actions">
+            <button class="text-link">Todos</button>
+            <button class="text-link">Ninguno</button>
+          </div>
+          <div class="hint">3 de 4 personas · 20,80 € cada una</div>
+        </div>
+        <div class="field">
+          <label>Reparto</label>
+          <div class="segmented">
+            <button class="seg active">Igual</button>
+            <button class="seg">Importes exactos</button>
+          </div>
+        </div>
+        <div class="card tight" style="background:var(--surface-2)">
+          <div class="kv">
+            <dt>Total</dt><dd>62,40 €</dd>
+            <dt>Repartido</dt><dd>62,40 €</dd>
+            <dt>Diferencia</dt><dd style="color:var(--success)">0,00 €</dd>
+          </div>
+        </div>
+        <button class="btn accent">Guardar gasto</button>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  "expense-subset"() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Viaje a Lisboa")}
+        ${pageTitle("Nuevo gasto", "Viaje a Lisboa · 5 miembros")}
+        <div class="field">
+          <label for="amount2">Importe</label>
+          <input id="amount2" class="amount-input" value="13,50 €">
+        </div>
+        <div class="field">
+          <label for="desc2">Descripción</label>
+          <input id="desc2" value="Helados">
+        </div>
+        <div class="field">
+          <label for="payer2">Pagó</label>
+          <select id="payer2"><option>Marta</option><option>Ana (tú)</option><option>Luis</option><option>Rubén</option><option>Nerea</option></select>
+        </div>
+        <div class="field">
+          <label>Participan</label>
+          <div class="picks">
+            <button class="pick on"><span class="tick">✓</span> Ana</button>
+            <button class="pick on"><span class="tick">✓</span> Luis</button>
+            <button class="pick on"><span class="tick">✓</span> Marta</button>
+            <button class="pick"><span class="tick"></span> Rubén</button>
+            <button class="pick"><span class="tick"></span> Nerea</button>
+          </div>
+          <div class="picks-actions">
+            <button class="text-link">Todos</button>
+            <button class="text-link">Ninguno</button>
+          </div>
+          <div class="hint">3 de 5 personas · 4,50 € cada una</div>
+        </div>
+        <div class="field">
+          <label>Reparto</label>
+          <div class="segmented">
+            <button class="seg active">Igual</button>
+            <button class="seg">Importes exactos</button>
+          </div>
+        </div>
+        <div class="card tight" style="background:var(--surface-2)">
+          <div class="kv">
+            <dt>Total</dt><dd>13,50 €</dd>
+            <dt>Repartido</dt><dd>13,50 €</dd>
+            <dt>Diferencia</dt><dd style="color:var(--success)">0,00 €</dd>
+          </div>
+        </div>
+        <p class="note">Rubén y Nerea están en el grupo, pero no participan en este gasto: no se les reparte nada. Si Marta pagó los helados sin comerlos, también podría quedar fuera del reparto y se le debería el total.</p>
+        <button class="btn accent">Guardar gasto</button>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  "expense-exact"() {
+    const rows = [
+      ["Ana (tú)", "tú", "20,00"],
+      ["Luis", "", "10,00"],
+      ["Marta", "", "10,00"],
+      ["Javi (ficticio)", "", "8,00"]
+    ];
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Casa · Piso de Ana")}
+        ${pageTitle("Cena del sábado")}
+        <div class="card tight" style="background:var(--surface-2);margin-bottom:14px">
+          <div class="kv">
+            <dt>Total</dt><dd>48,00 €</dd>
+            <dt>Pagó</dt><dd>Marta</dd>
+            <dt>Fecha</dt><dd>8 nov 2026</dd>
+            <dt>Participan</dt><dd>4 de 4</dd>
+          </div>
+        </div>
+        <div class="field">
+          <label>Reparto</label>
+          <div class="segmented">
+            <button class="seg">Igual</button>
+            <button class="seg active">Importes exactos</button>
+          </div>
+        </div>
+        ${rows.map(([name, meta, value]) => `
+          <div class="split-row">
+            <div class="who">${name}<span>${meta || "&nbsp;"}</span></div>
+            <input value="${value} €">
+          </div>`).join("")}
+        <div class="split-total"><span>Repartido</span><strong class="ok">48,00 € de 48,00 €</strong></div>
+        <p class="note">Sin porcentajes ni pesos en la v1: o partes iguales, o un importe por persona.</p>
+        <button class="btn accent">Guardar gasto</button>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  "movement-detail"() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Casa · Piso de Ana")}
+        ${pageTitle("Compra semanal", "Gasto · 13 nov 2026")}
+        <div class="card" style="text-align:center">
+          <div class="metric" style="font-size:34px">${euro(6240)}</div>
+          <div class="sub" style="margin-top:6px">Pagó Ana · 3 de 4 participan</div>
+        </div>
+        <div class="card">
+          <div class="section-head" style="margin-top:0"><h2 class="section-title">Reparto</h2><span class="badge">Igual</span></div>
+          <div class="member"><div class="avatar sm">A</div><div class="who"><strong>Ana</strong><div class="sub">pagó · participa</div></div><div class="amount">${euro(2080)}</div></div>
+          <div class="member"><div class="avatar sm">L</div><div class="who"><strong>Luis</strong><div class="sub">participa</div></div><div class="amount">${euro(2080)}</div></div>
+          <div class="member"><div class="avatar sm">M</div><div class="who"><strong>Marta</strong><div class="sub">participa</div></div><div class="amount">${euro(2080)}</div></div>
+          <div class="member"><div class="avatar sm fict">J</div><div class="who"><strong>Javi</strong><div class="sub">no participa</div></div><div class="amount zero">${euro(0)}</div></div>
+          <div class="divider"></div>
+          <dl class="kv">
+            <dt>Categoría</dt><dd>Comida</dd>
+            <dt>Registró</dt><dd>Ana · hace 2 h</dd>
+          </dl>
+        </div>
+        <div class="alert info">Solo el autor del movimiento o quien creó el grupo puede editarlo o eliminarlo.</div>
+        <button class="btn ghost">Editar movimiento</button>
+        <button class="btn" style="background:var(--destructive);color:var(--destructive-foreground);margin-top:12px">Eliminar movimiento</button>
+        <p class="note">Un gasto y un pago son el mismo tipo de movimiento; solo cambia la dirección. Editar o eliminar recalcula los balances de todos.</p>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  "movement-delete"() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Casa · Piso de Ana")}
+        ${pageTitle("Compra semanal", "Gasto · 13 nov 2026")}
+        <div class="card" style="text-align:center">
+          <div class="metric" style="font-size:34px">${euro(6240)}</div>
+          <div class="sub" style="margin-top:6px">Pagó Ana · 3 de 4 participan</div>
+        </div>
+      </div>
+      <div class="sheet-backdrop"></div>
+      <div class="sheet" role="dialog" aria-label="Eliminar movimiento">
+        <div class="sheet-handle"></div>
+        <h3>¿Eliminar este movimiento?</h3>
+        <p>Desaparece del historial y de los balances de los 4 miembros. No se puede deshacer desde la app.</p>
+        <div class="alert warn">Si alguien ya te ha pagado por este gasto, el pago sigue ahí: los balances se recalculan, no se borran los dos.</div>
+        <button class="btn" style="background:var(--destructive);color:var(--destructive-foreground)">Sí, eliminar</button>
+        <button class="btn ghost" style="margin-top:12px">Cancelar</button>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  settle() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Casa · Piso de Ana")}
+        ${pageTitle("Liquidar")}
+        <div class="alert info">Con estos balances, <strong>2 pagos</strong> dejan el grupo en paz. Es el mínimo posible; no se puede hacer con uno.</div>
+        <div class="card">
+          <div class="member">
+            <div class="avatar sm">L</div>
+            <div class="who"><strong>Luis paga a Ana</strong><div class="sub">Saldo pendiente · EUR</div></div>
+            <div class="amount">${euro(2850)}</div>
+          </div>
+          <div class="member">
+            <div class="avatar sm fict">J</div>
+            <div class="who"><strong>Javi paga a Marta</strong><div class="sub">Javi es ficticio: no puede pagar todavía</div></div>
+            <div class="amount">${euro(1920)}</div>
+          </div>
+          <div class="divider"></div>
+          <div class="field" style="margin-bottom:0">
+            <label>Importe a liquidar</label>
+            <input value="28,50 €">
+            <div class="hint">Puedes liquidar una parte; el resto sigue pendiente.</div>
+          </div>
+        </div>
+        <button class="btn accent">Confirmar pago de 28,50 €</button>
+        <button class="btn ghost">Copiar resumen para el chat</button>
+        <p class="note">Solo puedes registrar pagos <strong>tuyos</strong>. El de Javi lo confirma quien le represente o se enlaza su cuenta.</p>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  invitations() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Gastos compartidos")}
+        ${pageTitle("Invitaciones")}
+        <div class="card">
+          <div class="widget-head">
+            <div class="avatar sm module" style="border-radius:10px">▤</div>
+            <div class="widget-title">Piso de Marta</div>
+            <span class="badge">OweNo</span>
+          </div>
+          <p class="note" style="margin-top:0">Marta te invita a su grupo de gastos compartidos. Hasta que aceptes no ves gastos ni balances.</p>
+          <dl class="kv" style="margin:12px 0 16px">
+            <dt>Miembros</dt><dd>4</dd>
+            <dt>Moneda</dt><dd>EUR</dd>
+            <dt>Invitó</dt><dd>Marta · hace 2 h</dd>
+          </dl>
+          <button class="btn accent">Aceptar invitación</button>
+          <button class="btn ghost">Rechazar</button>
+        </div>
+        <div class="card tight">
+          <div class="member">
+            <div class="avatar sm module" style="border-radius:10px">▤</div>
+            <div class="who"><strong>Viaje a Lisboa</strong><div class="sub">Aceptada · 3 miembros</div></div>
+            <span class="pill ok">Activa</span>
+          </div>
+        </div>
+        <p class="note">Si rechazas, no queda rastro del grupo en tu cuenta. Si aceptas, aparecerá en tu lista y podrás salir cuando quieras.</p>
+      </div>
+      ${tabbar("home")}`;
+  },
+
+  members() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Casa · Piso de Ana")}
+        ${pageTitle("Miembros")}
+        <div class="alert warn">Javi tiene <strong>19,20 €</strong> pendientes. Si le echas, la deuda sigue en el historial y solo tú la verás.</div>
+        <div class="card tight">
+          <div class="member">
+            <div class="avatar sm">A</div>
+            <div class="who"><strong>Ana · tú</strong><div class="sub">Creadora</div></div>
+            <span class="pill ok">Activa</span>
+          </div>
+          <div class="member">
+            <div class="avatar sm">L</div>
+            <div class="who"><strong>Luis</strong><div class="sub">Miembro</div></div>
+            <span class="pill ok">Activo</span>
+          </div>
+          <div class="member">
+            <div class="avatar sm">M</div>
+            <div class="who"><strong>Marta</strong><div class="sub">Miembro</div></div>
+            <span class="pill ok">Activa</span>
+          </div>
+          <div class="member">
+            <div class="avatar sm fict">J</div>
+            <div class="who"><strong>Javi</strong><div class="sub">Ficticio · sin cuenta</div></div>
+            <button class="text-link">Enlazar</button>
+          </div>
+          <div class="member">
+            <div class="avatar sm fict">R</div>
+            <div class="who"><strong>Rubén</strong><div class="sub">Invitado · pendiente de aceptar</div></div>
+            <span class="pill warn">Pendiente</span>
+          </div>
+        </div>
+        <div class="section-head"><h2 class="section-title">Acciones del creador</h2></div>
+        <div class="card tight">
+          <div class="member">
+            <div class="who"><strong>Invitar a alguien</strong><div class="sub">Por usuario activo de la instancia</div></div>
+            <button class="btn sm ghost" style="width:auto;padding:0 12px">Invitar</button>
+          </div>
+          <div class="member">
+            <div class="who"><strong>Echar a Rubén</strong><div class="sub">La invitación pendiente se cancela</div></div>
+            <button class="btn sm ghost" style="width:auto;padding:0 12px">Echar</button>
+          </div>
+          <div class="member">
+            <div class="who"><strong>Bloquear a alguien</strong><div class="sub">No podrá ser invitado de nuevo</div></div>
+            <button class="btn sm ghost" style="width:auto;padding:0 12px">Bloquear</button>
+          </div>
+        </div>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  leave() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Casa · Piso de Ana")}
+        ${pageTitle("Salir del grupo")}
+        <div class="alert warn">Tienes un saldo de <strong>28,50 €</strong> a tu favor. Para salir, primero hay que dejarlo en cero.</div>
+        <div class="card">
+          <p class="note" style="margin:0 0 18px">Puedes liquidar con quien te debe y salir después. Si sales, dejarás de ver los gastos, pero <strong>el historial no se borra</strong> y tus deudas siguen ahí.</p>
+          <button class="btn accent">Liquidar y salir</button>
+          <button class="btn ghost" disabled style="margin-top:12px">Salir sin liquidar</button>
+        </div>
+        <p class="note">Si el grupo te echara con saldo, la deuda seguiría en el historial y solo el creador la vería.</p>
+      </div>
+      ${tabbar("settings")}`;
+  },
+
+  "import-file"() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Importar de Splitwise")}
+        ${pageTitle("Elegir archivo", "Un CSV por grupo · solo el creador")}
+        <div class="steps"><i class="step current"></i><i class="step"></i><i class="step"></i><i class="step"></i></div>
+        <div class="card tight" style="background:var(--surface-2)">
+          <div class="kv">
+            <dt>Grupo destino</dt><dd>Casa · Piso de Ana</dd>
+            <dt>Formato</dt><dd>CSV por grupo</dd>
+            <dt>Quien puede</dt><dd>Solo la creadora</dd>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-head" style="margin-top:0"><h2 class="section-title">Cómo exportar de Splitwise</h2></div>
+          <ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:var(--foreground)">
+            <li>Abre <strong>splitwise.com en el navegador</strong>. La app móvil no ofrece esta opción.</li>
+            <li>Entra al <strong>grupo</strong>.</li>
+            <li>Toca el <strong>engranaje</strong> del grupo.</li>
+            <li>Elige <strong>«Export as spreadsheet»</strong> y descarga el CSV.</li>
+            <li>Vuelve aquí y elige el archivo.</li>
+          </ol>
+          <p class="note">Si lo haces desde el móvil, abre la web en el navegador: el archivo se descarga en el dispositivo. Un archivo por grupo; el CSV sale en el idioma de tu cuenta (aceptamos español e inglés).</p>
+        </div>
+        <div class="card" style="text-align:center;padding:22px 16px">
+          <div class="empty-icon" style="margin-bottom:10px">⇩</div>
+          <h3 style="margin:0 0 6px;font-size:15px">Elige el CSV del grupo</h3>
+          <button class="btn ghost" style="margin-top:10px">Elegir archivo</button>
+        </div>
+        <div class="alert warn">El archivo debe estar en <strong>una sola divisa</strong>. Si mezcla divisas, se rechaza entero.</div>
+        <p class="note">Se lee en el servidor: no se ejecuta nada del archivo y no se guardan adjuntos.</p>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  "import-preview"() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Importar de Splitwise")}
+        ${pageTitle("Preview")}
+        <div class="steps"><i class="step done"></i><i class="step current"></i><i class="step"></i><i class="step"></i></div>
+        <div class="card">
+          <div class="widget-head"><div class="widget-title">splitwise-casa.csv</div><span class="badge">622 filas</span></div>
+          <div class="metric-row">
+            <div class="metric-item"><div class="k">Gastos</div><div class="v">616</div></div>
+            <div class="metric-item"><div class="k">Pagos</div><div class="v">6</div></div>
+            <div class="metric-item"><div class="k">Divisa</div><div class="v">EUR</div></div>
+          </div>
+          <div class="divider"></div>
+          <div class="kv">
+            <dt>Errores</dt><dd style="color:var(--success)">0</dd>
+            <dt>Duplicados</dt><dd>0</dd>
+            <dt>Sin enlazar</dt><dd style="color:var(--warning)">1 identidad</dd>
+          </div>
+        </div>
+        <div class="section-head"><h2 class="section-title">Identidades del CSV</h2></div>
+        <div class="card tight">
+          <div class="member">
+            <div class="avatar sm">A</div>
+            <div class="who"><strong>Ana</strong><div class="sub">Enlazada por nombre · Ana</div></div>
+            <span class="pill ok">Auto</span>
+          </div>
+          <div class="member">
+            <div class="avatar sm">M</div>
+            <div class="who"><strong>Marta G.</strong><div class="sub">Enlazada por nombre · Marta</div></div>
+            <span class="pill ok">Auto</span>
+          </div>
+          <div class="member">
+            <div class="avatar sm fict">L</div>
+            <div class="who"><strong>Luis</strong><div class="sub">Dos usuarios con ese nombre</div></div>
+            <span class="pill warn">Elegir</span>
+          </div>
+        </div>
+        <div class="alert info">Los pagos se importan como <strong>liquidaciones</strong>. Si el archivo no los marca, entran como gastos: los balances son los mismos.</div>
+        <button class="btn accent">Continuar al mapeo</button>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  "import-map"() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Importar de Splitwise")}
+        ${pageTitle("Mapear identidades")}
+        <div class="steps"><i class="step done"></i><i class="step done"></i><i class="step current"></i><i class="step"></i></div>
+        <div class="card">
+          <div class="widget-head"><div class="widget-title">«Luis»</div><span class="badge">Sin enlazar</span></div>
+          <p class="note" style="margin-top:0">No hay una coincidencia única. Elige con qué usuario enlazarlo o créalo como ficticio.</p>
+          <div class="member">
+            <div class="avatar sm">L</div>
+            <div class="who"><strong>Luis Ferrer</strong><div class="sub">luis.f@… · activo</div></div>
+            <button class="text-link">Elegir</button>
+          </div>
+          <div class="member">
+            <div class="avatar sm">L</div>
+            <div class="who"><strong>Luis Gómez</strong><div class="sub">luis.g@… · activo</div></div>
+            <button class="text-link">Elegir</button>
+          </div>
+          <div class="member">
+            <div class="avatar sm fict">?</div>
+            <div class="who"><strong>Crear ficticio «Luis»</strong><div class="sub">Sin cuenta · marcador histórico</div></div>
+            <button class="text-link">Crear</button>
+          </div>
+        </div>
+        <div class="alert warn">Si enlazas a alguien que <strong>no es miembro</strong>, recibirá una invitación y verá su historial al aceptar.</div>
+        <p class="note">Dos nombres del CSV que acaben en el mismo usuario se fusionan en un solo miembro; el preview lo muestra antes de confirmar.</p>
+        <button class="btn accent">Importar 622 movimientos</button>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  "import-done"() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Importar de Splitwise")}
+        ${pageTitle("Resultado")}
+        <div class="steps"><i class="step done"></i><i class="step done"></i><i class="step done"></i><i class="step current"></i></div>
+        <div class="card accent-emerald">
+          <div class="widget-head"><div class="widget-icon">✓</div><div class="widget-title">Todo importado</div></div>
+          <div class="metric-row">
+            <div class="metric-item"><div class="k">Gastos</div><div class="v">616</div></div>
+            <div class="metric-item"><div class="k">Liquidaciones</div><div class="v">6</div></div>
+            <div class="metric-item"><div class="k">Saltados</div><div class="v">0</div></div>
+          </div>
+        </div>
+        <div class="card tight">
+          <div class="kv">
+            <dt>Miembros nuevos</dt><dd>1 ficticio</dd>
+            <dt>Invitaciones</dt><dd>1 · Luis Ferrer</dd>
+            <dt>Errores</dt><dd>0</dd>
+            <dt>Divisas</dt><dd>EUR</dd>
+          </div>
+        </div>
+        <button class="btn accent">Ver el grupo</button>
+        <button class="btn ghost">Volver a OweNo</button>
+        <p class="note">Si repites el mismo archivo, las 622 filas se detectan como duplicadas y no se importan salvo que lo confirmes.</p>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  "group-large"() {
+    return `
+      <div class="scroll has-nav">
+        ${moduleHead("Viaje a Lisboa · 2027")}
+        <div class="sub" style="margin:-6px 0 12px">15 miembros · EUR</div>
+        <div class="alert warn">Grupo grande: <strong>liquidación simplificada</strong>. El mínimo exacto se calcula hasta 12 personas; el tope lo configura el administrador.</div>
+        <div class="card">
+          <div class="section-head" style="margin-top:0"><h2 class="section-title">Balances</h2></div>
+          ${members.map(balanceRow).join("")}
+          <div class="list-row"><span class="who">+ 11 miembros más</span><span class="amount zero">…</span></div>
+        </div>
+        <div class="card accent-emerald">
+          <div class="widget-head"><div class="widget-icon">⇄</div><div class="widget-title">Liquidar</div><span class="badge">Simplificada</span></div>
+          <div class="list">
+            <div class="list-row"><span class="who">Luis paga a Ana</span><span class="amount">${euro(2850)}</span></div>
+            <div class="list-row"><span class="who">Javi paga a Marta</span><span class="amount">${euro(1920)}</span></div>
+            <div class="list-row"><span class="who">+ 12 pagos más</span><span class="amount zero">…</span></div>
+          </div>
+        </div>
+        <p class="note">Con 15 personas el cálculo exacto podría tardar segundos. El aviso desaparece si el administrador sube el tope.</p>
+      </div>
+      ${tabbar("modules")}`;
+  },
+
+  states() {
+    return `
+      <div class="scroll">
+        ${moduleHead("Estados")}
+        ${pageTitle("Estados")}
+        <div class="section-head" style="margin-top:0"><h2 class="section-title">Vacío</h2></div>
+        <div class="card">
+          <div class="empty">
+            <div class="empty-icon">▤</div>
+            <h3>Aún no hay grupos</h3>
+            <p>Crea uno para apuntar la compra, la luz o el viaje del verano.</p>
+          </div>
+          <button class="btn accent">Crear grupo</button>
+        </div>
+        <div class="section-head"><h2 class="section-title">Cargando</h2></div>
+        <div class="card" style="text-align:center;padding:24px">
+          <div class="spinner"></div>
+          <p class="note">Calculando balances…</p>
+        </div>
+        <div class="section-head"><h2 class="section-title">Error</h2></div>
+        <div class="card">
+          <div class="alert">No se pudo conectar con la instancia. Revisa la red y vuelve a intentarlo.</div>
+          <button class="btn ghost">Reintentar</button>
+        </div>
+        <div class="section-head"><h2 class="section-title">Sin conexión</h2></div>
+        <div class="card">
+          <div class="alert warn">Sin conexión. Los últimos datos se ven en modo lectura; no se pueden guardar gastos.</div>
+        </div>
+      </div>
+      ${tabbar("modules")}`;
+  }
+};
+
+/* ---------------------------- F2 · Panel ---------------------------- */
+
+const leafIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>`;
+const flameIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`;
+
+const panelNav = [
+  ["Inicio", [["Dashboard", "dashboard", true]]],
+  ["Usuarios", [["Miembros", "members"], ["Categorías", "categories"], ["Invitaciones", "invitations"]]],
+  ["Plataforma", [["Módulos", "catalog"], ["Claves API", "keys"]]],
+  ["Ajustes", [["Instancia", "settings"], ["Localización", "settings"], ["Seguridad", "settings"], ["Notificaciones", "settings"], ["Límites", "settings"]]],
+  ["Documentación", [["API", "docs"], ["Guía Firebase", "docs"]]]
+];
+
+function panelSide(activeNav) {
+  return `
+    <aside class="side">
+      ${panelNav.map(([group, items]) => `
+        <h2 class="nav-group">${group}</h2>
+        ${items.map(([label, key, exact]) => `
+          <div class="nav-item ${activeNav === key && (exact || key !== "dashboard") ? "active" : ""}">
+            <span class="ico">${exact ? "▤" : "•"}</span>${label}
+          </div>`).join("")}
+      `).join("")}
+      <div class="foot">Módulos dentro de Plataforma.<br>D9: sin sección «App».</div>
+    </aside>`;
+}
+
+function panelHead() {
+  return `
+    <header class="phead">
+      <div class="pbrand"><span class="dot">02</span><strong>027apps.ericrf.com</strong></div>
+      <div class="puser"><span class="pill muted">Admin</span><span class="avatar sm">A</span></div>
+    </header>`;
+}
+
+function moduleSubnav(active) {
+  const tabs = [["Resumen", "overview"], ["Grupos", "groups"], ["Importaciones", "imports"], ["Ajustes", "settings"]];
+  return `
+    <div class="crumbs"><span>Plataforma</span> / <span>Módulos</span> / <strong>OweNo</strong></div>
+    <div class="tabs-panel">
+      ${tabs.map(([label, key]) => `<button class="${active === key ? "active" : ""}">${label}</button>`).join("")}
+    </div>`;
+}
+
+const panelScreens = {
+  dashboard() {
+    return `
+      <div class="page-head">
+        <div><h1>Dashboard</h1><p>Estado de la instancia y widgets de los módulos activos.</p></div>
+      </div>
+      <div class="grid-3">
+        <div class="stat"><div class="k">Servicio</div><div class="v" style="font-size:18px;color:var(--success)">Todo listo</div><div class="d">Sin incidencias</div></div>
+        <div class="stat"><div class="k">Usuarios</div><div class="v">4</div><div class="d">3 activos</div></div>
+        <div class="stat"><div class="k">Módulos</div><div class="v">1</div><div class="d">OweNo activo</div></div>
+      </div>
+      <div class="section-head"><h2 class="section-title">Widgets de módulos</h2><span class="badge">surface: panel</span></div>
+      <div class="grid-2">
+        <div class="panel-card widget-panel">
+          <div class="widget-head">
+            <div class="module-logo sm">▤</div>
+            <div><a class="widget-link" href="#"><strong style="font-size:13px">OweNo</strong></a><div class="sub">Gastos compartidos</div></div>
+            <span class="pill ok" style="margin-left:auto">Activo</span>
+          </div>
+          <div class="metric">${euro(4770)}<small>pendiente</small></div>
+          <div class="metric-row">
+            <div class="metric-item"><div class="k">Grupos</div><div class="v">3</div></div>
+            <div class="metric-item"><div class="k">Gastos del mes</div><div class="v">${euro(128460)}</div></div>
+            <div class="metric-item"><div class="k">Con deuda</div><div class="v">2</div></div>
+          </div>
+          <div class="widget-foot"><a class="text-link" href="#" style="font-size:11px">Abrir el módulo →</a></div>
+        </div>
+        <div class="panel-card" style="border-style:dashed;display:grid;place-items:center;text-align:center">
+          <div>
+            <p style="margin:0 0 4px;font-size:12px;color:var(--muted-foreground)">Sin más widgets</p>
+            <p style="margin:0;font-size:11px;color:var(--muted-foreground)">Los módulos activos declaran sus widgets con <code>surface: panel</code>.</p>
+          </div>
+        </div>
+      </div>
+      <div class="panel-card" style="margin-top:12px">
+        <h2>Módulos</h2>
+        <p>Accesos rápidos a las páginas que aporta cada módulo activo.</p>
+        <table class="data">
+          <thead><tr><th>Módulo</th><th>Estado</th><th>Versión</th><th>Páginas</th></tr></thead>
+          <tbody>
+            <tr><td><strong>OweNo</strong></td><td><span class="pill ok">Activo</span></td><td>v1.0.0</td><td>Resumen · Grupos · Importaciones · Ajustes</td></tr>
+          </tbody>
+        </table>
+      </div>`;
+  },
+
+  catalog() {
+    return `
+      <div class="page-head">
+        <div><h1>Módulos</h1><p>Instala y activa módulos. Cada módulo trae sus tablas, permisos y páginas.</p></div>
+        <button class="btn-sm accent">Actualizar catálogo</button>
+      </div>
+      <div class="module-card" style="align-items:flex-start">
+        <div class="module-logo">▤</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px">
+            <strong style="font-size:15px">OweNo</strong><span class="pill ok">Activo</span><span class="pill muted">v1.0.0</span>
+          </div>
+          <p style="margin:6px 0 10px;font-size:12px;color:var(--muted-foreground);line-height:1.5">Gastos compartidos: grupos, reparto, balances y liquidación con el mínimo de pagos.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-sm accent">Abrir</button><button class="btn-sm">Ajustes</button><button class="btn-sm">Desactivar</button>
+          </div>
+        </div>
+      </div>
+      <div class="module-card" style="margin-top:12px;opacity:.75">
+        <div class="module-logo" style="background:var(--muted);color:var(--muted-foreground)">◫</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px"><strong style="font-size:15px">Recetario</strong><span class="pill muted">Próximamente</span></div>
+          <p style="margin:6px 0 0;font-size:12px;color:var(--muted-foreground)">No instalado.</p>
+        </div>
+      </div>`;
+  },
+
+  settings() {
+    return `
+      ${moduleSubnav("settings")}
+      <div class="page-head">
+        <div><h1>Ajustes del módulo</h1><p>Instalación, permisos por usuario y configuración. Lo que se guarda aquí se aplica a toda la instancia.</p></div>
+        <span class="pill ok">Activo · v1.0.0</span>
+      </div>
+      <div class="grid-2">
+        <div class="panel-card">
+          <h2>Configuración</h2>
+          <p>Tope de miembros con saldo para calcular la liquidación exacta.</p>
+          <div class="slider-row">
+            <span class="range-end" title="Ligero">${leafIcon}</span>
+            <input type="range" min="4" max="20" step="1" value="12" aria-label="Tope de liquidación exacta" oninput="document.getElementById('slider-value').textContent = this.value">
+            <span class="range-end hot" title="Sobrecarga">${flameIcon}</span>
+            <div class="slider-value" id="slider-value">12</div>
+          </div>
+          <div class="range-legend"><span>Ligero</span><span>Sobrecarga</span></div>
+          <p style="margin:10px 0 14px;font-size:11px;line-height:1.55;color:var(--muted-foreground)">
+            Hasta 12 personas el mínimo exacto es instantáneo. Por encima del valor elegido se usa
+            el reparto voraz y la app avisa; cerca de 20 el cálculo ya cuesta más.
+          </p>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn-sm accent">Guardar</button>
+            <span style="font-size:11px;color:var(--muted-foreground)">Valor actual: 12</span>
+          </div>
+        </div>
+        <div class="panel-card">
+          <h2>Permisos</h2>
+          <p>Quién puede usar el módulo. Las invitaciones a grupos se gestionan dentro del grupo.</p>
+          <table class="data">
+            <thead><tr><th>Usuario</th><th>Rol</th><th>Acceso</th></tr></thead>
+            <tbody>
+              <tr><td>Ana</td><td>Miembro</td><td><span class="pill ok">Concedido</span></td></tr>
+              <tr><td>Luis</td><td>Miembro</td><td><span class="pill ok">Concedido</span></td></tr>
+              <tr><td>Marta</td><td>Miembro</td><td><span class="pill ok">Concedido</span></td></tr>
+              <tr><td>Rubén</td><td>Miembro</td><td><span class="pill muted">Sin acceso</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel-card" style="margin-top:12px">
+        <h2>Datos de demo</h2>
+        <p>Usuarios de ejemplo, categorías y un grupo de prueba para capturas y aceptación. Se crean
+          con correos <code>@example.test</code> y no envían email. Solo aparece si la instancia
+          permite datos de demo.</p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-sm accent">Instalar datos de demo</button>
+          <button class="btn-sm">Borrar datos de demo</button>
+          <span class="pill warn">Solo fuera de producción</span>
+        </div>
+      </div>
+
+      <div class="panel-card" style="margin-top:12px">
+        <h2>Páginas del módulo</h2>
+        <p>Se sirven dentro de Plataforma → Módulos, con esta pestaña secundaria. No hay sección «App».</p>
+        <table class="data">
+          <thead><tr><th>Página</th><th>Ruta</th><th>Rol</th></tr></thead>
+          <tbody>
+            <tr><td>Resumen</td><td><code>/panel/modules/owe-no</code></td><td>admin</td></tr>
+            <tr><td>Grupos</td><td><code>/panel/modules/owe-no/groups</code></td><td>admin</td></tr>
+            <tr><td>Importaciones</td><td><code>/panel/modules/owe-no/imports</code></td><td>admin</td></tr>
+          </tbody>
+        </table>
+      </div>`;
+  },
+
+  overview() {
+    return `
+      ${moduleSubnav("overview")}
+      <div class="page-head">
+        <div><h1>Resumen</h1><p>Actividad del módulo en la instancia. Solo lectura: el dinero no se edita desde el panel.</p></div>
+        <span class="pill muted">Hace 2 min</span>
+      </div>
+      <div class="grid-3">
+        <div class="stat"><div class="k">Grupos</div><div class="v">3</div><div class="d">1 archivado</div></div>
+        <div class="stat"><div class="k">Gastos del mes</div><div class="v">${euro(128460)}</div><div class="d">+12 % vs. octubre</div></div>
+        <div class="stat"><div class="k">Deuda pendiente</div><div class="v">${euro(4770)}</div><div class="d">2 grupos con saldo</div></div>
+      </div>
+      <div class="grid-2" style="margin-top:12px">
+        <div class="panel-card">
+          <h2>Actividad reciente</h2><p>Últimos movimientos de todos los grupos.</p>
+          <table class="data">
+            <tbody>
+              <tr><td>Compra semanal</td><td>Casa · Piso de Ana</td><td class="num">${euro(6240)}</td></tr>
+              <tr><td>Liquidación</td><td>Viaje a Lisboa</td><td class="num">${euro(4500)}</td></tr>
+              <tr><td>Luz de octubre</td><td>Casa · Piso de Ana</td><td class="num">${euro(5800)}</td></tr>
+              <tr><td>Entradas museo</td><td>Viaje a Lisboa</td><td class="num">${euro(3600)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel-card">
+          <h2>Grupos con deuda pendiente</h2><p>Incluye a quien salió o fue echado con saldo.</p>
+          <table class="data">
+            <thead><tr><th>Grupo</th><th>Miembro</th><th class="num">Pendiente</th></tr></thead>
+            <tbody>
+              <tr><td>Casa · Piso de Ana</td><td>Javi <span class="pill muted">ficticio</span></td><td class="num">${euro(1920)}</td></tr>
+              <tr><td>Casa · Piso de Ana</td><td>Rubén <span class="pill warn">salió</span></td><td class="num">${euro(2850)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  },
+
+  groups() {
+    return `
+      ${moduleSubnav("groups")}
+      <div class="page-head">
+        <div><h1>Grupos</h1><p>Todos los grupos de la instancia. El admin puede crear, editar y archivar; no edita gastos de otros.</p></div>
+        <button class="btn-sm accent">Crear grupo</button>
+      </div>
+      <div class="toolbar-row">
+        <input class="input-sm" placeholder="Buscar grupo…">
+        <select class="input-sm"><option>Todos los estados</option><option>Activos</option><option>Archivados</option></select>
+        <select class="input-sm"><option>Todas las monedas</option><option>EUR</option></select>
+      </div>
+      <div class="panel-card">
+        <table class="data">
+          <thead><tr><th>Grupo</th><th>Miembros</th><th>Moneda</th><th>Creador</th><th class="num">Gastos del mes</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Casa · Piso de Ana</strong></td><td>4</td><td>EUR</td><td>Ana</td><td class="num">${euro(17040)}</td><td><span class="pill ok">Activo</span></td></tr>
+            <tr><td><strong>Viaje a Lisboa</strong></td><td>5</td><td>EUR</td><td>Marta</td><td class="num">${euro(8100)}</td><td><span class="pill ok">Activo</span></td></tr>
+            <tr><td><strong>Cena de Navidad</strong></td><td>6</td><td>EUR</td><td>Luis</td><td class="num">${euro(0)}</td><td><span class="pill muted">Archivado</span></td></tr>
+          </tbody>
+        </table>
+      </div>`;
+  },
+
+  group() {
+    return `
+      ${moduleSubnav("groups")}
+      <div class="page-head">
+        <div><h1>Casa · Piso de Ana</h1><p>4 miembros · EUR · creado por Ana · activo desde el 2 de septiembre.</p></div>
+        <div style="display:flex;gap:8px"><button class="btn-sm">Archivar</button><button class="btn-sm">Editar</button></div>
+      </div>
+      <div class="grid-3">
+        <div class="stat"><div class="k">Gastos del mes</div><div class="v">${euro(17040)}</div><div class="d">12 movimientos</div></div>
+        <div class="stat"><div class="k">Balance neto</div><div class="v">${euro(0)}</div><div class="d">Cuadra</div></div>
+        <div class="stat"><div class="k">Pendiente de quien salió</div><div class="v">${euro(4770)}</div><div class="d">Solo visible al admin</div></div>
+      </div>
+      <div class="tabs-panel" style="margin-top:18px"><button class="active">Gastos</button><button>Balances</button><button>Miembros</button></div>
+      <div class="panel-card">
+        <table class="data">
+          <thead><tr><th>Fecha</th><th>Descripción</th><th>Pagó</th><th>Participan</th><th>Reparto</th><th class="num">Importe</th></tr></thead>
+          <tbody>
+            <tr><td>13 nov</td><td>Compra semanal</td><td>Ana</td><td>3 de 4</td><td>Igual</td><td class="num">${euro(6240)}</td></tr>
+            <tr><td>12 nov</td><td>Luz de octubre</td><td>Luis</td><td>4 de 4</td><td>Igual</td><td class="num">${euro(5800)}</td></tr>
+            <tr><td>8 nov</td><td>Cena del sábado</td><td>Marta</td><td>4 de 4</td><td>Exacto</td><td class="num">${euro(4800)}</td></tr>
+            <tr><td>5 nov</td><td>Limpieza</td><td>Javi <span class="pill muted">ficticio</span></td><td>3 de 4</td><td>Igual</td><td class="num">${euro(3000)}</td></tr>
+          </tbody>
+        </table>
+      </div>`;
+  },
+
+  imports() {
+    return `
+      ${moduleSubnav("imports")}
+      <div class="page-head">
+        <div><h1>Importaciones</h1><p>Historial de los CSV traídos de Splitwise. El panel solo consulta; importar es cosa del creador, desde la app.</p></div>
+      </div>
+      <div class="panel-card">
+        <table class="data">
+          <thead><tr><th>Fecha</th><th>Grupo</th><th>Archivo</th><th class="num">Filas</th><th class="num">Saltadas</th><th>Resultado</th></tr></thead>
+          <tbody>
+            <tr><td>12 nov</td><td>Casa · Piso de Ana</td><td>splitwise-casa.csv</td><td class="num">622</td><td class="num">0</td><td><span class="pill ok">Completada</span></td></tr>
+            <tr><td>10 nov</td><td>Viaje a Lisboa</td><td>lisboa.csv</td><td class="num">0</td><td class="num">—</td><td><span class="pill warn">Rechazada: multi-divisa</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel-card" style="margin-top:12px">
+        <h2>Por qué no se importa desde aquí</h2>
+        <p>El CSV lo elige quien conoce el grupo y ve el preview en su móvil. El panel conserva el
+          historial y el enlace manual de un miembro ficticio con una cuenta.</p>
+      </div>`;
+  }
+};
+
+function panelFrame(content, path, activeNav) {
+  return `
+    <div class="browser">
+      <div class="browser-bar">
+        <div class="lights"><i></i><i></i><i></i></div>
+        <div class="url">🔒 027apps.ericrf.com${path}</div>
+      </div>
+      <div class="browser-body">
+        ${panelSide(activeNav)}
+        <div class="pcol">
+          ${panelHead()}
+          <div class="content">${content}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ---------------------------- Render ---------------------------- */
+
+function mobileFrame(content) {
+  return `
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="pill"></span><span>▮▮▮ 100 %</span></div>
+      <div class="app">${content}</div>
+    </div>`;
+}
+
+function fillScreenSelect() {
+  const select = document.getElementById("screen");
+  const list = state.surface === "mobile" ? MOBILE_SCREENS : PANEL_SCREENS;
+  select.innerHTML = list.map(([id, label]) => `<option value="${id}">${label}</option>`).join("");
+  if (!list.some(([id]) => id === state.screen)) state.screen = list[0][0];
+  select.value = state.screen;
+}
+
+function render() {
+  const stage = document.getElementById("stage");
+  document.documentElement.dataset.theme = state.theme;
+  stage.className = state.surface === "panel" ? "stage panel" : "stage";
+  if (state.surface === "mobile") {
+    const fn = screens[state.screen] || screens.home;
+    stage.innerHTML = mobileFrame(fn());
+  } else {
+    const fn = panelScreens[state.screen] || panelScreens.dashboard;
+    const paths = {
+      dashboard: "/panel", catalog: "/panel/modules", settings: "/panel/modules/owe-no/settings",
+      overview: "/panel/modules/owe-no", groups: "/panel/modules/owe-no/groups",
+      group: "/panel/modules/owe-no/groups?id=casa", imports: "/panel/modules/owe-no/imports"
+    };
+    const nav = state.screen === "dashboard" ? "dashboard" : "catalog";
+    stage.innerHTML = panelFrame(fn(), paths[state.screen] || "/panel", nav);
+  }
+  bindGoLinks();
+}
+
+function bindGoLinks() {
+  document.querySelectorAll("[data-go]").forEach((el) => {
+    el.addEventListener("click", () => {
+      state.screen = el.dataset.go;
+      if (state.surface === "panel" && PANEL_SCREENS.some(([id]) => id === state.screen)) fillScreenSelect();
+      render();
+    });
+  });
+}
+
+document.getElementById("surface").addEventListener("change", (e) => {
+  state.surface = e.target.value;
+  state.screen = state.surface === "mobile" ? "home" : "dashboard";
+  fillScreenSelect();
+  render();
+});
+document.getElementById("screen").addEventListener("change", (e) => {
+  state.screen = e.target.value;
+  render();
+});
+document.getElementById("theme").addEventListener("change", (e) => {
+  state.theme = e.target.value;
+  render();
+});
+
+document.getElementById("surface").value = state.surface;
+document.getElementById("theme").value = state.theme;
+fillScreenSelect();
+render();
+</script>
+</body>
+</html>

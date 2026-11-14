@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const pathname = { current: "/members" };
+const pathname = { current: "/panel/members" };
 
 vi.mock("next/navigation", () => ({
   usePathname: () => pathname.current,
@@ -11,17 +11,17 @@ import { PanelNav } from "./panel-nav";
 
 const ALL_HREFS = [
   "/panel",
-  "/members",
-  "/categories",
-  "/invitations",
-  "/modules",
-  "/keys",
-  "/settings/instance",
-  "/settings/localization",
-  "/settings/security",
-  "/settings/notifications",
-  "/settings/rate-limits",
-  "/docs/api",
+  "/panel/members",
+  "/panel/categories",
+  "/panel/invitations",
+  "/panel/modules",
+  "/panel/keys",
+  "/panel/settings/instance",
+  "/panel/settings/localization",
+  "/panel/settings/security",
+  "/panel/settings/notifications",
+  "/panel/settings/rate-limits",
+  "/panel/docs/api",
   "/help/firebase",
 ];
 
@@ -37,7 +37,7 @@ function currentHrefs(html: string): string[] {
 }
 
 beforeEach(() => {
-  pathname.current = "/members";
+  pathname.current = "/panel/members";
 });
 
 describe("PanelNav", () => {
@@ -60,36 +60,36 @@ describe("PanelNav", () => {
   });
 
   it("drops the Settings parent node, its expansion state and the indented children", () => {
-    pathname.current = "/settings/instance";
+    pathname.current = "/panel/settings/instance";
     const html = renderToStaticMarkup(<PanelNav role="super_admin" messages={{}} />);
 
-    expect(html).not.toContain('href="/settings"');
+    expect(html).not.toContain('href="/panel/settings"');
     expect(html).not.toContain("aria-expanded");
     expect(html).not.toContain("pl-6");
     for (const section of ["instance", "localization", "security", "notifications", "rate-limits"]) {
-      expect(html).toContain(`href="/settings/${section}"`);
+      expect(html).toContain(`href="/panel/settings/${section}"`);
     }
   });
 
   it("marks a single active destination with aria-current and the accent bar", () => {
     const html = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
 
-    expect(currentHrefs(html)).toEqual(["/members"]);
+    expect(currentHrefs(html)).toEqual(["/panel/members"]);
     expect(html).toContain("border-accent bg-primary/10 font-semibold text-foreground");
     expect(html).toContain("min-h-11");
   });
 
   it("matches nested routes by prefix", () => {
-    pathname.current = "/members/u-1";
+    pathname.current = "/panel/members/u-1";
     const nested = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
-    expect(currentHrefs(nested)).toEqual(["/members"]);
+    expect(currentHrefs(nested)).toEqual(["/panel/members"]);
 
     pathname.current = "/panel";
     const home = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
     expect(currentHrefs(home)).toEqual(["/panel"]);
   });
 
-  it("does not mark /members when a sibling route merely shares its prefix", () => {
+  it("does not mark /panel/members when a sibling route merely shares its prefix", () => {
     pathname.current = "/members-archive";
     const html = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
 
@@ -97,39 +97,61 @@ describe("PanelNav", () => {
   });
 
   it("marks the active settings section on its own", () => {
-    pathname.current = "/settings/security";
+    pathname.current = "/panel/settings/security";
     const html = renderToStaticMarkup(<PanelNav role="super_admin" messages={{}} />);
 
-    expect(currentHrefs(html)).toEqual(["/settings/security"]);
+    expect(currentHrefs(html)).toEqual(["/panel/settings/security"]);
   });
 
-  it("marks the first visible settings section while /settings redirects", () => {
-    pathname.current = "/settings";
+  it("marks the first visible settings section while /panel/settings redirects", () => {
+    pathname.current = "/panel/settings";
     const html = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
 
-    expect(currentHrefs(html)).toEqual(["/settings/instance"]);
+    expect(currentHrefs(html)).toEqual(["/panel/settings/instance"]);
+  });
+
+  it("gives each active module a row with its brand icon (D27)", () => {
+    pathname.current = "/panel/owe-no/groups";
+    const html = renderToStaticMarkup(
+      <PanelNav
+        role="admin"
+        messages={{}}
+        modules={[{ key: "owe-no", name: "OweNo", color: "teal" }]}
+      />,
+    );
+
+    expect(html).toContain('href="/panel/owe-no"');
+    expect(html).toContain("OweNo");
+    expect(html).toContain('aria-current="page"');
+    // The brand glyph is the module icon endpoint, not a panel glyph.
+    expect(html).toContain("url(/panel/modules/owe-no/icon)");
+  });
+
+  it("has no module rows when nothing qualifies", () => {
+    const html = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
+    expect(html).not.toContain('href="/panel/owe-no"');
   });
 
   it("hides API keys from an admin and shows them to a super_admin", () => {
     const admin = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
     const superAdmin = renderToStaticMarkup(<PanelNav role="super_admin" messages={{}} />);
 
-    expect(admin).not.toContain('href="/keys"');
+    expect(admin).not.toContain('href="/panel/keys"');
     expect(admin).not.toContain(">API keys</span>");
-    expect(admin).toContain('href="/modules"');
-    expect(superAdmin).toContain('href="/keys"');
+    expect(admin).toContain('href="/panel/modules"');
+    expect(superAdmin).toContain('href="/panel/keys"');
   });
 
   it("hides security from an admin, both in the sidebar and the drawer", () => {
-    pathname.current = "/settings/instance";
+    pathname.current = "/panel/settings/instance";
     const sidebar = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
     const drawer = renderToStaticMarkup(<PanelNav role="admin" messages={{}} variant="drawer" />);
 
     for (const html of [sidebar, drawer]) {
-      expect(html).toContain('href="/settings/instance"');
-      expect(html).not.toContain('href="/settings/security"');
+      expect(html).toContain('href="/panel/settings/instance"');
+      expect(html).not.toContain('href="/panel/settings/security"');
       expect(html).not.toContain(">Security</span>");
-      expect((html.match(/href="\/settings\/[^"]+"/g) ?? []).length).toBe(4);
+      expect((html.match(/href="\/panel\/settings\/[^"]+"/g) ?? []).length).toBe(4);
     }
   });
 
@@ -147,16 +169,16 @@ describe("PanelNav", () => {
   });
 
   it("keeps aria-current on internal destinations only", () => {
-    pathname.current = "/docs/api";
+    pathname.current = "/panel/docs/api";
     const html = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
     const external = html.match(/<a [^>]*href="\/help\/firebase"[^>]*>/)?.[0] ?? "";
 
-    expect(currentHrefs(html)).toEqual(["/docs/api"]);
+    expect(currentHrefs(html)).toEqual(["/panel/docs/api"]);
     expect(external).not.toContain("aria-current");
   });
 
   it("gives drawer rows more height and separates groups without changing labels", () => {
-    pathname.current = "/settings/instance";
+    pathname.current = "/panel/settings/instance";
     const sidebar = renderToStaticMarkup(<PanelNav role="admin" messages={{}} variant="sidebar" />);
     const drawer = renderToStaticMarkup(<PanelNav role="admin" messages={{}} variant="drawer" />);
 
@@ -174,12 +196,12 @@ describe("PanelNav", () => {
     ]) {
       expect(drawer).toContain(label);
     }
-    expect(drawer).toContain('href="/settings/instance"');
+    expect(drawer).toContain('href="/panel/settings/instance"');
     expect(drawer).toContain('href="/help/firebase"');
   });
 
   it("translates group labels, destinations, sections and the navigation name", () => {
-    pathname.current = "/settings/instance";
+    pathname.current = "/panel/settings/instance";
     const html = renderToStaticMarkup(
       <PanelNav
         role="admin"

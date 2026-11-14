@@ -14,7 +14,7 @@ describe("CategoryModules", () => {
         categoryId="c1"
         assigned={[]}
         available={[]}
-        retryHref="/categories/c1"
+        retryHref="/panel/categories/c1"
         messages={{}}
       />,
     );

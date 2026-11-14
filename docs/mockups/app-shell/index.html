@@ -1,0 +1,1085 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>027Apps · Mockup del esqueleto de la app</title>
+  <style>
+    /* Tokens de identidad D. Espejo de apps/admin/tokens.json; no son colores libres. */
+    :root {
+      --background: #F6F7F8;
+      --surface: #FFFFFF;
+      --surface-2: #F6F7F8;
+      --muted: #ECEEF0;
+      --muted-foreground: #5B6472;
+      --foreground: #17191C;
+      --primary: #17191C;
+      --primary-foreground: #FFFFFF;
+      --accent: #09795F;
+      --accent-foreground: #FFFFFF;
+      --brand: #0F9B7D;
+      --border: #E3E5E8;
+      --destructive: #BE123C;
+      --destructive-foreground: #FFFFFF;
+      --destructive-subtle: rgba(190, 18, 60, .08);
+      --success: #15803D;
+      --warning: #B93815;
+      --stage: #E7EAEE;
+      --shadow: 0 18px 50px rgba(23, 25, 28, .14);
+      --card-radius: 16px;
+      --control-radius: 12px;
+    }
+    [data-theme="dark"] {
+      --background: #08090A;
+      --surface: #0E0F11;
+      --surface-2: #141517;
+      --muted: #1A1B1E;
+      --muted-foreground: #8A8F98;
+      --foreground: #F7F8F8;
+      --primary: #F7F8F8;
+      --primary-foreground: #08090A;
+      --accent: #1CC29F;
+      --accent-foreground: #05231C;
+      --brand: #1CC29F;
+      --border: rgba(255, 255, 255, .09);
+      --destructive: #FB7185;
+      --destructive-foreground: #2A0A10;
+      --destructive-subtle: rgba(251, 113, 133, .12);
+      --success: #4ADE80;
+      --warning: #FF8A5C;
+      --stage: #050607;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .55);
+    }
+
+    .accent-teal { --module-accent: #09795F; --module-contrast: #FFFFFF; }
+    .accent-emerald { --module-accent: #047857; --module-contrast: #FFFFFF; }
+    .accent-indigo { --module-accent: #4F46E5; --module-contrast: #FFFFFF; }
+    .accent-amber { --module-accent: #B45309; --module-contrast: #FFFFFF; }
+    .accent-rose { --module-accent: #BE123C; --module-contrast: #FFFFFF; }
+    [data-theme="dark"] .accent-teal { --module-accent: #1CC29F; --module-contrast: #08090A; }
+    [data-theme="dark"] .accent-emerald { --module-accent: #34D399; --module-contrast: #08090A; }
+    [data-theme="dark"] .accent-indigo { --module-accent: #818CF8; --module-contrast: #08090A; }
+    [data-theme="dark"] .accent-amber { --module-accent: #FBBF24; --module-contrast: #08090A; }
+    [data-theme="dark"] .accent-rose { --module-accent: #FB7185; --module-contrast: #08090A; }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--stage);
+      color: var(--foreground);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-feature-settings: "cv11";
+      min-height: 100vh;
+    }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 14px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .toolbar strong { display: block; font-size: 14px; }
+    .toolbar .muted { display: block; font-size: 12px; color: var(--muted-foreground); margin-top: 2px; }
+    .controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted-foreground);
+    }
+    .controls select {
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--foreground);
+      font-size: 12px;
+    }
+
+    .stage {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 406px));
+      justify-content: center;
+      align-items: start;
+      gap: 44px;
+      padding: 32px 20px 56px;
+    }
+    .variant-head { text-align: center; margin-bottom: 16px; }
+    .variant-head h1 { margin: 0 0 4px; font-size: 16px; }
+    .chosen {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: var(--accent);
+      color: var(--accent-foreground);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+    .variant-head p { margin: 0; font-size: 12px; color: var(--muted-foreground); }
+
+    .phone {
+      width: 406px;
+      height: 860px;
+      border: 8px solid #15171B;
+      border-radius: 38px;
+      background: var(--background);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+    .status {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted-foreground);
+      background: var(--background);
+      position: relative;
+      z-index: 2;
+    }
+    .status .pill {
+      position: absolute;
+      left: 50%;
+      top: 6px;
+      transform: translateX(-50%);
+      width: 78px;
+      height: 16px;
+      border-radius: 999px;
+      background: #15171B;
+    }
+    .app {
+      height: calc(100% - 28px);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      background: var(--background);
+    }
+    .scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 18px 24px;
+      scrollbar-width: none;
+    }
+    .scroll::-webkit-scrollbar { display: none; }
+    .scroll.has-nav { padding-bottom: 96px; }
+
+    .screen-pad { padding-top: 12px; }
+    .brand-lockup { display: flex; align-items: center; gap: 10px; margin: 8px 0 26px; }
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: var(--accent);
+      color: var(--accent-foreground);
+      display: grid;
+      place-items: center;
+    }
+    .brand-lockup strong { font-size: 17px; letter-spacing: -.01em; }
+    .brand-lockup span { display: block; font-size: 11px; color: var(--muted-foreground); margin-top: 1px; }
+
+    .auth-title { margin: 0 0 8px; font-size: 28px; line-height: 1.08; letter-spacing: -.025em; }
+    .auth-lead { margin: 0 0 24px; font-size: 14px; line-height: 1.55; color: var(--muted-foreground); }
+    .auth-lead strong { color: var(--foreground); }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 700; color: var(--muted-foreground); }
+    .field input {
+      width: 100%;
+      height: 48px;
+      padding: 0 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--control-radius);
+      background: var(--surface);
+      color: var(--foreground);
+      font-size: 15px;
+      outline: none;
+    }
+    .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+
+    .btn {
+      width: 100%;
+      height: 48px;
+      border: 0;
+      border-radius: var(--control-radius);
+      background: var(--primary);
+      color: var(--primary-foreground);
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .btn.accent { background: var(--accent); color: var(--accent-foreground); }
+    .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--foreground); }
+    .btn + .btn { margin-top: 10px; }
+
+    .text-link {
+      display: inline-block;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      background: none;
+      border: 0;
+      padding: 0;
+    }
+    .text-link:hover { text-decoration: underline; }
+    .note { margin: 16px 0 0; font-size: 12px; line-height: 1.55; color: var(--muted-foreground); }
+    .note strong { color: var(--foreground); }
+    .spinner {
+      width: 28px;
+      height: 28px;
+      margin: 18px auto 0;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .alert {
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--destructive-subtle);
+      color: var(--destructive);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .instance-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--control-radius);
+      background: var(--surface);
+    }
+    .instance-row .host { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .instance-row .sub { font-size: 11px; color: var(--muted-foreground); margin-top: 2px; }
+
+    .topbar { display: flex; align-items: center; gap: 12px; padding: 8px 0 12px; }
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--accent-foreground);
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      font-weight: 800;
+      flex: none;
+    }
+    .hello { font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+    .sub { font-size: 12px; color: var(--muted-foreground); margin-top: 1px; }
+    .spacer { flex: 1; }
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      color: var(--foreground);
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+    .icon-btn:hover { background: var(--muted); }
+
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 18px 0 10px; }
+    .section-title { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+    .section-link { font-size: 12px; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 0; }
+
+    .widget {
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      background: var(--surface);
+    }
+    .widget.accent-emerald {
+      background: color-mix(in srgb, var(--module-accent) 6%, var(--surface));
+      border-color: color-mix(in srgb, var(--module-accent) 22%, var(--border));
+    }
+    .widget.accent-emerald .widget-icon {
+      background: color-mix(in srgb, var(--module-accent) 14%, var(--surface));
+      color: var(--module-accent);
+    }
+    .widget.accent-emerald .text-link { color: var(--module-accent); }
+    .widget-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .widget-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: var(--muted);
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      flex: none;
+    }
+    .widget-title { font-size: 15px; font-weight: 800; }
+    .badge {
+      margin-left: auto;
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: var(--muted);
+      color: var(--muted-foreground);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .metric { font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -.03em; }
+    .metric small { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--muted-foreground); }
+    .metric-row { display: flex; gap: 18px; margin-top: 12px; }
+    .metric-item { flex: 1; }
+    .metric-item .k { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-foreground); }
+    .metric-item .v { margin-top: 2px; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .list { margin-top: 10px; }
+    .list-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); font-size: 13px; }
+    .list-row:first-child { border-top: 0; }
+    .list-row .who { color: var(--muted-foreground); }
+    .list-row .amount { font-weight: 800; font-variant-numeric: tabular-nums; }
+    .amount.pos { color: var(--success); }
+    .amount.neg { color: var(--warning); }
+    .widget-foot { margin-top: 12px; }
+
+    .empty { text-align: center; padding: 54px 10px 30px; }
+    .empty-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 14px;
+      border-radius: 50%;
+      background: var(--muted);
+      color: var(--muted-foreground);
+      display: grid;
+      place-items: center;
+    }
+    .empty h3 { margin: 0 0 6px; font-size: 16px; }
+    .empty p { max-width: 260px; margin: 0 auto; font-size: 13px; line-height: 1.55; color: var(--muted-foreground); }
+
+    .tabs {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 68px;
+      padding: 6px 8px 8px;
+      display: flex;
+      gap: 4px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      z-index: 10;
+    }
+    .tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted-foreground);
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .tab.active { color: var(--accent); }
+    .tab:hover { background: var(--muted); }
+
+    .fab {
+      position: absolute;
+      right: 18px;
+      bottom: 82px;
+      width: 54px;
+      height: 54px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--accent-foreground);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 12px 26px color-mix(in srgb, var(--accent) 38%, transparent);
+      z-index: 12;
+    }
+
+    .sheet-backdrop { position: absolute; inset: 0; background: rgba(8, 9, 10, .45); z-index: 30; }
+    .sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 31;
+      padding: 12px 20px 26px;
+      border-top: 1px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      background: var(--surface);
+    }
+    .sheet-handle { width: 40px; height: 4px; margin: 0 auto 16px; border-radius: 999px; background: var(--border); }
+    .sheet h3 { margin: 0 0 4px; font-size: 18px; }
+    .sheet p { margin: 0 0 14px; font-size: 13px; color: var(--muted-foreground); }
+    .sheet-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+      border-top: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .sheet-row:first-of-type { border-top: 0; }
+    .sheet-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--muted);
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      flex: none;
+    }
+    .sheet-row strong { display: block; font-size: 14px; }
+    .sheet-row span { display: block; margin-top: 1px; font-size: 12px; color: var(--muted-foreground); }
+    .sheet-cancel {
+      width: 100%;
+      height: 44px;
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: transparent;
+      color: var(--foreground);
+      font-weight: 700;
+    }
+
+    .settings-group {
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .profile { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+    .profile .avatar { width: 44px; height: 44px; }
+    .profile strong { display: block; font-size: 15px; }
+    .profile span { display: block; font-size: 12px; color: var(--muted-foreground); margin-top: 1px; }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-top: 1px solid var(--border); }
+    .setting-row:first-child { border-top: 0; }
+    .setting-label { font-size: 14px; font-weight: 600; }
+    .setting-sub { margin-top: 2px; font-size: 11px; color: var(--muted-foreground); }
+    .setting-value { font-size: 13px; color: var(--muted-foreground); }
+    .setting-row .chevron { color: var(--muted-foreground); }
+    .setting-danger { color: var(--destructive); font-weight: 700; }
+    .inline-select {
+      height: 30px;
+      padding: 0 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--foreground);
+      font-size: 12px;
+    }
+
+    .segmented { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--muted); }
+    .seg {
+      flex: 1;
+      padding: 7px 0;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted-foreground);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .seg.active { background: var(--surface); color: var(--foreground); box-shadow: 0 1px 3px rgba(0, 0, 0, .08); }
+
+    .module-layout { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 14px; }
+    .module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .module-grid, .module-list { --module-accent: var(--accent); }
+    .module-tile, .module-row, .module-feature {
+      color: var(--foreground);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      text-align: left;
+    }
+    .module-tile {
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      border-radius: 18px;
+    }
+    .module-logo {
+      width: 56px;
+      height: 56px;
+      margin-bottom: 14px;
+      border-radius: 16px;
+      background: var(--module-accent);
+      color: var(--module-contrast);
+      display: grid;
+      place-items: center;
+      flex: none;
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-contrast) 16%, transparent);
+    }
+    .module-name { font-size: 15px; font-weight: 800; }
+    .module-sub { margin-top: 2px; font-size: 12px; color: var(--muted-foreground); }
+    .module-list { display: flex; flex-direction: column; gap: 10px; }
+    .module-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 16px;
+    }
+    .module-row .module-logo { width: 52px; height: 52px; margin: 0; border-radius: 14px; }
+    .module-text { flex: 1; }
+    .module-row .chevron { color: var(--muted-foreground); }
+    .module-tile.accent-card, .module-row.accent-card, .module-feature.accent-card {
+      background: color-mix(in srgb, var(--module-accent) 6%, var(--surface));
+      border-color: color-mix(in srgb, var(--module-accent) 22%, var(--border));
+    }
+    .module-features { display: flex; flex-direction: column; gap: 10px; }
+    .module-feature {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--surface);
+      text-align: left;
+    }
+    .module-feature .module-logo { width: 64px; height: 64px; margin: 0; border-radius: 18px; }
+    .module-feature .module-name { font-size: 17px; }
+    .module-feature .module-sub { font-size: 12px; }
+    .module-feature .chevron { color: var(--muted-foreground); margin-left: auto; }
+
+    .placeholder {
+      padding: 20px;
+      border: 1px dashed var(--border);
+      border-radius: var(--card-radius);
+      background: var(--surface);
+      text-align: center;
+    }
+    .placeholder h3 { margin: 0 0 6px; font-size: 16px; }
+    .placeholder p { margin: 0 auto; max-width: 280px; font-size: 13px; line-height: 1.55; color: var(--muted-foreground); }
+
+    .topbar-title { font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
+    .muted { color: var(--muted-foreground); }
+    .divider { height: 1px; margin: 18px 0; background: var(--border); }
+
+    .notes {
+      max-width: 900px;
+      margin: 0 auto 60px;
+      padding: 0 20px;
+      font-size: 12px;
+      line-height: 1.65;
+      color: var(--muted-foreground);
+    }
+    .notes h2 { margin: 0 0 8px; font-size: 14px; color: var(--foreground); }
+    .notes strong { color: var(--foreground); }
+    .notes ul { margin: 6px 0 0; padding-left: 18px; }
+
+    @media (max-width: 900px) {
+      .stage { grid-template-columns: 1fr; gap: 30px; }
+      .phone { width: min(406px, 100%); margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <div>
+      <strong>027Apps · Mockup del esqueleto</strong>
+      <span class="muted">Dos variantes · datos de demo · claro/oscuro</span>
+    </div>
+    <div class="controls">
+      <label>Pantalla
+        <select id="screen">
+          <option value="splash">Arranque (instancia por defecto)</option>
+          <option value="login">Login</option>
+          <option value="invite">Invitación (deep link)</option>
+          <option value="home" selected>Inicio</option>
+          <option value="notifications">Notificaciones</option>
+          <option value="settings">Ajustes</option>
+          <option value="instance">Cambiar instancia</option>
+          <option value="add">Añadir (FAB)</option>
+          <option value="module">OweNo</option>
+          <option value="modules">Módulos</option>
+        </select>
+      </label>
+      <label>Tema
+        <select id="theme">
+          <option value="system" selected>Sistema</option>
+          <option value="light">Claro</option>
+          <option value="dark">Oscuro</option>
+        </select>
+      </label>
+      <label>Módulos
+        <select id="layout">
+          <option value="grid" selected>Cuadrícula</option>
+          <option value="list">Lista</option>
+          <option value="feature">Destacado</option>
+        </select>
+      </label>
+      <label>Acento
+        <select id="accent">
+          <option value="card" selected>Tarjeta</option>
+          <option value="icon">Icono</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="variant">
+      <div class="variant-head">
+        <h1>Variante A · OweNo primero</h1>
+        <p>Inicio · OweNo · Ajustes</p>
+      </div>
+      <div class="phone" id="phone-a"></div>
+    </section>
+    <section class="variant">
+      <div class="variant-head">
+        <h1>Variante B · Lanzador de módulos <span class="chosen">Elegida</span></h1>
+        <p>Inicio · Módulos · Ajustes</p>
+      </div>
+      <div class="phone" id="phone-b"></div>
+    </section>
+  </main>
+
+  <footer class="notes">
+    <h2>Qué estás viendo</h2>
+    <p>Es el <strong>esqueleto base</strong>, no OweNo. El dashboard incrusta un <strong>widget de demo</strong> para enseñar el host; el widget real de OweNo llega en el mockup F1. La campana está en estado vacío porque FCM sigue bloqueado. El FAB abre la hoja de «añadir»; OweNo se conecta en la tarea 03. La pantalla de invitación es el destino del deep link: muestra la instancia, canjea el token y aplica el idioma inicial después del alta.</p>
+    <ul>
+      <li><strong>Variante A:</strong> OweNo es pestaña principal. Escala mal si mañana hay muchos módulos; el Inicio enlaza «Ver todos los módulos».</li>
+      <li><strong>Variante B:</strong> «Módulos» es el lanzador; OweNo se abre dentro como un módulo más. Escala mejor con muchos módulos.</li>
+      <li>Ambas comparten login, dashboard, ajustes, idioma, tema, campana y FAB. No hay selector global de grupo: los grupos son de cada módulo.</li>
+    </ul>
+  </footer>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const state = {
+      screen: params.get('screen') || 'home',
+      theme: params.get('theme') || 'system',
+      instanceFrom: 'settings',
+      moduleLayout: params.get('layout') || 'grid',
+      moduleAccent: params.get('accent') || 'card'
+    };
+
+    const icons = {
+      heart: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>',
+      home: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+      wallet: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11"/><path d="M16 12h4v4h-4a2 2 0 0 1 0-4Z"/></svg>',
+      grid: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+      gear: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.1 2.1-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-3v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-2.1-2.1.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3v-3h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.1-2.1.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h3v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.1 2.1-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1v3h-.1a1.7 1.7 0 0 0-1.6 1Z"/></svg>',
+      bell: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
+      plus: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+      back: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+      chevron: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+      user: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+      chart: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+      lock: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
+      globe: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>',
+      moon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>',
+      logout: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>',
+      calendar: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>',
+      check: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>'
+    };
+
+    function svg(name, size = 20) {
+      const raw = icons[name] || icons.grid;
+      return raw.replace('width="22"', `width="${size}"`).replace('height="22"', `height="${size}"`);
+    }
+
+    // Logos de módulo: marcas monocromas y gruesas, no iconos de línea del DS.
+    // El logo real vendrá de branding.icon en el manifest de cada módulo.
+    const moduleLogos = {
+      oweno: '<svg viewBox="0 0 32 32" width="28" height="28" fill="none"><rect x="4.5" y="8" width="23" height="16" rx="3" stroke="currentColor" stroke-width="2.6"/><circle cx="16" cy="16" r="4.2" stroke="currentColor" stroke-width="2.4"/><path d="M8 12.5h3.5M8 19.5h3.5M20.5 12.5H24M20.5 19.5H24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+      events: '<svg viewBox="0 0 32 32" width="28" height="28" fill="none"><path d="M7 4h18v6.5H13.5V14H22v6H13.5v5H25V28H7V4Z" fill="currentColor"/></svg>'
+    };
+    function logo(name, size = 28) {
+      return (moduleLogos[name] || moduleLogos.oweno)
+        .replace('width="28"', `width="${size}"`)
+        .replace('height="28"', `height="${size}"`);
+    }
+
+    function shell(content, { nav = null, fab = false, sheet = '' } = {}) {
+      return `
+        <div class="status"><span>9:41</span><span class="pill"></span><span>5G · 100%</span></div>
+        <div class="app">
+          <div class="scroll ${nav ? 'has-nav' : ''}">${content}</div>
+          ${nav || ''}
+          ${fab ? `<button class="fab" onclick="setScreen('add')" aria-label="Añadir">${svg('plus', 26)}</button>` : ''}
+          ${sheet}
+        </div>`;
+    }
+
+    function nav(variant, active) {
+      const items = variant === 'a'
+        ? [['home', 'Inicio', 'home'], ['module', 'OweNo', 'wallet'], ['settings', 'Ajustes', 'gear']]
+        : [['home', 'Inicio', 'home'], ['modules', 'Módulos', 'grid'], ['settings', 'Ajustes', 'gear']];
+      return `<nav class="tabs">${items.map(([key, label, icon]) => `
+        <button class="tab ${active === key ? 'active' : ''}" onclick="setScreen('${key}')">
+          ${svg(icon, 22)}<span>${label}</span>
+        </button>`).join('')}</nav>`;
+    }
+
+    function topbar({ title = null, back = false, backTo = 'home', bell = false, profile = false } = {}) {
+      if (profile) {
+        return `
+          <header class="topbar">
+            <div class="avatar">A</div>
+            <div>
+              <div class="hello">Hola, Ana</div>
+              <div class="sub">Tu espacio privado</div>
+            </div>
+            <div class="spacer"></div>
+            ${bell ? `<button class="icon-btn" onclick="setScreen('notifications')" aria-label="Notificaciones">${svg('bell')}</button>` : ''}
+          </header>`;
+      }
+      return `
+        <header class="topbar">
+          ${back ? `<button class="icon-btn" onclick="setScreen('${backTo}')" aria-label="Volver">${svg('back')}</button>` : ''}
+          <div class="topbar-title">${title || ''}</div>
+          <div class="spacer"></div>
+          ${bell ? `<button class="icon-btn" onclick="setScreen('notifications')" aria-label="Notificaciones">${svg('bell')}</button>` : ''}
+        </header>`;
+    }
+
+    function splashScreen() {
+      return shell(`
+        <div class="screen-pad" style="padding-top:64px;text-align:center">
+          <div class="brand-mark" style="margin:0 auto 18px">${svg('heart', 22)}</div>
+          <h1 class="auth-title">027Apps</h1>
+          <p class="auth-lead">Conectando con <strong>027apps.ericrf.com</strong>…</p>
+          <div class="spinner"></div>
+          <p class="note">La app trae la instancia de la familia. No se pide una dirección al arrancar; si es otra, se cambia en Ajustes.</p>
+          <p class="note"><strong>Si ya has iniciado sesión, entras directo al dashboard.</strong> Si no, verás el login.</p>
+          <button class="btn ghost" onclick="setScreen('login')" style="margin-top:18px">Ir al login (demo)</button>
+        </div>`);
+    }
+
+    function changeInstanceScreen() {
+      return shell(`
+        ${topbar({ title: 'Cambiar instancia', back: true, backTo: state.instanceFrom })}
+        <div class="screen-pad">
+          <p class="auth-lead">La app usa <strong>027apps.ericrf.com</strong>. Si tu familia tiene otra instancia, escribe su dirección aquí.</p>
+          <div class="alert">Al cambiar de instancia se cerrará la sesión y se borrarán los datos locales de esta app. Tu cuenta y tus datos siguen en la instancia anterior.</div>
+          <div class="field">
+            <label for="instance-url">Dirección de la instancia</label>
+            <input id="instance-url" value="https://027apps.ericrf.com" autocomplete="url">
+          </div>
+          <button class="btn accent" onclick="setScreen('login')">Guardar y cerrar sesión</button>
+          <button class="btn ghost" onclick="setScreen('${state.instanceFrom}')">Cancelar</button>
+          <p class="note">Solo HTTPS. La instancia debe exponer <code>/api/v1/instance</code> y Supabase Auth.</p>
+        </div>`);
+    }
+
+    function loginScreen() {
+      return shell(`
+        <div class="screen-pad">
+          <h1 class="auth-title">Entrar</h1>
+          <p class="auth-lead">Usa el email y la contraseña que fijaste al canjear tu invitación.</p>
+          <div class="instance-row">
+            <div><div class="host">027apps.ericrf.com</div><div class="sub">Instancia privada</div></div>
+            <button class="text-link" onclick="openInstance('login')">Usar otra instancia</button>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" value="ana@example.com" autocomplete="email">
+          </div>
+          <div class="field">
+            <label for="password">Contraseña</label>
+            <input id="password" type="password" value="demo-password" autocomplete="current-password">
+          </div>
+          <button class="btn" onclick="setScreen('home')">Entrar</button>
+          <p class="note"><strong>Tu sesión se mantiene.</strong> No tendrás que entrar cada vez; si cambias de móvil, vuelve a entrar con tu email y contraseña.</p>
+          <p class="note">¿Te han invitado? Abre el enlace de la invitación en este móvil: la app lo detecta y te lleva a la pantalla de alta.</p>
+          <p class="note">¿Tu familia tiene otra instancia? <button class="text-link" onclick="openInstance('login')">Usar otra instancia</button>. También puedes cambiarla después en Ajustes.</p>
+        </div>`);
+    }
+
+    function inviteScreen() {
+      return shell(`
+        <div class="screen-pad">
+          <div class="brand-lockup">
+            <div class="brand-mark">${svg('heart', 22)}</div>
+            <div><strong>027Apps</strong><span>Invitación para 027apps.ericrf.com</span></div>
+          </div>
+          <h1 class="auth-title">Te han invitado</h1>
+          <p class="auth-lead">Invitación para <strong>027apps.ericrf.com</strong>. Usa el email al que llegó la invitación; el enlace solo se puede usar una vez.</p>
+          <div class="field">
+            <label for="invite-email">Email de la invitación</label>
+            <input id="invite-email" type="email" placeholder="tu@email.com" autocomplete="email">
+          </div>
+          <div class="field">
+            <label for="invite-password">Crea tu contraseña</label>
+            <input id="invite-password" type="password" value="demo-password" autocomplete="new-password">
+          </div>
+          <button class="btn accent" onclick="setScreen('home')">Crear cuenta y entrar</button>
+          <p class="note">El enlace de la invitación solo se puede usar una vez. Si algo falla, pide a quien te invita que te envíe uno nuevo.</p>
+          <p class="note"><button class="text-link" onclick="setScreen('login')">Ya tengo cuenta: entrar</button></p>
+        </div>`);
+    }
+
+    function demoWidget() {
+      return `
+        <div class="widget accent-emerald">
+          <div class="widget-head">
+            <div class="widget-icon">${logo('oweno', 18)}</div>
+            <div class="widget-title">OweNo</div>
+            <span class="badge">Widget</span>
+          </div>
+          <div class="metric">12 <small>este mes</small></div>
+          <div class="metric-row">
+            <div class="metric-item"><div class="k">Pendiente</div><div class="v">3</div></div>
+            <div class="metric-item"><div class="k">Resuelto</div><div class="v">9</div></div>
+          </div>
+          <div class="list">
+            <div class="list-row"><span class="who">Ana</span><span class="amount pos">+24,00 €</span></div>
+            <div class="list-row"><span class="who">Luis</span><span class="amount neg">−12,50 €</span></div>
+          </div>
+          <div class="widget-foot"><button class="text-link" onclick="setScreen('module')">Ver módulo</button></div>
+        </div>`;
+    }
+
+    function listWidget() {
+      return `
+        <div class="widget accent-emerald">
+          <div class="widget-head">
+            <div class="widget-icon">${logo('oweno', 18)}</div>
+            <div class="widget-title">OweNo · grupos</div>
+            <span class="badge">Widget</span>
+          </div>
+          <div class="list">
+            <div class="list-row"><span class="who">Casa</span><span class="amount">4 movimientos</span></div>
+            <div class="list-row"><span class="who">Viaje</span><span class="amount">2 movimientos</span></div>
+          </div>
+          <div class="widget-foot"><button class="text-link" onclick="setScreen('module')">Abrir</button></div>
+        </div>`;
+    }
+
+    function homeContent(variant) {
+      const top = topbar({ profile: true, bell: true });
+      return `
+        ${top}
+        <div class="section-head"><h2 class="section-title">Tu dashboard</h2><span class="badge">Demo</span></div>
+        ${demoWidget()}
+        ${listWidget()}
+        ${variant === 'a' ? `<div class="section-head"><h2 class="section-title">Módulos</h2><button class="section-link" onclick="setScreen('modules')">Ver todos</button></div>` : ''}
+        <p class="note">Cada módulo decide si aporta un widget a esta portada. Si no lo aporta, no aparece aquí; sigue accesible desde Módulos.</p>`;
+    }
+
+    function homeScreen(variant) {
+      return shell(homeContent(variant), { nav: nav(variant, 'home'), fab: true });
+    }
+
+    function notificationsScreen() {
+      return shell(`
+        ${topbar({ title: 'Notificaciones', back: true })}
+        <div class="empty">
+          <div class="empty-icon">${svg('bell', 24)}</div>
+          <h3>No hay novedades</h3>
+          <p>Cuando un módulo publique eventos o llegue el push, aparecerán aquí. El push sigue bloqueado por las credenciales de Firebase.</p>
+        </div>`, { nav: null });
+    }
+
+    function settingsScreen(variant) {
+      return shell(`
+        ${topbar({ title: 'Ajustes' })}
+        <div class="settings-group">
+          <div class="profile">
+            <div class="avatar">A</div>
+            <div><strong>Ana</strong><span>ana@example.com</span></div>
+          </div>
+          <div class="setting-row" onclick="openInstance('settings')">
+            <div><div class="setting-label">Instancia</div><div class="setting-sub">027apps.ericrf.com</div></div>
+            <span class="setting-value">Cambiar</span>
+            <span class="chevron">${svg('chevron', 18)}</span>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="setting-row">
+            <div><div class="setting-label">Idioma</div><div class="setting-sub">La invitación marca el inicial; puedes cambiarlo</div></div>
+            <select class="inline-select" aria-label="Idioma">
+              <option selected>Español</option>
+              <option>Català</option>
+              <option>English</option>
+              <option>Français</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <div style="flex:1"><div class="setting-label">Tema</div><div class="setting-sub">Se guarda en tu perfil</div></div>
+            <div class="segmented" style="flex:1.4">
+              <button class="seg ${state.theme === 'system' ? 'active' : ''}" onclick="setTheme('system')">Sistema</button>
+              <button class="seg ${state.theme === 'light' ? 'active' : ''}" onclick="setTheme('light')">Claro</button>
+              <button class="seg ${state.theme === 'dark' ? 'active' : ''}" onclick="setTheme('dark')">Oscuro</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Notificaciones</div><div class="setting-sub">Push no disponible todavía</div></div>
+            <span class="setting-value">—</span>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="setting-row" onclick="setScreen('login')">
+            <div class="setting-danger">${svg('logout', 18)} Cerrar sesión</div>
+            <span class="chevron">${svg('chevron', 18)}</span>
+          </div>
+        </div>
+        <p class="note">Tu sesión se guarda cifrada con el Keystore del dispositivo. Si pierdes el móvil, entra desde otro con tu email y contraseña.</p>
+      `, { nav: nav(variant, 'settings') });
+    }
+
+    function moduleScreen(variant) {
+      const top = topbar({ title: 'OweNo', back: variant === 'b', backTo: 'modules' });
+      return shell(`
+        ${top}
+        <div class="placeholder">
+          <h3>OweNo llega en el mockup F1</h3>
+          <p>Este es el esqueleto. El mockup F1 enseñará grupos, gastos, balances y liquidación sobre esta misma navegación.</p>
+        </div>
+        <div class="section-head"><h2 class="section-title">Widget de portada</h2></div>
+        ${demoWidget()}
+        <p class="note">El widget de OweNo será <strong>owe-no.summary</strong> y se incrustará aquí si el módulo está activo y tienes acceso.</p>
+      `, variant === 'a' ? { nav: nav('a', 'module') } : { nav: null });
+    }
+
+    function moduleLaunchpad(variant) {
+      const modules = [
+        { name: 'OweNo', sub: '3 grupos', logo: 'oweno', accent: 'accent-emerald' },
+        { name: 'Eventos', sub: '2 próximos', logo: 'events', accent: 'accent-indigo' }
+      ];
+      const layout = state.moduleLayout;
+      const accent = state.moduleAccent === 'card' ? 'accent-card' : 'accent-icon';
+      const cards = layout === 'list'
+        ? `<div class="module-list">${modules.map((m) => `
+            <button class="module-row ${m.accent} ${accent}" onclick="setScreen('module')">
+              <div class="module-logo">${logo(m.logo, 26)}</div>
+              <div class="module-text"><div class="module-name">${m.name}</div><div class="module-sub">${m.sub}</div></div>
+              <span class="chevron">${svg('chevron', 18)}</span>
+            </button>`).join('')}</div>`
+        : layout === 'feature'
+        ? `<div class="module-features">${modules.map((m) => `
+            <button class="module-feature ${m.accent} ${accent}" onclick="setScreen('module')">
+              <div class="module-logo">${logo(m.logo, 30)}</div>
+              <div class="module-text"><div class="module-name">${m.name}</div><div class="module-sub">${m.sub}</div></div>
+              <span class="chevron">${svg('chevron', 18)}</span>
+            </button>`).join('')}</div>`
+        : `<div class="module-grid">${modules.map((m) => `
+            <button class="module-tile ${m.accent} ${accent}" onclick="setScreen('module')">
+              <div class="module-logo">${logo(m.logo, 28)}</div>
+              <div class="module-name">${m.name}</div>
+              <div class="module-sub">${m.sub}</div>
+            </button>`).join('')}</div>`;
+      const top = topbar({ title: 'Módulos', back: variant === 'a', bell: variant === 'b' });
+      return shell(`
+        ${top}
+        <p class="setting-sub" style="margin:0 0 12px">Solo tus módulos activos</p>
+        ${cards}
+        <p class="note">Cada módulo trae su icono y su color de acento. Los módulos sin widget siguen aquí; los que aportan widget aparecen también en el dashboard.</p>
+      `, variant === 'a' ? { nav: null } : { nav: nav('b', 'modules') });
+    }
+
+    function addScreen(variant) {
+      const sheet = `
+        <div class="sheet-backdrop" onclick="setScreen('home')"></div>
+        <div class="sheet">
+          <div class="sheet-handle"></div>
+          <h3>¿Qué quieres añadir?</h3>
+          <p>El FAB es global; cada módulo decide qué acción ofrece.</p>
+          <div class="sheet-row" onclick="setScreen('module')">
+            <div class="sheet-icon">${svg('wallet', 20)}</div>
+            <div><strong>Gasto</strong><span>OweNo · añadir un gasto al grupo activo</span></div>
+            <div class="spacer"></div><span class="chevron">${svg('chevron', 18)}</span>
+          </div>
+          <div class="sheet-row" onclick="setScreen('module')">
+            <div class="sheet-icon">${svg('calendar', 20)}</div>
+            <div><strong>Evento</strong><span>Demo · acción de ejemplo</span></div>
+            <div class="spacer"></div><span class="chevron">${svg('chevron', 18)}</span>
+          </div>
+          <button class="sheet-cancel" onclick="setScreen('home')">Cancelar</button>
+        </div>`;
+      return shell(homeContent(variant), { nav: nav(variant, 'home'), fab: true, sheet });
+    }
+
+    function screenHtml(screen, variant) {
+      switch (screen) {
+        case 'splash': return splashScreen();
+        case 'instance': return changeInstanceScreen();
+        case 'login': return loginScreen();
+        case 'invite': return inviteScreen();
+        case 'home': return homeScreen(variant);
+        case 'notifications': return notificationsScreen();
+        case 'settings': return settingsScreen(variant);
+        case 'module': return moduleScreen(variant);
+        case 'modules': return moduleLaunchpad(variant);
+        case 'add': return addScreen(variant);
+        default: return homeScreen(variant);
+      }
+    }
+
+    function render() {
+      document.documentElement.dataset.theme = state.theme === 'dark' ? 'dark' : 'light';
+      document.getElementById('phone-a').innerHTML = screenHtml(state.screen, 'a');
+      document.getElementById('phone-b').innerHTML = screenHtml(state.screen, 'b');
+      document.getElementById('screen').value = state.screen;
+      document.getElementById('theme').value = state.theme;
+      document.getElementById('layout').value = state.moduleLayout;
+      document.getElementById('accent').value = state.moduleAccent;
+    }
+
+    function setScreen(screen) {
+      state.screen = screen;
+      render();
+    }
+    function openInstance(from) {
+      state.instanceFrom = from;
+      state.screen = 'instance';
+      render();
+    }
+    function setModuleLayout(layout) {
+      state.moduleLayout = layout;
+      render();
+    }
+    function setModuleAccent(accent) {
+      state.moduleAccent = accent;
+      render();
+    }
+    function setTheme(theme) {
+      state.theme = theme;
+      render();
+    }
+
+    document.getElementById('screen').addEventListener('change', (event) => setScreen(event.target.value));
+    document.getElementById('theme').addEventListener('change', (event) => setTheme(event.target.value));
+    document.getElementById('layout').addEventListener('change', (event) => setModuleLayout(event.target.value));
+    document.getElementById('accent').addEventListener('change', (event) => setModuleAccent(event.target.value));
+    render();
+  </script>
+</body>
+</html>

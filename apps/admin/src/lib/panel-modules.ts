@@ -4,7 +4,10 @@ import {
   moduleGrantsRoute,
   moduleRoute,
   modulesRoute,
+  dashboardRoute,
+  moduleJobRunsRoute,
   moduleSettingsRoute,
+  updateModuleSettingRoute,
 } from "@027apps/core/modules/api.js";
 import { PANEL_PAGE_SIZE } from "@/lib/panel-pagination";
 import { modulesRouteDeps } from "@/lib/modules-route-deps";
@@ -405,6 +408,44 @@ export async function loadModuleDetail(key: string): Promise<ModuleDetailResult>
 }
 
 /** GET /api/v1/modules/{key}/settings — every setting, secrets without their value. */
+/**
+ * Writes one setting through the Core route, in process and with the panel
+ * session. Range and type validation live in the Core; this only carries the
+ * session and maps the envelope to a boolean plus the error code.
+ */
+export async function saveModuleSetting(
+  moduleKey: string,
+  settingKey: string,
+  value: unknown,
+): Promise<{ ok: true } | { ok: false; code?: string }> {
+  const token = await sessionToken();
+  const handler = updateModuleSettingRoute(await modulesRouteDeps());
+  let res: Response;
+  try {
+    res = await handler(
+      new Request(
+        `${INTERNAL_ORIGIN}/api/v1/modules/${encodeURIComponent(moduleKey)}/settings`,
+        {
+          method: "PATCH",
+          headers: {
+            authorization: `Bearer ${token}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ key: settingKey, value }),
+        },
+      ),
+      moduleKey,
+    );
+  } catch {
+    return { ok: false };
+  }
+  if (res.ok) return { ok: true };
+  const body = (await res.json().catch(() => null)) as
+    | { error?: { code?: string } }
+    | null;
+  return { ok: false, code: body?.error?.code };
+}
+
 export async function loadModuleSettings(key: string): Promise<ModuleSettingsResult> {
   const token = await sessionToken();
   const deps = await modulesRouteDeps();
@@ -424,6 +465,115 @@ export async function loadModuleSettings(key: string): Promise<ModuleSettingsRes
     settings.push(setting);
   }
   return { ok: true, settings };
+}
+
+function readJobRun(entry: unknown): ModuleJobRun | null {
+  if (!isRecord(entry)) return null;
+  const jobKey = readString(entry.job_key);
+  const status = readString(entry.status);
+  if (!jobKey || (status !== "ok" && status !== "error" && status !== "skipped")) return null;
+  const duration = typeof entry.duration_ms === "number" ? entry.duration_ms : undefined;
+  const error = readString(entry.error);
+  return {
+    job_key: jobKey,
+    status,
+    ...(duration === undefined ? {} : { duration_ms: duration }),
+    ...(error === undefined ? {} : { error }),
+  };
+}
+
+export interface ModuleWidget {
+  key: string;
+  type: "summary" | "metric" | "list";
+  surface: "app" | "panel";
+  title: string;
+  icon: string;
+  order: number;
+  module_key: string;
+  data: unknown;
+}
+
+export type ModuleWidgetsResult =
+  | { ok: true; widgets: ModuleWidget[] }
+  | { ok: false; requestId?: string };
+
+const WIDGET_TYPES = new Set<ModuleWidget["type"]>(["summary", "metric", "list"]);
+const WIDGET_SURFACES = new Set<ModuleWidget["surface"]>(["app", "panel"]);
+
+function widgetType(value: string | undefined): ModuleWidget["type"] | null {
+  if (!value) return null;
+  return WIDGET_TYPES.has(value as ModuleWidget["type"])
+    ? (value as ModuleWidget["type"])
+    : null;
+}
+
+function widgetSurface(value: string | undefined): ModuleWidget["surface"] | null {
+  if (!value) return null;
+  return WIDGET_SURFACES.has(value as ModuleWidget["surface"])
+    ? (value as ModuleWidget["surface"])
+    : null;
+}
+
+/** One widget as the route sent it; anything else is dropped, never coerced. */
+function readWidget(entry: unknown): ModuleWidget | null {
+  if (!isRecord(entry)) return null;
+  const key = readString(entry.key);
+  const title = readString(entry.title);
+  const moduleKey = readString(entry.module_key);
+  const type = widgetType(readString(entry.type));
+  const surface = widgetSurface(readString(entry.surface));
+  if (!key || !title || !moduleKey || !type || !surface) return null;
+  return {
+    key,
+    type,
+    surface,
+    title,
+    icon: readString(entry.icon) ?? "box",
+    order: typeof entry.order === "number" ? entry.order : 0,
+    module_key: moduleKey,
+    data: entry.data ?? null,
+  };
+}
+
+/** GET /api/v1/me/dashboard — native widgets for one surface. */
+export async function loadModuleWidgets(
+  surface: "app" | "panel",
+): Promise<ModuleWidgetsResult> {
+  const token = await sessionToken();
+  const deps = await modulesRouteDeps();
+  const handler = dashboardRoute(deps);
+  const path = `/api/v1/me/dashboard?surface=${surface}`;
+  const call = await callRoute((req) => handler(req), path, token);
+  if (!call.ok) return call;
+
+  const entries = Array.isArray(call.body.widgets) ? call.body.widgets : [];
+  return { ok: true, widgets: entries.flatMap((entry) => readWidget(entry) ?? []) };
+}
+
+export interface ModuleJobRun {
+  job_key: string;
+  status: "ok" | "error" | "skipped";
+  duration_ms?: number;
+  error?: string;
+}
+
+export type ModuleJobRunsResult =
+  | { ok: true; runs: ModuleJobRun[] }
+  | { ok: false; requestId?: string };
+
+/** GET /api/v1/modules/{key}/jobs — last runs, newest first (scope `modules:read`). */
+export async function loadModuleJobRuns(key: string): Promise<ModuleJobRunsResult> {
+  const token = await sessionToken();
+  const deps = await modulesRouteDeps();
+  const handler = moduleJobRunsRoute(deps);
+  const call = await callRoute((req) => handler(req, key), pathFor(key, "/jobs"), token);
+  if (!call.ok) return call;
+
+  const entries = Array.isArray(call.body.runs) ? call.body.runs : [];
+  return {
+    ok: true,
+    runs: entries.map(readJobRun).filter((run): run is ModuleJobRun => run !== null),
+  };
 }
 
 /** GET /api/v1/modules/{key}/grants — who holds the module (scope `modules:manage`). */

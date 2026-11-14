@@ -7,6 +7,7 @@
 
 export type SettingType =
   | "string"
+  | "boolean"
   | "int"
   | "url"
   | "locale"

@@ -18,6 +18,7 @@ function validManifest(overrides: Record<string, unknown> = {}): unknown {
     name: "Demo",
     branding: { description: "Demo module", icon: "assets/icon.svg", color: "teal" },
     version: "1.0.0",
+    contract: 1,
     is_public: false,
     migrations: [
       { version: "1.0.0", up: UP, down: DOWN, digest: sha256(UP), down_digest: sha256(DOWN) },
@@ -92,6 +93,139 @@ describe("manifest contract", () => {
     ).toThrow();
   });
 
+  it("validates the demo hooks as a pair", () => {
+    const hooks = { seed_fn: "seed_demo", clear_fn: "clear_demo" };
+    expect(() => manifestSchema.parse(validManifest({ demo: hooks }))).not.toThrow();
+    expect(() =>
+      manifestSchema.parse(validManifest({ demo: { seed_fn: "seed_demo" } })),
+    ).toThrow();
+    expect(() =>
+      manifestSchema.parse(validManifest({ demo: { ...hooks, clear_fn: "ClearDemo" } })),
+    ).toThrow();
+  });
+
+  it("validates app actions and keeps them out of background modules", () => {
+    const action = { key: "add_note", label: "Add note", icon: "plus", screen: "notes" };
+    const withActions = (actions: unknown[], app = { visible: true }) =>
+      validManifest({ app, app_actions: actions });
+
+    expect(() => manifestSchema.parse(withActions([action]))).not.toThrow();
+    expect(() => manifestSchema.parse(withActions([action, action]))).toThrow(/duplicate/);
+    expect(() => manifestSchema.parse(withActions([{ ...action, screen: "Notes" }]))).toThrow();
+    expect(() =>
+      manifestSchema.parse(withActions([action], { visible: false })),
+    ).toThrow(/background/);
+  });
+
+  it("validates scheduled jobs (cron, duplicate keys, timeout)", () => {
+    const job = {
+      key: "cleanup",
+      schedule: "*/5 * * * *",
+      fn: "job_cleanup",
+      timeout_seconds: 30,
+    };
+    const withJobs = (jobs: unknown[]) => validManifest({ jobs });
+
+    expect(() => manifestSchema.parse(withJobs([job]))).not.toThrow();
+    expect(() => manifestSchema.parse(withJobs([{ ...job, schedule: "*/0 * * * *" }]))).toThrow();
+    expect(() => manifestSchema.parse(withJobs([{ ...job, schedule: "every minute" }]))).toThrow();
+    expect(() => manifestSchema.parse(withJobs([job, job]))).toThrow(/duplicate/);
+    expect(() => manifestSchema.parse(withJobs([{ ...job, timeout_seconds: 0 }]))).toThrow();
+    expect(() => manifestSchema.parse(withJobs([{ ...job, timeout_seconds: 301 }]))).toThrow();
+  });
+
+  it("validates dashboard widgets and their keys (D10)", () => {
+    const widget = {
+      key: "demo.summary",
+      type: "summary",
+      surface: "app",
+      title: "Summary",
+      icon: "chart",
+      order: 10,
+      data_fn: "widget_summary",
+    };
+    const withWidgets = (widgets: unknown[]) => validManifest({ dashboard_widgets: widgets });
+
+    expect(() => manifestSchema.parse(withWidgets([widget]))).not.toThrow();
+    expect(() => manifestSchema.parse(withWidgets([widget, widget]))).toThrow(/duplicate/);
+    expect(() => manifestSchema.parse(withWidgets([{ ...widget, surface: "web" }]))).toThrow();
+    expect(() => manifestSchema.parse(withWidgets([{ ...widget, type: "html" }]))).toThrow();
+    expect(() => manifestSchema.parse(withWidgets([{ ...widget, key: "summary" }]))).toThrow();
+    expect(() =>
+      manifestSchema.parse(withWidgets([{ ...widget, data_fn: "Bad Name" }])),
+    ).toThrow();
+  });
+
+  it("reserves the settings route for the module ficha (D20)", () => {
+    expect(() =>
+      manifestSchema.parse(
+        validManifest({
+          admin_pages: [
+            { route: "settings", label: "Settings", icon: "gear", group: "module", role: "admin" },
+          ],
+        }),
+      ),
+    ).toThrow(/reserved/);
+    expect(() =>
+      manifestSchema.parse(
+        validManifest({
+          admin_pages: [
+            { route: "overview", label: "Overview", icon: "chart", group: "module", role: "admin" },
+          ],
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  it("reserves the panel routes a module workspace would shadow (D27)", () => {
+    for (const key of ["members", "modules", "settings", "categories", "keys", "docs"]) {
+      expect(() => manifestSchema.parse(validManifest({ key }))).toThrow(/reserved/);
+    }
+    expect(() => manifestSchema.parse(validManifest())).not.toThrow();
+  });
+
+  it("validates the range of an int setting (slider)", () => {
+    const withSetting = (setting: Record<string, unknown>) =>
+      validManifest({
+        settings: [
+          {
+            category: "demo_module",
+            label: "Demo",
+            sort_order: 10,
+            settings: [
+              {
+                key: "limit",
+                type: "int",
+                min: 4,
+                max: 20,
+                step: 1,
+                control: "slider",
+                default: 12,
+                label: "Limit",
+                is_public: false,
+                is_secret: false,
+                mcp_access: "read",
+                sort_order: 10,
+                ...setting,
+              },
+            ],
+          },
+        ],
+      });
+
+    expect(() => manifestSchema.parse(withSetting({}))).not.toThrow();
+    // A range belongs to int only.
+    expect(() => manifestSchema.parse(withSetting({ type: "string", default: "x" }))).toThrow();
+    // min > max.
+    expect(() => manifestSchema.parse(withSetting({ min: 21 }))).toThrow();
+    // default out of range.
+    expect(() => manifestSchema.parse(withSetting({ default: 21 }))).toThrow();
+    // slider without min and max.
+    expect(() => manifestSchema.parse(withSetting({ min: undefined, max: undefined }))).toThrow();
+    // default off the step.
+    expect(() => manifestSchema.parse(withSetting({ default: 13, step: 2 }))).toThrow();
+  });
+
   it("rejects secret defaults and unsafe SQL", () => {
     expect(() =>
       manifestSchema.parse(
@@ -130,6 +264,29 @@ describe("manifest contract", () => {
     expect(() =>
       assertSafeModuleSql("do $$ begin execute 'drop table items'; end $$;", "demo-module"),
     ).toThrow(/forbidden/);
+  });
+
+  it("allows only the audited public references", () => {
+    // The identity helper and the profiles FK target are the two exceptions.
+    expect(() =>
+      assertSafeModuleSql(
+        "create policy notes_own on notes using (user_id = public.core_current_user_id());",
+        "demo-module",
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertSafeModuleSql(
+        "create table notes (user_id uuid references public.profiles(id) on delete set null);",
+        "demo-module",
+      ),
+    ).not.toThrow();
+    // Any other public reference stays forbidden.
+    expect(() =>
+      assertSafeModuleSql("select * from public.profiles;", "demo-module"),
+    ).toThrow(/public schema/);
+    expect(() =>
+      assertSafeModuleSql("select * from public.settings;", "demo-module"),
+    ).toThrow(/public schema/);
   });
 
   it("rejects path traversal in migration files", () => {

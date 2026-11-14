@@ -53,6 +53,13 @@ const CORS = setting({
   type: "array",
   value: ["https://a.test"],
 });
+const DEMO = setting({
+  key: "demo.enabled",
+  type: "boolean",
+  isPublic: false,
+  value: false,
+  sortOrder: 30,
+});
 const SECRET = setting({
   key: "notifications.push.fcm_service_account",
   category: "notifications",
@@ -63,7 +70,7 @@ const SECRET = setting({
   configured: true,
 });
 
-const ALL = [NAME, TIMEOUT, LOCALES, CORS, SECRET];
+const ALL = [NAME, TIMEOUT, LOCALES, CORS, DEMO, SECRET];
 
 describe("initialSettingsDraft / encodeSettingValue", () => {
   it("encodes every type into the text the form edits", () => {
@@ -71,6 +78,7 @@ describe("initialSettingsDraft / encodeSettingValue", () => {
     expect(encodeSettingValue(TIMEOUT)).toBe("900");
     expect(encodeSettingValue(LOCALES)).toBe("en, es");
     expect(encodeSettingValue(CORS)).toBe("https://a.test");
+    expect(encodeSettingValue(DEMO)).toBe("false");
     // Secrets never expose a value, configured or not.
     expect(encodeSettingValue(SECRET)).toBe("");
     expect(initialSettingsDraft(ALL)).toEqual({
@@ -78,6 +86,7 @@ describe("initialSettingsDraft / encodeSettingValue", () => {
       "security.jwt_expiry": "900",
       "localization.enabled_locales": "en, es",
       "security.cors_allowlist": "https://a.test",
+      "demo.enabled": "false",
       "notifications.push.fcm_service_account": "",
     });
   });
@@ -88,6 +97,11 @@ describe("initialSettingsDraft / encodeSettingValue", () => {
 });
 
 describe("parseSettingValue", () => {
+  it("parses a boolean checkbox back to a boolean", () => {
+    expect(parseSettingValue(DEMO, "true")).toBe(true);
+    expect(parseSettingValue(DEMO, "false")).toBe(false);
+  });
+
   it("parses ints, locale lists and origin lists", () => {
     expect(parseSettingValue(TIMEOUT, "1200")).toBe(1200);
     expect(parseSettingValue(LOCALES, "en, es, gl")).toEqual(["en", "es", "gl"]);

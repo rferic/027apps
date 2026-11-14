@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { cn } from "@/lib/cn";
+import { ModuleIcon } from "@/components/ui/module-icon";
 import type { PanelRole } from "@/lib/panel-guard";
 import {
   settingsSectionLabel,
@@ -35,6 +36,8 @@ interface PanelNavProps {
   variant?: "sidebar" | "drawer";
   /** Runs after a destination is activated (the mobile drawer closes itself). */
   onNavigate?: () => void;
+  /** Active modules with pages, in name order (D27). */
+  modules?: Array<{ key: string; name: string; color?: string }>;
 }
 
 interface NavItem {
@@ -45,6 +48,9 @@ interface NavItem {
   external?: boolean;
   /** Extra pathname that also lights this item up (a redirecting index route). */
   activeOn?: string;
+  /** A module row paints its brand icon instead of a panel glyph. */
+  moduleKey?: string;
+  color?: string;
 }
 
 interface NavGroup {
@@ -52,8 +58,12 @@ interface NavGroup {
   items: NavItem[];
 }
 
-/** Every destination owns its sub-routes. */
+/**
+ * Every destination owns its sub-routes, except the dashboard: `/panel` is the
+ * parent of every other panel route, so it only lights up on its own URL.
+ */
 function isActive(pathname: string, href: string): boolean {
+  if (href === "/panel") return pathname === "/panel";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -65,6 +75,13 @@ const SETTINGS_ICONS: Record<SettingsSectionSlug, PanelIconComponent> = {
   notifications: BellIcon,
   "rate-limits": GaugeIcon,
 };
+
+function NavGlyph({ item, Icon }: { item: NavItem; Icon: PanelIconComponent }) {
+  if (item.moduleKey) {
+    return <ModuleIcon moduleKey={item.moduleKey} size={20} color={item.color} />;
+  }
+  return <Icon className="h-5 w-5 shrink-0" />;
+}
 
 function NavDestination({
   item,
@@ -101,7 +118,7 @@ function NavDestination({
           onClick={onNavigate}
           className={className}
         >
-          <Icon className="h-5 w-5 shrink-0" />
+          <NavGlyph item={item} Icon={Icon} />
           <span className="truncate">{item.label}</span>
         </a>
       ) : (
@@ -111,7 +128,7 @@ function NavDestination({
           onClick={onNavigate}
           className={className}
         >
-          <Icon className="h-5 w-5 shrink-0" />
+          <NavGlyph item={item} Icon={Icon} />
           <span className="truncate">{item.label}</span>
         </Link>
       )}
@@ -127,7 +144,13 @@ function NavDestination({
  * external destination (`target="_blank"`) never carries `aria-current`. Labels
  * are translated here with literal keys so `i18n:scan` sees every one of them.
  */
-export function PanelNav({ role, messages, variant = "sidebar", onNavigate }: PanelNavProps) {
+export function PanelNav({
+  role,
+  messages,
+  variant = "sidebar",
+  onNavigate,
+  modules = [],
+}: PanelNavProps) {
   const pathname = usePathname();
   const drawer = variant === "drawer";
   const settingsSections = visibleSettingsSections(role);
@@ -137,20 +160,34 @@ export function PanelNav({ role, messages, variant = "sidebar", onNavigate }: Pa
       label: t("Home", messages),
       items: [{ label: t("Dashboard", messages), href: "/panel", icon: HomeIcon }],
     },
+    ...(modules.length > 0
+      ? [
+          {
+            label: t("Modules", messages),
+            items: modules.map((module) => ({
+              label: module.name,
+              href: `/panel/${encodeURIComponent(module.key)}`,
+              icon: BoxIcon,
+              moduleKey: module.key,
+              color: module.color,
+            })),
+          },
+        ]
+      : []),
     {
       label: t("Users", messages),
       items: [
-        { label: t("Members", messages), href: "/members", icon: UsersIcon },
-        { label: t("Categories", messages), href: "/categories", icon: TagIcon },
-        { label: t("Invitations", messages), href: "/invitations", icon: MailIcon },
+        { label: t("Members", messages), href: "/panel/members", icon: UsersIcon },
+        { label: t("Categories", messages), href: "/panel/categories", icon: TagIcon },
+        { label: t("Invitations", messages), href: "/panel/invitations", icon: MailIcon },
       ],
     },
     {
       label: t("Platform", messages),
       items: [
-        { label: t("Modules", messages), href: "/modules", icon: BoxIcon },
+        { label: t("Modules", messages), href: "/panel/modules", icon: BoxIcon },
         ...(role === "super_admin"
-          ? [{ label: t("API keys", messages), href: "/keys", icon: KeyIcon }]
+          ? [{ label: t("API keys", messages), href: "/panel/keys", icon: KeyIcon }]
           : []),
       ],
     },
@@ -158,17 +195,17 @@ export function PanelNav({ role, messages, variant = "sidebar", onNavigate }: Pa
       label: t("Settings", messages),
       items: settingsSections.map((section, index) => ({
         label: settingsSectionLabel(section, messages),
-        href: `/settings/${section.slug}`,
+        href: `/panel/settings/${section.slug}`,
         icon: SETTINGS_ICONS[section.slug],
         // `/settings` redirects to the first visible section; light it up while
         // the redirect resolves.
-        activeOn: index === 0 ? "/settings" : undefined,
+        activeOn: index === 0 ? "/panel/settings" : undefined,
       })),
     },
     {
       label: t("Documentation", messages),
       items: [
-        { label: t("API", messages), href: "/docs/api", icon: BookIcon },
+        { label: t("API", messages), href: "/panel/docs/api", icon: BookIcon },
         {
           label: t("Firebase guide", messages),
           href: "/help/firebase",

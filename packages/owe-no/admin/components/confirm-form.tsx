@@ -1,0 +1,108 @@
+"use client";
+
+import { useRef } from "react";
+import { useFormStatus } from "react-dom";
+
+function ConfirmButton({ label, className }: { label: string; className: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className={`${className} disabled:opacity-60`}>
+      {label}
+    </button>
+  );
+}
+
+/**
+ * A destructive action behind a confirmation dialog. The panel's rule is that
+ * nothing irreversible happens on a single click: the button opens a native
+ * `<dialog>` (focus trap, Escape and the top layer for free) and the form only
+ * submits from inside it. The server action arrives from the page as a prop, so
+ * the package stays free of Next imports.
+ */
+export function ConfirmForm({
+  action,
+  fields,
+  label,
+  title,
+  body,
+  confirmLabel,
+  cancelLabel,
+  variant = "danger",
+  confirmVariant = "danger",
+  size = "md",
+  suffix,
+  className = "",
+}: {
+  action: (formData: FormData) => Promise<void>;
+  fields: Record<string, string>;
+  label: string;
+  title: string;
+  body: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  variant?: "danger" | "neutral";
+  confirmVariant?: "danger" | "primary";
+  size?: "sm" | "md";
+  /** Disambiguates ids when the same action renders twice (mobile + desktop). */
+  suffix?: string;
+  className?: string;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = `confirm-${fields.member ?? fields.movement ?? fields.group ?? "action"}-${suffix ?? "one"}-${label.length}`;
+  const bodyId = `${titleId}-body`;
+
+  const sizeClasses =
+    size === "sm" ? "min-h-9 px-2 text-[11px]" : "min-h-11 px-3 text-xs";
+  const trigger =
+    variant === "danger"
+      ? `justify-center rounded-control border border-border font-semibold text-destructive hover:bg-destructive/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${sizeClasses}`
+      : `justify-center rounded-control border border-border font-semibold hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${sizeClasses}`;
+  const confirmClasses =
+    confirmVariant === "primary"
+      ? "bg-accent text-accent-foreground"
+      : "bg-destructive text-destructive-foreground";
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => dialog.current?.showModal()}
+        className={`inline-flex items-center ${trigger} ${className}`}
+      >
+        {label}
+      </button>
+      <dialog
+        ref={dialog}
+        aria-labelledby={titleId}
+        aria-describedby={bodyId}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) dialog.current?.close();
+        }}
+        className="m-auto w-[calc(100vw-2rem)] max-w-md rounded-card border border-border bg-surface p-4 text-foreground backdrop:bg-foreground/40"
+      >
+        <h2 id={titleId} className="text-sm font-bold">
+          {title}
+        </h2>
+        <p id={bodyId} className="mt-1 text-xs text-muted-foreground">
+          {body}
+        </p>
+        <form action={action} className="mt-4 flex flex-wrap items-center justify-end gap-3">
+          {Object.entries(fields).map(([name, value]) => (
+            <input key={name} type="hidden" name={name} value={value} />
+          ))}
+          <button
+            type="button"
+            onClick={() => dialog.current?.close()}
+            className="inline-flex min-h-11 items-center rounded-control border border-border px-3 text-xs font-semibold hover:bg-muted"
+          >
+            {cancelLabel}
+          </button>
+          <ConfirmButton
+            label={confirmLabel}
+            className={`inline-flex min-h-11 items-center rounded-control px-3 text-xs font-semibold ${confirmClasses}`}
+          />
+        </form>
+      </dialog>
+    </>
+  );
+}

@@ -16,10 +16,13 @@ import {
   revokeUserModule,
   uninstallModule,
   updateModule,
+  upgradeModule,
   updateModuleSetting,
   type ModulesDeps,
 } from "./service";
 import { validateManifest } from "./manifest";
+import { listModuleJobRuns, runModuleJobNow } from "./jobs";
+import { getDashboardWidgets } from "./widgets";
 
 /**
  * Modules API (core-api spec §3.4). The manifest is loaded server-side from the
@@ -59,6 +62,13 @@ export const moduleListFiltersSchema = z
     public: z.enum(["all", "yes", "no"]).optional(),
   })
   .strict();
+
+function jobKey(value: string): string {
+  if (!/^[a-z][a-z0-9_]{0,62}$/.test(value)) {
+    throw new DomainError("validation_failed", "invalid job key");
+  }
+  return value;
+}
 
 function moduleKey(value: string): string {
   if (!MODULE_KEY.test(value)) throw new DomainError("validation_failed", "invalid module key");
@@ -154,6 +164,68 @@ export function installModuleRoute(deps: ModulesRouteDeps) {
     );
 }
 
+/** POST /api/v1/modules/{key}/jobs/{job}/run — run one job now (admin). */
+export function moduleJobRunRoute(deps: ModulesRouteDeps) {
+  return (req: Request, rawKey: string, rawJob: string): Promise<Response> =>
+    withDoor(req, options(deps, ["modules:manage"], moduleEmptySchema), deps.door, async () => ({
+      run: await runModuleJobNow(deps.modules, moduleKey(rawKey), jobKey(rawJob)),
+    }));
+}
+
+/**
+ * GET /api/v1/me/modules — the modules this caller can open. Derived from the
+ * same query as the catalogue: admins see every module, a user sees the active
+ * public ones plus the active grants. `profile:read` is the closest thing to
+ * "signed in": anon gets 401 and a service key 403.
+ */
+export function myModulesRoute(deps: ModulesRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(req, readOptions(deps, ["profile:read"]), deps.door, async (ctx) => {
+      const page = pageParams(ctx.searchParams);
+      const result = await listModules(deps.modules, ctx.caller, page, {});
+      return { ...result, limit: page.limit, offset: page.offset };
+    });
+}
+
+/** GET /api/v1/me/dashboard — widgets of the active modules the caller can use. */
+export function dashboardRoute(deps: ModulesRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(req, readOptions(deps, ["profile:read"]), deps.door, async (ctx) => {
+      const surface = ctx.searchParams.get("surface");
+      return {
+        widgets: await getDashboardWidgets(
+          deps.modules,
+          ctx.caller,
+          surface === "app" || surface === "panel" ? surface : undefined,
+        ),
+      };
+    });
+}
+
+/** GET /api/v1/modules/{key}/jobs — last runs of the module's scheduled jobs. */
+export function moduleJobRunsRoute(deps: ModulesRouteDeps) {
+  return (req: Request, rawKey: string): Promise<Response> =>
+    withDoor(req, readOptions(deps, ["modules:read"]), deps.door, async () => ({
+      runs: await listModuleJobRuns(deps.modules, moduleKey(rawKey)),
+    }));
+}
+
+/** POST /api/v1/modules/{key}/upgrade — apply a newer package over the installed one. */
+export function upgradeModuleRoute(deps: ModulesRouteDeps) {
+  return (req: Request, rawKey: string): Promise<Response> =>
+    withDoor(req, options(deps, ["modules:manage"], moduleEmptySchema), deps.door, async (ctx) => {
+      const key = moduleKey(rawKey);
+      return {
+        module: await upgradeModule(
+          deps.modules,
+          ctx.caller,
+          key,
+          await loadManifest(deps, key),
+        ),
+      };
+    });
+}
+
 export function activateModuleRoute(deps: ModulesRouteDeps) {
   return (req: Request, rawKey: string): Promise<Response> =>
     withDoor(req, options(deps, ["modules:manage"], moduleEmptySchema), deps.door, async (ctx) => ({
@@ -230,7 +302,7 @@ export function updateModuleSettingRoute(deps: ModulesRouteDeps) {
             ctx.caller,
             key,
             body,
-            setting.type,
+            setting,
           ),
         };
       },

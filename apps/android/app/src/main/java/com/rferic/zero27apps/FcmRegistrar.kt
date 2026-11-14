@@ -28,7 +28,7 @@ class FcmRegistrar(private val context: Context) {
         jwt: String,
         callback: (Result<String>) -> Unit,
     ) {
-        val baseUrl = ServerUrl.normalize(rawInstanceUrl)
+        val baseUrl = ServerUrl.normalize(rawInstanceUrl, requireHttps = !BuildConfig.DEBUG)
         if (baseUrl == null) {
             callback(Result.failure(IllegalArgumentException("Invalid instance URL")))
             return

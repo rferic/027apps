@@ -121,7 +121,14 @@ Ejemplo completo:
   `migrations[].version` es única en el manifest.
 - `settings[].category` = `snake_case(key)` del módulo; `settings[].icon` es opcional; se
   respeta `is_public`.
-- `scopes` siguen `recurso:acción`; viven en código; no se siembran en BD.
+- `scopes` siguen `recurso:acción`; viven en el manifest y el instalador los copia a
+  `module_registry.scopes` para resolverlos por petición. **Un scope no es global**: dos módulos
+  pueden declarar `expenses:read` y no se abren el uno al otro. La ruta de un módulo declara su
+  `moduleKey`; el door comprueba que el módulo está `active`, que el llamante tiene acceso
+  (`admin`/`super_admin`, módulo público o `user_modules` activo) y que el scope pedido está
+  entre los declarados. Sin acceso, un módulo desconocido y un módulo desactivado responden el
+  mismo `403 insufficient_scope`; `anon` recibe `401`. Un scope de Core nunca satisface una ruta
+  de módulo.
 - Las tools MCP referencian un scope declarado.
 - Cada evento declara `type`, `target` (`admins`|`all`|`user`|`channel:<pattern>`) y
   opcionalmente `notify`; un target de canal exige un `channels[].pattern`.
@@ -139,10 +146,97 @@ Ejemplo completo:
   `user_id` con acceso).
 - Los `hooks` referencian eventos del Core o del propio módulo; el valor es el nombre de la
   función `snake_case` que los atiende.
+- `contract`: entero obligatorio; debe **igualar** `CORE_CONTRACT`. Solo sube con cambios
+  incompatibles del contrato (campos obligatorios, semántica); los aditivos no lo mueven. Un
+  módulo de otra generación no instala ni actualiza, y el error dice cuál espera el Core.
+- `app`: `{ "visible": boolean }`, por defecto `true`. Un módulo con `visible: false` es de
+  **fondo**: no aparece en el lanzador de la app ni tiene pantallas móviles, pero conserva panel,
+  ajustes, eventos y workers. `is_public` sigue siendo visibilidad de acceso, no de UI.
+- `requires`: lista de `{ key, version }`; la versión es un **mínimo** (`1.2.0`, no rangos).
+  Instalar exige que la dependencia esté **instalada** (y con versión suficiente); activar, que
+  esté **activa**. Desactivar o desinstalar se niega mientras otro módulo instalado la requiera.
+  Un módulo no puede requerirse a sí mismo y no se permiten duplicados; los ciclos se rechazan al
+  instalar. Las reglas se resuelven contra `module_registry` (`app_visible`, `requires`), no
+  leyendo paquetes en cada transición.
+- `app_actions`: `[{ key, label, icon, screen }]`; solo en módulos con `app.visible: true`. `screen`
+  es un identificador del registro de pantallas de la app (nunca una URL ni HTML) y `label` es la
+  clave de traducción que la app resuelve en sus 9 idiomas. El catálogo del llamante
+  (`GET /api/v1/me/modules`, tarea 01 del sprint 15) las devolverá solo para módulos `active` a
+  los que tiene acceso; el FAB de la app se compone de ellas y no hay lista hardcodeada. Hoy el
+  registry las guarda y la ficha del panel las muestra en solo lectura.
+- **i18n del paquete**: `locales/<locale>.json` es un mapa plano `{ "texto en inglés":
+  "texto traducido" }` para cada locale declarado en `i18n`. El instalador y la actualización los
+  copian a `public.translations` con `source = 'module:<key>'`; el panel los superpone a su
+  diccionario, así que las etiquetas y ayudas del manifest se ven en el idioma de la interfaz.
+  Un fichero ausente o inválido solo deja ese texto en inglés (no rompe la instalación) y las
+  filas `manual`, `import` y `code` **nunca** se sobrescriben. Al desinstalar se borran por
+  `source`. La clave es el texto inglés exacto del manifest, no un identificador propio.
+- `demo`: `{ seed_fn, clear_fn }` (objeto: ambas o ninguna). `seed_fn(ids jsonb) returns jsonb`
+  recibe los ids del dataset del Core (`{ users: [{ email, id }], category_id, invitation_id }`) y
+  devuelve recuentos; `clear_fn() returns jsonb` borra solo lo que sembró. El Core las ejecuta en
+  una transacción al sembrar y al borrar demo, y llama a `clear_fn` **antes** de borrar el esquema
+  al desinstalar. Solo corren con `demo.enabled` y nunca en producción (`ALLOW_DEMO_DATA=true` es
+  el opt-in explícito de staging); nunca reciben datos reales ni envían correo.
+- `jobs`: `[{ key, schedule, fn, timeout_seconds? }]`. `schedule` es un cron de **5 campos**
+  (`minuto hora día mes día_semana`), validado al instalar; `fn` es una función del esquema del
+  módulo que se ejecuta **sin usuario** (el Core la llama como servicio, con timeout, y nunca le
+  pasa datos de una sesión). Día del mes y día de la semana deben coincidir **ambos** cuando los
+  dos están restringidos (simplificación deliberada del OR de cron). Los trabajos de un módulo
+  inactivo no se ejecutan y se borran al desinstalar. El registro copia `jobs` para que el
+  despachador no lea paquetes en cada minuto.
+  El despachador evalúa el cron en **UTC**, ejecuta cada trabajo en una transacción con
+  `statement_timeout` y `search_path` del esquema del módulo (las tablas se resuelven sin
+  cualificar, igual que en las migraciones), y reclama la fila de `module_job_runs` antes de
+  ejecutar: dos llamadas en el mismo minuto no duplican. Un fallo se registra y no aborta el lote.
+- `dashboard_widgets`: cada widget declara `key` (`modulo.dato`, con guion permitido en el
+  prefijo), `type` (`summary`|`metric`|`list`), `surface` (`app`|`panel`), `title`, `icon`,
+  `order` y `data_fn`, una función del esquema del módulo `(user_id uuid) returns jsonb` que
+  **filtra por ese usuario** (en `surface: panel` el panel es de administración y la función
+  puede devolver datos de instancia, como hace OweNo). El Core la llama al componer `GET /api/v1/me/dashboard`; si la
+  función falla, el widget se omite y el dashboard sigue. Sin HTML ni JS del módulo.
+  La función devuelve `{ "value": string | number, "label"?: string, "detail"?: string,
+  "params"?: Record<string, string | number> }`; el panel pinta `value` con `label` y `detail`
+  como texto secundario, y nunca interpreta claves que no conozca. **`title`, `label` y `detail`
+  son claves en inglés**: el panel los traduce con los `locales/*.json` del módulo y sustituye
+  `params` en los placeholders `{nombre}`. Cada tarjeta muestra el logo del módulo y enlaza a
+  `/panel/<key>`. Cualquier otro campo se ignora. **Los textos no se pluralizan en SQL**: el
+  widget devuelve cifras y una clave con `params` (`"Members {members} · Movements {movements}"`),
+  y el panel la traduce; evita `"1 groups"`.
+- **Páginas de admin y acceso a datos**: el host solo renderiza una página de módulo tras
+  comprobar sesión, rol del manifest y `active`, y le pasa un `ModulePageContext`
+  (`@027apps/core/modules/pages.js`): `{ moduleKey, caller, db, locale, messages, searchParams,
+  linkComponent }`. `linkComponent` es el enlace del panel (`next/link`) inyectado por el host:
+  las páginas navegan sin recarga completa sin importar Next; si falta, usan `<a>`.
+  `searchParams` es el mecanismo de detalle mientras no haya segmentos dinámicos
+  (`?group=<id>`); la página valida el parámetro y el envoltorio resuelve el 404. La página usa
+  el **servicio del módulo** (`packages/<key>/src/service.ts`), el mismo que su API, en vez de
+  llamarse a sí misma por HTTP. Las reglas de quién ve qué viven en ese servicio, una sola vez;
+  las páginas no las reimplementan. El panel es de administración: lee todo y **escribe con
+  auditoría** cuando el módulo lo permite (D26).
+- **Páginas que escriben**: el paquete no puede importar código del panel (alias `@/`) ni
+  depender de Next. La página `packages/<key>/admin/<route>/page.tsx` es **presentacional** y
+  recibe las acciones como props; `MODULE_PAGES` apunta a un **envoltorio** de la app
+  (`apps/admin/src/components/...`) que las inyecta desde un fichero `"use server"`. El
+  envoltorio no decide reglas ni permisos: el gate y la autorización viven en la acción y en el
+  dominio. Así el paquete sigue sin Next y la sesión no sale de la app.
+- **Páginas de admin en el idioma del panel**: `messages` es el mapa plano de
+  `locales/<locale>.json` del módulo (con `en.json` como respaldo) y `locale` el idioma de la
+  sesión. La página traduce con `t("English text", context.messages)`: **nunca** deja un literal
+  inglés en el JSX. Las etiquetas de `admin_pages` se traducen con el mismo mapa. El host pinta la
+  navegación del módulo (sus páginas + Ajustes) a partir del manifest, así que una ruta nueva no
+  necesita enlace propio.
+- **Claves reservadas**: la `key` del módulo se sirve en `/panel/<key>`, así que no puede
+  coincidir con una ruta fija del panel (`admin`, `api`, `categories`, `core`, `docs`, `help`,
+  `invitations`, `keys`, `mcp`, `members`, `modules`, `settings`). El manifest lo rechaza con
+  «reserved».
 - `admin_pages`: `route` de un solo segmento (`^[a-z0-9]+(-[a-z0-9]+)*$`, sin `/`, `..`,
   `%2e` ni rutas reservadas), `label` en inglés, `icon` del DS, `group` (`module`) y `role`
   (`admin`|`super_admin`). El componente vive en `packages/<key>/admin/<route>/page.tsx` y el
-  CI del Core exigirá que exista; se sirve en `/modules/<key>/<route>` y solo si el módulo está `active`.
+  CI del Core exigirá que exista; se sirve en **`/panel/<key>/<route>`** (y `overview` en
+  `/panel/<key>`) solo si el módulo está `active`. Un módulo activo con páginas aparece en la
+  barra lateral del panel, en el grupo **«Módulos»**, con su logo y su nombre; la ficha
+  (ajustes, concesiones, demo, trabajos) vive en `/panel/modules/<key>`. Las URLs antiguas
+  bajo `/panel/modules/<key>/<route>` redirigen con 308.
 - Documentación por capacidad: `docs.readme` obligatorio; `docs.api` obligatorio si declara
   `scopes`; `docs.mcp` si declara `mcp_tools`; `docs.settings` si declara `settings`;
   `docs.events` si declara `events`/`channels`. El CI del Core exigirá el fichero y que cada
@@ -181,6 +275,14 @@ packages/<key>/
     resources/
 ```
 
+### Dónde se leen en producción
+
+El runtime lee el paquete con `readFile`: en local, `MODULES_ROOT` o el `packages/` del monorepo
+junto a `apps/admin`; en Vercel, el `packages/` que `outputFileTracingIncludes` copia junto al
+root de la función (`apps/admin/next.config.ts`). Un manifiesto, SQL, docs, locales, iconos o
+páginas de admin nuevos entran en `MODULE_PACKAGE_FILES`; si falta uno, el módulo instala en
+local y falla en el preview. Nunca se copian `.env` ni secretos.
+
 ### Requisitos
 
 - `README.md` obligatorio. Documenta el propósito, las capacidades y cómo se usa.
@@ -191,9 +293,53 @@ packages/<key>/
 - DDL `up`/`down` reversible, con digests verificables.
 - Settings completos y con `is_secret` cuando corresponda.
 - i18n con claves en inglés como clave; el texto visible se traduce.
-- Scopes en código, no en BD.
+- Scopes en el manifest; el instalador los copia a `module_registry.scopes` para resolverlos
+  por petición (ver §3bis).
 - Páginas de admin con componente existente y ruta válida.
 - Sin secretos en el paquete ni en el manifest.
+- Un paquete de pruebas puede marcarse `027apps.devOnly: true` en su `package.json` (no en el
+  manifest: el esquema es estricto). El catálogo del panel no lo ofrece con
+  `NODE_ENV=production`; en local y staging sí, para poder ejercitar el runtime.
+
+### 3bis. Esquema, privilegios y RLS
+
+- El DDL corre como `module_installer`: crea el esquema `module_<key>` y sus objetos, y **no puede**
+  tocar `public`, `auth` ni crear `security definer`. El guard de SQL (`assertSafeModuleSql`) solo
+  permite dos referencias auditadas a `public`: `public.core_current_user_id()` en políticas y
+  `references public.profiles(...)` como destino de FK (nunca como lectura).
+- **Privilegios**: tras las migraciones el instalador concede `usage` del esquema y DML sobre
+  tablas/secuencias a `authenticated` (siempre pasa por RLS) y todo a `service_role`; las
+  migraciones futuras heredan con `alter default privileges`. Desinstalar borra el esquema y con
+  él los privilegios.
+- **Identidad**: `public.core_current_user_id()` (`security invoker`, `search_path` vacío) lee el
+  `sub` de los claims. Es la única función que un módulo puede usar para saber quién llama.
+- **FK a `profiles`**: obligatorio `on delete set null`, porque `purgeUser` borra `auth.users` y no
+  limpia los esquemas de módulo. El instalador lo comprueba en el catálogo y falla con
+  `fk_profiles_missing_set_null`; la fila del módulo sobrevive sin `user_id` (D16).
+- **Ajustes y reinstalación**: el instalador escribe `settings_categories` y `settings` con
+  `upsert` (`syncModuleSettings`). Viven en `public`, así que un intento fallido las deja escritas
+  aunque el DDL de su esquema se revierta; reinstalar debe funcionar sin limpiar a mano.
+- **Scopes por ruta**: la ruta declara `moduleKey`; el door comprueba módulo `active`, acceso
+  (admin, público o grant activo) y que el scope esté declarado. Sin acceso → `403` uniforme.
+
+### RLS que necesita leer otra tabla del módulo
+
+Una política no puede consultar la tabla que protege a través de una función del
+propio esquema: la función vuelve a entrar en la política y PostgreSQL aborta por
+recursión. El patrón que funciona, y que usa OweNo, es una **vista** del esquema
+del módulo que ya filtra por el llamante:
+
+```sql
+create view owe_no_my_membership as
+  select m.group_id, m.state
+    from module_owe_no.owe_no_members m
+   where m.user_id = public.core_current_user_id();
+```
+
+La vista pertenece al rol instalador (no entra en RLS) y la función de la política
+la lee; como la vista solo devuelve filas del llamante, no hay escalada. `security
+definer` sigue prohibido. El instalador concede `select` a `authenticated` sobre
+las vistas junto con las tablas.
 
 ## 4. Ciclo de vida
 

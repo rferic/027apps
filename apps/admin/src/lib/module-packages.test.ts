@@ -14,6 +14,7 @@ const VALID_MANIFEST = {
     color: "teal",
   },
   version: "1.0.0",
+  contract: 1,
   is_public: false,
   i18n: ["en"],
   docs: { readme: "README.md" },

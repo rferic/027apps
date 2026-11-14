@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { Caller, DoorDeps } from "../api/types";
 import type { RateLimitStorage } from "../api/rate-limit-storage";
-import { purgeUserRoute, userModulesRoute, usersRoute, type UsersRouteDeps } from "./api.js";
+import {
+  mePatchRoute,
+  meRoute,
+  purgeUserRoute,
+  userModulesRoute,
+  usersRoute,
+  type UsersRouteDeps,
+} from "./api.js";
 import type { Role } from "./service.js";
 
 interface ProfileRow {
@@ -9,6 +16,7 @@ interface ProfileRow {
   display_name: string;
   locale: string;
   timezone: string;
+  theme?: "system" | "light" | "dark";
   role: Role;
   created_at: string;
   deactivated_at: string | null;
@@ -113,6 +121,28 @@ function dbFor(
           .map((grant) => ({ key: grant.key, name: grant.name }))
           .sort((a, b) => a.name.localeCompare(b.name));
         return { rows: live.length > 0 ? live : [{ key: null, name: null }] };
+      }
+      if (sql.startsWith("update public.profiles")) {
+        const [id, displayName, locale, timezone, theme, role] = params as [
+          string,
+          string | null,
+          string | null,
+          string | null,
+          "system" | "light" | "dark" | null,
+          Role | null,
+        ];
+        const current = profiles.get(id);
+        if (current) {
+          profiles.set(id, {
+            ...current,
+            display_name: displayName ?? current.display_name,
+            locale: locale ?? current.locale,
+            timezone: timezone ?? current.timezone,
+            theme: theme ?? current.theme ?? "system",
+            role: role ?? current.role,
+          });
+        }
+        return { rows: [] };
       }
       if (sql.startsWith("delete from auth.users")) {
         profiles.delete(String(params[0]));
@@ -343,5 +373,93 @@ describe("GET /api/v1/users category", () => {
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
       "validation_failed",
     );
+  });
+});
+
+describe("GET /api/v1/me", () => {
+  it("returns the caller's own profile, with the theme", async () => {
+    const db = dbFor([profile("ana", { theme: "dark", display_name: "Ana" })]);
+    const route = meRoute(deps(db, { kind: "session", userId: "ana", role: "user" }));
+
+    const res = await route(new Request("http://local/api/v1/me"));
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { user: Record<string, unknown> };
+    expect(body.user).toMatchObject({ id: "ana", display_name: "Ana", theme: "dark" });
+  });
+
+  it("serves a delegated key its owner's profile", async () => {
+    const db = dbFor([profile("ana")]);
+    const route = meRoute(
+      deps(db, {
+        kind: "delegated",
+        keyId: "k",
+        userId: "ana",
+        scopes: ["profile:read"],
+        roleCap: "user",
+      }),
+    );
+
+    const res = await route(new Request("http://local/api/v1/me"));
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { user: { id: string; theme: string } };
+    expect(body.user.id).toBe("ana");
+    expect(body.user.theme).toBe("system");
+  });
+
+  it("answers 401 without a session and 403 for a service key", async () => {
+    const db = dbFor([profile("ana")]);
+    const anon = meRoute(deps(db, { kind: "anon" }));
+    expect((await anon(new Request("http://local/api/v1/me"))).status).toBe(401);
+
+    // Service keys never carry `profile:*`: the door answers 403 before the handler.
+    const service = meRoute(
+      deps(db, { kind: "service", keyId: "k", scopes: [], roleCap: "admin" }),
+    );
+    expect((await service(new Request("http://local/api/v1/me"))).status).toBe(403);
+  });
+});
+
+describe("PATCH /api/v1/me", () => {
+  function patch(body: unknown, who: Caller = { kind: "session", userId: "ana", role: "user" }) {
+    const db = dbFor([profile("ana", { display_name: "Ana" })]);
+    const route = mePatchRoute(deps(db, who));
+    return {
+      db,
+      res: route(
+        new Request("http://local/api/v1/me", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      ),
+    };
+  }
+
+  it("edits the display name, the locale and the theme", async () => {
+    const { db, res } = patch({ display_name: "Ana María", locale: "es", theme: "light" });
+
+    expect((await res).status).toBe(200);
+    expect(db.profiles.get("ana")).toMatchObject({
+      display_name: "Ana María",
+      locale: "es",
+      theme: "light",
+    });
+  });
+
+  it("refuses a role change", async () => {
+    const { res } = patch({ role: "admin" });
+    expect((await res).status).toBe(400);
+  });
+
+  it("refuses an unknown locale or theme", async () => {
+    expect((await patch({ locale: "xx" }).res).status).toBe(400);
+    expect((await patch({ theme: "neon" }).res).status).toBe(400);
+  });
+
+  it("answers 401 without a session", async () => {
+    const { res } = patch({ display_name: "Ana" }, { kind: "anon" });
+    expect((await res).status).toBe(401);
   });
 });

@@ -1,5 +1,7 @@
 import { resolve, sep } from "node:path";
 import { DomainError } from "../errors";
+import { CORE_CONTRACT } from "../version";
+import { clearDemoForModule } from "../demo/service";
 import { enqueueEvent } from "../realtime/service";
 import type { Caller, JsonValue } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
@@ -50,6 +52,10 @@ export interface ModulePage {
   offset: number;
 }
 
+export type ModuleAppAction = { key: string; label: string; icon: string; screen: string };
+
+export type ModuleDemo = { seed_fn: string; clear_fn: string };
+
 export type ModuleView = {
   key: string;
   name: string;
@@ -60,6 +66,8 @@ export type ModuleView = {
   manifest_digest: string;
   installed_at: string;
   updated_at: string;
+  app_actions: ModuleAppAction[];
+  demo: ModuleDemo | null;
 };
 
 /** Access holder of a module: a user grant or a category assignment. */
@@ -138,6 +146,12 @@ function quoteIdent(value: string): string {
   return `"${value}"`;
 }
 
+function isDemoHooks(value: unknown): value is ModuleDemo {
+  if (typeof value !== "object" || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.seed_fn === "string" && typeof record.clear_fn === "string";
+}
+
 function toModuleView(row: Record<string, unknown>): ModuleView {
   return {
     key: String(row.key),
@@ -149,6 +163,8 @@ function toModuleView(row: Record<string, unknown>): ModuleView {
     manifest_digest: String(row.manifest_digest ?? ""),
     installed_at: toIso(row.installed_at),
     updated_at: toIso(row.updated_at),
+    app_actions: Array.isArray(row.app_actions) ? (row.app_actions as ModuleView["app_actions"]) : [],
+    demo: isDemoHooks(row.demo) ? row.demo : null,
   };
 }
 
@@ -170,7 +186,7 @@ function toSettingView(row: Record<string, unknown>): ModuleSettingView {
 }
 
 const MODULE_COLUMNS =
-  "key, name, version, state, is_public, mcp_exposed, manifest_digest, installed_at, updated_at";
+  "key, name, version, state, is_public, mcp_exposed, manifest_digest, installed_at, updated_at, app_actions, demo";
 
 async function getModuleRow(db: QueryClient, key: string): Promise<Record<string, unknown>> {
   const { rows } = await db.query(`select ${MODULE_COLUMNS} from public.module_registry where key = $1`, [
@@ -289,6 +305,49 @@ async function verifyModuleFiles(
   return { up, down };
 }
 
+/**
+ * Mirrors the module's `locales/<locale>.json` files into `translations`. Each
+ * file is a flat `{ "English text": "translated text" }` map; a missing or
+ * malformed file only means the panel keeps the English text. Module rows never
+ * overwrite `manual`, `import` or `code` entries, so an operator edit wins.
+ */
+async function syncModuleTranslations(
+  deps: ModulesDeps,
+  db: QueryClient,
+  manifest: ModuleManifest,
+): Promise<void> {
+  if (!deps.readFile || !deps.moduleRoot) return;
+  const source = `module:${manifest.key}`;
+  await db.query("delete from public.translations where source = $1", [source]);
+  for (const locale of manifest.i18n) {
+    let raw: unknown;
+    try {
+      raw = JSON.parse(
+        await deps.readFile(`${deps.moduleRoot(manifest.key)}/locales/${locale}.json`),
+      );
+    } catch {
+      continue;
+    }
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) continue;
+    for (const [textEn, translated] of Object.entries(raw as Record<string, unknown>)) {
+      if (textEn.trim() === "" || typeof translated !== "string" || translated.trim() === "") {
+        continue;
+      }
+      await db.query(
+        `insert into public.translations (locale, text_hash, text_en, translated_text, source)
+         values ($1, $2, $3, $4, $5)
+         on conflict (locale, text_hash) do update set
+           translated_text = excluded.translated_text,
+           source = excluded.source,
+           updated_at = now()
+         where public.translations.source = 'module'
+            or public.translations.source like 'module:%'`,
+        [locale, sha256(textEn).slice("sha256:".length), textEn, translated, source],
+      );
+    }
+  }
+}
+
 async function applySql(
   db: QueryClient,
   key: string,
@@ -300,6 +359,145 @@ async function applySql(
     await db.query(sql);
   } finally {
     await db.query("reset role");
+    // `set local` lasts until the transaction ends, and the installer shares
+    // that transaction with later work: leaving the module schema as the
+    // search_path would hide `extensions` and break unrelated queries.
+    await db.query("reset search_path");
+  }
+}
+
+/**
+ * After a module's migrations the schema exists but nobody can use it: the DDL
+ * runs as `module_installer`. Grant the minimum the API needs — `authenticated`
+ * still goes through RLS — and keep future migrations covered with default
+ * privileges, so a new table is usable without a manual grant.
+ */
+async function grantModulePrivileges(db: QueryClient, schema: string): Promise<void> {
+  const s = quoteIdent(schema);
+  await db.query(`grant usage on schema ${s} to authenticated, service_role`);
+  await db.query(
+    `grant select, insert, update, delete on all tables in schema ${s} to authenticated`,
+  );
+  await db.query(`grant all on all tables in schema ${s} to service_role`);
+  await db.query(
+    `grant usage, select on all sequences in schema ${s} to authenticated, service_role`,
+  );
+  await db.query(
+    `alter default privileges for role ${MODULE_ROLE} in schema ${s}
+       grant select, insert, update, delete on tables to authenticated`,
+  );
+  await db.query(
+    `alter default privileges for role ${MODULE_ROLE} in schema ${s}
+       grant all on tables to service_role`,
+  );
+  await db.query(
+    `alter default privileges for role ${MODULE_ROLE} in schema ${s}
+       grant usage, select on sequences to authenticated, service_role`,
+  );
+}
+
+/**
+ * A module may reference `profiles(id)` only with `on delete set null`:
+ * `purgeUser` deletes `auth.users` and cannot clean module schemas, so any
+ * other action would make deleting a user fail. Checked in the catalog, not by
+ * parsing SQL.
+ */
+async function assertProfileForeignKeys(db: QueryClient, schema: string): Promise<void> {
+  const { rows } = await db.query(
+    `select c.conname
+       from pg_constraint c
+       join pg_class t on t.oid = c.conrelid
+       join pg_namespace n on n.oid = t.relnamespace
+      where c.contype = 'f'
+        and n.nspname = $1
+        and c.confrelid = 'public.profiles'::regclass
+        and c.confdeltype <> 'n'`,
+    [schema],
+  );
+  if (rows[0]) {
+    throw new DomainError(
+      "validation_failed",
+      `module foreign key ${String(rows[0].conname)} to profiles must use on delete set null`,
+      { code: "fk_profiles_missing_set_null" },
+    );
+  }
+}
+
+/** `1.2.3` compared by number, no range syntax: a requirement is a minimum. */
+export function compareVersions(left: string, right: string): number {
+  const a = left.split(".").map((part) => Number(part));
+  const b = right.split(".").map((part) => Number(part));
+  for (let index = 0; index < 3; index += 1) {
+    const diff = (a[index] ?? 0) - (b[index] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+type Requirement = { key: string; version: string };
+
+/**
+ * Install needs the dependency present; activate needs it active. The version
+ * is a minimum, so a newer dependency always satisfies it.
+ */
+async function assertRequirements(
+  db: QueryClient,
+  requires: readonly Requirement[],
+  mode: "installed" | "active",
+): Promise<void> {
+  for (const requirement of requires) {
+    const { rows } = await db.query(
+      "select state, version from public.module_registry where key = $1",
+      [requirement.key],
+    );
+    const row = rows[0];
+    if (!row) {
+      throw new DomainError(
+        "validation_failed",
+        `requires module ${requirement.key}`,
+        { code: "missing_dependency", key: requirement.key },
+      );
+    }
+    if (mode === "active" && row.state !== "active") {
+      throw new DomainError(
+        "conflict",
+        `requires ${requirement.key} to be active`,
+        { code: "dependency_inactive", key: requirement.key },
+      );
+    }
+    if (compareVersions(String(row.version), requirement.version) < 0) {
+      throw new DomainError(
+        "validation_failed",
+        `requires ${requirement.key} >= ${requirement.version}`,
+        { code: "dependency_version", key: requirement.key },
+      );
+    }
+  }
+}
+
+/** Refuses when another module that requires this one is `active` (or any state). */
+async function assertNotRequired(
+  db: QueryClient,
+  key: string,
+  states: readonly string[],
+): Promise<void> {
+  const { rows } = await db.query(
+    `select r.key from public.module_registry r
+      where r.key <> $1
+        and r.state = any($2::text[])
+        and exists (
+          select 1 from jsonb_array_elements(r.requires) item
+           where item->>'key' = $1
+        )
+      limit 1`,
+    [key, states],
+  );
+  if (rows[0]) {
+    throw new DomainError(
+      "conflict",
+      `module ${String(rows[0].key)} requires this one`,
+      { code: "required_by_module", key: String(rows[0].key) },
+    );
   }
 }
 
@@ -310,8 +508,14 @@ export async function installModule(
 ): Promise<ModuleView> {
   if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
   const manifest = validateManifest(value);
+  if (manifest.contract !== CORE_CONTRACT) {
+    throw new DomainError(
+      "validation_failed",
+      `module contract ${manifest.contract} does not match this Core (${CORE_CONTRACT})`,
+      { code: "contract_mismatch", expected: CORE_CONTRACT },
+    );
+  }
   const files = await verifyModuleFiles(deps, manifest);
-  const actor = actorFor(caller);
   const digest = manifestDigest(manifest);
   const schema = schemaFor(manifest.key);
 
@@ -321,16 +525,32 @@ export async function installModule(
       [manifest.key],
     );
     if (existing[0]) throw new DomainError("conflict", "Module is already installed");
+    await assertRequirements(db, manifest.requires, "installed");
 
     await db.query(`create schema if not exists ${quoteIdent(schema)}`);
     await db.query(`grant usage, create on schema ${quoteIdent(schema)} to ${MODULE_ROLE}`);
 
     await db.query(
       `insert into public.module_registry
-         (key, name, version, state, is_public, mcp_exposed, manifest_digest)
-       values ($1, $2, $3, 'installed', $4, 'read', $5)`,
-      [manifest.key, manifest.name, manifest.version, manifest.is_public, digest],
+         (key, name, version, state, is_public, mcp_exposed, manifest_digest, scopes,
+          app_visible, requires, jobs, app_actions, dashboard_widgets, demo)
+       values ($1, $2, $3, 'installed', $4, 'read', $5, $6::text[], $7, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb)`,
+      [
+        manifest.key,
+        manifest.name,
+        manifest.version,
+        manifest.is_public,
+        digest,
+        manifest.scopes,
+        manifest.app.visible,
+        JSON.stringify(manifest.requires),
+        JSON.stringify(manifest.jobs),
+        JSON.stringify(manifest.app_actions),
+        JSON.stringify(manifest.dashboard_widgets),
+        JSON.stringify(manifest.demo ?? null),
+      ],
     );
+    await syncModuleTranslations(deps, db, manifest);
     for (const channel of manifest.channels) {
       await db.query(
         "insert into public.module_channels (module_key, pattern, members_fn) values ($1, $2, $3)",
@@ -355,37 +575,13 @@ export async function installModule(
       );
     }
 
-    for (const group of manifest.settings) {
-      await db.query(
-        `insert into public.settings_categories
-           (category_key, label, help, icon, sort_order, source)
-         values ($1, $2, $3, $4, $5, $6)`,
-        [group.category, group.label, null, group.icon ?? null, group.sort_order, `module:${manifest.key}`],
-      );
-      for (const setting of group.settings) {
-        const fullKey = `${group.category}.${setting.key}`;
-        await db.query(
-          `insert into public.settings
-             (category_key, key, label, help, value, is_secret, is_public, mcp_access,
-              sort_order, updated_by, updated_by_key)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-          [
-            group.category,
-            fullKey,
-            setting.label,
-            setting.help ?? null,
-            setting.is_secret ? null : JSON.stringify(setting.default ?? null),
-            setting.is_secret,
-            setting.is_public,
-            setting.mcp_access,
-            setting.sort_order,
-            actor.by,
-            actor.byKey,
-          ],
-        );
-      }
-    }
+    await grantModulePrivileges(db, schema);
+    await assertProfileForeignKeys(db, schema);
 
+    // Upsert, not insert: a failed install can leave the settings rows behind
+    // (they live in public), and installing again must not die on the primary
+    // key before the registry row exists.
+    await syncModuleSettings(db, manifest, categoryFor(manifest.key));
   });
 
   return toModuleView(await getModuleRow(deps.db, manifest.key));
@@ -483,6 +679,161 @@ export async function getModule(
   return { ...toModuleView(row), settings_public: rows.map(toSettingView) };
 }
 
+/**
+ * Applies a newer package over an installed module: only the migrations that
+ * are not applied yet run, in manifest order; settings are added, updated in
+ * their labels and removed, never resetting the stored values. Anything that
+ * is not a strictly newer version is refused, and a failed migration rolls the
+ * whole upgrade back.
+ */
+export async function upgradeModule(
+  deps: ModulesDeps,
+  caller: Caller,
+  key: string,
+  manifestValue: unknown,
+): Promise<ModuleView> {
+  if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
+  const manifest = validateManifest(manifestValue);
+  if (manifest.key !== key) throw new DomainError("validation_failed", "manifest does not match the key");
+  if (manifest.contract !== CORE_CONTRACT) {
+    throw new DomainError(
+      "validation_failed",
+      `module contract ${manifest.contract} does not match this Core (${CORE_CONTRACT})`,
+      { code: "contract_mismatch", expected: CORE_CONTRACT },
+    );
+  }
+  const files = await verifyModuleFiles(deps, manifest);
+  const digest = manifestDigest(manifest);
+  const category = categoryFor(manifest.key);
+
+  return withTx(deps, async (db) => {
+    const current = await getModuleRow(db, manifest.key);
+    const installedVersion = String(current.version);
+    if (compareVersions(manifest.version, installedVersion) <= 0) {
+      throw new DomainError(
+        "conflict",
+        `module ${manifest.key} is at ${installedVersion}; ${manifest.version} is not newer`,
+        { code: "not_newer", installed: installedVersion },
+      );
+    }
+    await assertRequirements(
+      db,
+      manifest.requires,
+      current.state === "active" ? "active" : "installed",
+    );
+
+    const { rows } = await db.query(
+      `select version from public.module_migrations
+        where module_key = $1 and direction = 'up'`,
+      [manifest.key],
+    );
+    const applied = new Set(rows.map((row) => String(row.version)));
+    const declared = new Set(manifest.migrations.map((migration) => migration.version));
+    for (const version of applied) {
+      if (!declared.has(version)) {
+        throw new DomainError("conflict", `applied migration ${version} is missing from the manifest`);
+      }
+    }
+
+    for (const migration of manifest.migrations) {
+      if (applied.has(migration.version)) continue;
+      const sql = files.up.get(migration.version);
+      if (!sql) throw new DomainError("internal", `missing SQL for ${migration.version}`);
+      await applySql(db, manifest.key, sql);
+      await db.query(
+        `insert into public.module_migrations (module_key, version, direction, ddl_digest)
+         values ($1, $2, 'up', $3)`,
+        [manifest.key, migration.version, migration.digest],
+      );
+    }
+
+    const { rows: updated } = await db.query(
+      `update public.module_registry
+          set version = $2, manifest_digest = $3, scopes = $4, app_visible = $5,
+              requires = $6::jsonb, jobs = $7::jsonb, app_actions = $8::jsonb,
+              dashboard_widgets = $9::jsonb, demo = $10::jsonb, updated_at = now()
+        where key = $1
+        returning ${MODULE_COLUMNS}`,
+      [
+        manifest.key,
+        manifest.version,
+        digest,
+        manifest.scopes,
+        manifest.app.visible,
+        JSON.stringify(manifest.requires),
+        JSON.stringify(manifest.jobs),
+        JSON.stringify(manifest.app_actions),
+        JSON.stringify(manifest.dashboard_widgets),
+        JSON.stringify(manifest.demo ?? null),
+      ],
+    );
+
+    await syncModuleTranslations(deps, db, manifest);
+    await syncModuleSettings(db, manifest, category);
+
+    await enqueueEvent(db, {
+      type: "module.upgraded",
+      target: "admins",
+      module_key: manifest.key,
+      resource: toModuleView(updated[0]),
+      payload: { from: installedVersion, to: manifest.version },
+    });
+    return toModuleView(updated[0]);
+  });
+}
+
+/** Settings follow the new manifest: added, relabelled or removed; values stay. */
+async function syncModuleSettings(
+  db: QueryClient,
+  manifest: ModuleManifest,
+  category: string,
+): Promise<void> {
+  const keep: string[] = [];
+  for (const group of manifest.settings) {
+    await db.query(
+      `insert into public.settings_categories
+         (category_key, label, help, icon, sort_order, source)
+       values ($1, $2, $3, $4, $5, $6)
+       on conflict (category_key) do update
+         set label = excluded.label, help = excluded.help,
+             icon = excluded.icon, sort_order = excluded.sort_order`,
+      [group.category, group.label, null, group.icon ?? null, group.sort_order, `module:${manifest.key}`],
+    );
+    for (const setting of group.settings) {
+      keep.push(`${group.category}.${setting.key}`);
+      await db.query(
+        `insert into public.settings
+           (category_key, key, label, help, value, is_secret, is_public, mcp_access, sort_order)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         on conflict (category_key, key) do update
+           set label = excluded.label, help = excluded.help,
+               is_secret = excluded.is_secret, is_public = excluded.is_public,
+               mcp_access = excluded.mcp_access, sort_order = excluded.sort_order`,
+        [
+          group.category,
+          `${group.category}.${setting.key}`,
+          setting.label,
+          setting.help ?? null,
+          setting.is_secret ? null : JSON.stringify(setting.default ?? null),
+          setting.is_secret,
+          setting.is_public,
+          setting.mcp_access,
+          setting.sort_order,
+        ],
+      );
+    }
+  }
+  if (manifest.settings.length === 0) {
+    await db.query("delete from public.settings where category_key = $1", [category]);
+    await db.query("delete from public.settings_categories where category_key = $1", [category]);
+    return;
+  }
+  await db.query(
+    "delete from public.settings where category_key = $1 and key <> all($2::text[])",
+    [category, keep],
+  );
+}
+
 export async function updateModule(
   deps: ModulesDeps,
   caller: Caller,
@@ -516,42 +867,57 @@ export async function updateModule(
   return toModuleView(rows[0]);
 }
 
-async function transition(
-  deps: ModulesDeps,
+async function transitionOn(
+  db: QueryClient,
   caller: Caller,
   key: string,
   target: ModuleState,
   from: ModuleState[],
 ): Promise<ModuleView> {
   if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
+  const { rows } = await db.query(
+    `update public.module_registry
+        set state = $1, updated_at = now()
+      where key = $2 and state = any($3::text[])
+      returning ${MODULE_COLUMNS}`,
+    [target, key, from],
+  );
+  if (rows[0]) {
+    await enqueueEvent(db, {
+      type: target === "active" ? "module.activated" : "module.deactivated",
+      target: "admins",
+      module_key: key,
+      resource: toModuleView(rows[0]),
+    });
+    return toModuleView(rows[0]);
+  }
+  const row = await getModuleRow(db, key);
+  throw new DomainError("conflict", `Cannot move the module from ${String(row.state)} to ${target}`);
+}
+
+export async function activateModule(
+  deps: ModulesDeps,
+  caller: Caller,
+  key: string,
+): Promise<ModuleView> {
   return withTx(deps, async (db) => {
-    const { rows } = await db.query(
-      `update public.module_registry
-          set state = $1, updated_at = now()
-        where key = $2 and state = any($3::text[])
-        returning ${MODULE_COLUMNS}`,
-      [target, key, from],
-    );
-    if (rows[0]) {
-      await enqueueEvent(db, {
-        type: target === "active" ? "module.activated" : "module.deactivated",
-        target: "admins",
-        module_key: key,
-        resource: toModuleView(rows[0]),
-      });
-      return toModuleView(rows[0]);
-    }
     const row = await getModuleRow(db, key);
-    throw new DomainError("conflict", `Cannot move the module from ${String(row.state)} to ${target}`);
+    const { rows } = await db.query("select requires from public.module_registry where key = $1", [key]);
+    const requires = (rows[0]?.requires as Requirement[] | undefined) ?? [];
+    await assertRequirements(db, requires, "active");
+    return transitionOn(db, caller, key, "active", ["installed", "disabled"]);
   });
 }
 
-export function activateModule(deps: ModulesDeps, caller: Caller, key: string): Promise<ModuleView> {
-  return transition(deps, caller, key, "active", ["installed", "disabled"]);
-}
-
-export function deactivateModule(deps: ModulesDeps, caller: Caller, key: string): Promise<ModuleView> {
-  return transition(deps, caller, key, "disabled", ["active"]);
+export async function deactivateModule(
+  deps: ModulesDeps,
+  caller: Caller,
+  key: string,
+): Promise<ModuleView> {
+  return withTx(deps, async (db) => {
+    await assertNotRequired(db, key, ["active"]);
+    return transitionOn(db, caller, key, "disabled", ["active"]);
+  });
 }
 
 export async function uninstallModule(
@@ -568,6 +934,7 @@ export async function uninstallModule(
 
   await withTx(deps, async (db) => {
     await getModuleRow(db, key);
+    await assertNotRequired(db, key, ["installed", "active", "disabled"]);
 
     const { rows: usage } = await db.query(
       `select
@@ -583,6 +950,10 @@ export async function uninstallModule(
         code: "grants_active",
       });
     }
+
+    // A module that seeded demo data gets a last chance to clear it before the
+    // schema goes; failures never block the uninstall.
+    await clearDemoForModule(db, key);
 
     await db.query("delete from public.invitation_modules where module_key = $1", [key]);
 
@@ -604,6 +975,9 @@ export async function uninstallModule(
     if (reverted !== appliedVersions.size) {
       throw new DomainError("conflict", "module has applied migrations missing from the manifest");
     }
+    // The down migrations drop the module's objects; dropping the schema also
+    // removes its grants, default privileges and anything the down forgot.
+    await db.query(`drop schema if exists ${quoteIdent(schemaFor(key))} cascade`);
 
     const category = categoryFor(key);
     await db.query("delete from public.settings where category_key = $1", [category]);
@@ -616,6 +990,42 @@ export async function uninstallModule(
       resource: { key },
     });
   });
+}
+
+/**
+ * Scopes the caller holds for one module, or `null` when it has no access.
+ *
+ * The door uses this for module routes (option B): the route names its module
+ * and the guard checks the grant against that module, so two modules that use
+ * the same scope name never open each other's endpoints. Access mirrors
+ * `listModules`: active module and (admin, public, or an active grant).
+ */
+export async function moduleScopesForCaller(
+  deps: ModulesDeps,
+  caller: Caller,
+  key: string,
+): Promise<readonly string[] | null> {
+  if (!MODULE_KEY.test(key)) return null;
+  const userId =
+    caller.kind === "session" || caller.kind === "delegated" ? caller.userId : null;
+  if (caller.kind === "anon") return null;
+  if (!isAdmin(caller) && !userId) return null;
+  const { rows } = await deps.db.query(
+    `select m.scopes
+       from public.module_registry m
+      where m.key = $1
+        and m.state = 'active'
+        and ($2::boolean
+             or m.is_public
+             or exists (
+               select 1 from public.user_modules u
+                where u.user_id = $3 and u.module_key = m.key and u.revoked_at is null
+             ))`,
+    [key, isAdmin(caller), userId],
+  );
+  if (!rows[0]) return null;
+  const scopes = rows[0].scopes;
+  return Array.isArray(scopes) ? scopes.map(String) : [];
 }
 
 export async function getModuleSettings(
@@ -636,14 +1046,27 @@ export async function getModuleSettings(
   return rows.map(toSettingView);
 }
 
-function validateSettingValue(type: string, value: unknown): void {
+type SettingRules = {
+  type: string;
+  min?: number;
+  max?: number;
+  step?: number;
+};
+
+function validateSettingValue(setting: SettingRules, value: unknown): void {
+  const type = setting.type;
   const fail = (): never => {
     throw new DomainError("validation_failed", `value does not match the setting type ${type}`);
   };
   switch (type) {
-    case "int":
+    case "int": {
       if (!Number.isInteger(value)) fail();
+      const int = value as number;
+      if (setting.min !== undefined && int < setting.min) fail();
+      if (setting.max !== undefined && int > setting.max) fail();
+      if (setting.step !== undefined && (int - (setting.min ?? 0)) % setting.step !== 0) fail();
       break;
+    }
     case "bool":
       if (typeof value !== "boolean") fail();
       break;
@@ -684,9 +1107,9 @@ export async function updateModuleSetting(
   caller: Caller,
   key: string,
   input: { key: string; value: unknown },
-  type: string,
+  setting: SettingRules,
 ): Promise<ModuleSettingView> {
-  validateSettingValue(type, input.value);
+  validateSettingValue(setting, input.value);
   if (!isAdmin(caller)) throw new DomainError("insufficient_scope");
   await getModuleRow(deps.db, key);
   const category = categoryFor(key);

@@ -5,9 +5,9 @@ describe("completeRevoke", () => {
   it("returns to the list after revoking from the detail page", async () => {
     const router = { push: vi.fn(), refresh: vi.fn() };
 
-    await completeRevoke(router, "/invitations");
+    await completeRevoke(router, "/panel/invitations");
 
-    expect(router.push).toHaveBeenCalledWith("/invitations");
+    expect(router.push).toHaveBeenCalledWith("/panel/invitations");
     expect(router.refresh).toHaveBeenCalled();
   });
 
