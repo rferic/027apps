@@ -128,6 +128,23 @@ Si ya se rompió: `pkill -9 -f "next dev"`, `rm -rf apps/admin/.next`, y vuelve 
   se actualizan entre sí**. Lo que se anuncie tiene que ser del mismo origen que lo instalado.
 - Un APK que compila no está probado: se instala, arranca y se recorre la pantalla nueva.
 
+## 6bis. Revisión independiente de la app móvil
+
+Antes de avisar al propietario de que la app está lista, **un agente distinto del que la
+implementó** la revisa como **QA y como diseñador**, igual que se hace con el panel:
+
+- **QA**: flujos reales contra una instancia con datos (login, grupos, gasto, liquidación,
+  invitaciones, importador), estados de error y sin conexión, importes y fechas con el locale del
+  perfil, permisos por rol y por estado de miembro.
+- **Diseño**: contraste y tokens (incluido `accent-foreground`), jerarquía y densidad en 390 px,
+  estados vacíos/carga/error, textos en los 9 idiomas, coherencia con el mockup F1 aprobado y con
+  el panel.
+- Con el **APK compilado** y capturas reales; si no hay emulador ni dispositivo conectado, el
+  agente revisa el código, la composición y el APK, y lo dice.
+
+Sus hallazgos se corrigen antes de la entrega; se pega el veredicto junto al resto de la
+evidencia. No se anuncia «ya puedes probarlo» sin este paso.
+
 ## 7. Si algo falla
 
 1. No se anuncia nada; se arregla.
