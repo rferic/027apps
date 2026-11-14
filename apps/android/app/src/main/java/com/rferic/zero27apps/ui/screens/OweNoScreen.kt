@@ -135,7 +135,7 @@ private class OweStore(
         description: String,
         amountMinor: Long,
         payer: String,
-        participants: List<String>,
+        participants: List<OweParticipantBody>,
     ) = run {
         api.oweCreateMovement(
             groupId,
@@ -145,7 +145,7 @@ private class OweStore(
                 amountMinor = amountMinor,
                 occurredOn = LocalDate.now().toString(),
                 paidBy = payer,
-                participants = participants.map { OweParticipantBody(memberId = it) },
+                participants = participants,
             ),
         )
         open(groupId)
@@ -260,7 +260,13 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             }
         }
 
-        store.error?.let { Text(it, color = palette.destructive, fontSize = 12.sp) }
+        store.error?.let {
+            Text(
+                if (it.contains("network", ignoreCase = true)) strings.failureNetwork else strings.actionFailed,
+                color = palette.destructive,
+                fontSize = 12.sp,
+            )
+        }
 
         if (store.detail == null) {
             Groups(
@@ -381,7 +387,11 @@ private fun Groups(
         TextButton(onClick = onNew) { Text(newGroup) }
     }
     if (store.groups.isEmpty() && !store.loading) {
-        Text(strings.noGroups, fontSize = 13.sp, color = palette.mutedForeground)
+        if (store.error == null) {
+            Text(strings.noGroups, fontSize = 13.sp, color = palette.mutedForeground)
+        } else {
+            TextButton(onClick = { store.loadGroups() }) { Text(strings.tryAgain) }
+        }
     }
     for (group in store.groups) {
         val invited = group.role == "invited"
@@ -685,7 +695,7 @@ private fun ExpenseDialog(
     currency: String,
     locale: String,
     onDismiss: () -> Unit,
-    onSave: (String, Long, String, List<String>) -> Unit,
+    onSave: (String, Long, String, List<OweParticipantBody>) -> Unit,
 ) {
     val strings = LocalStrings.current
     val active = members.filter { it.state == "active" }
@@ -693,8 +703,17 @@ private fun ExpenseDialog(
     var amount by remember { mutableStateOf("") }
     var payer by remember { mutableStateOf(active.firstOrNull()?.id) }
     var selected by remember { mutableStateOf(active.map { it.id }.toSet()) }
+    var exact by remember { mutableStateOf(false) }
+    var exactAmounts by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     val minor = parseMinor(amount)
     val total = minor ?: 0
+    val exactSum = selected.sumOf { parseMinor(exactAmounts[it] ?: "") ?: 0L }
+    val exactReady = !exact || (selected.isNotEmpty() && exactSum == total)
+    val participants = if (exact) {
+        selected.map { OweParticipantBody(it, parseMinor(exactAmounts[it] ?: "") ?: 0L) }
+    } else {
+        selected.map { OweParticipantBody(it) }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -746,22 +765,62 @@ private fun ExpenseDialog(
                         Checkbox(checked = selected.contains(member.id), onCheckedChange = null)
                         Text(member.displayName, fontSize = 13.sp, modifier = Modifier.weight(1f))
                         if (selected.contains(member.id) && selected.isNotEmpty() && total > 0) {
-                            val chosen = active.count { selected.contains(it.id) }
-                            val index = active.indexOf(member)
-                            val base = total / chosen
-                            val remainder = (total % chosen).toInt()
-                            val share = base + if (index < remainder) 1 else 0
-                            Text(formatMinor(share, currency, locale), fontSize = 12.sp)
+                            if (!exact) {
+                                val chosen = active.count { selected.contains(it.id) }
+                                val index = active.indexOf(member)
+                                val base = total / chosen
+                                val remainder = (total % chosen).toInt()
+                                val share = base + if (index < remainder) 1 else 0
+                                Text(formatMinor(share, currency, locale), fontSize = 12.sp)
+                            }
                         }
                     }
                 }
-                Text(strings.splitEqually, fontSize = 11.sp, color = LocalPalette.current.mutedForeground)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = { exact = false }) {
+                        Text(
+                            strings.splitEqually,
+                            fontWeight = if (!exact) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 11.sp,
+                        )
+                    }
+                    TextButton(onClick = { exact = true }) {
+                        Text(
+                            strings.splitExact,
+                            fontWeight = if (exact) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 11.sp,
+                        )
+                    }
+                }
+                if (exact) {
+                    Text(
+                        "${formatMinor(exactSum, currency, locale)} / ${formatMinor(total, currency, locale)}",
+                        fontSize = 11.sp,
+                        color = if (exactReady) {
+                            LocalPalette.current.mutedForeground
+                        } else {
+                            LocalPalette.current.destructive
+                        },
+                    )
+                    for (member in active.filter { selected.contains(it.id) }) {
+                        OutlinedTextField(
+                            value = exactAmounts[member.id] ?: "",
+                            onValueChange = { value ->
+                                exactAmounts = exactAmounts + (member.id to value)
+                            },
+                            label = { Text(member.displayName) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(
-                enabled = description.isNotBlank() && minor != null && payer != null && selected.isNotEmpty(),
-                onClick = { onSave(description.trim(), minor!!, payer!!, selected.toList()) },
+                enabled = description.isNotBlank() && minor != null && payer != null &&
+                    selected.isNotEmpty() && exactReady,
+                onClick = { onSave(description.trim(), minor!!, payer!!, participants) },
             ) { Text(strings.save) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },

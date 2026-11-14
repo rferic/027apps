@@ -91,7 +91,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
                     preview = value
                     identities = runCatching { api.oweIdentities(groupId) }.getOrDefault(emptyList())
                 }
-                .onFailure { error = it.message }
+                .onFailure { error = strings.actionFailed }
             busy = false
         }
     }
@@ -107,7 +107,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
             }.onSuccess { member ->
                 // Several CSV names may point at the same member (a merge).
                 mapping = mapping + (name to member.id)
-            }.onFailure { error = it.message }
+            }.onFailure { error = strings.actionFailed }
             busy = false
             mappingName = null
         }
@@ -207,7 +207,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
                 scope.launch {
                     runCatching {
                         api.oweImportCommit(groupId, text, mapping.ifEmpty { null }, duplicates)
-                    }.onSuccess { result = it }.onFailure { error = it.message }
+                    }.onSuccess { result = it }.onFailure { error = strings.actionFailed }
                     busy = false
                 }
             },
@@ -225,9 +225,15 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    identities.forEach { identity ->
+                    ranked(name, identities).forEach { identity ->
                         TextButton(onClick = { mapName(name, identity.id) }, modifier = Modifier.fillMaxWidth()) {
-                            Text(identity.displayName)
+                            Text(
+                                if (normalized(identity.displayName) == normalized(name)) {
+                                    "✓ ${identity.displayName}"
+                                } else {
+                                    identity.displayName
+                                },
+                            )
                         }
                     }
                     TextButton(onClick = { mapName(name, null) }, modifier = Modifier.fillMaxWidth()) {
@@ -243,6 +249,24 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
 
 private fun displayNameFor(identities: List<OweIdentityDto>, userId: String): String =
     identities.firstOrNull { it.id == userId }?.displayName ?: ""
+
+private fun normalized(value: String): String =
+    java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
+        .replace(Regex("\\p{M}"), "")
+        .lowercase()
+
+/** Exact matches first, then similar names, then the rest. */
+private fun ranked(name: String, identities: List<OweIdentityDto>): List<OweIdentityDto> {
+    val wanted = normalized(name)
+    return identities.sortedWith(
+        compareByDescending<OweIdentityDto> { normalized(it.displayName) == wanted }
+            .thenByDescending {
+                val other = normalized(it.displayName)
+                other.contains(wanted) || wanted.contains(other)
+            }
+            .thenBy { it.displayName },
+    )
+}
 
 @Composable
 private fun Summary(

@@ -133,6 +133,7 @@ data class Strings(
     val fileError: String,
     val convertFictitious: String,
     val keepBalance: String,
+    val actionFailed: String,
 
 
 )
@@ -281,6 +282,7 @@ object AppStrings {
 
         convertFictitious = "Convert to fictitious",
         keepBalance = "{name} keeps the balance but loses access to the group.",
+        actionFailed = "The action could not be completed.",
     )
 
     val es = Strings(
@@ -414,6 +416,7 @@ object AppStrings {
 
         convertFictitious = "Convertir en ficticio",
         keepBalance = "{name} conserva su saldo pero pierde el acceso al grupo.",
+        actionFailed = "No se pudo completar la acción.",
     )
 
     val ca = Strings(
@@ -547,6 +550,7 @@ object AppStrings {
 
         convertFictitious = "Converteix en fictici",
         keepBalance = "{name} conserva el saldo però perd l'accés al grup.",
+        actionFailed = "No s'ha pogut completar l'acció.",
     )
 
     val it = Strings(
@@ -680,6 +684,7 @@ object AppStrings {
 
         convertFictitious = "Converti in fittizio",
         keepBalance = "{name} conserva il saldo ma perde l'accesso al gruppo.",
+        actionFailed = "Impossibile completare l'azione.",
     )
 
     val fr = Strings(
@@ -813,6 +818,7 @@ object AppStrings {
 
         convertFictitious = "Convertir en fictif",
         keepBalance = "{name} conserve le solde mais perd l'accès au groupe.",
+        actionFailed = "L'action n'a pas pu être terminée.",
     )
 
     val de = Strings(
@@ -946,6 +952,7 @@ object AppStrings {
 
         convertFictitious = "In Fiktives umwandeln",
         keepBalance = "{name} behält den Saldo, verliert aber den Zugang zur Gruppe.",
+        actionFailed = "Die Aktion konnte nicht abgeschlossen werden.",
     )
 
     val pt = Strings(
@@ -1079,6 +1086,7 @@ object AppStrings {
 
         convertFictitious = "Converter em fictício",
         keepBalance = "{name} mantém o saldo mas perde o acesso ao grupo.",
+        actionFailed = "Não foi possível concluir a ação.",
     )
 
     val gl = Strings(
@@ -1212,6 +1220,7 @@ object AppStrings {
 
         convertFictitious = "Converter en ficticio",
         keepBalance = "{name} conserva o saldo pero perde o acceso ao grupo.",
+        actionFailed = "Non se puido completar a acción.",
     )
 
     val eu = Strings(
@@ -1345,5 +1354,6 @@ object AppStrings {
 
         convertFictitious = "Bihurtu fiktizio",
         keepBalance = "{name}(e)k balantzea gordetzen du, baina talderako sarbidea galduko du.",
+        actionFailed = "Ezin izan da ekintza osatu.",
     )
 }
