@@ -1,3 +1,4 @@
+import { t } from "@027apps/i18n/t.js";
 import type { ModulePageContext } from "@027apps/core/modules/pages.js";
 import { listImports } from "@027apps/owe-no/domain/importer.js";
 
@@ -6,21 +7,23 @@ import { listImports } from "@027apps/owe-no/domain/importer.js";
  * the group the creator picks; the panel only reviews what landed and why.
  */
 export default async function OweNoImports({ context }: { context: ModulePageContext }) {
+  const tr = (text: string, params?: Record<string, string | number>) =>
+    t(text, context.messages, params);
   const batches = await listImports({ db: context.db });
 
   return (
     <section aria-labelledby="owe-no-imports" className="flex flex-col gap-3">
       <header className="flex flex-col gap-1">
         <h1 id="owe-no-imports" className="text-base font-bold">
-          Imports
+          {tr("Imports")}
         </h1>
         <p className="text-xs text-muted-foreground">
-          Splitwise batches committed from the app. The panel reviews them; it never imports.
+          {tr("Splitwise batches committed from the app. The panel reviews them; it never imports.")}
         </p>
       </header>
 
       {batches.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No imports yet.</p>
+        <p className="text-xs text-muted-foreground">{tr("No imports yet.")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {batches.map((batch) => (
@@ -30,8 +33,11 @@ export default async function OweNoImports({ context }: { context: ModulePageCon
             >
               <span className="font-semibold">{batch.group_name}</span>
               <span className="text-muted-foreground">
-                {batch.created_count} of {batch.row_count} rows ·{" "}
-                {new Date(batch.created_at).toISOString().slice(0, 10)}
+                {tr("{created} of {total} rows · {date}", {
+                  created: batch.created_count,
+                  total: batch.row_count,
+                  date: new Date(batch.created_at).toISOString().slice(0, 10),
+                })}
               </span>
             </li>
           ))}

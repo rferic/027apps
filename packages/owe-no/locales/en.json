@@ -7,5 +7,19 @@
   "Currency a new group starts with.": "Currency a new group starts with.",
   "Settlement limit": "Settlement limit",
   "Members above this count get the pairwise suggestion instead of the exact minimum.": "Members above this count get the pairwise suggestion instead of the exact minimum.",
-  "Your groups": "Your groups"
+  "Your groups": "Your groups",
+  "Shared expenses and settlements. The panel reads and administers; the money lives in the app.": "Shared expenses and settlements. The panel reads and administers; the money lives in the app.",
+  "Active groups": "Active groups",
+  "Archived": "Archived",
+  "Members": "Members",
+  "Movements": "Movements",
+  "Latest groups": "Latest groups",
+  "{members} members · {movements} movements · {currency}": "{members} members · {movements} movements · {currency}",
+  "No groups yet. The first one is created from the app.": "No groups yet. The first one is created from the app.",
+  "Every group, with its members and movements. Members manage their own movements from the app; the panel does not record money.": "Every group, with its members and movements. Members manage their own movements from the app; the panel does not record money.",
+  "{members} active members · {movements} movements": "{members} active members · {movements} movements",
+  "No groups yet.": "No groups yet.",
+  "Splitwise batches committed from the app. The panel reviews them; it never imports.": "Splitwise batches committed from the app. The panel reviews them; it never imports.",
+  "No imports yet.": "No imports yet.",
+  "{created} of {total} rows · {date}": "{created} of {total} rows · {date}"
 }

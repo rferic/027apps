@@ -1,6 +1,6 @@
 {
   "name": "@027apps/owe-no",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "zod": "^4.6.7",
-    "@027apps/core": "workspace:*"
+    "@027apps/core": "workspace:*",
+    "@027apps/i18n": "workspace:*"
   }
 }

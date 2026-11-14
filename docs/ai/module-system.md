@@ -198,10 +198,17 @@ Ejemplo completo:
   que no conozca. Cualquier otro campo se ignora.
 - **Páginas de admin y acceso a datos**: el host solo renderiza una página de módulo tras
   comprobar sesión, rol del manifest y `active`, y le pasa un `ModulePageContext`
-  (`@027apps/core/modules/pages.js`): `{ moduleKey, caller, db }`. La página usa el **servicio del
-  módulo** (`packages/<key>/src/service.ts`), el mismo que su API, en vez de llamarse a sí misma
-  por HTTP. Las reglas de quién ve qué viven en ese servicio, una sola vez; las páginas no las
-  reimplementan. El panel es de administración: lee todo y **no escribe dinero** (D9).
+  (`@027apps/core/modules/pages.js`): `{ moduleKey, caller, db, locale, messages }`. La página usa
+  el **servicio del módulo** (`packages/<key>/src/service.ts`), el mismo que su API, en vez de
+  llamarse a sí misma por HTTP. Las reglas de quién ve qué viven en ese servicio, una sola vez;
+  las páginas no las reimplementan. El panel es de administración: lee todo y **no escribe
+  dinero** (D9).
+- **Páginas de admin en el idioma del panel**: `messages` es el mapa plano de
+  `locales/<locale>.json` del módulo (con `en.json` como respaldo) y `locale` el idioma de la
+  sesión. La página traduce con `t("English text", context.messages)`: **nunca** deja un literal
+  inglés en el JSX. Las etiquetas de `admin_pages` se traducen con el mismo mapa. El host pinta la
+  navegación del módulo (sus páginas + Ajustes) a partir del manifest, así que una ruta nueva no
+  necesita enlace propio.
 - `admin_pages`: `route` de un solo segmento (`^[a-z0-9]+(-[a-z0-9]+)*$`, sin `/`, `..`,
   `%2e` ni rutas reservadas), `label` en inglés, `icon` del DS, `group` (`module`) y `role`
   (`admin`|`super_admin`). El componente vive en `packages/<key>/admin/<route>/page.tsx` y el

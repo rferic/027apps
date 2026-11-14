@@ -12,4 +12,12 @@ export interface ModulePageContext {
   moduleKey: string;
   caller: Caller & { kind: "session" };
   db: QueryClient;
+  /** Panel locale of the request (`en`, `es`, …). */
+  locale: string;
+  /**
+   * The module's own `locales/<locale>.json` map (English text → translation),
+   * with English as the fallback. Pages translate through `t(text, messages)`
+   * so the panel never shows a hardcoded English string.
+   */
+  messages: Record<string, string>;
 }

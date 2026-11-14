@@ -810,5 +810,6 @@
   "{name} leaves this category. Module access they already have does not change.": "{name} lascia questa categoria. L'accesso ai moduli che ha già non cambia.",
   "{name} will be able to sign in again.": "{name} potrà accedere di nuovo.",
   "{name} will lose access immediately.": "{name} perderà l'accesso immediatamente.",
-  "{selected} of {total} selected": "{selected} di {total} selezionate"
+  "{selected} of {total} selected": "{selected} di {total} selezionate",
+  "Module pages": "Pagine del modulo"
 }

@@ -1,3 +1,4 @@
+import { t } from "@027apps/i18n/t.js";
 import type { ModulePageContext } from "@027apps/core/modules/pages.js";
 import { listAllGroups } from "@027apps/owe-no/domain/service.js";
 
@@ -6,10 +7,19 @@ import { listAllGroups } from "@027apps/owe-no/domain/service.js";
  * the panel never records or edits money.
  */
 export default async function OweNoOverview({ context }: { context: ModulePageContext }) {
+  const tr = (text: string, params?: Record<string, string | number>) =>
+    t(text, context.messages, params);
   const groups = await listAllGroups({ db: context.db });
   const active = groups.filter((group) => !group.archived);
   const members = groups.reduce((total, group) => total + group.members, 0);
   const movements = groups.reduce((total, group) => total + group.movements, 0);
+
+  const stats = [
+    { label: tr("Active groups"), value: active.length },
+    { label: tr("Archived"), value: groups.length - active.length },
+    { label: tr("Members"), value: members },
+    { label: tr("Movements"), value: movements },
+  ];
 
   return (
     <section aria-labelledby="owe-no-overview" className="flex flex-col gap-4">
@@ -18,18 +28,14 @@ export default async function OweNoOverview({ context }: { context: ModulePageCo
           OweNo
         </h1>
         <p className="text-xs text-muted-foreground">
-          Shared expenses and settlements. The panel reads and administers; the money lives in
-          the app.
+          {tr(
+            "Shared expenses and settlements. The panel reads and administers; the money lives in the app.",
+          )}
         </p>
       </header>
 
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: "Active groups", value: active.length },
-          { label: "Archived", value: groups.length - active.length },
-          { label: "Members", value: members },
-          { label: "Movements", value: movements },
-        ].map((item) => (
+        {stats.map((item) => (
           <div key={item.label} className="rounded-card border border-border bg-surface p-3">
             <dt className="text-xs text-muted-foreground">{item.label}</dt>
             <dd className="text-xl font-bold tabular-nums">{item.value}</dd>
@@ -39,12 +45,12 @@ export default async function OweNoOverview({ context }: { context: ModulePageCo
 
       {groups.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          No groups yet. The first one is created from the app.
+          {tr("No groups yet. The first one is created from the app.")}
         </p>
       ) : (
         <div className="flex flex-col gap-1">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Latest groups
+            {tr("Latest groups")}
           </h2>
           <ul className="flex flex-col gap-1">
             {groups.slice(0, 5).map((group) => (
@@ -54,7 +60,11 @@ export default async function OweNoOverview({ context }: { context: ModulePageCo
               >
                 <span className="font-semibold">{group.name}</span>
                 <span className="text-muted-foreground">
-                  {group.members} members · {group.movements} movements · {group.currency}
+                  {tr("{members} members · {movements} movements · {currency}", {
+                    members: group.members,
+                    movements: group.movements,
+                    currency: group.currency,
+                  })}
                 </span>
               </li>
             ))}

@@ -7,5 +7,19 @@
   "Currency a new group starts with.": "Moneda con la que empieza un grupo nuevo.",
   "Settlement limit": "Límite de liquidación",
   "Members above this count get the pairwise suggestion instead of the exact minimum.": "Con más miembros que este número se sugiere el pago por parejas en vez del mínimo exacto.",
-  "Your groups": "Tus grupos"
+  "Your groups": "Tus grupos",
+  "Shared expenses and settlements. The panel reads and administers; the money lives in the app.": "Gastos compartidos y liquidaciones. El panel lee y administra; el dinero vive en la app.",
+  "Active groups": "Grupos activos",
+  "Archived": "Archivados",
+  "Members": "Miembros",
+  "Movements": "Movimientos",
+  "Latest groups": "Últimos grupos",
+  "{members} members · {movements} movements · {currency}": "{members} miembros · {movements} movimientos · {currency}",
+  "No groups yet. The first one is created from the app.": "Aún no hay grupos. El primero se crea desde la app.",
+  "Every group, with its members and movements. Members manage their own movements from the app; the panel does not record money.": "Todos los grupos, con sus miembros y movimientos. Los miembros gestionan sus movimientos desde la app; el panel no registra dinero.",
+  "{members} active members · {movements} movements": "{members} miembros activos · {movements} movimientos",
+  "No groups yet.": "Aún no hay grupos.",
+  "Splitwise batches committed from the app. The panel reviews them; it never imports.": "Lotes de Splitwise confirmados desde la app. El panel los revisa; nunca importa.",
+  "No imports yet.": "Aún no hay importaciones.",
+  "{created} of {total} rows · {date}": "{created} de {total} filas · {date}"
 }

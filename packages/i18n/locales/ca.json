@@ -810,5 +810,6 @@
   "{name} leaves this category. Module access they already have does not change.": "{name} deixa aquesta categoria. L'accés als mòduls que ja té no canvia.",
   "{name} will be able to sign in again.": "{name} podrà iniciar sessió de nou.",
   "{name} will lose access immediately.": "{name} perdrà l'accés immediatament.",
-  "{selected} of {total} selected": "{selected} de {total} seleccionades"
+  "{selected} of {total} selected": "{selected} de {total} seleccionades",
+  "Module pages": "Pàgines del mòdul"
 }

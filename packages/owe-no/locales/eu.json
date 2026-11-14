@@ -7,5 +7,19 @@
   "Currency a new group starts with.": "Talde berri bat hasten den moneta.",
   "Settlement limit": "Likidazio muga",
   "Members above this count get the pairwise suggestion instead of the exact minimum.": "Kide kopuru hau baino gehiagorekin binakako ordainketa iradokitzen da gutxieneko zehatzaren ordez.",
-  "Your groups": "Zure taldeak"
+  "Your groups": "Zure taldeak",
+  "Shared expenses and settlements. The panel reads and administers; the money lives in the app.": "Gastu partekatuak eta likidazioak. Panelak irakurri eta administratzen du; dirua appan bizi da.",
+  "Active groups": "Talde aktiboak",
+  "Archived": "Artxibatuta",
+  "Members": "Kideak",
+  "Movements": "Mugimenduak",
+  "Latest groups": "Azken taldeak",
+  "{members} members · {movements} movements · {currency}": "{members} kide · {movements} mugimendu · {currency}",
+  "No groups yet. The first one is created from the app.": "Oraindik ez dago talderik. Lehenengoa appetik sortzen da.",
+  "Every group, with its members and movements. Members manage their own movements from the app; the panel does not record money.": "Talde guztiak, beren kide eta mugimenduekin. Kideek beren mugimenduak appetik kudeatzen dituzte; panelak ez du dirurik erregistratzen.",
+  "{members} active members · {movements} movements": "{members} kide aktibo · {movements} mugimendu",
+  "No groups yet.": "Oraindik ez dago talderik.",
+  "Splitwise batches committed from the app. The panel reviews them; it never imports.": "Appetik berretsitako Splitwise sortak. Panelak berrikusi egiten ditu; ez du inoiz inportatzen.",
+  "No imports yet.": "Oraindik ez dago inportaziorik.",
+  "{created} of {total} rows · {date}": "{created} / {total} errenkada · {date}"
 }

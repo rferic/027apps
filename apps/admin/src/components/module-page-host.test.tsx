@@ -31,6 +31,9 @@ vi.mock("@/lib/api/door", () => ({
   }),
 }));
 vi.mock("@/lib/panel-i18n", () => ({ loadPanelMessages: async () => ({}) }));
+vi.mock("@/lib/module-messages", () => ({
+  loadModuleMessages: async () => ({ Groups: "Grupos", Imports: "Importaciones" }),
+}));
 vi.mock("@/components/panel-forbidden", () => ({
   PanelForbidden: () => <p>forbidden</p>,
 }));
@@ -65,6 +68,23 @@ describe("module page host", () => {
     const html = renderToStaticMarkup(await render());
     expect(html).toContain("Fixture");
     expect(html).toContain("/panel/modules/fixture/settings");
+    // The module's own pages are reachable from the page, translated.
+    expect(html).toContain("/panel/modules/fixture/settings");
+    expect(html).toContain('aria-label="Module pages"');
+  });
+
+  it("links every declared page and translates its label from the module locales", async () => {
+    loadModuleManifestMock.mockResolvedValue(
+      manifest([
+        overviewPage,
+        { route: "groups", label: "Groups", icon: "users", group: "module", role: "admin" },
+      ]),
+    );
+    const html = renderToStaticMarkup(await render());
+    expect(html).toContain('href="/panel/modules/fixture/groups"');
+    expect(html).toContain("Grupos");
+    expect(html).not.toContain(">Groups<");
+    expect(html).toContain('aria-current="page"');
   });
 
   it("404s a route the manifest does not declare", async () => {

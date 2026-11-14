@@ -7,5 +7,19 @@
   "Currency a new group starts with.": "Moneda amb què comença un grup nou.",
   "Settlement limit": "Límit de liquidació",
   "Members above this count get the pairwise suggestion instead of the exact minimum.": "Amb més membres que aquest nombre es suggereix el pagament per parelles en lloc del mínim exacte.",
-  "Your groups": "Els teus grups"
+  "Your groups": "Els teus grups",
+  "Shared expenses and settlements. The panel reads and administers; the money lives in the app.": "Despeses compartides i liquidacions. El panell llegeix i administra; els diners viuen a l'app.",
+  "Active groups": "Grups actius",
+  "Archived": "Arxivats",
+  "Members": "Membres",
+  "Movements": "Moviments",
+  "Latest groups": "Últims grups",
+  "{members} members · {movements} movements · {currency}": "{members} membres · {movements} moviments · {currency}",
+  "No groups yet. The first one is created from the app.": "Encara no hi ha grups. El primer es crea des de l'app.",
+  "Every group, with its members and movements. Members manage their own movements from the app; the panel does not record money.": "Tots els grups, amb els seus membres i moviments. Els membres gestionen els seus moviments des de l'app; el panell no registra diners.",
+  "{members} active members · {movements} movements": "{members} membres actius · {movements} moviments",
+  "No groups yet.": "Encara no hi ha grups.",
+  "Splitwise batches committed from the app. The panel reviews them; it never imports.": "Lots de Splitwise confirmats des de l'app. El panell els revisa; no importa mai.",
+  "No imports yet.": "Encara no hi ha importacions.",
+  "{created} of {total} rows · {date}": "{created} de {total} files · {date}"
 }
