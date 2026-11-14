@@ -47,7 +47,31 @@ data class ModuleDto(
     val state: String = "active",
     @SerialName("is_public") val isPublic: Boolean = false,
     @SerialName("manifest_digest") val manifestDigest: String = "",
+    @SerialName("app_actions") val appActions: List<AppActionDto> = emptyList(),
 )
+
+@Serializable
+data class AppActionDto(
+    val key: String,
+    val label: String,
+    val icon: String = "box",
+    val screen: String = "",
+)
+
+@Serializable
+data class WidgetDto(
+    val key: String,
+    val type: String = "summary",
+    val surface: String = "app",
+    val title: String = "",
+    val icon: String = "box",
+    val order: Int = 0,
+    @SerialName("module_key") val moduleKey: String = "",
+    val data: JsonElement? = null,
+)
+
+@Serializable
+data class DashboardResponse(val widgets: List<WidgetDto> = emptyList())
 
 @Serializable
 data class MyModulesResponse(

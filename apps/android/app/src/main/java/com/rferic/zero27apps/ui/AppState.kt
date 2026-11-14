@@ -2,6 +2,7 @@ package com.rferic.zero27apps.ui
 
 import com.rferic.zero27apps.auth.InvitationLink
 import com.rferic.zero27apps.data.ModuleDto
+import com.rferic.zero27apps.data.WidgetDto
 import com.rferic.zero27apps.data.UserDto
 import com.rferic.zero27apps.ui.theme.ThemePreference
 
@@ -19,6 +20,8 @@ sealed interface AppState {
         val instance: String,
         val user: UserDto,
         val modules: List<ModuleDto>,
+        /** Widgets the modules contribute to the app's home, already ordered. */
+        val widgets: List<WidgetDto> = emptyList(),
     ) : AppState
 
     data class Failure(val reason: FailureReason) : AppState

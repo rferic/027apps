@@ -50,6 +50,10 @@ class ApiClient(
     suspend fun myModules(limit: Int = 50): MyModulesResponse =
         read(request(HttpMethod.Get, "/api/v1/me/modules?limit=$limit"))
 
+    /** Native widgets the modules contribute to one surface of the app. */
+    suspend fun dashboard(surface: String): DashboardResponse =
+        read(request(HttpMethod.Get, "/api/v1/me/dashboard?surface=$surface"))
+
     /** Latest Android build published by this instance (public, no session). */
     suspend fun androidApp(): AndroidReleaseDto = read(request(HttpMethod.Get, "/api/v1/app/android"))
 

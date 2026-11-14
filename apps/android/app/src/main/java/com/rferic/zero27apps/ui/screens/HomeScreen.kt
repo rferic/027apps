@@ -28,9 +28,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.data.ModuleDto
+import com.rferic.zero27apps.data.WidgetDto
 import com.rferic.zero27apps.data.UserDto
 import com.rferic.zero27apps.ui.UpdateState
+import androidx.compose.material3.Surface
 import com.rferic.zero27apps.ui.i18n.LocalStrings
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 import com.rferic.zero27apps.ui.theme.LocalPalette
 
 /**
@@ -41,6 +46,7 @@ import com.rferic.zero27apps.ui.theme.LocalPalette
 fun HomeScreen(
     user: UserDto,
     modules: List<ModuleDto>,
+    widgets: List<WidgetDto>,
     update: UpdateState,
     onInstallUpdate: () -> Unit,
 ) {
@@ -93,10 +99,12 @@ fun HomeScreen(
 
         UpdateBanner(update, onInstallUpdate)
 
-        if (modules.isEmpty()) {
-            Text(strings.noModulesHome, color = palette.mutedForeground, fontSize = 13.sp)
-        } else {
-            for (module in modules) ModuleCard(module)
+        when {
+            // A module that contributes a widget takes the home; the modules
+            // without one stay reachable from the Módulos tab.
+            widgets.isNotEmpty() -> for (widget in widgets) WidgetCard(widget)
+            modules.isEmpty() -> Text(strings.noModulesHome, color = palette.mutedForeground, fontSize = 13.sp)
+            else -> for (module in modules) ModuleCard(module)
         }
     }
 }
@@ -186,5 +194,84 @@ private fun UpdateBanner(update: UpdateState, onInstall: () -> Unit) {
     }
     if (note != null) {
         Text(note, color = palette.mutedForeground, fontSize = 12.sp)
+    }
+}
+
+/** The shape every widget resolves to: `{ value, label?, detail? }`. */
+private data class WidgetValue(val value: String, val label: String?, val detail: String?)
+
+private fun widgetValue(widget: WidgetDto): WidgetValue? {
+    val data = widget.data as? JsonObject ?: return null
+    val value: JsonPrimitive = data["value"]?.jsonPrimitive ?: return null
+    if (value.isString && value.content.isBlank()) return null
+    return WidgetValue(
+        value = value.content,
+        label = (data["label"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() },
+        detail = (data["detail"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() },
+    )
+}
+
+/** One dashboard card, rendered natively: the module never sends HTML. */
+@Composable
+private fun WidgetCard(widget: WidgetDto) {
+    val palette = LocalPalette.current
+    val resolved = widgetValue(widget)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(palette.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(palette.successSubtle, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    widget.title.take(1).uppercase().ifEmpty { "•" },
+                    color = palette.accent,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                )
+            }
+            Text(widget.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Spacer(Modifier.weight(1f))
+            Text(
+                "WIDGET",
+                fontSize = 10.sp,
+                letterSpacing = 0.6.sp,
+                color = palette.mutedForeground,
+                modifier = Modifier
+                    .background(palette.muted, RoundedCornerShape(999.dp))
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+            )
+        }
+        if (resolved != null) {
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    resolved.value,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.foreground,
+                )
+                if (resolved.label != null) {
+                    Text(
+                        resolved.label,
+                        fontSize = 12.sp,
+                        color = palette.mutedForeground,
+                        modifier = Modifier.padding(bottom = 5.dp),
+                    )
+                }
+            }
+            if (resolved.detail != null) {
+                Text(resolved.detail, fontSize = 12.sp, color = palette.mutedForeground)
+            }
+        } else {
+            Text("—", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = palette.mutedForeground)
+        }
     }
 }

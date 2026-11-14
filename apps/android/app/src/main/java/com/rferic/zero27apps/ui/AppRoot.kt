@@ -283,6 +283,7 @@ private fun Shell(
                 else -> HomeScreen(
                     user = state.user,
                     modules = state.modules,
+                    widgets = state.widgets,
                     update = update,
                     onInstallUpdate = viewModel::installUpdate,
                 )

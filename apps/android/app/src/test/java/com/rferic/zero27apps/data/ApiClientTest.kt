@@ -6,6 +6,7 @@ import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -57,6 +58,21 @@ class ApiClientTest {
         val list = client(modules).myModules()
         assertEquals(1, list.total)
         assertEquals("owe-no", list.modules.single().key)
+    }
+
+    @Test
+    fun `parses the app dashboard widgets with their data`() = runTest {
+        val engine = ok(
+            """{"widgets":[{"key":"fixture.notes_app","type":"summary","surface":"app",
+                 "title":"Your notes","icon":"note","order":90,"module_key":"fixture",
+                 "data":{"value":3,"label":"notes","detail":"owned by you"}}]}""",
+        )
+        val widget = client(engine).dashboard("app").widgets.single()
+
+        assertEquals("fixture.notes_app", widget.key)
+        assertEquals("Your notes", widget.title)
+        assertEquals("fixture", widget.moduleKey)
+        assertEquals("3", widget.data?.let { (it as kotlinx.serialization.json.JsonObject)["value"]?.jsonPrimitive?.content })
     }
 
     @Test

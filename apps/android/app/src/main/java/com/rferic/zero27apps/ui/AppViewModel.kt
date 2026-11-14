@@ -165,11 +165,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 val me = api.me()
                 val modules = api.myModules().modules
+                val widgets = runCatching { api.dashboard("app").widgets }.getOrDefault(emptyList())
                 instanceStore.save(link.instance)
                 _instances.value = instanceStore.known()
                 pendingLink = null
                 _invite.value = InviteState()
-                _state.value = AppState.SignedIn(link.instance, me, modules)
+                _state.value = AppState.SignedIn(link.instance, me, modules, widgets)
             } catch (error: ApiException) {
                 _invite.value = InviteState(error = inviteError(error))
             } catch (_: Exception) {
@@ -190,8 +191,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 val me = api.me()
                 val modules = api.myModules().modules
+                val widgets = runCatching { api.dashboard("app").widgets }.getOrDefault(emptyList())
                 _login.value = LoginState()
-                _state.value = AppState.SignedIn(instanceStore.current(), me, modules)
+                _state.value = AppState.SignedIn(instanceStore.current(), me, modules, widgets)
             } catch (error: Exception) {
                 _login.value = LoginState(error = loginError(error))
             }
@@ -269,7 +271,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             val me = api.me()
             val modules = api.myModules().modules
-            _state.value = AppState.SignedIn(base, me, modules)
+            val widgets = runCatching { api.dashboard("app").widgets }.getOrDefault(emptyList())
+            _state.value = AppState.SignedIn(base, me, modules, widgets)
         } catch (error: ApiException) {
             _state.value = AppState.Failure(failureReason(error))
         } catch (_: Exception) {
