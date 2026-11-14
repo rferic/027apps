@@ -221,6 +221,11 @@ private class OweStore(
         open(groupId)
     }
 
+    fun unblockMember(groupId: String, memberId: String) = run {
+        api.oweUnblockMember(groupId, memberId)
+        open(groupId)
+    }
+
     fun leaveGroup(groupId: String) = run {
         api.oweLeaveGroup(groupId)
         close()
@@ -272,6 +277,9 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
     var showMenu by remember { mutableStateOf(false) }
     var showInvitations by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
+    var tab by remember { mutableStateOf(0) }
+    var showAddPerson by remember { mutableStateOf(false) }
+    var inviteMode by remember { mutableStateOf("account") }
 
     LaunchedEffect(api) { store.loadGroups() }
 
@@ -322,12 +330,23 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             ) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = strings.back, tint = palette.foreground)
             }
-            Text(
-                store.detail?.group?.name ?: "OweNo",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    store.detail?.group?.name ?: "OweNo",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                store.detail?.let { open ->
+                    val people = open.members.count { it.state == "active" }
+                    Text(
+                        (if (people == 1) strings.peopleCountOne else strings.peopleCount)
+                            .replace("{count}", people.toString())
+                            .replace("{currency}", open.group.currency),
+                        fontSize = 12.sp,
+                        color = palette.mutedForeground,
+                    )
+                }
+            }
             if (store.loading) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             }
@@ -392,30 +411,31 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             }
         } else {
             val detail = store.detail!!
-            Balances(store.balances, detail.group.currency, locale)
-            Button(
-                onClick = { showExpense = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(strings.addExpense) }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { showSettlement = true }) { Text(strings.settle) }
-                TextButton(onClick = { showPayment = true }) { Text(strings.registerPayment) }
-                if (detail.group.createdBy == store.userId) {
-                    TextButton(onClick = { showImport = true }) { Text(strings.importTitle) }
-                }
+            val myMemberId = detail.members.firstOrNull { it.userId == store.userId }?.id
+            val myBalance = store.balances.firstOrNull { it.memberId == myMemberId }?.amountMinor ?: 0L
+            BalanceStrip(myBalance, detail.group.currency, locale) { tab = 1 }
+            GroupTabs(tab) { tab = it }
+            when (tab) {
+                0 -> ActivityTab(store, detail, locale, onAddExpense = { showExpense = true })
+                1 -> BalancesTab(
+                    store = store,
+                    detail = detail,
+                    locale = locale,
+                    onAddExpense = { showExpense = true },
+                    onSettle = { showSettlement = true },
+                    onPay = { showPayment = true },
+                )
+                else -> MembersTab(
+                    store = store,
+                    detail = detail,
+                    locale = locale,
+                    onAddPerson = {
+                        store.loadIdentities(detail.group.id)
+                        showAddPerson = true
+                    },
+                    onSettle = { showSettlement = true },
+                )
             }
-            Members(
-                store = store,
-                detail = detail,
-                strings = strings,
-                onInvite = {
-                    store.loadIdentities(detail.group.id)
-                    showInvite = true
-                },
-                onSettle = { showSettlement = true },
-                onConfirm = { label, action -> pendingAction = label to action },
-            )
-            Movements(store.movements, detail.members, detail.group.currency, locale)
         }
     }
 
@@ -473,8 +493,20 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
         )
     }
 
+    if (showAddPerson) {
+        AddPersonDialog(
+            onDismiss = { showAddPerson = false },
+            onPick = { mode ->
+                showAddPerson = false
+                inviteMode = mode
+                showInvite = true
+            },
+        )
+    }
+
     if (showInvite && current != null) {
         InviteDialog(
+            mode = inviteMode,
             identities = store.identities,
             onDismiss = { showInvite = false },
             onInvite = { name, inviteeId ->
@@ -618,18 +650,156 @@ private fun Invitations(
 }
 
 @Composable
-private fun Members(
+private fun BalanceStrip(amountMinor: Long, currency: String, locale: String, onOpen: () -> Unit) {
+    val palette = LocalPalette.current
+    val strings = LocalStrings.current
+    val text = when {
+        amountMinor < 0 -> strings.youOwe.replace("{amount}", formatMinor(-amountMinor, currency, locale))
+        amountMinor > 0 -> strings.owedToYou.replace("{amount}", formatMinor(amountMinor, currency, locale))
+        else -> strings.youSettled
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(palette.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (amountMinor < 0) palette.destructive else palette.accent,
+            modifier = Modifier.weight(1f),
+        )
+        Text("›", fontSize = 18.sp, color = palette.mutedForeground)
+    }
+}
+
+/** The three faces of a group: what happened, who owes what, and who is in. */
+@Composable
+private fun GroupTabs(selected: Int, onSelect: (Int) -> Unit) {
+    val palette = LocalPalette.current
+    val strings = LocalStrings.current
+    val labels = listOf(strings.tabActivity, strings.tabBalances, strings.tabMembers)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(palette.surface, RoundedCornerShape(14.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(14.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        labels.forEachIndexed { index, label ->
+            val on = index == selected
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .background(
+                        if (on) palette.background else androidx.compose.ui.graphics.Color.Transparent,
+                        RoundedCornerShape(10.dp),
+                    )
+                    .clickable { onSelect(index) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    fontSize = 12.sp,
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (on) palette.foreground else palette.mutedForeground,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActivityTab(
     store: OweStore,
     detail: OweGroupDetail,
-    strings: com.rferic.zero27apps.ui.i18n.Strings,
-    onInvite: () -> Unit,
+    locale: String,
+    onAddExpense: () -> Unit,
+) {
+    val strings = LocalStrings.current
+    Button(onClick = onAddExpense, modifier = Modifier.fillMaxWidth()) { Text(strings.addExpense) }
+    Movements(store.movements, detail.members, detail.group.currency, locale, strings.activityEmpty)
+}
+
+@Composable
+private fun BalancesTab(
+    store: OweStore,
+    detail: OweGroupDetail,
+    locale: String,
+    onAddExpense: () -> Unit,
     onSettle: () -> Unit,
-    onConfirm: (String, () -> Unit) -> Unit,
+    onPay: () -> Unit,
+) {
+    val strings = LocalStrings.current
+    val palette = LocalPalette.current
+    Button(onClick = onAddExpense, modifier = Modifier.fillMaxWidth()) { Text(strings.addExpense) }
+    Balances(store.balances, detail.group.currency, locale)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(onClick = onSettle) { Text(strings.settle) }
+        TextButton(onClick = onPay) { Text(strings.registerPayment) }
+    }
+    val transfers = store.settlement?.transfers.orEmpty()
+    if (transfers.isNotEmpty()) {
+        Text(
+            strings.settlementPlan.uppercase(),
+            fontSize = 11.sp,
+            letterSpacing = 1.sp,
+            color = palette.mutedForeground,
+        )
+        val names = detail.members.associate { it.id to it.displayName }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(palette.surface, RoundedCornerShape(16.dp))
+                .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            for (transfer in transfers) {
+                Row {
+                    Text(
+                        "${names[transfer.from] ?: ""} → ${names[transfer.to] ?: ""}",
+                        modifier = Modifier.weight(1f),
+                        fontSize = 13.sp,
+                    )
+                    Text(
+                        formatMinor(transfer.amountMinor, detail.group.currency, locale),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MembersTab(
+    store: OweStore,
+    detail: OweGroupDetail,
+    locale: String,
+    onAddPerson: () -> Unit,
+    onSettle: () -> Unit,
 ) {
     val palette = LocalPalette.current
+    val strings = LocalStrings.current
     val creator = detail.group.createdBy != null && detail.group.createdBy == store.userId
     val mine = detail.members.firstOrNull { it.userId != null && it.userId == store.userId }
-    var pending by remember { mutableStateOf<Pair<String, String>?>(null) } // memberId, action
+    var sheet by remember { mutableStateOf<OweMemberDto?>(null) }
+    var confirmRemove by remember { mutableStateOf<OweMemberDto?>(null) }
+    var balanceRemove by remember { mutableStateOf<OweMemberDto?>(null) }
+    var confirmBlock by remember { mutableStateOf<OweMemberDto?>(null) }
+    var confirmLeave by remember { mutableStateOf(false) }
+    fun balanceOf(id: String): Long =
+        store.balances.firstOrNull { it.memberId == id }?.amountMinor ?: 0L
+
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             strings.members.uppercase(),
@@ -639,105 +809,223 @@ private fun Members(
             modifier = Modifier.weight(1f),
         )
         if (creator) {
-            TextButton(onClick = onInvite) { Text(strings.invite) }
+            TextButton(onClick = onAddPerson) { Text(strings.addPerson) }
         }
     }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(palette.surface, RoundedCornerShape(16.dp))
             .border(1.dp, palette.border, RoundedCornerShape(16.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(vertical = 4.dp),
     ) {
-        for (member in detail.members.filter { it.state == "active" || it.state == "invited" }) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        for (member in detail.members.filter { it.state != "removed" || it.blocked }) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { sheet = member }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Column(Modifier.weight(1f)) {
                     Text(member.displayName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Text(
                         when {
-                            member.userId == null && member.state == "active" -> strings.fictitious
-                            member.state == "invited" -> strings.stateInvited
-                            member.state == "left" -> strings.stateLeft
-                            member.state == "removed" -> strings.stateRemoved
+                            member.blocked -> strings.blockedPeople
+                            member.state == "invited" -> strings.pendingInvite
+                            member.userId == null -> strings.memberNoAccount
                             else -> strings.stateActive
                         },
                         fontSize = 11.sp,
                         color = palette.mutedForeground,
                     )
                 }
-                if (creator && member.userId != null && member.userId != store.userId && member.state == "active") {
-                    val act: (String) -> Unit = { action ->
-                        if ((store.balances.firstOrNull { it.memberId == member.id }?.amountMinor ?: 0L) != 0L) {
-                            pending = member.id to action
-                        } else {
-                            onConfirm(action) {
-                                if (action == strings.blockMember) {
-                                    store.blockMember(detail.group.id, member.id)
-                                } else {
-                                    store.removeMember(detail.group.id, member.id)
+                val owed = balanceOf(member.id)
+                if (owed != 0L) {
+                    Text(
+                        formatMinor(owed, detail.group.currency, locale),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (owed >= 0) palette.accent else palette.destructive,
+                    )
+                }
+                if (creator) {
+                    Text("  ›", fontSize = 16.sp, color = palette.mutedForeground)
+                }
+            }
+        }
+    }
+
+    if (mine != null) {
+        TextButton(onClick = { confirmLeave = true }) {
+            Text(strings.leaveGroup, color = palette.destructive, fontSize = 12.sp)
+        }
+    }
+
+    sheet?.let { member ->
+        val owed = balanceOf(member.id)
+        AppAlertDialog(
+            onDismissRequest = { sheet = null },
+            title = { Text(member.displayName) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        when {
+                            member.blocked -> strings.blockedPeople
+                            member.state == "invited" -> strings.pendingInvite
+                            member.userId == null -> strings.memberNoAccount
+                            else -> strings.stateActive
+                        },
+                        fontSize = 12.sp,
+                        color = palette.mutedForeground,
+                    )
+                    if (owed != 0L) {
+                        Text(
+                            formatMinor(owed, detail.group.currency, locale),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (owed >= 0) palette.accent else palette.destructive,
+                        )
+                    }
+                    if (creator && member.userId != store.userId) {
+                        if (owed != 0L && member.state == "active") {
+                            TextButton(onClick = {
+                                sheet = null
+                                onSettle()
+                            }) { Text(strings.settleFirst) }
+                        }
+                        when {
+                            member.blocked -> TextButton(onClick = {
+                                sheet = null
+                                store.unblockMember(detail.group.id, member.id)
+                            }) { Text(strings.unblockAccount) }
+                            member.state == "invited" -> TextButton(onClick = {
+                                sheet = null
+                                confirmRemove = member
+                            }) {
+                                Text(strings.cancelInvitation, color = palette.destructive, fontSize = 13.sp)
+                            }
+                            else -> {
+                                TextButton(onClick = {
+                                    sheet = null
+                                    if (owed != 0L) balanceRemove = member else confirmRemove = member
+                                }) {
+                                    Text(strings.removeFromGroup, color = palette.destructive, fontSize = 13.sp)
+                                }
+                                if (member.userId != null && owed == 0L) {
+                                    TextButton(onClick = {
+                                        sheet = null
+                                        confirmBlock = member
+                                    }) {
+                                        Text(strings.blockAccount, color = palette.destructive, fontSize = 13.sp)
+                                    }
                                 }
                             }
                         }
                     }
-                    TextButton(onClick = { act(strings.removeMember) }) {
-                        Text(strings.removeMember, fontSize = 11.sp)
-                    }
-                    TextButton(onClick = { act(strings.blockMember) }) {
-                        Text(strings.blockMember, fontSize = 11.sp, color = palette.destructive)
-                    }
                 }
-            }
-        }
-        if (mine != null) {
-            TextButton(
-                onClick = {
-                    onConfirm(strings.leaveGroup) { store.leaveGroup(detail.group.id) }
-                },
-            ) { Text(strings.leaveGroup, color = palette.destructive, fontSize = 12.sp) }
-        }
+            },
+            confirmButton = { TextButton(onClick = { sheet = null }) { Text(strings.done) } },
+        )
     }
 
-    pending?.let { (memberId, action) ->
-        val member = detail.members.firstOrNull { it.id == memberId }
+    confirmRemove?.let { member ->
         AppAlertDialog(
-            onDismissRequest = { pending = null },
-            title = { Text(action) },
-            text = {
-                Text(
-                    strings.keepBalance.replace("{name}", member?.displayName ?: ""),
-                )
+            onDismissRequest = { confirmRemove = null },
+            title = {
+                Text(if (member.state == "invited") strings.cancelInvitation else strings.removeFromGroup)
             },
+            text = { Text(strings.confirmQuestion) },
             confirmButton = {
                 TextButton(onClick = {
-                    pending = null
-                    if (action == strings.blockMember) {
-                        store.blockMember(detail.group.id, memberId, "ghost")
-                    } else {
-                        store.removeMember(detail.group.id, memberId, "ghost")
-                    }
-                }) { Text(strings.convertFictitious) }
+                    confirmRemove = null
+                    store.removeMember(detail.group.id, member.id)
+                }) { Text(strings.removeFromGroup, color = palette.destructive) }
+            },
+            dismissButton = { TextButton(onClick = { confirmRemove = null }) { Text(strings.cancel) } },
+        )
+    }
+
+    balanceRemove?.let { member ->
+        AppAlertDialog(
+            onDismissRequest = { balanceRemove = null },
+            title = { Text(strings.removeBalanceTitle.replace("{name}", member.displayName)) },
+            text = { Text(strings.removeBalanceBody) },
+            confirmButton = {
+                TextButton(onClick = {
+                    balanceRemove = null
+                    store.removeMember(detail.group.id, member.id, "ghost")
+                }) { Text(strings.removeKeepBalance) }
             },
             dismissButton = {
                 TextButton(onClick = {
-                    pending = null
-                    // Settle first, then the action can be repeated.
+                    balanceRemove = null
                     onSettle()
-                }) { Text(strings.settle) }
+                }) { Text(strings.settleFirst) }
             },
         )
     }
+
+    confirmBlock?.let { member ->
+        AppAlertDialog(
+            onDismissRequest = { confirmBlock = null },
+            title = { Text(strings.blockAccount) },
+            text = { Text(strings.confirmQuestion) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmBlock = null
+                    store.blockMember(detail.group.id, member.id)
+                }) { Text(strings.blockAccount, color = palette.destructive) }
+            },
+            dismissButton = { TextButton(onClick = { confirmBlock = null }) { Text(strings.cancel) } },
+        )
+    }
+
+    if (confirmLeave) {
+        AppAlertDialog(
+            onDismissRequest = { confirmLeave = false },
+            title = { Text(strings.leaveGroup) },
+            text = { Text(strings.confirmQuestion) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmLeave = false
+                    store.leaveGroup(detail.group.id)
+                }) { Text(strings.leaveGroup, color = palette.destructive) }
+            },
+            dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text(strings.cancel) } },
+        )
+    }
+}
+
+/** Two ways to grow a group; only one of them is an invitation. */
+@Composable
+private fun AddPersonDialog(onDismiss: () -> Unit, onPick: (String) -> Unit) {
+    val strings = LocalStrings.current
+    AppAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(strings.addPerson) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                TextButton(onClick = { onPick("account") }) { Text(strings.inviteWithAccount) }
+                TextButton(onClick = { onPick("fictitious") }) { Text(strings.addWithoutAccount) }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },
+    )
 }
 
 /** Invite a registered account (outside the group) or add a fictitious name. */
 @Composable
 private fun InviteDialog(
+    mode: String,
     identities: List<OweIdentityDto>,
     onDismiss: () -> Unit,
     onInvite: (String, String?) -> Unit,
 ) {
     val strings = LocalStrings.current
     val palette = LocalPalette.current
+    val account = mode == "account"
     var query by remember { mutableStateOf("") }
     val wanted = query.trim().lowercase()
     val matches = if (wanted.isEmpty()) {
@@ -747,7 +1035,7 @@ private fun InviteDialog(
     }
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(strings.inviteMember) },
+        title = { Text(if (account) strings.inviteWithAccount else strings.addWithoutAccount) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -768,9 +1056,16 @@ private fun InviteDialog(
                         }
                     }
                 }
-                if (wanted.isNotEmpty() && matches.isEmpty()) {
+                if (!account && wanted.isNotEmpty() && matches.isEmpty()) {
                     Text(
-                        "${strings.fictitious}: ${query.trim()}",
+                        "${strings.memberNoAccount}: ${query.trim()}",
+                        fontSize = 11.sp,
+                        color = palette.mutedForeground,
+                    )
+                }
+                if (account && wanted.isEmpty()) {
+                    Text(
+                        strings.accountOptional,
                         fontSize = 11.sp,
                         color = palette.mutedForeground,
                     )
@@ -778,12 +1073,18 @@ private fun InviteDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                enabled = query.isNotBlank(),
-                onClick = { onInvite(query.trim(), null) },
-            ) { Text(strings.invite) }
+            if (account) {
+                TextButton(onClick = onDismiss) { Text(strings.cancel) }
+            } else {
+                TextButton(
+                    enabled = query.isNotBlank(),
+                    onClick = { onInvite(query.trim(), null) },
+                ) { Text(strings.add) }
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },
+        dismissButton = if (account) null else {
+            { TextButton(onClick = onDismiss) { Text(strings.cancel) } }
+        },
     )
 }
 
@@ -791,7 +1092,12 @@ private fun InviteDialog(
 private fun Balances(balances: List<OweBalanceDto>, currency: String, locale: String) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
-    if (balances.isEmpty()) return
+    // A row of zeroes is noise: the card lists only who owes or is owed.
+    val pending = balances.filter { it.amountMinor != 0L }
+    if (pending.isEmpty()) {
+        Text(strings.settleEmpty, fontSize = 13.sp, color = palette.mutedForeground)
+        return
+    }
     Text(strings.balances.uppercase(), fontSize = 11.sp, letterSpacing = 1.sp, color = palette.mutedForeground)
     Column(
         modifier = Modifier
@@ -801,7 +1107,7 @@ private fun Balances(balances: List<OweBalanceDto>, currency: String, locale: St
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        for (balance in balances) {
+        for (balance in pending) {
             Row {
                 Text(balance.displayName, modifier = Modifier.weight(1f), fontSize = 13.sp)
                 Text(
@@ -821,12 +1127,12 @@ private fun Movements(
     members: List<OweMemberDto>,
     currency: String,
     locale: String,
+    emptyText: String,
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
-    Text(strings.movements.uppercase(), fontSize = 11.sp, letterSpacing = 1.sp, color = palette.mutedForeground)
     if (movements.isEmpty()) {
-        Text(strings.noMovements, fontSize = 13.sp, color = palette.mutedForeground)
+        Text(emptyText, fontSize = 13.sp, color = palette.mutedForeground)
     }
     val byId = members.associateBy { it.id }
     for (movement in movements) {

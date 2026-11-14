@@ -230,7 +230,14 @@ export async function listMembers(
                where b.group_id = m.group_id and b.user_id = m.user_id
             ) as blocked
        from module_owe_no.owe_no_members m
-      where m.group_id = $1 and m.state <> 'removed'
+      where m.group_id = $1
+        and (
+          m.state <> 'removed'
+          or exists (
+            select 1 from module_owe_no.owe_no_blocks b
+             where b.group_id = m.group_id and b.user_id = m.user_id
+          )
+        )
       order by m.display_name asc`,
     [key(groupId)],
   );
@@ -271,13 +278,19 @@ export async function addMember(
       });
     }
   }
-  const state = input.active === true ? "active" : "invited";
+  // D30: a name without an account is a participant from the moment it is
+  // added; only a real account waits for the invitation to be accepted.
+  const state = input.inviteeId && input.active !== true ? "invited" : "active";
   const { rows } = await deps.db.query(
     `insert into module_owe_no.owe_no_members
        (group_id, user_id, display_name, state, invited_by, invited_at, joined_at)
      values ($1, $2, $3, $5, $4, now(), case when $5 = 'active' then now() end)
      on conflict (group_id, user_id) do update
-       set state = $5, invited_at = now(), invited_by = $4,
+       set state = case
+             when module_owe_no.owe_no_members.state = 'active' then 'active'
+             else $5
+           end,
+           invited_at = now(), invited_by = $4,
            joined_at = case when $5 = 'active' then now() else module_owe_no.owe_no_members.joined_at end
      returning id, display_name, state, user_id`,
     [groupId, input.inviteeId ?? null, displayName, userId, state],
@@ -808,14 +821,17 @@ export async function blockMember(
           where id = $1 and group_id = $2`,
         [memberId, groupId],
       );
-    } else {
-      await db.query(
-        `update module_owe_no.owe_no_members
-            set state = 'removed', left_at = now(), updated_at = now()
-          where id = $1 and group_id = $2`,
-        [memberId, groupId],
-      );
+      // The account is gone from the group, so there is nothing left to block:
+      // a block row keyed by a user that no longer owns a member could never be
+      // lifted again.
+      return;
     }
+    await db.query(
+      `update module_owe_no.owe_no_members
+          set state = 'removed', left_at = now(), updated_at = now()
+        where id = $1 and group_id = $2`,
+      [memberId, groupId],
+    );
     await db.query(
       `insert into module_owe_no.owe_no_blocks (group_id, user_id, blocked_by)
        values ($1, $2, $3)

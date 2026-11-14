@@ -75,6 +75,88 @@ async function other(c: ClientBase, name: string) {
   return id;
 }
 
+describe("owe-no fictitious participant (D30)", () => {
+  it("adds a name without an account as an active participant, not a pending invitation", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const member = await addMember(deps(c), owner.id, group.id, { displayName: "Marta" });
+      expect(member.state).toBe("active");
+      expect(member.kind).toBe("fictitious");
+      expect(member.user_id).toBeNull();
+    });
+  });
+});
+
+describe("owe-no member visibility (D31)", () => {
+  it("keeps an active member active when the creator invites them again", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
+      await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+        active: true,
+      });
+      const again = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+      });
+      expect(again.state).toBe("active");
+    });
+  });
+
+  it("lists a blocked member so the creator can lift the block", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
+      const member = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+        active: true,
+      });
+      await blockMember(deps(c), owner.id, group.id, member.id);
+      const listed = await listMembers(deps(c), owner.id, group.id);
+      expect(listed.find((row) => row.id === member.id)).toMatchObject({
+        state: "removed",
+        blocked: true,
+      });
+      await unblockMember(deps(c), owner.id, group.id, member.id);
+      const after = await listMembers(deps(c), owner.id, group.id);
+      expect(after.find((row) => row.id === member.id)).toBeUndefined();
+    });
+  });
+
+  it("leaves no block behind when the account becomes fictitious", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
+      const member = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+        active: true,
+      });
+      await c.query(
+        `insert into module_owe_no.owe_no_movements
+           (group_id, kind, description, amount_minor, currency, paid_by_member_id, occurred_on, created_by)
+         values ($1, 'expense', 'Cena', 1000, 'EUR', $2, current_date, $3)`,
+        [group.id, member.id, owner.id],
+      );
+      await blockMember(deps(c), owner.id, group.id, member.id, "ghost");
+      const { rows } = await query(
+        c,
+        "select count(*)::int as total from module_owe_no.owe_no_blocks where group_id = $1",
+        [group.id],
+      );
+      expect(rows[0].total).toBe(0);
+      const listed = await listMembers(deps(c), owner.id, group.id);
+      expect(listed.find((row) => row.id === member.id)).toMatchObject({
+        kind: "fictitious",
+        blocked: false,
+      });
+    });
+  });
+});
+
 describe("owe-no member lifecycle", () => {
   it("lets a member leave with a zero balance", async () => {
     await inRollback(async (c) => {
