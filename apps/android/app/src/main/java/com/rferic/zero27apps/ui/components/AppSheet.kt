@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -72,6 +73,7 @@ fun AppSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = 600.dp)
                 .imePadding()
                 .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
@@ -156,6 +158,7 @@ fun AppFormSheet(
     text: @Composable () -> Unit,
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable (() -> Unit)? = null,
+    tall: Boolean = false,
 ) {
     val palette = LocalPalette.current
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -176,6 +179,7 @@ fun AppFormSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = 600.dp)
                 .imePadding()
                 .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
@@ -193,7 +197,15 @@ fun AppFormSheet(
             androidx.compose.runtime.CompositionLocalProvider(
                 androidx.compose.material3.LocalTextStyle provides
                     androidx.compose.ui.text.TextStyle(fontSize = 13.sp, color = palette.mutedForeground),
-            ) { text() }
+            ) {
+                // A bounded box: the body may scroll on its own, and a scrollable
+                // measured with infinite height crashes.
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .then(if (tall) Modifier.weight(1f) else Modifier.heightIn(max = 360.dp)),
+                ) { text() }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,

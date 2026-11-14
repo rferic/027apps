@@ -72,8 +72,6 @@ las capturas reales y la landing `available` se cierran al final de la tarea 07.
 
 **Pendientes conocidos que no entran en este sprint**
 
-- **Widget de pantalla de inicio de Android**: la app entrega el producto abierto (login,
-  sesión, OweNo), pero no un `AppWidget` para la home del móvil. Necesita spec propia.
 - Release firmado y tag: exigen keystore y orden explícita del propietario.
 - Promoción a producción: `staging → main` solo con orden explícita.
 
