@@ -108,9 +108,11 @@ function ModuleNav({
 export async function ModulePageHost({
   moduleKey,
   route,
+  searchParams = {},
 }: {
   moduleKey: string;
   route: string;
+  searchParams?: Record<string, string | string[] | undefined>;
 }) {
   const gate = await requirePanel("admin");
   if ("denied" in gate) return renderForbidden(gate.user);
@@ -138,6 +140,7 @@ export async function ModulePageHost({
     db: settingsDeps.db,
     locale,
     messages: moduleMessages,
+    searchParams,
   };
   return (
     <section className="flex flex-col gap-5">

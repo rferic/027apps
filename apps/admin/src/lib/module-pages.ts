@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import type { ModulePageContext } from "@027apps/core/modules/pages.js";
 import FixtureOverview from "@027apps/fixture/admin/overview/page";
-import OweNoGroups from "@027apps/owe-no/admin/groups/page";
+import OweNoGroups from "@/components/owe-no/groups-page";
 import OweNoImports from "@027apps/owe-no/admin/imports/page";
 import OweNoOverview from "@027apps/owe-no/admin/overview/page";
 

@@ -202,11 +202,19 @@ Ejemplo completo:
   `/panel/<key>`. Cualquier otro campo se ignora.
 - **Páginas de admin y acceso a datos**: el host solo renderiza una página de módulo tras
   comprobar sesión, rol del manifest y `active`, y le pasa un `ModulePageContext`
-  (`@027apps/core/modules/pages.js`): `{ moduleKey, caller, db, locale, messages }`. La página usa
+  (`@027apps/core/modules/pages.js`): `{ moduleKey, caller, db, locale, messages, searchParams }`.
+  `searchParams` es el mecanismo de detalle mientras no haya segmentos dinámicos
+  (`?group=<id>`); la página valida el parámetro y el envoltorio resuelve el 404. La página usa
   el **servicio del módulo** (`packages/<key>/src/service.ts`), el mismo que su API, en vez de
   llamarse a sí misma por HTTP. Las reglas de quién ve qué viven en ese servicio, una sola vez;
-  las páginas no las reimplementan. El panel es de administración: lee todo y **no escribe
-  dinero** (D9).
+  las páginas no las reimplementan. El panel es de administración: lee todo y **escribe con
+  auditoría** cuando el módulo lo permite (D26).
+- **Páginas que escriben**: el paquete no puede importar código del panel (alias `@/`) ni
+  depender de Next. La página `packages/<key>/admin/<route>/page.tsx` es **presentacional** y
+  recibe las acciones como props; `MODULE_PAGES` apunta a un **envoltorio** de la app
+  (`apps/admin/src/components/...`) que las inyecta desde un fichero `"use server"`. El
+  envoltorio no decide reglas ni permisos: el gate y la autorización viven en la acción y en el
+  dominio. Así el paquete sigue sin Next y la sesión no sale de la app.
 - **Páginas de admin en el idioma del panel**: `messages` es el mapa plano de
   `locales/<locale>.json` del módulo (con `en.json` como respaldo) y `locale` el idioma de la
   sesión. La página traduce con `t("English text", context.messages)`: **nunca** deja un literal

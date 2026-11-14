@@ -22,6 +22,7 @@ describe("module workspace route", () => {
     await expect(
       ModuleWorkspaceRoutePage({
         params: Promise.resolve({ module: "owe-no", route: "overview" }),
+        searchParams: Promise.resolve({}),
       }),
     ).rejects.toThrow("NEXT_REDIRECT");
     expect(redirectMock).toHaveBeenCalledWith("/panel/owe-no");
@@ -31,6 +32,7 @@ describe("module workspace route", () => {
     const html = renderToStaticMarkup(
       await ModuleWorkspaceRoutePage({
         params: Promise.resolve({ module: "owe-no", route: "groups" }),
+        searchParams: Promise.resolve({}),
       }),
     );
     expect(html).toContain("host:owe-no/groups");

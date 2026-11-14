@@ -16,6 +16,7 @@ function context(messages: Record<string, string>): ModulePageContext {
     db: { query: async () => ({ rows: [] }) },
     locale: "es",
     messages,
+    searchParams: {},
   };
 }
 
@@ -35,7 +36,26 @@ describe("owe-no admin pages", () => {
   });
 
   it("renders the group list in the panel locale", async () => {
-    const html = renderToStaticMarkup(await OweNoGroups({ context: context(await spanish()) }));
+    const noop = async () => {};
+    const html = renderToStaticMarkup(
+      await OweNoGroups({
+        context: context(await spanish()),
+        groups: [],
+        detail: null,
+        userOptions: [],
+        plan: null,
+        actions: {
+          createGroup: noop,
+          archiveGroup: noop,
+          addMember: noop,
+          linkMember: noop,
+          removeMember: noop,
+          saveMovement: noop,
+          deleteMovement: noop,
+          settle: noop,
+        },
+      }),
+    );
     expect(html).toContain(">Grupos<");
     expect(html).toContain("Aún no hay grupos.");
     expect(html).not.toContain(">Groups<");
@@ -47,4 +67,68 @@ describe("owe-no admin pages", () => {
     expect(html).toContain("Aún no hay importaciones.");
     expect(html).not.toContain("No imports yet");
   });
+
+  it("renders one group with its balances, movements and settlement", async () => {
+    const noop = async () => {};
+    const detail = {
+      group: {
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "Casa",
+        currency: "EUR",
+        archived: false,
+        created_by: null,
+        archived_by: null,
+        members: 2,
+        movements: 1,
+      },
+      members: [
+        { id: "m1", display_name: "Ana", state: "active" as const, user_id: "u1", balance: 500 },
+        { id: "m2", display_name: "Luis", state: "active" as const, user_id: null, balance: -500 },
+      ],
+      movements: [
+        {
+          id: "mv1",
+          kind: "expense" as const,
+          description: "Cena",
+          amount_minor: 1000,
+          currency: "EUR",
+          paid_by: "m1",
+          occurred_on: "2026-11-14",
+          category_id: null,
+          shares: [
+            { memberId: "m1", amount_minor: 500 },
+            { memberId: "m2", amount_minor: 500 },
+          ],
+        },
+      ],
+    };
+
+    const html = renderToStaticMarkup(
+      await OweNoGroups({
+        context: context(await spanish()),
+        groups: [],
+        detail,
+        userOptions: [{ id: "u1", display_name: "Ana" }],
+        plan: { exact: true, transfers: [{ from: "m2", to: "m1", amount_minor: 500 }] },
+        actions: {
+          createGroup: noop,
+          archiveGroup: noop,
+          addMember: noop,
+          linkMember: noop,
+          removeMember: noop,
+          saveMovement: noop,
+          deleteMovement: noop,
+          settle: noop,
+        },
+      }),
+    );
+
+    expect(html).toContain("Casa");
+    expect(html).toContain("Editar");
+    expect(html).toContain("Archivar grupo");
+    expect(html).toContain("Registrar pago");
+    expect(html).toContain("Luis");
+    expect(html).not.toContain("Add expense");
+  });
 });
+

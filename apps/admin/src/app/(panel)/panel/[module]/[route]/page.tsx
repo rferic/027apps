@@ -10,10 +10,18 @@ export const instant = false;
 
 export default async function ModuleWorkspaceRoutePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ module: string; route: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { module, route } = await params;
   if (route === "overview") redirect(`/panel/${encodeURIComponent(module)}`);
-  return <ModulePageHost moduleKey={module} route={route} />;
+  return (
+    <ModulePageHost
+      moduleKey={module}
+      route={route}
+      searchParams={(await searchParams) ?? {}}
+    />
+  );
 }

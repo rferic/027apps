@@ -12,7 +12,10 @@ import ModuleWorkspacePage from "./page";
 describe("module workspace", () => {
   it("renders the module overview at /panel/<key>", async () => {
     const html = renderToStaticMarkup(
-      await ModuleWorkspacePage({ params: Promise.resolve({ module: "owe-no" }) }),
+      await ModuleWorkspacePage({
+        params: Promise.resolve({ module: "owe-no" }),
+        searchParams: Promise.resolve({}),
+      }),
     );
     expect(html).toContain("host:owe-no/overview");
   });
