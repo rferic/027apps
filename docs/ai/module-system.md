@@ -204,7 +204,9 @@ Ejemplo completo:
   y el panel la traduce; evita `"1 groups"`.
 - **Páginas de admin y acceso a datos**: el host solo renderiza una página de módulo tras
   comprobar sesión, rol del manifest y `active`, y le pasa un `ModulePageContext`
-  (`@027apps/core/modules/pages.js`): `{ moduleKey, caller, db, locale, messages, searchParams }`.
+  (`@027apps/core/modules/pages.js`): `{ moduleKey, caller, db, locale, messages, searchParams,
+  linkComponent }`. `linkComponent` es el enlace del panel (`next/link`) inyectado por el host:
+  las páginas navegan sin recarga completa sin importar Next; si falta, usan `<a>`.
   `searchParams` es el mecanismo de detalle mientras no haya segmentos dinámicos
   (`?group=<id>`); la página valida el parámetro y el envoltorio resuelve el 404. La página usa
   el **servicio del módulo** (`packages/<key>/src/service.ts`), el mismo que su API, en vez de

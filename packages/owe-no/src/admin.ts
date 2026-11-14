@@ -39,10 +39,24 @@ export interface AdminGroupView {
   movements: number;
 }
 
+export interface AdminCategoryView {
+  id: string;
+  name: string;
+}
+
+/** A movement plus the audit the panel can show (who created or edited it). */
+export interface AdminMovementView extends MovementView {
+  created_by_name: string | null;
+  updated_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AdminGroupDetail {
   group: AdminGroupView & { archived_by: string | null };
   members: AdminMemberView[];
-  movements: MovementView[];
+  movements: AdminMovementView[];
+  categories: AdminCategoryView[];
 }
 
 export interface AdminUserOption {
@@ -91,6 +105,11 @@ export async function adminGroupDetail(
     [groupId],
   );
   const movements = await adminMovements(deps, groupId);
+  const { rows: categories } = await deps.db.query(
+    `select id, name from module_owe_no.owe_no_categories
+      where group_id = $1 order by name`,
+    [groupId],
+  );
 
   return {
     group: {
@@ -111,22 +130,31 @@ export async function adminGroupDetail(
       balance: balances.get(String(row.id)) ?? 0,
     })),
     movements,
+    categories: categories.map((row) => ({ id: String(row.id), name: String(row.name) })),
   };
 }
 
-/** Every live movement of the group, newest first (the panel's list). */
-async function adminMovements(deps: OweDeps, groupId: string): Promise<MovementView[]> {
+/**
+ * Every live movement of the group, newest first. The panel caps the list at
+ * 100: `group.movements` still counts them all, so the page can say so.
+ */
+async function adminMovements(deps: OweDeps, groupId: string): Promise<AdminMovementView[]> {
   const { rows } = await deps.db.query(
     `select mv.id, mv.kind, mv.description, mv.amount_minor, mv.currency,
             mv.paid_by_member_id, mv.occurred_on, mv.category_id,
+            mv.created_at, mv.updated_at,
+            c.display_name as created_by_name, u.display_name as updated_by_name,
             coalesce(json_agg(json_build_object('memberId', s.member_id,
                                                 'amount_minor', s.amount_minor))
                        filter (where s.member_id is not null), '[]'::json) as shares
        from module_owe_no.owe_no_movements mv
        left join module_owe_no.owe_no_movement_shares s on s.movement_id = mv.id
+       left join public.profiles c on c.id = mv.created_by
+       left join public.profiles u on u.id = mv.updated_by
       where mv.group_id = $1 and mv.deleted_at is null
-      group by mv.id
-      order by mv.occurred_on desc, mv.created_at desc`,
+      group by mv.id, c.display_name, u.display_name
+      order by mv.occurred_on desc, mv.created_at desc
+      limit 100`,
     [groupId],
   );
   return rows.map((row) => ({
@@ -139,6 +167,10 @@ async function adminMovements(deps: OweDeps, groupId: string): Promise<MovementV
     occurred_on: String(row.occurred_on),
     category_id: row.category_id === null ? null : String(row.category_id),
     shares: row.shares as MovementView["shares"],
+    created_by_name: row.created_by_name === null ? null : String(row.created_by_name),
+    updated_by_name: row.updated_by_name === null ? null : String(row.updated_by_name),
+    created_at: new Date(String(row.created_at)).toISOString(),
+    updated_at: new Date(String(row.updated_at)).toISOString(),
   }));
 }
 

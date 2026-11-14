@@ -101,5 +101,13 @@
   "Members {members} · Movements {movements} · {currency}": "Members {members} · Movements {movements} · {currency}",
   "Overview": "Overview",
   "Edit settlement": "Edit settlement",
-  "A group needs at least one active member.": "A group needs at least one active member."
+  "A group needs at least one active member.": "A group needs at least one active member.",
+  "Category": "Category",
+  "No category": "No category",
+  "Search groups": "Search groups",
+  "Search": "Search",
+  "Clear filter": "Clear filter",
+  "Edited by {name}": "Edited by {name}",
+  "Added by {name}": "Added by {name}",
+  "Showing the latest {shown} of {total} movements.": "Showing the latest {shown} of {total} movements."
 }

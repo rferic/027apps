@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "../design-tokens.css";
 
+/* Module admin pages live in their own packages; without this, classes used
+   only there (bg-accent, text-success…) never reach the generated CSS. */
+@source "../../../../packages/*/admin/**/*.tsx";
+@source "../../../../packages/*/admin/**/*.ts";
+
 /*
  * Module branding slots (manifest `branding.color`). They are not semantic
  * roles, so they live outside design-tokens.css: `light-dark()` follows the

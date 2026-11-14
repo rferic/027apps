@@ -67,7 +67,9 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
           instanceName={instanceName}
           menu={<PanelMobileMenu role={role} messages={messages} modules={moduleNav} />}
         />
-        <main id="content" className="flex-1 p-4">
+        {/* The cookie notice floats over the bottom edge; the padding keeps the
+            last card readable on a phone until it is dismissed. */}
+        <main id="content" className="flex-1 p-4 pb-32 lg:pb-24">
           {children}
         </main>
       </div>

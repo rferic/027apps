@@ -1,3 +1,4 @@
+import type { ComponentType, ReactNode } from "react";
 import type { Caller } from "../api/types";
 import type { QueryClient } from "../api/rate-limit-storage";
 
@@ -17,6 +18,11 @@ export interface ModulePageContext {
    * until the module contract grows dynamic segments.
    */
   searchParams: Record<string, string | string[] | undefined>;
+  /**
+   * The panel's client-side link. The host injects it so a module page can
+   * navigate without a full reload while the package stays free of Next.
+   */
+  linkComponent?: ComponentType<{ href: string; className?: string; children: ReactNode }>;
   /** Panel locale of the request (`en`, `es`, …). */
   locale: string;
   /**

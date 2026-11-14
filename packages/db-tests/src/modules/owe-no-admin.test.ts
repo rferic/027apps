@@ -348,4 +348,36 @@ describe("owe-no administration", () => {
       expect(fromView).toEqual(await groupBalances(oweDeps(c), group.id));
     });
   });
+
+  it("brings a removed account back instead of refusing it", async () => {
+    await inRollback(async (c) => {
+      const { admin } = await install(c);
+      const luis = await user(c, "Luis");
+      const group = await adminCreateGroup(oweDeps(c), admin, { name: "Casa", currency: "EUR" });
+      const first = await adminAddMember(oweDeps(c), admin, group.id, {
+        displayName: "Luis",
+        userId: luis.id,
+      });
+      await adminRemoveMember(oweDeps(c), admin, group.id, first.id);
+
+      const again = await adminAddMember(oweDeps(c), admin, group.id, {
+        displayName: "Luis",
+        userId: luis.id,
+      });
+      expect(again.id).toBe(first.id);
+      expect(again.state).toBe("active");
+    });
+  });
+
+  it("never removes the last active member", async () => {
+    await inRollback(async (c) => {
+      const { admin } = await install(c);
+      const group = await adminCreateGroup(oweDeps(c), admin, { name: "Casa", currency: "EUR" });
+      const { members } = await adminGroupDetail(oweDeps(c), admin, group.id);
+      await expect(
+        adminRemoveMember(oweDeps(c), admin, group.id, members[0].id),
+      ).rejects.toMatchObject({ code: "conflict" });
+    });
+  });
 });
+

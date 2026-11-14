@@ -101,5 +101,13 @@
   "Members {members} · Movements {movements} · {currency}": "Kideak {members} · Mugimenduak {movements} · {currency}",
   "Overview": "Laburpena",
   "Edit settlement": "Editatu likidazioa",
-  "A group needs at least one active member.": "Taldeak kide aktibo bat behar du gutxienez."
+  "A group needs at least one active member.": "Taldeak kide aktibo bat behar du gutxienez.",
+  "Category": "Kategoria",
+  "No category": "Kategoriarik gabe",
+  "Search groups": "Bilatu taldeak",
+  "Search": "Bilatu",
+  "Clear filter": "Garbitu iragazkia",
+  "Edited by {name}": "{name}(e)k editatu du",
+  "Added by {name}": "{name}(e)k gehitu du",
+  "Showing the latest {shown} of {total} movements.": "Azken {shown} / {total} mugimendu."
 }

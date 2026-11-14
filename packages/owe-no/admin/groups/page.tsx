@@ -20,6 +20,7 @@ export interface OweNoGroupsActions {
   saveMovement: Action;
   deleteMovement: Action;
   settle: Action;
+  transfer: Action;
 }
 
 const ERROR_KEYS: Record<string, string> = {
@@ -50,7 +51,18 @@ const STATE_KEYS: Record<string, string> = {
   removed: "Removed",
 };
 
+type Anchor = NonNullable<ModulePageContext["linkComponent"]> | "a";
+
+const anchorOf = (context: ModulePageContext): Anchor => context.linkComponent ?? "a";
+
 const today = () => new Date().toISOString().slice(0, 10);
+
+/** The codes an action can return, translated for the inline form error. */
+function formErrors(tr: (text: string) => string): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(ERROR_KEYS).map(([code, text]) => [code, tr(text)]),
+  );
+}
 
 function money(minor: number, currency: string, locale: string): string {
   try {
@@ -163,6 +175,7 @@ function PageHeader({
   description,
   backHref,
   backLabel,
+  anchor = "a",
   children,
   tr,
 }: {
@@ -170,16 +183,18 @@ function PageHeader({
   description?: string;
   backHref?: string;
   backLabel?: string;
+  anchor?: Anchor;
   children?: React.ReactNode;
   tr: (text: string, params?: Record<string, string | number>) => string;
 }) {
+  const AnchorTag = anchor;
   return (
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div className="flex flex-col gap-1">
         {backHref && backLabel ? (
-          <a href={backHref} className="text-xs text-muted-foreground hover:underline">
+          <AnchorTag href={backHref} className="text-xs text-muted-foreground hover:underline">
             ← {tr(backLabel)}
-          </a>
+          </AnchorTag>
         ) : null}
         <h1 className="text-base font-bold">{title}</h1>
         {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
@@ -216,6 +231,7 @@ function GroupList({
   actions: OweNoGroupsActions;
   tr: (text: string, params?: Record<string, string | number>) => string;
 }) {
+  const AnchorTag = anchorOf(context);
   return (
     <>
       <PageHeader
@@ -225,12 +241,34 @@ function GroupList({
         )}
         backHref="/panel/owe-no"
         backLabel="OweNo"
+        anchor={anchorOf(context)}
         tr={tr}
       >
-        <a href="?new=1" className={primary}>
+        <AnchorTag href="?new=1" className={primary}>
           {tr("New group")}
-        </a>
+        </AnchorTag>
       </PageHeader>
+
+      <form method="get" className="flex flex-wrap items-end gap-2">
+        <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs font-semibold">
+          {tr("Search groups")}
+          <input
+            name="q"
+            defaultValue={
+              typeof context.searchParams.q === "string" ? context.searchParams.q : ""
+            }
+            className={`${control} font-normal`}
+          />
+        </label>
+        <button type="submit" className={secondary}>
+          {tr("Search")}
+        </button>
+        {context.searchParams.q ? (
+          <AnchorTag href="?" className={link}>
+            {tr("Clear filter")}
+          </AnchorTag>
+        ) : null}
+      </form>
 
       {groups.length === 0 ? (
         <p className="text-xs text-muted-foreground">{tr("No groups yet.")}</p>
@@ -249,12 +287,12 @@ function GroupList({
               {groups.map((group) => (
                 <tr key={group.id}>
                   <td className="border-b border-border p-3">
-                    <a
+                    <AnchorTag
                       href={href(group.id)}
                       className="font-semibold text-accent hover:underline"
                     >
                       {group.name}
-                    </a>
+                    </AnchorTag>
                     <span className="ml-2 font-mono text-[11px] text-muted-foreground">
                       {group.currency}
                     </span>
@@ -275,6 +313,7 @@ function GroupList({
 }
 
 function NewGroup({
+  context,
   actions,
   tr,
 }: {
@@ -289,10 +328,11 @@ function NewGroup({
         description={tr("The group starts with you as its creator and first member.")}
         backHref="?"
         backLabel="Groups"
+        anchor={anchorOf(context)}
         tr={tr}
       />
       <section className="max-w-xl rounded-card border border-border bg-surface p-4">
-        <form action={actions.createGroup} className="flex flex-col gap-3">
+                <form action={actions.createGroup} className="flex flex-col gap-3">
           <Field label={tr("Group name")}>
             <input name="name" required maxLength={80} className={`${control} font-normal`} />
           </Field>
@@ -305,7 +345,7 @@ function NewGroup({
               className={`${control} w-32 font-mono font-normal uppercase`}
             />
           </Field>
-          <div className="flex flex-wrap items-center justify-end gap-3">
+                  <div className="flex flex-wrap items-center justify-end gap-3">
             <a href="?" className={link}>
               {tr("Cancel")}
             </a>
@@ -330,6 +370,7 @@ function GroupDetail({
   actions: OweNoGroupsActions;
   tr: (text: string, params?: Record<string, string | number>) => string;
 }) {
+  const AnchorTag = anchorOf(context);
   const { group, members, movements } = detail;
   const active = members.filter((member) => member.state === "active");
   const byId = new Map(members.map((member) => [member.id, member.display_name]));
@@ -351,36 +392,37 @@ function GroupDetail({
         })}
         tr={tr}
       >
-        <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex sm:items-center">
+        <div className="flex w-full flex-col gap-2 sm:w-auto">
           {!group.archived ? (
-            <>
-              <a href={href(group.id, "movement")} className={`${primary} col-span-2 sm:col-auto`}>
-                {tr("Add expense")}
-              </a>
-              <a href={href(group.id, "settle")} className={secondary}>
-                {tr("Settle up")}
-              </a>
-            </>
+            <AnchorTag href={href(group.id, "movement")} className={`${primary} w-full sm:w-auto`}>
+              {tr("Add expense")}
+            </AnchorTag>
           ) : null}
-          <ConfirmForm
-            action={actions.archiveGroup}
-            fields={{ group: group.id, archived: group.archived ? "false" : "true" }}
-            label={group.archived ? tr("Reopen group") : tr("Archive group")}
-            title={
-              group.archived
-                ? tr("Reopen group?")
-                : tr("Archive group?")
-            }
-            body={
-              group.archived
-                ? tr("The group becomes writable again.")
-                : tr("The group becomes read-only for everyone.")
-            }
-            confirmLabel={group.archived ? tr("Reopen group") : tr("Archive group")}
-            cancelLabel={tr("Cancel")}
-            variant="neutral"
-            className={group.archived ? "col-span-2 sm:col-auto" : ""}
-          />
+          <div className={group.archived ? "" : "grid grid-cols-2 gap-2 sm:flex"}>
+            {!group.archived ? (
+              <AnchorTag href={href(group.id, "settle")} className={secondary}>
+                {tr("Settle up")}
+              </AnchorTag>
+            ) : null}
+            <div>
+              <ConfirmForm
+                action={actions.archiveGroup}
+                fields={{ group: group.id, archived: group.archived ? "false" : "true" }}
+                label={group.archived ? tr("Reopen group") : tr("Archive group")}
+                title={group.archived ? tr("Reopen group?") : tr("Archive group?")}
+                body={
+                  group.archived
+                    ? tr("The group becomes writable again.")
+                    : tr("The group becomes read-only for everyone.")
+                }
+                confirmLabel={group.archived ? tr("Reopen group") : tr("Archive group")}
+                cancelLabel={tr("Cancel")}
+                variant="neutral"
+                confirmVariant="primary"
+                className="w-full"
+              />
+            </div>
+          </div>
         </div>
       </PageHeader>
 
@@ -393,6 +435,7 @@ function GroupDetail({
                 member.balance > 0 ? "text-success" : member.balance < 0 ? "text-destructive" : ""
               }`}
             >
+              {member.balance > 0 ? "+" : ""}
               {money(member.balance, group.currency, context.locale)}
             </dd>
           </div>
@@ -405,9 +448,9 @@ function GroupDetail({
             {tr("Members")}
           </h2>
           {!group.archived ? (
-            <a href={href(group.id, "member")} className={link}>
+            <AnchorTag href={href(group.id, "member")} className={link}>
               {tr("Add member")}
-            </a>
+            </AnchorTag>
           ) : null}
         </div>
         <ul className="flex flex-col divide-y divide-border">
@@ -427,14 +470,15 @@ function GroupDetail({
                       : "text-muted-foreground"
                 }`}
               >
-                {money(member.balance, group.currency, context.locale)}
+                {member.balance > 0 ? "+" : ""}
+              {money(member.balance, group.currency, context.locale)}
               </span>
               {!group.archived && member.state === "active" ? (
                 <span className="flex items-center gap-1">
                   {!member.user_id ? (
-                    <a href={href(group.id, "link", { member: member.id })} className={`${secondary} px-2 text-[11px]`}>
+                    <AnchorTag href={href(group.id, "link", { member: member.id })} className={`${secondary} px-2 text-[11px]`}>
                       {tr("Link account")}
-                    </a>
+                    </AnchorTag>
                   ) : null}
                   <ConfirmForm
                     action={actions.removeMember}
@@ -444,7 +488,7 @@ function GroupDetail({
                     body={tr("Their balance must be zero; a removed member could no longer be paid.")}
                     confirmLabel={tr("Remove")}
                     cancelLabel={tr("Cancel")}
-                    className="min-h-9 px-2 text-[11px]"
+                    size="sm"
                   />
                 </span>
               ) : null}
@@ -457,6 +501,14 @@ function GroupDetail({
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {tr("Movements")}
         </h2>
+        {group.movements > movements.length ? (
+          <p className="mb-2 text-[11px] text-muted-foreground">
+            {tr("Showing the latest {shown} of {total} movements.", {
+              shown: movements.length,
+              total: group.movements,
+            })}
+          </p>
+        ) : null}
         {movements.length === 0 ? (
           <p className="text-xs text-muted-foreground">{tr("No movements yet.")}</p>
         ) : (
@@ -465,7 +517,9 @@ function GroupDetail({
             {movements.map((movement) => (
               <li key={movement.id} className="flex flex-col gap-1 py-2 text-xs">
                 <span className="flex items-start justify-between gap-2">
-                  <span className="font-semibold">{movement.description}</span>
+                  <span className="font-semibold">
+                    {movement.kind === "settlement" ? tr("Settlement") : movement.description}
+                  </span>
                   <span className="whitespace-nowrap tabular-nums">
                     {money(movement.amount_minor, movement.currency, context.locale)}
                   </span>
@@ -473,15 +527,28 @@ function GroupDetail({
                 <span className="text-[11px] text-muted-foreground">
                   {movement.occurred_on} · {byId.get(movement.paid_by) ?? ""} ·{" "}
                   {movement.kind === "settlement" ? tr("Settlement") : tr("Expense")}
+                  {movement.category_id
+                    ? ` · ${
+                        detail.categories.find((category) => category.id === movement.category_id)
+                          ?.name ?? ""
+                      }`
+                    : ""}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {movement.updated_by_name
+                    ? tr("Edited by {name}", { name: movement.updated_by_name })
+                    : movement.created_by_name
+                      ? tr("Added by {name}", { name: movement.created_by_name })
+                      : null}
                 </span>
                 {!group.archived ? (
                   <span className="flex items-center gap-2">
-                    <a
+                    <AnchorTag
                       href={href(group.id, "movement", { edit: movement.id })}
                       className="inline-flex min-h-9 items-center rounded-control border border-border px-2 text-[11px] font-semibold"
                     >
                       {tr("Edit")}
-                    </a>
+                    </AnchorTag>
                     <ConfirmForm
                       action={actions.deleteMovement}
                       fields={{ group: group.id, movement: movement.id }}
@@ -490,7 +557,8 @@ function GroupDetail({
                       body={tr("It leaves the balances and the history; the row stays for audit.")}
                       confirmLabel={tr("Delete")}
                       cancelLabel={tr("Cancel")}
-                      className="min-h-9 px-2 py-1 text-[11px]"
+                      size="sm"
+                      suffix="mobile"
                     />
                   </span>
                 ) : null}
@@ -515,9 +583,25 @@ function GroupDetail({
                       {movement.occurred_on}
                     </td>
                     <td className="border-b border-border p-2">
-                      <span className="font-semibold">{movement.description}</span>
+                      <span className="font-semibold">
+                        {movement.kind === "settlement" ? tr("Settlement") : movement.description}
+                      </span>
                       <span className="ml-2 text-[11px] text-muted-foreground">
                         {movement.kind === "settlement" ? tr("Settlement") : tr("Expense")}
+                        {movement.category_id
+                          ? ` · ${
+                              detail.categories.find(
+                                (category) => category.id === movement.category_id,
+                              )?.name ?? ""
+                            }`
+                          : ""}
+                      </span>
+                      <span className="block text-[10px] text-muted-foreground">
+                        {movement.updated_by_name
+                          ? tr("Edited by {name}", { name: movement.updated_by_name })
+                          : movement.created_by_name
+                            ? tr("Added by {name}", { name: movement.created_by_name })
+                            : null}
                       </span>
                     </td>
                     <td className="border-b border-border p-2">{byId.get(movement.paid_by) ?? ""}</td>
@@ -527,12 +611,12 @@ function GroupDetail({
                     <td className="border-b border-border p-2 text-right">
                       {!group.archived ? (
                         <span className="inline-flex items-center gap-1">
-                          <a
+                          <AnchorTag
                             href={href(group.id, "movement", { edit: movement.id })}
                             className="rounded-control border border-border px-2 py-1 text-[11px] font-semibold"
                           >
                             {tr("Edit")}
-                          </a>
+                          </AnchorTag>
                           <ConfirmForm
                             action={actions.deleteMovement}
                             fields={{ group: group.id, movement: movement.id }}
@@ -541,7 +625,8 @@ function GroupDetail({
                             body={tr("It leaves the balances and the history; the row stays for audit.")}
                             confirmLabel={tr("Delete")}
                             cancelLabel={tr("Cancel")}
-                            className="min-h-8 px-2 py-1 text-[11px]"
+                            size="sm"
+                            suffix="desktop"
                           />
                         </span>
                       ) : null}
@@ -594,10 +679,11 @@ function MovementView({
         })}
         backHref={href(group.id)}
         backLabel={group.name}
+        anchor={anchorOf(context)}
         tr={tr}
       />
       <section className="max-w-3xl rounded-card border border-border bg-surface p-4">
-        <form action={actions.saveMovement} className="flex flex-col gap-3">
+                <form action={actions.saveMovement} className="flex flex-col gap-3">
           <input type="hidden" name="group" value={group.id} />
           {editing ? <input type="hidden" name="movement" value={editing.id} /> : null}
           <input type="hidden" name="kind" value={editing?.kind ?? "expense"} />
@@ -616,6 +702,8 @@ function MovementView({
                 name="amount"
                 required
                 inputMode="decimal"
+                pattern="[0-9]+([.,][0-9]{1,2})?"
+                title={tr("Amount")}
                 defaultValue={editing ? (editing.amount_minor / 100).toFixed(2) : ""}
                 className={`${control} w-28 text-right font-normal tabular-nums`}
               />
@@ -653,6 +741,20 @@ function MovementView({
                 <option value="exact">{tr("Exact amounts")}</option>
               </select>
             </Field>
+            <Field label={tr("Category")}>
+              <select
+                name="category_id"
+                defaultValue={editing?.category_id ?? ""}
+                className={`${control} font-normal`}
+              >
+                <option value="">{tr("No category")}</option>
+                {detail.categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
           </div>
 
           <fieldset className="flex flex-col gap-1 rounded-control border border-border p-2">
@@ -676,6 +778,7 @@ function MovementView({
                   <input
                     name={`amount_${member.id}`}
                     inputMode="decimal"
+                    pattern="[0-9]+([.,][0-9]{1,2})?"
                     placeholder={tr("Exact")}
                     defaultValue={amount === undefined ? "" : (amount / 100).toFixed(2)}
                     className={`${control} ml-auto w-24 text-right text-[11px] font-normal tabular-nums`}
@@ -688,7 +791,7 @@ function MovementView({
             </span>
           </fieldset>
 
-          <div className="flex flex-wrap items-center justify-end gap-3">
+                  <div className="flex flex-wrap items-center justify-end gap-3">
             <a href={href(group.id)} className={link}>
               {tr("Cancel")}
             </a>
@@ -726,6 +829,7 @@ function SettleView({
         description={tr("Each payment is recorded as a settlement movement.")}
         backHref={href(group.id)}
         backLabel={group.name}
+        anchor={anchorOf(context)}
         tr={tr}
       />
       <section className="max-w-2xl rounded-card border border-border bg-surface p-4">
@@ -742,7 +846,7 @@ function SettleView({
                 <span className="ml-auto tabular-nums">
                   {money(transfer.amount_minor, group.currency, context.locale)}
                 </span>
-                <form action={actions.settle}>
+                <form action={actions.transfer}>
                   <input type="hidden" name="group" value={group.id} />
                   <input type="hidden" name="from" value={transfer.from} />
                   <input type="hidden" name="to" value={transfer.to} />
@@ -767,42 +871,46 @@ function SettleView({
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {tr("Register payment")}
         </h2>
-        <form action={actions.settle} className="flex flex-wrap items-end gap-2">
+                <form action={actions.settle} className="flex flex-col gap-3">
           <input type="hidden" name="group" value={group.id} />
           <input type="hidden" name="occurred_on" value={today()} />
-          <Field label={tr("Who pays")}>
-            <select name="from" required className={`${control} font-normal`}>
-              {active.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.display_name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={tr("Who receives")}>
-            <select name="to" required className={`${control} font-normal`}>
-              {active.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.display_name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={`${tr("Amount")} (${group.currency})`}>
-            <input
-              name="amount"
-              required
-              inputMode="decimal"
-              className={`${control} w-28 text-right font-normal tabular-nums`}
-            />
-          </Field>
           <input type="hidden" name="description" value="Settlement" />
-          <a href={href(group.id)} className={link}>
-            {tr("Cancel")}
-          </a>
-          <button type="submit" className={primary}>
-            {tr("Register payment")}
-          </button>
+          <div className="flex flex-wrap items-end gap-2">
+            <Field label={tr("Who pays")}>
+              <select name="from" required className={`${control} font-normal`}>
+                {active.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.display_name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label={tr("Who receives")}>
+              <select name="to" required className={`${control} font-normal`}>
+                {active.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.display_name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label={`${tr("Amount")} (${group.currency})`}>
+              <input
+                name="amount"
+                required
+                inputMode="decimal"
+                className={`${control} w-28 text-right font-normal tabular-nums`}
+              />
+            </Field>
+          </div>
+                  <div className="flex flex-wrap items-center justify-end gap-3">
+            <a href={href(group.id)} className={link}>
+              {tr("Cancel")}
+            </a>
+            <button type="submit" className={primary}>
+              {tr("Register payment")}
+            </button>
+          </div>
         </form>
       </section>
     </>
@@ -829,10 +937,11 @@ function MemberView({
         description={tr("The member is active from the moment you add them; there is no email invitation.")}
         backHref={href(detail.group.id)}
         backLabel={detail.group.name}
+        anchor={anchorOf(context)}
         tr={tr}
       />
       <section className="max-w-xl rounded-card border border-border bg-surface p-4">
-        <form action={actions.addMember} className="flex flex-col gap-3">
+                <form action={actions.addMember} className="flex flex-col gap-3">
           <input type="hidden" name="group" value={detail.group.id} />
           <Field label={tr("Name")}>
             <input name="display_name" required maxLength={80} className={`${control} font-normal`} />
@@ -847,7 +956,7 @@ function MemberView({
               ))}
             </select>
           </Field>
-          <div className="flex flex-wrap items-center justify-end gap-3">
+                  <div className="flex flex-wrap items-center justify-end gap-3">
             <a href={href(detail.group.id)} className={link}>
               {tr("Cancel")}
             </a>
@@ -884,11 +993,12 @@ function LinkView({
         description={member ? member.display_name : detail.group.name}
         backHref={href(detail.group.id)}
         backLabel={detail.group.name}
+        anchor={anchorOf(context)}
         tr={tr}
       />
       <section className="max-w-xl rounded-card border border-border bg-surface p-4">
         {member ? (
-          <form action={actions.linkMember} className="flex flex-col gap-3">
+                    <form action={actions.linkMember} className="flex flex-col gap-3">
             <input type="hidden" name="group" value={detail.group.id} />
             <input type="hidden" name="member" value={member.id} />
             <Field label={tr("Account (optional)")}>
@@ -901,7 +1011,7 @@ function LinkView({
                 ))}
               </select>
             </Field>
-            <div className="flex flex-wrap items-center justify-end gap-3">
+                      <div className="flex flex-wrap items-center justify-end gap-3">
               <a href={href(detail.group.id)} className={link}>
                 {tr("Cancel")}
               </a>

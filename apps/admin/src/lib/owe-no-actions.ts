@@ -314,3 +314,36 @@ export async function settleAction(formData: FormData): Promise<void> {
   }
   refresh(parsed.data.group);
 }
+
+/**
+ * One tap on a transfer of the plan. It is a plain redirecting action: the plan
+ * row has no fields to lose, and the page must refresh with the new balances.
+ */
+export async function registerTransferAction(formData: FormData): Promise<void> {
+  const caller = await gate();
+  const parsed = settleSchema.safeParse({
+    group: formData.get("group"),
+    from: formData.get("from"),
+    to: formData.get("to"),
+    amount: formData.get("amount"),
+    occurred_on: formData.get("occurred_on"),
+    description: String(formData.get("description") ?? "Settlement"),
+  });
+  if (!parsed.success) fail("validation_failed", String(formData.get("group") ?? ""), { view: "settle" });
+  const amount = cents(parsed.data.amount);
+  if (amount === null) fail("validation_failed", parsed.data.group, { view: "settle" });
+  try {
+    const { owe } = await oweDeps();
+    await adminCreateMovement(owe, caller, parsed.data.group, {
+      kind: "settlement",
+      description: parsed.data.description,
+      amount_minor: amount,
+      occurred_on: parsed.data.occurred_on,
+      paid_by: parsed.data.from,
+      participants: [{ memberId: parsed.data.to, amount_minor: amount }],
+    });
+  } catch (error) {
+    fail(errorCode(error), parsed.data.group, { view: "settle" });
+  }
+  refresh(parsed.data.group);
+}

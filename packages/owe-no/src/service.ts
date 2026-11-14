@@ -187,7 +187,10 @@ export interface AdminGroupView extends GroupView {
 }
 
 /** Panel view: every group, for administrators, without being a member. */
-export async function listAllGroups(deps: OweDeps): Promise<AdminGroupView[]> {
+export async function listAllGroups(
+  deps: OweDeps,
+  query?: string,
+): Promise<AdminGroupView[]> {
   const { rows } = await deps.db.query(
     `select g.id, g.name, g.currency, g.archived_at, g.created_by,
             (select count(*)::int from module_owe_no.owe_no_members m
@@ -195,7 +198,9 @@ export async function listAllGroups(deps: OweDeps): Promise<AdminGroupView[]> {
             (select count(*)::int from module_owe_no.owe_no_movements mv
               where mv.group_id = g.id and mv.deleted_at is null) as movements
        from module_owe_no.owe_no_groups g
+      where ($1::text is null or g.name ilike '%' || $1 || '%')
       order by g.created_at desc`,
+    [query && query.trim() !== "" ? query.trim() : null],
   );
   return rows.map((row) => ({
     id: String(row.id),

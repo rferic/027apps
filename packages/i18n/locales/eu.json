@@ -812,5 +812,6 @@
   "{name} will lose access immediately.": "{name}k berehala galduko du sarbidea.",
   "{selected} of {total} selected": "{selected} / {total} hautatuta",
   "Module pages": "Moduluaren orriak",
-  "Catalog": "Katalogoa"
+  "Catalog": "Katalogoa",
+  "Module widgets": "Modulu-widgetak"
 }

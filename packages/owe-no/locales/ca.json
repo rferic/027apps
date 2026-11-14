@@ -101,5 +101,13 @@
   "Members {members} · Movements {movements} · {currency}": "Membres {members} · Moviments {movements} · {currency}",
   "Overview": "Resum",
   "Edit settlement": "Edita la liquidació",
-  "A group needs at least one active member.": "El grup necessita almenys un membre actiu."
+  "A group needs at least one active member.": "El grup necessita almenys un membre actiu.",
+  "Category": "Categoria",
+  "No category": "Sense categoria",
+  "Search groups": "Cerca grups",
+  "Search": "Cerca",
+  "Clear filter": "Treu el filtre",
+  "Edited by {name}": "Editat per {name}",
+  "Added by {name}": "Afegit per {name}",
+  "Showing the latest {shown} of {total} movements.": "Mostrant els últims {shown} de {total} moviments."
 }

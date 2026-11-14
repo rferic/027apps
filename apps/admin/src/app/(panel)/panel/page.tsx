@@ -317,7 +317,7 @@ function ModuleWidgets({
         id="dashboard-widgets"
         className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground"
       >
-        {t("Modules", messages)}
+        {t("Module widgets", messages)}
       </h2>
       <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {widgets.map((widget) => {

@@ -1,6 +1,16 @@
 "use client";
 
 import { useRef } from "react";
+import { useFormStatus } from "react-dom";
+
+function ConfirmButton({ label, className }: { label: string; className: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className={`${className} disabled:opacity-60`}>
+      {label}
+    </button>
+  );
+}
 
 /**
  * A destructive action behind a confirmation dialog. The panel's rule is that
@@ -18,6 +28,9 @@ export function ConfirmForm({
   confirmLabel,
   cancelLabel,
   variant = "danger",
+  confirmVariant = "danger",
+  size = "md",
+  suffix,
   className = "",
 }: {
   action: (formData: FormData) => Promise<void>;
@@ -28,16 +41,26 @@ export function ConfirmForm({
   confirmLabel: string;
   cancelLabel: string;
   variant?: "danger" | "neutral";
+  confirmVariant?: "danger" | "primary";
+  size?: "sm" | "md";
+  /** Disambiguates ids when the same action renders twice (mobile + desktop). */
+  suffix?: string;
   className?: string;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const titleId = `confirm-${fields.member ?? fields.movement ?? fields.group ?? "action"}-${label.length}`;
+  const titleId = `confirm-${fields.member ?? fields.movement ?? fields.group ?? "action"}-${suffix ?? "one"}-${label.length}`;
   const bodyId = `${titleId}-body`;
 
+  const sizeClasses =
+    size === "sm" ? "min-h-9 px-2 text-[11px]" : "min-h-11 px-3 text-xs";
   const trigger =
     variant === "danger"
-      ? "min-h-11 justify-center rounded-control border border-border px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      : "min-h-11 justify-center rounded-control border border-border px-3 text-xs font-semibold hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+      ? `justify-center rounded-control border border-border font-semibold text-destructive hover:bg-destructive/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${sizeClasses}`
+      : `justify-center rounded-control border border-border font-semibold hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${sizeClasses}`;
+  const confirmClasses =
+    confirmVariant === "primary"
+      ? "bg-accent text-accent-foreground"
+      : "bg-destructive text-destructive-foreground";
 
   return (
     <>
@@ -74,12 +97,10 @@ export function ConfirmForm({
           >
             {cancelLabel}
           </button>
-          <button
-            type="submit"
-            className="inline-flex min-h-11 items-center rounded-control bg-destructive px-3 text-xs font-semibold text-destructive-foreground"
-          >
-            {confirmLabel}
-          </button>
+          <ConfirmButton
+            label={confirmLabel}
+            className={`inline-flex min-h-11 items-center rounded-control px-3 text-xs font-semibold ${confirmClasses}`}
+          />
         </form>
       </dialog>
     </>

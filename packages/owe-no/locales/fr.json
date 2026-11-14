@@ -101,5 +101,13 @@
   "Members {members} · Movements {movements} · {currency}": "Membres {members} · Mouvements {movements} · {currency}",
   "Overview": "Résumé",
   "Edit settlement": "Modifier le règlement",
-  "A group needs at least one active member.": "Le groupe a besoin d'au moins un membre actif."
+  "A group needs at least one active member.": "Le groupe a besoin d'au moins un membre actif.",
+  "Category": "Catégorie",
+  "No category": "Sans catégorie",
+  "Search groups": "Rechercher des groupes",
+  "Search": "Rechercher",
+  "Clear filter": "Effacer le filtre",
+  "Edited by {name}": "Modifié par {name}",
+  "Added by {name}": "Ajouté par {name}",
+  "Showing the latest {shown} of {total} movements.": "Derniers {shown} sur {total} mouvements."
 }

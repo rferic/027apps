@@ -15,6 +15,7 @@ import {
   deleteMovementAction,
   linkMemberAction,
   removeMemberAction,
+  registerTransferAction,
   saveMovementAction,
   settleAction,
 } from "@/lib/owe-no-actions";
@@ -38,7 +39,8 @@ export default async function OweNoGroupsPage({ context }: { context: ModulePage
   const detail = groupId
     ? await adminGroupDetail(deps, caller, groupId).catch(() => notFound())
     : null;
-  const groups = detail ? [] : await listAllGroups(deps);
+  const query = typeof context.searchParams.q === "string" ? context.searchParams.q : "";
+  const groups = detail ? [] : await listAllGroups(deps, query);
   const userOptions = await adminUserOptions(deps, caller);
   const plan =
     detail && !detail.group.archived
@@ -61,6 +63,7 @@ export default async function OweNoGroupsPage({ context }: { context: ModulePage
         saveMovement: saveMovementAction,
         deleteMovement: deleteMovementAction,
         settle: settleAction,
+        transfer: registerTransferAction,
       }}
     />
   );

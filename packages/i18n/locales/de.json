@@ -812,5 +812,6 @@
   "{name} will lose access immediately.": "{name} verliert sofort den Zugriff.",
   "{selected} of {total} selected": "{selected} von {total} ausgewählt",
   "Module pages": "Modulseiten",
-  "Catalog": "Katalog"
+  "Catalog": "Katalog",
+  "Module widgets": "Modul-Widgets"
 }

@@ -56,6 +56,7 @@ describe("owe-no admin pages", () => {
           saveMovement: noop,
           deleteMovement: noop,
           settle: noop,
+          transfer: noop,
         },
       }),
     );
@@ -84,6 +85,7 @@ describe("owe-no admin pages", () => {
         members: 2,
         movements: 1,
       },
+      categories: [{ id: "c1", name: "Alimentos" }],
       members: [
         { id: "m1", display_name: "Ana", state: "active" as const, user_id: "u1", balance: 500 },
         { id: "m2", display_name: "Luis", state: "active" as const, user_id: null, balance: -500 },
@@ -99,6 +101,10 @@ describe("owe-no admin pages", () => {
           paid_by: "m1",
           occurred_on: "2026-11-14",
           category_id: null,
+          created_by_name: "Admin",
+          updated_by_name: null,
+          created_at: "2026-11-14T10:00:00.000Z",
+          updated_at: "2026-11-14T10:00:00.000Z",
           shares: [
             { memberId: "m1", amount_minor: 500 },
             { memberId: "m2", amount_minor: 500 },
@@ -123,6 +129,7 @@ describe("owe-no admin pages", () => {
           saveMovement: noop,
           deleteMovement: noop,
           settle: noop,
+          transfer: noop,
         },
       }),
     );
@@ -143,7 +150,7 @@ describe("owe-no admin pages", () => {
     expect(html).toContain("Quitado");
     expect(html).not.toContain(">removed<");
     // Mobile: the actions own a full row instead of wrapping around the title.
-    expect(html).toContain("grid w-full grid-cols-2");
+    expect(html).toContain("grid grid-cols-2 gap-2 sm:flex");
   });
 
   it("gives every form its own page", async () => {
@@ -159,6 +166,7 @@ describe("owe-no admin pages", () => {
         members: 2,
         movements: 0,
       },
+      categories: [],
       members: [
         { id: "m1", display_name: "Ana", state: "active" as const, user_id: "u1", balance: 0 },
         { id: "m2", display_name: "Luis", state: "active" as const, user_id: null, balance: 0 },
@@ -174,6 +182,7 @@ describe("owe-no admin pages", () => {
       saveMovement: noop,
       deleteMovement: noop,
       settle: noop,
+      transfer: noop,
     };
     const messages = await spanish();
     const group = "11111111-1111-4111-8111-111111111111";

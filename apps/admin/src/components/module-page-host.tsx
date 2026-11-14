@@ -141,6 +141,7 @@ export async function ModulePageHost({
     locale,
     messages: moduleMessages,
     searchParams,
+    linkComponent: Link,
   };
   return (
     <section className="flex flex-col gap-5">
