@@ -94,5 +94,12 @@
   "Remove member?": "Remove member?",
   "Their balance must be zero; a removed member could no longer be paid.": "Their balance must be zero; a removed member could no longer be paid.",
   "Delete movement?": "Delete movement?",
-  "It leaves the balances and the history; the row stays for audit.": "It leaves the balances and the history; the row stays for audit."
+  "It leaves the balances and the history; the row stays for audit.": "It leaves the balances and the history; the row stays for audit.",
+  "A movement of {group}. The split is recalculated when you save.": "A movement of {group}. The split is recalculated when you save.",
+  "The member is active from the moment you add them; there is no email invitation.": "The member is active from the moment you add them; there is no email invitation.",
+  "Members {members} · Movements {movements}": "Members {members} · Movements {movements}",
+  "Members {members} · Movements {movements} · {currency}": "Members {members} · Movements {movements} · {currency}",
+  "Overview": "Overview",
+  "Edit settlement": "Edit settlement",
+  "A group needs at least one active member.": "A group needs at least one active member."
 }

@@ -240,11 +240,11 @@ export async function adminAddMember(
   }
   if (input.userId) {
     const { rows: existing } = await deps.db.query(
-      `select 1 from module_owe_no.owe_no_members
+      `select id, state from module_owe_no.owe_no_members
         where group_id = $1 and user_id = $2`,
       [groupId, input.userId],
     );
-    if (existing[0]) {
+    if (existing[0] && existing[0].state !== "removed") {
       throw new OweDomainError("conflict", "that account is already in the group", {
         code: "member_exists",
       });
@@ -254,6 +254,24 @@ export async function adminAddMember(
       [input.userId],
     );
     if (!profile[0]) throw new OweDomainError("validation_failed", "unknown user");
+    if (existing[0]) {
+      // A removed account comes back with its history: the row stays the same.
+      const { rows: revived } = await deps.db.query(
+        `update module_owe_no.owe_no_members
+            set display_name = $3, state = 'active', added_by = $4,
+                joined_at = now(), left_at = null, updated_at = now()
+          where id = $1 and group_id = $2
+          returning id, display_name, state, user_id`,
+        [String(existing[0].id), groupId, displayName, adminId],
+      );
+      return {
+        id: String(revived[0].id),
+        display_name: String(revived[0].display_name),
+        state: "active",
+        user_id: input.userId,
+        balance: 0,
+      };
+    }
   }
 
   const { rows } = await deps.db.query(
@@ -341,6 +359,16 @@ export async function adminRemoveMember(
     [memberId, groupId],
   );
   if (!member[0]) throw new OweDomainError("not_found", "member not found");
+  const { rows: active } = await deps.db.query(
+    `select count(*)::int as total from module_owe_no.owe_no_members
+      where group_id = $1 and state = 'active'`,
+    [groupId],
+  );
+  if (Number(active[0]?.total ?? 0) <= 1) {
+    throw new OweDomainError("conflict", "a group needs an active member", {
+      code: "last_member",
+    });
+  }
   const balances = await groupBalances(deps, groupId);
   if ((balances.get(memberId) ?? 0) !== 0) {
     throw new OweDomainError("conflict", "settle the member's balance first", {

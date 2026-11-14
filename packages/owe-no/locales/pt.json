@@ -94,5 +94,12 @@
   "Remove member?": "Remover o membro?",
   "Their balance must be zero; a removed member could no longer be paid.": "O saldo tem de ser zero; a um membro removido já não se poderia pagar.",
   "Delete movement?": "Eliminar o movimento?",
-  "It leaves the balances and the history; the row stays for audit.": "Sai dos saldos e do histórico; a linha fica para auditoria."
+  "It leaves the balances and the history; the row stays for audit.": "Sai dos saldos e do histórico; a linha fica para auditoria.",
+  "A movement of {group}. The split is recalculated when you save.": "Um movimento de {group}. A divisão é recalculada ao guardar.",
+  "The member is active from the moment you add them; there is no email invitation.": "O membro fica ativo assim que o adicionas; não há convite por email.",
+  "Members {members} · Movements {movements}": "Membros {members} · Movimentos {movements}",
+  "Members {members} · Movements {movements} · {currency}": "Membros {members} · Movimentos {movements} · {currency}",
+  "Overview": "Resumo",
+  "Edit settlement": "Editar acerto",
+  "A group needs at least one active member.": "O grupo precisa de pelo menos um membro ativo."
 }

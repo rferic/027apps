@@ -94,5 +94,12 @@
   "Remove member?": "Kidea kendu?",
   "Their balance must be zero; a removed member could no longer be paid.": "Bere balantzea zero izan behar da; kendutako kideari ezingo litzaioke ordaindu.",
   "Delete movement?": "Mugimendua ezabatu?",
-  "It leaves the balances and the history; the row stays for audit.": "Balantzeetatik eta historialetik ateratzen da; errenkada auditoriarako gordetzen da."
+  "It leaves the balances and the history; the row stays for audit.": "Balantzeetatik eta historialetik ateratzen da; errenkada auditoriarako gordetzen da.",
+  "A movement of {group}. The split is recalculated when you save.": "{group}(e)ko mugimendua. Banaketa berriro kalkulatzen da gordetzean.",
+  "The member is active from the moment you add them; there is no email invitation.": "Kidea aktibo geratzen da gehitzen duzun unetik; ez dago posta-invitarik.",
+  "Members {members} · Movements {movements}": "Kideak {members} · Mugimenduak {movements}",
+  "Members {members} · Movements {movements} · {currency}": "Kideak {members} · Mugimenduak {movements} · {currency}",
+  "Overview": "Laburpena",
+  "Edit settlement": "Editatu likidazioa",
+  "A group needs at least one active member.": "Taldeak kide aktibo bat behar du gutxienez."
 }

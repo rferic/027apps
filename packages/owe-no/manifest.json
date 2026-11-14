@@ -6,7 +6,7 @@
     "icon": "assets/icon.svg",
     "color": "emerald"
   },
-  "version": "1.3.0",
+  "version": "1.4.0",
   "contract": 1,
   "is_public": false,
   "migrations": [
@@ -30,6 +30,13 @@
       "down": "./sql/003-admin.down.sql",
       "digest": "sha256:c6f99ca399a70e8e3ba9a9b313fbde0d77484a3b9f1a4377132c565fbb0d2b84",
       "down_digest": "sha256:f81124bb4a539e5a0ca523332cb6562769036089d0280ea69c8ec70e2b39bdd8"
+    },
+    {
+      "version": "1.4.0",
+      "up": "./sql/004-widgets.sql",
+      "down": "./sql/004-widgets.down.sql",
+      "digest": "sha256:bd4e202817c88b28f92b21960a9628b0b95ada7d061b58fc92faf31388f41f41",
+      "down_digest": "sha256:eb263bcf718895fe837f0f55168b5f9225ead2710947a1f5eee24920b1d08e50"
     }
   ],
   "settings": [
@@ -121,7 +128,7 @@
   "admin_pages": [
     {
       "route": "overview",
-      "label": "OweNo overview",
+      "label": "Overview",
       "icon": "chart",
       "group": "module",
       "role": "admin"

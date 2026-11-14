@@ -26,6 +26,7 @@ const ERROR_KEYS: Record<string, string> = {
   member_has_balance: "That member still has a balance. Settle it first.",
   member_exists: "That account is already in the group.",
   member_linked: "That member already has an account.",
+  last_member: "A group needs at least one active member.",
   group_archived: "The group is archived. Reopen it to make changes.",
   kind_immutable: "A movement cannot change between expense and settlement.",
   validation_failed: "Check the values and try again.",
@@ -167,17 +168,19 @@ function PageHeader({
 }: {
   title: React.ReactNode;
   description?: string;
-  backHref: string;
-  backLabel: string;
+  backHref?: string;
+  backLabel?: string;
   children?: React.ReactNode;
   tr: (text: string, params?: Record<string, string | number>) => string;
 }) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-3">
       <div className="flex flex-col gap-1">
-        <a href={backHref} className="text-xs text-muted-foreground hover:underline">
-          ← {tr(backLabel)}
-        </a>
+        {backHref && backLabel ? (
+          <a href={backHref} className="text-xs text-muted-foreground hover:underline">
+            ← {tr(backLabel)}
+          </a>
+        ) : null}
         <h1 className="text-base font-bold">{title}</h1>
         {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
       </div>
@@ -342,12 +345,10 @@ function GroupDetail({
             </span>
           </span>
         }
-        description={tr("{members} members · {movements} movements", {
+        description={tr("Members {members} · Movements {movements}", {
           members: group.members,
           movements: group.movements,
         })}
-        backHref="?"
-        backLabel="Groups"
         tr={tr}
       >
         <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex sm:items-center">
@@ -459,7 +460,44 @@ function GroupDetail({
         {movements.length === 0 ? (
           <p className="text-xs text-muted-foreground">{tr("No movements yet.")}</p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <ul className="flex flex-col divide-y divide-border sm:hidden">
+            {movements.map((movement) => (
+              <li key={movement.id} className="flex flex-col gap-1 py-2 text-xs">
+                <span className="flex items-start justify-between gap-2">
+                  <span className="font-semibold">{movement.description}</span>
+                  <span className="whitespace-nowrap tabular-nums">
+                    {money(movement.amount_minor, movement.currency, context.locale)}
+                  </span>
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {movement.occurred_on} · {byId.get(movement.paid_by) ?? ""} ·{" "}
+                  {movement.kind === "settlement" ? tr("Settlement") : tr("Expense")}
+                </span>
+                {!group.archived ? (
+                  <span className="flex items-center gap-2">
+                    <a
+                      href={href(group.id, "movement", { edit: movement.id })}
+                      className="inline-flex min-h-9 items-center rounded-control border border-border px-2 text-[11px] font-semibold"
+                    >
+                      {tr("Edit")}
+                    </a>
+                    <ConfirmForm
+                      action={actions.deleteMovement}
+                      fields={{ group: group.id, movement: movement.id }}
+                      label={tr("Delete")}
+                      title={tr("Delete movement?")}
+                      body={tr("It leaves the balances and the history; the row stays for audit.")}
+                      confirmLabel={tr("Delete")}
+                      cancelLabel={tr("Cancel")}
+                      className="min-h-9 px-2 py-1 text-[11px]"
+                    />
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full border-collapse text-left text-xs">
               <thead>
                 <tr className="text-muted-foreground">
@@ -513,6 +551,7 @@ function GroupDetail({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
     </>
@@ -543,7 +582,13 @@ function MovementView({
   return (
     <>
       <PageHeader
-        title={editing ? tr("Edit expense") : tr("Add expense")}
+        title={
+          editing
+            ? editing.kind === "settlement"
+              ? tr("Edit settlement")
+              : tr("Edit expense")
+            : tr("Add expense")
+        }
         description={tr("A movement of {group}. The split is recalculated when you save.", {
           group: group.name,
         })}

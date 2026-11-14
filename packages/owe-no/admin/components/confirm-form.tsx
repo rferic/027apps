@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useTransition } from "react";
+import { useRef } from "react";
 
 /**
  * A destructive action behind a confirmation dialog. The panel's rule is that
@@ -31,8 +31,8 @@ export function ConfirmForm({
   className?: string;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [pending, startTransition] = useTransition();
   const titleId = `confirm-${fields.member ?? fields.movement ?? fields.group ?? "action"}-${label.length}`;
+  const bodyId = `${titleId}-body`;
 
   const trigger =
     variant === "danger"
@@ -51,17 +51,19 @@ export function ConfirmForm({
       <dialog
         ref={dialog}
         aria-labelledby={titleId}
+        aria-describedby={bodyId}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) dialog.current?.close();
+        }}
         className="m-auto w-[calc(100vw-2rem)] max-w-md rounded-card border border-border bg-surface p-4 text-foreground backdrop:bg-foreground/40"
       >
         <h2 id={titleId} className="text-sm font-bold">
           {title}
         </h2>
-        <p className="mt-1 text-xs text-muted-foreground">{body}</p>
-        <form
-          action={action}
-          className="mt-4 flex flex-wrap items-center justify-end gap-3"
-          onSubmit={() => startTransition(() => undefined)}
-        >
+        <p id={bodyId} className="mt-1 text-xs text-muted-foreground">
+          {body}
+        </p>
+        <form action={action} className="mt-4 flex flex-wrap items-center justify-end gap-3">
           {Object.entries(fields).map(([name, value]) => (
             <input key={name} type="hidden" name={name} value={value} />
           ))}
@@ -74,8 +76,7 @@ export function ConfirmForm({
           </button>
           <button
             type="submit"
-            disabled={pending}
-            className="inline-flex min-h-11 items-center rounded-control bg-destructive px-3 text-xs font-semibold text-destructive-foreground disabled:opacity-60"
+            className="inline-flex min-h-11 items-center rounded-control bg-destructive px-3 text-xs font-semibold text-destructive-foreground"
           >
             {confirmLabel}
           </button>

@@ -199,7 +199,9 @@ Ejemplo completo:
   como texto secundario, y nunca interpreta claves que no conozca. **`title`, `label` y `detail`
   son claves en inglés**: el panel los traduce con los `locales/*.json` del módulo y sustituye
   `params` en los placeholders `{nombre}`. Cada tarjeta muestra el logo del módulo y enlaza a
-  `/panel/<key>`. Cualquier otro campo se ignora.
+  `/panel/<key>`. Cualquier otro campo se ignora. **Los textos no se pluralizan en SQL**: el
+  widget devuelve cifras y una clave con `params` (`"Members {members} · Movements {movements}"`),
+  y el panel la traduce; evita `"1 groups"`.
 - **Páginas de admin y acceso a datos**: el host solo renderiza una página de módulo tras
   comprobar sesión, rol del manifest y `active`, y le pasa un `ModulePageContext`
   (`@027apps/core/modules/pages.js`): `{ moduleKey, caller, db, locale, messages, searchParams }`.

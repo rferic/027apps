@@ -60,7 +60,7 @@ export default async function OweNoOverview({ context }: { context: ModulePageCo
               >
                 <span className="font-semibold">{group.name}</span>
                 <span className="text-muted-foreground">
-                  {tr("{members} members · {movements} movements · {currency}", {
+                  {tr("Members {members} · Movements {movements} · {currency}", {
                     members: group.members,
                     movements: group.movements,
                     currency: group.currency,
