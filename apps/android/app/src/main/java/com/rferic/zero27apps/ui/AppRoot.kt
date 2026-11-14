@@ -65,6 +65,7 @@ import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.screens.HomeScreen
 import com.rferic.zero27apps.ui.screens.InviteScreen
 import com.rferic.zero27apps.ui.screens.LoginScreen
+import com.rferic.zero27apps.ui.screens.OweNoScreen
 import com.rferic.zero27apps.ui.screens.ModulesScreen
 import com.rferic.zero27apps.ui.screens.SettingsScreen
 import com.rferic.zero27apps.ui.theme.LocalPalette
@@ -224,6 +225,7 @@ private fun Shell(
     update: UpdateState,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    var openModule by rememberSaveable { mutableStateOf<String?>(null) }
     val strings = LocalStrings.current
     val palette = LocalPalette.current
 
@@ -291,9 +293,19 @@ private fun Shell(
         },
     ) { padding ->
         Box(Modifier.padding(padding)) {
-            when (tab) {
-                1 -> ModulesScreen(state.modules)
-                2 -> SettingsScreen(
+            when {
+                // A module with screens opens in place of the launcher.
+                openModule == "owe-no" && viewModel.api() != null -> OweNoScreen(
+                    api = viewModel.api()!!,
+                    onBack = { openModule = null },
+                )
+                tab == 1 -> ModulesScreen(state.modules, onOpen = { key -> openModule = key })
+                openModule != null -> LaunchedEffect(openModule) {
+                    // A module without screens yet still answers, honestly.
+                    openModule = null
+                    scope.launch { snackbar.showSnackbar(strings.actionSoon) }
+                }
+                tab == 2 -> SettingsScreen(
                     instance = state.instance,
                     knownInstances = instances,
                     user = state.user,

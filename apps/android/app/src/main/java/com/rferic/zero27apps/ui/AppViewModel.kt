@@ -114,6 +114,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** The signed-in API client, for module screens (null before boot). */
+    fun api(): ApiClient? = client
+
     /** The active instance, for screens that are not signed in yet. */
     fun currentInstance(): String = instanceStore.current()
 

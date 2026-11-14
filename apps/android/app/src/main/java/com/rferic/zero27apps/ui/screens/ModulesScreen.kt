@@ -1,6 +1,7 @@
 package com.rferic.zero27apps.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,7 +31,7 @@ import com.rferic.zero27apps.ui.theme.LocalPalette
  * card per module.
  */
 @Composable
-fun ModulesScreen(modules: List<ModuleDto>) {
+fun ModulesScreen(modules: List<ModuleDto>, onOpen: (String) -> Unit) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
 
@@ -52,7 +53,7 @@ fun ModulesScreen(modules: List<ModuleDto>) {
             modules.chunked(2).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     for (module in row) {
-                        ModuleTile(module, Modifier.weight(1f))
+                        ModuleTile(module, Modifier.weight(1f)) { onOpen(module.key) }
                     }
                     if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
@@ -64,10 +65,15 @@ fun ModulesScreen(modules: List<ModuleDto>) {
 }
 
 @Composable
-private fun ModuleTile(module: ModuleDto, modifier: Modifier = Modifier) {
+private fun ModuleTile(
+    module: ModuleDto,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+) {
     val palette = LocalPalette.current
     Column(
         modifier = modifier
+            .clickable(onClick = onClick)
             .background(palette.successSubtle, RoundedCornerShape(18.dp))
             .border(1.dp, palette.border, RoundedCornerShape(18.dp))
             .padding(16.dp),

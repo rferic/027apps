@@ -52,7 +52,13 @@ class AppStringsTest {
                 strings.privateSpace, strings.mySpace, strings.onlyActive, strings.change,
                 strings.sessionNote, strings.welcome, strings.version,
                 strings.showPassword, strings.hidePassword, strings.checkUpdates,
-                strings.upToDate, strings.checking, strings.actionSoon,
+                strings.upToDate, strings.checking, strings.actionSoon, strings.groups,
+                strings.newGroup, strings.groupName, strings.currency, strings.create,
+                strings.noGroups, strings.members, strings.balances, strings.movements,
+                strings.addExpense, strings.description, strings.amount, strings.paidBy,
+                strings.participants, strings.splitEqually, strings.splitExact, strings.save,
+                strings.settle, strings.whoPays, strings.simplified, strings.noMovements,
+                strings.back, strings.allSettled,
             )
             assertTrue(texts.all { it.isNotBlank() })
         }

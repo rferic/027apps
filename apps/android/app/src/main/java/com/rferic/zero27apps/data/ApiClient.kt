@@ -54,6 +54,32 @@ class ApiClient(
     suspend fun dashboard(surface: String): DashboardResponse =
         read(request(HttpMethod.Get, "/api/v1/me/dashboard?surface=$surface"))
 
+    // --- OweNo module -------------------------------------------------------
+
+    suspend fun oweGroups(): List<OweGroupDto> = read<OweGroupList>(request(HttpMethod.Get, "/api/v1/owe-no/groups")).groups
+
+    suspend fun oweGroup(id: String): OweGroupDetail =
+        read(request(HttpMethod.Get, "/api/v1/owe-no/groups/$id"))
+
+    suspend fun oweCreateGroup(name: String, currency: String): OweGroupDto =
+        read<OweGroupResponse>(
+            request(HttpMethod.Post, "/api/v1/owe-no/groups", OweCreateGroupBody(name, currency)),
+        ).group
+
+    suspend fun oweMovements(groupId: String): List<OweMovementDto> =
+        read<OweMovementList>(request(HttpMethod.Get, "/api/v1/owe-no/groups/$groupId/movements")).movements
+
+    suspend fun oweBalances(groupId: String): List<OweBalanceDto> =
+        read<OweBalanceList>(request(HttpMethod.Get, "/api/v1/owe-no/groups/$groupId/balances")).balances
+
+    suspend fun oweSettlement(groupId: String): OweSettlementDto =
+        read(request(HttpMethod.Get, "/api/v1/owe-no/groups/$groupId/settlement"))
+
+    suspend fun oweCreateMovement(groupId: String, body: OweCreateMovementBody): OweMovementDto =
+        read<OweMovementResponse>(
+            request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/movements", body),
+        ).movement
+
     /** Latest Android build published by this instance (public, no session). */
     suspend fun androidApp(): AndroidReleaseDto = read(request(HttpMethod.Get, "/api/v1/app/android"))
 
