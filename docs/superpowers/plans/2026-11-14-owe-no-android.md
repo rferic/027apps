@@ -19,11 +19,12 @@
 ## Tasks
 
 1. **Dominio de miembros**: `leaveGroup`, `removeMember`, `blockMember`, `unblockMember`; `addMember` rechaza bloqueados. Tests de saldo, último miembro y permisos.
+   - `removeMember`/`blockMember` ganan `mode: "settle" | "ghost"` (D29). `ghost` desvincula `user_id` y conserva la fila ficticia con su saldo; `settle` exige registrar antes las transferencias del miembro. La API recibe `mode` y la app pregunta solo cuando el saldo no es cero.
 2. **API de miembros**: `POST /groups/{id}/leave`, `DELETE /groups/{id}/members/{memberId}`, `POST|DELETE /groups/{id}/members/{memberId}/block`; OpenAPI y docs.
 3. **Directorio del importador**: `GET /groups/{id}/imports/identities` (creador) con usuarios activos fuera del grupo; límite 200; nota de privacidad.
 4. **Capa de datos Android**: DTOs y métodos para miembros, salir, echar, bloquear, invitaciones, preview/commit de importación e identidades.
 5. **Pantallas de miembros** (tanda 2): invitaciones pendientes, invitar por usuario, echar, bloquear, salir; estados de error y carga.
-6. **Importador** (tanda 3): elegir CSV por grupo, preview, mapeo de identidades (usuario o ficticio), confirmación de duplicados y resultado.
+6. **Importador** (tanda 3): elegir CSV por grupo, preview, mapeo de identidades (preguntar por cada nombre, con coincidencias exactas/similares y ficticio; D28), confirmación de duplicados y resultado. La cuenta entra solo al confirmar la identidad, con aviso de que verá el histórico.
 7. **Realtime** (sin push): topic del grupo, reconexión con backoff y resync al volver del segundo plano.
 8. **Cierre**: capturas con datos de demo, landing `available`, APK, revisión independiente QA + diseñador y corrección de hallazgos.
 
