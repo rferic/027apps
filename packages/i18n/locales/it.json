@@ -813,5 +813,9 @@
   "{selected} of {total} selected": "{selected} di {total} selezionate",
   "Module pages": "Pagine del modulo",
   "Catalog": "Catalogo",
-  "Module widgets": "Widget dei moduli"
+  "Module widgets": "Widget dei moduli",
+  "Android app in development · these screens are from the current build": "App Android in sviluppo · queste schermate sono della build attuale",
+  "Modules appear as the current build supports them.": "I moduli compaiono in base a ciò che supporta la build attuale.",
+  "A testing build is available from your instance today; the signed APK will be published on GitHub Releases and can be downloaded without an account.": "Oggi puoi provare una build dalla tua istanza; l'APK firmato sarà pubblicato su GitHub Releases e scaricabile senza account.",
+  "OweNo group with balances and members": "Gruppo OweNo con saldi e membri"
 }

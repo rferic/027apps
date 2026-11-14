@@ -31,10 +31,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     door,
     async (ctx) => {
       try {
-        const body = ctx.body as { display_name: string; invitee_id?: string };
+        const body = ctx.body as { display_name: string; invitee_id?: string; active?: boolean };
         const member = await addMember(owe, callerId(ctx.caller), id, {
           displayName: body.display_name,
           ...(body.invitee_id ? { inviteeId: body.invitee_id } : {}),
+          ...(body.active ? { active: true } : {}),
         });
         return { status: 201, body: json({ member }) };
       } catch (error) {

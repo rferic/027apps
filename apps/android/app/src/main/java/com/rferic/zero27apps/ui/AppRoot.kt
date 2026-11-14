@@ -104,7 +104,9 @@ fun AppRoot(deepLink: String? = null, viewModel: AppViewModel = viewModel()) {
 
     val theme = (state as? AppState.SignedIn)?.user?.theme?.toThemePreference()
         ?: ThemePreference.SYSTEM
-    val strings = remember { AppStrings.forLanguage(Locale.getDefault().language) }
+    val profileLocale = (state as? AppState.SignedIn)?.user?.locale
+    val language = profileLocale ?: Locale.getDefault().language
+    val strings = remember(language) { AppStrings.forLanguage(language) }
 
     Zero27AppsTheme(preference = theme) {
         Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
@@ -238,7 +240,7 @@ private fun Shell(
         containerColor = palette.background,
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            if (actions.isNotEmpty()) {
+            if (actions.isNotEmpty() && openModule == null) {
                 FloatingActionButton(
                     onClick = { showActions = true },
                     containerColor = palette.accent,
@@ -292,12 +294,14 @@ private fun Shell(
             }
         },
     ) { padding ->
+        val language = (state as? AppState.SignedIn)?.user?.locale ?: Locale.getDefault().language
         Box(Modifier.padding(padding)) {
             when {
                 // A module with screens opens in place of the launcher.
                 openModule == "owe-no" && viewModel.api() != null -> OweNoScreen(
                     api = viewModel.api()!!,
-                    userId = state.user?.id,
+                    userId = (state as? AppState.SignedIn)?.user?.id,
+                    locale = language,
                     onBack = { openModule = null },
                 )
                 tab == 1 -> ModulesScreen(state.modules, onOpen = { key -> openModule = key })
@@ -342,9 +346,10 @@ private fun Shell(
                             .fillMaxWidth()
                             .clickable {
                                 showActions = false
-                                // The module screens land with task 07; the button
-                                // already reflects the manifest contract.
-                                scope.launch { snackbar.showSnackbar(strings.actionSoon) }
+                                when (action.screen) {
+                                    "owe_expense", "owe_movement" -> openModule = "owe-no"
+                                    else -> scope.launch { snackbar.showSnackbar(strings.actionSoon) }
+                                }
                             }
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,

@@ -813,5 +813,9 @@
   "{selected} of {total} selected": "{selected} de {total} seleccionades",
   "Module pages": "Pàgines del mòdul",
   "Catalog": "Catàleg",
-  "Module widgets": "Widgets de mòduls"
+  "Module widgets": "Widgets de mòduls",
+  "Android app in development · these screens are from the current build": "App Android en desenvolupament · aquestes pantalles són de la compilació actual",
+  "Modules appear as the current build supports them.": "Els mòduls apareixen segons el que suporta la compilació actual.",
+  "A testing build is available from your instance today; the signed APK will be published on GitHub Releases and can be downloaded without an account.": "Avui pots provar una compilació des de la teva instància; l'APK signat es publicarà a GitHub Releases i es podrà descarregar sense compte.",
+  "OweNo group with balances and members": "Grup d'OweNo amb balanços i membres"
 }

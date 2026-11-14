@@ -249,7 +249,7 @@ export async function addMember(
   deps: OweDeps,
   userId: string,
   groupId: string,
-  input: { displayName: string; inviteeId?: string },
+  input: { displayName: string; inviteeId?: string; active?: boolean },
 ): Promise<MemberView> {
   await assertGroupOpen(deps, groupId);
   await requireCreator(deps, userId, groupId);
@@ -271,14 +271,16 @@ export async function addMember(
       });
     }
   }
+  const state = input.active === true ? "active" : "invited";
   const { rows } = await deps.db.query(
     `insert into module_owe_no.owe_no_members
-       (group_id, user_id, display_name, state, invited_by, invited_at)
-     values ($1, $2, $3, 'invited', $4, now())
+       (group_id, user_id, display_name, state, invited_by, invited_at, joined_at)
+     values ($1, $2, $3, $5, $4, now(), case when $5 = 'active' then now() end)
      on conflict (group_id, user_id) do update
-       set state = 'invited', invited_at = now(), invited_by = $4
+       set state = $5, invited_at = now(), invited_by = $4,
+           joined_at = case when $5 = 'active' then now() else module_owe_no.owe_no_members.joined_at end
      returning id, display_name, state, user_id`,
-    [groupId, input.inviteeId ?? null, displayName, userId],
+    [groupId, input.inviteeId ?? null, displayName, userId, state],
   );
   const row = rows[0];
   return {

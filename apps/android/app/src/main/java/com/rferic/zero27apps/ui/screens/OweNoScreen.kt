@@ -58,12 +58,24 @@ import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-/** Money is integer minor units; the app only formats for display. */
-internal fun formatMinor(amountMinor: Long, currency: String): String {
-    val sign = if (amountMinor < 0) "-" else ""
-    val absolute = kotlin.math.abs(amountMinor)
-    return "$sign${absolute / 100}.${(absolute % 100).toString().padStart(2, '0')} $currency"
-}
+/** ISO calendar day, rendered with the profile locale; unknown values pass through. */
+internal fun formatDay(raw: String, locale: String): String =
+    runCatching { java.time.LocalDate.parse(raw) }
+        .map {
+            it.format(
+                java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+                    .withLocale(java.util.Locale.forLanguageTag(locale)),
+            )
+        }
+        .getOrDefault(raw)
+
+/** Money is integer minor units; the app only formats for display, in the profile locale. */
+internal fun formatMinor(amountMinor: Long, currency: String, locale: String): String =
+    runCatching {
+        java.text.NumberFormat.getCurrencyInstance(java.util.Locale.forLanguageTag(locale)).apply {
+            this.currency = java.util.Currency.getInstance(currency)
+        }.format(amountMinor / 100.0)
+    }.getOrDefault("${amountMinor / 100.0} $currency")
 
 /** "12,34" or "12.34" into cents; null when it is not a positive amount. */
 internal fun parseMinor(raw: String): Long? {
@@ -192,7 +204,7 @@ private class OweStore(
  * service; these screens only call its API.
  */
 @Composable
-fun OweNoScreen(api: ApiClient, userId: String?, onBack: () -> Unit) {
+fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> Unit) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
@@ -201,12 +213,26 @@ fun OweNoScreen(api: ApiClient, userId: String?, onBack: () -> Unit) {
     var showExpense by remember { mutableStateOf(false) }
     var showSettlement by remember { mutableStateOf(false) }
     var showInvite by remember { mutableStateOf(false) }
+    var showImport by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
 
     LaunchedEffect(api) { store.loadGroups() }
 
+    val importing = store.detail
+    if (showImport && importing != null) {
+        OweImportScreen(
+            api = api,
+            groupId = importing.group.id,
+            onClose = {
+                showImport = false
+                store.open(importing.group.id)
+            },
+        )
+        return
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).padding(bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -238,10 +264,16 @@ fun OweNoScreen(api: ApiClient, userId: String?, onBack: () -> Unit) {
             )
         } else {
             val detail = store.detail!!
-            Balances(store.balances, detail.group.currency)
+            Balances(store.balances, detail.group.currency, locale)
+            Button(
+                onClick = { showExpense = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(strings.addExpense) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { showExpense = true }) { Text(strings.addExpense) }
                 TextButton(onClick = { showSettlement = true }) { Text(strings.settle) }
+                if (detail.group.createdBy == store.userId) {
+                    TextButton(onClick = { showImport = true }) { Text(strings.importTitle) }
+                }
             }
             Members(
                 store = store,
@@ -253,7 +285,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, onBack: () -> Unit) {
                 },
                 onConfirm = { label, action -> pendingAction = label to action },
             )
-            Movements(store.movements, detail.members, detail.group.currency)
+            Movements(store.movements, detail.members, detail.group.currency, locale)
         }
     }
 
@@ -272,6 +304,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, onBack: () -> Unit) {
         ExpenseDialog(
             members = current.members,
             currency = current.group.currency,
+            locale = locale,
             onDismiss = { showExpense = false },
             onSave = { description, amountMinor, payer, participants ->
                 showExpense = false
@@ -312,6 +345,8 @@ fun OweNoScreen(api: ApiClient, userId: String?, onBack: () -> Unit) {
         SettlementDialog(
             members = current.members,
             settlement = store.settlement!!,
+            currency = current.group.currency,
+            locale = locale,
             onDismiss = { showSettlement = false },
             onPay = { from, to, amount ->
                 showSettlement = false
@@ -493,7 +528,7 @@ private fun InviteDialog(
 }
 
 @Composable
-private fun Balances(balances: List<OweBalanceDto>, currency: String) {
+private fun Balances(balances: List<OweBalanceDto>, currency: String, locale: String) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     if (balances.isEmpty()) return
@@ -510,7 +545,7 @@ private fun Balances(balances: List<OweBalanceDto>, currency: String) {
             Row {
                 Text(balance.displayName, modifier = Modifier.weight(1f), fontSize = 13.sp)
                 Text(
-                    formatMinor(balance.amountMinor, currency),
+                    formatMinor(balance.amountMinor, currency, locale),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = if (balance.amountMinor >= 0) palette.accent else palette.destructive,
@@ -521,7 +556,12 @@ private fun Balances(balances: List<OweBalanceDto>, currency: String) {
 }
 
 @Composable
-private fun Movements(movements: List<OweMovementDto>, members: List<OweMemberDto>, currency: String) {
+private fun Movements(
+    movements: List<OweMovementDto>,
+    members: List<OweMemberDto>,
+    currency: String,
+    locale: String,
+) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     Text(strings.movements.uppercase(), fontSize = 11.sp, letterSpacing = 1.sp, color = palette.mutedForeground)
@@ -540,12 +580,12 @@ private fun Movements(movements: List<OweMovementDto>, members: List<OweMemberDt
             Column(Modifier.weight(1f)) {
                 Text(movement.description, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 Text(
-                    "${byId[movement.paidBy]?.displayName ?: ""} · ${movement.occurredOn}",
+                    "${byId[movement.paidBy]?.displayName ?: ""} · ${formatDay(movement.occurredOn, locale)}",
                     fontSize = 11.sp,
                     color = palette.mutedForeground,
                 )
             }
-            Text(formatMinor(movement.amountMinor, currency), fontSize = 13.sp)
+            Text(formatMinor(movement.amountMinor, currency, locale), fontSize = 13.sp)
         }
     }
 }
@@ -588,6 +628,7 @@ private fun NewGroupDialog(onDismiss: () -> Unit, onCreate: (String, String) -> 
 private fun ExpenseDialog(
     members: List<OweMemberDto>,
     currency: String,
+    locale: String,
     onDismiss: () -> Unit,
     onSave: (String, Long, String, List<String>) -> Unit,
 ) {
@@ -651,7 +692,7 @@ private fun ExpenseDialog(
                         Text(member.displayName, fontSize = 13.sp, modifier = Modifier.weight(1f))
                         if (selected.contains(member.id) && selected.isNotEmpty() && total > 0) {
                             val share = total / selected.size
-                            Text(formatMinor(share, currency), fontSize = 12.sp)
+                            Text(formatMinor(share, currency, locale), fontSize = 12.sp)
                         }
                     }
                 }
@@ -672,6 +713,8 @@ private fun ExpenseDialog(
 private fun SettlementDialog(
     members: List<OweMemberDto>,
     settlement: OweSettlementDto,
+    currency: String,
+    locale: String,
     onDismiss: () -> Unit,
     onPay: (String, String, Long) -> Unit,
 ) {
@@ -695,7 +738,7 @@ private fun SettlementDialog(
                             fontSize = 13.sp,
                             modifier = Modifier.weight(1f),
                         )
-                        Text(formatMinor(transfer.amountMinor, "EUR"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text(formatMinor(transfer.amountMinor, currency, locale), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         TextButton(onClick = { onPay(transfer.from, transfer.to, transfer.amountMinor) }) {
                             Text("OK")
                         }

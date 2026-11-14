@@ -6,7 +6,7 @@
     "icon": "assets/icon.svg",
     "color": "emerald"
   },
-  "version": "1.4.0",
+  "version": "1.5.0",
   "contract": 1,
   "is_public": false,
   "migrations": [
@@ -186,5 +186,13 @@
     "api": "docs/api.md",
     "settings": "docs/settings.md",
     "events": "docs/events.md"
-  }
+  },
+  "app_actions": [
+    {
+      "key": "add_expense",
+      "label": "Add expense",
+      "icon": "plus",
+      "screen": "owe_expense"
+    }
+  ]
 }

@@ -118,6 +118,7 @@ data class OweIdentityList(val identities: List<OweIdentityDto> = emptyList())
 data class OweAddMemberBody(
     @SerialName("display_name") val displayName: String,
     @SerialName("invitee_id") val inviteeId: String? = null,
+    val active: Boolean? = null,
 )
 
 @Serializable

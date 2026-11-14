@@ -86,7 +86,7 @@ export function AppLanding({ locale }: { locale: Locale }) {
           </div>
           <p style={s("margin-top: 14px")}>
             <span className="note-pill">
-              <b>●</b>{" "}{t("App in development · these screens are the planned design")}{" "}</span>
+              <b>●</b>{" "}{t("Android app in development · these screens are from the current build")}{" "}</span>
           </p>
 
           <div className="tabs">
@@ -200,7 +200,7 @@ export function AppLanding({ locale }: { locale: Locale }) {
           </div>
           <p>
             <span className="note-pill">
-              <b>●</b>{" "}{t("Coming soon · the app is in development; these are the planned modules.")}{" "}</span>
+              <b>●</b>{" "}{t("Modules appear as the current build supports them.")}{" "}</span>
           </p>
 
           <div className="feature-rows">
@@ -479,28 +479,11 @@ export function AppLanding({ locale }: { locale: Locale }) {
           <div className="phone">
             <div className="notch"></div>
             <div className="screen">
-              <div className="ph-head">
-                <span>027Apps</span>
-                <span>ER</span>
-              </div>
-              <div className="ph-card">
-                <div className="k">{t("Balance this month")}</div>
-                <div className="v teal">1.842,50 €</div>
-              </div>
-              <div className="ph-card">
-                <div className="k">{t("Members")}</div>
-                <div className="v">4</div>
-              </div>
-              <div className="ph-card">
-                <div className="k">{t("Active modules")}</div>
-                <div className="v">6</div>
-              </div>
-              <div className="ph-tabs">
-                <b>{t("Home")}</b>
-                <span>{t("Members")}</span>
-                <span>{t("Modules")}</span>
-                <span>{t("Settings")}</span>
-              </div>
+              <img
+                className="shot"
+                src="/landing/owe-no-group.png"
+                alt={t("OweNo group with balances and members")}
+              />
             </div>
           </div>
         </div>
@@ -529,7 +512,7 @@ export function AppLanding({ locale }: { locale: Locale }) {
             </details>
             <details>
               <summary>{t("Is the app available?")}</summary>
-              <p>{t("It is in development. When there is a release, the signed APK will be on GitHub Releases and can be downloaded without an account.")}{" "}</p>
+              <p>{t("A testing build is available from your instance today; the signed APK will be published on GitHub Releases and can be downloaded without an account.")}{" "}</p>
             </details>
             <details>
               <summary>{t("In which languages?")}</summary>

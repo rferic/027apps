@@ -66,18 +66,20 @@ aviso «Coming soon» mientras la app no tenga pantallas reales.
 
 | Módulo | App | Panel | Estado |
 |---|---|---|---|
-| OweNo | Sí (previsto) | Grupos, gastos, balances, liquidación e importador de Splitwise | app `planned`, panel `in-development` |
+| OweNo | Sí | Grupos, gastos, balances, liquidación e importador de Splitwise | app `available` (APK de pruebas), panel `available` |
 | Categorías | Sí (previsto) | Grupos y permisos | app `planned`, panel `available` |
 | Miembros | Sí (previsto) | Roles, invitaciones, bajas | app `planned`, panel `available` |
 | Módulos | Sí (previsto) | Activar y conceder | app `planned`, panel `available` |
 | API v1 | — | Claves con permisos | `available` |
 | MCP | — | Agentes con OAuth | `available` |
-| App Android | Sí | — | `in-development` (solo configuración de FCM) |
+| App Android | Sí | — | `in-development` (APK de pruebas; release firmado pendiente; push bloqueado) |
 | Copias y recuperación | — | Dump diario y simulacro | `available` |
 | 9 idiomas | Sí | Sí | `available`; revisión nativa de las traducciones pendiente |
 
-La app Android aún no tiene pantallas de producto: las de la landing son **maquetas de diseño**
-y el hero lo dice («App in development · these screens are the planned design»).
+La app Android ya tiene pantallas de producto: la sección Android usa una **captura real** de la
+compilación actual (OweNo, 2026-11-14) y el hero lo dice («App in development · these screens are
+from the current build»). Las maquetas de las demás secciones siguen siendo diseño hasta que
+cada módulo tenga captura.
 
 ## Cuándo actualizar
 

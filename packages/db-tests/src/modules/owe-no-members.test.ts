@@ -174,3 +174,16 @@ describe("owe-no member lifecycle", () => {
     });
   });
 });
+
+describe("owe-no active member (importer)", () => {
+  it("adds a member as active when the creator imports history", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const member = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Histórico",
+        active: true,
+      });
+      expect(member.state).toBe("active");
+    });
+  });
+});

@@ -112,6 +112,26 @@ data class Strings(
     val stateLeft: String,
     val stateRemoved: String,
     val confirmQuestion: String,
+    val importTitle: String,
+    val chooseCsv: String,
+    val preview: String,
+    val payments: String,
+    val skipped: String,
+    val duplicates: String,
+    val currencies: String,
+    val unresolved: String,
+    val mapIdentity: String,
+    val createFictitious: String,
+    val confirmImport: String,
+    val importResult: String,
+    val created: String,
+    val errorsLabel: String,
+    val categoriesLabel: String,
+    val multiCurrency: String,
+    val importDuplicates: String,
+    val done: String,
+    val fileError: String,
+
 
 )
 
@@ -237,6 +257,26 @@ object AppStrings {
         stateRemoved = "Removed",
 
         confirmQuestion = "Are you sure?",
+        importTitle = "Import from Splitwise",
+        chooseCsv = "Choose CSV",
+        preview = "Preview",
+        payments = "Payments",
+        skipped = "Skipped",
+        duplicates = "Duplicates",
+        currencies = "Currencies",
+        unresolved = "Unresolved names",
+        mapIdentity = "Map identities",
+        createFictitious = "Create fictitious",
+        confirmImport = "Confirm import",
+        importResult = "Import result",
+        created = "Created",
+        errorsLabel = "Errors",
+        categoriesLabel = "Categories",
+        multiCurrency = "The file mixes currencies; only CSV in the group currency is accepted.",
+        importDuplicates = "Import duplicates too",
+        done = "Done",
+        fileError = "The file could not be read.",
+
     )
 
     val es = Strings(
@@ -348,6 +388,26 @@ object AppStrings {
         stateRemoved = "Quitado",
 
         confirmQuestion = "¿Seguro?",
+        importTitle = "Importar de Splitwise",
+        chooseCsv = "Elegir CSV",
+        preview = "Vista previa",
+        payments = "Pagos",
+        skipped = "Omitidos",
+        duplicates = "Duplicados",
+        currencies = "Monedas",
+        unresolved = "Nombres sin enlazar",
+        mapIdentity = "Mapear identidades",
+        createFictitious = "Crear ficticio",
+        confirmImport = "Confirmar importación",
+        importResult = "Resultado",
+        created = "Creados",
+        errorsLabel = "Errores",
+        categoriesLabel = "Categorías",
+        multiCurrency = "El archivo mezcla monedas; solo se acepta CSV en la moneda del grupo.",
+        importDuplicates = "Importar duplicados también",
+        done = "Hecho",
+        fileError = "No se pudo leer el archivo.",
+
     )
 
     val ca = Strings(
@@ -459,6 +519,26 @@ object AppStrings {
         stateRemoved = "Tret",
 
         confirmQuestion = "Segur?",
+        importTitle = "Importa de Splitwise",
+        chooseCsv = "Tria CSV",
+        preview = "Vista prèvia",
+        payments = "Pagaments",
+        skipped = "Omesos",
+        duplicates = "Duplicats",
+        currencies = "Monedes",
+        unresolved = "Noms sense enllaçar",
+        mapIdentity = "Mapeja identitats",
+        createFictitious = "Crea un fictici",
+        confirmImport = "Confirma la importació",
+        importResult = "Resultat",
+        created = "Creats",
+        errorsLabel = "Errors",
+        categoriesLabel = "Categories",
+        multiCurrency = "El fitxer barreja monedes; només s'accepta CSV en la moneda del grup.",
+        importDuplicates = "Importa també els duplicats",
+        done = "Fet",
+        fileError = "No s'ha pogut llegir el fitxer.",
+
     )
 
     val it = Strings(
@@ -570,6 +650,26 @@ object AppStrings {
         stateRemoved = "Rimosso",
 
         confirmQuestion = "Sei sicuro?",
+        importTitle = "Importa da Splitwise",
+        chooseCsv = "Scegli CSV",
+        preview = "Anteprima",
+        payments = "Pagamenti",
+        skipped = "Saltati",
+        duplicates = "Duplicati",
+        currencies = "Valute",
+        unresolved = "Nomi non collegati",
+        mapIdentity = "Mappa identità",
+        createFictitious = "Crea fittizio",
+        confirmImport = "Conferma importazione",
+        importResult = "Risultato",
+        created = "Creati",
+        errorsLabel = "Errori",
+        categoriesLabel = "Categorie",
+        multiCurrency = "Il file mescola valute; si accetta solo CSV nella valuta del gruppo.",
+        importDuplicates = "Importa anche i duplicati",
+        done = "Fatto",
+        fileError = "Impossibile leggere il file.",
+
     )
 
     val fr = Strings(
@@ -681,6 +781,26 @@ object AppStrings {
         stateRemoved = "Retiré",
 
         confirmQuestion = "Êtes-vous sûr ?",
+        importTitle = "Importer depuis Splitwise",
+        chooseCsv = "Choisir un CSV",
+        preview = "Aperçu",
+        payments = "Paiements",
+        skipped = "Ignorés",
+        duplicates = "Doublons",
+        currencies = "Devises",
+        unresolved = "Noms non liés",
+        mapIdentity = "Mapper les identités",
+        createFictitious = "Créer un fictif",
+        confirmImport = "Confirmer l'import",
+        importResult = "Résultat",
+        created = "Créés",
+        errorsLabel = "Erreurs",
+        categoriesLabel = "Catégories",
+        multiCurrency = "Le fichier mélange des devises ; seul un CSV dans la devise du groupe est accepté.",
+        importDuplicates = "Importer aussi les doublons",
+        done = "Terminé",
+        fileError = "Le fichier n'a pas pu être lu.",
+
     )
 
     val de = Strings(
@@ -792,6 +912,26 @@ object AppStrings {
         stateRemoved = "Entfernt",
 
         confirmQuestion = "Sicher?",
+        importTitle = "Aus Splitwise importieren",
+        chooseCsv = "CSV wählen",
+        preview = "Vorschau",
+        payments = "Zahlungen",
+        skipped = "Übersprungen",
+        duplicates = "Duplikate",
+        currencies = "Währungen",
+        unresolved = "Nicht verknüpfte Namen",
+        mapIdentity = "Identitäten zuordnen",
+        createFictitious = "Fiktives Mitglied",
+        confirmImport = "Import bestätigen",
+        importResult = "Ergebnis",
+        created = "Erstellt",
+        errorsLabel = "Fehler",
+        categoriesLabel = "Kategorien",
+        multiCurrency = "Die Datei mischt Währungen; nur CSV in der Gruppenwährung wird akzeptiert.",
+        importDuplicates = "Duplikate ebenfalls importieren",
+        done = "Fertig",
+        fileError = "Die Datei konnte nicht gelesen werden.",
+
     )
 
     val pt = Strings(
@@ -903,6 +1043,26 @@ object AppStrings {
         stateRemoved = "Removido",
 
         confirmQuestion = "Tens a certeza?",
+        importTitle = "Importar do Splitwise",
+        chooseCsv = "Escolher CSV",
+        preview = "Pré-visualização",
+        payments = "Pagamentos",
+        skipped = "Ignorados",
+        duplicates = "Duplicados",
+        currencies = "Moedas",
+        unresolved = "Nomes sem ligação",
+        mapIdentity = "Mapear identidades",
+        createFictitious = "Criar fictício",
+        confirmImport = "Confirmar importação",
+        importResult = "Resultado",
+        created = "Criados",
+        errorsLabel = "Erros",
+        categoriesLabel = "Categorias",
+        multiCurrency = "O ficheiro mistura moedas; só se aceita CSV na moeda do grupo.",
+        importDuplicates = "Importar também os duplicados",
+        done = "Concluído",
+        fileError = "Não foi possível ler o ficheiro.",
+
     )
 
     val gl = Strings(
@@ -1014,6 +1174,26 @@ object AppStrings {
         stateRemoved = "Retirado",
 
         confirmQuestion = "Seguro?",
+        importTitle = "Importar de Splitwise",
+        chooseCsv = "Escoller CSV",
+        preview = "Vista previa",
+        payments = "Pagamentos",
+        skipped = "Omitidos",
+        duplicates = "Duplicados",
+        currencies = "Moedas",
+        unresolved = "Nomes sen ligazón",
+        mapIdentity = "Mapear identidades",
+        createFictitious = "Crear ficticio",
+        confirmImport = "Confirmar importación",
+        importResult = "Resultado",
+        created = "Creados",
+        errorsLabel = "Erros",
+        categoriesLabel = "Categorías",
+        multiCurrency = "O ficheiro mestura moedas; só se acepta CSV na moeda do grupo.",
+        importDuplicates = "Importar tamén os duplicados",
+        done = "Feito",
+        fileError = "Non se puido ler o ficheiro.",
+
     )
 
     val eu = Strings(
@@ -1125,5 +1305,25 @@ object AppStrings {
         stateRemoved = "Kendua",
 
         confirmQuestion = "Ziur zaude?",
+        importTitle = "Inportatu Splitwisetik",
+        chooseCsv = "Aukeratu CSV",
+        preview = "Aurrebista",
+        payments = "Ordainketak",
+        skipped = "Saltatuta",
+        duplicates = "Bikoiztuak",
+        currencies = "Monetak",
+        unresolved = "Esteka gabeako izenak",
+        mapIdentity = "Identitateak mapatu",
+        createFictitious = "Fiktizioa sortu",
+        confirmImport = "Berretsi inportazioa",
+        importResult = "Emaitza",
+        created = "Sortuta",
+        errorsLabel = "Erroreak",
+        categoriesLabel = "Kategoriak",
+        multiCurrency = "Fitxategiak moneta desberdinak ditu; taldeko monetako CSV soilik onartzen da.",
+        importDuplicates = "Inportatu bikoiztuak ere",
+        done = "Eginda",
+        fileError = "Ezin izan da fitxategia irakurri.",
+
     )
 }
