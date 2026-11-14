@@ -6,8 +6,9 @@ const NOTICE_COOKIE = "027_cookie_notice";
 
 /**
  * Informational cookie notice, rendered on the server from the cookie so it
- * never flashes. It does not block anything: the session and the three
- * preferences are the only cookies this app writes.
+ * never flashes. It sits in the page flow, so it never covers the content under
+ * it; dismissing it removes the row. The session and the three preferences are
+ * the only cookies this app writes.
  */
 export async function CookieNotice({
   title,
@@ -28,7 +29,7 @@ export async function CookieNotice({
       id="cookie-notice"
       role="region"
       aria-label={title}
-      className="fixed inset-x-3 bottom-3 z-50 mx-auto flex max-w-2xl flex-col gap-2 rounded-card border border-border bg-surface p-3 text-xs shadow-lg sm:flex-row sm:items-center sm:justify-between"
+      className="mb-3 flex w-full max-w-3xl flex-col gap-2 rounded-card border border-border bg-surface p-3 text-xs sm:flex-row sm:items-center sm:justify-between"
     >
       <p className="text-muted-foreground">
         <strong className="text-foreground">{title}.</strong> {message}{" "}

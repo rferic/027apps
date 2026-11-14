@@ -49,12 +49,6 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
       className="grid min-h-screen grid-cols-1 bg-background lg:grid-cols-[220px_1fr]"
     >
       <PanelAppearance theme={theme} locale={locale} />
-      <CookieNotice
-        title={t("Cookies", messages)}
-        message={t("We only use necessary cookies for the session and preference cookies for language and theme. No analytics or advertising.", messages)}
-        policyLabel={t("Cookie policy", messages)}
-        dismissLabel={t("Got it", messages)}
-      />
       <aside className="hidden border-r border-border bg-muted p-3 lg:block">
         <PanelNav role={role} messages={messages} variant="sidebar" modules={moduleNav} />
       </aside>
@@ -67,9 +61,16 @@ export default async function PanelLayout({ children }: LayoutProps<"/">) {
           instanceName={instanceName}
           menu={<PanelMobileMenu role={role} messages={messages} modules={moduleNav} />}
         />
-        {/* The cookie notice floats over the bottom edge; the padding keeps the
-            last card readable on a phone until it is dismissed. */}
-        <main id="content" className="flex-1 p-4 pb-32 lg:pb-24">
+        <main id="content" className="flex-1 p-4">
+          <CookieNotice
+            title={t("Cookies", messages)}
+            message={t(
+              "We only use necessary cookies for the session and preference cookies for language and theme. No analytics or advertising.",
+              messages,
+            )}
+            policyLabel={t("Cookie policy", messages)}
+            dismissLabel={t("Got it", messages)}
+          />
           {children}
         </main>
       </div>
