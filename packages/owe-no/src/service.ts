@@ -848,3 +848,23 @@ export async function unblockMember(
     [groupId, member[0].user_id],
   );
 }
+
+export interface CategoryView {
+  id: string;
+  name: string;
+}
+
+/** Categories of a group, for the movement form (active members only). */
+export async function listCategories(
+  deps: OweDeps,
+  userId: string,
+  groupId: string,
+): Promise<CategoryView[]> {
+  await requireActiveMember(deps, userId, groupId);
+  const { rows } = await deps.db.query(
+    `select id, name from module_owe_no.owe_no_categories
+      where group_id = $1 order by name`,
+    [groupId],
+  );
+  return rows.map((row) => ({ id: String(row.id), name: String(row.name) }));
+}

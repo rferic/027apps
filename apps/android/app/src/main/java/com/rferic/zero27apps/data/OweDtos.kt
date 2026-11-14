@@ -90,6 +90,7 @@ data class OweCreateMovementBody(
     @SerialName("amount_minor") val amountMinor: Long,
     @SerialName("occurred_on") val occurredOn: String,
     @SerialName("paid_by") val paidBy: String,
+    @SerialName("category_id") val categoryId: String? = null,
     val participants: List<OweParticipantBody>,
 )
 
@@ -169,3 +170,9 @@ data class OweImportCommitBody(
     val mapping: Map<String, String>? = null,
     @SerialName("confirm_duplicates") val confirmDuplicates: Boolean? = null,
 )
+
+@Serializable
+data class OweCategoryDto(val id: String, val name: String)
+
+@Serializable
+data class OweCategoryList(val categories: List<OweCategoryDto> = emptyList())

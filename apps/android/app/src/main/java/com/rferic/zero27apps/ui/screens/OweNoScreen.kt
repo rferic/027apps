@@ -49,6 +49,7 @@ import com.rferic.zero27apps.data.ApiClient
 import com.rferic.zero27apps.data.OweBalanceDto
 import com.rferic.zero27apps.data.OweCreateMovementBody
 import com.rferic.zero27apps.data.OweGroupDetail
+import com.rferic.zero27apps.data.OweCategoryDto
 import com.rferic.zero27apps.data.OweGroupDto
 import com.rferic.zero27apps.data.OweIdentityDto
 import com.rferic.zero27apps.data.OweMemberDto
@@ -109,6 +110,7 @@ private class OweStore(
     var loading by mutableStateOf(false)
     var error by mutableStateOf<String?>(null)
     var identities by mutableStateOf<List<OweIdentityDto>>(emptyList())
+    var categories by mutableStateOf<List<OweCategoryDto>>(emptyList())
 
     private fun run(onSuccess: (() -> Unit)? = null, block: suspend () -> Unit) {
         scope.launch {
@@ -127,6 +129,7 @@ private class OweStore(
         movements = api.oweMovements(groupId)
         balances = api.oweBalances(groupId)
         settlement = runCatching { api.oweSettlement(groupId) }.getOrNull()
+        categories = runCatching { api.oweCategories(groupId) }.getOrDefault(emptyList())
     }
 
     fun close() {
@@ -148,6 +151,7 @@ private class OweStore(
         payer: String,
         participants: List<OweParticipantBody>,
         occurredOn: String,
+        categoryId: String?,
         onSuccess: () -> Unit,
     ) = run(onSuccess) {
         api.oweCreateMovement(
@@ -158,6 +162,7 @@ private class OweStore(
                 amountMinor = amountMinor,
                 occurredOn = occurredOn,
                 paidBy = payer,
+                categoryId = categoryId,
                 participants = participants,
             ),
         )
@@ -240,6 +245,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
     var showInvite by remember { mutableStateOf(false) }
     var showImport by remember { mutableStateOf(false) }
     var showPayment by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var showInvitations by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
@@ -252,6 +258,22 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             store.detail != null -> store.close()
             else -> onBack()
         }
+    }
+
+    if (showSettings) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { showSettings = false }) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = strings.back, tint = palette.foreground)
+                }
+                Text(strings.moduleSettings, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            }
+            Text(strings.settingsPanelNote, fontSize = 13.sp, color = palette.mutedForeground)
+        }
+        return
     }
 
     val importing = store.detail
@@ -381,10 +403,11 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
     if (showExpense && current != null) {
         ExpenseDialog(
             members = current.members,
+            categories = store.categories,
             currency = current.group.currency,
             locale = locale,
             onDismiss = { showExpense = false },
-            onSave = { description, amountMinor, payer, participants, occurredOn ->
+            onSave = { description, amountMinor, payer, participants, occurredOn, categoryId ->
                 store.addExpense(
                     current.group.id,
                     description,
@@ -392,6 +415,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
                     payer,
                     participants,
                     occurredOn,
+                    categoryId,
                     onSuccess = { showExpense = false },
                 )
             },
@@ -828,16 +852,18 @@ private fun NewGroupDialog(onDismiss: () -> Unit, onCreate: (String, String) -> 
 @Composable
 private fun ExpenseDialog(
     members: List<OweMemberDto>,
+    categories: List<OweCategoryDto>,
     currency: String,
     locale: String,
     onDismiss: () -> Unit,
-    onSave: (String, Long, String, List<OweParticipantBody>, String) -> Unit,
+    onSave: (String, Long, String, List<OweParticipantBody>, String, String?) -> Unit,
 ) {
     val strings = LocalStrings.current
     val active = members.filter { it.state == "active" }
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var occurredOn by remember { mutableStateOf(LocalDate.now().toString()) }
+    var categoryId by remember { mutableStateOf<String?>(null) }
     var payer by remember { mutableStateOf(active.firstOrNull()?.id) }
     var selected by remember { mutableStateOf(active.map { it.id }.toSet()) }
     var exact by remember { mutableStateOf(false) }
@@ -880,6 +906,25 @@ private fun ExpenseDialog(
                     label = { Text(strings.date) },
                     singleLine = true,
                 )
+                Text("${strings.category}:", fontSize = 12.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    TextButton(onClick = { categoryId = null }) {
+                        Text(
+                            strings.noCategory,
+                            fontWeight = if (categoryId == null) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 11.sp,
+                        )
+                    }
+                    categories.take(4).forEach { category ->
+                        TextButton(onClick = { categoryId = category.id }) {
+                            Text(
+                                category.name,
+                                fontWeight = if (categoryId == category.id) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 11.sp,
+                            )
+                        }
+                    }
+                }
                 Text("${strings.paidBy}:", fontSize = 12.sp)
                 for (member in active) {
                     Row(
@@ -962,7 +1007,7 @@ private fun ExpenseDialog(
                 enabled = description.isNotBlank() && minor != null && payer != null &&
                     selected.isNotEmpty() && exactReady && dateValid,
                 onClick = {
-                    onSave(description.trim(), minor!!, payer!!, participants, occurredOn)
+                    onSave(description.trim(), minor!!, payer!!, participants, occurredOn, categoryId)
                 },
             ) { Text(strings.save) }
         },

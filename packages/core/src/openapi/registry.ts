@@ -65,6 +65,7 @@ import {
   oweGroupListSchema,
   oweGroupResponseSchema,
   oweMemberListSchema,
+  oweCategoryListSchema,
   oweIdentityListSchema,
   oweImportListSchema,
   oweImportPreviewSchema,
@@ -201,6 +202,14 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     summary: "A group and its members.",
     scopes: ["expenses:read"],
     response: oweGroupDetailSchema,
+    auth: "session",
+  },
+  {
+    method: "get",
+    path: "/owe-no/groups/{id}/categories",
+    summary: "Categories of a group, for the movement form.",
+    scopes: ["expenses:read"],
+    response: oweCategoryListSchema,
     auth: "session",
   },
   {

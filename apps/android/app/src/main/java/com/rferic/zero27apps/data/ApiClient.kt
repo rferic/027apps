@@ -121,6 +121,11 @@ class ApiClient(
         expectSuccess(request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/leave"))
     }
 
+    suspend fun oweCategories(groupId: String): List<OweCategoryDto> =
+        read<OweCategoryList>(
+            request(HttpMethod.Get, "/api/v1/owe-no/groups/$groupId/categories"),
+        ).categories
+
     suspend fun oweIdentities(groupId: String): List<OweIdentityDto> =
         read<OweIdentityList>(
             request(HttpMethod.Get, "/api/v1/owe-no/groups/$groupId/imports/identities"),

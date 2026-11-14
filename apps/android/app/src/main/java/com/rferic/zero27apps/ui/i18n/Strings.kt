@@ -99,6 +99,10 @@ data class Strings(
     val menu: String,
     val registerPayment: String,
     val whoReceives: String,
+    val category: String,
+    val noCategory: String,
+    val moduleSettings: String,
+    val settingsPanelNote: String,
     val noInvitations: String,
     val invite: String,
     val inviteMember: String,
@@ -293,6 +297,10 @@ object AppStrings {
         menu = "Menu",
         registerPayment = "Record payment",
         whoReceives = "Who receives",
+        category = "Category",
+        noCategory = "No category",
+        moduleSettings = "Module settings",
+        settingsPanelNote = "Configuration lives in the panel; the app only reads it.",
     )
 
     val es = Strings(
@@ -432,6 +440,10 @@ object AppStrings {
         menu = "Menú",
         registerPayment = "Registrar pago",
         whoReceives = "Quién recibe",
+        category = "Categoría",
+        noCategory = "Sin categoría",
+        moduleSettings = "Ajustes del módulo",
+        settingsPanelNote = "La configuración vive en el panel; la app solo la lee.",
     )
 
     val ca = Strings(
@@ -571,6 +583,10 @@ object AppStrings {
         menu = "Menú",
         registerPayment = "Registra el pagament",
         whoReceives = "Qui rep",
+        category = "Categoria",
+        noCategory = "Sense categoria",
+        moduleSettings = "Ajustos del mòdul",
+        settingsPanelNote = "La configuració viu al panell; l'app només la llegeix.",
     )
 
     val it = Strings(
@@ -710,6 +726,10 @@ object AppStrings {
         menu = "Menu",
         registerPayment = "Registra pagamento",
         whoReceives = "Chi riceve",
+        category = "Categoria",
+        noCategory = "Nessuna categoria",
+        moduleSettings = "Impostazioni del modulo",
+        settingsPanelNote = "La configurazione vive nel pannello; l'app la legge soltanto.",
     )
 
     val fr = Strings(
@@ -849,6 +869,10 @@ object AppStrings {
         menu = "Menu",
         registerPayment = "Enregistrer un paiement",
         whoReceives = "Qui reçoit",
+        category = "Catégorie",
+        noCategory = "Sans catégorie",
+        moduleSettings = "Réglages du module",
+        settingsPanelNote = "La configuration vit dans le panneau ; l'app la lit seulement.",
     )
 
     val de = Strings(
@@ -988,6 +1012,10 @@ object AppStrings {
         menu = "Menü",
         registerPayment = "Zahlung erfassen",
         whoReceives = "Wer erhält",
+        category = "Kategorie",
+        noCategory = "Keine Kategorie",
+        moduleSettings = "Moduleinstellungen",
+        settingsPanelNote = "Die Konfiguration liegt im Panel; die App liest sie nur.",
     )
 
     val pt = Strings(
@@ -1127,6 +1155,10 @@ object AppStrings {
         menu = "Menu",
         registerPayment = "Registar pagamento",
         whoReceives = "Quem recebe",
+        category = "Categoria",
+        noCategory = "Sem categoria",
+        moduleSettings = "Ajustes do módulo",
+        settingsPanelNote = "A configuração vive no painel; a app só a lê.",
     )
 
     val gl = Strings(
@@ -1266,6 +1298,10 @@ object AppStrings {
         menu = "Menú",
         registerPayment = "Rexistrar pagamento",
         whoReceives = "Quen recibe",
+        category = "Categoría",
+        noCategory = "Sen categoría",
+        moduleSettings = "Axustes do módulo",
+        settingsPanelNote = "A configuración vive no panel; a app só a le.",
     )
 
     val eu = Strings(
@@ -1405,5 +1441,9 @@ object AppStrings {
         menu = "Menua",
         registerPayment = "Erregistratu ordainketa",
         whoReceives = "Nork jasotzen du",
+        category = "Kategoria",
+        noCategory = "Kategoriarik gabe",
+        moduleSettings = "Moduluaren ezarpenak",
+        settingsPanelNote = "Konfigurazioa panelean dago; appak irakurri besterik ez du egiten.",
     )
 }
