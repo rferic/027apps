@@ -22,6 +22,14 @@ Una tarea puede combinar tipos (p. ej. código + docs): cumple la unión.
 
    El resultado queda por escrito (hallazgos, severidad, resolución) en el informe de la tarea/PR. Hallazgos críticos o altos sin resolver bloquean `finalizada`.
 
+## Entrega al propietario
+
+1. **Verificación previa ejecutada**, no prometida: `scripts/verify-local.sh` en verde y la
+   checklist de `docs/flows/pre-delivery-verification.md` completada (suites, build, rutas del
+   panel con sesión, endpoints, APK instalado si toca). La salida se pega en la tarea/PR.
+2. Un error encontrado ahí se corrige y se cubre con un test de regresión o una comprobación del
+   script antes de volver a anunciar nada.
+
 ## Docs
 
 1. Revisada por un segundo agente: coherencia con la spec, los flujos y el código real.

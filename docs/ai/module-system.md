@@ -285,6 +285,9 @@ local y falla en el preview. Nunca se copian `.env` ni secretos.
 - **FK a `profiles`**: obligatorio `on delete set null`, porque `purgeUser` borra `auth.users` y no
   limpia los esquemas de módulo. El instalador lo comprueba en el catálogo y falla con
   `fk_profiles_missing_set_null`; la fila del módulo sobrevive sin `user_id` (D16).
+- **Ajustes y reinstalación**: el instalador escribe `settings_categories` y `settings` con
+  `upsert` (`syncModuleSettings`). Viven en `public`, así que un intento fallido las deja escritas
+  aunque el DDL de su esquema se revierta; reinstalar debe funcionar sin limpiar a mano.
 - **Scopes por ruta**: la ruta declara `moduleKey`; el door comprueba módulo `active`, acceso
   (admin, público o grant activo) y que el scope esté declarado. Sin acceso → `403` uniforme.
 

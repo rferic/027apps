@@ -288,6 +288,7 @@ de la v1 y es una función de la app.
 | D21 | Datos de demo | Módulo `demo` (A) · capacidad del Core con ajuste y botón (B) · script de operador (C) | **B** (decidido 2026-11-13). El Core crea usuarios e invitaciones (el SQL del módulo no puede tocar `auth`/`public`), con correos `@example.test` **sin envío real**, solo fuera de producción, ids estables y limpieza que se niega si un módulo tiene datos enlazados. A es B más un módulo envoltorio; C no tiene botón ni gate. |
 | D22 | Literal del botón de descarga | «Descargar app» · «Descargar para Android» · «Descargar APK» · otras | **«Descargar para Android»** con el **icono de Android en los tres botones** (decidido 2026-11-13). La app solo existe para Android; «app» a secas invita a buscar iOS. Mockup: `docs/mockups/landing-buttons/`. |
 | D23 | Presencia y dependencias del módulo | Solo visible/oculto · **`app.visible` + `requires`** | **Ambos** (decidido 2026-11-13): `app.visible: false` = módulo de fondo sin lanzador; `requires` con versión mínima y reglas en instalar/activar/desactivar/desinstalar. La compatibilidad Core↔módulo se resuelve con `contract` y la actualización sin desinstalar es la tarea 08. |
+| D25 | Verificación antes de que el propietario pruebe | Confiar en los tests · **script + checklist con sesión real** | **Script + checklist** (decidido 2026-11-14): `scripts/verify-local.sh` comprueba que cada módulo instalado tiene esquema y migraciones, y abre con una sesión real cada página del panel y la API; el resto (suites, build, APK) va en `docs/flows/pre-delivery-verification.md`. El propietario no revisa código: no puede ser el primero en ver el fallo. |
 | D24 | Versionado de módulos | Semver de plataforma · **semver del módulo + contrato entero** | **Contrato entero** (decidido 2026-11-13): `manifest.contract` debe igualar `CORE_CONTRACT`; solo sube con cambios incompatibles. `manifest.version` es semver del módulo y solo se sube al actualizar. La actualización aplica migraciones nuevas sin desinstalar (tarea 08). |
 
 ## Reglas del sprint
@@ -299,6 +300,8 @@ de la v1 y es una función de la app.
   F1 y F2 aceptados.
 - TDD, zod en los bordes, tokens semánticos, auditoría de seguridad incondicional antes de
   `finalizada`, y revisión/QA por un agente distinto del autor.
+- Nada se anuncia al propietario sin la verificación previa de
+  `docs/flows/pre-delivery-verification.md` (script + checklist) y su salida pegada.
 - Implementar OweNo incluye actualizar `docs/ai/landing.md` y las dos páginas públicas en
   el mismo PR. Sin eso, la tarea no está `finalizada`.
 - La rama del sprint será `sprint/15-app-and-oweno` (nombre en inglés, según `AGENTS.md`);

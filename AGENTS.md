@@ -14,7 +14,7 @@ Todo cambio sigue spec → plan → implementación con TDD → revisión → au
 3. `docs/superpowers/specs/2026-10-24-027apps-design.md` — spec de diseño (arquitectura, stack, modelo de datos).
 4. `docs/conventions/code-style.md` — estilo y qué hace cumplir cada herramienta.
 5. `docs/conventions/definition-of-done.md` — cuándo una tarea puede ser `finalizada`.
-6. `docs/flows/` — flujos (CI/CD: `docs/flows/cicd.md`). Si cambias CI, deploy o releases, actualiza el flujo en el mismo PR.
+6. `docs/flows/` — flujos (CI/CD: `docs/flows/cicd.md`; verificación antes de entregar: `docs/flows/pre-delivery-verification.md`). Si cambias CI, deploy o releases, actualiza el flujo en el mismo PR.
 7. `docs/infrastructure.md` — inventario de servicios, límites del free tier, backups y recuperación (runbook operativo).
 8. `apps/admin/AGENTS.md` — aviso de Next.js: esta versión difiere de lo que sabes; lee `node_modules/next/dist/docs/` antes de escribir código de Next.
 9. `docs/ai/landing.md` — contenido y estado de los módulos de la landing; cuándo actualizarla.
@@ -31,6 +31,11 @@ no está `finalizada`.
 - **Contexto inyectado, nunca recordado** (subagentes): quien despacha pasa el contexto como texto armado desde ficheros (extracto de spec + convenciones + criterios de aceptación + rutas). Un subagente no asume lo que "ya se habló" ni lo que recuerda de otra sesión; si le falta contexto, reporta `NEEDS_CONTEXT`. Un subagente no despacha otros subagentes.
 - **Secretos**: nunca en git, logs, ni en la salida de comandos (`.env*`, keystores, tokens). Ver `docs/flows/cicd.md`.
 - **API-first**: móvil y terceros solo hablan con `/api/v1`; nunca con la BD.
+- **Verificar antes de entregar**: nada se anuncia al propietario (PR, mensaje, APK, «ya puedes
+  probarlo») sin haberlo ejecutado antes contra el entorno real y con la salida leída. La rutina
+  y la checklist están en `docs/flows/pre-delivery-verification.md`; la parte automática es
+  `scripts/verify-local.sh`. Un fallo encontrado se convierte en test de regresión o check, no en
+  una nota mental.
 - Cambios mínimos y del alcance de la tarea. No toques ficheros ajenos a ella.
 
 ## Module contract changes
