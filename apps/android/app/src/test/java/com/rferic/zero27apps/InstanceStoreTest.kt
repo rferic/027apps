@@ -75,6 +75,18 @@ class InstanceStoreTest {
     }
 
     @Test
+    fun `pinning keeps the instance when an update changes the default`() {
+        val prefs = FakeStore()
+        // The test build defaults to the LAN; the user opens it once.
+        val first = InstanceStore(prefs, "http://192.168.1.108:3003")
+        assertEquals("http://192.168.1.108:3003", first.pinDefault())
+
+        // An update installs a build whose default is production, same data.
+        val updated = InstanceStore(prefs, "https://027apps.ericrf.com")
+        assertEquals("http://192.168.1.108:3003", updated.pinDefault())
+    }
+
+    @Test
     fun `storing the default drops the override`() {
         val prefs = FakeStore()
         val store = InstanceStore(prefs, default)

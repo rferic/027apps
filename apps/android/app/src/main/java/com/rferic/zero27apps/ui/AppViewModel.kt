@@ -237,7 +237,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun boot() {
         _state.value = AppState.Loading
-        val base = instanceStore.current()
+        // Pin on first boot so an update never moves the install to another
+        // instance just because the new build compiled a different default.
+        val base = instanceStore.pinDefault()
         try {
             val api = apiFor(base)
             val instance = api.instance()

@@ -38,6 +38,18 @@ class InstanceStore(
         if (url == defaultUrl) store.remove(CURRENT) else store.put(CURRENT, url)
     }
 
+    /**
+     * Writes the instance this install is using the first time it boots. An
+     * update installs a build whose compiled default may be another instance
+     * (the LAN APK and the published one disagree); pinning keeps the user where
+     * they were instead of silently moving them to production.
+     */
+    fun pinDefault(): String {
+        val current = store.get(CURRENT) ?: defaultUrl
+        store.put(CURRENT, current)
+        return current
+    }
+
     /** Removes a saved instance; the active one falls back to the default. */
     fun forget(url: String) {
         if (url == defaultUrl) return
