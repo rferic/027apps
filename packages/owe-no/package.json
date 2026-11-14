@@ -11,7 +11,7 @@
     "./admin/overview/page": "./admin/overview/page.tsx",
     "./admin/groups/page": "./admin/groups/page.tsx",
     "./admin/imports/page": "./admin/imports/page.tsx",
-    "./domain/*": "./src/*.ts"
+    "./domain/*.js": "./src/*.ts"
   },
   "peerDependencies": {
     "react": "^19.3.1"
