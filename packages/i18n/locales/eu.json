@@ -811,5 +811,6 @@
   "{name} will be able to sign in again.": "{name} berriro hasi ahal izango da saioa.",
   "{name} will lose access immediately.": "{name}k berehala galduko du sarbidea.",
   "{selected} of {total} selected": "{selected} / {total} hautatuta",
-  "Module pages": "Moduluaren orriak"
+  "Module pages": "Moduluaren orriak",
+  "Catalog": "Katalogoa"
 }

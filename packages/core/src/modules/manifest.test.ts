@@ -177,6 +177,13 @@ describe("manifest contract", () => {
     ).not.toThrow();
   });
 
+  it("reserves the panel routes a module workspace would shadow (D27)", () => {
+    for (const key of ["members", "modules", "settings", "categories", "keys", "docs"]) {
+      expect(() => manifestSchema.parse(validManifest({ key }))).toThrow(/reserved/);
+    }
+    expect(() => manifestSchema.parse(validManifest())).not.toThrow();
+  });
+
   it("validates the range of an int setting (slider)", () => {
     const withSetting = (setting: Record<string, unknown>) =>
       validManifest({

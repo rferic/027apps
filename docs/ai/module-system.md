@@ -191,11 +191,15 @@ Ejemplo completo:
 - `dashboard_widgets`: cada widget declara `key` (`modulo.dato`, con guion permitido en el
   prefijo), `type` (`summary`|`metric`|`list`), `surface` (`app`|`panel`), `title`, `icon`,
   `order` y `data_fn`, una función del esquema del módulo `(user_id uuid) returns jsonb` que
-  **filtra por ese usuario**. El Core la llama al componer `GET /api/v1/me/dashboard`; si la
+  **filtra por ese usuario** (en `surface: panel` el panel es de administración y la función
+  puede devolver datos de instancia, como hace OweNo). El Core la llama al componer `GET /api/v1/me/dashboard`; si la
   función falla, el widget se omite y el dashboard sigue. Sin HTML ni JS del módulo.
-  La función devuelve `{ "value": string | number, "label"?: string, "detail"?: string }`; el
-  panel pinta `value` con `label` y `detail` como texto secundario, y nunca interpreta claves
-  que no conozca. Cualquier otro campo se ignora.
+  La función devuelve `{ "value": string | number, "label"?: string, "detail"?: string,
+  "params"?: Record<string, string | number> }`; el panel pinta `value` con `label` y `detail`
+  como texto secundario, y nunca interpreta claves que no conozca. **`title`, `label` y `detail`
+  son claves en inglés**: el panel los traduce con los `locales/*.json` del módulo y sustituye
+  `params` en los placeholders `{nombre}`. Cada tarjeta muestra el logo del módulo y enlaza a
+  `/panel/<key>`. Cualquier otro campo se ignora.
 - **Páginas de admin y acceso a datos**: el host solo renderiza una página de módulo tras
   comprobar sesión, rol del manifest y `active`, y le pasa un `ModulePageContext`
   (`@027apps/core/modules/pages.js`): `{ moduleKey, caller, db, locale, messages }`. La página usa
@@ -209,10 +213,18 @@ Ejemplo completo:
   inglés en el JSX. Las etiquetas de `admin_pages` se traducen con el mismo mapa. El host pinta la
   navegación del módulo (sus páginas + Ajustes) a partir del manifest, así que una ruta nueva no
   necesita enlace propio.
+- **Claves reservadas**: la `key` del módulo se sirve en `/panel/<key>`, así que no puede
+  coincidir con una ruta fija del panel (`admin`, `api`, `categories`, `core`, `docs`, `help`,
+  `invitations`, `keys`, `mcp`, `members`, `modules`, `settings`). El manifest lo rechaza con
+  «reserved».
 - `admin_pages`: `route` de un solo segmento (`^[a-z0-9]+(-[a-z0-9]+)*$`, sin `/`, `..`,
   `%2e` ni rutas reservadas), `label` en inglés, `icon` del DS, `group` (`module`) y `role`
   (`admin`|`super_admin`). El componente vive en `packages/<key>/admin/<route>/page.tsx` y el
-  CI del Core exigirá que exista; se sirve en `/modules/<key>/<route>` y solo si el módulo está `active`.
+  CI del Core exigirá que exista; se sirve en **`/panel/<key>/<route>`** (y `overview` en
+  `/panel/<key>`) solo si el módulo está `active`. Un módulo activo con páginas aparece en la
+  barra lateral del panel, en el grupo **«Módulos»**, con su logo y su nombre; la ficha
+  (ajustes, concesiones, demo, trabajos) vive en `/panel/modules/<key>`. Las URLs antiguas
+  bajo `/panel/modules/<key>/<route>` redirigen con 308.
 - Documentación por capacidad: `docs.readme` obligatorio; `docs.api` obligatorio si declara
   `scopes`; `docs.mcp` si declara `mcp_tools`; `docs.settings` si declara `settings`;
   `docs.events` si declara `events`/`channels`. El CI del Core exigirá el fichero y que cada

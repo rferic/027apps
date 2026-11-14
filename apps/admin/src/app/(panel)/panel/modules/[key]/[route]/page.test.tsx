@@ -1,34 +1,27 @@
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-const redirectMock = vi.fn((_href: string) => {
+const permanentRedirectMock = vi.fn((_href: string) => {
   throw new Error("NEXT_REDIRECT");
 });
 
 vi.mock("next/navigation", () => ({
-  redirect: (href: string) => redirectMock(href),
+  permanentRedirect: (href: string) => permanentRedirectMock(href),
 }));
 
-vi.mock("@/components/module-page-host", () => ({
-  ModulePageHost: ({ moduleKey, route }: { moduleKey: string; route: string }) => (
-    <p>{`host:${moduleKey}/${route}`}</p>
-  ),
-}));
+import LegacyModulePage from "./page";
 
-import ModuleAdminPage from "./page";
-
-describe("module admin route", () => {
-  it("redirects the legacy overview path to the module entry", async () => {
+describe("legacy module page", () => {
+  it("sends an old page route to the module workspace", async () => {
     await expect(
-      ModuleAdminPage({ params: Promise.resolve({ key: "fixture", route: "overview" }) }),
+      LegacyModulePage({ params: Promise.resolve({ key: "owe-no", route: "groups" }) }),
     ).rejects.toThrow("NEXT_REDIRECT");
-    expect(redirectMock).toHaveBeenCalledWith("/panel/modules/fixture");
+    expect(permanentRedirectMock).toHaveBeenCalledWith("/panel/owe-no/groups");
   });
 
-  it("renders any other declared route through the host", async () => {
-    const html = renderToStaticMarkup(
-      await ModuleAdminPage({ params: Promise.resolve({ key: "fixture", route: "notes" }) }),
-    );
-    expect(html).toContain("host:fixture/notes");
+  it("sends the old settings path to the module card", async () => {
+    await expect(
+      LegacyModulePage({ params: Promise.resolve({ key: "owe-no", route: "settings" }) }),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(permanentRedirectMock).toHaveBeenCalledWith("/panel/modules/owe-no");
   });
 });

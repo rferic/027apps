@@ -67,9 +67,7 @@ describe("module page host", () => {
   it("renders a declared page of an active module", async () => {
     const html = renderToStaticMarkup(await render());
     expect(html).toContain("Fixture");
-    expect(html).toContain("/panel/modules/fixture/settings");
-    // The module's own pages are reachable from the page, translated.
-    expect(html).toContain("/panel/modules/fixture/settings");
+    expect(html).toContain('href="/panel/modules/fixture"');
     expect(html).toContain('aria-label="Module pages"');
   });
 
@@ -81,7 +79,7 @@ describe("module page host", () => {
       ]),
     );
     const html = renderToStaticMarkup(await render());
-    expect(html).toContain('href="/panel/modules/fixture/groups"');
+    expect(html).toContain('href="/panel/fixture/groups"');
     expect(html).toContain("Grupos");
     expect(html).not.toContain(">Groups<");
     expect(html).toContain('aria-current="page"');
@@ -94,7 +92,7 @@ describe("module page host", () => {
   it("sends an inactive module to its settings page, where it can be activated", async () => {
     loadModuleDetailMock.mockResolvedValue(detail("installed"));
     await expect(render()).rejects.toThrow("NEXT_REDIRECT");
-    expect(redirectMock).toHaveBeenCalledWith("/panel/modules/fixture/settings");
+    expect(redirectMock).toHaveBeenCalledWith("/panel/modules/fixture");
   });
 
   it("404s when the package has no component for a declared route", async () => {

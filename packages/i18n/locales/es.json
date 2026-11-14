@@ -811,5 +811,6 @@
   "{name} will be able to sign in again.": "{name} podrá iniciar sesión de nuevo.",
   "{name} will lose access immediately.": "{name} perderá el acceso de inmediato.",
   "{selected} of {total} selected": "{selected} de {total} seleccionadas",
-  "Module pages": "Páginas del módulo"
+  "Module pages": "Páginas del módulo",
+  "Catalog": "Catálogo"
 }

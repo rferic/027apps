@@ -187,7 +187,7 @@ describe("ModuleDetailPage", () => {
     expect(html).toContain("load this module");
     expect(html).toContain("Something went wrong on the server.");
     expect(html).toContain("req-500");
-    expect(html).toContain('href="/panel/modules/inventory/settings"');
+    expect(html).toContain('href="/panel/modules/inventory"');
   });
 
   it("offers Deactivate while the module is active", async () => {
@@ -298,7 +298,7 @@ describe("ModuleDetailPage", () => {
     // A secret is editable but never shows the stored value.
     expect(html).toContain('type="password"');
     expect(html).not.toContain("secret-value");
-    expect(html).not.toContain('href="/panel/modules/inventory/settings"');
+    expect(html).not.toContain('href="/panel/modules/inventory"');
   });
 
   it("offers an update only when the package is newer than the installed version", async () => {

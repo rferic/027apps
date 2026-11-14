@@ -110,6 +110,28 @@ describe("PanelNav", () => {
     expect(currentHrefs(html)).toEqual(["/panel/settings/instance"]);
   });
 
+  it("gives each active module a row with its brand icon (D27)", () => {
+    pathname.current = "/panel/owe-no/groups";
+    const html = renderToStaticMarkup(
+      <PanelNav
+        role="admin"
+        messages={{}}
+        modules={[{ key: "owe-no", name: "OweNo", color: "teal" }]}
+      />,
+    );
+
+    expect(html).toContain('href="/panel/owe-no"');
+    expect(html).toContain("OweNo");
+    expect(html).toContain('aria-current="page"');
+    // The brand glyph is the module icon endpoint, not a panel glyph.
+    expect(html).toContain("url(/panel/modules/owe-no/icon)");
+  });
+
+  it("has no module rows when nothing qualifies", () => {
+    const html = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
+    expect(html).not.toContain('href="/panel/owe-no"');
+  });
+
   it("hides API keys from an admin and shows them to a super_admin", () => {
     const admin = renderToStaticMarkup(<PanelNav role="admin" messages={{}} />);
     const superAdmin = renderToStaticMarkup(<PanelNav role="super_admin" messages={{}} />);

@@ -36,7 +36,7 @@ async function resolvePage(moduleKey: string, route: string) {
   if (!page) {
     // The module entry opens its overview; without one there is nothing to
     // show, so fall back to the page that can enable or configure it.
-    if (route === "overview") redirect(`/panel/modules/${encodeURIComponent(moduleKey)}/settings`);
+    if (route === "overview") redirect(`/panel/modules/${encodeURIComponent(moduleKey)}`);
     notFound();
   }
   const detail = await loadModuleDetail(moduleKey);
@@ -64,7 +64,7 @@ function ModuleNav({
   messages: TranslationMap;
   moduleMessages: Record<string, string>;
 }) {
-  const base = `/panel/modules/${encodeURIComponent(moduleKey)}`;
+  const base = `/panel/${encodeURIComponent(moduleKey)}`;
   const entries = pages
     .filter((page) => page.role !== "super_admin" || role === "super_admin")
     .map((page) => ({
@@ -72,7 +72,12 @@ function ModuleNav({
       label: t(page.label, moduleMessages),
       href: page.route === "overview" ? base : `${base}/${page.route}`,
     }));
-  entries.push({ route: "settings", label: t("Settings", messages), href: `${base}/settings` });
+  // Settings live on the module card in the catalogue, not in its workspace.
+  entries.push({
+    route: "settings",
+    label: t("Settings", messages),
+    href: `/panel/modules/${encodeURIComponent(moduleKey)}`,
+  });
 
   return (
     <nav
@@ -112,7 +117,7 @@ export async function ModulePageHost({
 
   const { page, pages, detail } = await resolvePage(moduleKey, route);
   if (detail.module.state !== "active") {
-    redirect(`/panel/modules/${encodeURIComponent(moduleKey)}/settings`);
+    redirect(`/panel/modules/${encodeURIComponent(moduleKey)}`);
   }
   if (page.role === "super_admin" && gate.user.role !== "super_admin") {
     return renderForbidden(gate.user);
@@ -146,13 +151,19 @@ export async function ModulePageHost({
           </Link>
           <span aria-hidden="true"> / </span>
           <Link
-            href="/panel/modules"
+            href={`/panel/${encodeURIComponent(moduleKey)}`}
             className="hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            {t("Modules", messages)}
+            {detail.module.name}
           </Link>
-          <span aria-hidden="true"> / </span>
-          <span className="font-semibold text-foreground">{detail.module.name}</span>
+          {route === "overview" ? null : (
+            <>
+              <span aria-hidden="true"> / </span>
+              <span className="font-semibold text-foreground">
+                {t(page.label, moduleMessages)}
+              </span>
+            </>
+          )}
         </nav>
       </div>
       <ModuleNav

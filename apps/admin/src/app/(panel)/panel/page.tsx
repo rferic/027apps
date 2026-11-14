@@ -12,6 +12,9 @@ import {
   type DashboardSuccess,
 } from "@/lib/panel-dashboard";
 import { loadPanelMessages } from "@/lib/panel-i18n";
+import { loadModuleMessages } from "@/lib/module-messages";
+import { loadModuleManifest } from "@/lib/module-manifests";
+import { ModuleIcon } from "@/components/ui/module-icon";
 import { requirePanel } from "@/lib/panel-guard";
 
 /**
@@ -264,27 +267,49 @@ function DashboardBody({
  */
 function widgetValue(
   data: unknown,
-): { value: string; label?: string; detail?: string } | null {
+): {
+  value: string;
+  label?: string;
+  detail?: string;
+  params?: Record<string, string | number>;
+} | null {
   if (typeof data !== "object" || data === null) return null;
   const record = data as Record<string, unknown>;
   const value = record.value;
   if (typeof value !== "string" && typeof value !== "number") return null;
   const label = typeof record.label === "string" ? record.label : undefined;
   const detail = typeof record.detail === "string" ? record.detail : undefined;
+  const params = widgetParams(record.params);
   return {
     value: String(value),
     ...(label ? { label } : {}),
     ...(detail ? { detail } : {}),
+    ...(params ? { params } : {}),
   };
+}
+
+/** Widget placeholders: only scalar values are interpolated, arrays are ignored. */
+function widgetParams(raw: unknown): Record<string, string | number> | undefined {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return undefined;
+  const entries = Object.entries(raw as Record<string, unknown>).filter(
+    ([, entry]) => typeof entry === "string" || typeof entry === "number",
+  );
+  if (entries.length === 0) return undefined;
+  return Object.fromEntries(entries) as Record<string, string | number>;
 }
 
 /** Native render of the widgets modules declare; no module HTML reaches this tree. */
 function ModuleWidgets({
   widgets,
   messages,
+  translations,
+  branding,
 }: {
   widgets: ModuleWidget[];
   messages: TranslationMap;
+  /** Module strings per module key, so widget text is never left in English. */
+  translations: Map<string, TranslationMap>;
+  branding: Map<string, { name: string; color?: string }>;
 }) {
   return (
     <section aria-labelledby="dashboard-widgets" className="flex flex-col gap-3">
@@ -297,27 +322,43 @@ function ModuleWidgets({
       <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {widgets.map((widget) => {
           const value = widgetValue(widget.data);
+          const strings = translations.get(widget.module_key);
+          const brand = branding.get(widget.module_key);
           return (
-            <li
-              key={`${widget.module_key}:${widget.key}`}
-              className="flex flex-col gap-1 rounded-card border border-border bg-surface p-4"
-            >
-              <span className="text-xs font-semibold text-muted-foreground">{widget.title}</span>
-              {value ? (
-                <span className="text-2xl font-bold tabular-nums">
-                  {value.value}
-                  {value.label ? (
-                    <span className="ml-2 text-xs font-medium text-muted-foreground">
-                      {value.label}
-                    </span>
-                  ) : null}
+            <li key={`${widget.module_key}:${widget.key}`}>
+              <Link
+                href={`/panel/${encodeURIComponent(widget.module_key)}`}
+                className="flex h-full flex-col gap-1 rounded-card border border-border bg-surface p-4 hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <ModuleIcon
+                    moduleKey={widget.module_key}
+                    size={16}
+                    color={brand?.color}
+                  />
+                  {t(widget.title, strings)}
+                  <span className="ml-auto text-[10px] font-medium uppercase tracking-wide">
+                    {brand?.name ?? widget.module_key}
+                  </span>
                 </span>
-              ) : (
-                <span className="text-xs text-muted-foreground">{t("No data", messages)}</span>
-              )}
-              {value?.detail ? (
-                <span className="text-xs text-muted-foreground">{value.detail}</span>
-              ) : null}
+                {value ? (
+                  <span className="text-2xl font-bold tabular-nums">
+                    {value.value}
+                    {value.label ? (
+                      <span className="ml-2 text-xs font-medium text-muted-foreground">
+                        {t(value.label, strings, value.params)}
+                      </span>
+                    ) : null}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">{t("No data", messages)}</span>
+                )}
+                {value?.detail ? (
+                  <span className="text-xs text-muted-foreground">
+                    {t(value.detail, strings, value.params)}
+                  </span>
+                ) : null}
+              </Link>
             </li>
           );
         })}
@@ -341,6 +382,25 @@ export default async function DashboardPage() {
     loadPanelDashboard(),
     loadModuleWidgets("panel"),
   ]);
+  // A widget may not speak English in a Spanish panel: its title, label and
+  // detail are keys resolved with the module's own locales.
+  const widgetKeys = [
+    ...new Set(
+      moduleWidgets.ok ? moduleWidgets.widgets.map((widget) => widget.module_key) : [],
+    ),
+  ];
+  const widgetTranslations = new Map<string, TranslationMap>();
+  const widgetBranding = new Map<string, { name: string; color?: string }>();
+  await Promise.all(
+    widgetKeys.map(async (key) => {
+      const [strings, manifest] = await Promise.all([
+        loadModuleMessages(key, locale),
+        loadModuleManifest(key),
+      ]);
+      widgetTranslations.set(key, strings);
+      if (manifest) widgetBranding.set(key, { name: manifest.name, color: manifest.branding?.color });
+    }),
+  );
 
   if (!dashboard.ok) {
     return (
@@ -377,7 +437,12 @@ export default async function DashboardPage() {
       <DashboardBody dashboard={dashboard} messages={messages} />
 
       {moduleWidgets.ok && moduleWidgets.widgets.length > 0 ? (
-        <ModuleWidgets widgets={moduleWidgets.widgets} messages={messages} />
+        <ModuleWidgets
+          widgets={moduleWidgets.widgets}
+          messages={messages}
+          translations={widgetTranslations}
+          branding={widgetBranding}
+        />
       ) : null}
     </section>
   );

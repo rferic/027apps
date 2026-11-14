@@ -177,13 +177,17 @@ sql "insert into public.profiles (id, display_name, role)
 
 routes=(/panel /panel/modules)
 for key in $(sql "select key from public.module_registry order by key"); do
+  # The card (settings) and, when the module is active, its own workspace (D27).
   routes+=("/panel/modules/$key")
+  if [[ "$(sql "select state from public.module_registry where key = '$key'")" == "active" ]]; then
+    routes+=("/panel/$key")
+  fi
   manifest="$ROOT/packages/$key/manifest.json"
   if [[ -f "$manifest" ]]; then
     while read -r page; do
       [[ -n "$page" ]] || continue
       if [[ "$page" == "overview" ]]; then continue; fi
-      routes+=("/panel/modules/$key/$page")
+      routes+=("/panel/$key/$page")
     done < <(python3 -c 'import json,sys; print("\n".join(p["route"] for p in json.load(open(sys.argv[1])).get("admin_pages", [])))' "$manifest")
   fi
 done

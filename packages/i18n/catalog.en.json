@@ -103,6 +103,7 @@
   "CORS allowlist",
   "Cancel",
   "Cannot reach the database. Check SUPABASE_DB_URL and that the Supabase project is up.",
+  "Catalog",
   "Categories",
   "Category",
   "Category unavailable",

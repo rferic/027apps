@@ -264,7 +264,7 @@ function ModulesTable({
 }: {
   modules: ModuleRow[];
   messages: TranslationMap;
-  branding: Map<string, { color: string; description: string }>;
+  branding: Map<string, { color: string; description: string; hasPages: boolean }>;
 }) {
   return (
     <div className="hidden overflow-x-auto sm:block">
@@ -307,12 +307,14 @@ function ModulesTable({
                 >
                   {module.name}
                 </RowLink>{" "}
-                <Link
-                  href={`/panel/modules/${encodeURIComponent(module.key)}/settings`}
-                  className="ml-2 text-[11px] font-normal text-muted-foreground hover:text-foreground hover:underline"
-                >
-                  {t("Settings", messages)}
-                </Link>
+                {module.state === "active" && branding.get(module.key)?.hasPages ? (
+                  <Link
+                    href={`/panel/${encodeURIComponent(module.key)}`}
+                    className="ml-2 text-[11px] font-normal text-accent hover:underline"
+                  >
+                    {t("Open module", messages)}
+                  </Link>
+                ) : null}
               </td>
               <td className="border-b border-border py-2 pr-3">{module.version}</td>
               <td className="border-b border-border py-2 pr-3">
@@ -338,17 +340,17 @@ function ModulesCards({
 }: {
   modules: ModuleRow[];
   messages: TranslationMap;
-  branding: Map<string, { color: string; description: string }>;
+  branding: Map<string, { color: string; description: string; hasPages: boolean }>;
 }) {
   return (
     <ul className="flex flex-col gap-2 sm:hidden">
       {modules.map((module) => (
         <li key={module.key}>
-          <Link
-            href={`/panel/modules/${encodeURIComponent(module.key)}`}
-            className="flex min-h-11 flex-col gap-3 rounded-card border border-border bg-surface p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            <span className="flex items-start gap-3">
+          <div className="flex min-h-11 flex-col gap-3 rounded-card border border-border bg-surface p-3">
+            <Link
+              href={`/panel/modules/${encodeURIComponent(module.key)}`}
+              className="flex items-start gap-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
               <span className="grid size-10 shrink-0 place-items-center rounded-control bg-muted">
                 <ModuleIcon
                   moduleKey={module.key}
@@ -369,7 +371,7 @@ function ModulesCards({
                   </span>
                 ) : null}
               </span>
-            </span>
+            </Link>
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
               <span>
                 {t("Key", messages)} <code className="font-mono text-foreground">{module.key}</code>
@@ -382,7 +384,17 @@ function ModulesCards({
                 <span className="text-foreground">{publicLabel(module.is_public, messages)}</span>
               </span>
             </span>
-          </Link>
+            <span className="flex flex-wrap items-center gap-3 text-[11px]">
+              <Link href={`/panel/modules/${encodeURIComponent(module.key)}`} className="font-semibold text-muted-foreground hover:text-foreground hover:underline">
+                {t("Settings", messages)}
+              </Link>
+              {module.state === "active" && branding.get(module.key)?.hasPages ? (
+                <Link href={`/panel/${encodeURIComponent(module.key)}`} className="font-semibold text-accent hover:underline">
+                  {t("Open module", messages)}
+                </Link>
+              ) : null}
+            </span>
+          </div>
         </li>
       ))}
     </ul>
@@ -479,7 +491,7 @@ function CatalogueList({
 }: {
   modules: ModuleRow[];
   messages: TranslationMap;
-  branding: Map<string, { color: string; description: string }>;
+  branding: Map<string, { color: string; description: string; hasPages: boolean }>;
 }) {
   return (
     <>
@@ -502,7 +514,7 @@ function ModulesBody({
   visibility: PublicFilter;
   page: number;
   messages: TranslationMap;
-  branding: Map<string, { color: string; description: string }>;
+  branding: Map<string, { color: string; description: string; hasPages: boolean }>;
 }) {
   if (!catalogue.ok) return <CatalogueError error={catalogue} messages={messages} />;
 
@@ -578,6 +590,7 @@ export default async function ModulesPage({
               {
                 color: manifest?.branding.color ?? "slate",
                 description: manifest?.branding.description ?? "",
+                hasPages: (manifest?.admin_pages.length ?? 0) > 0,
               },
             ] as const;
           }),

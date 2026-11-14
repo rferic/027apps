@@ -1,17 +1,560 @@
-import { ModulePageHost } from "@/components/module-page-host";
+import Link from "next/link";
+import { panelLocale } from "@/lib/panel-locale";
+import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
+import { t } from "@027apps/i18n/t.js";
+import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
+import { ModuleActions } from "@/components/module-actions";
+import { ModuleDemoCard } from "@/components/module-demo-card";
+import { ModuleJobRunButton } from "@/components/module-job-run-button";
+import { PanelError } from "@/components/panel-error";
+import { PanelForbidden } from "@/components/panel-forbidden";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { ModuleIcon } from "@/components/ui/module-icon";
+import { ModuleSettingsForm, type ModuleSettingItem } from "@/components/ui/module-setting-form";
+import { loadDemoStatus } from "@/lib/demo";
+import { loadModuleManifest } from "@/lib/module-manifests";
+import { compareVersions } from "@027apps/core/modules/service.js";
+import { formatDate } from "@/lib/format-date";
+import { loadPanelMessages } from "@/lib/panel-i18n";
+import { loadPanelTimeZone } from "@/lib/panel-settings";
+import { requirePanel } from "@/lib/panel-guard";
+import {
+  loadModuleDetail,
+  loadModuleGrants,
+  loadModuleJobRuns,
+  loadModuleSettings,
+  type ModuleDetail,
+  type ModuleGrants,
+  type ModuleSetting,
+} from "@/lib/panel-modules";
 
 /**
- * Module entry (D20): the overview lives here, at the module's own URL, so the
- * address the admin shares is `/panel/modules/<key>` and not a second segment. A
- * module without an overview falls back to its settings page inside the host.
+ * The page reads the session, the module and its settings while rendering; the
+ * layout's opt-out is not inherited, so this segment opts out of the static
+ * shell too.
  */
 export const instant = false;
 
-export default async function ModuleEntryPage({
-  params,
+function stateVariant(state: ModuleDetail["state"]): BadgeVariant {
+  return state === "active" ? "success" : "neutral";
+}
+
+function stateLabel(state: ModuleDetail["state"], messages: TranslationMap): string {
+  switch (state) {
+    case "active":
+      return t("Active", messages);
+    case "disabled":
+      return t("Disabled", messages);
+    default:
+      return t("Installed", messages);
+  }
+}
+
+function exposureLabel(
+  exposure: ModuleDetail["mcp_exposed"],
+  messages: TranslationMap,
+): string {
+  switch (exposure) {
+    case "read":
+      return t("Read", messages);
+    case "read_write":
+      return t("Read and write", messages);
+    default:
+      return t("None", messages);
+  }
+}
+
+/** A secret is never in the response: the table only knows it is set. */
+function settingValue(setting: ModuleSetting, messages: TranslationMap): string {
+  if (setting.is_secret) {
+    return setting.configured ? t("Configured", messages) : t("Not configured", messages);
+  }
+  const value = setting.value;
+  // An unset value is a real state, never an em dash that reads as a value.
+  if (value === null) return t("Not configured", messages);
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value) ?? t("Not available", messages);
+}
+
+function ModuleBreadcrumb({ name, messages }: { name: string; messages: TranslationMap }) {
+  return (
+    <nav aria-label={t("Breadcrumb", messages)} className="text-xs text-muted-foreground">
+      <Link
+        href="/panel/modules"
+        className="font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {t("Modules", messages)}
+      </Link>
+      <span aria-hidden="true"> / </span>
+      <span aria-current="page">{name}</span>
+    </nav>
+  );
+}
+
+function ModuleHeader({
+  module,
+  messages,
+  color,
 }: {
-  params: Promise<{ key: string }>;
+  module: ModuleDetail;
+  messages: TranslationMap;
+  color?: string;
 }) {
+  return (
+    <header className="flex flex-wrap items-center gap-2">
+      <ModuleIcon moduleKey={module.key} size={28} color={color} />
+      <h1 className="text-base font-bold">{module.name}</h1>
+      <Badge variant={stateVariant(module.state)}>{stateLabel(module.state, messages)}</Badge>
+      <Badge variant={module.is_public ? "success" : "neutral"}>
+        {module.is_public ? t("Public", messages) : t("Private", messages)}
+      </Badge>
+    </header>
+  );
+}
+
+function MetaItem({
+  label,
+  children,
+  mono = false,
+}: {
+  label: string;
+  children: ReactNode;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={mono ? "font-mono text-[11px]" : "text-xs"}>{children}</dd>
+    </div>
+  );
+}
+
+function ModuleDetails({
+  module,
+  locale,
+  timeZone,
+  messages,
+}: {
+  module: ModuleDetail;
+  locale: Locale;
+  timeZone: string;
+  messages: TranslationMap;
+}) {
+  return (
+    <section
+      aria-labelledby="module-details-title"
+      className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4"
+    >
+      <h2 id="module-details-title" className="text-sm font-semibold">
+        {t("Details", messages)}
+      </h2>
+      <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <MetaItem label={t("Key", messages)} mono>
+          {module.key}
+        </MetaItem>
+        <MetaItem label={t("Version", messages)}>{module.version}</MetaItem>
+        <MetaItem label={t("Manifest digest", messages)} mono>
+          {/* Visually clipped, complete in the tooltip and in the DOM. */}
+          <span title={module.manifest_digest} className="block max-w-[14rem] truncate">
+            {module.manifest_digest || t("Not available", messages)}
+          </span>
+        </MetaItem>
+        <MetaItem label={t("Installed", messages)}>
+          {formatDate(module.installed_at, { locale, timeZone })}
+        </MetaItem>
+        <MetaItem label={t("Updated", messages)}>
+          {formatDate(module.updated_at, { locale, timeZone })}
+        </MetaItem>
+        <MetaItem label={t("MCP exposure", messages)}>
+          {exposureLabel(module.mcp_exposed, messages)}
+        </MetaItem>
+      </dl>
+    </section>
+  );
+}
+
+function buildSettingItems(
+  settings: ModuleSetting[],
+  manifest: Awaited<ReturnType<typeof loadModuleManifest>>,
+  messages: TranslationMap,
+): ModuleSettingItem[] {
+  const defs = new Map<
+    string,
+    NonNullable<typeof manifest>["settings"][number]["settings"][number]
+  >();
+  for (const group of manifest?.settings ?? []) {
+    for (const setting of group.settings) {
+      defs.set(`${group.category}.${setting.key}`, setting);
+    }
+  }
+  return settings.map((setting) => toSettingItem(setting, messages, defs.get(setting.key)));
+}
+
+function serializeSettingValue(value: ModuleSetting["value"], type: string): string {
+  if (type === "bool") return String(value === true);
+  if (type === "json") return JSON.stringify(value ?? null, null, 2);
+  return value === null || value === undefined ? "" : String(value);
+}
+
+function toSettingItem(
+  setting: ModuleSetting,
+  messages: TranslationMap,
+  def:
+    | {
+        type: string;
+        min?: number;
+        max?: number;
+        step?: number;
+        control?: string;
+      }
+    | undefined,
+): ModuleSettingItem {
+  const type = def?.type ?? "string";
+  return {
+    key: setting.key,
+    // Module rows live in `translations` (source `module:<key>`); `t` falls back
+    // to the manifest's English text when the module ships no translation.
+    label: t(setting.label, messages),
+    help: setting.help === null ? null : t(setting.help, messages),
+    isSecret: setting.is_secret,
+    type,
+    min: def?.min,
+    max: def?.max,
+    step: def?.step,
+    control: def?.control,
+    value: serializeSettingValue(setting.value, type),
+  };
+}
+
+function ModuleSettingCards({
+  settings,
+  messages,
+}: {
+  settings: ModuleSetting[];
+  messages: TranslationMap;
+}) {
+  return (
+    <ul className="flex flex-col gap-2 sm:hidden">
+      {settings.map((setting) => (
+        <li key={setting.key} className="rounded-card border border-border p-3">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+            <dt className="text-muted-foreground">{t("Key", messages)}</dt>
+            <dd>
+              <span className="block font-semibold">{t(setting.label, messages)}</span>
+              <code className="font-mono text-[11px] text-muted-foreground">{setting.key}</code>
+            </dd>
+            <dt className="text-muted-foreground">{t("Value", messages)}</dt>
+            <dd>{settingValue(setting, messages)}</dd>
+          </dl>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ModuleSettings({
+  settings,
+  messages,
+}: {
+  settings: ModuleSetting[];
+  messages: TranslationMap;
+}) {
+  return (
+    <section
+      aria-labelledby="module-settings-title"
+      className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+    >
+      <h2 id="module-settings-title" className="text-sm font-semibold">
+        {t("Settings", messages)}
+      </h2>
+      {settings.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{t("This module has no settings.", messages)}</p>
+      ) : (
+        <>
+          <div className="hidden overflow-x-auto sm:block">
+            <table className="w-full text-left text-xs">
+              <caption className="sr-only">{t("Settings", messages)}</caption>
+              <thead>
+                <tr className="border-b border-border text-muted-foreground">
+                  <th scope="col" className="py-2 pr-3 font-semibold">
+                    {t("Key", messages)}
+                  </th>
+                  <th scope="col" className="py-2 font-semibold">
+                    {t("Value", messages)}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {settings.map((setting) => (
+                  <tr key={setting.key} className="border-b border-border">
+                    <th scope="row" className="py-2 pr-3 text-left font-normal">
+                      <span className="block font-semibold">{t(setting.label, messages)}</span>
+                      <code className="font-mono text-[11px] text-muted-foreground">{setting.key}</code>
+                    </th>
+                    <td className="py-2 align-top">{settingValue(setting, messages)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <ModuleSettingCards settings={settings} messages={messages} />
+        </>
+      )}
+    </section>
+  );
+}
+
+const grantLinkClasses =
+  "inline-flex min-h-7 items-center rounded-full border border-border bg-muted px-2.5 text-xs font-semibold text-foreground hover:bg-muted/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
+function ModuleGrants({ grants, messages }: { grants: ModuleGrants; messages: TranslationMap }) {
+  const empty = grants.users.length === 0 && grants.categories.length === 0;
+  return (
+    <section
+      aria-labelledby="module-grants-title"
+      className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4"
+    >
+      <h2 id="module-grants-title" className="text-sm font-semibold">
+        {t("Grants", messages)}
+      </h2>
+      {empty ? (
+        <p className="text-xs text-muted-foreground">{t("No access has been granted yet.", messages)}</p>
+      ) : (
+        <>
+          <div className="flex flex-col gap-2">
+            <h3 className="text-xs font-semibold text-muted-foreground">{t("Users", messages)}</h3>
+            {grants.users.length === 0 ? (
+              <p className="text-xs text-muted-foreground">{t("None", messages)}</p>
+            ) : (
+              <ul className="flex flex-wrap gap-2">
+                {grants.users.map((user) => (
+                  <li key={user.id}>
+                    <Link href={`/panel/members/${user.id}`} className={grantLinkClasses}>
+                      {user.display_name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <h3 className="text-xs font-semibold text-muted-foreground">{t("Categories", messages)}</h3>
+            {grants.categories.length === 0 ? (
+              <p className="text-xs text-muted-foreground">{t("None", messages)}</p>
+            ) : (
+              <ul className="flex flex-wrap gap-2">
+                {grants.categories.map((category) => (
+                  <li key={category.id}>
+                    <Link href={`/panel/categories/${category.id}`} className={grantLinkClasses}>
+                      {category.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+// The page composes the header, details, settings, grants and actions, each
+// with its own loading/error branch; a lower complexity score would only hide
+// the flow behind more indirection.
+// eslint-disable-next-line complexity
+export default async function ModulePage({ params }: { params: Promise<{ key: string }> }) {
+  const gate = await requirePanel("admin");
+
+  const locale = panelLocale(gate.user);
+  const messages = await loadPanelMessages(locale);
+
+  // Generic refusal: it never reveals which routes or roles exist.
+  if ("denied" in gate) {
+    return <PanelForbidden locale={locale} messages={messages} user={gate.user} />;
+  }
+
   const { key } = await params;
-  return <ModulePageHost moduleKey={key} route="overview" />;
+  const detail = await loadModuleDetail(key);
+
+  // A missing module is a real 404, before any settings or grants read.
+  if (!detail.ok && detail.code === "not_found") notFound();
+
+  if (!detail.ok) {
+    return (
+      <section className="flex flex-col gap-4">
+        <PanelError
+          error={detail}
+          heading={t("We couldn't load this module.", messages)}
+          retryHref={`/panel/modules/${encodeURIComponent(key)}`}
+          messages={messages}
+        />
+      </section>
+    );
+  }
+
+  const [settings, grants, jobRuns] = await Promise.all([
+    loadModuleSettings(key),
+    loadModuleGrants(key),
+    loadModuleJobRuns(key),
+  ]);
+
+  const [timeZone, manifest, demo] = await Promise.all([
+    loadPanelTimeZone(),
+    loadModuleManifest(key),
+    loadDemoStatus(),
+  ]);
+  const installedModule = detail.module;
+
+  const settingItems: ModuleSettingItem[] = settings.ok
+    ? buildSettingItems(settings.settings, manifest, messages)
+    : [];
+
+  return (
+    <section className="flex flex-col gap-5">
+      <ModuleBreadcrumb name={installedModule.name} messages={messages} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ModuleHeader module={installedModule} messages={messages} color={manifest?.branding?.color} />
+        {(manifest?.admin_pages?.length ?? 0) > 0 && installedModule.state === "active" ? (
+          <Link
+            href={`/panel/${encodeURIComponent(installedModule.key)}`}
+            className="inline-flex min-h-9 items-center rounded-control border border-border px-3 text-xs font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {t("Open module", messages)}
+          </Link>
+        ) : null}
+      </div>
+      <ModuleDetails
+        module={installedModule}
+        locale={locale}
+        timeZone={timeZone}
+        messages={messages}
+      />
+
+      {manifest?.demo && demo?.enabled && !demo.production ? (
+        <ModuleDemoCard demo={demo} messages={messages} />
+      ) : null}
+
+      {settings.ok ? (
+        <section
+          aria-labelledby="module-settings-title"
+          className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+        >
+          <h2 id="module-settings-title" className="text-sm font-semibold">
+            {t("Settings", messages)}
+          </h2>
+          {settingItems.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {t("This module has no settings.", messages)}
+            </p>
+          ) : (
+            <ModuleSettingsForm
+              moduleKey={installedModule.key}
+              items={settingItems}
+              labels={{
+                save: t("Save changes", messages),
+                saved: t("Changes saved.", messages),
+                failed: t("Save failed", messages),
+              }}
+            />
+          )}
+        </section>
+      ) : (
+        <PanelError
+          error={settings}
+          heading={t("We couldn't load the module settings.", messages)}
+          retryHref={`/panel/modules/${encodeURIComponent(key)}`}
+          messages={messages}
+        />
+      )}
+
+      {manifest?.jobs && manifest.jobs.length > 0 ? (
+        <section
+          aria-labelledby="module-jobs-title"
+          className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+        >
+          <h2 id="module-jobs-title" className="text-sm font-semibold">
+            {t("Scheduled jobs", messages)}
+          </h2>
+          <ul className="flex flex-col gap-2 text-xs">
+            {manifest.jobs.map((job) => {
+              const last = jobRuns.ok ? jobRuns.runs.find((run) => run.job_key === job.key) : undefined;
+              return (
+                <li key={job.key} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0">
+                  <span className="font-mono text-[11px]">{job.key}</span>
+                  <code className="text-[11px] text-muted-foreground">{job.schedule}</code>
+                  {last ? (
+                    <span className={last.status === "error" ? "text-destructive" : "text-muted-foreground"}>
+                      {last.status}
+                      {last.duration_ms === undefined ? "" : ` · ${last.duration_ms} ms`}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                  <ModuleJobRunButton
+                    moduleKey={installedModule.key}
+                    jobKey={job.key}
+                    label={t("Run now", messages)}
+                    failedLabel={t("Save failed", messages)}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
+      {manifest?.app_actions && manifest.app_actions.length > 0 ? (
+        <section
+          aria-labelledby="module-app-actions-title"
+          className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+        >
+          <h2 id="module-app-actions-title" className="text-sm font-semibold">
+            {t("App actions", messages)}
+          </h2>
+          <ul className="flex flex-col gap-2 text-xs">
+            {manifest.app_actions.map((action) => (
+              <li
+                key={action.key}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
+              >
+                <span className="font-semibold">{action.label}</span>
+                <code className="font-mono text-[11px] text-muted-foreground">{action.key}</code>
+                <code className="text-[11px] text-muted-foreground">{action.screen}</code>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            {t("Read-only: the app composes its add button from these actions.", messages)}
+          </p>
+        </section>
+      ) : null}
+
+      {grants.ok ? (
+        <ModuleGrants grants={grants.grants} messages={messages} />
+      ) : (
+        <PanelError
+          error={grants}
+          heading={t("We couldn't load the module grants.", messages)}
+          retryHref={`/panel/modules/${encodeURIComponent(key)}`}
+          messages={messages}
+        />
+      )}
+
+      <ModuleActions
+        moduleKey={installedModule.key}
+        name={installedModule.name}
+        state={installedModule.state}
+        canUninstall={gate.user.role === "super_admin"}
+        updateTo={
+          manifest?.version && compareVersions(manifest.version, installedModule.version) > 0
+            ? manifest.version
+            : undefined
+        }
+        messages={messages}
+      />
+    </section>
+  );
 }

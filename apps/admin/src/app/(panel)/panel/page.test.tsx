@@ -26,8 +26,26 @@ vi.mock("@/lib/panel-dashboard", () => ({
   loadPanelDashboard: () => loadDashboardMock(),
 }));
 
+const loadModuleWidgetsMock = vi.fn(async () => ({ ok: true, widgets: [] }));
+
 vi.mock("@/lib/panel-modules", () => ({
-  loadModuleWidgets: async () => ({ ok: true, widgets: [] }),
+  loadModuleWidgets: () => loadModuleWidgetsMock(),
+}));
+
+vi.mock("@/lib/module-messages", () => ({
+  loadModuleMessages: async () => ({
+    Groups: "Grupos",
+    groups: "grupos",
+    "{members} members": "{members} miembros",
+  }),
+}));
+
+vi.mock("@/lib/module-manifests", () => ({
+  loadModuleManifest: async (key: string) => ({
+    key,
+    name: "OweNo",
+    branding: { color: "teal" },
+  }),
 }));
 
 vi.mock("@/app/(auth)/actions", () => ({
@@ -240,5 +258,31 @@ describe("DashboardPage", () => {
     expect(html).not.toContain("No members or modules yet.");
     expect(html).toContain("Active members");
     expect(html).toContain(">1<");
+  });
+
+  it("translates, brands and links every module widget", async () => {
+    loadModuleWidgetsMock.mockResolvedValueOnce({
+      ok: true,
+      widgets: [
+        {
+          key: "owe-no.groups",
+          type: "metric",
+          surface: "panel",
+          title: "Groups",
+          icon: "wallet",
+          order: 80,
+          module_key: "owe-no",
+          data: { value: 3, label: "groups", detail: "{members} members", params: { members: 7 } },
+        },
+      ],
+    } as never);
+
+    const html = renderToStaticMarkup(await DashboardPage());
+
+    expect(html).toContain("Grupos");
+    expect(html).toContain("3");
+    expect(html).toContain("7 miembros");
+    expect(html).toContain('href="/panel/owe-no"');
+    expect(html).toContain("url(/panel/modules/owe-no/icon)");
   });
 });

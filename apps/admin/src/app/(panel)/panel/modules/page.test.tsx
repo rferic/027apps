@@ -138,7 +138,8 @@ describe("ModulesPage", () => {
 
     expect(html).toContain('href="/panel/modules/expenses"');
     expect(html).toContain('href="/panel/modules/notes"');
-    expect(html.match(/href="\/panel\/modules\/expenses"/g)).toHaveLength(2);
+    // Row, card header and the card's "Settings" action all open the ficha.
+    expect(html.match(/href="\/panel\/modules\/expenses"/g)).toHaveLength(3);
     expect(html).toContain("cursor-pointer");
     expect(html).toContain("border-spacing-0");
   });

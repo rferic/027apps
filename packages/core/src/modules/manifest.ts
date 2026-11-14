@@ -10,7 +10,25 @@ import { DomainError } from "../errors";
  */
 
 export const MODULE_KEY = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-export const RESERVED_MODULE_KEYS = new Set(["admin", "mcp", "api", "core"]);
+/**
+ * Keys a module cannot take: the panel serves each active module at
+ * `/panel/<key>` (D27), so a key that matches a fixed panel route would make
+ * the module unreachable or shadow a platform page.
+ */
+export const RESERVED_MODULE_KEYS = new Set([
+  "admin",
+  "api",
+  "categories",
+  "core",
+  "docs",
+  "help",
+  "invitations",
+  "keys",
+  "mcp",
+  "members",
+  "modules",
+  "settings",
+]);
 export const MODULE_COLORS = [
   "teal",
   "indigo",
