@@ -239,6 +239,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
     var showSettlement by remember { mutableStateOf(false) }
     var showInvite by remember { mutableStateOf(false) }
     var showImport by remember { mutableStateOf(false) }
+    var showPayment by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var showInvitations by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
@@ -346,6 +347,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             ) { Text(strings.addExpense) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = { showSettlement = true }) { Text(strings.settle) }
+                TextButton(onClick = { showPayment = true }) { Text(strings.registerPayment) }
                 if (detail.group.createdBy == store.userId) {
                     TextButton(onClick = { showImport = true }) { Text(strings.importTitle) }
                 }
@@ -391,6 +393,24 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
                     participants,
                     occurredOn,
                     onSuccess = { showExpense = false },
+                )
+            },
+        )
+    }
+
+    if (showPayment && current != null) {
+        ManualPaymentDialog(
+            members = current.members,
+            currency = current.group.currency,
+            onDismiss = { showPayment = false },
+            onSave = { from, to, amount, day ->
+                store.settleUp(
+                    current.group.id,
+                    from,
+                    to,
+                    amount,
+                    strings.settle,
+                    onSuccess = { showPayment = false },
                 )
             },
         )
@@ -944,6 +964,77 @@ private fun ExpenseDialog(
                 onClick = {
                     onSave(description.trim(), minor!!, payer!!, participants, occurredOn)
                 },
+            ) { Text(strings.save) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },
+    )
+}
+
+@Composable
+private fun ManualPaymentDialog(
+    members: List<OweMemberDto>,
+    currency: String,
+    onDismiss: () -> Unit,
+    onSave: (String, String, Long, String) -> Unit,
+) {
+    val strings = LocalStrings.current
+    val palette = LocalPalette.current
+    val active = members.filter { it.state == "active" }
+    var from by remember { mutableStateOf(active.firstOrNull()?.id) }
+    var to by remember { mutableStateOf(active.drop(1).firstOrNull()?.id ?: active.firstOrNull()?.id) }
+    var amount by remember { mutableStateOf("") }
+    var day by remember { mutableStateOf(LocalDate.now().toString()) }
+    val minor = parseMinor(amount)
+    val dayValid = runCatching { LocalDate.parse(day) }.isSuccess
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(strings.registerPayment) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text("${strings.whoPays}:", fontSize = 12.sp)
+                for (member in active) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().clickable { from = member.id },
+                    ) {
+                        Checkbox(checked = from == member.id, onCheckedChange = { from = member.id })
+                        Text(member.displayName, fontSize = 13.sp)
+                    }
+                }
+                Text("${strings.whoReceives}:", fontSize = 12.sp)
+                for (member in active) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().clickable { to = member.id },
+                    ) {
+                        Checkbox(checked = to == member.id, onCheckedChange = { to = member.id })
+                        Text(member.displayName, fontSize = 13.sp)
+                    }
+                }
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text("${strings.amount} (${currency})") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                OutlinedTextField(
+                    value = day,
+                    onValueChange = { day = it },
+                    label = { Text(strings.date) },
+                    isError = !dayValid,
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = minor != null && from != null && to != null && from != to && dayValid,
+                onClick = { onSave(from!!, to!!, minor!!, day) },
             ) { Text(strings.save) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },

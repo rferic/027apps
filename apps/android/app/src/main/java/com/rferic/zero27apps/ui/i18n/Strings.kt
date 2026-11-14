@@ -97,6 +97,8 @@ data class Strings(
     val decline: String,
     val date: String,
     val menu: String,
+    val registerPayment: String,
+    val whoReceives: String,
     val noInvitations: String,
     val invite: String,
     val inviteMember: String,
@@ -289,6 +291,8 @@ object AppStrings {
         decline = "Decline",
         date = "Date",
         menu = "Menu",
+        registerPayment = "Record payment",
+        whoReceives = "Who receives",
     )
 
     val es = Strings(
@@ -426,6 +430,8 @@ object AppStrings {
         decline = "Rechazar",
         date = "Fecha",
         menu = "Menú",
+        registerPayment = "Registrar pago",
+        whoReceives = "Quién recibe",
     )
 
     val ca = Strings(
@@ -563,6 +569,8 @@ object AppStrings {
         decline = "Rebutja",
         date = "Data",
         menu = "Menú",
+        registerPayment = "Registra el pagament",
+        whoReceives = "Qui rep",
     )
 
     val it = Strings(
@@ -700,6 +708,8 @@ object AppStrings {
         decline = "Rifiuta",
         date = "Data",
         menu = "Menu",
+        registerPayment = "Registra pagamento",
+        whoReceives = "Chi riceve",
     )
 
     val fr = Strings(
@@ -837,6 +847,8 @@ object AppStrings {
         decline = "Refuser",
         date = "Date",
         menu = "Menu",
+        registerPayment = "Enregistrer un paiement",
+        whoReceives = "Qui reçoit",
     )
 
     val de = Strings(
@@ -974,6 +986,8 @@ object AppStrings {
         decline = "Ablehnen",
         date = "Datum",
         menu = "Menü",
+        registerPayment = "Zahlung erfassen",
+        whoReceives = "Wer erhält",
     )
 
     val pt = Strings(
@@ -1111,6 +1125,8 @@ object AppStrings {
         decline = "Recusar",
         date = "Data",
         menu = "Menu",
+        registerPayment = "Registar pagamento",
+        whoReceives = "Quem recebe",
     )
 
     val gl = Strings(
@@ -1248,6 +1264,8 @@ object AppStrings {
         decline = "Rexeitar",
         date = "Data",
         menu = "Menú",
+        registerPayment = "Rexistrar pagamento",
+        whoReceives = "Quen recibe",
     )
 
     val eu = Strings(
@@ -1385,5 +1403,7 @@ object AppStrings {
         decline = "Ukatu",
         date = "Data",
         menu = "Menua",
+        registerPayment = "Erregistratu ordainketa",
+        whoReceives = "Nork jasotzen du",
     )
 }
