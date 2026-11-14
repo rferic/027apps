@@ -12,6 +12,11 @@ export interface ModulePageContext {
   moduleKey: string;
   caller: Caller & { kind: "session" };
   db: QueryClient;
+  /**
+   * Query parameters of the request. Detail pages use them (`?group=<id>`)
+   * until the module contract grows dynamic segments.
+   */
+  searchParams: Record<string, string | string[] | undefined>;
   /** Panel locale of the request (`en`, `es`, …). */
   locale: string;
   /**
