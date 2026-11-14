@@ -33,16 +33,20 @@ fun BrandMark(size: Dp = 24.dp, tint: androidx.compose.ui.graphics.Color = Local
     )
 }
 
-/** The mark on a rounded tile, as the splash and the app icon show it. */
+/**
+ * The mark on a rounded tile. Same treatment as the public web: a tinted tile
+ * with the mark in brand green, never a solid green square with a dark glyph.
+ */
 @Composable
-fun BrandTile(size: Dp = 56.dp, background: androidx.compose.ui.graphics.Color = LocalPalette.current.brand) {
+fun BrandTile(size: Dp = 56.dp) {
+    val palette = LocalPalette.current
     Box(
         modifier = Modifier
             .size(size)
-            .background(background, RoundedCornerShape(size / 3.2f)),
+            .background(palette.brand.copy(alpha = 0.14f), RoundedCornerShape(size / 3.2f)),
         contentAlignment = Alignment.Center,
     ) {
-        BrandMark(size = size * 0.5f, tint = LocalPalette.current.background)
+        BrandMark(size = size * 0.58f, tint = palette.brand)
     }
 }
 
