@@ -23,6 +23,13 @@ vi.mock("@/lib/module-manifests", () => ({
   loadModuleManifest: (key: string) => loadModuleManifestMock(key),
 }));
 vi.mock("@/lib/panel-locale", () => ({ panelLocale: () => "en" }));
+// The host injects the platform connection into the page; a fake one keeps this
+// render test outside a real request.
+vi.mock("@/lib/api/door", () => ({
+  getInfra: async () => ({
+    settingsDeps: { db: { query: async () => ({ rows: [] }) } },
+  }),
+}));
 vi.mock("@/lib/panel-i18n", () => ({ loadPanelMessages: async () => ({}) }));
 vi.mock("@/components/panel-forbidden", () => ({
   PanelForbidden: () => <p>forbidden</p>,

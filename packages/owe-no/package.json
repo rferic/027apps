@@ -24,6 +24,7 @@
     "@types/node": "^22.20.5"
   },
   "dependencies": {
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@027apps/core": "workspace:*"
   }
 }

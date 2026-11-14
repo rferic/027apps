@@ -1,14 +1,45 @@
-/** OweNo groups: the panel's list and detail entry point. */
-export default async function OweNoGroups() {
+import type { ModulePageContext } from "@027apps/core/modules/pages.js";
+import { listAllGroups } from "@027apps/owe-no/domain/service.js";
+
+/** Every group on the instance, with its size. Read-only by design. */
+export default async function OweNoGroups({ context }: { context: ModulePageContext }) {
+  const groups = await listAllGroups({ db: context.db });
+
   return (
     <section aria-labelledby="owe-no-groups" className="flex flex-col gap-3">
-      <h1 id="owe-no-groups" className="text-base font-bold">
-        Groups
-      </h1>
-      <p className="text-xs text-muted-foreground">
-        Every group with its members and balances. Editing a group is an admin
-        action; members manage their own movements from the app.
-      </p>
+      <header className="flex flex-col gap-1">
+        <h1 id="owe-no-groups" className="text-base font-bold">
+          Groups
+        </h1>
+        <p className="text-xs text-muted-foreground">
+          Every group, with its members and movements. Members manage their own movements from
+          the app; the panel does not record money.
+        </p>
+      </header>
+
+      {groups.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No groups yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {groups.map((group) => (
+            <li
+              key={group.id}
+              className="flex flex-col gap-1 rounded-card border border-border bg-surface p-3"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-semibold">{group.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {group.archived ? "Archived · " : ""}
+                  {group.currency}
+                </span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {group.members} active members · {group.movements} movements
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

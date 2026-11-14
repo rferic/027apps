@@ -7,6 +7,8 @@ import { loadModuleDetail } from "@/lib/panel-modules";
 import { loadModuleManifest } from "@/lib/module-manifests";
 import { MODULE_PAGES } from "@/lib/module-pages";
 import { PanelForbidden } from "@/components/panel-forbidden";
+import { getInfra } from "@/lib/api/door";
+import type { ModulePageContext } from "@027apps/core/modules/pages.js";
 
 /**
  * Renders one page of a module.
@@ -60,6 +62,14 @@ export async function ModulePageHost({
   if (!Page) notFound();
 
   const messages = await loadPanelMessages(panelLocale(gate.user));
+  // The page gets the platform connection and the caller the gates approved;
+  // it reuses the module's service instead of calling its own API over HTTP.
+  const { settingsDeps } = await getInfra();
+  const context: ModulePageContext = {
+    moduleKey,
+    caller: { kind: "session", userId: gate.user.id, role: gate.user.role },
+    db: settingsDeps.db,
+  };
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -77,7 +87,7 @@ export async function ModulePageHost({
           {messages["Settings"] ?? "Settings"}
         </Link>
       </div>
-      <Page />
+      <Page context={context} />
     </section>
   );
 }

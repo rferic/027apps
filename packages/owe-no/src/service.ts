@@ -165,6 +165,33 @@ export async function listGroups(deps: OweDeps, userId: string): Promise<GroupVi
   }));
 }
 
+export interface AdminGroupView extends GroupView {
+  movements: number;
+}
+
+/** Panel view: every group, for administrators, without being a member. */
+export async function listAllGroups(deps: OweDeps): Promise<AdminGroupView[]> {
+  const { rows } = await deps.db.query(
+    `select g.id, g.name, g.currency, g.archived_at, g.created_by,
+            (select count(*)::int from module_owe_no.owe_no_members m
+              where m.group_id = g.id and m.state = 'active') as members,
+            (select count(*)::int from module_owe_no.owe_no_movements mv
+              where mv.group_id = g.id and mv.deleted_at is null) as movements
+       from module_owe_no.owe_no_groups g
+      order by g.created_at desc`,
+  );
+  return rows.map((row) => ({
+    id: String(row.id),
+    name: String(row.name),
+    currency: String(row.currency),
+    archived: row.archived_at !== null,
+    created_by: row.created_by === null ? null : String(row.created_by),
+    members: Number(row.members),
+    role: "active" as const,
+    movements: Number(row.movements),
+  }));
+}
+
 export async function listMembers(
   deps: OweDeps,
   userId: string,

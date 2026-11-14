@@ -18,6 +18,7 @@ import {
   balances,
   createGroup,
   deleteMovement,
+  listAllGroups,
   listGroups,
   listMembers,
   listMovements,
@@ -162,6 +163,15 @@ describe("owe-no service", () => {
       expect(await listMovements(deps, ana.userId, group.id)).toHaveLength(1);
       const afterDelete = await balances(deps, ana.userId, group.id);
       expect([...afterDelete.values()].some((amount) => amount !== 0)).toBe(true);
+
+      // The panel view sees every group without being a member.
+      const all = await listAllGroups(deps);
+      expect(all.map((row) => row.id)).toContain(group.id);
+      expect(all.find((row) => row.id === group.id)).toMatchObject({
+        name: "Casa",
+        currency: "EUR",
+        members: 2,
+      });
 
       // An outsider sees nothing, not even the group.
       await expect(listMovements(deps, marta.userId, group.id)).rejects.toThrow(/not found/);
