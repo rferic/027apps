@@ -103,6 +103,11 @@ data class Strings(
     val noCategory: String,
     val moduleSettings: String,
     val settingsPanelNote: String,
+    val errorBalance: String,
+    val errorLastMember: String,
+    val errorBlocked: String,
+    val errorDuplicates: String,
+    val errorUnmapped: String,
     val noInvitations: String,
     val invite: String,
     val inviteMember: String,
@@ -301,6 +306,11 @@ object AppStrings {
         noCategory = "No category",
         moduleSettings = "Module settings",
         settingsPanelNote = "Configuration lives in the panel; the app only reads it.",
+        errorBalance = "That member still has a balance. Settle it first.",
+        errorLastMember = "A group needs at least one active member.",
+        errorBlocked = "That account is blocked in this group.",
+        errorDuplicates = "The file repeats rows that were already imported.",
+        errorUnmapped = "Some CSV names are not linked to a member yet.",
     )
 
     val es = Strings(
@@ -444,6 +454,11 @@ object AppStrings {
         noCategory = "Sin categoría",
         moduleSettings = "Ajustes del módulo",
         settingsPanelNote = "La configuración vive en el panel; la app solo la lee.",
+        errorBalance = "Ese miembro aún tiene saldo. Liquídalo primero.",
+        errorLastMember = "El grupo necesita al menos un miembro activo.",
+        errorBlocked = "Esa cuenta está bloqueada en este grupo.",
+        errorDuplicates = "El archivo repite filas ya importadas.",
+        errorUnmapped = "Algunos nombres del CSV aún no están enlazados.",
     )
 
     val ca = Strings(
@@ -587,6 +602,11 @@ object AppStrings {
         noCategory = "Sense categoria",
         moduleSettings = "Ajustos del mòdul",
         settingsPanelNote = "La configuració viu al panell; l'app només la llegeix.",
+        errorBalance = "Aquest membre encara té saldo. Liquida'l primer.",
+        errorLastMember = "El grup necessita almenys un membre actiu.",
+        errorBlocked = "Aquest compte està bloquejat en aquest grup.",
+        errorDuplicates = "El fitxer repeteix files ja importades.",
+        errorUnmapped = "Alguns noms del CSV encara no estan enllaçats.",
     )
 
     val it = Strings(
@@ -730,6 +750,11 @@ object AppStrings {
         noCategory = "Nessuna categoria",
         moduleSettings = "Impostazioni del modulo",
         settingsPanelNote = "La configurazione vive nel pannello; l'app la legge soltanto.",
+        errorBalance = "Quel membro ha ancora un saldo. Saldalo prima.",
+        errorLastMember = "Il gruppo ha bisogno di almeno un membro attivo.",
+        errorBlocked = "Quell'account è bloccato in questo gruppo.",
+        errorDuplicates = "Il file ripete righe già importate.",
+        errorUnmapped = "Alcuni nomi del CSV non sono ancora collegati.",
     )
 
     val fr = Strings(
@@ -873,6 +898,11 @@ object AppStrings {
         noCategory = "Sans catégorie",
         moduleSettings = "Réglages du module",
         settingsPanelNote = "La configuration vit dans le panneau ; l'app la lit seulement.",
+        errorBalance = "Ce membre a encore un solde. Réglez-le d'abord.",
+        errorLastMember = "Le groupe a besoin d'au moins un membre actif.",
+        errorBlocked = "Ce compte est bloqué dans ce groupe.",
+        errorDuplicates = "Le fichier répète des lignes déjà importées.",
+        errorUnmapped = "Certains noms du CSV ne sont pas encore liés.",
     )
 
     val de = Strings(
@@ -1016,6 +1046,11 @@ object AppStrings {
         noCategory = "Keine Kategorie",
         moduleSettings = "Moduleinstellungen",
         settingsPanelNote = "Die Konfiguration liegt im Panel; die App liest sie nur.",
+        errorBalance = "Dieses Mitglied hat noch einen Saldo. Zuerst ausgleichen.",
+        errorLastMember = "Eine Gruppe braucht mindestens ein aktives Mitglied.",
+        errorBlocked = "Dieses Konto ist in dieser Gruppe blockiert.",
+        errorDuplicates = "Die Datei wiederholt bereits importierte Zeilen.",
+        errorUnmapped = "Einige CSV-Namen sind noch nicht verknüpft.",
     )
 
     val pt = Strings(
@@ -1159,6 +1194,11 @@ object AppStrings {
         noCategory = "Sem categoria",
         moduleSettings = "Ajustes do módulo",
         settingsPanelNote = "A configuração vive no painel; a app só a lê.",
+        errorBalance = "Esse membro ainda tem saldo. Acerta primeiro.",
+        errorLastMember = "O grupo precisa de pelo menos um membro ativo.",
+        errorBlocked = "Essa conta está bloqueada neste grupo.",
+        errorDuplicates = "O ficheiro repete linhas já importadas.",
+        errorUnmapped = "Alguns nomes do CSV ainda não estão ligados.",
     )
 
     val gl = Strings(
@@ -1302,6 +1342,11 @@ object AppStrings {
         noCategory = "Sen categoría",
         moduleSettings = "Axustes do módulo",
         settingsPanelNote = "A configuración vive no panel; a app só a le.",
+        errorBalance = "Ese membro aínda ten saldo. Liquídao primeiro.",
+        errorLastMember = "O grupo necesita polo menos un membro activo.",
+        errorBlocked = "Esa conta está bloqueada neste grupo.",
+        errorDuplicates = "O ficheiro repite filas xa importadas.",
+        errorUnmapped = "Algúns nomes do CSV aínda non están ligados.",
     )
 
     val eu = Strings(
@@ -1445,5 +1490,10 @@ object AppStrings {
         noCategory = "Kategoriarik gabe",
         moduleSettings = "Moduluaren ezarpenak",
         settingsPanelNote = "Konfigurazioa panelean dago; appak irakurri besterik ez du egiten.",
+        errorBalance = "Kide horrek balantzea du oraindik. Likidatu lehenik.",
+        errorLastMember = "Taldeak kide aktibo bat behar du gutxienez.",
+        errorBlocked = "Kontu hori blokeatuta dago talde honetan.",
+        errorDuplicates = "Fitxategiak jada inportatutako errenkadak errepikatzen ditu.",
+        errorUnmapped = "CSVko izen batzuk oraindik ez daude lotuta.",
     )
 }

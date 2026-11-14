@@ -11,6 +11,8 @@ class ApiException(
     val code: String,
     val status: Int,
     override val message: String = code,
+    /** Domain detail (`member_has_balance`, `multi_currency`…), when present. */
+    val detailsCode: String? = null,
     /** True when the request never reached the server (offline, DNS, TLS). */
     val network: Boolean = false,
 ) : Exception(message) {

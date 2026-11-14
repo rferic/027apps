@@ -91,7 +91,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
                     preview = value
                     identities = runCatching { api.oweIdentities(groupId) }.getOrDefault(emptyList())
                 }
-                .onFailure { error = strings.actionFailed }
+                .onFailure { error = oweErrorText(it, strings) }
             busy = false
         }
     }
@@ -107,7 +107,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
             }.onSuccess { member ->
                 // Several CSV names may point at the same member (a merge).
                 mapping = mapping + (name to member.id)
-            }.onFailure { error = strings.actionFailed }
+            }.onFailure { error = oweErrorText(it, strings) }
             busy = false
             mappingName = null
         }
@@ -207,7 +207,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
                 scope.launch {
                     runCatching {
                         api.oweImportCommit(groupId, text, mapping.ifEmpty { null }, duplicates)
-                    }.onSuccess { result = it }.onFailure { error = strings.actionFailed }
+                    }.onSuccess { result = it }.onFailure { error = oweErrorText(it, strings) }
                     busy = false
                 }
             },

@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.data.ApiClient
+import com.rferic.zero27apps.data.ApiException
 import com.rferic.zero27apps.data.OweBalanceDto
 import com.rferic.zero27apps.data.OweCreateMovementBody
 import com.rferic.zero27apps.data.OweGroupDetail
@@ -61,6 +62,24 @@ import com.rferic.zero27apps.ui.theme.LocalPalette
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+/** Domain details → a sentence the owner can act on. */
+internal fun oweErrorText(
+    error: Throwable,
+    strings: com.rferic.zero27apps.ui.i18n.Strings,
+): String {
+    val api = error as? ApiException
+    return when (api?.detailsCode ?: api?.code) {
+        "member_has_balance" -> strings.errorBalance
+        "last_member" -> strings.errorLastMember
+        "member_blocked" -> strings.errorBlocked
+        "duplicates" -> strings.errorDuplicates
+        "unmapped_identity" -> strings.errorUnmapped
+        "multi_currency" -> strings.multiCurrency
+        "network_error" -> strings.failureNetwork
+        else -> strings.actionFailed
+    }
+}
 
 /** Equal split: base cents plus one cent for the first `remainder` members. */
 internal fun equalShare(total: Long, chosen: Int, index: Int): Long {
@@ -100,6 +119,7 @@ internal fun parseMinor(raw: String): Long? {
 private class OweStore(
     private val api: ApiClient,
     val userId: String?,
+    private val strings: com.rferic.zero27apps.ui.i18n.Strings,
     private val scope: CoroutineScope,
 ) {
     var groups by mutableStateOf<List<OweGroupDto>>(emptyList())
@@ -116,7 +136,7 @@ private class OweStore(
         scope.launch {
             loading = true
             error = null
-            runCatching { block() }.onFailure { error = it.message }
+            runCatching { block() }.onFailure { error = oweErrorText(it, strings) }
             loading = false
             if (error == null) onSuccess?.invoke()
         }
@@ -239,7 +259,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
-    val store = remember(api, userId) { OweStore(api, userId, scope) }
+    val store = remember(api, userId) { OweStore(api, userId, strings, scope) }
     var showNewGroup by remember { mutableStateOf(false) }
     var showExpense by remember { mutableStateOf(false) }
     var showSettlement by remember { mutableStateOf(false) }

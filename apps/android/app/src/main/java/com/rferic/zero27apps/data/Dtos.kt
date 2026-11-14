@@ -1,6 +1,7 @@
 package com.rferic.zero27apps.data
 
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -88,6 +89,7 @@ data class ErrorEnvelope(val error: ErrorBody)
 data class ErrorBody(
     val code: String,
     val message: String = "",
+    val details: JsonObject? = null,
 )
 
 @Serializable

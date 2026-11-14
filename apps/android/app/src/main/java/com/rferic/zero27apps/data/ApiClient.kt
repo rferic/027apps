@@ -199,7 +199,10 @@ class ApiClient(
         val status = response.status.value
         val envelope = runCatching { response.body<ErrorEnvelope>() }.getOrNull()
         return if (envelope != null) {
-            ApiException(envelope.error.code, status, envelope.error.message)
+            val detail = envelope.error.details
+                ?.get("code")
+                ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+            ApiException(envelope.error.code, status, envelope.error.message, detail)
         } else {
             ApiException("http_$status", status, "HTTP $status")
         }
