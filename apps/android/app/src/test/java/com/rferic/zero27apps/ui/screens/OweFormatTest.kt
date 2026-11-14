@@ -15,6 +15,25 @@ class OweFormatTest {
     }
 
     @Test
+    fun `parseMinor accepts comma and dot, rejects junk`() {
+        assertEquals(1234L, parseMinor("12,34"))
+        assertEquals(1234L, parseMinor("12.34"))
+        assertEquals(1200L, parseMinor("12"))
+        assertEquals(null, parseMinor("12,345"))
+        assertEquals(null, parseMinor("abc"))
+        assertEquals(null, parseMinor("0"))
+    }
+
+    @Test
+    fun `equal shares add up to the total`() {
+        val shares = (0 until 3).map { equalShare(1000, 3, it) }
+        assertEquals(1000L, shares.sum())
+        assertEquals(334L, shares[0])
+        val subset = (0 until 2).map { equalShare(1000, 2, it) }
+        assertEquals(1000L, subset.sum())
+    }
+
+    @Test
     fun `calendar days render in the profile locale`() {
         val formatted = formatDay("2026-11-14", "es")
         assertNotEquals("2026-11-14", formatted)

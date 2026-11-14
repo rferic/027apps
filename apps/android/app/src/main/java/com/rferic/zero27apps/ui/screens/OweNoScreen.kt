@@ -61,6 +61,13 @@ import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+/** Equal split: base cents plus one cent for the first `remainder` members. */
+internal fun equalShare(total: Long, chosen: Int, index: Int): Long {
+    if (chosen <= 0) return 0
+    val base = total / chosen
+    return base + if (index < (total % chosen).toInt()) 1 else 0
+}
+
 /** ISO calendar day, rendered with the profile locale; unknown values pass through. */
 internal fun formatDay(raw: String, locale: String): String =
     runCatching { java.time.LocalDate.parse(raw) }
@@ -103,12 +110,13 @@ private class OweStore(
     var error by mutableStateOf<String?>(null)
     var identities by mutableStateOf<List<OweIdentityDto>>(emptyList())
 
-    private fun run(block: suspend () -> Unit) {
+    private fun run(onSuccess: (() -> Unit)? = null, block: suspend () -> Unit) {
         scope.launch {
             loading = true
             error = null
             runCatching { block() }.onFailure { error = it.message }
             loading = false
+            if (error == null) onSuccess?.invoke()
         }
     }
 
@@ -140,7 +148,8 @@ private class OweStore(
         payer: String,
         participants: List<OweParticipantBody>,
         occurredOn: String,
-    ) = run {
+        onSuccess: () -> Unit,
+    ) = run(onSuccess) {
         api.oweCreateMovement(
             groupId,
             OweCreateMovementBody(
@@ -191,7 +200,14 @@ private class OweStore(
         groups = api.oweGroups()
     }
 
-    fun settleUp(groupId: String, from: String, to: String, amountMinor: Long, description: String) = run {
+    fun settleUp(
+        groupId: String,
+        from: String,
+        to: String,
+        amountMinor: Long,
+        description: String,
+        onSuccess: () -> Unit,
+    ) = run(onSuccess) {
         api.oweCreateMovement(
             groupId,
             OweCreateMovementBody(
@@ -367,7 +383,6 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             locale = locale,
             onDismiss = { showExpense = false },
             onSave = { description, amountMinor, payer, participants, occurredOn ->
-                showExpense = false
                 store.addExpense(
                     current.group.id,
                     description,
@@ -375,6 +390,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
                     payer,
                     participants,
                     occurredOn,
+                    onSuccess = { showExpense = false },
                 )
             },
         )
@@ -417,8 +433,14 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             locale = locale,
             onDismiss = { showSettlement = false },
             onPay = { from, to, amount ->
-                showSettlement = false
-                store.settleUp(current.group.id, from, to, amount, strings.settle)
+                store.settleUp(
+                    current.group.id,
+                    from,
+                    to,
+                    amount,
+                    strings.settle,
+                    onSuccess = { showSettlement = false },
+                )
             },
         )
     }
@@ -492,7 +514,11 @@ private fun Invitations(
     val invited = store.groups.filter { it.role == "invited" }
     Text(strings.invitations, fontSize = 22.sp, fontWeight = FontWeight.Bold)
     if (invited.isEmpty()) {
-        Text(strings.noInvitations, fontSize = 13.sp, color = palette.mutedForeground)
+        if (store.error == null) {
+            Text(strings.noInvitations, fontSize = 13.sp, color = palette.mutedForeground)
+        } else {
+            TextButton(onClick = { store.loadGroups() }) { Text(strings.tryAgain) }
+        }
     }
     for (group in invited) {
         Row(
@@ -550,17 +576,18 @@ private fun Members(
                 Column(Modifier.weight(1f)) {
                     Text(member.displayName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Text(
-                        when (member.state) {
-                            "invited" -> strings.stateInvited
-                            "left" -> strings.stateLeft
-                            "removed" -> strings.stateRemoved
+                        when {
+                            member.userId == null && member.state == "active" -> strings.fictitious
+                            member.state == "invited" -> strings.stateInvited
+                            member.state == "left" -> strings.stateLeft
+                            member.state == "removed" -> strings.stateRemoved
                             else -> strings.stateActive
                         },
                         fontSize = 11.sp,
                         color = palette.mutedForeground,
                     )
                 }
-                if (creator && member.userId != store.userId && member.state == "active") {
+                if (creator && member.userId != null && member.userId != store.userId && member.state == "active") {
                     val act: (String) -> Unit = { action ->
                         if ((store.balances.firstOrNull { it.memberId == member.id }?.amountMinor ?: 0L) != 0L) {
                             pending = member.id to action
@@ -798,6 +825,7 @@ private fun ExpenseDialog(
     val minor = parseMinor(amount)
     val total = minor ?: 0
     val exactSum = selected.sumOf { parseMinor(exactAmounts[it] ?: "") ?: 0L }
+    val dateValid = runCatching { LocalDate.parse(occurredOn) }.isSuccess
     val exactReady = !exact || (selected.isNotEmpty() && exactSum == total)
     val participants = if (exact) {
         selected.map { OweParticipantBody(it, parseMinor(exactAmounts[it] ?: "") ?: 0L) }
@@ -862,11 +890,8 @@ private fun ExpenseDialog(
                         Text(member.displayName, fontSize = 13.sp, modifier = Modifier.weight(1f))
                         if (selected.contains(member.id) && selected.isNotEmpty() && total > 0) {
                             if (!exact) {
-                                val chosen = active.count { selected.contains(it.id) }
-                                val index = active.indexOf(member)
-                                val base = total / chosen
-                                val remainder = (total % chosen).toInt()
-                                val share = base + if (index < remainder) 1 else 0
+                                val chosenList = active.filter { selected.contains(it.id) }
+                                val share = equalShare(total, chosenList.size, chosenList.indexOf(member))
                                 Text(formatMinor(share, currency, locale), fontSize = 12.sp)
                             }
                         }
@@ -915,7 +940,7 @@ private fun ExpenseDialog(
         confirmButton = {
             TextButton(
                 enabled = description.isNotBlank() && minor != null && payer != null &&
-                    selected.isNotEmpty() && exactReady,
+                    selected.isNotEmpty() && exactReady && dateValid,
                 onClick = {
                     onSave(description.trim(), minor!!, payer!!, participants, occurredOn)
                 },

@@ -136,7 +136,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
             Summary(strings.importResult, listOf(
                 "${strings.created}: ${result!!.created}",
                 "${strings.skipped}: ${result!!.skippedDuplicates}",
-                "${strings.duplicates}: ${result!!.errors}",
+                "${strings.errorsLabel}: ${result!!.errors}",
                 "${strings.categoriesLabel}: ${result!!.categories}",
             ), palette.surface, palette.border, palette.mutedForeground)
             Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text(strings.done) }
