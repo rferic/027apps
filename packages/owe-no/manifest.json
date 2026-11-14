@@ -14,7 +14,7 @@
       "version": "1.0.0",
       "up": "./sql/001-init.sql",
       "down": "./sql/001-init.down.sql",
-      "digest": "sha256:57eb690bda78202e3b7a64986ccc26b94fe50895bc440da59a93bf1563a5316c",
+      "digest": "sha256:d33b47986d64dcc68f9e8600b3b920c806a6e9e1be42ee5cd24fe36974d40228",
       "down_digest": "sha256:9d4645d5c733933895bb1a4509d481974a546d5050e5ce98e3fc1f0f929c44c5"
     },
     {

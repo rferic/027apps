@@ -159,6 +159,14 @@ describe("owe-no service", () => {
       const settled = await balances(deps, ana.userId, group.id);
       expect([...settled.values()].every((amount) => amount === 0)).toBe(true);
 
+      // Every write left its event in the outbox for the Core to deliver.
+      const { rows: events } = await query(
+        c,
+        "select type, notify from public.event_outbox where module_key = 'owe-no' order by created_at",
+      );
+      expect(events.map((row) => row.type)).toContain("owe_no.movement_created");
+      expect(events.find((row) => row.type === "owe_no.movement_created")?.notify).toEqual(["push"]);
+
       // Soft delete takes the expense out of the history and the balances.
       await deleteMovement(deps, ana.userId, group.id, expense.id);
       expect(await listMovements(deps, ana.userId, group.id)).toHaveLength(1);

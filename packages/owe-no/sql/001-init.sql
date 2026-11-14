@@ -64,7 +64,7 @@ create table owe_no_movements (
 
 create table owe_no_movement_shares (
   movement_id uuid not null references owe_no_movements(id) on delete cascade,
-  member_id uuid not null references owe_no_members(id),
+  member_id uuid not null references owe_no_members(id) on delete cascade,
   amount_minor bigint not null check (amount_minor >= 0),
   primary key (movement_id, member_id)
 );
@@ -80,16 +80,58 @@ create index owe_no_shares_member_idx on owe_no_movement_shares (member_id);
 create function seed_demo(ids jsonb) returns jsonb
 language plpgsql
 as $$
+declare
+  ana uuid := (ids -> 'users' -> 0 ->> 'id')::uuid;
+  luis uuid := (ids -> 'users' -> 1 ->> 'id')::uuid;
+  gid uuid;
+  ana_member uuid;
+  luis_member uuid;
+  created int := 0;
 begin
-  return jsonb_build_object('groups', 0);
+  if ana is null then
+    return jsonb_build_object('groups', 0);
+  end if;
+  select id into gid from module_owe_no.owe_no_groups
+   where name = 'Demo family' and created_by = ana limit 1;
+  if gid is not null then
+    return jsonb_build_object('groups', 0);
+  end if;
+
+  insert into module_owe_no.owe_no_groups (name, currency, created_by)
+  values ('Demo family', 'EUR', ana) returning id into gid;
+
+  insert into module_owe_no.owe_no_members (group_id, user_id, display_name, state, joined_at)
+  values (gid, ana, 'Ana Demo', 'active', now()) returning id into ana_member;
+  if luis is not null then
+    insert into module_owe_no.owe_no_members (group_id, user_id, display_name, state, joined_at)
+    values (gid, luis, 'Luis Demo', 'active', now()) returning id into luis_member;
+  end if;
+
+  insert into module_owe_no.owe_no_movements
+    (group_id, kind, description, amount_minor, currency, paid_by_member_id, occurred_on, created_by)
+  values (gid, 'expense', 'Weekly shop', 9000, 'EUR', ana_member, current_date, ana)
+  returning id into gid;
+  insert into module_owe_no.owe_no_movement_shares (movement_id, member_id, amount_minor)
+  values (gid, ana_member, 4500);
+  if luis_member is not null then
+    insert into module_owe_no.owe_no_movement_shares (movement_id, member_id, amount_minor)
+    values (gid, luis_member, 4500);
+  end if;
+
+  select count(*)::int into created from module_owe_no.owe_no_members where group_id = gid;
+  return jsonb_build_object('groups', 1, 'members', created);
 end;
 $$;
 
 create function clear_demo() returns jsonb
 language plpgsql
 as $$
+declare
+  removed int;
 begin
-  return jsonb_build_object('groups', 0);
+  delete from module_owe_no.owe_no_groups where name = 'Demo family';
+  get diagnostics removed = row_count;
+  return jsonb_build_object('groups', removed);
 end;
 $$;
 

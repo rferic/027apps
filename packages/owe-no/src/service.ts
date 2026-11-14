@@ -1,3 +1,4 @@
+import { enqueueEvent } from "@027apps/core/realtime/service.js";
 import { computeBalances, nonZeroBalances } from "./balances";
 import { splitEqual } from "./money";
 import { validateMovement } from "./movements";
@@ -27,6 +28,22 @@ export class OweDomainError extends Error {
     super(message);
     this.name = "OweDomainError";
   }
+}
+
+/** One outbox row per event; the Core delivers it (push included). */
+async function emit(
+  db: OweDb,
+  type: string,
+  resource: Record<string, unknown>,
+  push: boolean,
+): Promise<void> {
+  await enqueueEvent(db as never, {
+    type,
+    target: "admins",
+    module_key: "owe-no",
+    resource: resource as never,
+    ...(push ? { notify: ["push"] } : {}),
+  });
 }
 
 export interface GroupView {
@@ -290,6 +307,7 @@ export async function linkMember(
       where id = $1 and group_id = $2`,
     [memberId, groupId, userId],
   );
+  await emit(deps.db, "owe_no.member_linked", { group_id: groupId, member_id: memberId }, false);
 }
 
 /** The invited member accepts: from `invited` to `active`. */
@@ -402,6 +420,12 @@ export async function addMovement(
         [id, share.memberId, share.amount_minor],
       );
     }
+    await emit(db, "owe_no.movement_created", {
+      group_id: groupId,
+      movement_id: id,
+      kind: input.kind,
+      amount_minor: input.amount_minor,
+    }, true);
     return {
       id,
       kind: input.kind,
@@ -476,6 +500,7 @@ export async function deleteMovement(
       where id = $1 and group_id = $2`,
     [movementId, groupId, member.user_id],
   );
+  await emit(deps.db, "owe_no.movement_deleted", { group_id: groupId, movement_id: movementId }, true);
 }
 
 export async function balances(

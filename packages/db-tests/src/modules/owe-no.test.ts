@@ -100,6 +100,22 @@ describe("owe-no package", () => {
       const ana = await session(c, "user");
       const luis = await session(c, "user");
 
+      // Demo hooks (contract `demo`): seed once, clear on demand.
+      const { rows: seeded } = await query(
+        c,
+        `select module_owe_no.seed_demo($1::jsonb) as result`,
+        [JSON.stringify({ users: [{ id: ana.userId }, { id: luis.userId }] })],
+      );
+      expect(seeded[0].result.groups).toBe(1);
+      const { rows: again } = await query(
+        c,
+        `select module_owe_no.seed_demo($1::jsonb) as result`,
+        [JSON.stringify({ users: [{ id: ana.userId }, { id: luis.userId }] })],
+      );
+      expect(again[0].result.groups).toBe(0);
+      const { rows: cleared } = await query(c, `select module_owe_no.clear_demo() as result`);
+      expect(cleared[0].result.groups).toBe(1);
+
       // Ana creates a group; the creator sees it, the outsider does not.
       await impersonate(c, ana.userId);
       const { rows: group } = await query(
