@@ -3,16 +3,24 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "tsc": "tsc --noEmit"
+  },
   "exports": {
     "./admin/overview/page": "./admin/overview/page.tsx",
     "./admin/groups/page": "./admin/groups/page.tsx",
-    "./admin/imports/page": "./admin/imports/page.tsx"
+    "./admin/imports/page": "./admin/imports/page.tsx",
+    "./domain/*": "./src/*.ts"
   },
   "peerDependencies": {
     "react": "^19.3.1"
   },
   "devDependencies": {
     "@types/react": "^19",
-    "react": "19.3.1"
+    "react": "19.3.1",
+    "vitest": "^5",
+    "typescript": "^5",
+    "@types/node": "^22.20.5"
   }
 }

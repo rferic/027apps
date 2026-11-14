@@ -18,6 +18,13 @@ runs the DDL and seeds the two settings; activation makes it visible to the
 users it is granted to. Uninstalling reverses the migrations and drops the
 schema.
 
+## Settlement
+
+`owe_no.settlement_exact_limit` decides when the plan is the exact minimum. The
+search is exponential, so it also has a node budget: a group inside the limit
+that exhausts it gets the deterministic pairwise plan and says so, exactly like
+a group above the limit.
+
 ## Capabilities
 
 - Panel pages: overview, groups and imports, for admins.
