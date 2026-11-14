@@ -6,7 +6,7 @@
     "icon": "assets/icon.svg",
     "color": "emerald"
   },
-  "version": "1.2.0",
+  "version": "1.3.0",
   "contract": 1,
   "is_public": false,
   "migrations": [
@@ -23,6 +23,13 @@
       "down": "./sql/002-imports.down.sql",
       "digest": "sha256:96e79fba20f990d6906f086623d56a7a0828bf6411eb30fb46462757551dc992",
       "down_digest": "sha256:79a61db8ffbf1d5c9360a62d340dbaf1b59e412887b3072c3c8fcf22c9c702f0"
+    },
+    {
+      "version": "1.3.0",
+      "up": "./sql/003-admin.sql",
+      "down": "./sql/003-admin.down.sql",
+      "digest": "sha256:c6f99ca399a70e8e3ba9a9b313fbde0d77484a3b9f1a4377132c565fbb0d2b84",
+      "down_digest": "sha256:f81124bb4a539e5a0ca523332cb6562769036089d0280ea69c8ec70e2b39bdd8"
     }
   ],
   "settings": [
@@ -152,6 +159,15 @@
       "icon": "wallet",
       "order": 80,
       "data_fn": "widget_metric"
+    },
+    {
+      "key": "owe-no.pending",
+      "type": "metric",
+      "surface": "panel",
+      "title": "Pending",
+      "icon": "wallet",
+      "order": 81,
+      "data_fn": "widget_pending"
     }
   ],
   "demo": {

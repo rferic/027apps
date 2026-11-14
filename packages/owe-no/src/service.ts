@@ -31,7 +31,7 @@ export class OweDomainError extends Error {
 }
 
 /** One outbox row per event; the Core delivers it (push included). */
-async function emit(
+export async function emit(
   db: OweDb,
   type: string,
   resource: Record<string, unknown>,
@@ -239,6 +239,7 @@ export async function addMember(
   groupId: string,
   input: { displayName: string; inviteeId?: string },
 ): Promise<MemberView> {
+  await assertGroupOpen(deps, groupId);
   await requireCreator(deps, userId, groupId);
   const displayName = input.displayName.trim();
   if (displayName.length === 0) throw new OweDomainError("validation_failed", "name is required");
@@ -279,6 +280,7 @@ export async function linkMember(
   memberId: string,
   userId: string,
 ): Promise<void> {
+  await assertGroupOpen(deps, groupId);
   const { rows: profile } = await deps.db.query(
     "select display_name from public.profiles where id = $1 and deactivated_at is null",
     [userId],
@@ -357,15 +359,38 @@ export async function addMovement(
   input: MovementInput,
 ): Promise<MovementView> {
   await requireActiveMember(deps, userId, groupId);
-  const { rows: group } = await deps.db.query(
-    "select currency from module_owe_no.owe_no_groups where id = $1 and archived_at is null",
+  return createMovementForGroup(deps, userId, groupId, input);
+}
+
+/**
+ * A group that exists and is open. Archived groups are read-only in the domain,
+ * not just in the panel: the app could otherwise keep writing to one.
+ */
+export async function assertGroupOpen(deps: OweDeps, groupId: string): Promise<string> {
+  const { rows } = await deps.db.query(
+    "select currency, archived_at from module_owe_no.owe_no_groups where id = $1",
     [groupId],
   );
-  if (!group[0]) throw new OweDomainError("not_found", "group not found");
-  const currency = String(group[0].currency);
-  const groupMembers = await listMembers(deps, userId, groupId);
+  if (!rows[0]) throw new OweDomainError("not_found", "group not found");
+  if (rows[0].archived_at !== null) {
+    throw new OweDomainError("conflict", "the group is archived", { code: "group_archived" });
+  }
+  return String(rows[0].currency);
+}
+
+/** Shares and currency of a movement, without inserting it (create and edit). */
+export async function prepareMovement(
+  deps: OweDeps,
+  groupId: string,
+  input: MovementInput,
+): Promise<{ currency: string; shares: MovementView["shares"] }> {
+  const currency = await assertGroupOpen(deps, groupId);
+  const { rows: members } = await deps.db.query(
+    "select id, state from module_owe_no.owe_no_members where group_id = $1",
+    [groupId],
+  );
   const states = Object.fromEntries(
-    groupMembers.map((member) => [member.id, member.state]),
+    members.map((member) => [String(member.id), String(member.state)]),
   ) as Record<string, "invited" | "active" | "left" | "removed">;
 
   const shares =
@@ -392,6 +417,17 @@ export async function addMovement(
     memberStates: states,
   });
 
+  return { currency, shares };
+}
+
+/** Inserts an already validated movement; the caller decided who may write. */
+export async function createMovementForGroup(
+  deps: OweDeps,
+  actorId: string,
+  groupId: string,
+  input: MovementInput,
+): Promise<MovementView> {
+  const { currency, shares } = await prepareMovement(deps, groupId, input);
   const run = deps.withTransaction ?? ((fn: (db: OweDb) => Promise<MovementView>) => fn(deps.db));
   return run(async (db) => {
     const { rows } = await db.query(
@@ -409,7 +445,7 @@ export async function addMovement(
         input.paid_by,
         input.category_id ?? null,
         input.occurred_on,
-        userId,
+        actorId,
       ],
     );
     const id = String(rows[0].id);
@@ -479,6 +515,7 @@ export async function deleteMovement(
   groupId: string,
   movementId: string,
 ): Promise<void> {
+  await assertGroupOpen(deps, groupId);
   const member = await requireActiveMember(deps, userId, groupId);
   const { rows } = await deps.db.query(
     `select created_by from module_owe_no.owe_no_movements
@@ -503,20 +540,34 @@ export async function deleteMovement(
   await emit(deps.db, "owe_no.movement_deleted", { group_id: groupId, movement_id: movementId }, true);
 }
 
+/** Balances of every member of a group, from the single SQL definition. */
+export async function groupBalances(deps: OweDeps, groupId: string): Promise<Map<string, number>> {
+  const { rows } = await deps.db.query(
+    `select member_id, amount_minor
+       from module_owe_no.owe_no_balances
+      where group_id = $1`,
+    [groupId],
+  );
+  return new Map(rows.map((row) => [String(row.member_id), Number(row.amount_minor)]));
+}
+
 export async function balances(
   deps: OweDeps,
   userId: string,
   groupId: string,
 ): Promise<Map<string, number>> {
   await requireActiveMember(deps, userId, groupId);
-  const movements = await listMovements(deps, userId, groupId);
-  return computeBalances(
-    movements.map((movement) => ({
-      paidBy: movement.paid_by,
-      amount_minor: movement.amount_minor,
-      shares: movement.shares,
-    })),
-  );
+  return groupBalances(deps, groupId);
+}
+
+/** The plan for a group, with no membership check: the panel is the caller. */
+export async function settlementPlanForGroup(
+  deps: OweDeps,
+  groupId: string,
+): Promise<SettlementPlan> {
+  const current = await groupBalances(deps, groupId);
+  const limit = await settlementLimit(deps);
+  return settle(nonZeroBalances(current), limit);
 }
 
 export async function settlementPlan(
@@ -524,9 +575,8 @@ export async function settlementPlan(
   userId: string,
   groupId: string,
 ): Promise<SettlementPlan> {
-  const current = await balances(deps, userId, groupId);
-  const limit = await settlementLimit(deps);
-  return settle(nonZeroBalances(current), limit);
+  await requireActiveMember(deps, userId, groupId);
+  return settlementPlanForGroup(deps, groupId);
 }
 
 async function settlementLimit(deps: OweDeps): Promise<number> {
