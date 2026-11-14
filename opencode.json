@@ -3,6 +3,7 @@
   "watcher": {
     "ignore": [
       ".git/**",
+      ".codegraph/**",
       "**/node_modules/**",
       "**/.next/**",
       "**/.gradle/**",

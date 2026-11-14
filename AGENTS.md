@@ -28,6 +28,13 @@ no está `finalizada`.
 ## Reglas transversales
 
 - **Determinismo antes que agentes**: lint, typecheck, tests y CI deciden lo mecánico. No gastes juicio en lo que una herramienta puede rechazar; si ves una convención mecánica sin check, propón el check.
+- **Navegación de código**: con el MCP `codegraph` disponible, las preguntas estructurales
+  («dónde está definido X», «quién llama a Y», «qué rompe si cambio Z») se responden con
+  `codegraph_search` / `codegraph_callers` / `codegraph_impact` antes que con grep. El índice vive
+  en `.codegraph/` (ignorado por git, caché local): se crea con `codegraph init .` en la raíz del
+  checkout. En un worktree el índice es propio (`codegraph init .` allí) y hay que pasar
+  `projectPath` de ese worktree; el del checkout principal está en otra rama. Sin el MCP el flujo
+  es grep y lectura; nada del build ni del CI depende de él.
 - **Contexto inyectado, nunca recordado** (subagentes): quien despacha pasa el contexto como texto armado desde ficheros (extracto de spec + convenciones + criterios de aceptación + rutas). Un subagente no asume lo que "ya se habló" ni lo que recuerda de otra sesión; si le falta contexto, reporta `NEEDS_CONTEXT`. Un subagente no despacha otros subagentes.
 - **Secretos**: nunca en git, logs, ni en la salida de comandos (`.env*`, keystores, tokens). Ver `docs/flows/cicd.md`.
 - **API-first**: móvil y terceros solo hablan con `/api/v1`; nunca con la BD.
