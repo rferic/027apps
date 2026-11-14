@@ -65,6 +65,9 @@ data class Strings(
     val version: String,
     val showPassword: String,
     val hidePassword: String,
+    val checkUpdates: String,
+    val upToDate: String,
+    val checking: String,
 )
 
 object AppStrings {
@@ -141,6 +144,9 @@ object AppStrings {
         version = "Version",
         showPassword = "Show password",
         hidePassword = "Hide password",
+        checkUpdates = "Check for updates",
+        upToDate = "You have the latest version",
+        checking = "Checking…",
     )
 
     val es = Strings(
@@ -204,6 +210,9 @@ object AppStrings {
         version = "Versión",
         showPassword = "Mostrar contraseña",
         hidePassword = "Ocultar contraseña",
+        checkUpdates = "Buscar actualizaciones",
+        upToDate = "Tienes la última versión",
+        checking = "Comprobando…",
     )
 
     val ca = Strings(
@@ -267,6 +276,9 @@ object AppStrings {
         version = "Versió",
         showPassword = "Mostra la contrasenya",
         hidePassword = "Amaga la contrasenya",
+        checkUpdates = "Cerca actualitzacions",
+        upToDate = "Tens l'última versió",
+        checking = "Comprovant…",
     )
 
     val it = Strings(
@@ -330,6 +342,9 @@ object AppStrings {
         version = "Versione",
         showPassword = "Mostra password",
         hidePassword = "Nascondi password",
+        checkUpdates = "Cerca aggiornamenti",
+        upToDate = "Hai l'ultima versione",
+        checking = "Verifica…",
     )
 
     val fr = Strings(
@@ -393,6 +408,9 @@ object AppStrings {
         version = "Version",
         showPassword = "Afficher le mot de passe",
         hidePassword = "Masquer le mot de passe",
+        checkUpdates = "Rechercher des mises à jour",
+        upToDate = "Vous avez la dernière version",
+        checking = "Vérification…",
     )
 
     val de = Strings(
@@ -456,6 +474,9 @@ object AppStrings {
         version = "Version",
         showPassword = "Passwort anzeigen",
         hidePassword = "Passwort verbergen",
+        checkUpdates = "Nach Updates suchen",
+        upToDate = "Du hast die neueste Version",
+        checking = "Wird geprüft…",
     )
 
     val pt = Strings(
@@ -519,6 +540,9 @@ object AppStrings {
         version = "Versão",
         showPassword = "Mostrar palavra-passe",
         hidePassword = "Ocultar palavra-passe",
+        checkUpdates = "Procurar atualizações",
+        upToDate = "Tens a última versão",
+        checking = "A verificar…",
     )
 
     val gl = Strings(
@@ -582,6 +606,9 @@ object AppStrings {
         version = "Versión",
         showPassword = "Amosar o contrasinal",
         hidePassword = "Ocultar o contrasinal",
+        checkUpdates = "Buscar actualizacións",
+        upToDate = "Tes a última versión",
+        checking = "Comprobando…",
     )
 
     val eu = Strings(
@@ -645,5 +672,8 @@ object AppStrings {
         version = "Bertsioa",
         showPassword = "Erakutsi pasahitza",
         hidePassword = "Ezkutatu pasahitza",
+        checkUpdates = "Bilatu eguneraketak",
+        upToDate = "Azken bertsioa duzu",
+        checking = "Egiaztatzen…",
     )
 }

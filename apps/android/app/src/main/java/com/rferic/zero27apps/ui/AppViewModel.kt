@@ -78,14 +78,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * Asks the instance for its latest Android build. Silent on failure: an
      * updater that cannot check is not worth a screen.
      */
-    fun checkForUpdate() {
+    fun checkForUpdate(manual: Boolean = false) {
         val api = client ?: return
+        if (manual) _update.value = UpdateState.Checking
         viewModelScope.launch {
-            runCatching { api.androidApp() }.onSuccess { release ->
-                if (release.versionCode > BuildConfig.VERSION_CODE) {
-                    _update.value = UpdateState.Available(release.versionName, release.apkUrl)
+            runCatching { api.androidApp() }
+                .onSuccess { release ->
+                    _update.value = if (release.versionCode > BuildConfig.VERSION_CODE) {
+                        UpdateState.Available(release.versionName, release.apkUrl)
+                    } else {
+                        if (manual) UpdateState.UpToDate else UpdateState.None
+                    }
                 }
-            }
+                .onFailure {
+                    // The automatic check is silent; a manual one must answer.
+                    if (manual) _update.value = UpdateState.Failed
+                }
         }
     }
 

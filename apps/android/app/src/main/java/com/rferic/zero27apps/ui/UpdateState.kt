@@ -7,4 +7,8 @@ sealed interface UpdateState {
     data object Downloading : UpdateState
     data object Installing : UpdateState
     data object Failed : UpdateState
+    /** A manual check is in flight. */
+    data object Checking : UpdateState
+    /** A manual check found nothing newer. */
+    data object UpToDate : UpdateState
 }

@@ -84,6 +84,8 @@ private fun UpdateNotice(update: UpdateState, onInstall: () -> Unit) {
             )
             Button(onClick = onInstall) { Text(strings.updateInstall, fontSize = 12.sp) }
         }
+        UpdateState.Checking -> Text(strings.checking, fontSize = 12.sp, color = palette.mutedForeground)
+        UpdateState.UpToDate -> Text(strings.upToDate, fontSize = 12.sp, color = palette.mutedForeground)
         UpdateState.Downloading -> Text(strings.updateDownloading, fontSize = 12.sp, color = palette.mutedForeground)
         UpdateState.Installing -> Text(strings.updateInstalling, fontSize = 12.sp, color = palette.mutedForeground)
         UpdateState.Failed -> Text(strings.updateFailed, fontSize = 12.sp, color = palette.destructive)

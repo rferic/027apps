@@ -21,10 +21,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +41,7 @@ import com.rferic.zero27apps.BuildConfig
 import com.rferic.zero27apps.ui.components.BrandWordmark
 import com.rferic.zero27apps.data.UserDto
 import com.rferic.zero27apps.ui.InstancePickerDialog
+import com.rferic.zero27apps.ui.UpdateState
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.theme.LocalPalette
 
@@ -67,6 +70,9 @@ fun SettingsScreen(
     user: UserDto,
     onRememberInstance: (String) -> String?,
     onChangeInstance: (String) -> Boolean,
+    update: UpdateState,
+    onCheckUpdates: () -> Unit,
+    onInstallUpdate: () -> Unit,
     onTheme: (String) -> Unit,
     onLocale: (String) -> Unit,
     onSignOut: () -> Unit,
@@ -169,6 +175,39 @@ fun SettingsScreen(
                 options = THEMES.map { value -> value to themeLabel(value) },
                 onSelect = onTheme,
             )
+        }
+
+        // App version and updates
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(palette.surface, RoundedCornerShape(16.dp))
+                .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(strings.version, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(
+                        "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" +
+                            if (BuildConfig.DEBUG) " · ${strings.debugBuild}" else "",
+                        color = palette.mutedForeground,
+                        fontSize = 12.sp,
+                    )
+                }
+                when (update) {
+                    is UpdateState.Available -> Button(onClick = onInstallUpdate) {
+                        Text("${strings.updateInstall} · v${update.version}", fontSize = 12.sp)
+                    }
+                    UpdateState.Downloading -> Text(strings.updateDownloading, fontSize = 12.sp, color = palette.mutedForeground)
+                    UpdateState.Installing -> Text(strings.updateInstalling, fontSize = 12.sp, color = palette.mutedForeground)
+                    UpdateState.Checking -> Text(strings.checking, fontSize = 12.sp, color = palette.mutedForeground)
+                    UpdateState.UpToDate -> Text(strings.upToDate, fontSize = 12.sp, color = palette.mutedForeground)
+                    UpdateState.Failed -> Text(strings.updateFailed, fontSize = 12.sp, color = palette.destructive)
+                    UpdateState.None -> TextButton(onClick = onCheckUpdates) { Text(strings.checkUpdates, fontSize = 12.sp) }
+                }
+            }
         }
 
         // Sign out

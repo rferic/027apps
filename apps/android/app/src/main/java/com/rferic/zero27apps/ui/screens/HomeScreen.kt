@@ -177,6 +177,8 @@ private fun UpdateBanner(update: UpdateState, onInstall: () -> Unit) {
         }
     }
     val note = when (update) {
+        UpdateState.Checking -> strings.checking
+        UpdateState.UpToDate -> strings.upToDate
         UpdateState.Downloading -> strings.updateDownloading
         UpdateState.Installing -> strings.updateInstalling
         UpdateState.Failed -> strings.updateFailed
