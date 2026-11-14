@@ -849,6 +849,16 @@ export const oweImportResultSchema = component(
     .strict(),
 );
 
+export const oweIdentitySchema = component(
+  "OweIdentity",
+  z.object({ id: z.uuid(), display_name: z.string() }).strict(),
+);
+
+export const oweIdentityListSchema = component(
+  "OweIdentityList",
+  z.object({ identities: z.array(oweIdentitySchema) }).strict(),
+);
+
 export const oweImportListSchema = component(
   "OweImportList",
   z

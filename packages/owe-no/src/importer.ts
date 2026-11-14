@@ -308,3 +308,34 @@ export async function listImports(deps: OweDeps): Promise<ImportBatchView[]> {
     created_at: new Date(String(row.created_at)).toISOString(),
   }));
 }
+
+export interface ImportIdentity {
+  id: string;
+  display_name: string;
+}
+
+/**
+ * Active accounts that are not in the group yet, for the mapping step. Only the
+ * group creator gets them: the importer needs a name → account decision, and
+ * the caller is already allowed to invite those users. Capped at 200.
+ */
+export async function importIdentities(
+  deps: OweDeps,
+  userId: string,
+  groupId: string,
+): Promise<ImportIdentity[]> {
+  await groupContext(deps, userId, groupId);
+  const { rows } = await deps.db.query(
+    `select p.id, p.display_name
+       from public.profiles p
+      where p.deactivated_at is null
+        and not exists (
+          select 1 from module_owe_no.owe_no_members m
+           where m.group_id = $1 and m.user_id = p.id
+        )
+      order by p.display_name
+      limit 200`,
+    [groupId],
+  );
+  return rows.map((row) => ({ id: String(row.id), display_name: String(row.display_name) }));
+}

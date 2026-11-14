@@ -63,6 +63,8 @@ export interface MemberView {
   user_id: string | null;
   /** Registered (linked to an account) or fictitious. */
   kind: "user" | "fictitious";
+  /** The creator blocked this account: it cannot be added again. */
+  blocked: boolean;
 }
 
 interface MemberRow {
@@ -222,10 +224,14 @@ export async function listMembers(
   const member = await memberFor(deps, userId, groupId);
   if (!member) throw new OweDomainError("not_found", "group not found");
   const { rows } = await deps.db.query(
-    `select id, display_name, state, user_id
-       from module_owe_no.owe_no_members
-      where group_id = $1 and state <> 'removed'
-      order by display_name asc`,
+    `select m.id, m.display_name, m.state, m.user_id,
+            exists (
+              select 1 from module_owe_no.owe_no_blocks b
+               where b.group_id = m.group_id and b.user_id = m.user_id
+            ) as blocked
+       from module_owe_no.owe_no_members m
+      where m.group_id = $1 and m.state <> 'removed'
+      order by m.display_name asc`,
     [key(groupId)],
   );
   return rows.map((row) => ({
@@ -234,6 +240,7 @@ export async function listMembers(
     state: row.state as MemberView["state"],
     user_id: row.user_id === null ? null : String(row.user_id),
     kind: row.user_id === null ? "fictitious" : "user",
+    blocked: Boolean(row.blocked),
   }));
 }
 
@@ -254,6 +261,15 @@ export async function addMember(
       [input.inviteeId],
     );
     if (!profile[0]) throw new OweDomainError("validation_failed", "unknown user");
+    const { rows: block } = await deps.db.query(
+      "select 1 from module_owe_no.owe_no_blocks where group_id = $1 and user_id = $2",
+      [groupId, input.inviteeId],
+    );
+    if (block[0]) {
+      throw new OweDomainError("conflict", "that account is blocked in this group", {
+        code: "member_blocked",
+      });
+    }
   }
   const { rows } = await deps.db.query(
     `insert into module_owe_no.owe_no_members
@@ -271,6 +287,7 @@ export async function addMember(
     state: row.state as MemberView["state"],
     user_id: row.user_id === null ? null : String(row.user_id),
     kind: row.user_id === null ? "fictitious" : "user",
+    blocked: false,
   };
 }
 
@@ -591,4 +608,186 @@ async function settlementLimit(deps: OweDeps): Promise<number> {
   );
   const value = Number(rows[0]?.value ?? 12);
   return Number.isFinite(value) && value >= 4 && value <= 20 ? value : 12;
+}
+
+/** Active members of a group, without the ones already removed. */
+async function activeMemberCount(deps: OweDeps, groupId: string): Promise<number> {
+  const { rows } = await deps.db.query(
+    `select count(*)::int as total from module_owe_no.owe_no_members
+      where group_id = $1 and state = 'active'`,
+    [groupId],
+  );
+  return Number(rows[0]?.total ?? 0);
+}
+
+async function requireZeroBalance(deps: OweDeps, groupId: string, memberId: string): Promise<void> {
+  const balances = await groupBalances(deps, groupId);
+  if ((balances.get(memberId) ?? 0) !== 0) {
+    throw new OweDomainError("conflict", "settle the member's balance first", {
+      code: "member_has_balance",
+    });
+  }
+}
+
+/**
+ * A member leaves a group. Only with a zero balance: without an active member a
+ * payment could never close the debt. The creator hands the group to the oldest
+ * active account (a group without a reachable creator cannot be managed).
+ */
+export async function leaveGroup(
+  deps: OweDeps,
+  userId: string,
+  groupId: string,
+): Promise<void> {
+  const group = await assertGroupOpen(deps, groupId);
+  void group;
+  const member = await requireActiveMember(deps, userId, groupId);
+  await requireZeroBalance(deps, groupId, member.id);
+  if ((await activeMemberCount(deps, groupId)) <= 1) {
+    throw new OweDomainError("conflict", "a group needs an active member", {
+      code: "last_member",
+    });
+  }
+
+  const { rows: rowsGroup } = await deps.db.query(
+    "select created_by from module_owe_no.owe_no_groups where id = $1",
+    [groupId],
+  );
+  const isCreator = rowsGroup[0]?.created_by === userId;
+  const run = deps.withTransaction ?? (<T,>(fn: (db: OweDb) => Promise<T>) => fn(deps.db));
+  await run(async (db) => {
+    if (isCreator) {
+      const { rows: next } = await db.query(
+        `select user_id from module_owe_no.owe_no_members
+          where group_id = $1 and state = 'active' and user_id is not null and id <> $2
+          order by created_at asc limit 1`,
+        [groupId, member.id],
+      );
+      if (!next[0]) {
+        throw new OweDomainError("conflict", "add another account before leaving", {
+          code: "no_other_account",
+        });
+      }
+      await db.query(
+        "update module_owe_no.owe_no_groups set created_by = $2, updated_at = now() where id = $1",
+        [groupId, next[0].user_id],
+      );
+    }
+    await db.query(
+      `update module_owe_no.owe_no_members
+          set state = 'left', left_at = now(), updated_at = now()
+        where id = $1`,
+      [member.id],
+    );
+  });
+}
+
+/** The creator removes a member; the balance must be zero (D19). */
+export async function removeMember(
+  deps: OweDeps,
+  actorId: string,
+  groupId: string,
+  memberId: string,
+): Promise<void> {
+  await assertGroupOpen(deps, groupId);
+  await requireCreator(deps, actorId, groupId);
+  const { rows: member } = await deps.db.query(
+    "select id, user_id, state from module_owe_no.owe_no_members where id = $1 and group_id = $2",
+    [memberId, groupId],
+  );
+  if (!member[0]) throw new OweDomainError("not_found", "member not found");
+  if (member[0].state === "removed" || member[0].state === "left") {
+    throw new OweDomainError("not_found", "member is no longer in the group");
+  }
+  if (member[0].user_id === actorId) {
+    throw new OweDomainError("conflict", "use leave to exit your own group", {
+      code: "cannot_remove_self",
+    });
+  }
+  if (member[0].state === "active") {
+    await requireZeroBalance(deps, groupId, memberId);
+    if ((await activeMemberCount(deps, groupId)) <= 1) {
+      throw new OweDomainError("conflict", "a group needs an active member", {
+        code: "last_member",
+      });
+    }
+  }
+  await deps.db.query(
+    `update module_owe_no.owe_no_members
+        set state = 'removed', left_at = now(), updated_at = now()
+      where id = $1 and group_id = $2`,
+    [memberId, groupId],
+  );
+}
+
+/** Blocks an account so it cannot be invited again; it must have no balance. */
+export async function blockMember(
+  deps: OweDeps,
+  actorId: string,
+  groupId: string,
+  memberId: string,
+): Promise<void> {
+  await assertGroupOpen(deps, groupId);
+  await requireCreator(deps, actorId, groupId);
+  const { rows: member } = await deps.db.query(
+    "select id, user_id, state from module_owe_no.owe_no_members where id = $1 and group_id = $2",
+    [memberId, groupId],
+  );
+  if (!member[0]) throw new OweDomainError("not_found", "member not found");
+  if (member[0].user_id === null) {
+    throw new OweDomainError("validation_failed", "a fictitious member has no account to block", {
+      code: "fictitious_member",
+    });
+  }
+  if (member[0].user_id === actorId) {
+    throw new OweDomainError("conflict", "you cannot block yourself", { code: "cannot_block_self" });
+  }
+  if (member[0].state === "active") {
+    await requireZeroBalance(deps, groupId, memberId);
+    if ((await activeMemberCount(deps, groupId)) <= 1) {
+      throw new OweDomainError("conflict", "a group needs an active member", {
+        code: "last_member",
+      });
+    }
+  }
+  const run = deps.withTransaction ?? (<T,>(fn: (db: OweDb) => Promise<T>) => fn(deps.db));
+  await run(async (db) => {
+    await db.query(
+      `update module_owe_no.owe_no_members
+          set state = 'removed', left_at = now(), updated_at = now()
+        where id = $1 and group_id = $2`,
+      [memberId, groupId],
+    );
+    await db.query(
+      `insert into module_owe_no.owe_no_blocks (group_id, user_id, blocked_by)
+       values ($1, $2, $3)
+       on conflict (group_id, user_id) do update set blocked_by = excluded.blocked_by`,
+      [groupId, member[0].user_id, actorId],
+    );
+  });
+}
+
+/** Lifts a block; the account can be invited again (not a member by itself). */
+export async function unblockMember(
+  deps: OweDeps,
+  actorId: string,
+  groupId: string,
+  memberId: string,
+): Promise<void> {
+  await assertGroupOpen(deps, groupId);
+  await requireCreator(deps, actorId, groupId);
+  const { rows: member } = await deps.db.query(
+    "select user_id from module_owe_no.owe_no_members where id = $1 and group_id = $2",
+    [memberId, groupId],
+  );
+  if (!member[0]) throw new OweDomainError("not_found", "member not found");
+  if (member[0].user_id === null) {
+    throw new OweDomainError("validation_failed", "a fictitious member has no block", {
+      code: "fictitious_member",
+    });
+  }
+  await deps.db.query(
+    "delete from module_owe_no.owe_no_blocks where group_id = $1 and user_id = $2",
+    [groupId, member[0].user_id],
+  );
 }
