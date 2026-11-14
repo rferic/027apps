@@ -176,7 +176,17 @@ private fun FailureScreen(
             FailureReason.AUTH_UNAVAILABLE -> strings.failureAuthUnavailable
             FailureReason.UNKNOWN -> strings.failureNetwork
         }
+        BrandWordmark(height = 26.dp)
+        Spacer(Modifier.height(24.dp))
         Text(message, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(10.dp))
+        // Which instance failed is the first thing to know here.
+        Text(
+            currentInstance,
+            fontSize = 12.sp,
+            color = LocalPalette.current.mutedForeground,
+            textAlign = TextAlign.Center,
+        )
         Button(onClick = onRetry, modifier = Modifier.padding(top = 16.dp)) {
             Text(strings.tryAgain)
         }
