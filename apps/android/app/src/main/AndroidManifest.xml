@@ -15,7 +15,8 @@
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.Zero27Apps.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

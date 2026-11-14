@@ -138,23 +138,21 @@ fun AppRoot(deepLink: String? = null, viewModel: AppViewModel = viewModel()) {
 private fun Splash(instance: String) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
+    // The system splash already showed the mark; repeating it here would flash
+    // the logo twice, so this screen is just the instance and a quiet spinner.
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        BrandTile(size = 72.dp)
-        Spacer(Modifier.height(22.dp))
-        BrandWordmark(height = 30.dp)
-        Spacer(Modifier.height(10.dp))
+        CircularProgressIndicator(color = palette.accent, strokeWidth = 2.dp)
+        Spacer(Modifier.height(18.dp))
         Text(
             "${strings.connecting} $instance",
             fontSize = 13.sp,
             color = palette.mutedForeground,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(24.dp))
-        CircularProgressIndicator(color = palette.accent, strokeWidth = 2.dp)
     }
 }
 

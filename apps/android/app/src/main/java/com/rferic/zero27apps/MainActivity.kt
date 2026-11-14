@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.ActivityCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.rferic.zero27apps.ui.AppRoot
 
 /**
@@ -19,6 +20,7 @@ class MainActivity : ComponentActivity() {
     private val deepLink = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         deepLink.value = intent?.dataString
         if (Build.VERSION.SDK_INT >= 33) {

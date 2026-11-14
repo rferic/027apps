@@ -5,4 +5,11 @@
         <item name="android:windowBackground">@color/splash_background</item>
     </style>
     <style name="Theme.Zero27Apps" parent="Theme.Zero27Apps.Base" />
+
+    <!-- Launch: the mark on the splash background, then the real theme. -->
+    <style name="Theme.Zero27Apps.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_heart</item>
+        <item name="postSplashScreenTheme">@style/Theme.Zero27Apps</item>
+    </style>
 </resources>

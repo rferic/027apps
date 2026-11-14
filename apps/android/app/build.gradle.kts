@@ -28,8 +28,8 @@ android {
         targetSdk = 37
         // major*10000 + minor*100 + patch; the Core derives the same number from
         // the release tag, so the updater compares plain integers.
-        versionCode = 300
-        versionName = "0.3.0"
+        versionCode = 301
+        versionName = "0.3.1"
         resValue("string", "app_name", "027Apps")
 
         // The shell opens against one instance without asking for a URL; a
@@ -84,6 +84,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.splashscreen)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.supabase.auth)
