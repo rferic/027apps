@@ -1,5 +1,8 @@
 import type { ComponentType } from "react";
 import FixtureOverview from "@027apps/fixture/admin/overview/page";
+import OweNoGroups from "@027apps/owe-no/admin/groups/page";
+import OweNoImports from "@027apps/owe-no/admin/imports/page";
+import OweNoOverview from "@027apps/owe-no/admin/overview/page";
 
 /**
  * Static registry of module admin pages.
@@ -12,4 +15,7 @@ import FixtureOverview from "@027apps/fixture/admin/overview/page";
  */
 export const MODULE_PAGES: Record<string, ComponentType> = {
   "fixture/overview": FixtureOverview,
+  "owe-no/overview": OweNoOverview,
+  "owe-no/groups": OweNoGroups,
+  "owe-no/imports": OweNoImports,
 };

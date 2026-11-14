@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
   // hydrating (the language switcher would render but never run; the same
   // happens when the phone opens the LAN address). Matched on the Origin hostname.
   allowedDevOrigins: ["127.0.0.1", "*.trycloudflare.com", "*.ngrok-free.app", "*.ngrok.io", "192.168.1.*", "027apps.local", "027apps.test"],
-  transpilePackages: ["@027apps/core", "@027apps/i18n", "@027apps/fixture"],
+  transpilePackages: ["@027apps/core", "@027apps/i18n", "@027apps/fixture", "@027apps/owe-no"],
   turbopack: {
     rules: {
       "*.css": {

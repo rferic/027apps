@@ -1,0 +1,11 @@
+{
+  "OweNo": "OweNo",
+  "OweNo overview": "Resumo do OweNo",
+  "Groups": "Grupos",
+  "Imports": "Importações",
+  "Default currency": "Moeda predefinida",
+  "Currency a new group starts with.": "Moeda com que começa um novo grupo.",
+  "Settlement limit": "Limite de liquidação",
+  "Members above this count get the pairwise suggestion instead of the exact minimum.": "Com mais membros do que este número sugere-se o pagamento aos pares em vez do mínimo exato.",
+  "Your groups": "Os teus grupos"
+}

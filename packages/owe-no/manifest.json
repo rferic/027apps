@@ -1,0 +1,160 @@
+{
+  "key": "owe-no",
+  "name": "OweNo",
+  "branding": {
+    "description": "Shared expenses and settlements for the household.",
+    "icon": "assets/icon.svg",
+    "color": "emerald"
+  },
+  "version": "1.0.0",
+  "contract": 1,
+  "is_public": false,
+  "migrations": [
+    {
+      "version": "1.0.0",
+      "up": "./sql/001-init.sql",
+      "down": "./sql/001-init.down.sql",
+      "digest": "sha256:57eb690bda78202e3b7a64986ccc26b94fe50895bc440da59a93bf1563a5316c",
+      "down_digest": "sha256:9d4645d5c733933895bb1a4509d481974a546d5050e5ce98e3fc1f0f929c44c5"
+    }
+  ],
+  "settings": [
+    {
+      "category": "owe_no",
+      "label": "OweNo",
+      "icon": "wallet",
+      "sort_order": 80,
+      "settings": [
+        {
+          "key": "default_currency",
+          "type": "currency",
+          "default": "EUR",
+          "label": "Default currency",
+          "help": "Currency a new group starts with.",
+          "is_public": false,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 10
+        },
+        {
+          "key": "settlement_exact_limit",
+          "type": "int",
+          "min": 4,
+          "max": 20,
+          "step": 1,
+          "default": 12,
+          "control": "slider",
+          "label": "Settlement limit",
+          "help": "Members above this count get the pairwise suggestion instead of the exact minimum.",
+          "is_public": false,
+          "is_secret": false,
+          "mcp_access": "read",
+          "sort_order": 20
+        }
+      ]
+    }
+  ],
+  "i18n": [
+    "en",
+    "es",
+    "ca",
+    "it",
+    "fr",
+    "de",
+    "pt",
+    "gl",
+    "eu"
+  ],
+  "scopes": [
+    "expenses:read",
+    "expenses:read_write",
+    "balances:read"
+  ],
+  "mcp_tools": [],
+  "channels": [
+    {
+      "pattern": "owe-no-group-{id}",
+      "members_fn": "channel_members"
+    }
+  ],
+  "events": [
+    {
+      "type": "owe_no.movement_created",
+      "target": "admins",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "owe_no.movement_updated",
+      "target": "admins",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "owe_no.movement_deleted",
+      "target": "admins",
+      "notify": [
+        "push"
+      ]
+    },
+    {
+      "type": "owe_no.member_linked",
+      "target": "admins"
+    }
+  ],
+  "admin_pages": [
+    {
+      "route": "overview",
+      "label": "OweNo overview",
+      "icon": "chart",
+      "group": "module",
+      "role": "admin"
+    },
+    {
+      "route": "groups",
+      "label": "Groups",
+      "icon": "users",
+      "group": "module",
+      "role": "admin"
+    },
+    {
+      "route": "imports",
+      "label": "Imports",
+      "icon": "download",
+      "group": "module",
+      "role": "admin"
+    }
+  ],
+  "dashboard_widgets": [
+    {
+      "key": "owe-no.summary",
+      "type": "summary",
+      "surface": "app",
+      "title": "Your groups",
+      "icon": "wallet",
+      "order": 20,
+      "data_fn": "widget_summary"
+    },
+    {
+      "key": "owe-no.metric",
+      "type": "metric",
+      "surface": "panel",
+      "title": "Groups",
+      "icon": "wallet",
+      "order": 80,
+      "data_fn": "widget_metric"
+    }
+  ],
+  "demo": {
+    "seed_fn": "seed_demo",
+    "clear_fn": "clear_demo"
+  },
+  "docs": {
+    "readme": "docs/readme.md",
+    "api": "docs/api.md",
+    "settings": "docs/settings.md",
+    "events": "docs/events.md"
+  }
+}

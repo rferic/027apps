@@ -22,7 +22,8 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "zod": "^4.6.7",
-    "@027apps/fixture": "workspace:*"
+    "@027apps/fixture": "workspace:*",
+    "@027apps/owe-no": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

@@ -1,0 +1,18 @@
+{
+  "name": "@027apps/owe-no",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./admin/overview/page": "./admin/overview/page.tsx",
+    "./admin/groups/page": "./admin/groups/page.tsx",
+    "./admin/imports/page": "./admin/imports/page.tsx"
+  },
+  "peerDependencies": {
+    "react": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "react": "19.3.1"
+  }
+}

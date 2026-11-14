@@ -282,6 +282,25 @@ local y falla en el preview. Nunca se copian `.env` ni secretos.
 - **Scopes por ruta**: la ruta declara `moduleKey`; el door comprueba módulo `active`, acceso
   (admin, público o grant activo) y que el scope esté declarado. Sin acceso → `403` uniforme.
 
+### RLS que necesita leer otra tabla del módulo
+
+Una política no puede consultar la tabla que protege a través de una función del
+propio esquema: la función vuelve a entrar en la política y PostgreSQL aborta por
+recursión. El patrón que funciona, y que usa OweNo, es una **vista** del esquema
+del módulo que ya filtra por el llamante:
+
+```sql
+create view owe_no_my_membership as
+  select m.group_id, m.state
+    from module_owe_no.owe_no_members m
+   where m.user_id = public.core_current_user_id();
+```
+
+La vista pertenece al rol instalador (no entra en RLS) y la función de la política
+la lee; como la vista solo devuelve filas del llamante, no hay escalada. `security
+definer` sigue prohibido. El instalador concede `select` a `authenticated` sobre
+las vistas junto con las tablas.
+
 ## 4. Ciclo de vida
 
 1. **Instalar:** validar manifest contra el esquema; verificar digests; aplicar migraciones `up`

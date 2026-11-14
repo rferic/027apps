@@ -1,0 +1,9 @@
+drop function if exists channel_members(text);
+drop function if exists clear_demo();
+drop function if exists seed_demo(jsonb);
+drop table if exists owe_no_movement_shares;
+drop table if exists owe_no_movements;
+drop table if exists owe_no_categories;
+drop table if exists owe_no_blocks;
+drop table if exists owe_no_members;
+drop table if exists owe_no_groups;

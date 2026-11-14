@@ -1,0 +1,11 @@
+{
+  "OweNo": "OweNo",
+  "OweNo overview": "OweNo laburpena",
+  "Groups": "Taldeak",
+  "Imports": "Inportazioak",
+  "Default currency": "Moneta lehenetsia",
+  "Currency a new group starts with.": "Talde berri bat hasten den moneta.",
+  "Settlement limit": "Likidazio muga",
+  "Members above this count get the pairwise suggestion instead of the exact minimum.": "Kide kopuru hau baino gehiagorekin binakako ordainketa iradokitzen da gutxieneko zehatzaren ordez.",
+  "Your groups": "Zure taldeak"
+}
