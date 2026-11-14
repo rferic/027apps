@@ -84,6 +84,10 @@ class ApiClient(
         expectSuccess(request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/members/accept"))
     }
 
+    suspend fun oweDeclineInvitation(groupId: String) {
+        expectSuccess(request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/members/decline"))
+    }
+
     suspend fun oweAddMember(groupId: String, body: OweAddMemberBody): OweMemberDto =
         read<OweMemberResponse>(
             request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/members", body),

@@ -19,6 +19,7 @@ import {
   listMembers,
   removeMember,
   unblockMember,
+  declineInvitation,
 } from "@027apps/owe-no/domain/service.js";
 import type { Caller } from "@027apps/core/api/types.js";
 
@@ -221,6 +222,29 @@ describe("owe-no removal with a pending balance (D29)", () => {
         [member.id],
       );
       expect(rows[0]).toMatchObject({ user_id: null, state: "active" });
+    });
+  });
+});
+
+describe("owe-no invitation decline", () => {
+  it("marks the invitation as left and cannot be declined twice", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
+      const member = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+      });
+      await declineInvitation(deps(c), luis, group.id);
+      const { rows } = await query(
+        c,
+        "select state from module_owe_no.owe_no_members where id = $1",
+        [member.id],
+      );
+      expect(rows[0].state).toBe("left");
+      await expect(declineInvitation(deps(c), luis, group.id)).rejects.toMatchObject({
+        code: "conflict",
+      });
     });
   });
 });

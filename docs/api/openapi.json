@@ -9892,6 +9892,47 @@
         ]
       }
     },
+    "/owe-no/groups/{id}/members/decline": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "The invitee declines the invitation.",
+        "x-027-scopes": [
+          "expenses:read_write"
+        ]
+      }
+    },
     "/owe-no/groups/{id}/movements": {
       "get": {
         "parameters": [

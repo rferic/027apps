@@ -255,6 +255,14 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
   },
   {
     method: "post",
+    path: "/owe-no/groups/{id}/members/decline",
+    summary: "The invitee declines the invitation.",
+    scopes: ["expenses:read_write"],
+    auth: "session",
+    status: 204,
+  },
+  {
+    method: "post",
     path: "/owe-no/groups/{id}/members/accept",
     summary: "The invitee accepts the invitation and becomes active.",
     scopes: ["expenses:read_write"],

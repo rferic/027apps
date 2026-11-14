@@ -336,6 +336,27 @@ export async function linkMember(
   await emit(deps.db, "owe_no.member_linked", { group_id: groupId, member_id: memberId }, false);
 }
 
+/** The invitee declines: the row stays as `left`, so a later invite can revive it. */
+export async function declineInvitation(
+  deps: OweDeps,
+  userId: string,
+  groupId: string,
+): Promise<void> {
+  const member = await memberFor(deps, userId, groupId);
+  if (!member) throw new OweDomainError("not_found", "invitation not found");
+  if (member.state !== "invited") {
+    throw new OweDomainError("conflict", "there is no pending invitation", {
+      code: "not_invited",
+    });
+  }
+  await deps.db.query(
+    `update module_owe_no.owe_no_members
+        set state = 'left', left_at = now(), updated_at = now()
+      where id = $1`,
+    [member.id],
+  );
+}
+
 /** The invited member accepts: from `invited` to `active`. */
 export async function acceptInvitation(
   deps: OweDeps,

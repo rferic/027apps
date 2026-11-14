@@ -20,10 +20,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -136,6 +139,7 @@ private class OweStore(
         amountMinor: Long,
         payer: String,
         participants: List<OweParticipantBody>,
+        occurredOn: String,
     ) = run {
         api.oweCreateMovement(
             groupId,
@@ -143,7 +147,7 @@ private class OweStore(
                 kind = "expense",
                 description = description,
                 amountMinor = amountMinor,
-                occurredOn = LocalDate.now().toString(),
+                occurredOn = occurredOn,
                 paidBy = payer,
                 participants = participants,
             ),
@@ -159,6 +163,11 @@ private class OweStore(
         api.oweAcceptInvitation(groupId)
         groups = api.oweGroups()
         open(groupId)
+    }
+
+    fun decline(groupId: String) = run {
+        api.oweDeclineInvitation(groupId)
+        groups = api.oweGroups()
     }
 
     fun invite(groupId: String, name: String, inviteeId: String?) = run {
@@ -182,12 +191,12 @@ private class OweStore(
         groups = api.oweGroups()
     }
 
-    fun settleUp(groupId: String, from: String, to: String, amountMinor: Long) = run {
+    fun settleUp(groupId: String, from: String, to: String, amountMinor: Long, description: String) = run {
         api.oweCreateMovement(
             groupId,
             OweCreateMovementBody(
                 kind = "settlement",
-                description = "Settlement",
+                description = description,
                 amountMinor = amountMinor,
                 occurredOn = LocalDate.now().toString(),
                 paidBy = from,
@@ -214,6 +223,8 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
     var showSettlement by remember { mutableStateOf(false) }
     var showInvite by remember { mutableStateOf(false) }
     var showImport by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+    var showInvitations by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
 
     LaunchedEffect(api) { store.loadGroups() }
@@ -258,6 +269,36 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             if (store.loading) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             }
+            IconButton(onClick = { showMenu = true }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = strings.menu, tint = palette.foreground)
+            }
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                DropdownMenuItem(
+                    text = { Text(strings.groups) },
+                    onClick = {
+                        showMenu = false
+                        showInvitations = false
+                        store.close()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(strings.invitations) },
+                    onClick = {
+                        showMenu = false
+                        showInvitations = true
+                        store.close()
+                    },
+                )
+                if (store.detail?.group?.createdBy == store.userId) {
+                    DropdownMenuItem(
+                        text = { Text(strings.importTitle) },
+                        onClick = {
+                            showMenu = false
+                            showImport = true
+                        },
+                    )
+                }
+            }
         }
 
         store.error?.let {
@@ -269,13 +310,17 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
         }
 
         if (store.detail == null) {
-            Groups(
-                store,
-                strings.groups,
-                strings.newGroup,
-                onNew = { showNewGroup = true },
-                onAccept = { store.accept(it) },
-            )
+            if (showInvitations) {
+                Invitations(store, strings, onAccept = { store.accept(it) })
+            } else {
+                Groups(
+                    store,
+                    strings.groups,
+                    strings.newGroup,
+                    onNew = { showNewGroup = true },
+                    onAccept = { store.accept(it) },
+                )
+            }
         } else {
             val detail = store.detail!!
             Balances(store.balances, detail.group.currency, locale)
@@ -321,9 +366,16 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             currency = current.group.currency,
             locale = locale,
             onDismiss = { showExpense = false },
-            onSave = { description, amountMinor, payer, participants ->
+            onSave = { description, amountMinor, payer, participants, occurredOn ->
                 showExpense = false
-                store.addExpense(current.group.id, description, amountMinor, payer, participants)
+                store.addExpense(
+                    current.group.id,
+                    description,
+                    amountMinor,
+                    payer,
+                    participants,
+                    occurredOn,
+                )
             },
         )
     }
@@ -366,7 +418,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             onDismiss = { showSettlement = false },
             onPay = { from, to, amount ->
                 showSettlement = false
-                store.settleUp(current.group.id, from, to, amount)
+                store.settleUp(current.group.id, from, to, amount, strings.settle)
             },
         )
     }
@@ -421,12 +473,45 @@ private fun Groups(
             }
             if (invited) {
                 TextButton(onClick = { onAccept(group.id) }) { Text(strings.accept) }
+                TextButton(onClick = { store.decline(group.id) }) {
+                    Text(strings.decline, fontSize = 11.sp)
+                }
             }
         }
     }
 }
 
 /** Members of a group; the creator invites, removes and blocks (D3.6). */
+@Composable
+private fun Invitations(
+    store: OweStore,
+    strings: com.rferic.zero27apps.ui.i18n.Strings,
+    onAccept: (String) -> Unit,
+) {
+    val palette = LocalPalette.current
+    val invited = store.groups.filter { it.role == "invited" }
+    Text(strings.invitations, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+    if (invited.isEmpty()) {
+        Text(strings.noInvitations, fontSize = 13.sp, color = palette.mutedForeground)
+    }
+    for (group in invited) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(palette.surface, RoundedCornerShape(16.dp))
+                .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(group.name, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+            TextButton(onClick = { onAccept(group.id) }) { Text(strings.accept) }
+            TextButton(onClick = { store.decline(group.id) }) {
+                Text(strings.decline, fontSize = 11.sp)
+            }
+        }
+    }
+}
+
 @Composable
 private fun Members(
     store: OweStore,
@@ -643,7 +728,11 @@ private fun Movements(
                 .padding(12.dp),
         ) {
             Column(Modifier.weight(1f)) {
-                Text(movement.description, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text(
+                    if (movement.kind == "settlement") strings.settle else movement.description,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                )
                 Text(
                     "${byId[movement.paidBy]?.displayName ?: ""} · ${formatDay(movement.occurredOn, locale)}",
                     fontSize = 11.sp,
@@ -695,12 +784,13 @@ private fun ExpenseDialog(
     currency: String,
     locale: String,
     onDismiss: () -> Unit,
-    onSave: (String, Long, String, List<OweParticipantBody>) -> Unit,
+    onSave: (String, Long, String, List<OweParticipantBody>, String) -> Unit,
 ) {
     val strings = LocalStrings.current
     val active = members.filter { it.state == "active" }
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
+    var occurredOn by remember { mutableStateOf(LocalDate.now().toString()) }
     var payer by remember { mutableStateOf(active.firstOrNull()?.id) }
     var selected by remember { mutableStateOf(active.map { it.id }.toSet()) }
     var exact by remember { mutableStateOf(false) }
@@ -735,6 +825,12 @@ private fun ExpenseDialog(
                     label = { Text("${strings.amount} (${currency})") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                OutlinedTextField(
+                    value = occurredOn,
+                    onValueChange = { occurredOn = it },
+                    label = { Text(strings.date) },
+                    singleLine = true,
                 )
                 Text("${strings.paidBy}:", fontSize = 12.sp)
                 for (member in active) {
@@ -820,7 +916,9 @@ private fun ExpenseDialog(
             TextButton(
                 enabled = description.isNotBlank() && minor != null && payer != null &&
                     selected.isNotEmpty() && exactReady,
-                onClick = { onSave(description.trim(), minor!!, payer!!, participants) },
+                onClick = {
+                    onSave(description.trim(), minor!!, payer!!, participants, occurredOn)
+                },
             ) { Text(strings.save) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },
