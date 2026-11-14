@@ -82,8 +82,8 @@ fun Zero27AppsTheme(
 
 /** The brand wash of the login screen, shared by every app surface. */
 fun appGradient(palette: Palette): Brush = Brush.verticalGradient(
-    0f to palette.accent.copy(alpha = 0.16f),
-    0.30f to palette.background,
+    0f to palette.accent.copy(alpha = 0.24f),
+    0.45f to palette.background,
     1f to palette.background,
 )
 
