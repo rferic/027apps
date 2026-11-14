@@ -72,7 +72,7 @@ function oweDeps(c: ClientBase): OweDeps {
 
 async function session(
   c: ClientBase,
-  role: "admin" | "user",
+  role: "super_admin" | "admin" | "user",
   displayName: string,
 ): Promise<Caller & { kind: "session" }> {
   const { id } = await createTestUser(c, { email: email(displayName), role, displayName });
@@ -95,7 +95,15 @@ describe("owe-no importer", () => {
         "select 1 from public.module_registry where key = 'owe-no'",
       );
       if (installed[0]) {
-        await uninstallModule(modulesDeps(c), admin, "owe-no", manifest, true);
+        // Uninstalling is super-admin only; the local instance may already
+        // have OweNo installed while CI starts from an empty database.
+        await uninstallModule(
+          modulesDeps(c),
+          await session(c, "super_admin", "Root"),
+          "owe-no",
+          manifest,
+          true,
+        );
       }
       await installModule(modulesDeps(c), admin, manifest);
       await activateModule(modulesDeps(c), admin, "owe-no");
@@ -167,7 +175,15 @@ describe("owe-no importer", () => {
         "select 1 from public.module_registry where key = 'owe-no'",
       );
       if (installed[0]) {
-        await uninstallModule(modulesDeps(c), admin, "owe-no", manifest, true);
+        // Uninstalling is super-admin only; the local instance may already
+        // have OweNo installed while CI starts from an empty database.
+        await uninstallModule(
+          modulesDeps(c),
+          await session(c, "super_admin", "Root"),
+          "owe-no",
+          manifest,
+          true,
+        );
       }
       await installModule(modulesDeps(c), admin, manifest);
       await activateModule(modulesDeps(c), admin, "owe-no");

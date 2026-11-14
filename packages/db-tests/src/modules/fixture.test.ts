@@ -191,10 +191,16 @@ describe("fixture package", () => {
          on conflict (category_key, key) do update set value = 'true'`,
       );
 
+      // Other modules with demo hooks may be installed on this database (the
+      // owner's local instance has OweNo): assert on fixture, not on "only".
       const first = await seedDemo(demoDeps(c));
-      expect(first.modules).toEqual([{ module_key: "fixture", result: { notes: 1 } }]);
+      expect(first.modules.filter((module) => module.module_key === "fixture")).toEqual([
+        { module_key: "fixture", result: { notes: 1 } },
+      ]);
       const second = await seedDemo(demoDeps(c));
-      expect(second.modules).toEqual([{ module_key: "fixture", result: { notes: 0 } }]);
+      expect(second.modules.filter((module) => module.module_key === "fixture")).toEqual([
+        { module_key: "fixture", result: { notes: 0 } },
+      ]);
 
       // Uninstall calls `clear_demo` before dropping the schema.
       const statements: string[] = [];
