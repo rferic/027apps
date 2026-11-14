@@ -157,6 +157,26 @@ describe("owe-no member visibility (D31)", () => {
   });
 });
 
+describe("owe-no removal of a member without an account (D31)", () => {
+  it("refuses to keep a balance that has no account to detach", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const member = await addMember(deps(c), owner.id, group.id, { displayName: "Marta" });
+      await c.query(
+        `insert into module_owe_no.owe_no_movements
+           (group_id, kind, description, amount_minor, currency, paid_by_member_id, occurred_on, created_by)
+         values ($1, 'expense', 'Cena', 1000, 'EUR', $2, current_date, $3)`,
+        [group.id, member.id, owner.id],
+      );
+      await expect(
+        removeMember(deps(c), owner.id, group.id, member.id, "ghost"),
+      ).rejects.toMatchObject({ code: "conflict", details: { code: "member_has_balance" } });
+      const listed = await listMembers(deps(c), owner.id, group.id);
+      expect(listed.find((row) => row.id === member.id)?.state).toBe("active");
+    });
+  });
+});
+
 describe("owe-no member lifecycle", () => {
   it("lets a member leave with a zero balance", async () => {
     await inRollback(async (c) => {

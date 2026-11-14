@@ -122,7 +122,9 @@ export async function previewImport(
   assertSize(csv);
   assertOneCurrency(parsed.movements, parsed.currencies, currency);
 
-  const members = await listMembers(deps, userId, groupId);
+  const members = (await listMembers(deps, userId, groupId)).filter(
+    (member) => member.state === "active",
+  );
   const names = new Set(members.map((member) => member.display_name));
   const unresolved = new Set<string>();
   for (const movement of parsed.movements) {
@@ -188,7 +190,9 @@ export async function commitImport(
     });
   }
 
-  const members = await listMembers(deps, userId, groupId);
+  const members = (await listMembers(deps, userId, groupId)).filter(
+    (member) => member.state === "active",
+  );
   const byName = new Map<string, string>();
   for (const member of members) {
     if (!byName.has(member.display_name)) byName.set(member.display_name, member.id);

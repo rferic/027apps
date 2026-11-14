@@ -751,6 +751,14 @@ export async function removeMember(
     const balances = await groupBalances(deps, groupId);
     const balance = balances.get(memberId) ?? 0;
     if (balance !== 0) {
+      if (mode === "ghost" && member[0].user_id === null) {
+        // A fictitious row already has no account to detach: "keep the balance"
+        // would be a silent no-op, so it is refused like any other removal
+        // with a pending balance.
+        throw new OweDomainError("conflict", "settle the member's balance first", {
+          code: "member_has_balance",
+        });
+      }
       if (mode === "ghost") {
         // D29: the account leaves but the balance stays with a fictitious row.
         await deps.db.query(
