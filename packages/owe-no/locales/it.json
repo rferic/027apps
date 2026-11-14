@@ -83,5 +83,16 @@
   "A member with a balance cannot be removed.": "Non si può rimuovere un membro con saldo.",
   "Back": "Indietro",
   "No movements yet.": "Ancora nessun movimento.",
-  "The group starts with you as its creator and first member.": "Il gruppo inizia con te come creatore e primo membro."
+  "The group starts with you as its creator and first member.": "Il gruppo inizia con te come creatore e primo membro.",
+  "Invited": "Invitato",
+  "Left": "Uscito",
+  "Removed": "Rimosso",
+  "Archive group?": "Archiviare il gruppo?",
+  "The group becomes read-only for everyone.": "Il gruppo diventa di sola lettura per tutti.",
+  "Reopen group?": "Riaprire il gruppo?",
+  "The group becomes writable again.": "Il gruppo torna modificabile.",
+  "Remove member?": "Rimuovere il membro?",
+  "Their balance must be zero; a removed member could no longer be paid.": "Il suo saldo deve essere zero; a un membro rimosso non si potrebbe più pagare.",
+  "Delete movement?": "Eliminare il movimento?",
+  "It leaves the balances and the history; the row stays for audit.": "Esce dai saldi e dalla cronologia; la riga resta per la verifica."
 }

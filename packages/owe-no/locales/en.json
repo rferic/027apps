@@ -83,5 +83,16 @@
   "A member with a balance cannot be removed.": "A member with a balance cannot be removed.",
   "Back": "Back",
   "No movements yet.": "No movements yet.",
-  "The group starts with you as its creator and first member.": "The group starts with you as its creator and first member."
+  "The group starts with you as its creator and first member.": "The group starts with you as its creator and first member.",
+  "Invited": "Invited",
+  "Left": "Left",
+  "Removed": "Removed",
+  "Archive group?": "Archive group?",
+  "The group becomes read-only for everyone.": "The group becomes read-only for everyone.",
+  "Reopen group?": "Reopen group?",
+  "The group becomes writable again.": "The group becomes writable again.",
+  "Remove member?": "Remove member?",
+  "Their balance must be zero; a removed member could no longer be paid.": "Their balance must be zero; a removed member could no longer be paid.",
+  "Delete movement?": "Delete movement?",
+  "It leaves the balances and the history; the row stays for audit.": "It leaves the balances and the history; the row stays for audit."
 }

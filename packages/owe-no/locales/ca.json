@@ -83,5 +83,16 @@
   "A member with a balance cannot be removed.": "No es pot treure un membre amb saldo.",
   "Back": "Torna",
   "No movements yet.": "Encara no hi ha moviments.",
-  "The group starts with you as its creator and first member.": "El grup comença amb tu com a creador i primer membre."
+  "The group starts with you as its creator and first member.": "El grup comença amb tu com a creador i primer membre.",
+  "Invited": "Convidat",
+  "Left": "Va sortir",
+  "Removed": "Tret",
+  "Archive group?": "Arxivar el grup?",
+  "The group becomes read-only for everyone.": "El grup passa a només lectura per a tothom.",
+  "Reopen group?": "Reobrir el grup?",
+  "The group becomes writable again.": "El grup torna a admetre canvis.",
+  "Remove member?": "Treure el membre?",
+  "Their balance must be zero; a removed member could no longer be paid.": "El seu saldo ha de ser zero; a un membre tret ja no se li podria pagar.",
+  "Delete movement?": "Esborrar el moviment?",
+  "It leaves the balances and the history; the row stays for audit.": "Surt dels saldos i de l'historial; la fila es conserva per a auditoria."
 }

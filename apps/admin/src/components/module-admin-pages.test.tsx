@@ -87,6 +87,7 @@ describe("owe-no admin pages", () => {
       members: [
         { id: "m1", display_name: "Ana", state: "active" as const, user_id: "u1", balance: 500 },
         { id: "m2", display_name: "Luis", state: "active" as const, user_id: null, balance: -500 },
+        { id: "m3", display_name: "Marta", state: "removed" as const, user_id: null, balance: 0 },
       ],
       movements: [
         {
@@ -136,6 +137,13 @@ describe("owe-no admin pages", () => {
     expect(html).toContain("?group=11111111-1111-4111-8111-111111111111&amp;view=movement");
     expect(html).toContain("Luis");
     expect(html).not.toContain("Add expense");
+    // Destructive actions ask first, and every state is translated.
+    expect(html).toContain("¿Archivar el grupo?");
+    expect(html).toContain("¿Quitar al miembro?");
+    expect(html).toContain("Quitado");
+    expect(html).not.toContain(">removed<");
+    // Mobile: the actions own a full row instead of wrapping around the title.
+    expect(html).toContain("grid w-full grid-cols-2");
   });
 
   it("gives every form its own page", async () => {

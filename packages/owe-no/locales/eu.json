@@ -83,5 +83,16 @@
   "A member with a balance cannot be removed.": "Ezin da balantzea duen kidea kendu.",
   "Back": "Atzera",
   "No movements yet.": "Oraindik ez dago mugimendurik.",
-  "The group starts with you as its creator and first member.": "Taldea zuk sortzen duzu, sortzaile eta lehen kide gisa."
+  "The group starts with you as its creator and first member.": "Taldea zuk sortzen duzu, sortzaile eta lehen kide gisa.",
+  "Invited": "Gonbidatua",
+  "Left": "Irten da",
+  "Removed": "Kendua",
+  "Archive group?": "Taldea artxibatu?",
+  "The group becomes read-only for everyone.": "Taldea irakurtzeko soilik geratzen da guztientzat.",
+  "Reopen group?": "Taldea berriro ireki?",
+  "The group becomes writable again.": "Taldeak aldaketak onartzen ditu berriro.",
+  "Remove member?": "Kidea kendu?",
+  "Their balance must be zero; a removed member could no longer be paid.": "Bere balantzea zero izan behar da; kendutako kideari ezingo litzaioke ordaindu.",
+  "Delete movement?": "Mugimendua ezabatu?",
+  "It leaves the balances and the history; the row stays for audit.": "Balantzeetatik eta historialetik ateratzen da; errenkada auditoriarako gordetzen da."
 }

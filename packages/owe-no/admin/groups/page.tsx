@@ -7,6 +7,7 @@ import type {
 } from "../../src/admin";
 import type { MovementView } from "../../src/service";
 import type { SettlementPlan } from "../../src/settlement";
+import { ConfirmForm } from "../components/confirm-form";
 
 type Action = (formData: FormData) => Promise<void>;
 
@@ -35,11 +36,18 @@ const ERROR_KEYS: Record<string, string> = {
 const control =
   "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 const primary =
-  "min-h-11 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "inline-flex min-h-11 items-center justify-center rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 const link =
   "inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 const secondary =
-  "inline-flex min-h-11 items-center rounded-control border border-border px-3 text-xs font-semibold hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "inline-flex min-h-11 items-center justify-center rounded-control border border-border px-3 text-xs font-semibold hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
+const STATE_KEYS: Record<string, string> = {
+  invited: "Invited",
+  active: "Active",
+  left: "Left",
+  removed: "Removed",
+};
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -157,7 +165,7 @@ function PageHeader({
   children,
   tr,
 }: {
-  title: string;
+  title: React.ReactNode;
   description?: string;
   backHref: string;
   backLabel: string;
@@ -326,7 +334,14 @@ function GroupDetail({
   return (
     <>
       <PageHeader
-        title={group.name}
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            {group.name}
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              {group.archived ? tr("Archived") : tr("Active")} · {group.currency}
+            </span>
+          </span>
+        }
         description={tr("{members} members · {movements} movements", {
           members: group.members,
           movements: group.movements,
@@ -335,13 +350,10 @@ function GroupDetail({
         backLabel="Groups"
         tr={tr}
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-            {group.archived ? tr("Archived") : tr("Active")} · {group.currency}
-          </span>
+        <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex sm:items-center">
           {!group.archived ? (
             <>
-              <a href={href(group.id, "movement")} className={primary}>
+              <a href={href(group.id, "movement")} className={`${primary} col-span-2 sm:col-auto`}>
                 {tr("Add expense")}
               </a>
               <a href={href(group.id, "settle")} className={secondary}>
@@ -349,13 +361,25 @@ function GroupDetail({
               </a>
             </>
           ) : null}
-          <form action={actions.archiveGroup}>
-            <input type="hidden" name="group" value={group.id} />
-            <input type="hidden" name="archived" value={group.archived ? "false" : "true"} />
-            <button type="submit" className={secondary}>
-              {group.archived ? tr("Reopen group") : tr("Archive group")}
-            </button>
-          </form>
+          <ConfirmForm
+            action={actions.archiveGroup}
+            fields={{ group: group.id, archived: group.archived ? "false" : "true" }}
+            label={group.archived ? tr("Reopen group") : tr("Archive group")}
+            title={
+              group.archived
+                ? tr("Reopen group?")
+                : tr("Archive group?")
+            }
+            body={
+              group.archived
+                ? tr("The group becomes writable again.")
+                : tr("The group becomes read-only for everyone.")
+            }
+            confirmLabel={group.archived ? tr("Reopen group") : tr("Archive group")}
+            cancelLabel={tr("Cancel")}
+            variant="neutral"
+            className={group.archived ? "col-span-2 sm:col-auto" : ""}
+          />
         </div>
       </PageHeader>
 
@@ -391,7 +415,7 @@ function GroupDetail({
               <span className="font-semibold">{member.display_name}</span>
               <span className="text-[11px] text-muted-foreground">
                 {member.user_id ? tr("Linked account") : tr("Fictitious member")} ·{" "}
-                {member.state === "active" ? tr("Active") : member.state}
+                {tr(STATE_KEYS[member.state] ?? "Active")}
               </span>
               <span
                 className={`ml-auto tabular-nums ${
@@ -411,17 +435,16 @@ function GroupDetail({
                       {tr("Link account")}
                     </a>
                   ) : null}
-                  <form action={actions.removeMember}>
-                    <input type="hidden" name="group" value={group.id} />
-                    <input type="hidden" name="member" value={member.id} />
-                    <button
-                      type="submit"
-                      title={tr("A member with a balance cannot be removed.")}
-                      className="min-h-9 rounded-control border border-border px-2 text-[11px] font-semibold text-destructive"
-                    >
-                      {tr("Remove")}
-                    </button>
-                  </form>
+                  <ConfirmForm
+                    action={actions.removeMember}
+                    fields={{ group: group.id, member: member.id }}
+                    label={tr("Remove")}
+                    title={tr("Remove member?")}
+                    body={tr("Their balance must be zero; a removed member could no longer be paid.")}
+                    confirmLabel={tr("Remove")}
+                    cancelLabel={tr("Cancel")}
+                    className="min-h-9 px-2 text-[11px]"
+                  />
                 </span>
               ) : null}
             </li>
@@ -472,16 +495,16 @@ function GroupDetail({
                           >
                             {tr("Edit")}
                           </a>
-                          <form action={actions.deleteMovement}>
-                            <input type="hidden" name="group" value={group.id} />
-                            <input type="hidden" name="movement" value={movement.id} />
-                            <button
-                              type="submit"
-                              className="rounded-control border border-border px-2 py-1 text-[11px] font-semibold text-destructive"
-                            >
-                              {tr("Delete")}
-                            </button>
-                          </form>
+                          <ConfirmForm
+                            action={actions.deleteMovement}
+                            fields={{ group: group.id, movement: movement.id }}
+                            label={tr("Delete")}
+                            title={tr("Delete movement?")}
+                            body={tr("It leaves the balances and the history; the row stays for audit.")}
+                            confirmLabel={tr("Delete")}
+                            cancelLabel={tr("Cancel")}
+                            className="min-h-8 px-2 py-1 text-[11px]"
+                          />
                         </span>
                       ) : null}
                     </td>
