@@ -80,5 +80,8 @@
   "Check the values and try again.": "Check the values and try again.",
   "You do not have permission to do that.": "You do not have permission to do that.",
   "Something went wrong. Try again.": "Something went wrong. Try again.",
-  "A member with a balance cannot be removed.": "A member with a balance cannot be removed."
+  "A member with a balance cannot be removed.": "A member with a balance cannot be removed.",
+  "Back": "Back",
+  "No movements yet.": "No movements yet.",
+  "The group starts with you as its creator and first member.": "The group starts with you as its creator and first member."
 }

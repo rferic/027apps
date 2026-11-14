@@ -80,5 +80,8 @@
   "Check the values and try again.": "Vérifiez les valeurs et réessayez.",
   "You do not have permission to do that.": "Vous n'avez pas la permission de faire cela.",
   "Something went wrong. Try again.": "Une erreur est survenue. Réessayez.",
-  "A member with a balance cannot be removed.": "Impossible de retirer un membre avec un solde."
+  "A member with a balance cannot be removed.": "Impossible de retirer un membre avec un solde.",
+  "Back": "Retour",
+  "No movements yet.": "Pas encore de mouvement.",
+  "The group starts with you as its creator and first member.": "Le groupe commence avec vous comme créateur et premier membre."
 }

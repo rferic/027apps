@@ -100,6 +100,8 @@ export default async function OweNoGroups({
           editId={editId}
           tr={tr}
         />
+      ) : context.searchParams.new === "1" ? (
+        <NewGroup context={context} actions={actions} tr={tr} />
       ) : (
         <GroupList context={context} groups={groups} actions={actions} tr={tr} />
       )}
@@ -120,42 +122,22 @@ function GroupList({
 }) {
   return (
     <>
-      <header className="flex flex-col gap-1">
-        <h1 className="text-base font-bold">{tr("Groups")}</h1>
-        <p className="text-xs text-muted-foreground">
-          {tr(
-            "Every group, with its members and movements. Members manage their own movements from the app; the panel does not record money.",
-          )}
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-base font-bold">{tr("Groups")}</h1>
+          <p className="text-xs text-muted-foreground">
+            {tr(
+              "Every group, with its members and movements. Members manage their own movements from the app; the panel does not record money.",
+            )}
+          </p>
+        </div>
+        <a
+          href="?new=1"
+          className="inline-flex min-h-11 items-center rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {tr("New group")}
+        </a>
       </header>
-
-      <details className="rounded-card border border-border bg-surface p-3">
-        <summary className="cursor-pointer text-xs font-semibold">{tr("New group")}</summary>
-        <form action={actions.createGroup} className="mt-3 flex flex-wrap items-end gap-2">
-          <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">{tr("Group name")}</span>
-            <input
-              name="name"
-              required
-              maxLength={80}
-              className="min-h-9 rounded-control border border-border bg-background px-2 text-foreground"
-            />
-          </label>
-          <label className="flex w-24 flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">{tr("Currency")}</span>
-            <input
-              name="currency"
-              defaultValue="EUR"
-              maxLength={3}
-              required
-              className="min-h-9 rounded-control border border-border bg-background px-2 font-mono uppercase text-foreground"
-            />
-          </label>
-          <button type="submit" className="min-h-9 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground">
-            {tr("Create")}
-          </button>
-        </form>
-      </details>
 
       {groups.length === 0 ? (
         <p className="text-xs text-muted-foreground">{tr("No groups yet.")}</p>
@@ -198,6 +180,66 @@ function GroupList({
       <p className="text-[11px] text-muted-foreground">
         {context.locale ? tr("The panel writes as an administrator; every change is recorded.") : null}
       </p>
+    </>
+  );
+}
+
+function NewGroup({
+  context,
+  actions,
+  tr,
+}: {
+  context: ModulePageContext;
+  actions: OweNoGroupsActions;
+  tr: (text: string, params?: Record<string, string | number>) => string;
+}) {
+  return (
+    <>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-base font-bold">{tr("New group")}</h1>
+          <p className="text-xs text-muted-foreground">
+            {tr("The group starts with you as its creator and first member.")}
+          </p>
+        </div>
+        <a href="?" className="inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline">
+          {tr("Back")}
+        </a>
+      </header>
+      <section className="max-w-xl rounded-card border border-border bg-surface p-4">
+        <form action={actions.createGroup} className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-xs font-semibold">
+            {tr("Group name")}
+            <input
+              name="name"
+              required
+              maxLength={80}
+              className="min-h-11 rounded-control border border-border bg-background px-2.5 text-sm font-normal text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            />
+          </label>
+          <label className="flex w-32 flex-col gap-1 text-xs font-semibold">
+            {tr("Currency")}
+            <input
+              name="currency"
+              defaultValue="EUR"
+              maxLength={3}
+              required
+              className="min-h-11 rounded-control border border-border bg-background px-2.5 font-mono text-sm font-normal uppercase text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            />
+          </label>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <a href="?" className="inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline">
+              {tr("Cancel")}
+            </a>
+            <button
+              type="submit"
+              className="min-h-11 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              {tr("Create")}
+            </button>
+          </div>
+        </form>
+      </section>
     </>
   );
 }
@@ -249,7 +291,7 @@ function GroupDetail({
           <input type="hidden" name="archived" value={group.archived ? "false" : "true"} />
           <button
             type="submit"
-            className="min-h-9 rounded-control border border-border px-3 text-xs font-semibold hover:bg-muted"
+            className="min-h-11 rounded-control border border-border px-3 text-xs font-semibold hover:bg-muted"
           >
             {group.archived ? tr("Reopen group") : tr("Archive group")}
           </button>
@@ -398,22 +440,22 @@ function Members({
       </ul>
 
       {!archived ? (
-        <form action={actions.addMember} className="mt-3 flex flex-wrap items-end gap-2">
+        <form action={actions.addMember} className="mt-4 flex flex-wrap items-end gap-2 border-t border-border pt-3">
           <input type="hidden" name="group" value={groupId} />
           <label className="flex min-w-40 flex-1 flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">{tr("Name")}</span>
+            <span className="text-xs font-semibold text-muted-foreground">{tr("Name")}</span>
             <input
               name="display_name"
               required
               maxLength={80}
-              className="min-h-9 rounded-control border border-border bg-background px-2"
+              className="min-h-11 rounded-control border border-border bg-background px-2"
             />
           </label>
           <label className="flex min-w-40 flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">{tr("Account (optional)")}</span>
+            <span className="text-xs font-semibold text-muted-foreground">{tr("Account (optional)")}</span>
             <select
               name="user_id"
-              className="min-h-9 rounded-control border border-border bg-background px-2"
+              className="min-h-11 rounded-control border border-border bg-background px-2"
             >
               <option value="">{tr("No account")}</option>
               {userOptions.map((option) => (
@@ -423,7 +465,7 @@ function Members({
               ))}
             </select>
           </label>
-          <button type="submit" className="min-h-9 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground">
+          <button type="submit" className="min-h-11 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground">
             {tr("Add member")}
           </button>
         </form>
@@ -543,56 +585,55 @@ function MovementForm({
   const exact = editing ? editing.shares.some((share) => share.amount_minor !== equal) : false;
 
   return (
-    <details
+    <section
       id="movement-form"
-      open={Boolean(editing)}
       className="rounded-card border border-border bg-surface p-3"
     >
-      <summary className="cursor-pointer text-xs font-semibold">
+      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {editing ? tr("Edit expense") : tr("Add expense")}
-      </summary>
-      <form action={actions.saveMovement} className="mt-3 flex flex-col gap-3">
+      </h2>
+      <form action={actions.saveMovement} className="flex flex-col gap-3">
         <input type="hidden" name="group" value={groupId} />
         {editing ? <input type="hidden" name="movement" value={editing.id} /> : null}
         <input type="hidden" name="kind" value={editing?.kind ?? "expense"} />
         <div className="flex flex-wrap gap-2">
           <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">{tr("Description")}</span>
+            <span className="text-xs font-semibold text-muted-foreground">{tr("Description")}</span>
             <input
               name="description"
               required
               maxLength={200}
               defaultValue={editing?.description ?? ""}
-              className="min-h-9 rounded-control border border-border bg-background px-2"
+              className="min-h-11 rounded-control border border-border bg-background px-2"
             />
           </label>
           <label className="flex w-28 flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">{tr("Amount")} ({currency})</span>
+            <span className="text-xs font-semibold text-muted-foreground">{tr("Amount")} ({currency})</span>
             <input
               name="amount"
               required
               inputMode="decimal"
               defaultValue={editing ? (editing.amount_minor / 100).toFixed(2) : ""}
-              className="min-h-9 rounded-control border border-border bg-background px-2 text-right tabular-nums"
+              className="min-h-11 rounded-control border border-border bg-background px-2 text-right tabular-nums"
             />
           </label>
           <label className="flex w-36 flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">{tr("Date")}</span>
+            <span className="text-xs font-semibold text-muted-foreground">{tr("Date")}</span>
             <input
               type="date"
               name="occurred_on"
               required
               defaultValue={editing?.occurred_on ?? today()}
-              className="min-h-9 rounded-control border border-border bg-background px-2"
+              className="min-h-11 rounded-control border border-border bg-background px-2"
             />
           </label>
           <label className="flex w-40 flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">{tr("Paid by")}</span>
+            <span className="text-xs font-semibold text-muted-foreground">{tr("Paid by")}</span>
             <select
               name="paid_by"
               required
               defaultValue={editing?.paid_by ?? members[0]?.id ?? ""}
-              className="min-h-9 rounded-control border border-border bg-background px-2"
+              className="min-h-11 rounded-control border border-border bg-background px-2"
             >
               {members.map((member) => (
                 <option key={member.id} value={member.id}>
@@ -602,11 +643,11 @@ function MovementForm({
             </select>
           </label>
           <label className="flex w-32 flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">{tr("Split")}</span>
+            <span className="text-xs font-semibold text-muted-foreground">{tr("Split")}</span>
             <select
               name="mode"
               defaultValue={exact ? "exact" : "equal"}
-              className="min-h-9 rounded-control border border-border bg-background px-2"
+              className="min-h-11 rounded-control border border-border bg-background px-2"
             >
               <option value="equal">{tr("Equal parts")}</option>
               <option value="exact">{tr("Exact amounts")}</option>
@@ -648,18 +689,18 @@ function MovementForm({
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"
-            className="min-h-9 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground"
+            className="min-h-11 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground"
           >
             {editing ? tr("Save changes") : tr("Save expense")}
           </button>
           {editing ? (
-            <a href={`?group=${encodeURIComponent(groupId)}`} className="min-h-9 rounded-control border border-border px-3 text-xs font-semibold leading-9">
+            <a href={`?group=${encodeURIComponent(groupId)}`} className="min-h-11 rounded-control border border-border px-3 text-xs font-semibold leading-9">
               {tr("Cancel")}
             </a>
           ) : null}
         </div>
       </form>
-    </details>
+    </section>
   );
 }
 
@@ -685,9 +726,11 @@ function Settlement({
   if (archived || members.length < 2) return null;
   const byId = new Map(members.map((member) => [member.id, member.display_name]));
   return (
-    <details className="rounded-card border border-border bg-surface p-3">
-      <summary className="cursor-pointer text-xs font-semibold">{tr("Settle up")}</summary>
-      <p className="mt-2 text-[11px] text-muted-foreground">
+    <section className="rounded-card border border-border bg-surface p-3">
+      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {tr("Settle up")}
+      </h2>
+      <p className="text-[11px] text-muted-foreground">
         {tr("Each payment is recorded as a settlement movement.")}
       </p>
       {plan && plan.transfers.length > 0 ? (
@@ -727,8 +770,8 @@ function Settlement({
         <input type="hidden" name="group" value={groupId} />
         <input type="hidden" name="occurred_on" value={today()} />
         <label className="flex w-36 flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">{tr("Who pays")}</span>
-          <select name="from" required className="min-h-9 rounded-control border border-border bg-background px-2">
+          <span className="text-xs font-semibold text-muted-foreground">{tr("Who pays")}</span>
+          <select name="from" required className="min-h-11 rounded-control border border-border bg-background px-2">
             {members.map((member) => (
               <option key={member.id} value={member.id}>
                 {member.display_name}
@@ -737,8 +780,8 @@ function Settlement({
           </select>
         </label>
         <label className="flex w-36 flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">{tr("Who receives")}</span>
-          <select name="to" required className="min-h-9 rounded-control border border-border bg-background px-2">
+          <span className="text-xs font-semibold text-muted-foreground">{tr("Who receives")}</span>
+          <select name="to" required className="min-h-11 rounded-control border border-border bg-background px-2">
             {members.map((member) => (
               <option key={member.id} value={member.id}>
                 {member.display_name}
@@ -747,22 +790,22 @@ function Settlement({
           </select>
         </label>
         <label className="flex w-28 flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">{tr("Amount")} ({currency})</span>
+          <span className="text-xs font-semibold text-muted-foreground">{tr("Amount")} ({currency})</span>
           <input
             name="amount"
             required
             inputMode="decimal"
-            className="min-h-9 rounded-control border border-border bg-background px-2 text-right tabular-nums"
+            className="min-h-11 rounded-control border border-border bg-background px-2 text-right tabular-nums"
           />
         </label>
         <input type="hidden" name="description" value="Settlement" />
-        <button type="submit" className="min-h-9 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground">
+        <button type="submit" className="min-h-11 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground">
           {tr("Register payment")}
         </button>
       </form>
       <p className="mt-2 text-[10px] text-muted-foreground">
         {tr("The suggestion is computed from the current balances of the group.")}
       </p>
-    </details>
+    </section>
   );
 }

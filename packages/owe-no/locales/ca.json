@@ -80,5 +80,8 @@
   "Check the values and try again.": "Revisa els valors i torna-ho a provar.",
   "You do not have permission to do that.": "No tens permís per fer això.",
   "Something went wrong. Try again.": "Alguna cosa ha fallat. Torna-ho a provar.",
-  "A member with a balance cannot be removed.": "No es pot treure un membre amb saldo."
+  "A member with a balance cannot be removed.": "No es pot treure un membre amb saldo.",
+  "Back": "Torna",
+  "No movements yet.": "Encara no hi ha moviments.",
+  "The group starts with you as its creator and first member.": "El grup comença amb tu com a creador i primer membre."
 }

@@ -80,5 +80,8 @@
   "Check the values and try again.": "Egiaztatu balioak eta saiatu berriro.",
   "You do not have permission to do that.": "Ez duzu horretarako baimenik.",
   "Something went wrong. Try again.": "Zerbait gaizki joan da. Saiatu berriro.",
-  "A member with a balance cannot be removed.": "Ezin da balantzea duen kidea kendu."
+  "A member with a balance cannot be removed.": "Ezin da balantzea duen kidea kendu.",
+  "Back": "Atzera",
+  "No movements yet.": "Oraindik ez dago mugimendurik.",
+  "The group starts with you as its creator and first member.": "Taldea zuk sortzen duzu, sortzaile eta lehen kide gisa."
 }

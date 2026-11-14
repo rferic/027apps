@@ -33,9 +33,10 @@ function adminCaller(user: { id: string; role: string }): Caller {
   return { kind: "session", userId: user.id, role: user.role };
 }
 
-function fail(code: string, groupId?: string): never {
+function fail(code: string, groupId?: string, extra?: Record<string, string>): never {
   const params = new URLSearchParams({ error: code });
   if (groupId) params.set("group", groupId);
+  for (const [key, value] of Object.entries(extra ?? {})) params.set(key, value);
   redirect(`${GROUP}?${params.toString()}`);
 }
 
@@ -71,14 +72,17 @@ export async function createGroupAction(formData: FormData): Promise<void> {
     name: formData.get("name"),
     currency: String(formData.get("currency") ?? "EUR").toUpperCase(),
   });
-  if (!parsed.success) fail("validation_failed");
+  if (!parsed.success) fail("validation_failed", undefined, { new: "1" });
+  let created: string | undefined;
   try {
     const { owe } = await oweDeps();
     const group = await adminCreateGroup(owe, caller, parsed.data);
-    refresh(group.id);
+    created = group.id;
   } catch (error) {
-    fail(errorCode(error));
+    fail(errorCode(error), undefined, { new: "1" });
   }
+  // `redirect` throws; it must run outside the try or the catch would eat it.
+  refresh(created);
 }
 
 export async function archiveGroupAction(formData: FormData): Promise<void> {
@@ -89,10 +93,10 @@ export async function archiveGroupAction(formData: FormData): Promise<void> {
   try {
     const { owe } = await oweDeps();
     await adminSetArchived(owe, caller, groupId, archived);
-    refresh(groupId);
   } catch (error) {
     fail(errorCode(error), groupId);
   }
+  refresh(groupId);
 }
 
 const addMemberSchema = z.object({
@@ -115,10 +119,10 @@ export async function addMemberAction(formData: FormData): Promise<void> {
       displayName: parsed.data.display_name,
       userId: parsed.data.user_id ?? null,
     });
-    refresh(parsed.data.group);
   } catch (error) {
     fail(errorCode(error), parsed.data.group);
   }
+  refresh(parsed.data.group);
 }
 
 const linkMemberSchema = z.object({ group: z.uuid(), member: z.uuid(), user_id: z.uuid() });
@@ -134,10 +138,10 @@ export async function linkMemberAction(formData: FormData): Promise<void> {
   try {
     const { owe } = await oweDeps();
     await adminLinkMember(owe, caller, parsed.data.group, parsed.data.member, parsed.data.user_id);
-    refresh(parsed.data.group);
   } catch (error) {
     fail(errorCode(error), parsed.data.group);
   }
+  refresh(parsed.data.group);
 }
 
 const memberActionSchema = z.object({ group: z.uuid(), member: z.uuid() });
@@ -152,10 +156,10 @@ export async function removeMemberAction(formData: FormData): Promise<void> {
   try {
     const { owe } = await oweDeps();
     await adminRemoveMember(owe, caller, parsed.data.group, parsed.data.member);
-    refresh(parsed.data.group);
   } catch (error) {
     fail(errorCode(error), parsed.data.group);
   }
+  refresh(parsed.data.group);
 }
 
 const movementSchema = z.object({
@@ -236,10 +240,10 @@ export async function saveMovementAction(formData: FormData): Promise<void> {
     } else {
       await adminCreateMovement(owe, caller, data.group, input);
     }
-    refresh(data.group);
   } catch (error) {
     fail(errorCode(error), data.group);
   }
+  refresh(data.group);
 }
 
 export async function deleteMovementAction(formData: FormData): Promise<void> {
@@ -251,10 +255,10 @@ export async function deleteMovementAction(formData: FormData): Promise<void> {
   try {
     const { owe } = await oweDeps();
     await adminDeleteMovement(owe, caller, parsed.data.group, parsed.data.movement);
-    refresh(parsed.data.group);
   } catch (error) {
     fail(errorCode(error), parsed.data.group);
   }
+  refresh(parsed.data.group);
 }
 
 const settleSchema = z.object({
@@ -291,8 +295,8 @@ export async function settleAction(formData: FormData): Promise<void> {
       paid_by: parsed.data.from,
       participants: [{ memberId: parsed.data.to, amount_minor: amount }],
     });
-    refresh(parsed.data.group);
   } catch (error) {
     fail(errorCode(error), parsed.data.group);
   }
+  refresh(parsed.data.group);
 }
