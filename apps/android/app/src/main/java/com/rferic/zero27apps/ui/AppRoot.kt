@@ -297,6 +297,7 @@ private fun Shell(
                 // A module with screens opens in place of the launcher.
                 openModule == "owe-no" && viewModel.api() != null -> OweNoScreen(
                     api = viewModel.api()!!,
+                    userId = state.user?.id,
                     onBack = { openModule = null },
                 )
                 tab == 1 -> ModulesScreen(state.modules, onOpen = { key -> openModule = key })

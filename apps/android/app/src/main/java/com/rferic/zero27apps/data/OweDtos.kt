@@ -26,6 +26,7 @@ data class OweMemberDto(
     val state: String = "active",
     @SerialName("user_id") val userId: String? = null,
     val kind: String = "user",
+    val blocked: Boolean = false,
 )
 
 @Serializable
@@ -103,3 +104,67 @@ data class OweGroupResponse(val group: OweGroupDto)
 
 @Serializable
 data class OweMovementResponse(val movement: OweMovementDto)
+
+@Serializable
+data class OweIdentityDto(
+    val id: String,
+    @SerialName("display_name") val displayName: String,
+)
+
+@Serializable
+data class OweIdentityList(val identities: List<OweIdentityDto> = emptyList())
+
+@Serializable
+data class OweAddMemberBody(
+    @SerialName("display_name") val displayName: String,
+    @SerialName("invitee_id") val inviteeId: String? = null,
+)
+
+@Serializable
+data class OweMemberResponse(val member: OweMemberDto)
+
+@Serializable
+data class OweImportErrorDto(val line: Int = 0, val message: String = "")
+
+@Serializable
+data class OweImportSampleDto(
+    val line: Int = 0,
+    @SerialName("occurred_on") val occurredOn: String = "",
+    val description: String = "",
+    @SerialName("amount_minor") val amountMinor: Long = 0,
+    val kind: String = "expense",
+    val payer: String = "",
+    val derived: Boolean = false,
+    val duplicate: Boolean = false,
+)
+
+@Serializable
+data class OweImportPreviewDto(
+    val movements: Int = 0,
+    val payments: Int = 0,
+    val derived: Int = 0,
+    val skipped: Int = 0,
+    val errors: List<OweImportErrorDto> = emptyList(),
+    val currencies: List<String> = emptyList(),
+    val unresolved: List<String> = emptyList(),
+    val duplicates: Int = 0,
+    val sample: List<OweImportSampleDto> = emptyList(),
+)
+
+@Serializable
+data class OweImportResultDto(
+    val created: Int = 0,
+    @SerialName("skipped_duplicates") val skippedDuplicates: Int = 0,
+    val errors: Int = 0,
+    val categories: Int = 0,
+)
+
+@Serializable
+data class OweImportPreviewBody(val csv: String)
+
+@Serializable
+data class OweImportCommitBody(
+    val csv: String,
+    val mapping: Map<String, String>? = null,
+    @SerialName("confirm_duplicates") val confirmDuplicates: Boolean? = null,
+)

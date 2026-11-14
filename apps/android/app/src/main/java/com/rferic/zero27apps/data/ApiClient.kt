@@ -80,6 +80,59 @@ class ApiClient(
             request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/movements", body),
         ).movement
 
+    suspend fun oweAcceptInvitation(groupId: String) {
+        expectSuccess(request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/members/accept"))
+    }
+
+    suspend fun oweAddMember(groupId: String, body: OweAddMemberBody): OweMemberDto =
+        read<OweMemberResponse>(
+            request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/members", body),
+        ).member
+
+    suspend fun oweRemoveMember(groupId: String, memberId: String) {
+        expectSuccess(
+            request(HttpMethod.Delete, "/api/v1/owe-no/groups/$groupId/members/$memberId"),
+        )
+    }
+
+    suspend fun oweBlockMember(groupId: String, memberId: String) {
+        expectSuccess(
+            request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/members/$memberId/block"),
+        )
+    }
+
+    suspend fun oweUnblockMember(groupId: String, memberId: String) {
+        expectSuccess(
+            request(HttpMethod.Delete, "/api/v1/owe-no/groups/$groupId/members/$memberId/block"),
+        )
+    }
+
+    suspend fun oweLeaveGroup(groupId: String) {
+        expectSuccess(request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/leave"))
+    }
+
+    suspend fun oweIdentities(groupId: String): List<OweIdentityDto> =
+        read<OweIdentityList>(
+            request(HttpMethod.Get, "/api/v1/owe-no/groups/$groupId/imports/identities"),
+        ).identities
+
+    suspend fun oweImportPreview(groupId: String, csv: String): OweImportPreviewDto =
+        read(request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/imports/preview", OweImportPreviewBody(csv)))
+
+    suspend fun oweImportCommit(
+        groupId: String,
+        csv: String,
+        mapping: Map<String, String>?,
+        confirmDuplicates: Boolean,
+    ): OweImportResultDto =
+        read(
+            request(
+                HttpMethod.Post,
+                "/api/v1/owe-no/groups/$groupId/imports",
+                OweImportCommitBody(csv, mapping, if (confirmDuplicates) true else null),
+            ),
+        )
+
     /** Latest Android build published by this instance (public, no session). */
     suspend fun androidApp(): AndroidReleaseDto = read(request(HttpMethod.Get, "/api/v1/app/android"))
 
@@ -117,6 +170,10 @@ class ApiClient(
         } catch (error: IOException) {
             throw ApiException.networkFailure(error)
         }
+
+    private suspend fun expectSuccess(response: HttpResponse) {
+        if (!response.status.isSuccess()) throw errorOf(response)
+    }
 
     private suspend inline fun <reified T> read(response: HttpResponse): T {
         if (!response.status.isSuccess()) throw errorOf(response)

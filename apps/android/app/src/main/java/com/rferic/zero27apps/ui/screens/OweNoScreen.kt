@@ -47,6 +47,7 @@ import com.rferic.zero27apps.data.OweBalanceDto
 import com.rferic.zero27apps.data.OweCreateMovementBody
 import com.rferic.zero27apps.data.OweGroupDetail
 import com.rferic.zero27apps.data.OweGroupDto
+import com.rferic.zero27apps.data.OweIdentityDto
 import com.rferic.zero27apps.data.OweMemberDto
 import com.rferic.zero27apps.data.OweMovementDto
 import com.rferic.zero27apps.data.OweParticipantBody
@@ -73,7 +74,11 @@ internal fun parseMinor(raw: String): Long? {
 }
 
 /** State of the OweNo screens; one instance per visit, kept by Compose. */
-private class OweStore(private val api: ApiClient, private val scope: CoroutineScope) {
+private class OweStore(
+    private val api: ApiClient,
+    val userId: String?,
+    private val scope: CoroutineScope,
+) {
     var groups by mutableStateOf<List<OweGroupDto>>(emptyList())
     var detail by mutableStateOf<OweGroupDetail?>(null)
     var movements by mutableStateOf<List<OweMovementDto>>(emptyList())
@@ -81,6 +86,7 @@ private class OweStore(private val api: ApiClient, private val scope: CoroutineS
     var settlement by mutableStateOf<OweSettlementDto?>(null)
     var loading by mutableStateOf(false)
     var error by mutableStateOf<String?>(null)
+    var identities by mutableStateOf<List<OweIdentityDto>>(emptyList())
 
     private fun run(block: suspend () -> Unit) {
         scope.launch {
@@ -133,6 +139,37 @@ private class OweStore(private val api: ApiClient, private val scope: CoroutineS
         open(groupId)
     }
 
+    fun loadIdentities(groupId: String) = run {
+        identities = runCatching { api.oweIdentities(groupId) }.getOrDefault(emptyList())
+    }
+
+    fun accept(groupId: String) = run {
+        api.oweAcceptInvitation(groupId)
+        groups = api.oweGroups()
+        open(groupId)
+    }
+
+    fun invite(groupId: String, name: String, inviteeId: String?) = run {
+        api.oweAddMember(groupId, com.rferic.zero27apps.data.OweAddMemberBody(name, inviteeId))
+        open(groupId)
+    }
+
+    fun removeMember(groupId: String, memberId: String) = run {
+        api.oweRemoveMember(groupId, memberId)
+        open(groupId)
+    }
+
+    fun blockMember(groupId: String, memberId: String) = run {
+        api.oweBlockMember(groupId, memberId)
+        open(groupId)
+    }
+
+    fun leaveGroup(groupId: String) = run {
+        api.oweLeaveGroup(groupId)
+        close()
+        groups = api.oweGroups()
+    }
+
     fun settleUp(groupId: String, from: String, to: String, amountMinor: Long) = run {
         api.oweCreateMovement(
             groupId,
@@ -155,14 +192,16 @@ private class OweStore(private val api: ApiClient, private val scope: CoroutineS
  * service; these screens only call its API.
  */
 @Composable
-fun OweNoScreen(api: ApiClient, onBack: () -> Unit) {
+fun OweNoScreen(api: ApiClient, userId: String?, onBack: () -> Unit) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
-    val store = remember(api) { OweStore(api, scope) }
+    val store = remember(api, userId) { OweStore(api, userId, scope) }
     var showNewGroup by remember { mutableStateOf(false) }
     var showExpense by remember { mutableStateOf(false) }
     var showSettlement by remember { mutableStateOf(false) }
+    var showInvite by remember { mutableStateOf(false) }
+    var pendingAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
 
     LaunchedEffect(api) { store.loadGroups() }
 
@@ -190,7 +229,13 @@ fun OweNoScreen(api: ApiClient, onBack: () -> Unit) {
         store.error?.let { Text(it, color = palette.destructive, fontSize = 12.sp) }
 
         if (store.detail == null) {
-            Groups(store, strings.groups, strings.newGroup) { showNewGroup = true }
+            Groups(
+                store,
+                strings.groups,
+                strings.newGroup,
+                onNew = { showNewGroup = true },
+                onAccept = { store.accept(it) },
+            )
         } else {
             val detail = store.detail!!
             Balances(store.balances, detail.group.currency)
@@ -198,6 +243,16 @@ fun OweNoScreen(api: ApiClient, onBack: () -> Unit) {
                 Button(onClick = { showExpense = true }) { Text(strings.addExpense) }
                 TextButton(onClick = { showSettlement = true }) { Text(strings.settle) }
             }
+            Members(
+                store = store,
+                detail = detail,
+                strings = strings,
+                onInvite = {
+                    store.loadIdentities(detail.group.id)
+                    showInvite = true
+                },
+                onConfirm = { label, action -> pendingAction = label to action },
+            )
             Movements(store.movements, detail.members, detail.group.currency)
         }
     }
@@ -225,6 +280,34 @@ fun OweNoScreen(api: ApiClient, onBack: () -> Unit) {
         )
     }
 
+    if (showInvite && current != null) {
+        InviteDialog(
+            identities = store.identities,
+            onDismiss = { showInvite = false },
+            onInvite = { name, inviteeId ->
+                showInvite = false
+                store.invite(current.group.id, name, inviteeId)
+            },
+        )
+    }
+
+    pendingAction?.let { (label, action) ->
+        AlertDialog(
+            onDismissRequest = { pendingAction = null },
+            title = { Text(label) },
+            text = { Text(strings.confirmQuestion) },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingAction = null
+                    action()
+                }) { Text(label) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingAction = null }) { Text(strings.cancel) }
+            },
+        )
+    }
+
     if (showSettlement && current != null && store.settlement != null) {
         SettlementDialog(
             members = current.members,
@@ -239,7 +322,13 @@ fun OweNoScreen(api: ApiClient, onBack: () -> Unit) {
 }
 
 @Composable
-private fun Groups(store: OweStore, title: String, newGroup: String, onNew: () -> Unit) {
+private fun Groups(
+    store: OweStore,
+    title: String,
+    newGroup: String,
+    onNew: () -> Unit,
+    onAccept: (String) -> Unit,
+) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -250,12 +339,13 @@ private fun Groups(store: OweStore, title: String, newGroup: String, onNew: () -
         Text(strings.noGroups, fontSize = 13.sp, color = palette.mutedForeground)
     }
     for (group in store.groups) {
+        val invited = group.role == "invited"
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(palette.surface, RoundedCornerShape(16.dp))
                 .border(1.dp, palette.border, RoundedCornerShape(16.dp))
-                .clickable { store.open(group.id) }
+                .clickable(enabled = !invited) { store.open(group.id) }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -269,13 +359,137 @@ private fun Groups(store: OweStore, title: String, newGroup: String, onNew: () -
             Column(Modifier.weight(1f)) {
                 Text(group.name, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "${group.members} ${strings.members} · ${group.currency}",
+                    if (invited) strings.invitations else "${group.members} ${strings.members} · ${group.currency}",
                     fontSize = 12.sp,
-                    color = palette.mutedForeground,
+                    color = if (invited) palette.accent else palette.mutedForeground,
                 )
+            }
+            if (invited) {
+                TextButton(onClick = { onAccept(group.id) }) { Text(strings.accept) }
             }
         }
     }
+}
+
+/** Members of a group; the creator invites, removes and blocks (D3.6). */
+@Composable
+private fun Members(
+    store: OweStore,
+    detail: OweGroupDetail,
+    strings: com.rferic.zero27apps.ui.i18n.Strings,
+    onInvite: () -> Unit,
+    onConfirm: (String, () -> Unit) -> Unit,
+) {
+    val palette = LocalPalette.current
+    val creator = detail.group.createdBy != null && detail.group.createdBy == store.userId
+    val mine = detail.members.firstOrNull { it.userId != null && it.userId == store.userId }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            strings.members.uppercase(),
+            fontSize = 11.sp,
+            letterSpacing = 1.sp,
+            color = palette.mutedForeground,
+            modifier = Modifier.weight(1f),
+        )
+        if (creator) {
+            TextButton(onClick = onInvite) { Text(strings.invite) }
+        }
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(palette.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        for (member in detail.members.filter { it.state == "active" || it.state == "invited" }) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(member.displayName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        when (member.state) {
+                            "invited" -> strings.stateInvited
+                            "left" -> strings.stateLeft
+                            "removed" -> strings.stateRemoved
+                            else -> strings.stateActive
+                        },
+                        fontSize = 11.sp,
+                        color = palette.mutedForeground,
+                    )
+                }
+                if (creator && member.userId != store.userId && member.state == "active") {
+                    TextButton(onClick = {
+                        onConfirm(strings.removeMember) { store.removeMember(detail.group.id, member.id) }
+                    }) { Text(strings.removeMember, fontSize = 11.sp) }
+                    TextButton(onClick = {
+                        onConfirm(strings.blockMember) { store.blockMember(detail.group.id, member.id) }
+                    }) { Text(strings.blockMember, fontSize = 11.sp, color = palette.destructive) }
+                }
+            }
+        }
+        if (mine != null) {
+            TextButton(
+                onClick = {
+                    onConfirm(strings.leaveGroup) { store.leaveGroup(detail.group.id) }
+                },
+            ) { Text(strings.leaveGroup, color = palette.destructive, fontSize = 12.sp) }
+        }
+    }
+}
+
+/** Invite a registered account (outside the group) or add a fictitious name. */
+@Composable
+private fun InviteDialog(
+    identities: List<OweIdentityDto>,
+    onDismiss: () -> Unit,
+    onInvite: (String, String?) -> Unit,
+) {
+    val strings = LocalStrings.current
+    val palette = LocalPalette.current
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(strings.inviteMember) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                identities.take(12).forEach { identity ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(identity.displayName, modifier = Modifier.weight(1f), fontSize = 13.sp)
+                        TextButton(onClick = { onInvite(identity.displayName, identity.id) }) {
+                            Text(strings.invite)
+                        }
+                    }
+                }
+                Text(
+                    strings.accountOptional,
+                    fontSize = 11.sp,
+                    color = palette.mutedForeground,
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(strings.nameLabel) },
+                    singleLine = true,
+                )
+                Text(
+                    strings.fictitious,
+                    fontSize = 11.sp,
+                    color = palette.mutedForeground,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = name.isNotBlank(),
+                onClick = { onInvite(name.trim(), null) },
+            ) { Text(strings.invite) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },
+    )
 }
 
 @Composable
