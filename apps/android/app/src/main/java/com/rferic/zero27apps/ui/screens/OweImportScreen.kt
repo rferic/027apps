@@ -1,6 +1,6 @@
 package com.rferic.zero27apps.ui.screens
 
-import com.rferic.zero27apps.ui.components.AppAlertDialog
+import com.rferic.zero27apps.ui.components.AppFormSheet
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -184,7 +184,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
                     if (mapping.containsKey(name)) {
                         Text("✓", color = palette.accent, fontSize = 14.sp)
                     } else {
-                        TextButton(onClick = { mappingName = name }) { Text(strings.invite) }
+                        TextButton(onClick = { mappingName = name }) { Text(strings.assign) }
                     }
                 }
             }
@@ -218,7 +218,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
     }
 
     mappingName?.let { name ->
-        AppAlertDialog(
+        AppFormSheet(
             onDismissRequest = { mappingName = null },
             title = { Text("$name · ${strings.mapIdentity}") },
             text = {

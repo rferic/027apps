@@ -67,6 +67,18 @@ describe('withDoor — success', () => {
     expect(await res.text()).toBe('raw');
   });
 
+  it('answers 204 with no body, so a delete is not a 500 after the write', async () => {
+    const res = await withDoor(
+      new Request(URL_BASE, { method: 'POST', body: JSON.stringify({ email: 'a@b.c' }) }),
+      makeOptions(),
+      makeDeps(),
+      async () => ({ status: 204, body: null }),
+    );
+
+    expect(res.status).toBe(204);
+    expect(await res.text()).toBe('');
+  });
+
   it('maps a { status, body } handler result to the HTTP status and body', async () => {
     const res = await withDoor(
       new Request(URL_BASE, { method: 'POST', body: JSON.stringify({ email: 'a@b.c' }) }),

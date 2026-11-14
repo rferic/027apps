@@ -1,6 +1,6 @@
 package com.rferic.zero27apps.ui
 
-import com.rferic.zero27apps.ui.components.AppAlertDialog
+import com.rferic.zero27apps.ui.components.AppFormSheet
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,7 +48,7 @@ fun InstancePickerDialog(
     val palette = LocalPalette.current
     val strings = LocalStrings.current
 
-    AppAlertDialog(
+    AppFormSheet(
         onDismissRequest = onDismiss,
         title = { Text(strings.instance) },
         text = {

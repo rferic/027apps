@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">027Apps</string>
+    <string name="owe_widget_label">OweNo</string>
+    <string name="owe_widget_description">Your shared-expense balance at a glance.</string>
 </resources>

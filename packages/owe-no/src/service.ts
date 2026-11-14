@@ -349,6 +349,21 @@ export async function linkMember(
   await emit(deps.db, "owe_no.member_linked", { group_id: groupId, member_id: memberId }, false);
 }
 
+/**
+ * The creator links a name without an account to a real account (D31). The
+ * member id does not change, so the history and the balance stay where they are.
+ */
+export async function linkMemberAsCreator(
+  deps: OweDeps,
+  actorId: string,
+  groupId: string,
+  memberId: string,
+  userId: string,
+): Promise<void> {
+  await requireCreator(deps, actorId, groupId);
+  await linkMember(deps, groupId, memberId, userId);
+}
+
 /** The invitee declines: the row stays as `left`, so a later invite can revive it. */
 export async function declineInvitation(
   deps: OweDeps,

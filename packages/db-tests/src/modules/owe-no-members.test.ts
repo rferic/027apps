@@ -19,6 +19,7 @@ import {
   listMembers,
   removeMember,
   unblockMember,
+  linkMemberAsCreator,
   declineInvitation,
 } from "@027apps/owe-no/domain/service.js";
 import type { Caller } from "@027apps/core/api/types.js";
@@ -177,6 +178,27 @@ describe("owe-no removal of a member without an account (D31)", () => {
   });
 });
 
+describe("owe-no linking a name to an account (D31)", () => {
+  it("lets the creator link a fictitious name to a real account, refusing others", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const marta = await other(c, "Marta");
+      const luis = await other(c, "Luis");
+      const member = await addMember(deps(c), owner.id, group.id, { displayName: "Marta" });
+      await expect(
+        linkMemberAsCreator(deps(c), luis, group.id, member.id, marta),
+      ).rejects.toMatchObject({ code: "not_found" });
+      await linkMemberAsCreator(deps(c), owner.id, group.id, member.id, marta);
+      const listed = await listMembers(deps(c), owner.id, group.id);
+      expect(listed.find((row) => row.id === member.id)).toMatchObject({
+        user_id: marta,
+        kind: "user",
+        state: "active",
+      });
+    });
+  });
+});
+
 describe("owe-no member lifecycle", () => {
   it("lets a member leave with a zero balance", async () => {
     await inRollback(async (c) => {
@@ -228,6 +250,21 @@ describe("owe-no member lifecycle", () => {
         group.id,
       ]);
       expect(rows[0].created_by).toBe(luis);
+    });
+  });
+
+  it("cancels an invitation (invited member, zero balance)", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
+      const member = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+      });
+      expect(member.state).toBe("invited");
+      await removeMember(deps(c), owner.id, group.id, member.id);
+      const listed = await listMembers(deps(c), owner.id, group.id);
+      expect(listed.find((row) => row.id === member.id)).toBeUndefined();
     });
   });
 

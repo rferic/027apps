@@ -1,6 +1,8 @@
 package com.rferic.zero27apps.ui.screens
 
-import com.rferic.zero27apps.ui.components.AppAlertDialog
+import com.rferic.zero27apps.ui.components.AppFormSheet
+import com.rferic.zero27apps.ui.components.AppSheet
+import com.rferic.zero27apps.ui.components.SheetAction
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -221,6 +223,11 @@ private class OweStore(
         open(groupId)
     }
 
+    fun linkMember(groupId: String, memberId: String, userId: String) = run {
+        api.oweLinkMember(groupId, memberId, userId)
+        open(groupId)
+    }
+
     fun unblockMember(groupId: String, memberId: String) = run {
         api.oweUnblockMember(groupId, memberId)
         open(groupId)
@@ -262,7 +269,14 @@ private class OweStore(
  * service; these screens only call its API.
  */
 @Composable
-fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> Unit) {
+fun OweNoScreen(
+    api: ApiClient,
+    userId: String?,
+    locale: String,
+    onBack: () -> Unit,
+    startAction: String? = null,
+    onStartConsumed: () -> Unit = {},
+) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     val scope = rememberCoroutineScope()
@@ -279,9 +293,13 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
     var pendingAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     var tab by remember { mutableStateOf(0) }
     var showAddPerson by remember { mutableStateOf(false) }
+    var pickGroupForExpense by remember { mutableStateOf(startAction == "expense") }
     var inviteMode by remember { mutableStateOf("account") }
 
     LaunchedEffect(api) { store.loadGroups() }
+    LaunchedEffect(startAction) {
+        if (startAction == "expense") pickGroupForExpense = true
+    }
 
     androidx.activity.compose.BackHandler {
         when {
@@ -451,6 +469,35 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
         }
     }
 
+    if (pickGroupForExpense) {
+        AppSheet(
+            onDismissRequest = {
+                pickGroupForExpense = false
+                onStartConsumed()
+            },
+            title = strings.addExpense,
+            subtitle = strings.groups,
+            secondaryLabel = strings.cancel,
+            onSecondary = {
+                pickGroupForExpense = false
+                onStartConsumed()
+            },
+            content = {
+                if (store.groups.isEmpty()) {
+                    Text(strings.noGroups, fontSize = 12.sp, color = palette.mutedForeground)
+                }
+                store.groups.filter { it.role == "active" }.forEach { group ->
+                    SheetAction(label = group.name) {
+                        pickGroupForExpense = false
+                        onStartConsumed()
+                        store.open(group.id)
+                        showExpense = true
+                    }
+                }
+            },
+        )
+    }
+
     if (showNewGroup) {
         NewGroupDialog(
             onDismiss = { showNewGroup = false },
@@ -529,7 +576,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
     }
 
     pendingAction?.let { (label, action) ->
-        AppAlertDialog(
+        AppFormSheet(
             onDismissRequest = { pendingAction = null },
             title = { Text(label) },
             text = { Text(strings.confirmQuestion) },
@@ -815,8 +862,16 @@ private fun MembersTab(
     var balanceRemove by remember { mutableStateOf<OweMemberDto?>(null) }
     var confirmBlock by remember { mutableStateOf<OweMemberDto?>(null) }
     var confirmLeave by remember { mutableStateOf(false) }
+    var linkTarget by remember { mutableStateOf<OweMemberDto?>(null) }
     fun balanceOf(id: String): Long =
         store.balances.firstOrNull { it.memberId == id }?.amountMinor ?: 0L
+
+    fun statusOf(member: OweMemberDto): String = when {
+        member.blocked -> strings.blockedPeople
+        member.state == "invited" -> strings.pendingInvite
+        member.userId == null -> strings.memberNoAccount
+        else -> strings.stateActive
+    }
 
     fun directionText(member: OweMemberDto): String? {
         val owed = balanceOf(member.id)
@@ -875,16 +930,7 @@ private fun MembersTab(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    Text(
-                        when {
-                            member.blocked -> strings.blockedPeople
-                            member.state == "invited" -> strings.pendingInvite
-                            member.userId == null -> strings.memberNoAccount
-                            else -> strings.stateActive
-                        },
-                        fontSize = 11.sp,
-                        color = palette.mutedForeground,
-                    )
+                    Text(statusOf(member), fontSize = 11.sp, color = palette.mutedForeground)
                 }
                 directionText(member)?.let {
                     Text(
@@ -909,155 +955,191 @@ private fun MembersTab(
 
     sheet?.let { member ->
         val owed = balanceOf(member.id)
-        AppAlertDialog(
+        AppSheet(
             onDismissRequest = { sheet = null },
-            title = { Text(member.displayName) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        when {
-                            member.blocked -> strings.blockedPeople
-                            member.state == "invited" -> strings.pendingInvite
-                            member.userId == null -> strings.memberNoAccount
-                            else -> strings.stateActive
-                        },
-                        fontSize = 12.sp,
-                        color = palette.mutedForeground,
-                    )
-                    directionText(member)?.let {
-                        Text(
-                            it,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (owed > 0) palette.accent else palette.destructive,
-                        )
-                    }
-                    if (creator && member.userId != store.userId) {
-                        if (owed != 0L && member.state == "active") {
-                            TextButton(onClick = {
-                                sheet = null
-                                onSettle()
-                            }) { Text(strings.settleFirst) }
+            title = member.displayName,
+            subtitle = listOfNotNull(statusOf(member), directionText(member)).joinToString(" · "),
+            secondaryLabel = strings.close,
+            onSecondary = { sheet = null },
+            content = {
+                if (creator && member.userId != store.userId) {
+                    if (owed != 0L && member.state == "active") {
+                        SheetAction(label = strings.settleFirst) {
+                            sheet = null
+                            onSettle()
                         }
-                        when {
-                            member.blocked -> TextButton(onClick = {
+                    }
+                    if (member.userId == null && !member.blocked) {
+                        SheetAction(label = strings.linkAccount) {
+                            sheet = null
+                            store.loadIdentities(detail.group.id)
+                            linkTarget = member
+                        }
+                    }
+                    when {
+                        member.blocked -> SheetAction(label = strings.unblockAccount) {
+                            sheet = null
+                            store.unblockMember(detail.group.id, member.id)
+                        }
+                        member.state == "invited" -> SheetAction(
+                            label = strings.cancelInvitation,
+                            note = strings.confirmQuestion,
+                            destructive = true,
+                        ) {
+                            sheet = null
+                            confirmRemove = member
+                        }
+                        else -> {
+                            SheetAction(
+                                label = strings.removeFromGroup,
+                                note = if (owed != 0L) strings.removeBalanceBody else null,
+                                destructive = true,
+                            ) {
                                 sheet = null
-                                store.unblockMember(detail.group.id, member.id)
-                            }) { Text(strings.unblockAccount) }
-                            member.state == "invited" -> TextButton(onClick = {
-                                sheet = null
-                                confirmRemove = member
-                            }) {
-                                Text(strings.cancelInvitation, color = palette.destructive, fontSize = 13.sp)
+                                if (owed != 0L) balanceRemove = member else confirmRemove = member
                             }
-                            else -> {
-                                TextButton(onClick = {
+                            if (member.userId != null && owed == 0L) {
+                                SheetAction(
+                                    label = strings.blockAccount,
+                                    note = strings.confirmQuestion,
+                                    destructive = true,
+                                ) {
                                     sheet = null
-                                    if (owed != 0L) balanceRemove = member else confirmRemove = member
-                                }) {
-                                    Text(strings.removeFromGroup, color = palette.destructive, fontSize = 13.sp)
-                                }
-                                if (member.userId != null && owed == 0L) {
-                                    TextButton(onClick = {
-                                        sheet = null
-                                        confirmBlock = member
-                                    }) {
-                                        Text(strings.blockAccount, color = palette.destructive, fontSize = 13.sp)
-                                    }
+                                    confirmBlock = member
                                 }
                             }
                         }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { sheet = null }) { Text(strings.close) } },
         )
     }
 
     confirmRemove?.let { member ->
-        AppAlertDialog(
+        AppSheet(
             onDismissRequest = { confirmRemove = null },
-            title = {
-                Text(if (member.state == "invited") strings.cancelInvitation else strings.removeFromGroup)
+            title = if (member.state == "invited") strings.cancelInvitation else strings.removeFromGroup,
+            subtitle = strings.confirmQuestion,
+            primaryLabel = if (member.state == "invited") strings.cancelInvitation else strings.removeFromGroup,
+            destructive = true,
+            onPrimary = {
+                confirmRemove = null
+                store.removeMember(detail.group.id, member.id)
             },
-            text = { Text(strings.confirmQuestion) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmRemove = null
-                    store.removeMember(detail.group.id, member.id)
-                }) { Text(strings.removeFromGroup, color = palette.destructive) }
-            },
-            dismissButton = { TextButton(onClick = { confirmRemove = null }) { Text(strings.cancel) } },
+            secondaryLabel = strings.cancel,
+            onSecondary = { confirmRemove = null },
         )
     }
 
     balanceRemove?.let { member ->
         val owed = balanceOf(member.id)
-        AppAlertDialog(
+        AppSheet(
             onDismissRequest = { balanceRemove = null },
-            title = {
-                Text(
-                    "${member.displayName} · " +
-                        formatMinor(if (owed < 0) -owed else owed, detail.group.currency, locale),
-                )
+            title = member.displayName,
+            subtitle = formatMinor(if (owed < 0) -owed else owed, detail.group.currency, locale) +
+                " · " + strings.removeBalanceBody,
+            primaryLabel = strings.settleFirst,
+            onPrimary = {
+                balanceRemove = null
+                onSettle()
             },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(strings.removeBalanceBody)
-                    if (member.userId != null) {
-                        TextButton(onClick = {
-                            balanceRemove = null
-                            store.removeMember(detail.group.id, member.id, "ghost")
-                        }) { Text(strings.removeKeepBalance, color = palette.destructive, fontSize = 13.sp) }
+            secondaryLabel = strings.cancel,
+            onSecondary = { balanceRemove = null },
+            content = {
+                if (member.userId != null) {
+                    SheetAction(
+                        label = strings.removeKeepBalance,
+                        destructive = true,
+                    ) {
+                        balanceRemove = null
+                        store.removeMember(detail.group.id, member.id, "ghost")
                     }
                 }
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    balanceRemove = null
-                    onSettle()
-                }) { Text(strings.settleFirst) }
-            },
-            dismissButton = { TextButton(onClick = { balanceRemove = null }) { Text(strings.cancel) } },
         )
     }
 
     confirmBlock?.let { member ->
-        AppAlertDialog(
+        AppSheet(
             onDismissRequest = { confirmBlock = null },
-            title = { Text(strings.blockAccount) },
-            text = { Text(strings.confirmQuestion) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmBlock = null
-                    store.blockMember(detail.group.id, member.id)
-                }) { Text(strings.blockAccount, color = palette.destructive) }
+            title = strings.blockAccount,
+            subtitle = strings.confirmQuestion,
+            primaryLabel = strings.blockAccount,
+            destructive = true,
+            onPrimary = {
+                confirmBlock = null
+                store.blockMember(detail.group.id, member.id)
             },
-            dismissButton = { TextButton(onClick = { confirmBlock = null }) { Text(strings.cancel) } },
+            secondaryLabel = strings.cancel,
+            onSecondary = { confirmBlock = null },
         )
     }
 
     if (confirmLeave) {
-        AppAlertDialog(
+        AppSheet(
             onDismissRequest = { confirmLeave = false },
-            title = { Text(strings.leaveGroup) },
-            text = { Text(strings.confirmQuestion) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmLeave = false
-                    store.leaveGroup(detail.group.id)
-                }) { Text(strings.leaveGroup, color = palette.destructive) }
+            title = strings.leaveGroup,
+            subtitle = strings.confirmQuestion,
+            primaryLabel = strings.leaveGroup,
+            destructive = true,
+            onPrimary = {
+                confirmLeave = false
+                store.leaveGroup(detail.group.id)
             },
-            dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text(strings.cancel) } },
+            secondaryLabel = strings.cancel,
+            onSecondary = { confirmLeave = false },
         )
     }
+
+    linkTarget?.let { member ->
+        LinkDialog(
+            identities = store.identities,
+            onDismiss = { linkTarget = null },
+            onPick = { identity ->
+                linkTarget = null
+                store.linkMember(detail.group.id, member.id, identity.id)
+            },
+        )
+    }
+}
+
+/** Attach a name without an account to a real account, keeping its history. */
+@Composable
+private fun LinkDialog(
+    identities: List<OweIdentityDto>,
+    onDismiss: () -> Unit,
+    onPick: (OweIdentityDto) -> Unit,
+) {
+    val strings = LocalStrings.current
+    var query by remember { mutableStateOf("") }
+    val wanted = query.trim().lowercase()
+    val matches = identities.filter { wanted.isNotEmpty() && it.displayName.lowercase().contains(wanted) }.take(6)
+    AppSheet(
+        onDismissRequest = onDismiss,
+        title = strings.linkAccount,
+        subtitle = strings.linkAccountNote,
+        secondaryLabel = strings.cancel,
+        onSecondary = onDismiss,
+        content = {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                label = { Text(strings.nameLabel) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+            )
+            matches.forEach { identity ->
+                SheetAction(label = identity.displayName) { onPick(identity) }
+            }
+        },
+    )
 }
 
 /** Two ways to grow a group; only one of them is an invitation. */
 @Composable
 private fun AddPersonDialog(onDismiss: () -> Unit, onPick: (String) -> Unit) {
     val strings = LocalStrings.current
-    AppAlertDialog(
+    AppFormSheet(
         onDismissRequest = onDismiss,
         title = { Text(strings.addPerson) },
         text = {
@@ -1107,7 +1189,7 @@ private fun InviteDialog(
     } else {
         identities.filter { it.displayName.lowercase().contains(wanted) }.take(6)
     }
-    AppAlertDialog(
+    AppFormSheet(
         onDismissRequest = onDismiss,
         title = { Text(if (account) strings.inviteWithAccount else strings.addWithoutAccount) },
         text = {
@@ -1252,7 +1334,7 @@ private fun NewGroupDialog(onDismiss: () -> Unit, onCreate: (String, String) -> 
     val strings = LocalStrings.current
     var name by remember { mutableStateOf("") }
     var currency by remember { mutableStateOf("EUR") }
-    AppAlertDialog(
+    AppFormSheet(
         onDismissRequest = onDismiss,
         title = { Text(strings.newGroup) },
         text = {
@@ -1313,7 +1395,7 @@ private fun ExpenseDialog(
         selected.map { OweParticipantBody(it) }
     }
 
-    AppAlertDialog(
+    AppFormSheet(
         onDismissRequest = onDismiss,
         title = { Text(strings.addExpense) },
         text = {
@@ -1467,7 +1549,7 @@ private fun ManualPaymentDialog(
     val minor = parseMinor(amount)
     val dayValid = runCatching { LocalDate.parse(day) }.isSuccess
 
-    AppAlertDialog(
+    AppFormSheet(
         onDismissRequest = onDismiss,
         title = { Text(strings.registerPayment) },
         text = {
@@ -1534,7 +1616,7 @@ private fun SettlementDialog(
 ) {
     val strings = LocalStrings.current
     val byId = members.associateBy { it.id }
-    AppAlertDialog(
+    AppFormSheet(
         onDismissRequest = onDismiss,
         title = { Text(strings.whoPays) },
         text = {

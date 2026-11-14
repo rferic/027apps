@@ -357,7 +357,10 @@ async function runDoor(
       'body' in result
     ) {
       const { status, body: responseBody } = result as { status: number; body: JsonValue };
-      return new Response(JSON.stringify(responseBody), {
+      // 204/205/304 must not carry a body: the Response constructor throws, which
+      // turned every successful delete into a 500 after the write had happened.
+      const bodyless = status === 204 || status === 205 || status === 304;
+      return new Response(bodyless ? null : JSON.stringify(responseBody), {
         status,
         headers: baseHeaders(requestId, cors),
       });

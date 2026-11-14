@@ -236,6 +236,7 @@ private fun Shell(
 
     val actions = state.modules.flatMap { module -> module.appActions }.distinctBy { it.key }
     var showActions by remember { mutableStateOf(false) }
+    var startAction by remember { mutableStateOf<String?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -307,6 +308,8 @@ private fun Shell(
                     userId = (state as? AppState.SignedIn)?.user?.id,
                     locale = language,
                     onBack = { openModule = null },
+                    startAction = startAction,
+                    onStartConsumed = { startAction = null },
                 )
                 tab == 1 -> ModulesScreen(state.modules, onOpen = { key -> openModule = key })
                 openModule != null -> LaunchedEffect(openModule) {
@@ -351,7 +354,10 @@ private fun Shell(
                             .clickable {
                                 showActions = false
                                 when (action.screen) {
-                                    "owe_expense", "owe_movement" -> openModule = "owe-no"
+                                    "owe_expense", "owe_movement" -> {
+                                        startAction = "expense"
+                                        openModule = "owe-no"
+                                    }
                                     else -> scope.launch { snackbar.showSnackbar(strings.actionSoon) }
                                 }
                             }
@@ -372,11 +378,24 @@ private fun Shell(
                                 modifier = Modifier.size(18.dp),
                             )
                         }
-                        Text(action.label, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text(
+                            actionLabel(action, strings),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                        )
                     }
                 }
                 Spacer(Modifier.height(16.dp))
             }
         }
     }
+}
+
+/** A module action label in the user's language; the manifest ships English. */
+private fun actionLabel(
+    action: com.rferic.zero27apps.data.AppActionDto,
+    strings: com.rferic.zero27apps.ui.i18n.Strings,
+): String = when (action.key) {
+    "add_expense" -> strings.addExpense
+    else -> action.label
 }

@@ -8,6 +8,7 @@ import io.ktor.client.request.header
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -98,6 +99,16 @@ class ApiClient(
             request(
                 HttpMethod.Delete,
                 "/api/v1/owe-no/groups/$groupId/members/$memberId" + (mode?.let { "?mode=$it" } ?: ""),
+            ),
+        )
+    }
+
+    suspend fun oweLinkMember(groupId: String, memberId: String, userId: String) {
+        expectSuccess(
+            request(
+                HttpMethod.Post,
+                "/api/v1/owe-no/groups/$groupId/members/$memberId/link",
+                OweLinkBody(userId),
             ),
         )
     }
@@ -197,6 +208,9 @@ class ApiClient(
 
     private suspend fun errorOf(response: HttpResponse): ApiException {
         val status = response.status.value
+        runCatching {
+            android.util.Log.w("027api", "HTTP $status ${response.call.request.url.encodedPath} ${response.bodyAsText()}")
+        }
         val envelope = runCatching { response.body<ErrorEnvelope>() }.getOrNull()
         return if (envelope != null) {
             val detail = envelope.error.details
