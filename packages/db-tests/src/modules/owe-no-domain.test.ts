@@ -18,6 +18,7 @@ import {
   balances,
   createGroup,
   deleteMovement,
+  linkMember,
   listAllGroups,
   listGroups,
   listMembers,
@@ -164,13 +165,23 @@ describe("owe-no service", () => {
       const afterDelete = await balances(deps, ana.userId, group.id);
       expect([...afterDelete.values()].some((amount) => amount !== 0)).toBe(true);
 
+      // A fictitious member can be linked to a real account.
+      const fictitious = await addMember(deps, ana.userId, group.id, { displayName: "Pepe" });
+      const pepe = await session(c, "user");
+      await linkMember(deps, group.id, fictitious.id, pepe.userId);
+      const linked = (await listMembers(deps, ana.userId, group.id)).find(
+        (member) => member.id === fictitious.id,
+      );
+      expect(linked).toMatchObject({ kind: "user", user_id: pepe.userId });
+
       // The panel view sees every group without being a member.
       const all = await listAllGroups(deps);
       expect(all.map((row) => row.id)).toContain(group.id);
       expect(all.find((row) => row.id === group.id)).toMatchObject({
         name: "Casa",
         currency: "EUR",
-        members: 2,
+        // Ana, Luis and the fictitious member linked above.
+        members: 3,
       });
 
       // An outsider sees nothing, not even the group.

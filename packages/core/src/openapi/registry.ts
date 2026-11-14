@@ -256,6 +256,15 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
   },
   {
     method: "post",
+    path: "/owe-no/groups/{id}/members/{memberId}/link",
+    summary: "Link a fictitious member to an account (admins).",
+    scopes: ["expenses:read_write"],
+    request: z.object({ user_id: z.uuid() }).strict(),
+    auth: "session",
+    status: 204,
+  },
+  {
+    method: "post",
     path: "/owe-no/groups/{id}/imports/preview",
     summary: "Dry-run a Splitwise CSV: counts, errors, unresolved names, duplicates.",
     scopes: ["expenses:read_write"],

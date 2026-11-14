@@ -251,6 +251,47 @@ export async function addMember(
   };
 }
 
+/**
+ * Links a fictitious member to a real account (admins, from the panel). The
+ * history stays: the member id does not change, only its owner, and the name is
+ * the one the history already showed.
+ */
+export async function linkMember(
+  deps: OweDeps,
+  groupId: string,
+  memberId: string,
+  userId: string,
+): Promise<void> {
+  const { rows: profile } = await deps.db.query(
+    "select display_name from public.profiles where id = $1 and deactivated_at is null",
+    [userId],
+  );
+  if (!profile[0]) throw new OweDomainError("validation_failed", "unknown user");
+  const { rows: member } = await deps.db.query(
+    `select id, user_id, state from module_owe_no.owe_no_members
+      where id = $1 and group_id = $2`,
+    [memberId, groupId],
+  );
+  if (!member[0]) throw new OweDomainError("not_found", "member not found");
+  if (member[0].user_id !== null) {
+    throw new OweDomainError("conflict", "the member already belongs to an account");
+  }
+  const { rows: existing } = await deps.db.query(
+    `select 1 from module_owe_no.owe_no_members
+      where group_id = $1 and user_id = $2 and id <> $3`,
+    [groupId, userId, memberId],
+  );
+  if (existing[0]) throw new OweDomainError("conflict", "that user is already a member");
+  await deps.db.query(
+    `update module_owe_no.owe_no_members
+        set user_id = $3,
+            state = case when state = 'invited' then 'active' else state end,
+            joined_at = coalesce(joined_at, now())
+      where id = $1 and group_id = $2`,
+    [memberId, groupId, userId],
+  );
+}
+
 /** The invited member accepts: from `invited` to `active`. */
 export async function acceptInvitation(
   deps: OweDeps,
