@@ -1,6 +1,7 @@
 package com.rferic.zero27apps.ui
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.rferic.zero27apps.BuildConfig
@@ -17,6 +18,7 @@ import com.rferic.zero27apps.data.RedeemRequest
 import com.rferic.zero27apps.prefs.PrefsStringStore
 import com.rferic.zero27apps.update.UpdateThrottle
 import com.rferic.zero27apps.update.Updater
+import com.rferic.zero27apps.FcmRegistrar
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
@@ -174,6 +176,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 pendingLink = null
                 _invite.value = InviteState()
                 _state.value = AppState.SignedIn(link.instance, me, modules, widgets)
+                registerPush(link.instance, supabaseClient)
             } catch (error: ApiException) {
                 _invite.value = InviteState(error = inviteError(error))
             } catch (_: Exception) {
@@ -197,6 +200,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val widgets = runCatching { api.dashboard("app").widgets }.getOrDefault(emptyList())
                 _login.value = LoginState()
                 _state.value = AppState.SignedIn(instanceStore.current(), me, modules, widgets)
+                registerPush(instanceStore.current(), supabase)
             } catch (error: Exception) {
                 _login.value = LoginState(error = loginError(error))
             }
@@ -209,6 +213,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             sessionStore.clear()
             _login.value = LoginState()
             awaitLogin()
+        }
+    }
+
+    /** Registers this installation for push once there is a session. */
+    private fun registerPush(instance: String, supabaseClient: SupabaseClient?) {
+        val jwt = supabaseClient?.auth?.currentSessionOrNull()?.accessToken
+        if (jwt == null) {
+            Log.w("Push", "no session token yet; skipping FCM registration")
+            return
+        }
+        FcmRegistrar(getApplication()).configure(instance, jwt) { result ->
+            result.exceptionOrNull()?.let { Log.w("Push", "FCM registration failed", it) }
         }
     }
 
@@ -276,6 +292,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val modules = api.myModules().modules
             val widgets = runCatching { api.dashboard("app").widgets }.getOrDefault(emptyList())
             _state.value = AppState.SignedIn(base, me, modules, widgets)
+            registerPush(base, supabase)
         } catch (error: ApiException) {
             _state.value = AppState.Failure(failureReason(error))
         } catch (_: Exception) {
