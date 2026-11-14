@@ -20,7 +20,9 @@ export async function DELETE(
     door,
     async (ctx) => {
       try {
-        await removeMember(owe, callerId(ctx.caller), id, memberId);
+        const mode =
+          new URL(req.url).searchParams.get("mode") === "ghost" ? "ghost" : "settle";
+        await removeMember(owe, callerId(ctx.caller), id, memberId, mode);
         return { status: 204, body: null };
       } catch (error) {
         domainError(error);

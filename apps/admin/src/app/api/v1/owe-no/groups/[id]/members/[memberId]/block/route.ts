@@ -20,7 +20,9 @@ export async function POST(
     door,
     async (ctx) => {
       try {
-        await blockMember(owe, callerId(ctx.caller), id, memberId);
+        const mode =
+          new URL(req.url).searchParams.get("mode") === "ghost" ? "ghost" : "settle";
+        await blockMember(owe, callerId(ctx.caller), id, memberId, mode);
         return { status: 204, body: null };
       } catch (error) {
         domainError(error);

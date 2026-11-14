@@ -131,6 +131,8 @@ data class Strings(
     val importDuplicates: String,
     val done: String,
     val fileError: String,
+    val convertFictitious: String,
+    val keepBalance: String,
 
 
 )
@@ -277,6 +279,8 @@ object AppStrings {
         done = "Done",
         fileError = "The file could not be read.",
 
+        convertFictitious = "Convert to fictitious",
+        keepBalance = "{name} keeps the balance but loses access to the group.",
     )
 
     val es = Strings(
@@ -408,6 +412,8 @@ object AppStrings {
         done = "Hecho",
         fileError = "No se pudo leer el archivo.",
 
+        convertFictitious = "Convertir en ficticio",
+        keepBalance = "{name} conserva su saldo pero pierde el acceso al grupo.",
     )
 
     val ca = Strings(
@@ -539,6 +545,8 @@ object AppStrings {
         done = "Fet",
         fileError = "No s'ha pogut llegir el fitxer.",
 
+        convertFictitious = "Converteix en fictici",
+        keepBalance = "{name} conserva el saldo però perd l'accés al grup.",
     )
 
     val it = Strings(
@@ -670,6 +678,8 @@ object AppStrings {
         done = "Fatto",
         fileError = "Impossibile leggere il file.",
 
+        convertFictitious = "Converti in fittizio",
+        keepBalance = "{name} conserva il saldo ma perde l'accesso al gruppo.",
     )
 
     val fr = Strings(
@@ -801,6 +811,8 @@ object AppStrings {
         done = "Terminé",
         fileError = "Le fichier n'a pas pu être lu.",
 
+        convertFictitious = "Convertir en fictif",
+        keepBalance = "{name} conserve le solde mais perd l'accès au groupe.",
     )
 
     val de = Strings(
@@ -932,6 +944,8 @@ object AppStrings {
         done = "Fertig",
         fileError = "Die Datei konnte nicht gelesen werden.",
 
+        convertFictitious = "In Fiktives umwandeln",
+        keepBalance = "{name} behält den Saldo, verliert aber den Zugang zur Gruppe.",
     )
 
     val pt = Strings(
@@ -1063,6 +1077,8 @@ object AppStrings {
         done = "Concluído",
         fileError = "Não foi possível ler o ficheiro.",
 
+        convertFictitious = "Converter em fictício",
+        keepBalance = "{name} mantém o saldo mas perde o acesso ao grupo.",
     )
 
     val gl = Strings(
@@ -1194,6 +1210,8 @@ object AppStrings {
         done = "Feito",
         fileError = "Non se puido ler o ficheiro.",
 
+        convertFictitious = "Converter en ficticio",
+        keepBalance = "{name} conserva o saldo pero perde o acceso ao grupo.",
     )
 
     val eu = Strings(
@@ -1325,5 +1343,7 @@ object AppStrings {
         done = "Eginda",
         fileError = "Ezin izan da fitxategia irakurri.",
 
+        convertFictitious = "Bihurtu fiktizio",
+        keepBalance = "{name}(e)k balantzea gordetzen du, baina talderako sarbidea galduko du.",
     )
 }

@@ -690,6 +690,7 @@ export async function removeMember(
   actorId: string,
   groupId: string,
   memberId: string,
+  mode: "settle" | "ghost" = "settle",
 ): Promise<void> {
   await assertGroupOpen(deps, groupId);
   await requireCreator(deps, actorId, groupId);
@@ -707,10 +708,26 @@ export async function removeMember(
     });
   }
   if (member[0].state === "active") {
-    await requireZeroBalance(deps, groupId, memberId);
     if ((await activeMemberCount(deps, groupId)) <= 1) {
       throw new OweDomainError("conflict", "a group needs an active member", {
         code: "last_member",
+      });
+    }
+    const balances = await groupBalances(deps, groupId);
+    const balance = balances.get(memberId) ?? 0;
+    if (balance !== 0) {
+      if (mode === "ghost") {
+        // D29: the account leaves but the balance stays with a fictitious row.
+        await deps.db.query(
+          `update module_owe_no.owe_no_members
+              set user_id = null, updated_at = now()
+            where id = $1 and group_id = $2`,
+          [memberId, groupId],
+        );
+        return;
+      }
+      throw new OweDomainError("conflict", "settle the member's balance first", {
+        code: "member_has_balance",
       });
     }
   }
@@ -728,6 +745,7 @@ export async function blockMember(
   actorId: string,
   groupId: string,
   memberId: string,
+  mode: "settle" | "ghost" = "settle",
 ): Promise<void> {
   await assertGroupOpen(deps, groupId);
   await requireCreator(deps, actorId, groupId);
@@ -745,21 +763,37 @@ export async function blockMember(
     throw new OweDomainError("conflict", "you cannot block yourself", { code: "cannot_block_self" });
   }
   if (member[0].state === "active") {
-    await requireZeroBalance(deps, groupId, memberId);
     if ((await activeMemberCount(deps, groupId)) <= 1) {
       throw new OweDomainError("conflict", "a group needs an active member", {
         code: "last_member",
       });
     }
+    const balances = await groupBalances(deps, groupId);
+    if ((balances.get(memberId) ?? 0) !== 0 && mode !== "ghost") {
+      throw new OweDomainError("conflict", "settle the member's balance first", {
+        code: "member_has_balance",
+      });
+    }
   }
+  const balance = (await groupBalances(deps, groupId)).get(memberId) ?? 0;
+  const ghost = balance !== 0 && mode === "ghost";
   const run = deps.withTransaction ?? (<T,>(fn: (db: OweDb) => Promise<T>) => fn(deps.db));
   await run(async (db) => {
-    await db.query(
-      `update module_owe_no.owe_no_members
-          set state = 'removed', left_at = now(), updated_at = now()
-        where id = $1 and group_id = $2`,
-      [memberId, groupId],
-    );
+    if (ghost) {
+      await db.query(
+        `update module_owe_no.owe_no_members
+            set user_id = null, updated_at = now()
+          where id = $1 and group_id = $2`,
+        [memberId, groupId],
+      );
+    } else {
+      await db.query(
+        `update module_owe_no.owe_no_members
+            set state = 'removed', left_at = now(), updated_at = now()
+          where id = $1 and group_id = $2`,
+        [memberId, groupId],
+      );
+    }
     await db.query(
       `insert into module_owe_no.owe_no_blocks (group_id, user_id, blocked_by)
        values ($1, $2, $3)

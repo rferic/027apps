@@ -89,15 +89,21 @@ class ApiClient(
             request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/members", body),
         ).member
 
-    suspend fun oweRemoveMember(groupId: String, memberId: String) {
+    suspend fun oweRemoveMember(groupId: String, memberId: String, mode: String? = null) {
         expectSuccess(
-            request(HttpMethod.Delete, "/api/v1/owe-no/groups/$groupId/members/$memberId"),
+            request(
+                HttpMethod.Delete,
+                "/api/v1/owe-no/groups/$groupId/members/$memberId" + (mode?.let { "?mode=$it" } ?: ""),
+            ),
         )
     }
 
-    suspend fun oweBlockMember(groupId: String, memberId: String) {
+    suspend fun oweBlockMember(groupId: String, memberId: String, mode: String? = null) {
         expectSuccess(
-            request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/members/$memberId/block"),
+            request(
+                HttpMethod.Post,
+                "/api/v1/owe-no/groups/$groupId/members/$memberId/block" + (mode?.let { "?mode=$it" } ?: ""),
+            ),
         )
     }
 

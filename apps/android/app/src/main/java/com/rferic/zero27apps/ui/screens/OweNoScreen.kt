@@ -166,13 +166,13 @@ private class OweStore(
         open(groupId)
     }
 
-    fun removeMember(groupId: String, memberId: String) = run {
-        api.oweRemoveMember(groupId, memberId)
+    fun removeMember(groupId: String, memberId: String, mode: String? = null) = run {
+        api.oweRemoveMember(groupId, memberId, mode)
         open(groupId)
     }
 
-    fun blockMember(groupId: String, memberId: String) = run {
-        api.oweBlockMember(groupId, memberId)
+    fun blockMember(groupId: String, memberId: String, mode: String? = null) = run {
+        api.oweBlockMember(groupId, memberId, mode)
         open(groupId)
     }
 
@@ -291,6 +291,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
                     store.loadIdentities(detail.group.id)
                     showInvite = true
                 },
+                onSettle = { showSettlement = true },
                 onConfirm = { label, action -> pendingAction = label to action },
             )
             Movements(store.movements, detail.members, detail.group.currency, locale)
@@ -422,11 +423,13 @@ private fun Members(
     detail: OweGroupDetail,
     strings: com.rferic.zero27apps.ui.i18n.Strings,
     onInvite: () -> Unit,
+    onSettle: () -> Unit,
     onConfirm: (String, () -> Unit) -> Unit,
 ) {
     val palette = LocalPalette.current
     val creator = detail.group.createdBy != null && detail.group.createdBy == store.userId
     val mine = detail.members.firstOrNull { it.userId != null && it.userId == store.userId }
+    var pending by remember { mutableStateOf<Pair<String, String>?>(null) } // memberId, action
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             strings.members.uppercase(),
@@ -463,12 +466,25 @@ private fun Members(
                     )
                 }
                 if (creator && member.userId != store.userId && member.state == "active") {
-                    TextButton(onClick = {
-                        onConfirm(strings.removeMember) { store.removeMember(detail.group.id, member.id) }
-                    }) { Text(strings.removeMember, fontSize = 11.sp) }
-                    TextButton(onClick = {
-                        onConfirm(strings.blockMember) { store.blockMember(detail.group.id, member.id) }
-                    }) { Text(strings.blockMember, fontSize = 11.sp, color = palette.destructive) }
+                    val act: (String) -> Unit = { action ->
+                        if ((store.balances.firstOrNull { it.memberId == member.id }?.amountMinor ?: 0L) != 0L) {
+                            pending = member.id to action
+                        } else {
+                            onConfirm(action) {
+                                if (action == strings.blockMember) {
+                                    store.blockMember(detail.group.id, member.id)
+                                } else {
+                                    store.removeMember(detail.group.id, member.id)
+                                }
+                            }
+                        }
+                    }
+                    TextButton(onClick = { act(strings.removeMember) }) {
+                        Text(strings.removeMember, fontSize = 11.sp)
+                    }
+                    TextButton(onClick = { act(strings.blockMember) }) {
+                        Text(strings.blockMember, fontSize = 11.sp, color = palette.destructive)
+                    }
                 }
             }
         }
@@ -479,6 +495,36 @@ private fun Members(
                 },
             ) { Text(strings.leaveGroup, color = palette.destructive, fontSize = 12.sp) }
         }
+    }
+
+    pending?.let { (memberId, action) ->
+        val member = detail.members.firstOrNull { it.id == memberId }
+        AlertDialog(
+            onDismissRequest = { pending = null },
+            title = { Text(action) },
+            text = {
+                Text(
+                    strings.keepBalance.replace("{name}", member?.displayName ?: ""),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pending = null
+                    if (action == strings.blockMember) {
+                        store.blockMember(detail.group.id, memberId, "ghost")
+                    } else {
+                        store.removeMember(detail.group.id, memberId, "ghost")
+                    }
+                }) { Text(strings.convertFictitious) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    pending = null
+                    // Settle first, then the action can be repeated.
+                    onSettle()
+                }) { Text(strings.settle) }
+            },
+        )
     }
 }
 

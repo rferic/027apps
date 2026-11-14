@@ -187,3 +187,40 @@ describe("owe-no active member (importer)", () => {
     });
   });
 });
+
+describe("owe-no removal with a pending balance (D29)", () => {
+  it("turns the account into a fictitious member when mode=ghost", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
+      const member = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+        active: true,
+      });
+      const { rows: ownerMember } = await query(
+        c,
+        "select id from module_owe_no.owe_no_members where group_id = $1 and user_id = $2",
+        [group.id, owner.id],
+      );
+      await c.query(
+        `insert into module_owe_no.owe_no_movements
+           (group_id, kind, description, amount_minor, currency, paid_by_member_id, occurred_on, created_by)
+         values ($1, 'expense', 'Cena', 500, 'EUR', $2, current_date, $3)`,
+        [group.id, ownerMember[0].id, owner.id],
+      );
+      await c.query(
+        `insert into module_owe_no.owe_no_movement_shares (movement_id, member_id, amount_minor)
+         select id, $2, 500 from module_owe_no.owe_no_movements where group_id = $1`,
+        [group.id, member.id],
+      );
+      await removeMember(deps(c), owner.id, group.id, member.id, "ghost");
+      const { rows } = await query(
+        c,
+        "select user_id, state from module_owe_no.owe_no_members where id = $1",
+        [member.id],
+      );
+      expect(rows[0]).toMatchObject({ user_id: null, state: "active" });
+    });
+  });
+});
