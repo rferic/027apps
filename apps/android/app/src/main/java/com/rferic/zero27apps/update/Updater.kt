@@ -15,6 +15,17 @@ import kotlin.concurrent.thread
  * cannot be skipped.
  */
 class Updater(private val context: Context) {
+    /**
+     * The APK only has to exist while the system installer reads it. The process
+     * is restarted by the install, so the next launch is the safe moment to drop
+     * it: no leftover builds piling up in the cache.
+     */
+    fun cleanup() {
+        val dir = File(context.cacheDir, DIRECTORY)
+        if (!dir.exists()) return
+        dir.listFiles()?.forEach { file -> runCatching { file.delete() } }
+    }
+
     fun downloadAndInstall(
         apkUrl: String,
         baseUrl: String,
@@ -23,9 +34,10 @@ class Updater(private val context: Context) {
         val absolute = if (apkUrl.startsWith("http")) apkUrl else baseUrl.trimEnd('/') + apkUrl
         thread(name = "027apps-update") {
             val result = runCatching {
-                val dir = File(context.cacheDir, "updates").apply { mkdirs() }
-                // A fixed name means an old, half-downloaded file is replaced.
-                val target = File(dir, "update.apk")
+                val dir = File(context.cacheDir, DIRECTORY).apply { mkdirs() }
+                // A fixed name means an old, half-downloaded file is replaced
+                // instead of adding another one.
+                val target = File(dir, FILE_NAME)
                 download(absolute, target)
                 install(target)
             }
@@ -59,5 +71,10 @@ class Updater(private val context: Context) {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)
+    }
+
+    private companion object {
+        const val DIRECTORY = "updates"
+        const val FILE_NAME = "update.apk"
     }
 }
