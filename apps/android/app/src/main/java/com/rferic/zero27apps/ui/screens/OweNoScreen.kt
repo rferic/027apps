@@ -218,6 +218,14 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
 
     LaunchedEffect(api) { store.loadGroups() }
 
+    androidx.activity.compose.BackHandler {
+        when {
+            showImport -> showImport = false
+            store.detail != null -> store.close()
+            else -> onBack()
+        }
+    }
+
     val importing = store.detail
     if (showImport && importing != null) {
         OweImportScreen(
@@ -344,6 +352,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
     if (showSettlement && current != null && store.settlement != null) {
         SettlementDialog(
             members = current.members,
+            myMemberId = current.members.firstOrNull { it.userId == store.userId }?.id,
             settlement = store.settlement!!,
             currency = current.group.currency,
             locale = locale,
@@ -691,7 +700,11 @@ private fun ExpenseDialog(
                         Checkbox(checked = selected.contains(member.id), onCheckedChange = null)
                         Text(member.displayName, fontSize = 13.sp, modifier = Modifier.weight(1f))
                         if (selected.contains(member.id) && selected.isNotEmpty() && total > 0) {
-                            val share = total / selected.size
+                            val chosen = active.count { selected.contains(it.id) }
+                            val index = active.indexOf(member)
+                            val base = total / chosen
+                            val remainder = (total % chosen).toInt()
+                            val share = base + if (index < remainder) 1 else 0
                             Text(formatMinor(share, currency, locale), fontSize = 12.sp)
                         }
                     }
@@ -712,6 +725,7 @@ private fun ExpenseDialog(
 @Composable
 private fun SettlementDialog(
     members: List<OweMemberDto>,
+    myMemberId: String?,
     settlement: OweSettlementDto,
     currency: String,
     locale: String,
@@ -739,8 +753,10 @@ private fun SettlementDialog(
                             modifier = Modifier.weight(1f),
                         )
                         Text(formatMinor(transfer.amountMinor, currency, locale), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        TextButton(onClick = { onPay(transfer.from, transfer.to, transfer.amountMinor) }) {
-                            Text("OK")
+                        if (transfer.from == myMemberId) {
+                            TextButton(onClick = { onPay(transfer.from, transfer.to, transfer.amountMinor) }) {
+                                Text(strings.settle, fontSize = 11.sp)
+                            }
                         }
                     }
                 }

@@ -254,7 +254,7 @@ private fun Shell(
             NavigationBar(containerColor = palette.surface, tonalElevation = 0.dp) {
                 NavigationBarItem(
                     selected = tab == 0,
-                    onClick = { tab = 0 },
+                    onClick = { tab = 0; openModule = null },
                     icon = { Icon(Icons.Filled.Home, contentDescription = null) },
                     label = { Text(strings.home, fontSize = 11.sp) },
                     colors = NavigationBarItemDefaults.colors(
@@ -267,7 +267,7 @@ private fun Shell(
                 )
                 NavigationBarItem(
                     selected = tab == 1,
-                    onClick = { tab = 1 },
+                    onClick = { tab = 1; openModule = null },
                     icon = { GridIcon(tint = if (tab == 1) palette.accent else palette.mutedForeground, modifier = Modifier.size(20.dp)) },
                     label = { Text(strings.modules, fontSize = 11.sp) },
                     colors = NavigationBarItemDefaults.colors(
@@ -280,7 +280,7 @@ private fun Shell(
                 )
                 NavigationBarItem(
                     selected = tab == 2,
-                    onClick = { tab = 2 },
+                    onClick = { tab = 2; openModule = null },
                     icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
                     label = { Text(strings.settings, fontSize = 11.sp) },
                     colors = NavigationBarItemDefaults.colors(

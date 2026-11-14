@@ -105,8 +105,8 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
                     OweAddMemberBody(if (inviteeId == null) name else displayNameFor(identities, inviteeId), inviteeId, active = true),
                 )
             }.onSuccess { member ->
+                // Several CSV names may point at the same member (a merge).
                 mapping = mapping + (name to member.id)
-                identities = identities.filterNot { it.id == inviteeId }
             }.onFailure { error = it.message }
             busy = false
             mappingName = null
@@ -164,8 +164,15 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
             palette.mutedForeground,
         )
 
-        if (current.currencies.size > 1) {
-            Text(strings.multiCurrency, color = palette.destructive, fontSize = 12.sp)
+        if (current.errors.isNotEmpty()) {
+            Text(
+                "${strings.errorsLabel}: ${current.errors.size}",
+                color = palette.destructive,
+                fontSize = 12.sp,
+            )
+            current.errors.take(3).forEach { error ->
+                Text("· ${error.line}: ${error.message}", fontSize = 11.sp, color = palette.destructive)
+            }
         }
 
         if (current.unresolved.isNotEmpty()) {
@@ -190,6 +197,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
         }
 
         val ready = current.currencies.size <= 1 &&
+            current.errors.isEmpty() &&
             current.unresolved.all { mapping.containsKey(it) } &&
             (current.duplicates == 0 || duplicates)
         Button(
