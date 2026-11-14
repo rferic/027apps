@@ -2,7 +2,7 @@
 id: sprint-15-task-06
 titulo: OweNo v1 — mockup, módulo, API y panel
 area: producto
-estado: pendiente
+estado: test
 fuente: docs/superpowers/specs/2026-11-13-owe-no.md (borrador, pendiente de aprobación); docs/tasks/sprint-15-app-y-finanzas/owe-no-intake.md; docs/tasks/sprint-15-app-y-finanzas/splitwise-export.md
 mockup: docs/mockups/owe-no/index.html (borrador F1+F2, pendiente de aprobación)
 plan: docs/superpowers/plans/2026-11-13-owe-no.md (borrador, pendiente de aprobación)

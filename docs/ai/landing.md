@@ -66,7 +66,7 @@ aviso «Coming soon» mientras la app no tenga pantallas reales.
 
 | Módulo | App | Panel | Estado |
 |---|---|---|---|
-| OweNo | Sí (previsto) | Pagos compartidos, balances y liquidación (previsto) | `planned` |
+| OweNo | Sí (previsto) | Grupos, gastos, balances, liquidación e importador de Splitwise | app `planned`, panel `in-development` |
 | Categorías | Sí (previsto) | Grupos y permisos | app `planned`, panel `available` |
 | Miembros | Sí (previsto) | Roles, invitaciones, bajas | app `planned`, panel `available` |
 | Módulos | Sí (previsto) | Activar y conceder | app `planned`, panel `available` |
