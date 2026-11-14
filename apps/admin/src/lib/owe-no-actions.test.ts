@@ -55,7 +55,7 @@ describe("owe-no panel actions", () => {
     data.set("display_name", "Marta");
 
     await expect(addMemberAction(data)).rejects.toThrow(
-      `REDIRECT:/panel/owe-no/groups?error=member_has_balance&group=${GROUP}`,
+      `REDIRECT:/panel/owe-no/groups?error=member_has_balance&group=${GROUP}&view=member`,
     );
   });
 

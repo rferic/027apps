@@ -112,7 +112,9 @@ export async function addMemberAction(formData: FormData): Promise<void> {
     display_name: formData.get("display_name"),
     user_id: String(formData.get("user_id") ?? "") || undefined,
   });
-  if (!parsed.success) fail("validation_failed", String(formData.get("group") ?? ""));
+  if (!parsed.success) {
+    fail("validation_failed", String(formData.get("group") ?? ""), { view: "member" });
+  }
   try {
     const { owe } = await oweDeps();
     await adminAddMember(owe, caller, parsed.data.group, {
@@ -120,7 +122,7 @@ export async function addMemberAction(formData: FormData): Promise<void> {
       userId: parsed.data.user_id ?? null,
     });
   } catch (error) {
-    fail(errorCode(error), parsed.data.group);
+    fail(errorCode(error), parsed.data.group, { view: "member" });
   }
   refresh(parsed.data.group);
 }
@@ -134,12 +136,17 @@ export async function linkMemberAction(formData: FormData): Promise<void> {
     member: formData.get("member"),
     user_id: formData.get("user_id"),
   });
-  if (!parsed.success) fail("validation_failed", String(formData.get("group") ?? ""));
+  if (!parsed.success) {
+    fail("validation_failed", String(formData.get("group") ?? ""), { view: "link" });
+  }
   try {
     const { owe } = await oweDeps();
     await adminLinkMember(owe, caller, parsed.data.group, parsed.data.member, parsed.data.user_id);
   } catch (error) {
-    fail(errorCode(error), parsed.data.group);
+    fail(errorCode(error), parsed.data.group, {
+      view: "link",
+      member: parsed.data.member,
+    });
   }
   refresh(parsed.data.group);
 }
@@ -210,10 +217,12 @@ function movementInput(formData: FormData) {
 export async function saveMovementAction(formData: FormData): Promise<void> {
   const caller = await gate();
   const parsed = movementSchema.safeParse(movementInput(formData));
-  if (!parsed.success) fail("validation_failed", String(formData.get("group") ?? ""));
+  if (!parsed.success) {
+    fail("validation_failed", String(formData.get("group") ?? ""), { view: "movement" });
+  }
   const data = parsed.data;
   const amount = cents(data.amount);
-  if (amount === null) fail("validation_failed", data.group);
+  if (amount === null) fail("validation_failed", data.group, { view: "movement" });
 
   const shares =
     data.mode === "exact"
@@ -241,7 +250,10 @@ export async function saveMovementAction(formData: FormData): Promise<void> {
       await adminCreateMovement(owe, caller, data.group, input);
     }
   } catch (error) {
-    fail(errorCode(error), data.group);
+    fail(errorCode(error), data.group, {
+      view: "movement",
+      ...(data.movement ? { edit: data.movement } : {}),
+    });
   }
   refresh(data.group);
 }
@@ -281,9 +293,11 @@ export async function settleAction(formData: FormData): Promise<void> {
     occurred_on: formData.get("occurred_on"),
     description: String(formData.get("description") ?? "Settlement"),
   });
-  if (!parsed.success) fail("validation_failed", String(formData.get("group") ?? ""));
+  if (!parsed.success) {
+    fail("validation_failed", String(formData.get("group") ?? ""), { view: "settle" });
+  }
   const amount = cents(parsed.data.amount);
-  if (amount === null) fail("validation_failed", parsed.data.group);
+  if (amount === null) fail("validation_failed", parsed.data.group, { view: "settle" });
 
   try {
     const { owe } = await oweDeps();
@@ -296,7 +310,7 @@ export async function settleAction(formData: FormData): Promise<void> {
       participants: [{ memberId: parsed.data.to, amount_minor: amount }],
     });
   } catch (error) {
-    fail(errorCode(error), parsed.data.group);
+    fail(errorCode(error), parsed.data.group, { view: "settle" });
   }
   refresh(parsed.data.group);
 }

@@ -9,14 +9,17 @@ import type { ModulePageContext } from "@027apps/core/modules/pages.js";
 const MESSAGES = new URL("../../../../packages/owe-no/locales/es.json", import.meta.url);
 
 /** A module page only reads through the injected connection; no rows, no noise. */
-function context(messages: Record<string, string>): ModulePageContext {
+function context(
+  messages: Record<string, string>,
+  searchParams: Record<string, string | string[] | undefined> = {},
+): ModulePageContext {
   return {
     moduleKey: "owe-no",
     caller: { kind: "session", userId: "u1", role: "admin" },
     db: { query: async () => ({ rows: [] }) },
     locale: "es",
     messages,
-    searchParams: {},
+    searchParams,
   };
 }
 
@@ -126,9 +129,85 @@ describe("owe-no admin pages", () => {
     expect(html).toContain("Casa");
     expect(html).toContain("Editar");
     expect(html).toContain("Archivar grupo");
-    expect(html).toContain("Registrar pago");
+    // The forms live on their own pages; the group only links to them.
+    expect(html).toContain("Añadir gasto");
+    expect(html).toContain("Liquidar");
+    expect(html).toContain("Añadir miembro");
+    expect(html).toContain("?group=11111111-1111-4111-8111-111111111111&amp;view=movement");
     expect(html).toContain("Luis");
     expect(html).not.toContain("Add expense");
+  });
+
+  it("gives every form its own page", async () => {
+    const noop = async () => {};
+    const detail = {
+      group: {
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "Casa",
+        currency: "EUR",
+        archived: false,
+        created_by: null,
+        archived_by: null,
+        members: 2,
+        movements: 0,
+      },
+      members: [
+        { id: "m1", display_name: "Ana", state: "active" as const, user_id: "u1", balance: 0 },
+        { id: "m2", display_name: "Luis", state: "active" as const, user_id: null, balance: 0 },
+      ],
+      movements: [],
+    };
+    const actions = {
+      createGroup: noop,
+      archiveGroup: noop,
+      addMember: noop,
+      linkMember: noop,
+      removeMember: noop,
+      saveMovement: noop,
+      deleteMovement: noop,
+      settle: noop,
+    };
+    const messages = await spanish();
+    const group = "11111111-1111-4111-8111-111111111111";
+
+    const movement = renderToStaticMarkup(
+      await OweNoGroups({
+        context: context(messages, { group, view: "movement" }),
+        groups: [],
+        detail,
+        userOptions: [],
+        plan: null,
+        actions,
+      }),
+    );
+    expect(movement).toContain("Participantes");
+    expect(movement).toContain("Guardar gasto");
+
+    const settle = renderToStaticMarkup(
+      await OweNoGroups({
+        context: context(messages, { group, view: "settle" }),
+        groups: [],
+        detail,
+        userOptions: [],
+        plan: { exact: true, transfers: [{ from: "m1", to: "m2", amount_minor: 500 }] },
+        actions,
+      }),
+    );
+    expect(settle).toContain("Registrar pago");
+    expect(settle).toContain("Luis");
+
+    const member = renderToStaticMarkup(
+      await OweNoGroups({
+        context: context(messages, { group, view: "member" }),
+        groups: [],
+        detail,
+        userOptions: [],
+        plan: null,
+        actions,
+      }),
+    );
+    expect(member).toContain("Cuenta (opcional)");
+    expect(member).toContain("Añadir miembro");
   });
 });
 

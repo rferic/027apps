@@ -32,6 +32,15 @@ const ERROR_KEYS: Record<string, string> = {
   failed: "Something went wrong. Try again.",
 };
 
+const control =
+  "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+const primary =
+  "min-h-11 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+const link =
+  "inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+const secondary =
+  "inline-flex min-h-11 items-center rounded-control border border-border px-3 text-xs font-semibold hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
 const today = () => new Date().toISOString().slice(0, 10);
 
 function money(minor: number, currency: string, locale: string): string {
@@ -47,16 +56,18 @@ function money(minor: number, currency: string, locale: string): string {
   }
 }
 
-function cents(raw: string): number | null {
-  const value = Math.round(Number(raw.replace(",", ".")) * 100);
-  return Number.isFinite(value) && value > 0 ? value : null;
+function href(groupId: string, view?: string, extra?: Record<string, string>): string {
+  const params = new URLSearchParams({ group: groupId });
+  if (view) params.set("view", view);
+  for (const [key, value] of Object.entries(extra ?? {})) params.set(key, value);
+  return `?${params.toString()}`;
 }
 
 /**
- * OweNo groups in the panel (D26): the list, one group with its balances,
- * members and movements, and the forms that write. The page is presentational:
- * every write arrives as a Server Action from the app wrapper, so the package
- * never depends on Next, and the panel gate lives in the action.
+ * OweNo groups in the panel (D26). Every data-entry form has its own page, as
+ * in the rest of the panel: the group view only reads and links to the form it
+ * needs. The page is presentational; writes arrive as Server Actions from the
+ * app wrapper, so the package never depends on Next.
  */
 export default async function OweNoGroups({
   context,
@@ -77,7 +88,9 @@ export default async function OweNoGroups({
     t(text, context.messages, params);
   const errorCode = typeof context.searchParams.error === "string" ? context.searchParams.error : "";
   const error = errorCode ? tr(ERROR_KEYS[errorCode] ?? ERROR_KEYS.failed) : "";
+  const view = typeof context.searchParams.view === "string" ? context.searchParams.view : "";
   const editId = typeof context.searchParams.edit === "string" ? context.searchParams.edit : "";
+  const memberId = typeof context.searchParams.member === "string" ? context.searchParams.member : "";
 
   return (
     <section className="flex flex-col gap-4">
@@ -91,15 +104,42 @@ export default async function OweNoGroups({
       ) : null}
 
       {detail ? (
-        <GroupDetail
-          context={context}
-          detail={detail}
-          userOptions={userOptions}
-          plan={plan}
-          actions={actions}
-          editId={editId}
-          tr={tr}
-        />
+        view === "movement" ? (
+          <MovementView
+            context={context}
+            detail={detail}
+            editId={editId}
+            actions={actions}
+            tr={tr}
+          />
+        ) : view === "settle" ? (
+          <SettleView
+            context={context}
+            detail={detail}
+            plan={plan}
+            actions={actions}
+            tr={tr}
+          />
+        ) : view === "member" ? (
+          <MemberView
+            context={context}
+            detail={detail}
+            userOptions={userOptions}
+            actions={actions}
+            tr={tr}
+          />
+        ) : view === "link" ? (
+          <LinkView
+            context={context}
+            detail={detail}
+            userOptions={userOptions}
+            memberId={memberId}
+            actions={actions}
+            tr={tr}
+          />
+        ) : (
+          <GroupDetail context={context} detail={detail} actions={actions} tr={tr} />
+        )
       ) : context.searchParams.new === "1" ? (
         <NewGroup context={context} actions={actions} tr={tr} />
       ) : (
@@ -109,10 +149,55 @@ export default async function OweNoGroups({
   );
 }
 
+function PageHeader({
+  title,
+  description,
+  backHref,
+  backLabel,
+  children,
+  tr,
+}: {
+  title: string;
+  description?: string;
+  backHref: string;
+  backLabel: string;
+  children?: React.ReactNode;
+  tr: (text: string, params?: Record<string, string | number>) => string;
+}) {
+  return (
+    <header className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-col gap-1">
+        <a href={backHref} className="text-xs text-muted-foreground hover:underline">
+          ← {tr(backLabel)}
+        </a>
+        <h1 className="text-base font-bold">{title}</h1>
+        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+      </div>
+      {children}
+    </header>
+  );
+}
+
+function Field({
+  label,
+  children,
+  wide = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <label className={`flex flex-col gap-1 text-xs font-semibold ${wide ? "min-w-48 flex-1" : ""}`}>
+      {label}
+      {children}
+    </label>
+  );
+}
+
 function GroupList({
   context,
   groups,
-  actions,
   tr,
 }: {
   context: ModulePageContext;
@@ -122,22 +207,19 @@ function GroupList({
 }) {
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-base font-bold">{tr("Groups")}</h1>
-          <p className="text-xs text-muted-foreground">
-            {tr(
-              "Every group, with its members and movements. Members manage their own movements from the app; the panel does not record money.",
-            )}
-          </p>
-        </div>
-        <a
-          href="?new=1"
-          className="inline-flex min-h-11 items-center rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
+      <PageHeader
+        title={tr("Groups")}
+        description={tr(
+          "Every group, with its members and movements. Members manage their own movements from the app; the panel does not record money.",
+        )}
+        backHref="/panel/owe-no"
+        backLabel="OweNo"
+        tr={tr}
+      >
+        <a href="?new=1" className={primary}>
           {tr("New group")}
         </a>
-      </header>
+      </PageHeader>
 
       {groups.length === 0 ? (
         <p className="text-xs text-muted-foreground">{tr("No groups yet.")}</p>
@@ -157,7 +239,7 @@ function GroupList({
                 <tr key={group.id}>
                   <td className="border-b border-border p-3">
                     <a
-                      href={`?group=${encodeURIComponent(group.id)}`}
+                      href={href(group.id)}
                       className="font-semibold text-accent hover:underline"
                     >
                       {group.name}
@@ -177,15 +259,11 @@ function GroupList({
           </table>
         </div>
       )}
-      <p className="text-[11px] text-muted-foreground">
-        {context.locale ? tr("The panel writes as an administrator; every change is recorded.") : null}
-      </p>
     </>
   );
 }
 
 function NewGroup({
-  context,
   actions,
   tr,
 }: {
@@ -195,46 +273,32 @@ function NewGroup({
 }) {
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-base font-bold">{tr("New group")}</h1>
-          <p className="text-xs text-muted-foreground">
-            {tr("The group starts with you as its creator and first member.")}
-          </p>
-        </div>
-        <a href="?" className="inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline">
-          {tr("Back")}
-        </a>
-      </header>
+      <PageHeader
+        title={tr("New group")}
+        description={tr("The group starts with you as its creator and first member.")}
+        backHref="?"
+        backLabel="Groups"
+        tr={tr}
+      />
       <section className="max-w-xl rounded-card border border-border bg-surface p-4">
         <form action={actions.createGroup} className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-xs font-semibold">
-            {tr("Group name")}
-            <input
-              name="name"
-              required
-              maxLength={80}
-              className="min-h-11 rounded-control border border-border bg-background px-2.5 text-sm font-normal text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            />
-          </label>
-          <label className="flex w-32 flex-col gap-1 text-xs font-semibold">
-            {tr("Currency")}
+          <Field label={tr("Group name")}>
+            <input name="name" required maxLength={80} className={`${control} font-normal`} />
+          </Field>
+          <Field label={tr("Currency")}>
             <input
               name="currency"
               defaultValue="EUR"
               maxLength={3}
               required
-              className="min-h-11 rounded-control border border-border bg-background px-2.5 font-mono text-sm font-normal uppercase text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className={`${control} w-32 font-mono font-normal uppercase`}
             />
-          </label>
+          </Field>
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <a href="?" className="inline-flex min-h-11 items-center text-xs font-semibold text-accent hover:underline">
+            <a href="?" className={link}>
               {tr("Cancel")}
             </a>
-            <button
-              type="submit"
-              className="min-h-11 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
+            <button type="submit" className={primary}>
               {tr("Create")}
             </button>
           </div>
@@ -247,216 +311,466 @@ function NewGroup({
 function GroupDetail({
   context,
   detail,
-  userOptions,
+  actions,
+  tr,
+}: {
+  context: ModulePageContext;
+  detail: AdminGroupDetail;
+  actions: OweNoGroupsActions;
+  tr: (text: string, params?: Record<string, string | number>) => string;
+}) {
+  const { group, members, movements } = detail;
+  const active = members.filter((member) => member.state === "active");
+  const byId = new Map(members.map((member) => [member.id, member.display_name]));
+
+  return (
+    <>
+      <PageHeader
+        title={group.name}
+        description={tr("{members} members · {movements} movements", {
+          members: group.members,
+          movements: group.movements,
+        })}
+        backHref="?"
+        backLabel="Groups"
+        tr={tr}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+            {group.archived ? tr("Archived") : tr("Active")} · {group.currency}
+          </span>
+          {!group.archived ? (
+            <>
+              <a href={href(group.id, "movement")} className={primary}>
+                {tr("Add expense")}
+              </a>
+              <a href={href(group.id, "settle")} className={secondary}>
+                {tr("Settle up")}
+              </a>
+            </>
+          ) : null}
+          <form action={actions.archiveGroup}>
+            <input type="hidden" name="group" value={group.id} />
+            <input type="hidden" name="archived" value={group.archived ? "false" : "true"} />
+            <button type="submit" className={secondary}>
+              {group.archived ? tr("Reopen group") : tr("Archive group")}
+            </button>
+          </form>
+        </div>
+      </PageHeader>
+
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {active.map((member) => (
+          <div key={member.id} className="rounded-card border border-border bg-surface p-3">
+            <dt className="truncate text-xs text-muted-foreground">{member.display_name}</dt>
+            <dd
+              className={`text-lg font-bold tabular-nums ${
+                member.balance > 0 ? "text-success" : member.balance < 0 ? "text-destructive" : ""
+              }`}
+            >
+              {money(member.balance, group.currency, context.locale)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <section className="rounded-card border border-border bg-surface p-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {tr("Members")}
+          </h2>
+          {!group.archived ? (
+            <a href={href(group.id, "member")} className={link}>
+              {tr("Add member")}
+            </a>
+          ) : null}
+        </div>
+        <ul className="flex flex-col divide-y divide-border">
+          {members.map((member) => (
+            <li key={member.id} className="flex flex-wrap items-center gap-2 py-2 text-xs">
+              <span className="font-semibold">{member.display_name}</span>
+              <span className="text-[11px] text-muted-foreground">
+                {member.user_id ? tr("Linked account") : tr("Fictitious member")} ·{" "}
+                {member.state === "active" ? tr("Active") : member.state}
+              </span>
+              <span
+                className={`ml-auto tabular-nums ${
+                  member.balance > 0
+                    ? "text-success"
+                    : member.balance < 0
+                      ? "text-destructive"
+                      : "text-muted-foreground"
+                }`}
+              >
+                {money(member.balance, group.currency, context.locale)}
+              </span>
+              {!group.archived && member.state === "active" ? (
+                <span className="flex items-center gap-1">
+                  {!member.user_id ? (
+                    <a href={href(group.id, "link", { member: member.id })} className={`${secondary} px-2 text-[11px]`}>
+                      {tr("Link account")}
+                    </a>
+                  ) : null}
+                  <form action={actions.removeMember}>
+                    <input type="hidden" name="group" value={group.id} />
+                    <input type="hidden" name="member" value={member.id} />
+                    <button
+                      type="submit"
+                      title={tr("A member with a balance cannot be removed.")}
+                      className="min-h-9 rounded-control border border-border px-2 text-[11px] font-semibold text-destructive"
+                    >
+                      {tr("Remove")}
+                    </button>
+                  </form>
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="rounded-card border border-border bg-surface p-3">
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {tr("Movements")}
+        </h2>
+        {movements.length === 0 ? (
+          <p className="text-xs text-muted-foreground">{tr("No movements yet.")}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead>
+                <tr className="text-muted-foreground">
+                  <th className="border-b border-border p-2 font-semibold">{tr("Date")}</th>
+                  <th className="border-b border-border p-2 font-semibold">{tr("Description")}</th>
+                  <th className="border-b border-border p-2 font-semibold">{tr("Paid by")}</th>
+                  <th className="border-b border-border p-2 text-right font-semibold">{tr("Amount")}</th>
+                  <th className="border-b border-border p-2 text-right font-semibold">{tr("Actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {movements.map((movement) => (
+                  <tr key={movement.id}>
+                    <td className="whitespace-nowrap border-b border-border p-2">
+                      {movement.occurred_on}
+                    </td>
+                    <td className="border-b border-border p-2">
+                      <span className="font-semibold">{movement.description}</span>
+                      <span className="ml-2 text-[11px] text-muted-foreground">
+                        {movement.kind === "settlement" ? tr("Settlement") : tr("Expense")}
+                      </span>
+                    </td>
+                    <td className="border-b border-border p-2">{byId.get(movement.paid_by) ?? ""}</td>
+                    <td className="border-b border-border p-2 text-right tabular-nums">
+                      {money(movement.amount_minor, movement.currency, context.locale)}
+                    </td>
+                    <td className="border-b border-border p-2 text-right">
+                      {!group.archived ? (
+                        <span className="inline-flex items-center gap-1">
+                          <a
+                            href={href(group.id, "movement", { edit: movement.id })}
+                            className="rounded-control border border-border px-2 py-1 text-[11px] font-semibold"
+                          >
+                            {tr("Edit")}
+                          </a>
+                          <form action={actions.deleteMovement}>
+                            <input type="hidden" name="group" value={group.id} />
+                            <input type="hidden" name="movement" value={movement.id} />
+                            <button
+                              type="submit"
+                              className="rounded-control border border-border px-2 py-1 text-[11px] font-semibold text-destructive"
+                            >
+                              {tr("Delete")}
+                            </button>
+                          </form>
+                        </span>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+function MovementView({
+  context,
+  detail,
+  editId,
+  actions,
+  tr,
+}: {
+  context: ModulePageContext;
+  detail: AdminGroupDetail;
+  editId: string;
+  actions: OweNoGroupsActions;
+  tr: (text: string, params?: Record<string, string | number>) => string;
+}) {
+  const { group, members } = detail;
+  const active = members.filter((member) => member.state === "active");
+  const editing = editId ? detail.movements.find((movement) => movement.id === editId) : undefined;
+  const shareOf = (memberId: string) =>
+    editing?.shares.find((share) => share.memberId === memberId)?.amount_minor;
+  const equal = editing ? Math.round(editing.amount_minor / Math.max(editing.shares.length, 1)) : null;
+  const exact = editing ? editing.shares.some((share) => share.amount_minor !== equal) : false;
+
+  return (
+    <>
+      <PageHeader
+        title={editing ? tr("Edit expense") : tr("Add expense")}
+        description={tr("A movement of {group}. The split is recalculated when you save.", {
+          group: group.name,
+        })}
+        backHref={href(group.id)}
+        backLabel={group.name}
+        tr={tr}
+      />
+      <section className="max-w-3xl rounded-card border border-border bg-surface p-4">
+        <form action={actions.saveMovement} className="flex flex-col gap-3">
+          <input type="hidden" name="group" value={group.id} />
+          {editing ? <input type="hidden" name="movement" value={editing.id} /> : null}
+          <input type="hidden" name="kind" value={editing?.kind ?? "expense"} />
+          <div className="flex flex-wrap gap-2">
+            <Field label={tr("Description")} wide>
+              <input
+                name="description"
+                required
+                maxLength={200}
+                defaultValue={editing?.description ?? ""}
+                className={`${control} font-normal`}
+              />
+            </Field>
+            <Field label={`${tr("Amount")} (${group.currency})`}>
+              <input
+                name="amount"
+                required
+                inputMode="decimal"
+                defaultValue={editing ? (editing.amount_minor / 100).toFixed(2) : ""}
+                className={`${control} w-28 text-right font-normal tabular-nums`}
+              />
+            </Field>
+            <Field label={tr("Date")}>
+              <input
+                type="date"
+                name="occurred_on"
+                required
+                defaultValue={editing?.occurred_on ?? today()}
+                className={`${control} font-normal`}
+              />
+            </Field>
+            <Field label={tr("Paid by")}>
+              <select
+                name="paid_by"
+                required
+                defaultValue={editing?.paid_by ?? active[0]?.id ?? ""}
+                className={`${control} font-normal`}
+              >
+                {active.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.display_name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label={tr("Split")}>
+              <select
+                name="mode"
+                defaultValue={exact ? "exact" : "equal"}
+                className={`${control} font-normal`}
+              >
+                <option value="equal">{tr("Equal parts")}</option>
+                <option value="exact">{tr("Exact amounts")}</option>
+              </select>
+            </Field>
+          </div>
+
+          <fieldset className="flex flex-col gap-1 rounded-control border border-border p-2">
+            <legend className="px-1 text-xs font-semibold text-muted-foreground">
+              {tr("Participants")}
+            </legend>
+            {active.map((member) => {
+              const selected =
+                editing?.shares.some((share) => share.memberId === member.id) ?? true;
+              const amount = shareOf(member.id);
+              return (
+                <label key={member.id} className="flex items-center gap-2 py-1 text-xs">
+                  <input
+                    type="checkbox"
+                    name="participants"
+                    value={member.id}
+                    defaultChecked={selected}
+                    className="accent-accent"
+                  />
+                  <span className="min-w-24">{member.display_name}</span>
+                  <input
+                    name={`amount_${member.id}`}
+                    inputMode="decimal"
+                    placeholder={tr("Exact")}
+                    defaultValue={amount === undefined ? "" : (amount / 100).toFixed(2)}
+                    className={`${control} ml-auto w-24 text-right text-[11px] font-normal tabular-nums`}
+                  />
+                </label>
+              );
+            })}
+            <span className="text-[10px] text-muted-foreground">
+              {tr("Amounts are only used in exact mode; the rest splits equally.")}
+            </span>
+          </fieldset>
+
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <a href={href(group.id)} className={link}>
+              {tr("Cancel")}
+            </a>
+            <button type="submit" className={primary}>
+              {editing ? tr("Save changes") : tr("Save expense")}
+            </button>
+          </div>
+        </form>
+      </section>
+    </>
+  );
+}
+
+function SettleView({
+  context,
+  detail,
   plan,
   actions,
-  editId,
+  tr,
+}: {
+  context: ModulePageContext;
+  detail: AdminGroupDetail;
+  plan: SettlementPlan | null;
+  actions: OweNoGroupsActions;
+  tr: (text: string, params?: Record<string, string | number>) => string;
+}) {
+  const { group, members } = detail;
+  const active = members.filter((member) => member.state === "active");
+  const byId = new Map(active.map((member) => [member.id, member.display_name]));
+
+  return (
+    <>
+      <PageHeader
+        title={tr("Settle up")}
+        description={tr("Each payment is recorded as a settlement movement.")}
+        backHref={href(group.id)}
+        backLabel={group.name}
+        tr={tr}
+      />
+      <section className="max-w-2xl rounded-card border border-border bg-surface p-4">
+        {plan && plan.transfers.length > 0 ? (
+          <ul className="mb-4 flex flex-col divide-y divide-border rounded-control border border-border">
+            {plan.transfers.map((transfer) => (
+              <li
+                key={`${transfer.from}-${transfer.to}`}
+                className="flex flex-wrap items-center gap-2 p-2 text-xs"
+              >
+                <span className="font-semibold">{byId.get(transfer.from) ?? transfer.from}</span>
+                <span aria-hidden="true">→</span>
+                <span className="font-semibold">{byId.get(transfer.to) ?? transfer.to}</span>
+                <span className="ml-auto tabular-nums">
+                  {money(transfer.amount_minor, group.currency, context.locale)}
+                </span>
+                <form action={actions.settle}>
+                  <input type="hidden" name="group" value={group.id} />
+                  <input type="hidden" name="from" value={transfer.from} />
+                  <input type="hidden" name="to" value={transfer.to} />
+                  <input
+                    type="hidden"
+                    name="amount"
+                    value={(transfer.amount_minor / 100).toFixed(2)}
+                  />
+                  <input type="hidden" name="occurred_on" value={today()} />
+                  <input type="hidden" name="description" value="Settlement" />
+                  <button type="submit" className={primary}>
+                    {tr("Register payment")}
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mb-4 text-xs text-muted-foreground">{tr("Everyone is settled.")}</p>
+        )}
+
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {tr("Register payment")}
+        </h2>
+        <form action={actions.settle} className="flex flex-wrap items-end gap-2">
+          <input type="hidden" name="group" value={group.id} />
+          <input type="hidden" name="occurred_on" value={today()} />
+          <Field label={tr("Who pays")}>
+            <select name="from" required className={`${control} font-normal`}>
+              {active.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.display_name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label={tr("Who receives")}>
+            <select name="to" required className={`${control} font-normal`}>
+              {active.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.display_name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label={`${tr("Amount")} (${group.currency})`}>
+            <input
+              name="amount"
+              required
+              inputMode="decimal"
+              className={`${control} w-28 text-right font-normal tabular-nums`}
+            />
+          </Field>
+          <input type="hidden" name="description" value="Settlement" />
+          <a href={href(group.id)} className={link}>
+            {tr("Cancel")}
+          </a>
+          <button type="submit" className={primary}>
+            {tr("Register payment")}
+          </button>
+        </form>
+      </section>
+    </>
+  );
+}
+
+function MemberView({
+  context,
+  detail,
+  userOptions,
+  actions,
   tr,
 }: {
   context: ModulePageContext;
   detail: AdminGroupDetail;
   userOptions: AdminUserOption[];
-  plan: SettlementPlan | null;
   actions: OweNoGroupsActions;
-  editId: string;
   tr: (text: string, params?: Record<string, string | number>) => string;
 }) {
-  const { group, members, movements } = detail;
-  const currency = group.currency;
-  const locale = context.locale;
-  const editing = editId ? movements.find((movement) => movement.id === editId) : undefined;
-
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <a href="?" className="text-xs text-muted-foreground hover:underline">
-              ← {tr("Groups")}
-            </a>
-            <h1 className="text-base font-bold">{group.name}</h1>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-              {group.archived ? tr("Archived") : tr("Active")} · {currency}
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {tr("{members} members · {movements} movements", {
-              members: group.members,
-              movements: group.movements,
-            })}
-          </p>
-        </div>
-        <form action={actions.archiveGroup}>
-          <input type="hidden" name="group" value={group.id} />
-          <input type="hidden" name="archived" value={group.archived ? "false" : "true"} />
-          <button
-            type="submit"
-            className="min-h-11 rounded-control border border-border px-3 text-xs font-semibold hover:bg-muted"
-          >
-            {group.archived ? tr("Reopen group") : tr("Archive group")}
-          </button>
-        </form>
-      </header>
-
-      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {members
-          .filter((member) => member.state === "active")
-          .map((member) => (
-            <div key={member.id} className="rounded-card border border-border bg-surface p-3">
-              <dt className="truncate text-xs text-muted-foreground">{member.display_name}</dt>
-              <dd
-                className={`text-lg font-bold tabular-nums ${
-                  member.balance > 0 ? "text-success" : member.balance < 0 ? "text-destructive" : ""
-                }`}
-              >
-                {money(member.balance, currency, locale)}
-              </dd>
-            </div>
-          ))}
-      </dl>
-
-      <Members
-        groupId={group.id}
-        members={members}
-        userOptions={userOptions}
-        actions={actions}
-        currency={currency}
-        locale={locale}
-        archived={group.archived}
+      <PageHeader
+        title={tr("Add member")}
+        description={tr("The member is active from the moment you add them; there is no email invitation.")}
+        backHref={href(detail.group.id)}
+        backLabel={detail.group.name}
         tr={tr}
       />
-
-      <Movements
-        context={context}
-        detail={detail}
-        actions={actions}
-        tr={tr}
-      />
-
-      <MovementForm
-        groupId={group.id}
-        members={members.filter((member) => member.state === "active")}
-        currency={currency}
-        editing={editing}
-        actions={actions}
-        tr={tr}
-        archived={group.archived}
-      />
-
-      <Settlement
-        groupId={group.id}
-        members={members.filter((member) => member.state === "active")}
-        currency={currency}
-        locale={locale}
-        plan={plan}
-        actions={actions}
-        tr={tr}
-        archived={group.archived}
-      />
-    </>
-  );
-}
-
-function Members({
-  groupId,
-  members,
-  userOptions,
-  actions,
-  currency,
-  locale,
-  archived,
-  tr,
-}: {
-  groupId: string;
-  members: AdminGroupDetail["members"];
-  userOptions: AdminUserOption[];
-  actions: OweNoGroupsActions;
-  currency: string;
-  locale: string;
-  archived: boolean;
-  tr: (text: string, params?: Record<string, string | number>) => string;
-}) {
-  return (
-    <section className="rounded-card border border-border bg-surface p-3">
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {tr("Members")}
-      </h2>
-      <ul className="flex flex-col divide-y divide-border">
-        {members.map((member) => (
-          <li key={member.id} className="flex flex-wrap items-center gap-2 py-2 text-xs">
-            <span className="font-semibold">{member.display_name}</span>
-            <span className="text-[11px] text-muted-foreground">
-              {member.user_id ? tr("Linked account") : tr("Fictitious member")} ·{" "}
-              {member.state === "active" ? tr("Active") : member.state}
-            </span>
-            <span
-              className={`ml-auto tabular-nums ${
-                member.balance > 0 ? "text-success" : member.balance < 0 ? "text-destructive" : "text-muted-foreground"
-              }`}
-            >
-              {money(member.balance, currency, locale)}
-            </span>
-            {!archived ? (
-              <>
-                {!member.user_id ? (
-                  <form action={actions.linkMember} className="flex items-center gap-1">
-                    <input type="hidden" name="group" value={groupId} />
-                    <input type="hidden" name="member" value={member.id} />
-                    <select
-                      name="user_id"
-                      required
-                      aria-label={tr("Link account")}
-                      className="min-h-8 rounded-control border border-border bg-background px-1 text-[11px]"
-                    >
-                      <option value="">{tr("Link account")}</option>
-                      {userOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.display_name}
-                        </option>
-                      ))}
-                    </select>
-                    <button type="submit" className="min-h-8 rounded-control border border-border px-2 text-[11px] font-semibold">
-                      {tr("Link")}
-                    </button>
-                  </form>
-                ) : null}
-                {member.state === "active" ? (
-                  <form action={actions.removeMember}>
-                    <input type="hidden" name="group" value={groupId} />
-                    <input type="hidden" name="member" value={member.id} />
-                    <button
-                      type="submit"
-                      title={tr("A member with a balance cannot be removed.")}
-                      className="min-h-8 rounded-control border border-border px-2 text-[11px] font-semibold text-destructive"
-                    >
-                      {tr("Remove")}
-                    </button>
-                  </form>
-                ) : null}
-              </>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-
-      {!archived ? (
-        <form action={actions.addMember} className="mt-4 flex flex-wrap items-end gap-2 border-t border-border pt-3">
-          <input type="hidden" name="group" value={groupId} />
-          <label className="flex min-w-40 flex-1 flex-col gap-1 text-xs">
-            <span className="text-xs font-semibold text-muted-foreground">{tr("Name")}</span>
-            <input
-              name="display_name"
-              required
-              maxLength={80}
-              className="min-h-11 rounded-control border border-border bg-background px-2"
-            />
-          </label>
-          <label className="flex min-w-40 flex-col gap-1 text-xs">
-            <span className="text-xs font-semibold text-muted-foreground">{tr("Account (optional)")}</span>
-            <select
-              name="user_id"
-              className="min-h-11 rounded-control border border-border bg-background px-2"
-            >
+      <section className="max-w-xl rounded-card border border-border bg-surface p-4">
+        <form action={actions.addMember} className="flex flex-col gap-3">
+          <input type="hidden" name="group" value={detail.group.id} />
+          <Field label={tr("Name")}>
+            <input name="display_name" required maxLength={80} className={`${control} font-normal`} />
+          </Field>
+          <Field label={tr("Account (optional)")}>
+            <select name="user_id" className={`${control} font-normal`}>
               <option value="">{tr("No account")}</option>
               {userOptions.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -464,348 +778,74 @@ function Members({
                 </option>
               ))}
             </select>
-          </label>
-          <button type="submit" className="min-h-11 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground">
-            {tr("Add member")}
-          </button>
+          </Field>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <a href={href(detail.group.id)} className={link}>
+              {tr("Cancel")}
+            </a>
+            <button type="submit" className={primary}>
+              {tr("Add member")}
+            </button>
+          </div>
         </form>
-      ) : null}
-    </section>
+      </section>
+    </>
   );
 }
 
-function Movements({
+function LinkView({
   context,
   detail,
+  userOptions,
+  memberId,
   actions,
   tr,
 }: {
   context: ModulePageContext;
   detail: AdminGroupDetail;
+  userOptions: AdminUserOption[];
+  memberId: string;
   actions: OweNoGroupsActions;
   tr: (text: string, params?: Record<string, string | number>) => string;
 }) {
-  const { group, members, movements } = detail;
-  const byId = new Map(members.map((member) => [member.id, member.display_name]));
-
+  const member = detail.members.find((candidate) => candidate.id === memberId);
   return (
-    <section className="rounded-card border border-border bg-surface p-3">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {tr("Movements")}
-        </h2>
-        {!group.archived ? (
-          <a href="?group=#movement-form" className="text-[11px] font-semibold text-accent hover:underline">
-            {tr("Add expense")}
-          </a>
-        ) : null}
-      </div>
-
-      {movements.length === 0 ? (
-        <p className="text-xs text-muted-foreground">{tr("No movements yet.")}</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-xs">
-            <thead>
-              <tr className="text-muted-foreground">
-                <th className="border-b border-border p-2 font-semibold">{tr("Date")}</th>
-                <th className="border-b border-border p-2 font-semibold">{tr("Description")}</th>
-                <th className="border-b border-border p-2 font-semibold">{tr("Paid by")}</th>
-                <th className="border-b border-border p-2 text-right font-semibold">{tr("Amount")}</th>
-                <th className="border-b border-border p-2 text-right font-semibold">{tr("Actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {movements.map((movement) => (
-                <tr key={movement.id}>
-                  <td className="border-b border-border p-2 whitespace-nowrap">{movement.occurred_on}</td>
-                  <td className="border-b border-border p-2">
-                    <span className="font-semibold">{movement.description}</span>
-                    <span className="ml-2 text-[11px] text-muted-foreground">
-                      {movement.kind === "settlement" ? tr("Settlement") : tr("Expense")}
-                    </span>
-                  </td>
-                  <td className="border-b border-border p-2">{byId.get(movement.paid_by) ?? ""}</td>
-                  <td className="border-b border-border p-2 text-right tabular-nums">
-                    {money(movement.amount_minor, movement.currency, context.locale)}
-                  </td>
-                  <td className="border-b border-border p-2 text-right">
-                    {!group.archived ? (
-                      <span className="inline-flex items-center gap-1">
-                        <a
-                          href={`?group=${encodeURIComponent(group.id)}&edit=${encodeURIComponent(movement.id)}`}
-                          className="rounded-control border border-border px-2 py-1 text-[11px] font-semibold"
-                        >
-                          {tr("Edit")}
-                        </a>
-                        <form action={actions.deleteMovement}>
-                          <input type="hidden" name="group" value={group.id} />
-                          <input type="hidden" name="movement" value={movement.id} />
-                          <button
-                            type="submit"
-                            className="rounded-control border border-border px-2 py-1 text-[11px] font-semibold text-destructive"
-                          >
-                            {tr("Delete")}
-                          </button>
-                        </form>
-                      </span>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function MovementForm({
-  groupId,
-  members,
-  currency,
-  editing,
-  actions,
-  tr,
-  archived,
-}: {
-  groupId: string;
-  members: AdminGroupDetail["members"];
-  currency: string;
-  editing?: MovementView;
-  actions: OweNoGroupsActions;
-  tr: (text: string, params?: Record<string, string | number>) => string;
-  archived: boolean;
-}) {
-  if (archived) return null;
-  const shareOf = (memberId: string) =>
-    editing?.shares.find((share) => share.memberId === memberId)?.amount_minor;
-  const equal = editing ? Math.round(editing.amount_minor / Math.max(editing.shares.length, 1)) : null;
-  const exact = editing ? editing.shares.some((share) => share.amount_minor !== equal) : false;
-
-  return (
-    <section
-      id="movement-form"
-      className="rounded-card border border-border bg-surface p-3"
-    >
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {editing ? tr("Edit expense") : tr("Add expense")}
-      </h2>
-      <form action={actions.saveMovement} className="flex flex-col gap-3">
-        <input type="hidden" name="group" value={groupId} />
-        {editing ? <input type="hidden" name="movement" value={editing.id} /> : null}
-        <input type="hidden" name="kind" value={editing?.kind ?? "expense"} />
-        <div className="flex flex-wrap gap-2">
-          <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs">
-            <span className="text-xs font-semibold text-muted-foreground">{tr("Description")}</span>
-            <input
-              name="description"
-              required
-              maxLength={200}
-              defaultValue={editing?.description ?? ""}
-              className="min-h-11 rounded-control border border-border bg-background px-2"
-            />
-          </label>
-          <label className="flex w-28 flex-col gap-1 text-xs">
-            <span className="text-xs font-semibold text-muted-foreground">{tr("Amount")} ({currency})</span>
-            <input
-              name="amount"
-              required
-              inputMode="decimal"
-              defaultValue={editing ? (editing.amount_minor / 100).toFixed(2) : ""}
-              className="min-h-11 rounded-control border border-border bg-background px-2 text-right tabular-nums"
-            />
-          </label>
-          <label className="flex w-36 flex-col gap-1 text-xs">
-            <span className="text-xs font-semibold text-muted-foreground">{tr("Date")}</span>
-            <input
-              type="date"
-              name="occurred_on"
-              required
-              defaultValue={editing?.occurred_on ?? today()}
-              className="min-h-11 rounded-control border border-border bg-background px-2"
-            />
-          </label>
-          <label className="flex w-40 flex-col gap-1 text-xs">
-            <span className="text-xs font-semibold text-muted-foreground">{tr("Paid by")}</span>
-            <select
-              name="paid_by"
-              required
-              defaultValue={editing?.paid_by ?? members[0]?.id ?? ""}
-              className="min-h-11 rounded-control border border-border bg-background px-2"
-            >
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.display_name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex w-32 flex-col gap-1 text-xs">
-            <span className="text-xs font-semibold text-muted-foreground">{tr("Split")}</span>
-            <select
-              name="mode"
-              defaultValue={exact ? "exact" : "equal"}
-              className="min-h-11 rounded-control border border-border bg-background px-2"
-            >
-              <option value="equal">{tr("Equal parts")}</option>
-              <option value="exact">{tr("Exact amounts")}</option>
-            </select>
-          </label>
-        </div>
-
-        <fieldset className="flex flex-col gap-1 rounded-control border border-border p-2">
-          <legend className="px-1 text-[11px] text-muted-foreground">{tr("Participants")}</legend>
-          {members.map((member) => {
-            const selected =
-              editing?.shares.some((share) => share.memberId === member.id) ?? true;
-            const amount = shareOf(member.id);
-            return (
-              <label key={member.id} className="flex items-center gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  name="participants"
-                  value={member.id}
-                  defaultChecked={selected}
-                  className="accent-accent"
-                />
-                <span className="min-w-24">{member.display_name}</span>
-                <input
-                  name={`amount_${member.id}`}
-                  inputMode="decimal"
-                  placeholder={tr("Exact")}
-                  defaultValue={amount === undefined ? "" : (amount / 100).toFixed(2)}
-                  className="ml-auto min-h-8 w-24 rounded-control border border-border bg-background px-2 text-right text-[11px] tabular-nums"
-                />
-              </label>
-            );
-          })}
-          <span className="text-[10px] text-muted-foreground">
-            {tr("Amounts are only used in exact mode; the rest splits equally.")}
-          </span>
-        </fieldset>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="submit"
-            className="min-h-11 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground"
-          >
-            {editing ? tr("Save changes") : tr("Save expense")}
-          </button>
-          {editing ? (
-            <a href={`?group=${encodeURIComponent(groupId)}`} className="min-h-11 rounded-control border border-border px-3 text-xs font-semibold leading-9">
-              {tr("Cancel")}
-            </a>
-          ) : null}
-        </div>
-      </form>
-    </section>
-  );
-}
-
-function Settlement({
-  groupId,
-  members,
-  currency,
-  locale,
-  plan,
-  actions,
-  tr,
-  archived,
-}: {
-  groupId: string;
-  members: AdminGroupDetail["members"];
-  currency: string;
-  locale: string;
-  plan: SettlementPlan | null;
-  actions: OweNoGroupsActions;
-  tr: (text: string, params?: Record<string, string | number>) => string;
-  archived: boolean;
-}) {
-  if (archived || members.length < 2) return null;
-  const byId = new Map(members.map((member) => [member.id, member.display_name]));
-  return (
-    <section className="rounded-card border border-border bg-surface p-3">
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {tr("Settle up")}
-      </h2>
-      <p className="text-[11px] text-muted-foreground">
-        {tr("Each payment is recorded as a settlement movement.")}
-      </p>
-      {plan && plan.transfers.length > 0 ? (
-        <ul className="mt-2 flex flex-col divide-y divide-border rounded-control border border-border">
-          {plan.transfers.map((transfer) => (
-            <li
-              key={`${transfer.from}-${transfer.to}`}
-              className="flex flex-wrap items-center gap-2 p-2 text-xs"
-            >
-              <span className="font-semibold">{byId.get(transfer.from) ?? transfer.from}</span>
-              <span aria-hidden="true">→</span>
-              <span className="font-semibold">{byId.get(transfer.to) ?? transfer.to}</span>
-              <span className="ml-auto tabular-nums">
-                {money(transfer.amount_minor, currency, locale)}
-              </span>
-              <form action={actions.settle}>
-                <input type="hidden" name="group" value={groupId} />
-                <input type="hidden" name="from" value={transfer.from} />
-                <input type="hidden" name="to" value={transfer.to} />
-                <input type="hidden" name="amount" value={(transfer.amount_minor / 100).toFixed(2)} />
-                <input type="hidden" name="occurred_on" value={today()} />
-                <input type="hidden" name="description" value="Settlement" />
-                <button
-                  type="submit"
-                  className="min-h-8 rounded-control bg-accent px-2 text-[11px] font-semibold text-accent-foreground"
-                >
-                  {tr("Register payment")}
-                </button>
-              </form>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-2 text-[11px] text-muted-foreground">{tr("Everyone is settled.")}</p>
-      )}
-      <form action={actions.settle} className="mt-3 flex flex-wrap items-end gap-2">
-        <input type="hidden" name="group" value={groupId} />
-        <input type="hidden" name="occurred_on" value={today()} />
-        <label className="flex w-36 flex-col gap-1 text-xs">
-          <span className="text-xs font-semibold text-muted-foreground">{tr("Who pays")}</span>
-          <select name="from" required className="min-h-11 rounded-control border border-border bg-background px-2">
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.display_name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex w-36 flex-col gap-1 text-xs">
-          <span className="text-xs font-semibold text-muted-foreground">{tr("Who receives")}</span>
-          <select name="to" required className="min-h-11 rounded-control border border-border bg-background px-2">
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.display_name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex w-28 flex-col gap-1 text-xs">
-          <span className="text-xs font-semibold text-muted-foreground">{tr("Amount")} ({currency})</span>
-          <input
-            name="amount"
-            required
-            inputMode="decimal"
-            className="min-h-11 rounded-control border border-border bg-background px-2 text-right tabular-nums"
-          />
-        </label>
-        <input type="hidden" name="description" value="Settlement" />
-        <button type="submit" className="min-h-11 rounded-control bg-accent px-3 text-xs font-semibold text-accent-foreground">
-          {tr("Register payment")}
-        </button>
-      </form>
-      <p className="mt-2 text-[10px] text-muted-foreground">
-        {tr("The suggestion is computed from the current balances of the group.")}
-      </p>
-    </section>
+    <>
+      <PageHeader
+        title={tr("Link account")}
+        description={member ? member.display_name : detail.group.name}
+        backHref={href(detail.group.id)}
+        backLabel={detail.group.name}
+        tr={tr}
+      />
+      <section className="max-w-xl rounded-card border border-border bg-surface p-4">
+        {member ? (
+          <form action={actions.linkMember} className="flex flex-col gap-3">
+            <input type="hidden" name="group" value={detail.group.id} />
+            <input type="hidden" name="member" value={member.id} />
+            <Field label={tr("Account (optional)")}>
+              <select name="user_id" required className={`${control} font-normal`}>
+                <option value="">{tr("Link account")}</option>
+                {userOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.display_name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <a href={href(detail.group.id)} className={link}>
+                {tr("Cancel")}
+              </a>
+              <button type="submit" className={primary}>
+                {tr("Link")}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <p className="text-xs text-muted-foreground">{tr("That member already has an account.")}</p>
+        )}
+      </section>
+    </>
   );
 }
