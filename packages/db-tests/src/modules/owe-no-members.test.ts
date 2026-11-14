@@ -145,7 +145,7 @@ describe("owe-no member lifecycle", () => {
         "select id from module_owe_no.owe_no_members where group_id = $1 and state = 'active'",
         [group.id],
       );
-      await expect(removeMember(deps(c), owner.id, group.id, rows[0].id)).rejects.toMatchObject({
+      await expect(removeMember(deps(c), owner.id, group.id, String(rows[0].id))).rejects.toMatchObject({
         code: "conflict",
         details: { code: "cannot_remove_self" },
       });

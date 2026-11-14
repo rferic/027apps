@@ -211,6 +211,7 @@ private class OweStore(
         to: String,
         amountMinor: Long,
         description: String,
+        occurredOn: String,
         onSuccess: () -> Unit,
     ) = run(onSuccess) {
         api.oweCreateMovement(
@@ -219,7 +220,7 @@ private class OweStore(
                 kind = "settlement",
                 description = description,
                 amountMinor = amountMinor,
-                occurredOn = LocalDate.now().toString(),
+                occurredOn = occurredOn,
                 paidBy = from,
                 participants = listOf(OweParticipantBody(memberId = to, amountMinor = amountMinor)),
             ),
@@ -337,6 +338,13 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
                         },
                     )
                 }
+                DropdownMenuItem(
+                    text = { Text(strings.moduleSettings) },
+                    onClick = {
+                        showMenu = false
+                        showSettings = true
+                    },
+                )
             }
         }
 
@@ -406,6 +414,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             categories = store.categories,
             currency = current.group.currency,
             locale = locale,
+            saving = store.loading,
             onDismiss = { showExpense = false },
             onSave = { description, amountMinor, payer, participants, occurredOn, categoryId ->
                 store.addExpense(
@@ -426,6 +435,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
         ManualPaymentDialog(
             members = current.members,
             currency = current.group.currency,
+            saving = store.loading,
             onDismiss = { showPayment = false },
             onSave = { from, to, amount, day ->
                 store.settleUp(
@@ -434,6 +444,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
                     to,
                     amount,
                     strings.settle,
+                    day,
                     onSuccess = { showPayment = false },
                 )
             },
@@ -475,6 +486,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
             settlement = store.settlement!!,
             currency = current.group.currency,
             locale = locale,
+            saving = store.loading,
             onDismiss = { showSettlement = false },
             onPay = { from, to, amount ->
                 store.settleUp(
@@ -483,6 +495,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
                     to,
                     amount,
                     strings.settle,
+                    LocalDate.now().toString(),
                     onSuccess = { showSettlement = false },
                 )
             },
@@ -855,6 +868,7 @@ private fun ExpenseDialog(
     categories: List<OweCategoryDto>,
     currency: String,
     locale: String,
+    saving: Boolean,
     onDismiss: () -> Unit,
     onSave: (String, Long, String, List<OweParticipantBody>, String, String?) -> Unit,
 ) {
@@ -907,7 +921,7 @@ private fun ExpenseDialog(
                     singleLine = true,
                 )
                 Text("${strings.category}:", fontSize = 12.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column {
                     TextButton(onClick = { categoryId = null }) {
                         Text(
                             strings.noCategory,
@@ -915,7 +929,7 @@ private fun ExpenseDialog(
                             fontSize = 11.sp,
                         )
                     }
-                    categories.take(4).forEach { category ->
+                    categories.forEach { category ->
                         TextButton(onClick = { categoryId = category.id }) {
                             Text(
                                 category.name,
@@ -1005,7 +1019,7 @@ private fun ExpenseDialog(
         confirmButton = {
             TextButton(
                 enabled = description.isNotBlank() && minor != null && payer != null &&
-                    selected.isNotEmpty() && exactReady && dateValid,
+                    selected.isNotEmpty() && exactReady && dateValid && !saving,
                 onClick = {
                     onSave(description.trim(), minor!!, payer!!, participants, occurredOn, categoryId)
                 },
@@ -1019,6 +1033,7 @@ private fun ExpenseDialog(
 private fun ManualPaymentDialog(
     members: List<OweMemberDto>,
     currency: String,
+    saving: Boolean,
     onDismiss: () -> Unit,
     onSave: (String, String, Long, String) -> Unit,
 ) {
@@ -1078,7 +1093,7 @@ private fun ManualPaymentDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = minor != null && from != null && to != null && from != to && dayValid,
+                enabled = minor != null && from != null && to != null && from != to && dayValid && !saving,
                 onClick = { onSave(from!!, to!!, minor!!, day) },
             ) { Text(strings.save) }
         },
@@ -1093,6 +1108,7 @@ private fun SettlementDialog(
     settlement: OweSettlementDto,
     currency: String,
     locale: String,
+    saving: Boolean,
     onDismiss: () -> Unit,
     onPay: (String, String, Long) -> Unit,
 ) {
@@ -1118,7 +1134,10 @@ private fun SettlementDialog(
                         )
                         Text(formatMinor(transfer.amountMinor, currency, locale), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         if (transfer.from == myMemberId) {
-                            TextButton(onClick = { onPay(transfer.from, transfer.to, transfer.amountMinor) }) {
+                            TextButton(
+                                enabled = !saving,
+                                onClick = { onPay(transfer.from, transfer.to, transfer.amountMinor) },
+                            ) {
                                 Text(strings.settle, fontSize = 11.sp)
                             }
                         }
