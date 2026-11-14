@@ -1,4 +1,5 @@
 import { t } from "@027apps/i18n/t.js";
+import type { ComponentType } from "react";
 import type { ModulePageContext } from "@027apps/core/modules/pages.js";
 import type {
   AdminGroupDetail,
@@ -10,6 +11,11 @@ import type { SettlementPlan } from "../../src/settlement";
 import { ConfirmForm } from "../components/confirm-form";
 
 type Action = (formData: FormData) => Promise<void>;
+type UserPicker = ComponentType<{
+  options: AdminUserOption[];
+  placeholder: string;
+  noAccountLabel: string;
+}>;
 
 export interface OweNoGroupsActions {
   createGroup: Action;
@@ -97,6 +103,7 @@ export default async function OweNoGroups({
   userOptions,
   plan,
   actions,
+  UserPicker,
 }: {
   context: ModulePageContext;
   groups: AdminGroupView[];
@@ -104,6 +111,7 @@ export default async function OweNoGroups({
   userOptions: AdminUserOption[];
   plan: SettlementPlan | null;
   actions: OweNoGroupsActions;
+  UserPicker?: UserPicker;
 }) {
   const tr = (text: string, params?: Record<string, string | number>) =>
     t(text, context.messages, params);
@@ -146,6 +154,7 @@ export default async function OweNoGroups({
             context={context}
             detail={detail}
             userOptions={userOptions}
+            userPicker={UserPicker}
             actions={actions}
             tr={tr}
           />
@@ -334,7 +343,13 @@ function NewGroup({
       <section className="max-w-xl rounded-card border border-border bg-surface p-4">
                 <form action={actions.createGroup} className="flex flex-col gap-3">
           <Field label={tr("Group name")}>
-            <input name="name" required maxLength={80} className={`${control} font-normal`} />
+            <input
+              name="name"
+              required
+              maxLength={80}
+              autoCapitalize="words"
+              className={`${control} font-normal`}
+            />
           </Field>
           <Field label={tr("Currency")}>
             <input
@@ -921,15 +936,18 @@ function MemberView({
   context,
   detail,
   userOptions,
+  userPicker,
   actions,
   tr,
 }: {
   context: ModulePageContext;
   detail: AdminGroupDetail;
   userOptions: AdminUserOption[];
+  userPicker?: UserPicker;
   actions: OweNoGroupsActions;
   tr: (text: string, params?: Record<string, string | number>) => string;
 }) {
+  const Picker = userPicker!;
   return (
     <>
       <PageHeader
@@ -944,17 +962,31 @@ function MemberView({
                 <form action={actions.addMember} className="flex flex-col gap-3">
           <input type="hidden" name="group" value={detail.group.id} />
           <Field label={tr("Name")}>
-            <input name="display_name" required maxLength={80} className={`${control} font-normal`} />
+            <input
+              name="display_name"
+              required
+              maxLength={80}
+              autoCapitalize="words"
+              className={`${control} font-normal`}
+            />
           </Field>
           <Field label={tr("Account (optional)")}>
-            <select name="user_id" className={`${control} font-normal`}>
-              <option value="">{tr("No account")}</option>
-              {userOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.display_name}
-                </option>
-              ))}
-            </select>
+            {userPicker ? (
+              <Picker
+                options={userOptions}
+                placeholder={tr("Search a name")}
+                noAccountLabel={tr("No account")}
+              />
+            ) : (
+              <select name="user_id" className={`${control} font-normal`}>
+                <option value="">{tr("No account")}</option>
+                {userOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.display_name}
+                  </option>
+                ))}
+              </select>
+            )}
           </Field>
                   <div className="flex flex-wrap items-center justify-end gap-3">
             <a href={href(detail.group.id)} className={link}>

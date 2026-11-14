@@ -9,6 +9,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 /** The user's preference; `system` follows the device. */
@@ -78,6 +79,13 @@ fun Zero27AppsTheme(
         MaterialTheme(colorScheme = if (dark) darkScheme(palette) else scheme(palette), content = content)
     }
 }
+
+/** The brand wash of the login screen, shared by every app surface. */
+fun appGradient(palette: Palette): Brush = Brush.verticalGradient(
+    0f to palette.accent.copy(alpha = 0.16f),
+    0.30f to palette.background,
+    1f to palette.background,
+)
 
 /** Marker for tests/previews that need a colour without the theme. */
 internal fun previewColor(palette: Palette): Color = palette.accent

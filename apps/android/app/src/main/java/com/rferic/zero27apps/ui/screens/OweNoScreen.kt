@@ -1,5 +1,6 @@
 package com.rferic.zero27apps.ui.screens
 
+import com.rferic.zero27apps.ui.components.AppAlertDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -483,7 +485,7 @@ fun OweNoScreen(api: ApiClient, userId: String?, locale: String, onBack: () -> U
     }
 
     pendingAction?.let { (label, action) ->
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { pendingAction = null },
             title = { Text(label) },
             text = { Text(strings.confirmQuestion) },
@@ -698,7 +700,7 @@ private fun Members(
 
     pending?.let { (memberId, action) ->
         val member = detail.members.firstOrNull { it.id == memberId }
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { pending = null },
             title = { Text(action) },
             text = {
@@ -736,8 +738,14 @@ private fun InviteDialog(
 ) {
     val strings = LocalStrings.current
     val palette = LocalPalette.current
-    var name by remember { mutableStateOf("") }
-    AlertDialog(
+    var query by remember { mutableStateOf("") }
+    val wanted = query.trim().lowercase()
+    val matches = if (wanted.isEmpty()) {
+        emptyList()
+    } else {
+        identities.filter { it.displayName.lowercase().contains(wanted) }.take(6)
+    }
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(strings.inviteMember) },
         text = {
@@ -745,7 +753,14 @@ private fun InviteDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                identities.take(12).forEach { identity ->
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text(strings.nameLabel) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                )
+                matches.forEach { identity ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(identity.displayName, modifier = Modifier.weight(1f), fontSize = 13.sp)
                         TextButton(onClick = { onInvite(identity.displayName, identity.id) }) {
@@ -753,28 +768,19 @@ private fun InviteDialog(
                         }
                     }
                 }
-                Text(
-                    strings.accountOptional,
-                    fontSize = 11.sp,
-                    color = palette.mutedForeground,
-                )
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(strings.nameLabel) },
-                    singleLine = true,
-                )
-                Text(
-                    strings.fictitious,
-                    fontSize = 11.sp,
-                    color = palette.mutedForeground,
-                )
+                if (wanted.isNotEmpty() && matches.isEmpty()) {
+                    Text(
+                        "${strings.fictitious}: ${query.trim()}",
+                        fontSize = 11.sp,
+                        color = palette.mutedForeground,
+                    )
+                }
             }
         },
         confirmButton = {
             TextButton(
-                enabled = name.isNotBlank(),
-                onClick = { onInvite(name.trim(), null) },
+                enabled = query.isNotBlank(),
+                onClick = { onInvite(query.trim(), null) },
             ) { Text(strings.invite) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },
@@ -853,7 +859,7 @@ private fun NewGroupDialog(onDismiss: () -> Unit, onCreate: (String, String) -> 
     val strings = LocalStrings.current
     var name by remember { mutableStateOf("") }
     var currency by remember { mutableStateOf("EUR") }
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(strings.newGroup) },
         text = {
@@ -863,6 +869,7 @@ private fun NewGroupDialog(onDismiss: () -> Unit, onCreate: (String, String) -> 
                     onValueChange = { name = it },
                     label = { Text(strings.groupName) },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 )
                 OutlinedTextField(
                     value = currency,
@@ -913,7 +920,7 @@ private fun ExpenseDialog(
         selected.map { OweParticipantBody(it) }
     }
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(strings.addExpense) },
         text = {
@@ -1067,7 +1074,7 @@ private fun ManualPaymentDialog(
     val minor = parseMinor(amount)
     val dayValid = runCatching { LocalDate.parse(day) }.isSuccess
 
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(strings.registerPayment) },
         text = {
@@ -1134,7 +1141,7 @@ private fun SettlementDialog(
 ) {
     val strings = LocalStrings.current
     val byId = members.associateBy { it.id }
-    AlertDialog(
+    AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(strings.whoPays) },
         text = {

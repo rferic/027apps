@@ -109,5 +109,6 @@
   "Clear filter": "Garbitu iragazkia",
   "Edited by {name}": "{name}(e)k editatu du",
   "Added by {name}": "{name}(e)k gehitu du",
-  "Showing the latest {shown} of {total} movements.": "Azken {shown} / {total} mugimendu."
+  "Showing the latest {shown} of {total} movements.": "Azken {shown} / {total} mugimendu.",
+  "Search a name": "Bilatu izen bat"
 }

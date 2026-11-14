@@ -109,5 +109,6 @@
   "Clear filter": "Rimuovi filtro",
   "Edited by {name}": "Modificato da {name}",
   "Added by {name}": "Aggiunto da {name}",
-  "Showing the latest {shown} of {total} movements.": "Ultimi {shown} di {total} movimenti."
+  "Showing the latest {shown} of {total} movements.": "Ultimi {shown} di {total} movimenti.",
+  "Search a name": "Cerca un nome"
 }

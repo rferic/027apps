@@ -32,7 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import com.rferic.zero27apps.ui.theme.appGradient
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -134,11 +134,7 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    0f to palette.accent.copy(alpha = 0.16f),
-                    0.30f to palette.background,
-                    1f to palette.background,
-                ),
+                appGradient(palette),
             ),
     ) {
         Column(

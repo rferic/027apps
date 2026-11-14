@@ -68,7 +68,10 @@ import com.rferic.zero27apps.ui.screens.LoginScreen
 import com.rferic.zero27apps.ui.screens.OweNoScreen
 import com.rferic.zero27apps.ui.screens.ModulesScreen
 import com.rferic.zero27apps.ui.screens.SettingsScreen
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
 import com.rferic.zero27apps.ui.theme.LocalPalette
+import com.rferic.zero27apps.ui.theme.appGradient
 import com.rferic.zero27apps.ui.theme.ThemePreference
 import com.rferic.zero27apps.ui.theme.Zero27AppsTheme
 import java.util.Locale
@@ -237,7 +240,8 @@ private fun Shell(
     val scope = rememberCoroutineScope()
 
     Scaffold(
-        containerColor = palette.background,
+        modifier = Modifier.background(appGradient(palette)),
+        containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             if (actions.isNotEmpty() && openModule == null) {

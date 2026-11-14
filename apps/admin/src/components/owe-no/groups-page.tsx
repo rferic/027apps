@@ -8,6 +8,7 @@ import {
   adminUserOptions,
 } from "@027apps/owe-no/domain/admin.js";
 import { listAllGroups } from "@027apps/owe-no/domain/service.js";
+import { OweUserPicker } from "@/components/owe-no/user-picker";
 import {
   addMemberAction,
   archiveGroupAction,
@@ -54,6 +55,7 @@ export default async function OweNoGroupsPage({ context }: { context: ModulePage
       detail={detail}
       userOptions={userOptions}
       plan={plan}
+      UserPicker={OweUserPicker}
       actions={{
         createGroup: createGroupAction,
         archiveGroup: archiveGroupAction,

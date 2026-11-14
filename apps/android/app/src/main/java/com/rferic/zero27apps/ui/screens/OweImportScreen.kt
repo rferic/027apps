@@ -1,5 +1,6 @@
 package com.rferic.zero27apps.ui.screens
 
+import com.rferic.zero27apps.ui.components.AppAlertDialog
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -217,7 +218,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
     }
 
     mappingName?.let { name ->
-        AlertDialog(
+        AppAlertDialog(
             onDismissRequest = { mappingName = null },
             title = { Text("$name · ${strings.mapIdentity}") },
             text = {
