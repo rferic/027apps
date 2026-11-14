@@ -149,6 +149,36 @@ describe("modules installer", () => {
     });
   });
 
+  it("installs again when a failed attempt left its settings behind", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      // Settings live in `public`, so a rolled-back install leaves them there:
+      // the next install must upsert them instead of dying on the primary key.
+      await c.query(
+        `insert into public.settings_categories (category_key, label, sort_order, source)
+         values ('demo_module', 'Stale', 99, 'module:demo-module')`,
+      );
+      await c.query(
+        `insert into public.settings (category_key, key, label, value, is_public)
+         values ('demo_module', 'demo_module.gone', 'Gone', 'true', false)`,
+      );
+
+      const installed = await installModule(deps(c), admin, manifest());
+      expect(installed.state).toBe("installed");
+
+      const { rows: categories } = await query(
+        c,
+        "select label from public.settings_categories where category_key = 'demo_module'",
+      );
+      expect(categories).toEqual([{ label: "Demo" }]);
+      const { rows: settings } = await query(
+        c,
+        "select key, label from public.settings where category_key = 'demo_module'",
+      );
+      expect(settings).toEqual([{ key: "demo_module.enabled", label: "Enabled" }]);
+    });
+  });
+
   it("refuses a digest mismatch before touching the database", async () => {
     await inRollback(async (c) => {
       const admin = await session(c, "admin");
@@ -360,6 +390,38 @@ describe("modules installer", () => {
       expect(settings).toHaveLength(0);
       const { rows: grants } = await query(c, "select 1 from public.user_modules where module_key = 'demo-module'");
       expect(grants).toHaveLength(0);
+    });
+  });
+
+  it("uninstalls even when the module's demo clear hook raises", async () => {
+    await inRollback(async (c) => {
+      const superAdmin = await session(c, "super_admin");
+      // A failing clear hook used to abort the transaction, so the uninstall
+      // died with "current transaction is aborted" instead of continuing to
+      // drop a schema that is going away anyway.
+      const up = `${UP}
+        create function clear_demo() returns jsonb language plpgsql as $$
+        begin
+          raise exception 'demo still linked';
+        end
+        $$;`;
+      const down = `drop function if exists clear_demo();\n${DOWN}`;
+      const withHooks = manifest({
+        migrations: [
+          { version: "1.0.0", up, down, digest: sha256(up), down_digest: sha256(down) },
+        ],
+        demo: { seed_fn: "seed_demo", clear_fn: "clear_demo" },
+      });
+      await installModule(deps(c), superAdmin, withHooks);
+
+      await expect(
+        uninstallModule(deps(c), superAdmin, "demo-module", withHooks, true),
+      ).resolves.toBeUndefined();
+      const { rows } = await query(
+        c,
+        "select 1 from public.module_registry where key = 'demo-module'",
+      );
+      expect(rows).toHaveLength(0);
     });
   });
 

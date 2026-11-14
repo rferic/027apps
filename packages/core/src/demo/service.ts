@@ -330,12 +330,16 @@ export async function clearDemoForModule(db: QueryClient, key: string): Promise<
   const { rows } = await db.query("select demo from public.module_registry where key = $1", [key]);
   const hooks = rows[0] ? hooksOf(rows[0]) : null;
   if (!hooks) return;
+  // A savepoint, not a bare catch: a failed statement aborts the whole
+  // transaction, and catching it would leave the uninstall unable to run a
+  // single query after ("current transaction is aborted").
+  await db.query("savepoint demo_clear");
   try {
     await db.query(`set local search_path to ${quote(schemaFor(key))}`);
     await db.query(`select ${quote(hooks.clear_fn)}()`);
+    await db.query("reset search_path").catch(() => undefined);
   } catch {
     // The uninstall continues: the schema (and its data) is about to be dropped.
-  } finally {
-    await db.query("reset search_path").catch(() => undefined);
+    await db.query("rollback to savepoint demo_clear").catch(() => undefined);
   }
 }

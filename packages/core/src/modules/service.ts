@@ -516,7 +516,6 @@ export async function installModule(
     );
   }
   const files = await verifyModuleFiles(deps, manifest);
-  const actor = actorFor(caller);
   const digest = manifestDigest(manifest);
   const schema = schemaFor(manifest.key);
 
@@ -579,37 +578,10 @@ export async function installModule(
     await grantModulePrivileges(db, schema);
     await assertProfileForeignKeys(db, schema);
 
-    for (const group of manifest.settings) {
-      await db.query(
-        `insert into public.settings_categories
-           (category_key, label, help, icon, sort_order, source)
-         values ($1, $2, $3, $4, $5, $6)`,
-        [group.category, group.label, null, group.icon ?? null, group.sort_order, `module:${manifest.key}`],
-      );
-      for (const setting of group.settings) {
-        const fullKey = `${group.category}.${setting.key}`;
-        await db.query(
-          `insert into public.settings
-             (category_key, key, label, help, value, is_secret, is_public, mcp_access,
-              sort_order, updated_by, updated_by_key)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-          [
-            group.category,
-            fullKey,
-            setting.label,
-            setting.help ?? null,
-            setting.is_secret ? null : JSON.stringify(setting.default ?? null),
-            setting.is_secret,
-            setting.is_public,
-            setting.mcp_access,
-            setting.sort_order,
-            actor.by,
-            actor.byKey,
-          ],
-        );
-      }
-    }
-
+    // Upsert, not insert: a failed install can leave the settings rows behind
+    // (they live in public), and installing again must not die on the primary
+    // key before the registry row exists.
+    await syncModuleSettings(db, manifest, categoryFor(manifest.key));
   });
 
   return toModuleView(await getModuleRow(deps.db, manifest.key));
