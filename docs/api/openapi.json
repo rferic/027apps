@@ -4840,6 +4840,638 @@
           }
         ]
       },
+      "OweBalanceList": {
+        "additionalProperties": false,
+        "properties": {
+          "balances": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "amount_minor": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                },
+                "display_name": {
+                  "type": "string"
+                },
+                "member_id": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "member_id",
+                "display_name",
+                "amount_minor"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "balances"
+        ],
+        "type": "object"
+      },
+      "OweGroupDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "group": {
+            "additionalProperties": false,
+            "properties": {
+              "archived": {
+                "type": "boolean"
+              },
+              "created_by": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "currency": {
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "members": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "role": {
+                "enum": [
+                  "invited",
+                  "active",
+                  "left",
+                  "removed"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "currency",
+              "archived",
+              "created_by",
+              "members",
+              "role"
+            ],
+            "type": "object"
+          },
+          "members": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "display_name": {
+                  "type": "string"
+                },
+                "id": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "user",
+                    "fictitious"
+                  ],
+                  "type": "string"
+                },
+                "state": {
+                  "enum": [
+                    "invited",
+                    "active",
+                    "left",
+                    "removed"
+                  ],
+                  "type": "string"
+                },
+                "user_id": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "display_name",
+                "state",
+                "user_id",
+                "kind"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "group",
+          "members"
+        ],
+        "type": "object"
+      },
+      "OweGroupList": {
+        "additionalProperties": false,
+        "properties": {
+          "groups": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "archived": {
+                  "type": "boolean"
+                },
+                "created_by": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "id": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                "members": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "role": {
+                  "enum": [
+                    "invited",
+                    "active",
+                    "left",
+                    "removed"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "currency",
+                "archived",
+                "created_by",
+                "members",
+                "role"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "groups"
+        ],
+        "type": "object"
+      },
+      "OweGroupResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "group": {
+            "additionalProperties": false,
+            "properties": {
+              "archived": {
+                "type": "boolean"
+              },
+              "created_by": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "currency": {
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "members": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "role": {
+                "enum": [
+                  "invited",
+                  "active",
+                  "left",
+                  "removed"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "currency",
+              "archived",
+              "created_by",
+              "members",
+              "role"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "group"
+        ],
+        "type": "object"
+      },
+      "OweMemberList": {
+        "additionalProperties": false,
+        "properties": {
+          "members": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "display_name": {
+                  "type": "string"
+                },
+                "id": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "user",
+                    "fictitious"
+                  ],
+                  "type": "string"
+                },
+                "state": {
+                  "enum": [
+                    "invited",
+                    "active",
+                    "left",
+                    "removed"
+                  ],
+                  "type": "string"
+                },
+                "user_id": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "display_name",
+                "state",
+                "user_id",
+                "kind"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "members"
+        ],
+        "type": "object"
+      },
+      "OweMemberResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "member": {
+            "additionalProperties": false,
+            "properties": {
+              "display_name": {
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "user",
+                  "fictitious"
+                ],
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "invited",
+                  "active",
+                  "left",
+                  "removed"
+                ],
+                "type": "string"
+              },
+              "user_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "display_name",
+              "state",
+              "user_id",
+              "kind"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "member"
+        ],
+        "type": "object"
+      },
+      "OweMovementList": {
+        "additionalProperties": false,
+        "properties": {
+          "movements": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "amount_minor": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                },
+                "category_id": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "id": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "expense",
+                    "settlement"
+                  ],
+                  "type": "string"
+                },
+                "occurred_on": {
+                  "type": "string"
+                },
+                "paid_by": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                "shares": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "amount_minor": {
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      "memberId": {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "memberId",
+                      "amount_minor"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "description",
+                "amount_minor",
+                "currency",
+                "paid_by",
+                "occurred_on",
+                "category_id",
+                "shares"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "movements"
+        ],
+        "type": "object"
+      },
+      "OweMovementResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "movement": {
+            "additionalProperties": false,
+            "properties": {
+              "amount_minor": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "category_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "currency": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "expense",
+                  "settlement"
+                ],
+                "type": "string"
+              },
+              "occurred_on": {
+                "type": "string"
+              },
+              "paid_by": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "shares": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "amount_minor": {
+                      "maximum": 9007199254740991,
+                      "minimum": -9007199254740991,
+                      "type": "integer"
+                    },
+                    "memberId": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "memberId",
+                    "amount_minor"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "description",
+              "amount_minor",
+              "currency",
+              "paid_by",
+              "occurred_on",
+              "category_id",
+              "shares"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "movement"
+        ],
+        "type": "object"
+      },
+      "OweSettlement": {
+        "additionalProperties": false,
+        "properties": {
+          "exact": {
+            "type": "boolean"
+          },
+          "transfers": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "amount_minor": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                },
+                "from": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                "to": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "from",
+                "to",
+                "amount_minor"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "exact",
+          "transfers"
+        ],
+        "type": "object"
+      },
       "RedeemResult": {
         "additionalProperties": false,
         "properties": {
@@ -8145,6 +8777,637 @@
         },
         "security": [],
         "summary": "This OpenAPI 3.1 document."
+      }
+    },
+    "/owe-no/groups": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweGroupList"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Groups the caller belongs to.",
+        "x-027-scopes": [
+          "expenses:read"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "currency": {
+                    "pattern": "^[A-Z]{3}$",
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "currency"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweGroupResponse"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Create a group; the creator joins as an active member.",
+        "x-027-scopes": [
+          "expenses:read_write"
+        ]
+      }
+    },
+    "/owe-no/groups/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweGroupDetail"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "A group and its members.",
+        "x-027-scopes": [
+          "expenses:read"
+        ]
+      }
+    },
+    "/owe-no/groups/{id}/balances": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweBalanceList"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Paid minus owed per member.",
+        "x-027-scopes": [
+          "balances:read"
+        ]
+      }
+    },
+    "/owe-no/groups/{id}/members": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweMemberList"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Members of a group.",
+        "x-027-scopes": [
+          "expenses:read"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "display_name": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "invitee_id": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "display_name"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweMemberResponse"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Invite a registered user or add a fictitious member (creator).",
+        "x-027-scopes": [
+          "expenses:read_write"
+        ]
+      }
+    },
+    "/owe-no/groups/{id}/members/accept": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "The invitee accepts the invitation and becomes active.",
+        "x-027-scopes": [
+          "expenses:read_write"
+        ]
+      }
+    },
+    "/owe-no/groups/{id}/movements": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweMovementList"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Expenses and settlements of a group, without deleted rows.",
+        "x-027-scopes": [
+          "expenses:read"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "amount_minor": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "type": "integer"
+                  },
+                  "category_id": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "description": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "expense",
+                      "settlement"
+                    ],
+                    "type": "string"
+                  },
+                  "occurred_on": {
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "type": "string"
+                  },
+                  "paid_by": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "participants": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "amount_minor": {
+                          "maximum": 9007199254740991,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "member_id": {
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "member_id"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 200,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "description",
+                  "amount_minor",
+                  "occurred_on",
+                  "paid_by",
+                  "participants"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweMovementResponse"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Record an expense (equal or exact split) or a settlement.",
+        "x-027-scopes": [
+          "expenses:read_write"
+        ]
+      }
+    },
+    "/owe-no/groups/{id}/movements/{movementId}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "movementId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Soft-delete a movement (author or group creator).",
+        "x-027-scopes": [
+          "expenses:read_write"
+        ]
+      }
+    },
+    "/owe-no/groups/{id}/settlement": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweSettlement"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Who pays whom, exact when the group is small enough.",
+        "x-027-scopes": [
+          "balances:read"
+        ]
       }
     },
     "/settings": {

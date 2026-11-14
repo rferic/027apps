@@ -728,6 +728,98 @@ export const healthResponseSchema = component(
   ]),
 );
 
+const oweGroup = z
+  .object({
+    id: z.uuid(),
+    name: z.string(),
+    currency: z.string(),
+    archived: z.boolean(),
+    created_by: z.uuid().nullable(),
+    members: z.number().int(),
+    role: z.enum(["invited", "active", "left", "removed"]),
+  })
+  .strict();
+
+const oweMember = z
+  .object({
+    id: z.uuid(),
+    display_name: z.string(),
+    state: z.enum(["invited", "active", "left", "removed"]),
+    user_id: z.uuid().nullable(),
+    kind: z.enum(["user", "fictitious"]),
+  })
+  .strict();
+
+const oweShare = z
+  .object({ memberId: z.uuid(), amount_minor: z.number().int() })
+  .strict();
+
+const oweMovement = z
+  .object({
+    id: z.uuid(),
+    kind: z.enum(["expense", "settlement"]),
+    description: z.string(),
+    amount_minor: z.number().int(),
+    currency: z.string(),
+    paid_by: z.uuid(),
+    occurred_on: z.string(),
+    category_id: z.uuid().nullable(),
+    shares: z.array(oweShare),
+  })
+  .strict();
+
+export const oweGroupListSchema = component(
+  "OweGroupList",
+  z.object({ groups: z.array(oweGroup) }).strict(),
+);
+export const oweGroupResponseSchema = component(
+  "OweGroupResponse",
+  z.object({ group: oweGroup }).strict(),
+);
+export const oweGroupDetailSchema = component(
+  "OweGroupDetail",
+  z.object({ group: oweGroup, members: z.array(oweMember) }).strict(),
+);
+export const oweMemberListSchema = component(
+  "OweMemberList",
+  z.object({ members: z.array(oweMember) }).strict(),
+);
+export const oweMemberResponseSchema = component(
+  "OweMemberResponse",
+  z.object({ member: oweMember }).strict(),
+);
+export const oweMovementListSchema = component(
+  "OweMovementList",
+  z.object({ movements: z.array(oweMovement) }).strict(),
+);
+export const oweMovementResponseSchema = component(
+  "OweMovementResponse",
+  z.object({ movement: oweMovement }).strict(),
+);
+export const oweBalanceListSchema = component(
+  "OweBalanceList",
+  z
+    .object({
+      balances: z.array(
+        z
+          .object({ member_id: z.uuid(), display_name: z.string(), amount_minor: z.number().int() })
+          .strict(),
+      ),
+    })
+    .strict(),
+);
+export const oweSettlementSchema = component(
+  "OweSettlement",
+  z
+    .object({
+      exact: z.boolean(),
+      transfers: z.array(
+        z.object({ from: z.uuid(), to: z.uuid(), amount_minor: z.number().int() }).strict(),
+      ),
+    })
+    .strict(),
+);
+
 export const androidReleaseSchema = component(
   "AndroidRelease",
   z
