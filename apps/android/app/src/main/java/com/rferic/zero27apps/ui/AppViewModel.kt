@@ -15,6 +15,7 @@ import com.rferic.zero27apps.data.ApiException
 import com.rferic.zero27apps.data.PatchMeRequest
 import com.rferic.zero27apps.data.RedeemRequest
 import com.rferic.zero27apps.prefs.PrefsStringStore
+import com.rferic.zero27apps.update.UpdateThrottle
 import com.rferic.zero27apps.update.Updater
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -53,6 +54,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val login: StateFlow<LoginState> = _login.asStateFlow()
 
     private val updater = Updater(application)
+    private val updateThrottle = UpdateThrottle(prefs)
 
     private val _update = MutableStateFlow<UpdateState>(UpdateState.None)
     val update: StateFlow<UpdateState> = _update.asStateFlow()
@@ -80,6 +82,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun checkForUpdate(manual: Boolean = false) {
         val api = client ?: return
+        // Automatic checks are throttled; the Settings button always asks.
+        if (!manual && !updateThrottle.shouldCheck()) return
+        updateThrottle.markChecked()
         if (manual) _update.value = UpdateState.Checking
         viewModelScope.launch {
             runCatching { api.androidApp() }
