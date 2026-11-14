@@ -70,6 +70,13 @@ aceptación y un solo culpable cuando algo falla. Ahora son cuatro tareas con pu
 **Sprint 16:** solo si el sprint 15 no llega al release; no se planifica aparte. La release,
 las capturas reales y la landing `available` se cierran al final de la tarea 07.
 
+**Pendientes conocidos que no entran en este sprint**
+
+- **Widget de pantalla de inicio de Android**: la app entrega el producto abierto (login,
+  sesión, OweNo), pero no un `AppWidget` para la home del móvil. Necesita spec propia.
+- Release firmado y tag: exigen keystore y orden explícita del propietario.
+- Promoción a producción: `staging → main` solo con orden explícita.
+
 El sprint **no arranca por código**: arranca por el **mockup A del esqueleto** y, para OweNo,
 por los **mockups F1 (móvil) y F2 (panel)**. Sin esas puertas no se implementa UI.
 

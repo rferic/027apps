@@ -31,6 +31,9 @@ propietario metió el importador en v1 (D3.2, C) y es una función móvil, no de
   tarea 01; capturas reales de la app con datos de demo; landing `/` y `/self-host` con OweNo
   `available`; release del APK con tag (puerta del propietario).
 - Fuera: offline, presupuestos, multi-divisa, edición avanzada de repartos y push en iOS.
+  También queda **fuera el widget de pantalla de inicio de Android** (un `AppWidget` con el
+  resumen del usuario y sus grupos): el sprint entrega la app abierta, no un widget de la
+  home. Se anota aquí para no perderlo; necesita su propia spec y su propia tarea.
 
 **Dependencias**: tareas 01 y 06 `finalizadas`; datos de demo; dispositivo Android;
 **Firebase configurado en la instancia** por el propietario (panel → Notificaciones, guía
