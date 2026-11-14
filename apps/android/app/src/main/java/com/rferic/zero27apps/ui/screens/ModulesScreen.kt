@@ -60,7 +60,6 @@ fun ModulesScreen(modules: List<ModuleDto>, onOpen: (String) -> Unit) {
             }
         }
 
-        Text(strings.noModulesHome, fontSize = 12.sp, color = palette.mutedForeground)
     }
 }
 

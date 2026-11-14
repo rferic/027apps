@@ -78,7 +78,7 @@ internal fun formatDay(raw: String, locale: String): String =
                     .withLocale(java.util.Locale.forLanguageTag(locale)),
             )
         }
-        .getOrDefault(raw)
+        .getOrDefault(if (raw.length >= 10) raw.take(10) else raw)
 
 /** Money is integer minor units; the app only formats for display, in the profile locale. */
 internal fun formatMinor(amountMinor: Long, currency: String, locale: String): String =

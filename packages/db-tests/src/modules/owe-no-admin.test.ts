@@ -161,6 +161,7 @@ describe("owe-no administration", () => {
       });
       const shareOf = (shares: Array<{ memberId: string; amount_minor: number }>) =>
         new Map(shares.map((share) => [share.memberId, share.amount_minor]));
+      expect(created.occurred_on).toBe("2026-11-14");
       expect(shareOf(created.shares)).toEqual(
         new Map([
           [adminMember.id, 500],

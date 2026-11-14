@@ -141,7 +141,8 @@ export async function adminGroupDetail(
 async function adminMovements(deps: OweDeps, groupId: string): Promise<AdminMovementView[]> {
   const { rows } = await deps.db.query(
     `select mv.id, mv.kind, mv.description, mv.amount_minor, mv.currency,
-            mv.paid_by_member_id, mv.occurred_on, mv.category_id,
+            mv.paid_by_member_id, to_char(mv.occurred_on, 'YYYY-MM-DD') as occurred_on,
+            mv.category_id,
             mv.created_at, mv.updated_at,
             c.display_name as created_by_name, u.display_name as updated_by_name,
             coalesce(json_agg(json_build_object('memberId', s.member_id,
