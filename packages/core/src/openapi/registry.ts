@@ -6,6 +6,8 @@ import {
   oweAddMember,
   oweCreateGroup,
   oweCreateMovement,
+  oweImportCommit,
+  oweImportPreview,
 } from "./owe-requests";
 import { createInvitationSchema, redeemInvitationSchema } from "../invitations/api";
 import { maintenanceRunSchema } from "../maintenance/api";
@@ -63,6 +65,9 @@ import {
   oweGroupListSchema,
   oweGroupResponseSchema,
   oweMemberListSchema,
+  oweImportListSchema,
+  oweImportPreviewSchema,
+  oweImportResultSchema,
   oweMemberResponseSchema,
   oweMovementListSchema,
   oweMovementResponseSchema,
@@ -248,6 +253,33 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     scopes: ["expenses:read_write"],
     auth: "session",
     status: 204,
+  },
+  {
+    method: "post",
+    path: "/owe-no/groups/{id}/imports/preview",
+    summary: "Dry-run a Splitwise CSV: counts, errors, unresolved names, duplicates.",
+    scopes: ["expenses:read_write"],
+    request: oweImportPreview,
+    response: oweImportPreviewSchema,
+    auth: "session",
+  },
+  {
+    method: "post",
+    path: "/owe-no/groups/{id}/imports",
+    summary: "Commit a Splitwise CSV in one transaction (creator; duplicates need confirmation).",
+    scopes: ["expenses:read_write"],
+    request: oweImportCommit,
+    response: oweImportResultSchema,
+    auth: "session",
+    status: 201,
+  },
+  {
+    method: "get",
+    path: "/owe-no/groups/{id}/imports",
+    summary: "Import batches of a group (creator).",
+    scopes: ["expenses:read_write"],
+    response: oweImportListSchema,
+    auth: "session",
   },
   {
     method: "get",

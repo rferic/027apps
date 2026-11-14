@@ -90,6 +90,8 @@ describe("owe-no package", () => {
         "owe_no_blocks",
         "owe_no_categories",
         "owe_no_groups",
+        "owe_no_import_rows",
+        "owe_no_imports",
         "owe_no_members",
         "owe_no_movement_shares",
         "owe_no_movements",

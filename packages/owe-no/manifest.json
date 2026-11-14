@@ -6,7 +6,7 @@
     "icon": "assets/icon.svg",
     "color": "emerald"
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "contract": 1,
   "is_public": false,
   "migrations": [
@@ -16,6 +16,13 @@
       "down": "./sql/001-init.down.sql",
       "digest": "sha256:57eb690bda78202e3b7a64986ccc26b94fe50895bc440da59a93bf1563a5316c",
       "down_digest": "sha256:9d4645d5c733933895bb1a4509d481974a546d5050e5ce98e3fc1f0f929c44c5"
+    },
+    {
+      "version": "1.1.0",
+      "up": "./sql/002-imports.sql",
+      "down": "./sql/002-imports.down.sql",
+      "digest": "sha256:96e79fba20f990d6906f086623d56a7a0828bf6411eb30fb46462757551dc992",
+      "down_digest": "sha256:79a61db8ffbf1d5c9360a62d340dbaf1b59e412887b3072c3c8fcf22c9c702f0"
     }
   ],
   "settings": [

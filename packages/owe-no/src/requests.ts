@@ -29,3 +29,13 @@ export const createMovementSchema = z
   .strict();
 
 export type CreateMovementBody = z.infer<typeof createMovementSchema>;
+
+export const importPreviewSchema = z.object({ csv: z.string().min(1).max(2 * 1024 * 1024) }).strict();
+
+export const importCommitSchema = z
+  .object({
+    csv: z.string().min(1).max(2 * 1024 * 1024),
+    mapping: z.record(z.string(), z.uuid()).optional(),
+    confirm_duplicates: z.boolean().optional(),
+  })
+  .strict();

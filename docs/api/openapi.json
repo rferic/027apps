@@ -5124,6 +5124,212 @@
         ],
         "type": "object"
       },
+      "OweImportList": {
+        "additionalProperties": false,
+        "properties": {
+          "imports": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "created_at": {
+                  "type": "string"
+                },
+                "created_count": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                },
+                "group_id": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                "group_name": {
+                  "type": "string"
+                },
+                "id": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                "imported_by": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "row_count": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "group_id",
+                "group_name",
+                "imported_by",
+                "row_count",
+                "created_count",
+                "created_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "imports"
+        ],
+        "type": "object"
+      },
+      "OweImportPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "currencies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "derived": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "duplicates": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "errors": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "line": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "line",
+                "message"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "movements": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "payments": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "sample": {
+            "items": {
+              "$ref": "#/components/schemas/OweImportPreview____schema0"
+            },
+            "type": "array"
+          },
+          "skipped": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "unresolved": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "movements",
+          "payments",
+          "derived",
+          "skipped",
+          "errors",
+          "currencies",
+          "unresolved",
+          "duplicates",
+          "sample"
+        ],
+        "type": "object"
+      },
+      "OweImportPreview____schema0": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          },
+          {
+            "items": {
+              "$ref": "#/components/schemas/OweImportPreview____schema0"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/OweImportPreview____schema0"
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "OweImportResult": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "created": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "errors": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "skipped_duplicates": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created",
+          "skipped_duplicates",
+          "errors",
+          "categories"
+        ],
+        "type": "object"
+      },
       "OweMemberList": {
         "additionalProperties": false,
         "properties": {
@@ -8972,6 +9178,201 @@
         "summary": "Paid minus owed per member.",
         "x-027-scopes": [
           "balances:read"
+        ]
+      }
+    },
+    "/owe-no/groups/{id}/imports": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweImportList"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Import batches of a group (creator).",
+        "x-027-scopes": [
+          "expenses:read_write"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "confirm_duplicates": {
+                    "type": "boolean"
+                  },
+                  "csv": {
+                    "maxLength": 2097152,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "mapping": {
+                    "additionalProperties": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "csv"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweImportResult"
+                }
+              }
+            },
+            "description": "Created."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Commit a Splitwise CSV in one transaction (creator; duplicates need confirmation).",
+        "x-027-scopes": [
+          "expenses:read_write"
+        ]
+      }
+    },
+    "/owe-no/groups/{id}/imports/preview": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "csv": {
+                    "maxLength": 2097152,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "csv"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweImportPreview"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Dry-run a Splitwise CSV: counts, errors, unresolved names, duplicates.",
+        "x-027-scopes": [
+          "expenses:read_write"
         ]
       }
     },

@@ -820,6 +820,56 @@ export const oweSettlementSchema = component(
     .strict(),
 );
 
+export const oweImportPreviewSchema = component(
+  "OweImportPreview",
+  z
+    .object({
+      movements: z.number().int(),
+      payments: z.number().int(),
+      derived: z.number().int(),
+      skipped: z.number().int(),
+      errors: z.array(z.object({ line: z.number().int(), message: z.string() }).strict()),
+      currencies: z.array(z.string()),
+      unresolved: z.array(z.string()),
+      duplicates: z.number().int(),
+      sample: z.array(z.json()),
+    })
+    .strict(),
+);
+
+export const oweImportResultSchema = component(
+  "OweImportResult",
+  z
+    .object({
+      created: z.number().int(),
+      skipped_duplicates: z.number().int(),
+      errors: z.number().int(),
+      categories: z.number().int(),
+    })
+    .strict(),
+);
+
+export const oweImportListSchema = component(
+  "OweImportList",
+  z
+    .object({
+      imports: z.array(
+        z
+          .object({
+            id: z.uuid(),
+            group_id: z.uuid(),
+            group_name: z.string(),
+            imported_by: z.uuid().nullable(),
+            row_count: z.number().int(),
+            created_count: z.number().int(),
+            created_at: z.string(),
+          })
+          .strict(),
+      ),
+    })
+    .strict(),
+);
+
 export const androidReleaseSchema = component(
   "AndroidRelease",
   z

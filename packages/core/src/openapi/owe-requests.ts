@@ -33,3 +33,15 @@ export const oweCreateMovement = z
       .max(200),
   })
   .strict();
+
+export const oweImportPreview = z
+  .object({ csv: z.string().min(1).max(2 * 1024 * 1024) })
+  .strict();
+
+export const oweImportCommit = z
+  .object({
+    csv: z.string().min(1).max(2 * 1024 * 1024),
+    mapping: z.record(z.string(), z.uuid()).optional(),
+    confirm_duplicates: z.boolean().optional(),
+  })
+  .strict();
