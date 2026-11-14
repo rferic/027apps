@@ -52,7 +52,7 @@ class AppStringsTest {
                 strings.privateSpace, strings.mySpace, strings.onlyActive, strings.change,
                 strings.sessionNote, strings.welcome, strings.version,
                 strings.showPassword, strings.hidePassword, strings.checkUpdates,
-                strings.upToDate, strings.checking,
+                strings.upToDate, strings.checking, strings.actionSoon,
             )
             assertTrue(texts.all { it.isNotBlank() })
         }

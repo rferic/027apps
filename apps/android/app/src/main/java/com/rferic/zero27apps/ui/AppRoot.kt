@@ -2,6 +2,7 @@ package com.rferic.zero27apps.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,11 +16,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -39,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +71,7 @@ import com.rferic.zero27apps.ui.theme.LocalPalette
 import com.rferic.zero27apps.ui.theme.ThemePreference
 import com.rferic.zero27apps.ui.theme.Zero27AppsTheme
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 /**
  * The whole app renders from [AppViewModel.state]. A signed-in user gets the
@@ -207,6 +215,7 @@ private fun FailureScreen(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun Shell(
     state: AppState.SignedIn,
@@ -218,8 +227,25 @@ private fun Shell(
     val strings = LocalStrings.current
     val palette = LocalPalette.current
 
+    val actions = state.modules.flatMap { module -> module.appActions }.distinctBy { it.key }
+    var showActions by remember { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
         containerColor = palette.background,
+        snackbarHost = { SnackbarHost(snackbar) },
+        floatingActionButton = {
+            if (actions.isNotEmpty()) {
+                FloatingActionButton(
+                    onClick = { showActions = true },
+                    containerColor = palette.accent,
+                    contentColor = palette.background,
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = strings.add)
+                }
+            }
+        },
         bottomBar = {
             NavigationBar(containerColor = palette.surface, tonalElevation = 0.dp) {
                 NavigationBarItem(
@@ -287,6 +313,47 @@ private fun Shell(
                     update = update,
                     onInstallUpdate = viewModel::installUpdate,
                 )
+            }
+        }
+    }
+
+    if (showActions) {
+        ModalBottomSheet(
+            onDismissRequest = { showActions = false },
+            containerColor = palette.surface,
+        ) {
+            Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                actions.forEach { action ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showActions = false
+                                // The module screens land with task 07; the button
+                                // already reflects the manifest contract.
+                                scope.launch { snackbar.showSnackbar(strings.actionSoon) }
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(palette.successSubtle, RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Filled.Add,
+                                contentDescription = null,
+                                tint = palette.accent,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        Text(action.label, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
             }
         }
     }

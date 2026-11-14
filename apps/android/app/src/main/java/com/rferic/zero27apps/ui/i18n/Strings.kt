@@ -68,6 +68,7 @@ data class Strings(
     val checkUpdates: String,
     val upToDate: String,
     val checking: String,
+    val actionSoon: String,
 )
 
 object AppStrings {
@@ -147,6 +148,7 @@ object AppStrings {
         checkUpdates = "Check for updates",
         upToDate = "You have the latest version",
         checking = "Checking…",
+        actionSoon = "That action arrives with its module's screens.",
     )
 
     val es = Strings(
@@ -213,6 +215,7 @@ object AppStrings {
         checkUpdates = "Buscar actualizaciones",
         upToDate = "Tienes la última versión",
         checking = "Comprobando…",
+        actionSoon = "Esa acción llegará con las pantallas del módulo.",
     )
 
     val ca = Strings(
@@ -279,6 +282,7 @@ object AppStrings {
         checkUpdates = "Cerca actualitzacions",
         upToDate = "Tens l'última versió",
         checking = "Comprovant…",
+        actionSoon = "Aquesta acció arribarà amb les pantalles del mòdul.",
     )
 
     val it = Strings(
@@ -345,6 +349,7 @@ object AppStrings {
         checkUpdates = "Cerca aggiornamenti",
         upToDate = "Hai l'ultima versione",
         checking = "Verifica…",
+        actionSoon = "Quell'azione arriverà con le schermate del modulo.",
     )
 
     val fr = Strings(
@@ -411,6 +416,7 @@ object AppStrings {
         checkUpdates = "Rechercher des mises à jour",
         upToDate = "Vous avez la dernière version",
         checking = "Vérification…",
+        actionSoon = "Cette action arrivera avec les écrans du module.",
     )
 
     val de = Strings(
@@ -477,6 +483,7 @@ object AppStrings {
         checkUpdates = "Nach Updates suchen",
         upToDate = "Du hast die neueste Version",
         checking = "Wird geprüft…",
+        actionSoon = "Diese Aktion kommt mit den Bildschirmen des Moduls.",
     )
 
     val pt = Strings(
@@ -543,6 +550,7 @@ object AppStrings {
         checkUpdates = "Procurar atualizações",
         upToDate = "Tens a última versão",
         checking = "A verificar…",
+        actionSoon = "Essa ação chegará com os ecrãs do módulo.",
     )
 
     val gl = Strings(
@@ -609,6 +617,7 @@ object AppStrings {
         checkUpdates = "Buscar actualizacións",
         upToDate = "Tes a última versión",
         checking = "Comprobando…",
+        actionSoon = "Esa acción chegará coas pantallas do módulo.",
     )
 
     val eu = Strings(
@@ -675,5 +684,6 @@ object AppStrings {
         checkUpdates = "Bilatu eguneraketak",
         upToDate = "Azken bertsioa duzu",
         checking = "Egiaztatzen…",
+        actionSoon = "Ekintza hori moduluaren pantaillekin iritsiko da.",
     )
 }
