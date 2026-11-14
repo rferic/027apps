@@ -260,11 +260,11 @@ function ModulesFilter({
 function ModulesTable({
   modules,
   messages,
-  colors,
+  branding,
 }: {
   modules: ModuleRow[];
   messages: TranslationMap;
-  colors: Map<string, string>;
+  branding: Map<string, { color: string; description: string }>;
 }) {
   return (
     <div className="hidden overflow-x-auto sm:block">
@@ -294,7 +294,12 @@ function ModulesTable({
             <tr key={module.key} className={clickableRowClass}>
               <td className="border-b border-border py-2 pr-3 font-mono text-[11px]">{module.key}</td>
               <td className="border-b border-border py-2 pr-3 font-semibold">
-                <ModuleIcon moduleKey={module.key} size={16} color={colors.get(module.key)} className="mr-2 align-[-2px]" />
+                <ModuleIcon
+                  moduleKey={module.key}
+                  size={16}
+                  color={branding.get(module.key)?.color}
+                  className="mr-2 align-[-2px]"
+                />
                 <RowLink
                   href={`/panel/modules/${encodeURIComponent(module.key)}`}
                   label={module.name}
@@ -329,11 +334,11 @@ function ModulesTable({
 function ModulesCards({
   modules,
   messages,
-  colors,
+  branding,
 }: {
   modules: ModuleRow[];
   messages: TranslationMap;
-  colors: Map<string, string>;
+  branding: Map<string, { color: string; description: string }>;
 }) {
   return (
     <ul className="flex flex-col gap-2 sm:hidden">
@@ -341,22 +346,42 @@ function ModulesCards({
         <li key={module.key}>
           <Link
             href={`/panel/modules/${encodeURIComponent(module.key)}`}
-            className="flex min-h-11 flex-col gap-1 rounded-card border border-border bg-surface p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="flex min-h-11 flex-col gap-3 rounded-card border border-border bg-surface p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold">{module.name}</span>
-              <Badge variant={stateVariant(module.state)}>
-                {stateLabel(module.state, messages)}
-              </Badge>
+            <span className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-control bg-muted">
+                <ModuleIcon
+                  moduleKey={module.key}
+                  size={22}
+                  color={branding.get(module.key)?.color}
+                />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-sm font-semibold">{module.name}</span>
+                  <Badge variant={stateVariant(module.state)}>
+                    {stateLabel(module.state, messages)}
+                  </Badge>
+                </span>
+                {branding.get(module.key)?.description ? (
+                  <span className="line-clamp-2 text-xs text-muted-foreground">
+                    {branding.get(module.key)!.description}
+                  </span>
+                ) : null}
+              </span>
             </span>
-            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-              <dt className="text-muted-foreground">{t("Key", messages)}</dt>
-              <dd className="font-mono text-[11px]">{module.key}</dd>
-              <dt className="text-muted-foreground">{t("Version", messages)}</dt>
-              <dd>{module.version}</dd>
-              <dt className="text-muted-foreground">{t("Public", messages)}</dt>
-              <dd>{publicLabel(module.is_public, messages)}</dd>
-            </dl>
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+              <span>
+                {t("Key", messages)} <code className="font-mono text-foreground">{module.key}</code>
+              </span>
+              <span>
+                {t("Version", messages)} <span className="text-foreground">{module.version}</span>
+              </span>
+              <span>
+                {t("Public", messages)}{" "}
+                <span className="text-foreground">{publicLabel(module.is_public, messages)}</span>
+              </span>
+            </span>
           </Link>
         </li>
       ))}
@@ -450,16 +475,16 @@ function CatalogueEmpty({
 function CatalogueList({
   modules,
   messages,
-  colors,
+  branding,
 }: {
   modules: ModuleRow[];
   messages: TranslationMap;
-  colors: Map<string, string>;
+  branding: Map<string, { color: string; description: string }>;
 }) {
   return (
     <>
-      <ModulesTable modules={modules} messages={messages} colors={colors} />
-      <ModulesCards modules={modules} messages={messages} colors={colors} />
+      <ModulesTable modules={modules} messages={messages} branding={branding} />
+      <ModulesCards modules={modules} messages={messages} branding={branding} />
     </>
   );
 }
@@ -470,14 +495,14 @@ function ModulesBody({
   visibility,
   page,
   messages,
-  colors,
+  branding,
 }: {
   catalogue: Catalogue;
   state: StateFilter;
   visibility: PublicFilter;
   page: number;
   messages: TranslationMap;
-  colors: Map<string, string>;
+  branding: Map<string, { color: string; description: string }>;
 }) {
   if (!catalogue.ok) return <CatalogueError error={catalogue} messages={messages} />;
 
@@ -494,7 +519,7 @@ function ModulesBody({
       {catalogue.total === 0 || catalogue.modules.length === 0 ? (
         <CatalogueEmpty filtered={filtered} messages={messages} />
       ) : (
-        <CatalogueList modules={catalogue.modules} messages={messages} colors={colors} />
+        <CatalogueList modules={catalogue.modules} messages={messages} branding={branding} />
       )}
       <Pagination
         page={page}
@@ -541,17 +566,21 @@ export default async function ModulesPage({
     );
   }
 
-  // Branding color for each icon, read from the package manifests (cached per request).
-  const colors = new Map(
+  // Branding for each icon and its one-line pitch, read from the package
+  // manifests (cached per request).
+  const branding = new Map(
     catalogue.ok
       ? await Promise.all(
-          catalogue.modules.map(
-            async (module) =>
-              [
-                module.key,
-                (await loadModuleManifest(module.key))?.branding.color ?? "slate",
-              ] as const,
-          ),
+          catalogue.modules.map(async (module) => {
+            const manifest = await loadModuleManifest(module.key);
+            return [
+              module.key,
+              {
+                color: manifest?.branding.color ?? "slate",
+                description: manifest?.branding.description ?? "",
+              },
+            ] as const;
+          }),
         )
       : [],
   );
@@ -576,7 +605,7 @@ export default async function ModulesPage({
       <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4">
         <ModulesBody
           catalogue={catalogue}
-          colors={colors}
+          branding={branding}
           state={state}
           visibility={visibility}
           page={page}
