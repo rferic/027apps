@@ -31,6 +31,7 @@ class Updater(private val context: Context) {
     fun downloadAndInstall(
         apkUrl: String,
         baseUrl: String,
+        expectedSha256: String? = null,
         onResult: (Result<Unit>) -> Unit,
     ) {
         val absolute = if (apkUrl.startsWith("http")) apkUrl else baseUrl.trimEnd('/') + apkUrl
@@ -53,10 +54,31 @@ class Updater(private val context: Context) {
                 // instead of adding another one.
                 val target = File(dir, FILE_NAME)
                 download(absolute, target)
+                if (!expectedSha256.isNullOrBlank()) {
+                    val actual = sha256(target)
+                    if (!actual.equals(expectedSha256, ignoreCase = true)) {
+                        target.delete()
+                        error("downloaded APK does not match the published digest")
+                    }
+                }
                 install(target)
             }
             onResult(result)
         }
+    }
+
+    /** SHA-256 of a file, lowercase hex; used only when the release publishes it. */
+    private fun sha256(file: File): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { stream ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val read = stream.read(buffer)
+                if (read <= 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
     private fun download(url: String, target: File) {

@@ -124,4 +124,5 @@ data class AndroidReleaseDto(
     @SerialName("version_name") val versionName: String,
     val tag: String = "",
     @SerialName("apk_url") val apkUrl: String,
+    val sha256: String? = null,
 )

@@ -19,11 +19,14 @@ export interface AndroidRelease {
   versionCode: number;
   /** GitHub asset URL; the download route streams it from here. */
   assetUrl: string;
+  /** SHA-256 of the APK, when the release publishes it (`sha256:…`). */
+  sha256?: string;
 }
 
 interface ReleaseAsset {
   name?: string;
   browser_download_url?: string;
+  digest?: string;
 }
 
 interface Release {
@@ -65,6 +68,7 @@ function toRelease(release: Release): AndroidRelease | null {
     versionName: version.versionName,
     versionCode: version.versionCode,
     assetUrl: asset.browser_download_url,
+    ...(asset.digest?.startsWith("sha256:") ? { sha256: asset.digest.slice(7) } : {}),
   };
 }
 
@@ -84,6 +88,7 @@ function overrideRelease(): AndroidRelease | null {
       tag?: string;
       apk_url?: string;
       asset_url?: string;
+      sha256?: string;
     };
     if (!parsed.version_code || !parsed.version_name) return null;
     return {
@@ -91,6 +96,7 @@ function overrideRelease(): AndroidRelease | null {
       versionName: parsed.version_name,
       versionCode: parsed.version_code,
       assetUrl: parsed.asset_url ?? parsed.apk_url ?? "",
+      ...(parsed.sha256 ? { sha256: parsed.sha256 } : {}),
     };
   } catch {
     return null;

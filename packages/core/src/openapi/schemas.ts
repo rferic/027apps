@@ -909,6 +909,7 @@ export const androidReleaseSchema = component(
       version_name: z.string(),
       tag: z.string(),
       apk_url: z.string(),
+      sha256: z.string().optional(),
     })
     .strict(),
 );

@@ -27,6 +27,7 @@ export async function GET(req: Request) {
         version_name: release.versionName,
         tag: release.tag,
         apk_url: "/download/android",
+        ...(release.sha256 ? { sha256: release.sha256 } : {}),
       };
     },
   );

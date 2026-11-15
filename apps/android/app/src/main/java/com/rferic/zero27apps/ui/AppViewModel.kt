@@ -105,7 +105,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             runCatching { api.androidApp() }
                 .onSuccess { release ->
                     _update.value = if (release.versionCode > BuildConfig.VERSION_CODE) {
-                        UpdateState.Available(release.versionName, release.apkUrl)
+                        UpdateState.Available(release.versionName, release.apkUrl, release.sha256)
                     } else {
                         // A successful check always leaves the row settled: no button
                         // inviting a second check seconds later.
@@ -123,7 +123,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun installUpdate() {
         val available = _update.value as? UpdateState.Available ?: return
         _update.value = UpdateState.Downloading
-        updater.downloadAndInstall(available.apkUrl, instanceStore.current()) { result ->
+        updater.downloadAndInstall(available.apkUrl, instanceStore.current(), available.sha256) { result ->
             _update.value = result.fold(
                 onSuccess = { UpdateState.Installing },
                 onFailure = { UpdateState.Failed },

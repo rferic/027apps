@@ -13,6 +13,20 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.16.7",
+            date = "2026-11-15",
+            notes = mapOf(
+                "es" to listOf(
+                    "La app se lee bien con el texto al 200 %: pestañas deslizables y tarjetas que no se rompen.",
+                    "La actualización se verifica con el SHA-256 del APK publicado.",
+                ),
+                "en" to listOf(
+                    "The app holds up at 200 % text size: scrollable tabs and cards that no longer break.",
+                    "Updates are verified against the published APK's SHA-256.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.16.6",
             date = "2026-11-15",
             notes = mapOf(

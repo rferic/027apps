@@ -487,9 +487,6 @@ fun OweNoScreen(
                     Text(base + extra, fontSize = 12.sp, color = palette.mutedForeground)
                 }
             }
-            if (store.loading) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-            }
             com.rferic.zero27apps.ui.components.PrivacyEye()
             androidx.compose.foundation.layout.Box {
                 IconButton(onClick = { showMenu = true }) {
@@ -1002,11 +999,14 @@ private fun GroupTabs(selected: Int, onSelect: (Int) -> Unit) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     val labels = listOf(strings.tabActivity, strings.tabBalances, strings.tabMembers, strings.summary)
+    // Intrinsic widths inside a scrollable row: at 200 % text size the labels
+    // never break mid-word, the row simply scrolls.
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(palette.surface, RoundedCornerShape(14.dp))
             .border(1.dp, palette.border, RoundedCornerShape(14.dp))
+            .horizontalScroll(rememberScrollState())
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -1014,7 +1014,6 @@ private fun GroupTabs(selected: Int, onSelect: (Int) -> Unit) {
             val on = index == selected
             Box(
                 modifier = Modifier
-                    .weight(1f)
                     .background(
                         if (on) palette.accent.copy(alpha = 0.14f) else androidx.compose.ui.graphics.Color.Transparent,
                         RoundedCornerShape(10.dp),
@@ -1028,7 +1027,7 @@ private fun GroupTabs(selected: Int, onSelect: (Int) -> Unit) {
                         },
                     )
                     .heightIn(min = 44.dp)
-                    .padding(vertical = 10.dp),
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -1036,6 +1035,8 @@ private fun GroupTabs(selected: Int, onSelect: (Int) -> Unit) {
                     fontSize = 12.sp,
                     fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (on) palette.accent else palette.mutedForeground,
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
         }

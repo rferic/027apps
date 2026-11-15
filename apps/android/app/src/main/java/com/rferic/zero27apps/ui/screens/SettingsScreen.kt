@@ -148,11 +148,13 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
+            // The URL gets its own block: at 200 % text size it must not fight
+            // the "Cambiar" action for the same line.
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(strings.instance, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 Text(instance, color = palette.mutedForeground, fontSize = 12.sp)
+                Text(strings.change, color = palette.accent, fontSize = 13.sp)
             }
-            Text(strings.change, color = palette.accent, fontSize = 13.sp)
             Icon(
                 Icons.Filled.KeyboardArrowRight,
                 contentDescription = null,
