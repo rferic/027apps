@@ -25,9 +25,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        deepLink.value = intent?.dataString
-        startAction.value = intent?.getStringExtra(EXTRA_START)
-        startGroup.value = intent?.getStringExtra(EXTRA_GROUP)
+        consumeIntent(intent)
         if (Build.VERSION.SDK_INT >= 33) {
             ActivityCompat.requestPermissions(
                 this,
@@ -44,16 +42,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Reads the launch extras and clears them: a rotation or a re-creation used
+     * to replay the same "open this group / start an expense" request, and an
+     * external app could aim the same extras at us again.
+     */
+    private fun consumeIntent(intent: Intent?) {
+        val group = intent?.getStringExtra(EXTRA_GROUP)?.takeIf(::isUuid)
+        deepLink.value = intent?.dataString
+        startAction.value = intent?.getStringExtra(EXTRA_START)?.takeIf { it in START_ACTIONS }
+        startGroup.value = group
+        intent?.removeExtra(EXTRA_START)
+        intent?.removeExtra(EXTRA_GROUP)
+        intent?.data = null
+    }
+
+    private fun isUuid(value: String): Boolean = UUID_PATTERN.matches(value)
+
     private companion object {
         const val EXTRA_START = "start"
         const val EXTRA_GROUP = "group"
+        val START_ACTIONS = setOf("owe_group", "owe_expense", "modules", "settings")
+        val UUID_PATTERN =
+            Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        deepLink.value = intent.dataString
-        startAction.value = intent.getStringExtra(EXTRA_START)
-        startGroup.value = intent.getStringExtra(EXTRA_GROUP)
+        consumeIntent(intent)
     }
 }

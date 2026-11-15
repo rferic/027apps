@@ -58,6 +58,7 @@ import com.rferic.zero27apps.ui.components.PrivacyEye
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.privacy.LocalPrivacyMasked
 import com.rferic.zero27apps.ui.privacy.maskedMoney
+import com.rferic.zero27apps.ui.theme.ChartSeries
 import com.rferic.zero27apps.ui.theme.LocalPalette
 import java.time.LocalDate
 import java.time.YearMonth
@@ -142,10 +143,10 @@ private fun SummaryBody(
     val names = categories.associate { it.id to it.name }
     val paletteColors = listOf(
         palette.accent,
-        Color(0xFF3B82F6),
-        Color(0xFF8B5CF6),
-        Color(0xFFF59E0B),
-        Color(0xFFEC4899),
+        ChartSeries[0],
+        ChartSeries[1],
+        ChartSeries[2],
+        ChartSeries[3],
         palette.mutedForeground,
     )
     val grouped = current.groupBy { it.categoryId }.entries

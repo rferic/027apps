@@ -185,6 +185,7 @@ data class Strings(
     val importDuplicates: String,
     val done: String,
     val fileError: String,
+    val importTooBig: String,
     val actionFailed: String,
     val tabActivity: String,
     val tabBalances: String,
@@ -406,6 +407,7 @@ object AppStrings {
         multiCurrency = "The file mixes currencies; only CSV in the group currency is accepted.",
         importDuplicates = "Import duplicates too",
         done = "Done",
+        importTooBig = "That file is larger than 2 MB. Export the group again or split it.",
         fileError = "The file could not be read.",
 
         actionFailed = "The action could not be completed.",
@@ -626,6 +628,7 @@ object AppStrings {
         multiCurrency = "El archivo mezcla monedas; solo se acepta CSV en la moneda del grupo.",
         importDuplicates = "Importar duplicados también",
         done = "Hecho",
+        importTooBig = "Ese archivo supera los 2 MB. Exporta el grupo otra vez o divídelo.",
         fileError = "No se pudo leer el archivo.",
 
         actionFailed = "No se pudo completar la acción.",
@@ -846,6 +849,7 @@ object AppStrings {
         multiCurrency = "El fitxer barreja monedes; només s'accepta CSV en la moneda del grup.",
         importDuplicates = "Importa també els duplicats",
         done = "Fet",
+        importTooBig = "Aquest fitxer supera els 2 MB. Exporta el grup una altra vegada o divideix-lo.",
         fileError = "No s'ha pogut llegir el fitxer.",
 
         actionFailed = "No s'ha pogut completar l'acció.",
@@ -1066,6 +1070,7 @@ object AppStrings {
         multiCurrency = "Il file mescola valute; si accetta solo CSV nella valuta del gruppo.",
         importDuplicates = "Importa anche i duplicati",
         done = "Fatto",
+        importTooBig = "Quel file supera i 2 MB. Esporta di nuovo il gruppo o dividilo.",
         fileError = "Impossibile leggere il file.",
 
         actionFailed = "Impossibile completare l'azione.",
@@ -1286,6 +1291,7 @@ object AppStrings {
         multiCurrency = "Le fichier mélange des devises ; seul un CSV dans la devise du groupe est accepté.",
         importDuplicates = "Importer aussi les doublons",
         done = "Terminé",
+        importTooBig = "Ce fichier dépasse 2 Mo. Exportez à nouveau le groupe ou divisez-le.",
         fileError = "Le fichier n'a pas pu être lu.",
 
         actionFailed = "L'action n'a pas pu être terminée.",
@@ -1506,6 +1512,7 @@ object AppStrings {
         multiCurrency = "Die Datei mischt Währungen; nur CSV in der Gruppenwährung wird akzeptiert.",
         importDuplicates = "Duplikate ebenfalls importieren",
         done = "Fertig",
+        importTooBig = "Diese Datei ist größer als 2 MB. Exportiere die Gruppe erneut oder teile sie.",
         fileError = "Die Datei konnte nicht gelesen werden.",
 
         actionFailed = "Die Aktion konnte nicht abgeschlossen werden.",
@@ -1726,6 +1733,7 @@ object AppStrings {
         multiCurrency = "O ficheiro mistura moedas; só se aceita CSV na moeda do grupo.",
         importDuplicates = "Importar também os duplicados",
         done = "Concluído",
+        importTooBig = "Esse ficheiro tem mais de 2 MB. Exporta o grupo outra vez ou divide-o.",
         fileError = "Não foi possível ler o ficheiro.",
 
         actionFailed = "Não foi possível concluir a ação.",
@@ -1946,6 +1954,7 @@ object AppStrings {
         multiCurrency = "O ficheiro mestura moedas; só se acepta CSV na moeda do grupo.",
         importDuplicates = "Importar tamén os duplicados",
         done = "Feito",
+        importTooBig = "Ese ficheiro supera os 2 MB. Exporta o grupo outra vez ou divídeo.",
         fileError = "Non se puido ler o ficheiro.",
 
         actionFailed = "Non se puido completar a acción.",
@@ -2166,6 +2175,7 @@ object AppStrings {
         multiCurrency = "Fitxategiak moneta desberdinak ditu; taldeko monetako CSV soilik onartzen da.",
         importDuplicates = "Inportatu bikoiztuak ere",
         done = "Eginda",
+        importTooBig = "Fitxategi horrek 2 MB baino gehiago ditu. Esportatu taldea berriro edo zatitu.",
         fileError = "Ezin izan da fitxategia irakurri.",
 
         actionFailed = "Ezin izan da ekintza osatu.",

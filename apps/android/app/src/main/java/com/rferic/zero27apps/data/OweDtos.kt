@@ -126,7 +126,6 @@ data class OweLinkBody(@SerialName("user_id") val userId: String)
 data class OweAddMemberBody(
     @SerialName("display_name") val displayName: String,
     @SerialName("invitee_id") val inviteeId: String? = null,
-    val active: Boolean? = null,
 )
 
 @Serializable

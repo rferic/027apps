@@ -68,9 +68,38 @@ class FcmRegistrar(private val context: Context) {
     }
 
     /** Forgets the session material on sign-out or an instance change. */
+    /**
+     * Signing out or switching instance must stop the pushes: the server still
+     * had the token and kept sending a former account's groups to this phone.
+     * It runs before the session is dropped, so the JWT is still valid.
+     */
+    fun revoke() {
+        val baseUrl = instanceUrl
+        val jwt = sessionToken
+        val deviceId = prefs.getString("device_id", null)
+        val token = prefs.getString("push_token", null)
+        if (baseUrl != null && jwt != null) {
+            Thread {
+                runCatching {
+                    if (deviceId != null) request("DELETE", "$baseUrl/api/v1/devices/$deviceId", jwt, null)
+                }.onFailure { Log.w(TAG, "Could not revoke this device", it) }
+                FirebaseMessaging.getInstance().deleteToken()
+            }.start()
+        }
+        if (token != null) prefs.edit().remove("push_token").apply()
+        clear()
+    }
+
     fun clear() {
         secrets.clear()
-        prefs.edit().remove("instance_url").apply()
+        prefs.edit().remove("instance_url").remove("device_id").apply()
+    }
+
+    /** The server returns `{ device: { id } }`; keep it for the revoke call. */
+    private fun rememberDeviceId(body: String) {
+        val id = Regex("\"id\"\\s*:\\s*\"([0-9a-fA-F-]{36})\"").find(body)?.groupValues?.get(1)
+        if (id != null) prefs.edit().putString("device_id", id).apply()
+        else prefs.edit().remove("device_id").apply()
     }
 
     /** Called by Firebase when the installation token rotates. */
@@ -89,7 +118,8 @@ class FcmRegistrar(private val context: Context) {
         val jwt = sessionToken ?: return
         Thread {
             try {
-                request("POST", "$baseUrl/api/v1/devices", jwt, FcmConfig.deviceJson(token))
+                val body = request("POST", "$baseUrl/api/v1/devices", jwt, FcmConfig.deviceJson(token))
+                rememberDeviceId(body)
                 mainHandler.post { callback(Result.success(token)) }
             } catch (error: Exception) {
                 mainHandler.post { callback(Result.failure(error)) }

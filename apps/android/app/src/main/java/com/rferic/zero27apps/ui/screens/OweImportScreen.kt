@@ -49,11 +49,29 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Reads a text file the user picked; null when it cannot be opened. */
-private fun readCsv(context: Context, uri: android.net.Uri): String? =
-    runCatching {
-        context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-    }.getOrNull()
+/** The server refuses files over 2 MB; reading more than that would only waste memory. */
+private const val MAX_CSV_BYTES = 2 * 1024 * 1024
+
+/**
+ * Reads a text file the user picked, off the main thread and capped at the size
+ * the API accepts: the picker also offers any text file, videos included.
+ * Null when it cannot be opened; `tooBig` is signalled with an empty string.
+ */
+private suspend fun readCsv(context: Context, uri: android.net.Uri): String? =
+    withContext(Dispatchers.IO) {
+        runCatching {
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                val buffer = ByteArray(MAX_CSV_BYTES + 1)
+                var read = 0
+                while (read < buffer.size) {
+                    val chunk = stream.read(buffer, read, buffer.size - read)
+                    if (chunk <= 0) break
+                    read += chunk
+                }
+                if (read > MAX_CSV_BYTES) "" else String(buffer, 0, read, Charsets.UTF_8)
+            }
+        }.getOrNull()
+    }
 
 /**
  * Splitwise import, four steps: choose the CSV, dry-run it, map the names the
@@ -79,14 +97,20 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        val text = readCsv(context, uri)
-        if (text == null) {
-            error = strings.fileError
-            return@rememberLauncherForActivityResult
-        }
-        csv = text
         busy = true
         scope.launch {
+            val text = readCsv(context, uri)
+            if (text == null) {
+                error = strings.fileError
+                busy = false
+                return@launch
+            }
+            if (text.isEmpty()) {
+                error = strings.importTooBig
+                busy = false
+                return@launch
+            }
+            csv = text
             runCatching { api.oweImportPreview(groupId, text) }
                 .onSuccess { value ->
                     preview = value
@@ -103,7 +127,8 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
             runCatching {
                 api.oweAddMember(
                     groupId,
-                    OweAddMemberBody(if (inviteeId == null) name else displayNameFor(identities, inviteeId), inviteeId, active = true),
+                    // A real account is invited: the server refuses to force it active.
+                    OweAddMemberBody(if (inviteeId == null) name else displayNameFor(identities, inviteeId), inviteeId),
                 )
             }.onSuccess { member ->
                 // Several CSV names may point at the same member (a merge).

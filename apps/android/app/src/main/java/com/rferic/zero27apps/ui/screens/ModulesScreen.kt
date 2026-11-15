@@ -130,7 +130,12 @@ private fun ModuleTile(
                 Text(fallback, color = accent, fontWeight = FontWeight.Bold, fontSize = 22.sp)
             } else {
                 SubcomposeAsyncImage(
-                    model = ImageRequest.Builder(context).data(iconUrl).build(),
+                    // Same header as the prefetch: a protected icon must not be
+                    // requested twice, once with the token and once without it.
+                    model = ImageRequest.Builder(context)
+                        .data(iconUrl)
+                        .apply { if (token != null) addHeader("Authorization", "Bearer $token") }
+                        .build(),
                     contentDescription = null,
                     colorFilter = ColorFilter.tint(accent),
                     modifier = Modifier.size(26.dp),

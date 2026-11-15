@@ -9,6 +9,18 @@ import androidx.compose.ui.graphics.toArgb
  * The translucent tokens are pre-blended over the surface they sit on, because
  * the Compose colours used by the app are opaque.
  */
+/**
+ * Chart series colours. A chart needs a few distinguishable hues that are not
+ * part of the UI palette; keeping them here is what makes [Tokens] the only
+ * file with hex values, as the rule says.
+ */
+val ChartSeries: List<Color> = listOf(
+    Color(0xFF3B82F6),
+    Color(0xFF8B5CF6),
+    Color(0xFFF59E0B),
+    Color(0xFFEC4899),
+)
+
 data class Palette(
     val background: Color,
     val surface: Color,

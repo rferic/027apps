@@ -13,6 +13,26 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.16.9",
+            date = "2026-11-15",
+            notes = mapOf(
+                "es" to listOf(
+                    "Al cerrar sesión o cambiar de instancia, el móvil deja de recibir notificaciones y el widget se vacía.",
+                    "Cada notificación abre su propio grupo.",
+                    "El modo privado ya no deja escapar importes en el plan de pagos ni al quitar a alguien con saldo.",
+                    "Las actualizaciones no se instalan sin comprobar el SHA-256 del APK.",
+                    "El importador acepta archivos de hasta 2 MB y no bloquea la app mientras los lee.",
+                ),
+                "en" to listOf(
+                    "Signing out or switching instance stops the notifications on this phone and clears the widget.",
+                    "Each notification opens its own group.",
+                    "Private mode no longer leaks amounts in the payment plan or when removing a member with a balance.",
+                    "Updates are not installed unless the APK's SHA-256 matches the published one.",
+                    "The importer takes files up to 2 MB and no longer blocks the app while reading them.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.16.8",
             date = "2026-11-15",
             notes = mapOf(

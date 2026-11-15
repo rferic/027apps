@@ -2,6 +2,7 @@ package com.rferic.zero27apps.ui
 
 import android.app.Application
 import android.util.Log
+import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.rferic.zero27apps.BuildConfig
@@ -224,10 +225,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun signOut() {
         viewModelScope.launch {
+            // Revoke the device while the session is still valid: otherwise the
+            // server keeps pushing a signed-out account's groups to this phone.
+            FcmRegistrar(getApplication()).revoke()
             runCatching { supabase?.auth?.signOut() }
             sessionStore.clear()
-            FcmRegistrar(getApplication()).clear()
-            com.rferic.zero27apps.widget.WidgetSnapshotStore(getApplication()).clear()
+            clearWidget()
             prefs.remove(LOCATION_KEY)
             _login.value = LoginState()
             awaitLogin()
@@ -287,6 +290,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Forgets the widget's data and repaints it, so nothing of the old session stays. */
+    private suspend fun clearWidget() {
+        val context = getApplication<Application>()
+        com.rferic.zero27apps.widget.WidgetSnapshotStore(context).clear()
+        // Repaint with the empty snapshot: the launcher kept the old balances.
+        runCatching { com.rferic.zero27apps.widget.OweWidget().updateAll(context) }
+    }
+
     /** Theme or locale: PATCH /me and refresh the cached profile. */
     fun updateProfile(theme: String? = null, locale: String? = null) {
         val api = client ?: return
@@ -316,10 +327,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun changeInstance(raw: String): Boolean {
         val normalized = ServerUrl.normalize(raw, requireHttps = !BuildConfig.DEBUG) ?: return false
         viewModelScope.launch {
+            FcmRegistrar(getApplication()).revoke()
             runCatching { supabase?.auth?.signOut() }
             sessionStore.clear()
-            FcmRegistrar(getApplication()).clear()
-            com.rferic.zero27apps.widget.WidgetSnapshotStore(getApplication()).clear()
+            clearWidget()
+            prefs.remove(LOCATION_KEY)
             client?.close()
             client = null
             supabase = null

@@ -423,6 +423,7 @@ private fun Shell(
                     onRetryPush = viewModel::retryPush,
                     onCheckUpdates = { viewModel.checkForUpdate(manual = true) },
                     onInstallUpdate = viewModel::installUpdate,
+                    lastCheckAt = viewModel.lastUpdateCheckAt(),
                     onTheme = { viewModel.updateProfile(theme = it) },
                     onLocale = { viewModel.updateProfile(locale = it) },
                     onSignOut = viewModel::signOut,
