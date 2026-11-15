@@ -397,7 +397,7 @@ export function AppLanding({ locale }: { locale: Locale }) {
           </div>
           <p style={s("margin-top: 44px")}>
             <span className="note-pill">
-              <b>●</b>{" "}{t("Planned: push notifications, when the app ships.")}{" "}</span>
+              <b>●</b>{" "}{t("Notifications reach the phone like any other app: the amount only shows when the eye is open.")}{" "}</span>
           </p>
         </div>
       </section>

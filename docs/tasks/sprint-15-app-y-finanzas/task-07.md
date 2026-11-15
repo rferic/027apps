@@ -2,7 +2,7 @@
 id: sprint-15-task-07
 titulo: OweNo en Android: pantallas, importador y capturas
 area: app
-estado: en curso
+estado: test
 fuente: docs/superpowers/specs/2026-11-12-android-access-shell.md; spec de OweNo (pendiente); docs/tasks/sprint-15-app-y-finanzas/splitwise-export.md
 adrs: [0002, 0004, 0007, 0008]
 ---

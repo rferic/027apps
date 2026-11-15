@@ -2,7 +2,7 @@
 id: sprint-15-task-01
 titulo: App Android — mockup, acceso, invitación, sesión y shell
 area: app
-estado: pendiente
+estado: test
 plan: docs/superpowers/plans/2026-11-12-android-access-shell.md
 fuente: docs/superpowers/specs/2026-11-12-android-access-shell.md
 mockup: docs/mockups/app-shell/index.html

@@ -2,7 +2,7 @@
 id: sprint-15-app-y-finanzas
 titulo: App Android real, runtime del primer módulo y OweNo v1
 area: producto
-estado: pendiente
+estado: en curso
 ---
 
 Sprint **aprobado por el propietario el 2026-11-13**, incluidos spec, plan y mockups. La

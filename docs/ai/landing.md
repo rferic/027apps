@@ -72,7 +72,7 @@ aviso «Coming soon» mientras la app no tenga pantallas reales.
 | Módulos | Sí (previsto) | Activar y conceder | app `planned`, panel `available` |
 | API v1 | — | Claves con permisos | `available` |
 | MCP | — | Agentes con OAuth | `available` |
-| App Android | Sí | — | `in-development` (APK de pruebas; release firmado pendiente; push bloqueado) |
+| App Android | Sí | — | `in-development` (APK de pruebas; release firmado pendiente; push verificado el 2026-11-15) |
 | Copias y recuperación | — | Dump diario y simulacro | `available` |
 | 9 idiomas | Sí | Sí | `available`; revisión nativa de las traducciones pendiente |
 
@@ -80,6 +80,10 @@ La app Android ya tiene pantallas de producto: la sección Android usa una **cap
 compilación actual (OweNo, 2026-11-14) y el hero lo dice («App in development · these screens are
 from the current build»). Las maquetas de las demás secciones siguen siendo diseño hasta que
 cada módulo tenga captura.
+
+Las notificaciones push ya no son una promesa: viajan como notificación del sistema, sin importe
+mientras el ojo está cerrado, y al tocarlas abren el grupo. La sección Android lo dice así; antes
+avisaba de que eran «planned».
 
 ## Cuándo actualizar
 
