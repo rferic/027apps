@@ -123,16 +123,21 @@ async function createInfra() {
       const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (!url || !key) return;
       const { publishPending } = await import("@027apps/core/realtime/service.js");
-      const { createBroadcastPort } = await import("@/lib/realtime");
-      await publishPending({
-        db: {
-          async query(sql: string, params: unknown[] = []) {
-            const result = await pool.query(sql, params);
-            return { rows: result.rows as Record<string, unknown>[] };
+      const { outboxDepsFromSettings } = await import("@/lib/realtime");
+      await publishPending(
+        await outboxDepsFromSettings({
+          // Same wiring as the maintenance job: realtime AND push, never one alone.
+          db: {
+            async query(sql: string, params: unknown[] = []) {
+              const result = await pool.query(sql, params);
+              return { rows: result.rows as Record<string, unknown>[] };
+            },
           },
-        },
-        realtime: createBroadcastPort(url, key),
-      });
+          encryption,
+          url,
+          serviceKey: key,
+        }),
+      );
     },
     captureError(err, context) {
       Sentry.captureException(err, {

@@ -585,6 +585,7 @@ export async function createMovementForGroup(
       description: input.description.trim(),
       group_name: context[0]?.group_name ?? null,
       actor_name: context[0]?.actor_name ?? null,
+      actor_id: actorId,
     }, true);
     return {
       id,

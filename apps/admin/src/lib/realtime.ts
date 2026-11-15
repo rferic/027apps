@@ -39,3 +39,28 @@ export async function createPushFromSettings(
   if (!json) return undefined;
   return createFcmPush(json) ?? undefined;
 }
+
+export interface OutboxDeps {
+  db: Db;
+  realtime?: RealtimePort;
+  push?: PushPort;
+}
+
+/**
+ * Everything `publishPending` needs, from one place: the write hook and the
+ * maintenance job both publish the same outbox, so both must carry push. Wiring
+ * push in only one of them silently delivers realtime without notifications.
+ */
+export async function outboxDepsFromSettings(input: {
+  db: Db;
+  encryption: { decrypt(value: string, slot: string): Promise<string | null> } | null;
+  url?: string;
+  serviceKey?: string;
+}): Promise<OutboxDeps> {
+  const push = await createPushFromSettings(input.db, input.encryption);
+  return {
+    db: input.db,
+    ...(input.url && input.serviceKey ? { realtime: createBroadcastPort(input.url, input.serviceKey) } : {}),
+    ...(push ? { push } : {}),
+  };
+}

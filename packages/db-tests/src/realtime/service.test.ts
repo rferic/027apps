@@ -99,6 +99,65 @@ describe("event outbox", () => {
     });
   });
 
+  // Regression: the channel members function lives in the module's own schema
+  // (the installer grants a module nothing else), and the relay looked for it in
+  // `public`, so every channel push went out to zero recipients.
+  it("resolves a channel members function from the module schema", async () => {
+    await inRollback(async (c) => {
+      const who = await user(c);
+      const moduleKey = `pushdemo-${Date.now()}`;
+      const schema = `module_${moduleKey.replace(/-/g, "_")}`;
+      await query(
+        c,
+        "insert into public.module_registry (key, name, version, state, manifest_digest) values ($1, $1, '1.0.0', 'active', 'sha256:0000000000000000000000000000000000000000000000000000000000000000')",
+        [moduleKey],
+      );
+      await query(c, "insert into public.module_channels (module_key, pattern, members_fn) values ($1, 'pushdemo-group-{id}', 'channel_members')", [moduleKey]);
+      await query(c, `create schema ${schema}`);
+      await query(
+        c,
+        `create function ${schema}.channel_members(topic text) returns setof uuid language sql stable as $$
+           select m.id from public.profiles m where topic = 'pushdemo-group-' || m.id::text
+         $$`,
+      );
+      await query(c, "insert into public.devices (user_id, platform, push_token) values ($1, 'android', 'fcm-channel')", [who.id]);
+
+      const sent: string[] = [];
+      const deps: RealtimeDeps = {
+        db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
+        realtime: { publish: async () => {} },
+        push: {
+          send: async (tokens) => {
+            sent.push(...tokens);
+            return tokens.map((token) => ({ token }));
+          },
+        },
+      };
+
+      await enqueueEvent(deps.db, {
+        type: "pushdemo.created",
+        target: `channel:pushdemo-group-${who.id}`,
+        module_key: moduleKey,
+        resource: { id: who.id, actor_id: who.id },
+        notify: ["push"],
+      });
+      expect((await publishPending(deps)).published).toBe(1);
+      // The actor's own change never pushes back to the actor.
+      expect(sent).toEqual([]);
+
+      await query(c, "delete from public.event_outbox");
+      await enqueueEvent(deps.db, {
+        type: "pushdemo.created",
+        target: `channel:pushdemo-group-${who.id}`,
+        module_key: moduleKey,
+        resource: { id: who.id, actor_id: crypto.randomUUID() },
+        notify: ["push"],
+      });
+      expect((await publishPending(deps)).published).toBe(1);
+      expect(sent).toEqual(["fcm-channel"]);
+    });
+  });
+
   it("retries with backoff and marks failed after the attempt budget", async () => {
     await inRollback(async (c) => {
       const deps: RealtimeDeps = {

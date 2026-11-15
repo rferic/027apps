@@ -120,8 +120,31 @@ async function resolveTopic(db: QueryClient, event: OutboxEvent): Promise<string
   return topic;
 }
 
-async function recipients(db: QueryClient, event: OutboxEvent): Promise<string[]> {
-  let rows: Record<string, unknown>[];
+/**
+ * Where the channel's members function actually lives. The module's own schema
+ * (`module_<key>`) comes first, `public` only as a legacy fallback: the
+ * installer gives a module nothing but its schema, so its function is there.
+ */
+async function membersSchema(
+  db: QueryClient,
+  fn: string,
+  moduleKey: string | null,
+): Promise<string | null> {
+  const fromKey = `module_${(moduleKey ?? "").replace(/-/g, "_")}`;
+  const { rows } = await db.query(
+    `select n.nspname from pg_proc p
+       join pg_namespace n on n.oid = p.pronamespace
+      where p.proname = $1 and n.nspname in ($2, 'public')`,
+    [fn, fromKey],
+  );
+  const schemas = rows.map((row) => String(row.nspname));
+  const chosen = schemas.includes(fromKey) ? fromKey : schemas.includes("public") ? "public" : null;
+  // Both halves end up concatenated into SQL: only plain identifiers pass.
+  if (!chosen || !/^[a-z][a-z0-9_]{0,62}$/.test(chosen)) return null;
+  return chosen;
+}
+
+async function recipients(db: QueryClient, event: OutboxEvent): Promise<string[]> {  let rows: Record<string, unknown>[];
   if (event.target === "admins") {
     ({ rows } = await db.query(
       `select distinct d.push_token from public.devices d
@@ -158,6 +181,14 @@ async function recipients(db: QueryClient, event: OutboxEvent): Promise<string[]
     );
     const fn = channels[0]?.members_fn;
     if (!fn || !/^[a-z][a-z0-9_]{0,62}$/.test(String(fn))) return [];
+    // A module's DDL only runs inside its own schema, so its members function
+    // lives there, not in `public`. Guessing `public.` silently returned no
+    // recipients and every channel push was dropped.
+    const schema = await membersSchema(db, String(fn), event.module_key);
+    if (!schema) return [];
+    // The actor never gets a push for its own change: it already saw the result.
+    const resource = (event.resource ?? {}) as Record<string, unknown>;
+    const actor = typeof resource.actor_id === "string" ? resource.actor_id : null;
     try {
       ({ rows } = await db.query(
         `select distinct d.push_token
@@ -165,8 +196,9 @@ async function recipients(db: QueryClient, event: OutboxEvent): Promise<string[]
            join public.profiles p on p.id = d.user_id
           where p.deactivated_at is null
             and d.push_token is not null and d.revoked_at is null
-            and d.user_id in (select member from public.${String(fn)}($1) as t(member))`,
-        [topic],
+            and d.user_id in (select member from ${schema}.${String(fn)}($1) as t(member))
+            and ($2::uuid is null or d.user_id <> $2::uuid)`,
+        [topic, actor],
       ));
     } catch {
       // A broken members_fn degrades push delivery instead of failing the event.

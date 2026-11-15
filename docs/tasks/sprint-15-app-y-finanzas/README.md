@@ -48,13 +48,14 @@ y el importador se entregan al final, como tarea 07: el propietario los ha metid
   de diseño aprobada define como primer módulo **Split Expenses** (gastos compartidos,
   balances y liquidación). Hay que resolver esa contradicción antes de escribir DDL.
 
-## Alcance: once tareas
+## Alcance: doce tareas
 
-**Sprint 15 (11 tareas: 10 obligatorias y 1 de extras):** app Android real, runtime del primer
+**Sprint 15 (12 tareas: 10 obligatorias y 2 de extras):** app Android real, runtime del primer
 módulo **partido en cuatro tareas**, OweNo usable en el panel y OweNo en la app con el
 **importador de Splitwise**. Las **08–10** son la evolución del contrato (versionado y actualización, tareas programadas y
-actions de la app). La **11** es la de **extras** con la que cierra el sprint: un cambio pequeño
-de la web pública. Cada sprint puede terminar con una así.
+actions de la app). La **11** y la **12** son las de **extras** con las que cierra el sprint: dos
+cambios pequeños de la web pública (icono y literal de descarga; versión del APK a la vista).
+Cada sprint puede terminar con una o dos así.
 El propietario metió el importador en v1 (D3.2, C) y es una función móvil, así que las pantallas
 de OweNo y el importador no pueden quedar para el sprint 16.
 

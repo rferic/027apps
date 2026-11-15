@@ -59,3 +59,33 @@ a extremo (se acepta el evento publicado y el envío deshabilitado).
 
 **Auditoría de seguridad**: obligatoria antes de `finalizada` (autorización de canales, filtrado
 por grupo, manejo de la cuenta de servicio).
+
+## Bitácora de verificación end-to-end (2026-11-15)
+
+Verificado en un emulador Android 14 **con Google Play Services** (el de `google_apis` no sirve:
+no puede pedir token). Tres fallos reales encontrados y corregidos en esta sesión:
+
+1. **La restricción de la API key de Firebase** no incluía la app de desarrollo. La clave estaba
+   limitada a `com.rferic.zero27apps` con la huella del keystore canónico, así que toda petición
+   desde el APK de pruebas devolvía `API_KEY_ANDROID_APP_BLOCKED` y el SDK solo mostraba
+   `FCM Registration failed!`. Añadida la huella del keystore de depuración a la clave (y
+   registrada también en la app de Firebase). No es un cambio de código, pero sin él la push no
+   puede funcionar en ningún dispositivo de pruebas.
+2. **El hook `afterWrite` publicaba la outbox sin el puerto de push**: realtime llegaba y la
+   notificación no existía. Ahora `outboxDepsFromSettings` monta realtime **y** push desde un
+   único sitio, compartido con el job de mantenimiento (`apps/admin/src/lib/realtime.ts`).
+3. **La `members_fn` de un canal nunca estaba en `public`**: el SQL de un módulo solo puede crear
+   en su esquema (`module_<key>`), y el relay la buscaba en `public`, así que el `catch` la
+   degradaba a cero destinatarios y toda push de canal se descartaba en silencio. Ahora se
+   resuelve el esquema real por `pg_proc` (con `public` como compatibilidad).
+
+Además, el autor del cambio ya no recibe su propia push (`actor_id` en el recurso).
+
+Probado con dos cuentas: Ana registra un gasto y el dispositivo de otro miembro recibe
+«OweNo · Compra del súper · Demo family · Ana Demo», sin importe con el ojo cerrado y con
+importe con el ojo abierto; al tocar la notificación la app abre el grupo. El autor no recibe
+nada de sus propios movimientos.
+
+Pendiente para el release firmado: la huella del keystore de release debe estar en la misma
+clave de API; la que hay hoy (`05:C0:03:…:30:06`) no coincide con la documentada como canónica
+en `sprint-04-infra/task-08.md` (`F0:A5:D0:…:9B:61`) y hay que confirmarlo antes de publicar.
