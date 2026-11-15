@@ -1518,7 +1518,7 @@ private fun ExpenseDialog(
     var exact by remember { mutableStateOf(false) }
     var exactAmounts by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var payerOpen by remember { mutableStateOf(false) }
-    var splitOpen by remember { mutableStateOf(false) }
+    var showSplit by remember { mutableStateOf(false) }
     val focus = remember { androidx.compose.ui.focus.FocusRequester() }
     val minor = parseMinor(amount)
     val total = minor ?: 0
@@ -1600,7 +1600,11 @@ private fun ExpenseDialog(
                             androidx.compose.foundation.layout.Box {
                                 if (amount.isEmpty()) {
                                     Text(
-                                        formatMinor(0, currency, locale),
+                                        runCatching {
+                                            java.text.NumberFormat.getNumberInstance(
+                                                java.util.Locale.forLanguageTag(locale),
+                                            ).apply { minimumFractionDigits = 2 }.format(0.0)
+                                        }.getOrDefault("0.00"),
                                         fontSize = 26.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = palette.mutedForeground,
@@ -1617,11 +1621,12 @@ private fun ExpenseDialog(
                 }
 
                 // Payer and split: chips that read as a sentence.
+                val payerMember = active.firstOrNull { it.id == payer }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("${strings.paidBy} ", fontSize = 13.sp, color = palette.mutedForeground)
                     androidx.compose.foundation.layout.Box {
                         Chip(
-                            label = active.firstOrNull { it.id == payer }?.displayName ?: "—",
+                            label = payerMember?.displayName ?: "—",
                             open = true,
                             onClick = { payerOpen = true },
                         )
@@ -1630,6 +1635,10 @@ private fun ExpenseDialog(
                                 DropdownMenuItem(
                                     text = { Text(member.displayName) },
                                     onClick = {
+                                        // A new payer joins the split unless they were excluded.
+                                        if (payer != null && selected.contains(payer)) {
+                                            selected = selected + member.id
+                                        }
                                         payer = member.id
                                         payerOpen = false
                                     },
@@ -1638,31 +1647,68 @@ private fun ExpenseDialog(
                         }
                     }
                 }
+                // Explicit case: someone pays but does not take part (a loan).
+                if (payerMember != null) {
+                    val inSplit = selected.contains(payerMember.id)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .toggleable(
+                                value = inSplit,
+                                role = androidx.compose.ui.semantics.Role.Checkbox,
+                            ) {
+                                selected = if (inSplit) {
+                                    selected - payerMember.id
+                                } else {
+                                    selected + payerMember.id
+                                }
+                            }
+                            .heightIn(min = 44.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .background(
+                                    if (inSplit) palette.accent else androidx.compose.ui.graphics.Color.Transparent,
+                                    RoundedCornerShape(6.dp),
+                                )
+                                .border(
+                                    1.dp,
+                                    if (inSplit) palette.accent else palette.border,
+                                    RoundedCornerShape(6.dp),
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (inSplit) Text("✓", fontSize = 12.sp, color = palette.background)
+                        }
+                        Text(
+                            strings.includePayer.replace("{name}", payerMember.displayName),
+                            modifier = Modifier.padding(start = 10.dp),
+                            fontSize = 13.sp,
+                        )
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("${strings.splitWith} ", fontSize = 13.sp, color = palette.mutedForeground)
-                    androidx.compose.foundation.layout.Box {
-                        Chip(
-                            label = if (exact) strings.splitExact else strings.splitEqually,
-                            open = true,
-                            onClick = { splitOpen = true },
-                        )
-                        DropdownMenu(expanded = splitOpen, onDismissRequest = { splitOpen = false }) {
-                            DropdownMenuItem(
-                                text = { Text(strings.splitEqually) },
-                                onClick = {
-                                    exact = false
-                                    splitOpen = false
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(strings.splitExact) },
-                                onClick = {
-                                    exact = true
-                                    splitOpen = false
-                                },
-                            )
-                        }
-                    }
+                    Chip(
+                        label = if (exact) strings.splitExact else strings.splitEqually,
+                        open = true,
+                        onClick = { showSplit = true },
+                    )
+                }
+                val chosen = active.filter { selected.contains(it.id) }
+                Text(
+                    chosen.joinToString(", ") { it.displayName },
+                    fontSize = 12.sp,
+                    color = palette.mutedForeground,
+                )
+                if (payerMember != null && !selected.contains(payerMember.id)) {
+                    Text(
+                        strings.payerNotParticipant.replace("{name}", payerMember.displayName),
+                        fontSize = 11.sp,
+                        color = palette.mutedForeground,
+                    )
                 }
 
                 // Category as one scrollable row of chips.
@@ -1685,56 +1731,9 @@ private fun ExpenseDialog(
                     }
                 }
 
-                // Participants, each with what they take.
-                Text(strings.participants, fontSize = 11.sp, color = palette.mutedForeground)
-                for (member in active) {
-                    val checked = selected.contains(member.id)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .toggleable(
-                                value = checked,
-                                role = androidx.compose.ui.semantics.Role.Checkbox,
-                            ) {
-                                selected = if (checked) selected - member.id else selected + member.id
-                            }
-                            .heightIn(min = 44.dp)
-                            .padding(vertical = 6.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .background(
-                                    if (checked) palette.accent else androidx.compose.ui.graphics.Color.Transparent,
-                                    RoundedCornerShape(6.dp),
-                                )
-                                .border(1.dp, if (checked) palette.accent else palette.border, RoundedCornerShape(6.dp)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (checked) {
-                                Text("✓", fontSize = 12.sp, color = palette.background)
-                            }
-                        }
-                        Text(
-                            member.displayName,
-                            modifier = Modifier.weight(1f).padding(start = 10.dp),
-                            fontSize = 14.sp,
-                        )
-                        if (checked && !exact && total > 0) {
-                            val chosenList = active.filter { selected.contains(it.id) }
-                            Text(
-                                formatMinor(
-                                    equalShare(total, chosenList.size, chosenList.indexOf(member)),
-                                    currency,
-                                    locale,
-                                ),
-                                fontSize = 12.sp,
-                                color = palette.mutedForeground,
-                            )
-                        }
-                    }
-                    if (exact && checked) {
+                // Exact amounts, only for the people who take part.
+                if (exact) {
+                    for (member in active.filter { selected.contains(it.id) }) {
                         OutlinedTextField(
                             value = exactAmounts[member.id] ?: "",
                             onValueChange = { value -> exactAmounts = exactAmounts + (member.id to value) },
@@ -1744,14 +1743,6 @@ private fun ExpenseDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                }
-                val payerName = active.firstOrNull { it.id == payer }?.displayName
-                if (payerName != null && payer != null && !selected.contains(payer)) {
-                    Text(
-                        strings.payerNotParticipant.replace("{name}", payerName),
-                        fontSize = 11.sp,
-                        color = palette.mutedForeground,
-                    )
                 }
                 if (exact) {
                     Text(
@@ -1793,6 +1784,78 @@ private fun ExpenseDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },
     )
+
+    if (showSplit) {
+        AppSheet(
+            onDismissRequest = { showSplit = false },
+            title = strings.participantsTitle,
+            secondaryLabel = strings.done,
+            onSecondary = { showSplit = false },
+            content = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Chip(
+                        label = strings.splitEqually,
+                        selected = !exact,
+                        onClick = { exact = false },
+                    )
+                    Chip(
+                        label = strings.splitExact,
+                        selected = exact,
+                        onClick = { exact = true },
+                    )
+                }
+                for (member in active) {
+                    val checked = selected.contains(member.id)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .toggleable(
+                                value = checked,
+                                role = androidx.compose.ui.semantics.Role.Checkbox,
+                            ) {
+                                selected = if (checked) selected - member.id else selected + member.id
+                            }
+                            .heightIn(min = 44.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .background(
+                                    if (checked) palette.accent else androidx.compose.ui.graphics.Color.Transparent,
+                                    RoundedCornerShape(6.dp),
+                                )
+                                .border(
+                                    1.dp,
+                                    if (checked) palette.accent else palette.border,
+                                    RoundedCornerShape(6.dp),
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (checked) Text("✓", fontSize = 12.sp, color = palette.background)
+                        }
+                        Text(
+                            member.displayName,
+                            modifier = Modifier.weight(1f).padding(start = 10.dp),
+                            fontSize = 14.sp,
+                        )
+                        if (checked && !exact && total > 0 && selected.isNotEmpty()) {
+                            val chosenList = active.filter { selected.contains(it.id) }
+                            Text(
+                                formatMinor(
+                                    equalShare(total, chosenList.size, chosenList.indexOf(member)),
+                                    currency,
+                                    locale,
+                                ),
+                                fontSize = 12.sp,
+                                color = palette.mutedForeground,
+                            )
+                        }
+                    }
+                }
+            },
+        )
+    }
 }
 
 /** A quiet inline selector: text plus a chevron, no boxed field. */
