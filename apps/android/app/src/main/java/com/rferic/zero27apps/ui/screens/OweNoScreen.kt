@@ -325,6 +325,7 @@ fun OweNoScreen(
     var showSettings by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var showInvitations by remember { mutableStateOf(false) }
+    var showSummary by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     var tab by remember { mutableStateOf(0) }
     var showAddPerson by remember { mutableStateOf(false) }
@@ -369,11 +370,27 @@ fun OweNoScreen(
     androidx.activity.compose.BackHandler {
         when {
             showImport -> showImport = false
+            showSummary -> showSummary = false
             showSettings -> showSettings = false
             showInvitations -> showInvitations = false
             store.detail != null -> store.close()
             else -> onBack()
         }
+    }
+
+    val summaryDetail = store.detail
+    if (showSummary && summaryDetail != null) {
+        OweSummaryScreen(
+            movements = store.movements,
+            members = summaryDetail.members,
+            categories = store.categories,
+            balances = store.balances,
+            settlementCount = store.settlement?.transfers?.size ?: 0,
+            currency = summaryDetail.group.currency,
+            locale = locale,
+            onBack = { showSummary = false },
+        )
+        return
     }
 
     val importing = store.detail
@@ -443,6 +460,15 @@ fun OweNoScreen(
                         store.close()
                     },
                 )
+                if (store.detail != null) {
+                    DropdownMenuItem(
+                        text = { Text(strings.summary) },
+                        onClick = {
+                            showMenu = false
+                            showSummary = true
+                        },
+                    )
+                }
                 if (store.detail?.group?.createdBy == store.userId) {
                     DropdownMenuItem(
                         text = { Text(strings.importTitle) },

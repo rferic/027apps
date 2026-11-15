@@ -28,8 +28,8 @@ android {
         targetSdk = 37
         // major*10000 + minor*100 + patch; the Core derives the same number from
         // the release tag, so the updater compares plain integers.
-        versionCode = 1400
-        versionName = "0.14.0"
+        versionCode = 1500
+        versionName = "0.15.0"
         resValue("string", "app_name", "027Apps")
 
         // The shell opens against one instance without asking for a URL; a
@@ -100,6 +100,7 @@ dependencies {
     implementation(libs.androidx.work.runtime)
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
+    implementation(libs.vico.compose.m3)
 
     testImplementation(libs.junit)
     testImplementation(libs.ktor.client.mock)
