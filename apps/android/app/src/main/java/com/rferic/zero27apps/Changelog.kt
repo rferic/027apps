@@ -13,6 +13,18 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.16.8",
+            date = "2026-11-15",
+            notes = mapOf(
+                "es" to listOf(
+                    "Ajustes muestra si este dispositivo recibe notificaciones, con el motivo exacto si falla y un botón para reintentar.",
+                ),
+                "en" to listOf(
+                    "Settings shows whether this device receives notifications, the exact reason when it fails, and a retry button.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.16.7",
             date = "2026-11-15",
             notes = mapOf(

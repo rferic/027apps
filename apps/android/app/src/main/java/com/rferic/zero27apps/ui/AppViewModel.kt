@@ -257,15 +257,33 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** The session token, for authenticated image requests (module icons). */
     fun accessToken(): String? = supabase?.auth?.currentSessionOrNull()?.accessToken
 
+    /** Last push registration outcome, shown in Ajustes when it fails. */
+    private val _pushStatus = MutableStateFlow<String?>(null)
+    val pushStatus: StateFlow<String?> = _pushStatus.asStateFlow()
+
+    /** Retries the push registration from Ajustes. */
+    fun retryPush() {
+        val instance = instanceStore.current()
+        registerPush(instance, supabase)
+    }
+
     /** Registers this installation for push once there is a session. */
     private fun registerPush(instance: String, supabaseClient: SupabaseClient?) {
         val jwt = supabaseClient?.auth?.currentSessionOrNull()?.accessToken
         if (jwt == null) {
+            _pushStatus.value = "no_session"
             Log.w("Push", "no session token yet; skipping FCM registration")
             return
         }
+        _pushStatus.value = "registering"
         FcmRegistrar(getApplication()).configure(instance, jwt) { result ->
-            result.exceptionOrNull()?.let { Log.w("Push", "FCM registration failed", it) }
+            _pushStatus.value = result.fold(
+                onSuccess = { "ok" },
+                onFailure = { error ->
+                    Log.w("Push", "FCM registration failed", error)
+                    error.message ?: error::class.simpleName ?: "failed"
+                },
+            )
         }
     }
 

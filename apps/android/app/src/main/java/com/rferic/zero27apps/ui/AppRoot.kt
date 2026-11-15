@@ -242,6 +242,7 @@ private fun Shell(
     initialAction: String? = null,
     initialGroup: String? = null,
 ) {
+    val pushStatus by viewModel.pushStatus.collectAsStateWithLifecycle()
     // D18: the shell restores the last place, but a module always opens at its root.
     val saved = viewModel.lastLocation()
     val savedModule = saved?.takeIf { it.startsWith("module:") }?.removePrefix("module:")
@@ -418,6 +419,8 @@ private fun Shell(
                     onRememberInstance = viewModel::rememberInstance,
                     onChangeInstance = viewModel::changeInstance,
                     update = update,
+                    pushStatus = pushStatus,
+                    onRetryPush = viewModel::retryPush,
                     onCheckUpdates = { viewModel.checkForUpdate(manual = true) },
                     onInstallUpdate = viewModel::installUpdate,
                     onTheme = { viewModel.updateProfile(theme = it) },

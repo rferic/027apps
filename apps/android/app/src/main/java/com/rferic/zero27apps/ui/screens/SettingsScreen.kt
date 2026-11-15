@@ -71,6 +71,8 @@ fun SettingsScreen(
     onRememberInstance: (String) -> String?,
     onChangeInstance: (String) -> Boolean,
     update: UpdateState,
+    pushStatus: String? = null,
+    onRetryPush: () -> Unit = {},
     lastCheckAt: Long? = null,
     onCheckUpdates: () -> Unit,
     onInstallUpdate: () -> Unit,
@@ -237,6 +239,32 @@ fun SettingsScreen(
                 UpdateState.Failed -> Text(strings.updateFailed, fontSize = 12.sp, color = palette.destructive)
                 UpdateState.None -> TextButton(onClick = onCheckUpdates) { Text(strings.checkUpdates, fontSize = 12.sp) }
             }
+        }
+
+        // Push registration: the one thing that cannot be checked from the server
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(palette.surface, RoundedCornerShape(16.dp))
+                .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(strings.notifications, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(
+                    when (pushStatus) {
+                        "ok" -> strings.pushReady
+                        "registering" -> strings.checking
+                        "no_session" -> strings.pushNoSession
+                        null -> strings.pushUnknown
+                        else -> pushStatus
+                    },
+                    color = if (pushStatus == "ok") palette.accent else palette.mutedForeground,
+                    fontSize = 12.sp,
+                )
+            }
+            TextButton(onClick = onRetryPush) { Text(strings.recheck, fontSize = 12.sp) }
         }
 
         // What changed in this and previous versions
