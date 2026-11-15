@@ -1419,8 +1419,16 @@ private fun Movements(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
                 )
+                val payer = byId[movement.paidBy]?.displayName ?: ""
+                val receiver = movement.shares.firstOrNull()?.memberId?.let { byId[it]?.displayName }
+                val who = when {
+                    movement.kind == "settlement" && receiver != null ->
+                        strings.paidToPerson.replace("{name}", payer).replace("{to}", receiver)
+                    movement.paidBy == myMemberId -> strings.youPaid
+                    else -> strings.paidByPerson.replace("{name}", payer)
+                }
                 Text(
-                    "${byId[movement.paidBy]?.displayName ?: ""} · ${formatDay(movement.occurredOn, locale)}",
+                    "$who · ${formatDay(movement.occurredOn, locale)}",
                     fontSize = 11.sp,
                     color = palette.mutedForeground,
                 )
