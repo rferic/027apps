@@ -198,36 +198,48 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(strings.version, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(strings.version, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            // The build string gets its own full-width line so it never wraps into
+            // the status or the action next to it.
+            Text(
+                "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" +
+                    if (BuildConfig.DEBUG) " · ${strings.debugBuild}" else "",
+                color = palette.mutedForeground,
+                fontSize = 12.sp,
+            )
+            when (update) {
+                is UpdateState.Available -> Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" +
-                            if (BuildConfig.DEBUG) " · ${strings.debugBuild}" else "",
-                        color = palette.mutedForeground,
+                        strings.newVersion.replace("{version}", update.version),
+                        modifier = Modifier.weight(1f),
                         fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = palette.accent,
                     )
-                }
-                when (update) {
-                    is UpdateState.Available -> Button(onClick = onInstallUpdate) {
-                        Text("${strings.updateInstall} · v${update.version}", fontSize = 12.sp)
+                    Button(onClick = onInstallUpdate, shape = RoundedCornerShape(12.dp)) {
+                        Text(strings.updateInstall, fontSize = 12.sp)
                     }
-                    UpdateState.Downloading -> Text(strings.updateDownloading, fontSize = 12.sp, color = palette.mutedForeground)
-                    UpdateState.Installing -> Text(strings.updateInstalling, fontSize = 12.sp, color = palette.mutedForeground)
-                    UpdateState.Checking -> Text(strings.checking, fontSize = 12.sp, color = palette.mutedForeground)
-                    UpdateState.UpToDate -> Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(strings.upToDate, fontSize = 12.sp, color = palette.mutedForeground)
-                        // A second check right after the first is noise; after a minute
-                        // it is a normal thing to want.
-                        val canRecheck = lastCheckAt == null ||
-                            System.currentTimeMillis() - lastCheckAt > 60_000
-                        if (canRecheck) {
-                            TextButton(onClick = onCheckUpdates) { Text(strings.recheck, fontSize = 12.sp) }
-                        }
-                    }
-                    UpdateState.Failed -> Text(strings.updateFailed, fontSize = 12.sp, color = palette.destructive)
-                    UpdateState.None -> TextButton(onClick = onCheckUpdates) { Text(strings.checkUpdates, fontSize = 12.sp) }
                 }
+                UpdateState.Downloading -> Text(strings.updateDownloading, fontSize = 12.sp, color = palette.mutedForeground)
+                UpdateState.Installing -> Text(strings.updateInstalling, fontSize = 12.sp, color = palette.mutedForeground)
+                UpdateState.Checking -> Text(strings.checking, fontSize = 12.sp, color = palette.mutedForeground)
+                UpdateState.UpToDate -> Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        strings.upToDate,
+                        modifier = Modifier.weight(1f),
+                        fontSize = 12.sp,
+                        color = palette.mutedForeground,
+                    )
+                    // A second check right after the first is noise; after a minute
+                    // it is a normal thing to want.
+                    val canRecheck = lastCheckAt == null ||
+                        System.currentTimeMillis() - lastCheckAt > 60_000
+                    if (canRecheck) {
+                        TextButton(onClick = onCheckUpdates) { Text(strings.recheck, fontSize = 12.sp) }
+                    }
+                }
+                UpdateState.Failed -> Text(strings.updateFailed, fontSize = 12.sp, color = palette.destructive)
+                UpdateState.None -> TextButton(onClick = onCheckUpdates) { Text(strings.checkUpdates, fontSize = 12.sp) }
             }
         }
 

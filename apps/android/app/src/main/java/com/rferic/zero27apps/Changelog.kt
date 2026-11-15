@@ -13,6 +13,14 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.16.2",
+            date = "2026-11-15",
+            notes = mapOf(
+                "es" to listOf("La tarjeta de versión ya no se rompe en varias líneas."),
+                "en" to listOf("The version card no longer wraps into ragged lines."),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.16.1",
             date = "2026-11-15",
             notes = mapOf(
