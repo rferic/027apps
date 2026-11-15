@@ -102,16 +102,27 @@ class FcmRegistrar(private val context: Context) {
         else prefs.edit().remove("device_id").apply()
     }
 
-    /** Called by Firebase when the installation token rotates. */
+    /**
+     * Called by Firebase when the installation token rotates. The stored JWT may
+     * have expired by then, so a failure keeps the token pending: the next app
+     * start registers it with a fresh session instead of losing the device.
+     */
     fun registerToken(token: String) {
         val baseUrl = instanceUrl ?: return
         val jwt = sessionToken ?: return
         Thread {
             runCatching {
                 request("POST", "$baseUrl/api/v1/devices", jwt, FcmConfig.deviceJson(token))
-            }.onFailure { Log.w(TAG, "Could not refresh the FCM token", it) }
+                prefs.edit().remove("pending_token").apply()
+            }.onFailure { error ->
+                Log.w(TAG, "Could not refresh the FCM token", error)
+                prefs.edit().putString("pending_token", token).apply()
+            }
         }.start()
     }
+
+    /** A token Firebase rotated while the session was not usable yet, if any. */
+    fun pendingToken(): String? = prefs.getString("pending_token", null)
 
     private fun registerDevice(token: String, callback: (Result<String>) -> Unit) {
         val baseUrl = instanceUrl ?: return
@@ -119,6 +130,7 @@ class FcmRegistrar(private val context: Context) {
         Thread {
             try {
                 val body = request("POST", "$baseUrl/api/v1/devices", jwt, FcmConfig.deviceJson(token))
+                prefs.edit().remove("pending_token").apply()
                 rememberDeviceId(body)
                 mainHandler.post { callback(Result.success(token)) }
             } catch (error: Exception) {

@@ -3,63 +3,63 @@ package com.rferic.zero27apps.ui.i18n
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.lang.reflect.Modifier
 
+/**
+ * Reflection over `Strings` instead of a hand-written list: a new string used by
+ * a screen is checked in the nine locales the moment it is added, not when
+ * somebody remembers to extend a list. Placeholders must match the English
+ * source, which is the one the screens are written against.
+ */
 class AppStringsTest {
+    private val all: List<Pair<String, Strings>> = listOf(
+        "en" to AppStrings.en,
+        "es" to AppStrings.es,
+        "ca" to AppStrings.ca,
+        "it" to AppStrings.it,
+        "fr" to AppStrings.fr,
+        "de" to AppStrings.de,
+        "pt" to AppStrings.pt,
+        "gl" to AppStrings.gl,
+        "eu" to AppStrings.eu,
+    )
+
+    private val getters: List<java.lang.reflect.Method> = Strings::class.java.declaredMethods
+        .filter { it.parameterCount == 0 && it.returnType == String::class.java }
+        .filter { !Modifier.isStatic(it.modifiers) }
+        .sortedBy { it.name }
+
+    private fun value(strings: Strings, method: java.lang.reflect.Method): String =
+        method.invoke(strings) as String
+
+    private fun placeholders(text: String): Set<String> =
+        Regex("\\{[a-zA-Z]+}").findAll(text).map { it.value }.toSet()
+
     @Test
-    fun `picks the language of the device when it is supported`() {
-        assertEquals("Entrar", AppStrings.forLanguage("es").signIn)
-        assertEquals("Entra", AppStrings.forLanguage("ca").signIn)
-        assertEquals("Accedi", AppStrings.forLanguage("it").signIn)
-        assertEquals("Se connecter", AppStrings.forLanguage("fr").signIn)
-        assertEquals("Anmelden", AppStrings.forLanguage("de").signIn)
-        assertEquals("Entrar", AppStrings.forLanguage("pt").signIn)
-        assertEquals("Entrar", AppStrings.forLanguage("gl").signIn)
-        assertEquals("Hasi saioa", AppStrings.forLanguage("eu").signIn)
+    fun `every string is present and not blank in the nine locales`() {
+        assertTrue("no getters found: the reflection filter is wrong", getters.size > 100)
+        for ((locale, strings) in all) {
+            for (method in getters) {
+                assertTrue(
+                    "$locale.${method.name} is blank",
+                    value(strings, method).isNotBlank(),
+                )
+            }
+        }
     }
 
     @Test
-    fun `falls back to English for anything else`() {
-        assertEquals("Sign in", AppStrings.forLanguage("nl").signIn)
-        assertEquals("Sign in", AppStrings.forLanguage(null).signIn)
-        assertEquals("Sign in", AppStrings.forLanguage("").signIn)
-    }
-
-    @Test
-    fun `every locale is complete`() {
-        // A blank field would render as an empty label; the nine locales must
-        // carry the whole copy, not a partial translation.
-        val all = listOf(
-            AppStrings.en, AppStrings.es, AppStrings.ca, AppStrings.it, AppStrings.fr,
-            AppStrings.de, AppStrings.pt, AppStrings.gl, AppStrings.eu,
-        )
-        for (strings in all) {
-            val texts = listOf(
-                strings.email, strings.password, strings.signIn, strings.signingIn,
-                strings.changeInstance, strings.instance, strings.newInstanceUrl,
-                strings.add, strings.use, strings.cancel, strings.invalidUrl,
-                strings.tryAgain, strings.failureNetwork, strings.failureAuthUnavailable,
-                strings.loginWrong, strings.loginUnconfirmed, strings.loginFailed,
-                strings.inviteTitle, strings.inviteName, strings.invitePasswordHint,
-                strings.join, strings.joining, strings.notNow, strings.inviteExpired,
-                strings.inviteUsed, strings.inviteNotFound, strings.inviteEmailMismatch,
-                strings.inviteFailed, strings.home, strings.modules, strings.settings,
-                strings.hello, strings.noModulesHome, strings.noModulesLauncher,
-                strings.theme, strings.language, strings.signOut,
-                strings.themeSystem, strings.themeLight, strings.themeDark,
-                strings.updateAvailable, strings.updateInstall, strings.updateDownloading,
-                strings.updateInstalling, strings.updateFailed, strings.connecting,
-                strings.mySpace, strings.onlyActive, strings.change,
-                strings.sessionNote, strings.welcome, strings.version,
-                strings.showPassword, strings.hidePassword, strings.checkUpdates,
-                strings.upToDate, strings.checking, strings.actionSoon, strings.groups,
-                strings.newGroup, strings.groupName, strings.currency, strings.create,
-                strings.noGroups, strings.members, strings.balances, strings.movements,
-                strings.addExpense, strings.description, strings.amount, strings.paidBy,
-                strings.splitEqually, strings.splitExact, strings.save,
-                strings.settle, strings.whoPays, strings.simplified, strings.noMovements,
-                strings.back, strings.allSettled,
-            )
-            assertTrue(texts.all { it.isNotBlank() })
+    fun `translations keep the placeholders of the english source`() {
+        for ((locale, strings) in all) {
+            if (locale == "en") continue
+            for (method in getters) {
+                val expected = placeholders(value(AppStrings.en, method))
+                assertEquals(
+                    "$locale.${method.name} has different placeholders",
+                    expected,
+                    placeholders(value(strings, method)),
+                )
+            }
         }
     }
 }

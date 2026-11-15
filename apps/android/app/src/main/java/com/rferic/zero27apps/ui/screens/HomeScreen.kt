@@ -298,9 +298,14 @@ private fun OweNoHomeCard(onOpen: () -> Unit, onAddExpense: () -> Unit) {
     val store = remember { com.rferic.zero27apps.widget.WidgetSnapshotStore(context) }
     var snapshot by remember { mutableStateOf(store.read()) }
     LaunchedEffect(Unit) {
+        val before = store.read().updatedAt
         com.rferic.zero27apps.widget.OweWidgetWorker.refreshNow(context)
-        // The worker runs off the main thread: re-read once it has written.
-        kotlinx.coroutines.delay(1_500)
+        // The worker runs off the main thread and, on a cold start, makes a
+        // handful of calls: wait for it to write instead of guessing a delay.
+        repeat(12) {
+            kotlinx.coroutines.delay(500)
+            if (store.read().updatedAt != before) return@LaunchedEffect
+        }
         snapshot = store.read()
     }
     Column(

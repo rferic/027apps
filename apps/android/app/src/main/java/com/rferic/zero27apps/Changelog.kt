@@ -22,6 +22,7 @@ object Changelog {
                     "El modo privado ya no deja escapar importes en el plan de pagos ni al quitar a alguien con saldo.",
                     "Las actualizaciones no se instalan sin comprobar el SHA-256 del APK.",
                     "El importador acepta archivos de hasta 2 MB y no bloquea la app mientras los lee.",
+                    "Si tienes grupos en varias monedas, el widget y el inicio muestran una línea por moneda en vez de sumarlas.",
                 ),
                 "en" to listOf(
                     "Signing out or switching instance stops the notifications on this phone and clears the widget.",
@@ -29,6 +30,7 @@ object Changelog {
                     "Private mode no longer leaks amounts in the payment plan or when removing a member with a balance.",
                     "Updates are not installed unless the APK's SHA-256 matches the published one.",
                     "The importer takes files up to 2 MB and no longer blocks the app while reading them.",
+                    "With groups in several currencies, the widget and the home card show one line per currency instead of adding them up.",
                 ),
             ),
         ),
