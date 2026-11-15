@@ -9,7 +9,7 @@ import { s } from "@/lib/landing-style";
 import type { Locale } from "@027apps/i18n/types.js";
 
 /** Static landing ported from the approved mockup (docs/mockups/landing). */
-export function AppLanding({ locale }: { locale: Locale }) {
+export function AppLanding({ locale, version }: { locale: Locale; version?: string | null }) {
   const t = translator(locale);
   return (
     <div className="lp dark v2 app-landing">
@@ -80,7 +80,7 @@ export function AppLanding({ locale }: { locale: Locale }) {
           </h1>
           <p className="lead">{t("Finances, categories and members on your phone. One instance you own, without ads or a closed platform.")}{" "}</p>
           <div className="hero-actions">
-            <DownloadButton label={t("Download for Android")} />
+            <DownloadButton label={t("Download for Android")} version={version} />
             <a className="btn ghost" href="https://github.com/rferic/027apps">
               <GitHubIcon />{" "}{t("View on GitHub")}{" "}</a>
           </div>
@@ -471,7 +471,7 @@ export function AppLanding({ locale }: { locale: Locale }) {
             </h2>
             <p className="lead" style={s("font-size: 16px")}>{t("The app is in development. The signed APK will be published on GitHub Releases and can be downloaded without an account.")}{" "}</p>
             <div className="hero-actions">
-              <DownloadButton label={t("Download for Android")} />
+              <DownloadButton label={t("Download for Android")} version={version} />
               <a className="btn ghost" href="https://github.com/rferic/027apps">
                 <GitHubIcon />{" "}{t("Code on GitHub")}{" "}</a>
             </div>

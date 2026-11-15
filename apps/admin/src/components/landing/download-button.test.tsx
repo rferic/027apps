@@ -23,3 +23,20 @@ describe("download button", () => {
     expect(html.indexOf("<svg")).toBeLessThan(html.indexOf("Download for Android"));
   });
 });
+
+describe("download button version", () => {
+  // Task 12: the small line under the label, taken from the release lookup.
+  it("shows the version it will serve", () => {
+    const html = renderToStaticMarkup(
+      <DownloadButton label="Descargar para Android" version="0.16.9" />,
+    );
+    expect(html).toContain("0.16.9");
+    expect(html).toContain('href="/download/android"');
+  });
+
+  it("omits the line when there is no release instead of inventing one", () => {
+    const html = renderToStaticMarkup(<DownloadButton label="Descargar para Android" version={null} />);
+    // No second line at all, rather than a made-up version.
+    expect(html).not.toContain("tabular-nums");
+  });
+});

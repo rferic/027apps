@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppLanding } from "@/components/landing/app-landing";
 import { landingMetadata } from "@/lib/landing/metadata";
+import { latestAndroidRelease } from "@/lib/android-release";
 import { requestLocale } from "@/lib/request-locale";
 import "./landing.css";
 
@@ -15,5 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
 /** The family app landing, in the language of the request. */
 export default async function LandingPage() {
   const locale = await requestLocale();
-  return <AppLanding locale={locale} />;
+  // The version under the download button is the one the button actually
+  // serves: the same lookup as `/download/android`, cached five minutes.
+  const release = await latestAndroidRelease().catch(() => null);
+  return <AppLanding locale={locale} version={release?.versionName ?? null} />;
 }

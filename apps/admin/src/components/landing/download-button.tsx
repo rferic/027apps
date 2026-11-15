@@ -11,12 +11,20 @@ export const DOWNLOAD_URL = "/download/android";
  * platform icon and the destination identical wherever it appears; `.btn`
  * already centres it with a 40 px minimum height, so the icon never shifts the
  * text baseline.
+ *
+ * `version` comes from the same lookup that serves the download, so it is the
+ * version the visitor will actually get and nobody has to edit a number.
  */
-export function DownloadButton({ label }: { label: string }) {
+export function DownloadButton({ label, version }: { label: string; version?: string | null }) {
   return (
     <a className="btn primary" href={DOWNLOAD_URL}>
       <AndroidIcon />{" "}
-      {label}{" "}
+      <span className="flex flex-col items-start leading-tight">
+        <span>{label}</span>
+        {version ? (
+          <span className="text-[10px] font-normal opacity-70 tabular-nums">{version}</span>
+        ) : null}
+      </span>{" "}
     </a>
   );
 }
