@@ -857,7 +857,12 @@ export const oweImportResultSchema = component(
 
 export const oweCategorySchema = component(
   "OweCategory",
-  z.object({ id: z.uuid(), name: z.string() }).strict(),
+  z.object({ id: z.uuid(), name: z.string(), archived: z.boolean() }).strict(),
+);
+
+export const oweCategoryResponseSchema = component(
+  "OweCategoryResponse",
+  z.object({ category: oweCategorySchema }).strict(),
 );
 
 export const oweCategoryListSchema = component(

@@ -2,8 +2,27 @@ import { z } from "zod";
 
 /** Edge validation for the OweNo endpoints; the service re-checks invariants. */
 export const createGroupSchema = z
-  .object({ name: z.string().trim().min(1).max(80), currency: z.string().regex(/^[A-Z]{3}$/) })
+  .object({
+    name: z.string().trim().min(1).max(80),
+    currency: z.string().regex(/^[A-Z]{3}$/),
+    /** Seeds the default categories in this language. */
+    locale: z.string().regex(/^[a-z]{2}$/).optional(),
+  })
   .strict();
+
+export const categoryNameSchema = z
+  .object({ name: z.string().trim().min(1).max(40) })
+  .strict();
+
+export const categoryUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(40).optional(),
+    archived: z.boolean().optional(),
+  })
+  .strict()
+  .refine((value) => value.name !== undefined || value.archived !== undefined, {
+    message: "nothing to update",
+  });
 
 export const addMemberSchema = z
   .object({

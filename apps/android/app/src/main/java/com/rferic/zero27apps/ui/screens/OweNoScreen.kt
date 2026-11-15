@@ -6,6 +6,7 @@ import com.rferic.zero27apps.ui.components.SheetAction
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
@@ -184,8 +185,8 @@ private class OweStore(
         settlement = null
     }
 
-    fun createGroup(name: String, currency: String) = run {
-        api.oweCreateGroup(name, currency)
+    fun createGroup(name: String, currency: String, locale: String) = run {
+        api.oweCreateGroup(name, currency, locale)
         groups = api.oweGroups()
     }
 
@@ -212,6 +213,16 @@ private class OweStore(
             ),
         )
         open(groupId)
+    }
+
+    fun createCategory(groupId: String, name: String) = run {
+        api.oweCreateCategory(groupId, name)
+        categories = api.oweCategories(groupId)
+    }
+
+    fun updateCategory(groupId: String, categoryId: String, name: String?, archived: Boolean?) = run {
+        api.oweUpdateCategory(groupId, categoryId, name, archived)
+        categories = api.oweCategories(groupId)
     }
 
     fun loadIdentities(groupId: String) = run {
@@ -537,7 +548,7 @@ fun OweNoScreen(
             onDismiss = { showNewGroup = false },
             onCreate = { name, currency ->
                 showNewGroup = false
-                store.createGroup(name, currency)
+                store.createGroup(name, currency, locale)
             },
         )
     }
@@ -552,6 +563,10 @@ fun OweNoScreen(
             saving = store.loading,
             error = store.error,
             onDismiss = { showExpense = false },
+            onCreateCategory = { name -> store.createCategory(current.group.id, name) },
+            onUpdateCategory = { id, name, archived ->
+                store.updateCategory(current.group.id, id, name, archived)
+            },
             onSave = { description, amountMinor, payer, participants, occurredOn, categoryId ->
                 store.addExpense(
                     current.group.id,
@@ -1504,6 +1519,8 @@ private fun ExpenseDialog(
     saving: Boolean,
     error: String?,
     onDismiss: () -> Unit,
+    onCreateCategory: (String) -> Unit,
+    onUpdateCategory: (String, String?, Boolean?) -> Unit,
     onSave: (String, Long, String, List<OweParticipantBody>, String, String?) -> Unit,
 ) {
     val strings = LocalStrings.current
@@ -1519,6 +1536,18 @@ private fun ExpenseDialog(
     var exactAmounts by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var payerOpen by remember { mutableStateOf(false) }
     var showSplit by remember { mutableStateOf(false) }
+    var showNewCategory by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
+    var editingCategory by remember { mutableStateOf<OweCategoryDto?>(null) }
+    var editingName by remember { mutableStateOf("") }
+    val newCategoryFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val editingFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    LaunchedEffect(showNewCategory) {
+        if (showNewCategory) newCategoryFocus.requestFocus()
+    }
+    LaunchedEffect(editingCategory) {
+        if (editingCategory != null) editingFocus.requestFocus()
+    }
     val focus = remember { androidx.compose.ui.focus.FocusRequester() }
     val minor = parseMinor(amount)
     val total = minor ?: 0
@@ -1722,12 +1751,75 @@ private fun ExpenseDialog(
                         selected = categoryId == null,
                         onClick = { categoryId = null },
                     )
-                    for (category in categories) {
+                    for (category in categories.filter { !it.archived }) {
                         Chip(
                             label = category.name,
                             selected = categoryId == category.id,
                             onClick = { categoryId = category.id },
+                            onLongClick = {
+                                editingCategory = category
+                                editingName = category.name
+                            },
                         )
+                    }
+                    Chip(
+                        label = "+ ${strings.newCategory}",
+                        onClick = {
+                            showNewCategory = true
+                            newCategoryName = ""
+                        },
+                    )
+                }
+                if (showNewCategory) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = newCategoryName,
+                            onValueChange = { newCategoryName = it },
+                            label = { Text(strings.category) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                            modifier = Modifier.weight(1f).focusRequester(newCategoryFocus),
+                        )
+                        TextButton(
+                            enabled = newCategoryName.isNotBlank(),
+                            onClick = {
+                                onCreateCategory(newCategoryName.trim())
+                                showNewCategory = false
+                            },
+                        ) { Text(strings.create) }
+                    }
+                }
+                editingCategory?.let { category ->
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedTextField(
+                                value = editingName,
+                                onValueChange = { editingName = it },
+                                label = { Text(strings.category) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                                modifier = Modifier.weight(1f).focusRequester(editingFocus),
+                            )
+                            TextButton(
+                                enabled = editingName.isNotBlank(),
+                                onClick = {
+                                    onUpdateCategory(category.id, editingName.trim(), null)
+                                    editingCategory = null
+                                },
+                            ) { Text(strings.save) }
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = {
+                                onUpdateCategory(category.id, null, true)
+                                editingCategory = null
+                            }) { Text(strings.archive, color = palette.destructive, fontSize = 12.sp) }
+                            Text(
+                                strings.archiveNote,
+                                fontSize = 11.sp,
+                                color = palette.mutedForeground,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 }
 
@@ -1865,10 +1957,16 @@ private fun Chip(
     onClick: () -> Unit,
     selected: Boolean = false,
     open: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val palette = LocalPalette.current
     Row(
         modifier = Modifier
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+                onLongClickLabel = null,
+            )
             .background(
                 if (selected) palette.accent.copy(alpha = 0.12f) else palette.muted,
                 RoundedCornerShape(10.dp),
@@ -1878,7 +1976,6 @@ private fun Chip(
                 if (selected) palette.accent else palette.border,
                 RoundedCornerShape(10.dp),
             )
-            .clickable(onClick = onClick)
             .heightIn(min = 44.dp)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

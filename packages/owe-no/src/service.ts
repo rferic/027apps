@@ -111,7 +111,7 @@ async function requireCreator(deps: OweDeps, userId: string, groupId: string) {
 export async function createGroup(
   deps: OweDeps,
   userId: string,
-  input: { name: string; currency: string },
+  input: { name: string; currency: string; locale?: string },
 ): Promise<GroupView> {
   const name = input.name.trim();
   if (name.length === 0) throw new OweDomainError("validation_failed", "name is required");
@@ -131,6 +131,14 @@ export async function createGroup(
        values ($1, $2, $3) returning id, name, currency, archived_at, created_by`,
       [name, input.currency, userId],
     );
+    const language = DEFAULT_CATEGORIES[input.locale ?? ""] ? (input.locale as string) : "en";
+    for (const category of DEFAULT_CATEGORIES[language]) {
+      await db.query(
+        `insert into module_owe_no.owe_no_categories (group_id, name) values ($1, $2)
+         on conflict do nothing`,
+        [String(group[0].id), category],
+      );
+    }
     const id = String(group[0].id);
     await db.query(
       `insert into module_owe_no.owe_no_members
@@ -933,6 +941,47 @@ export async function unblockMember(
 export interface CategoryView {
   id: string;
   name: string;
+  archived: boolean;
+}
+
+/** Group-scoped default categories, in the language the group was created with. */
+const DEFAULT_CATEGORIES: Record<string, string[]> = {
+  es: ["Casa", "Comida", "Transporte", "Ocio", "Salud", "Otros"],
+  en: ["Home", "Food", "Transport", "Leisure", "Health", "Other"],
+  ca: ["Casa", "Menjar", "Transport", "Oci", "Salut", "Altres"],
+  it: ["Casa", "Cibo", "Trasporti", "Tempo libero", "Salute", "Altro"],
+  fr: ["Maison", "Nourriture", "Transport", "Loisirs", "Santé", "Autre"],
+  de: ["Zuhause", "Essen", "Transport", "Freizeit", "Gesundheit", "Sonstiges"],
+  pt: ["Casa", "Comida", "Transporte", "Lazer", "Saúde", "Outros"],
+  gl: ["Casa", "Comida", "Transporte", "Ocio", "Saúde", "Outros"],
+  eu: ["Etxea", "Janaria", "Garraioa", "Aisia", "Osasuna", "Besteak"],
+};
+
+function assertCategoryName(raw: string): string {
+  const name = raw.trim();
+  if (name.length === 0 || name.length > 40) {
+    throw new OweDomainError("validation_failed", "a category needs a name of 1 to 40 characters");
+  }
+  return name;
+}
+
+async function assertCategoryNameFree(
+  deps: OweDeps,
+  groupId: string,
+  name: string,
+  exceptId?: string,
+): Promise<void> {
+  const { rows } = await deps.db.query(
+    `select 1 from module_owe_no.owe_no_categories
+      where group_id = $1 and archived_at is null and lower(name) = lower($2)
+        and ($3::uuid is null or id <> $3)`,
+    [groupId, name, exceptId ?? null],
+  );
+  if (rows[0]) {
+    throw new OweDomainError("conflict", "that category already exists", {
+      code: "category_exists",
+    });
+  }
 }
 
 /** Categories of a group, for the movement form (active members only). */
@@ -943,9 +992,74 @@ export async function listCategories(
 ): Promise<CategoryView[]> {
   await requireActiveMember(deps, userId, groupId);
   const { rows } = await deps.db.query(
-    `select id, name from module_owe_no.owe_no_categories
-      where group_id = $1 order by name`,
+    `select id, name, archived_at from module_owe_no.owe_no_categories
+      where group_id = $1 order by archived_at nulls first, name`,
     [groupId],
   );
-  return rows.map((row) => ({ id: String(row.id), name: String(row.name) }));
+  return rows.map((row) => ({
+    id: String(row.id),
+    name: String(row.name),
+    archived: row.archived_at !== null,
+  }));
+}
+
+/** Any active member files, renames and archives the group's categories. */
+export async function createCategory(
+  deps: OweDeps,
+  userId: string,
+  groupId: string,
+  rawName: string,
+): Promise<CategoryView> {
+  await requireActiveMember(deps, userId, groupId);
+  const name = assertCategoryName(rawName);
+  await assertCategoryNameFree(deps, groupId, name);
+  const { rows } = await deps.db.query(
+    `insert into module_owe_no.owe_no_categories (group_id, name) values ($1, $2)
+     returning id, name`,
+    [groupId, name],
+  );
+  return { id: String(rows[0].id), name: String(rows[0].name), archived: false };
+}
+
+export async function renameCategory(
+  deps: OweDeps,
+  userId: string,
+  groupId: string,
+  categoryId: string,
+  rawName: string,
+): Promise<CategoryView> {
+  await requireActiveMember(deps, userId, groupId);
+  const name = assertCategoryName(rawName);
+  await assertCategoryNameFree(deps, groupId, name, categoryId);
+  const { rows } = await deps.db.query(
+    `update module_owe_no.owe_no_categories set name = $3
+      where id = $1 and group_id = $2 and archived_at is null
+      returning id, name`,
+    [categoryId, groupId, name],
+  );
+  if (!rows[0]) throw new OweDomainError("not_found", "category not found");
+  return { id: String(rows[0].id), name: String(rows[0].name), archived: false };
+}
+
+export async function archiveCategory(
+  deps: OweDeps,
+  userId: string,
+  groupId: string,
+  categoryId: string,
+  archived: boolean,
+): Promise<CategoryView> {
+  await requireActiveMember(deps, userId, groupId);
+  const { rows } = await deps.db.query(
+    `update module_owe_no.owe_no_categories
+        set archived_at = case when $3 then now() else null end
+      where id = $1 and group_id = $2
+      returning id, name, archived_at`,
+    [categoryId, groupId, archived],
+  );
+  if (!rows[0]) throw new OweDomainError("not_found", "category not found");
+  return {
+    id: String(rows[0].id),
+    name: String(rows[0].name),
+    archived: rows[0].archived_at !== null,
+  };
 }

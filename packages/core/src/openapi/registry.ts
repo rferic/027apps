@@ -66,6 +66,7 @@ import {
   oweGroupResponseSchema,
   oweMemberListSchema,
   oweCategoryListSchema,
+  oweCategoryResponseSchema,
   oweIdentityListSchema,
   oweImportListSchema,
   oweImportPreviewSchema,
@@ -210,6 +211,30 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     summary: "Categories of a group, for the movement form.",
     scopes: ["expenses:read"],
     response: oweCategoryListSchema,
+    auth: "session",
+  },
+  {
+    method: "post",
+    path: "/owe-no/groups/{id}/categories",
+    summary: "File a new category (any active member).",
+    scopes: ["expenses:read_write"],
+    request: z.object({ name: z.string().trim().min(1).max(40) }).strict(),
+    response: oweCategoryResponseSchema,
+    auth: "session",
+    status: 201,
+  },
+  {
+    method: "patch",
+    path: "/owe-no/groups/{id}/categories/{categoryId}",
+    summary: "Rename or archive a category; archived ones keep their history.",
+    scopes: ["expenses:read_write"],
+    request: z
+      .object({
+        name: z.string().trim().min(1).max(40).optional(),
+        archived: z.boolean().optional(),
+      })
+      .strict(),
+    response: oweCategoryResponseSchema,
     auth: "session",
   },
   {

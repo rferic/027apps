@@ -67,9 +67,9 @@ class ApiClient(
     suspend fun oweGroup(id: String): OweGroupDetail =
         read(request(HttpMethod.Get, "/api/v1/owe-no/groups/$id"))
 
-    suspend fun oweCreateGroup(name: String, currency: String): OweGroupDto =
+    suspend fun oweCreateGroup(name: String, currency: String, locale: String? = null): OweGroupDto =
         read<OweGroupResponse>(
-            request(HttpMethod.Post, "/api/v1/owe-no/groups", OweCreateGroupBody(name, currency)),
+            request(HttpMethod.Post, "/api/v1/owe-no/groups", OweCreateGroupBody(name, currency, locale)),
         ).group
 
     suspend fun oweMovements(groupId: String): List<OweMovementDto> =
@@ -107,6 +107,29 @@ class ApiClient(
             ),
         )
     }
+
+    suspend fun oweCreateCategory(groupId: String, name: String): OweCategoryDto =
+        read<OweCategoryResponse>(
+            request(
+                HttpMethod.Post,
+                "/api/v1/owe-no/groups/$groupId/categories",
+                OweCategoryBody(name = name),
+            ),
+        ).category
+
+    suspend fun oweUpdateCategory(
+        groupId: String,
+        categoryId: String,
+        name: String? = null,
+        archived: Boolean? = null,
+    ): OweCategoryDto =
+        read<OweCategoryResponse>(
+            request(
+                HttpMethod.Patch,
+                "/api/v1/owe-no/groups/$groupId/categories/$categoryId",
+                OweCategoryBody(name = name, archived = archived),
+            ),
+        ).category
 
     suspend fun oweLinkMember(groupId: String, memberId: String, userId: String) {
         expectSuccess(

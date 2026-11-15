@@ -21,6 +21,10 @@ import {
   unblockMember,
   linkMemberAsCreator,
   createMovementForGroup,
+  createCategory,
+  renameCategory,
+  archiveCategory,
+  listCategories,
   declineInvitation,
 } from "@027apps/owe-no/domain/service.js";
 import type { Caller } from "@027apps/core/api/types.js";
@@ -196,6 +200,38 @@ describe("owe-no linking a name to an account (D31)", () => {
         kind: "user",
         state: "active",
       });
+    });
+  });
+});
+
+describe("owe-no categories (1.6.0)", () => {
+  it("seeds the defaults in the group's language and manages them", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const seeded = await listCategories(deps(c), owner.id, group.id);
+      expect(seeded.length).toBe(6);
+
+      const spanish = await createGroup(deps(c), owner.id, {
+        name: "Casa ES",
+        currency: "EUR",
+        locale: "es",
+      });
+      const names = (await listCategories(deps(c), owner.id, spanish.id)).map((row) => row.name);
+      expect(names).toContain("Comida");
+
+      const created = await createCategory(deps(c), owner.id, group.id, "  Comida  ");
+      expect(created.name).toBe("Comida");
+      await expect(
+        createCategory(deps(c), owner.id, group.id, "comida"),
+      ).rejects.toMatchObject({ code: "conflict", details: { code: "category_exists" } });
+
+      const renamed = await renameCategory(deps(c), owner.id, group.id, created.id, "Restaurantes");
+      expect(renamed.name).toBe("Restaurantes");
+
+      const archived = await archiveCategory(deps(c), owner.id, group.id, created.id, true);
+      expect(archived.archived).toBe(true);
+      const listed = await listCategories(deps(c), owner.id, group.id);
+      expect(listed.find((row) => row.id === created.id)?.archived).toBe(true);
     });
   });
 });

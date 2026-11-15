@@ -81,7 +81,7 @@ data class OweSettlementDto(
 )
 
 @Serializable
-data class OweCreateGroupBody(val name: String, val currency: String)
+data class OweCreateGroupBody(val name: String, val currency: String, val locale: String? = null)
 
 @Serializable
 data class OweCreateMovementBody(
@@ -114,6 +114,9 @@ data class OweIdentityDto(
 
 @Serializable
 data class OweIdentityList(val identities: List<OweIdentityDto> = emptyList())
+
+@Serializable
+data class OweCategoryBody(val name: String? = null, val archived: Boolean? = null)
 
 @Serializable
 data class OweLinkBody(@SerialName("user_id") val userId: String)
@@ -175,7 +178,10 @@ data class OweImportCommitBody(
 )
 
 @Serializable
-data class OweCategoryDto(val id: String, val name: String)
+data class OweCategoryDto(val id: String, val name: String, val archived: Boolean = false)
 
 @Serializable
 data class OweCategoryList(val categories: List<OweCategoryDto> = emptyList())
+
+@Serializable
+data class OweCategoryResponse(val category: OweCategoryDto)
