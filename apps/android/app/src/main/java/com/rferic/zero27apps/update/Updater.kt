@@ -36,7 +36,11 @@ class Updater(private val context: Context) {
         val absolute = if (apkUrl.startsWith("http")) apkUrl else baseUrl.trimEnd('/') + apkUrl
         // The APK must come over TLS from the instance itself or a release host:
         // a plain-http or foreign origin is refused before downloading anything.
-        val allowed = absolute.startsWith("https://") &&
+        // A local instance over plain HTTP is fine in debug builds only; release
+        // builds require TLS and the instance's own origin.
+        val secure = absolute.startsWith("https://")
+        val localDebug = BuildConfig.DEBUG && absolute.startsWith("http://")
+        val allowed = (secure || localDebug) &&
             (absolute.startsWith(baseUrl.trimEnd('/')) || BuildConfig.DEBUG)
         if (!allowed) {
             onResult(Result.failure(IllegalArgumentException("update source is not trusted")))

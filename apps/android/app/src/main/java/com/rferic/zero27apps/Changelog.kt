@@ -13,6 +13,28 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.16.4",
+            date = "2026-11-15",
+            notes = mapOf(
+                "es" to listOf("La actualización se descarga también desde una instancia local (HTTP) en pruebas."),
+                "en" to listOf("Updates also download from a local HTTP instance in test builds."),
+            ),
+        ),
+        ChangelogEntry(
+            version = "0.16.3",
+            date = "2026-11-15",
+            notes = mapOf(
+                "es" to listOf(
+                    "El aviso de nueva versión aparece al abrir, en cualquier pantalla.",
+                    "Ajustes ya no repite el título.",
+                ),
+                "en" to listOf(
+                    "The new-version banner appears on launch, on any screen.",
+                    "Settings no longer repeats its title.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.16.2",
             date = "2026-11-15",
             notes = mapOf(

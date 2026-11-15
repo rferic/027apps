@@ -110,12 +110,6 @@ fun SettingsScreen(
             )
             com.rferic.zero27apps.ui.components.PrivacyEye()
         }
-        Text(
-            strings.settings,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = palette.foreground,
-        )
 
         // Profile
         Row(

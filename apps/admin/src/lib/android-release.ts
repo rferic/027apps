@@ -70,9 +70,38 @@ function toRelease(release: Release): AndroidRelease | null {
 
 /** Latest published release with an APK. Pre-releases count: while there is no
  * signed build, the `dev-*` pre-release is the only downloadable one. */
+/**
+ * Local/staging override: a developer can advertise a build without publishing a
+ * GitHub release. Production ignores it (the env is not set there).
+ */
+function overrideRelease(): AndroidRelease | null {
+  const raw = process.env.ANDROID_RELEASE_JSON;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as {
+      version_code?: number;
+      version_name?: string;
+      tag?: string;
+      apk_url?: string;
+      asset_url?: string;
+    };
+    if (!parsed.version_code || !parsed.version_name) return null;
+    return {
+      tag: parsed.tag ?? `dev-${parsed.version_name}`,
+      versionName: parsed.version_name,
+      versionCode: parsed.version_code,
+      assetUrl: parsed.asset_url ?? parsed.apk_url ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function latestAndroidRelease(
   fetcher: typeof fetch = fetch,
 ): Promise<AndroidRelease | null> {
+  const override = overrideRelease();
+  if (override) return override;
   if (cachedAt !== 0 && Date.now() - cachedAt < CACHE_MS) return cache;
 
   const response = await fetcher(RELEASES_URL, {

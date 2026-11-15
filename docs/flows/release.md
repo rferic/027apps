@@ -25,6 +25,9 @@ Release malo: se corrige con un tag nuevo de `versionCode` mayor, no se reescrib
 ## Changelog
 
 - Hoy: las **notas del GitHub Release se autogeneran** desde los commits/PRs mergeados (`gh release create`, ver [cicd.md](cicd.md#flujo-nueva-versión)). Como el squash merge usa el título del PR como commit, los títulos convencionales son la fuente del changelog.
+- **Local y staging**: para probar el aviso de actualización sin publicar un release, el admin
+  acepta `ANDROID_RELEASE_JSON` con `{version_code, version_name, apk_url}` (un APK servido en la
+  LAN). Producción no lo define: allí la fuente es siempre el último release de GitHub con APK.
 - **App móvil**: el changelog que ve el propietario vive en la propia app
   (`apps/android/.../Changelog.kt`) y se actualiza en **cada** subida de `versionName`; el test
   `ChangelogTest` lo exige y la sección **Ajustes → Novedades** lo muestra sin conexión.
