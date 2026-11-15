@@ -1678,6 +1678,14 @@ private fun ExpenseDialog(
                         )
                     }
                 }
+                val payerName = active.firstOrNull { it.id == payer }?.displayName
+                if (payerName != null && payer != null && !selected.contains(payer)) {
+                    Text(
+                        strings.payerNotParticipant.replace("{name}", payerName),
+                        fontSize = 11.sp,
+                        color = palette.mutedForeground,
+                    )
+                }
                 if (exact) {
                     Text(
                         "${formatMinor(exactSum, currency, locale)} / ${formatMinor(total, currency, locale)}",

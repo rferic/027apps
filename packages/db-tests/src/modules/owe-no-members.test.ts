@@ -200,6 +200,34 @@ describe("owe-no linking a name to an account (D31)", () => {
   });
 });
 
+describe("owe-no payer outside the split (D17)", () => {
+  it("credits the payer the whole amount and charges only the participants", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
+      const guest = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+        active: true,
+      });
+      const me = await addMember(deps(c), owner.id, group.id, { displayName: "Ana" });
+      // Ana pays, only Luis takes part: it is a loan, not her own expense.
+      const movement = await createMovementForGroup(deps(c), owner.id, group.id, {
+        kind: "expense",
+        amount_minor: 900,
+        paid_by: String(me.id),
+        participants: [{ memberId: String(guest.id), amount_minor: 900 }],
+        description: "Regalo",
+        occurred_on: "2026-11-15",
+      });
+      expect(movement.id).toBeTruthy();
+      const balances = await groupBalances(deps(c), group.id);
+      expect(balances.get(String(me.id))).toBe(900);
+      expect(balances.get(String(guest.id))).toBe(-900);
+    });
+  });
+});
+
 describe("owe-no isolation (security)", () => {
   it("refuses a movement that names a member of another group", async () => {
     await inRollback(async (c) => {
