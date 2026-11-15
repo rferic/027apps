@@ -78,15 +78,15 @@ describe("owe-no admin pages", () => {
       query: async (sql: string) => {
         if (sql.includes("to_char(mv.occurred_on")) {
           return { rows: [
-            { month: "2026-10", total: "1000" },
-            { month: "2026-11", total: "2000" },
+            { currency: "EUR", month: "2026-10", total: "1000" },
+            { currency: "EUR", month: "2026-11", total: "2000" },
           ] };
         }
         if (sql.includes("coalesce(c.name")) {
-          return { rows: [{ name: "Comida", total: "2000" }] };
+          return { rows: [{ currency: "EUR", name: "Comida", total: "2000" }] };
         }
         if (sql.includes("with paid as")) {
-          return { rows: [{ display_name: "Ana", paid: "2000", consumed: "1000" }] };
+          return { rows: [{ currency: "EUR", display_name: "Ana", paid: "2000", consumed: "1000" }] };
         }
         return { rows: [] };
       },

@@ -335,24 +335,41 @@ private fun OweNoHomeCard(onOpen: () -> Unit, onAddExpense: () -> Unit) {
             Spacer(Modifier.size(8.dp))
             Text("›", fontSize = 18.sp, color = palette.mutedForeground)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            Column {
-                Text(strings.owedToYouLabel, fontSize = 11.sp, color = palette.mutedForeground)
-                Text(
-                    moneyText(snapshot.owedToYouMinor, snapshot.currency, snapshot.locale, privacyMasked),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (snapshot.owedToYouMinor > 0) palette.accent else palette.mutedForeground,
-                )
+        if (snapshot.totals.size > 1) {
+            // One line per currency: euros and pounds are never added together.
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                for (total in snapshot.totals) {
+                    Column {
+                        Text(total.currency, fontSize = 11.sp, color = palette.mutedForeground)
+                        Text(
+                            moneyText(total.netMinor, total.currency, snapshot.locale, privacyMasked),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (total.netMinor >= 0) palette.accent else palette.destructive,
+                        )
+                    }
+                }
             }
-            Column {
-                Text(strings.youOweLabel, fontSize = 11.sp, color = palette.mutedForeground)
-                Text(
-                    moneyText(snapshot.youOweMinor, snapshot.currency, snapshot.locale, privacyMasked),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (snapshot.youOweMinor > 0) palette.destructive else palette.mutedForeground,
-                )
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                Column {
+                    Text(strings.owedToYouLabel, fontSize = 11.sp, color = palette.mutedForeground)
+                    Text(
+                        moneyText(snapshot.owedToYouMinor, snapshot.currency, snapshot.locale, privacyMasked),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (snapshot.owedToYouMinor > 0) palette.accent else palette.mutedForeground,
+                    )
+                }
+                Column {
+                    Text(strings.youOweLabel, fontSize = 11.sp, color = palette.mutedForeground)
+                    Text(
+                        moneyText(snapshot.youOweMinor, snapshot.currency, snapshot.locale, privacyMasked),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (snapshot.youOweMinor > 0) palette.destructive else palette.mutedForeground,
+                    )
+                }
             }
         }
         if (snapshot.groups.isNotEmpty()) {

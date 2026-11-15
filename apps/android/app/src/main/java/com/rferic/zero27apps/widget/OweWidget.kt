@@ -90,8 +90,12 @@ class OweWidget : GlanceAppWidget() {
                     style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = accent),
                 )
             }
+            // With more than one currency the honest answer is one line each:
+            // euros and pounds never add up, however similar the numbers look.
+            val mixed = snapshot.totals.size > 1
             val line = when {
                 !snapshot.signedIn -> strings.signIn
+                mixed -> strings.youSettled
                 snapshot.netMinor > 0 -> strings.owedToYou.replace(
                     "{amount}",
                     money(snapshot.netMinor, snapshot.currency, masked),
@@ -111,7 +115,21 @@ class OweWidget : GlanceAppWidget() {
                     color = if (snapshot.netMinor < 0 && snapshot.signedIn) danger else accent,
                 ),
             )
-            if (!compact && snapshot.signedIn && (snapshot.owedToYouMinor > 0 || snapshot.youOweMinor > 0)) {
+            if (!compact && snapshot.signedIn && mixed) {
+                Column(modifier = GlanceModifier.fillMaxWidth().padding(top = 4.dp)) {
+                    for (total in snapshot.totals) {
+                        Text(
+                            (if (total.netMinor >= 0) "+ " else "− ") +
+                                money(kotlin.math.abs(total.netMinor), total.currency, masked),
+                            style = TextStyle(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (total.netMinor < 0) danger else accent,
+                            ),
+                        )
+                    }
+                }
+            } else if (!compact && snapshot.signedIn && (snapshot.owedToYouMinor > 0 || snapshot.youOweMinor > 0)) {
                 Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 6.dp)) {
                     if (snapshot.owedToYouMinor > 0) {
                         Text(

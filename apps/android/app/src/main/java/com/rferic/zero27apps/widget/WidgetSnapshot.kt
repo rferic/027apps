@@ -14,6 +14,18 @@ data class WidgetGroup(
 )
 
 /**
+ * One line per currency: adding cents of euro to pence of pound produced an
+ * impossible total with the symbol of whichever group came last.
+ */
+@Serializable
+data class WidgetCurrency(
+    val currency: String,
+    val netMinor: Long,
+    val owedToYouMinor: Long,
+    val youOweMinor: Long,
+)
+
+/**
  * What the home widget paints. It is written by [OweWidgetWorker] and read by
  * the widget itself, so drawing never touches the network or the session.
  */
@@ -25,6 +37,8 @@ data class WidgetSnapshot(
     val owedToYouMinor: Long = 0,
     val youOweMinor: Long = 0,
     val groups: List<WidgetGroup> = emptyList(),
+    /** Totals grouped by currency, the largest first; empty on old snapshots. */
+    val totals: List<WidgetCurrency> = emptyList(),
     /** Newest movement, so the card has something to say when the balance is zero. */
     val lastGroup: String? = null,
     val lastDescription: String? = null,

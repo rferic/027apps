@@ -58,10 +58,8 @@ class OweWidgetWorker(
             val locale = runCatching { api.me().locale }.getOrNull() ?: "en"
             val groups = api.oweGroups().filter { it.role == "active" }
             val rows = mutableListOf<WidgetGroup>()
-            var net = 0L
-            var owedToYou = 0L
-            var youOwe = 0L
-            var currency = "EUR"
+            // Totals are kept per currency: mixed sums are a lie with a symbol.
+            val perCurrency = linkedMapOf<String, LongArray>()
             var lastGroup: String? = null
             var lastDescription: String? = null
             var lastAmount = 0L
@@ -79,20 +77,32 @@ class OweWidgetWorker(
                     lastDate = newest.occurredOn
                 }
                 val amount = balances.firstOrNull { it.memberId == mine.id }?.amountMinor ?: 0L
-                currency = detail.group.currency
-                net += amount
-                if (amount > 0) owedToYou += amount else youOwe += -amount
+                val bucket = perCurrency.getOrPut(detail.group.currency) { LongArray(3) }
+                bucket[0] += amount
+                if (amount > 0) bucket[1] += amount else bucket[2] += -amount
                 rows += WidgetGroup(detail.group.name, amount)
             }
+            val totals = perCurrency
+                .map { (code, sum) ->
+                    WidgetCurrency(
+                        currency = code,
+                        netMinor = sum[0],
+                        owedToYouMinor = sum[1],
+                        youOweMinor = sum[2],
+                    )
+                }
+                .sortedByDescending { kotlin.math.abs(it.netMinor) }
+            val main = totals.firstOrNull()
             finish(
                 context,
                 store,
                 WidgetSnapshot(
                     signedIn = true,
-                    currency = currency,
-                    netMinor = net,
-                    owedToYouMinor = owedToYou,
-                    youOweMinor = youOwe,
+                    currency = main?.currency ?: "EUR",
+                    netMinor = main?.netMinor ?: 0L,
+                    owedToYouMinor = main?.owedToYouMinor ?: 0L,
+                    youOweMinor = main?.youOweMinor ?: 0L,
+                    totals = totals.take(2),
                     groups = rows.take(4),
                     lastGroup = lastGroup,
                     lastDescription = lastDescription,
