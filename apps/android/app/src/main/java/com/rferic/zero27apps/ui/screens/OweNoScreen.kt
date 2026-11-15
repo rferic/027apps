@@ -80,6 +80,11 @@ import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+/** Cents as an editable amount: "20" or "20,50". */
+internal fun plainAmount(amountMinor: Long): String =
+    if (amountMinor % 100 == 0L) (amountMinor / 100).toString()
+    else String.format(java.util.Locale.ROOT, "%.2f", amountMinor / 100.0).replace('.', ',')
+
 /** Domain details → a sentence the owner can act on. */
 internal fun oweErrorText(
     error: Throwable,
@@ -268,6 +273,39 @@ private class OweStore(
     }
 
     /** Registers the plan's transfers one by one, then reloads the group. */
+    fun updateMovement(
+        groupId: String,
+        movementId: String,
+        description: String,
+        amountMinor: Long,
+        payer: String,
+        participants: List<OweParticipantBody>,
+        occurredOn: String,
+        categoryId: String?,
+        kind: String,
+        onSuccess: () -> Unit,
+    ) = run(onSuccess) {
+        api.oweUpdateMovement(
+            groupId,
+            movementId,
+            OweCreateMovementBody(
+                kind = kind,
+                description = description,
+                amountMinor = amountMinor,
+                occurredOn = occurredOn,
+                paidBy = payer,
+                categoryId = categoryId,
+                participants = participants,
+            ),
+        )
+        open(groupId)
+    }
+
+    fun deleteMovement(groupId: String, movementId: String, onSuccess: () -> Unit) = run(onSuccess) {
+        api.oweDeleteMovement(groupId, movementId)
+        open(groupId)
+    }
+
     fun settleAll(
         groupId: String,
         transfers: List<OweTransferDto>,
@@ -356,6 +394,8 @@ fun OweNoScreen(
     var showAddPerson by remember { mutableStateOf(false) }
     var settleWithMember by remember { mutableStateOf<OweMemberDto?>(null) }
     var showSettleAll by remember { mutableStateOf(false) }
+    var editingMovement by remember { mutableStateOf<OweMovementDto?>(null) }
+    var pendingDeleteMovement by remember { mutableStateOf<OweMovementDto?>(null) }
     var pickGroupForExpense by remember { mutableStateOf(startAction == "expense") }
     var inviteMode by remember { mutableStateOf("account") }
 
@@ -516,11 +556,15 @@ fun OweNoScreen(
                     store = store,
                     detail = detail,
                     locale = locale,
-                    onAddExpense = { showExpense = true },
+                    onAddExpense = {
+                        editingMovement = null
+                        showExpense = true
+                    },
                     onAddPerson = {
                         store.loadIdentities(detail.group.id)
                         showAddPerson = true
                     },
+                    onEdit = { editingMovement = it },
                 )
                 1 -> BalancesTab(
                     store = store,
@@ -597,6 +641,7 @@ fun OweNoScreen(
     }
 
     val current = store.detail
+    if (editingMovement != null) showExpense = true
     if (showExpense && current != null) {
         ExpenseDialog(
             members = current.members,
@@ -605,22 +650,51 @@ fun OweNoScreen(
             locale = locale,
             saving = store.loading,
             error = store.error,
-            onDismiss = { showExpense = false },
+            editing = editingMovement,
+            canDelete = editingMovement != null &&
+                (current.group.createdBy == store.userId || editingMovement?.createdBy == store.userId),
+            onDelete = {
+                pendingDeleteMovement = editingMovement
+                showExpense = false
+                editingMovement = null
+            },
+            onDismiss = {
+                showExpense = false
+                editingMovement = null
+            },
             onCreateCategory = { name -> store.createCategory(current.group.id, name) },
             onUpdateCategory = { id, name, archived ->
                 store.updateCategory(current.group.id, id, name, archived)
             },
             onSave = { description, amountMinor, payer, participants, occurredOn, categoryId ->
-                store.addExpense(
-                    current.group.id,
-                    description,
-                    amountMinor,
-                    payer,
-                    participants,
-                    occurredOn,
-                    categoryId,
-                    onSuccess = { showExpense = false },
-                )
+                val edit = editingMovement
+                if (edit != null) {
+                    store.updateMovement(
+                        current.group.id,
+                        edit.id,
+                        description,
+                        amountMinor,
+                        payer,
+                        participants,
+                        occurredOn,
+                        categoryId,
+                        edit.kind,
+                    ) {
+                        showExpense = false
+                        editingMovement = null
+                    }
+                } else {
+                    store.addExpense(
+                        current.group.id,
+                        description,
+                        amountMinor,
+                        payer,
+                        participants,
+                        occurredOn,
+                        categoryId,
+                        onSuccess = { showExpense = false },
+                    )
+                }
             },
         )
     }
@@ -685,6 +759,22 @@ fun OweNoScreen(
         )
     }
 
+    pendingDeleteMovement?.let { movement ->
+        AppSheet(
+            onDismissRequest = { pendingDeleteMovement = null },
+            title = strings.deleteMovement,
+            subtitle = movement.description,
+            primaryLabel = strings.deleteMovement,
+            destructive = true,
+            onPrimary = {
+                pendingDeleteMovement = null
+                current?.let { store.deleteMovement(it.group.id, movement.id) {} }
+            },
+            secondaryLabel = strings.cancel,
+            onSecondary = { pendingDeleteMovement = null },
+        )
+    }
+
     val settleTarget = settleWithMember
     if (settleTarget != null && current != null) {
         val mine = current.members.firstOrNull { it.userId == store.userId }
@@ -698,12 +788,13 @@ fun OweNoScreen(
             title = strings.settleWith.replace("{name}", settleTarget.displayName),
             subtitle = if (amount == 0L) {
                 strings.noMovements
-            } else if (iOwe) {
-                strings.youOwe.replace("{amount}", maskedMoney(masked, amount, current.group.currency, locale))
             } else {
-                strings.owedToYou.replace("{amount}", maskedMoney(masked, amount, current.group.currency, locale))
+                strings.settleConfirm
+                    .replace("{amount}", maskedMoney(masked, amount, current.group.currency, locale))
+                    .replace("{from}", if (iOwe) (mine?.displayName ?: "") else settleTarget.displayName)
+                    .replace("{to}", if (iOwe) settleTarget.displayName else (mine?.displayName ?: ""))
             },
-            primaryLabel = if (amount > 0L) strings.settle else null,
+            primaryLabel = if (amount > 0L) strings.confirm else null,
             onPrimary = if (amount > 0L) {
                 {
                     val from = if (iOwe) mine?.id else settleTarget.id
@@ -958,6 +1049,7 @@ private fun ActivityTab(
     locale: String,
     onAddExpense: () -> Unit,
     onAddPerson: () -> Unit,
+    onEdit: (OweMovementDto) -> Unit = {},
 ) {
     val strings = LocalStrings.current
     val palette = LocalPalette.current
@@ -996,7 +1088,17 @@ private fun ActivityTab(
         val wanted = query.trim().lowercase()
         store.movements.filter { it.description.lowercase().contains(wanted) }
     }
-    Movements(shown, detail.members, detail.group.currency, locale, myMemberId, strings.activityEmpty)
+    val creator = detail.group.createdBy == store.userId
+    Movements(
+        movements = shown,
+        members = detail.members,
+        currency = detail.group.currency,
+        locale = locale,
+        myMemberId = myMemberId,
+        emptyText = strings.activityEmpty,
+        canEdit = { movement -> creator || movement.createdBy == store.userId },
+        onEdit = onEdit,
+    )
     if (detail.members.count { it.state == "active" } <= 1) {
         Text(strings.aloneInGroup, fontSize = 12.sp, color = palette.mutedForeground)
         TextButton(onClick = onAddPerson) { Text(strings.addPerson) }
@@ -1499,12 +1601,16 @@ private fun Balances(
                 if (balance.memberId != myMemberId && mine != 0L && balance.amountMinor != 0L &&
                     (mine > 0) != (balance.amountMinor > 0)
                 ) {
-                    OutlinedButton(
+                    Button(
                         onClick = { onSettleWith(balance) },
                         shape = RoundedCornerShape(12.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        modifier = Modifier.padding(start = 10.dp).heightIn(min = 36.dp),
-                    ) { Text(strings.settle, fontSize = 12.sp) }
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = palette.accent,
+                            contentColor = palette.background,
+                        ),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(start = 10.dp).heightIn(min = 40.dp),
+                    ) { Text(strings.settle, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                 }
             }
         }
@@ -1519,6 +1625,8 @@ private fun Movements(
     locale: String,
     myMemberId: String?,
     emptyText: String,
+    canEdit: (OweMovementDto) -> Boolean = { false },
+    onEdit: (OweMovementDto) -> Unit = {},
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
@@ -1553,6 +1661,7 @@ private fun Movements(
                 .fillMaxWidth()
                 .background(palette.surface, RoundedCornerShape(12.dp))
                 .border(1.dp, palette.border, RoundedCornerShape(12.dp))
+                .clickable(enabled = canEdit(movement)) { onEdit(movement) }
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1660,6 +1769,9 @@ private fun ExpenseDialog(
     locale: String,
     saving: Boolean,
     error: String?,
+    editing: OweMovementDto? = null,
+    canDelete: Boolean = false,
+    onDelete: () -> Unit = {},
     onDismiss: () -> Unit,
     onCreateCategory: (String) -> Unit,
     onUpdateCategory: (String, String?, Boolean?) -> Unit,
@@ -1668,14 +1780,31 @@ private fun ExpenseDialog(
     val strings = LocalStrings.current
     val palette = LocalPalette.current
     val active = members.filter { it.state == "active" }
-    var description by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
-    var occurredOn by remember { mutableStateOf(LocalDate.now().toString()) }
-    var categoryId by remember { mutableStateOf<String?>(null) }
-    var payer by remember { mutableStateOf(active.firstOrNull()?.id) }
-    var selected by remember { mutableStateOf(active.map { it.id }.toSet()) }
-    var exact by remember { mutableStateOf(false) }
-    var exactAmounts by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    val initialSelected = editing?.shares?.map { it.memberId }?.toSet() ?: active.map { it.id }.toSet()
+    val initialPayer = editing?.paidBy ?: active.firstOrNull()?.id
+    val initialExact = editing != null && editing.shares.isNotEmpty() && run {
+        val ordered = active.filter { initialSelected.contains(it.id) }
+        ordered.any { member ->
+            equalShare(editing.amountMinor, ordered.size, ordered.indexOf(member)) !=
+                (editing.shares.firstOrNull { it.memberId == member.id }?.amountMinor ?: -1L)
+        }
+    }
+    var description by remember { mutableStateOf(editing?.description ?: "") }
+    var amount by remember { mutableStateOf(editing?.let { plainAmount(it.amountMinor) } ?: "") }
+    var occurredOn by remember { mutableStateOf(editing?.occurredOn ?: LocalDate.now().toString()) }
+    var categoryId by remember { mutableStateOf(editing?.categoryId) }
+    var payer by remember { mutableStateOf(initialPayer) }
+    var selected by remember { mutableStateOf(initialSelected) }
+    var exact by remember { mutableStateOf(initialExact) }
+    var exactAmounts by remember {
+        mutableStateOf(
+            if (initialExact) {
+                editing!!.shares.associate { it.memberId to plainAmount(it.amountMinor) }
+            } else {
+                emptyMap()
+            },
+        )
+    }
     var payerOpen by remember { mutableStateOf(false) }
     var showSplit by remember { mutableStateOf(false) }
     var showNewCategory by remember { mutableStateOf(false) }
@@ -1704,11 +1833,14 @@ private fun ExpenseDialog(
     val ready = description.isNotBlank() && minor != null && payer != null &&
         selected.isNotEmpty() && exactReady && dateValid && !saving
 
-    LaunchedEffect(Unit) { focus.requestFocus() }
+    // Editing opens without the keyboard: the owner may just be checking.
+    LaunchedEffect(Unit) {
+        if (editing == null) focus.requestFocus()
+    }
 
     AppFormSheet(
         onDismissRequest = onDismiss,
-        title = { Text(strings.addExpense) },
+        title = { Text(if (editing != null) strings.editExpense else strings.addExpense) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -1994,6 +2126,11 @@ private fun ExpenseDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (editing != null && canDelete) {
+                    TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
+                        Text(strings.deleteMovement, color = palette.destructive, fontSize = 13.sp)
+                    }
+                }
             }
         },
         confirmButton = {

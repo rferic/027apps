@@ -81,6 +81,7 @@ fun SettingsScreen(
     val strings = LocalStrings.current
     var showPicker by rememberSaveable { mutableStateOf(false) }
     var confirmSignOut by rememberSaveable { mutableStateOf(false) }
+    var showChangelog by rememberSaveable { mutableStateOf(false) }
 
     if (showPicker) {
         InstancePickerDialog(
@@ -220,6 +221,23 @@ fun SettingsScreen(
             }
         }
 
+        // What changed in this and previous versions
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(palette.surface, RoundedCornerShape(16.dp))
+                .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+                .clickable { showChangelog = true }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(strings.changelog, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(strings.changelogNote, color = palette.mutedForeground, fontSize = 12.sp)
+            }
+            Text("›", fontSize = 18.sp, color = palette.mutedForeground)
+        }
+
         // Sign out
         Row(
             modifier = Modifier
@@ -244,6 +262,32 @@ fun SettingsScreen(
             BrandWordmark(height = 18.dp)
         }
         Text(strings.sessionNote, color = palette.mutedForeground, fontSize = 12.sp)
+    }
+
+    if (showChangelog) {
+        val locale = user.locale ?: "en"
+        com.rferic.zero27apps.ui.components.AppSheet(
+            onDismissRequest = { showChangelog = false },
+            title = strings.changelog,
+            subtitle = strings.changelogNote,
+            secondaryLabel = strings.close,
+            onSecondary = { showChangelog = false },
+            content = {
+                for (entry in com.rferic.zero27apps.Changelog.entries) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            "v${entry.version} · ${entry.date}",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (entry.version == BuildConfig.VERSION_NAME) palette.accent else palette.foreground,
+                        )
+                        for (note in com.rferic.zero27apps.Changelog.notesFor(entry, locale)) {
+                            Text("• $note", fontSize = 12.sp, color = palette.mutedForeground)
+                        }
+                    }
+                }
+            },
+        )
     }
 
     if (confirmSignOut) {

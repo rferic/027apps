@@ -432,6 +432,8 @@ export interface MovementView {
   paid_by: string;
   occurred_on: string;
   category_id: string | null;
+  /** Author, so the client knows who may edit or delete it. */
+  created_by: string | null;
   shares: Array<{ memberId: string; amount_minor: number }>;
 }
 
@@ -593,6 +595,7 @@ export async function createMovementForGroup(
       paid_by: input.paid_by,
       occurred_on: input.occurred_on,
       category_id: input.category_id ?? null,
+      created_by: actorId,
       shares,
     };
   });
@@ -607,7 +610,7 @@ export async function listMovements(
   const { rows } = await deps.db.query(
     `select mv.id, mv.kind, mv.description, mv.amount_minor, mv.currency,
             mv.paid_by_member_id, to_char(mv.occurred_on, 'YYYY-MM-DD') as occurred_on,
-            mv.category_id,
+            mv.category_id, mv.created_by,
             coalesce(json_agg(json_build_object('memberId', s.member_id,
                                                 'amount_minor', s.amount_minor))
                        filter (where s.member_id is not null), '[]'::json) as shares
@@ -627,8 +630,83 @@ export async function listMovements(
     paid_by: String(row.paid_by_member_id),
     occurred_on: String(row.occurred_on),
     category_id: row.category_id === null ? null : String(row.category_id),
+    created_by: row.created_by === null ? null : String(row.created_by),
     shares: row.shares as MovementView["shares"],
   }));
+}
+
+/**
+ * Edits a movement the caller authored (or the creator): the same invariants as
+ * a new one, and the shares are replaced in one transaction so balances never
+ * see a half-edited row.
+ */
+export async function updateMovement(
+  deps: OweDeps,
+  userId: string,
+  groupId: string,
+  movementId: string,
+  input: MovementInput & { description: string; category_id?: string | null },
+): Promise<void> {
+  await assertGroupOpen(deps, groupId);
+  await requireActiveMember(deps, userId, groupId);
+  const { rows: existing } = await deps.db.query(
+    `select kind, created_by from module_owe_no.owe_no_movements
+      where id = $1 and group_id = $2 and deleted_at is null`,
+    [movementId, groupId],
+  );
+  if (!existing[0]) throw new OweDomainError("not_found", "movement not found");
+  const { rows: group } = await deps.db.query(
+    "select created_by from module_owe_no.owe_no_groups where id = $1",
+    [groupId],
+  );
+  if (existing[0].created_by !== userId && group[0]?.created_by !== userId) {
+    throw new OweDomainError("forbidden", "only the author or the group creator");
+  }
+  const { currency, shares } = await prepareMovement(deps, groupId, {
+    ...input,
+    kind: existing[0].kind as "expense" | "settlement",
+  });
+  if (input.category_id) {
+    const { rows: category } = await deps.db.query(
+      "select 1 from module_owe_no.owe_no_categories where id = $1 and group_id = $2",
+      [input.category_id, groupId],
+    );
+    if (!category[0]) {
+      throw new OweDomainError("validation_failed", "that category is not in this group", {
+        code: "unknown_category",
+      });
+    }
+  }
+  const run = deps.withTransaction ?? (<T,>(fn: (db: OweDb) => Promise<T>) => fn(deps.db));
+  await run(async (db) => {
+    await db.query(
+      `update module_owe_no.owe_no_movements
+          set description = $3, amount_minor = $4, currency = $5,
+              paid_by_member_id = $6, category_id = $7, occurred_on = $8
+        where id = $1 and group_id = $2`,
+      [
+        movementId,
+        groupId,
+        input.description.trim(),
+        input.amount_minor,
+        currency,
+        input.paid_by,
+        input.category_id ?? null,
+        input.occurred_on,
+      ],
+    );
+    await db.query("delete from module_owe_no.owe_no_movement_shares where movement_id = $1", [
+      movementId,
+    ]);
+    for (const share of shares) {
+      await db.query(
+        `insert into module_owe_no.owe_no_movement_shares (movement_id, member_id, amount_minor)
+         values ($1, $2, $3)`,
+        [movementId, share.memberId, share.amount_minor],
+      );
+    }
+    await emit(db, "owe_no.movement_updated", { group_id: groupId, movement_id: movementId }, true);
+  });
 }
 
 /** Soft delete: the row and its shares stay, the history and balances change. */

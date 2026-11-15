@@ -20,7 +20,10 @@ import {
   removeMember,
   unblockMember,
   linkMemberAsCreator,
+  listMovements,
   createMovementForGroup,
+  updateMovement,
+  deleteMovement,
   createCategory,
   renameCategory,
   archiveCategory,
@@ -200,6 +203,58 @@ describe("owe-no linking a name to an account (D31)", () => {
         kind: "user",
         state: "active",
       });
+    });
+  });
+});
+
+describe("owe-no editing and deleting a movement", () => {
+  it("lets the author edit and soft-delete, and refuses strangers", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
+      const member = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+        active: true,
+      });
+      const me = await addMember(deps(c), owner.id, group.id, { displayName: "Ana" });
+      const movement = await createMovementForGroup(deps(c), owner.id, group.id, {
+        kind: "expense",
+        amount_minor: 1000,
+        paid_by: String(me.id),
+        participants: [{ memberId: String(me.id) }, { memberId: String(member.id) }],
+        description: "Cena",
+        occurred_on: "2026-11-15",
+      });
+      await expect(
+        updateMovement(deps(c), luis, group.id, movement.id, {
+          kind: "expense",
+          amount_minor: 2000,
+          paid_by: String(me.id),
+          participants: [{ memberId: String(me.id) }],
+          description: "Cena",
+          occurred_on: "2026-11-15",
+        }),
+      ).rejects.toMatchObject({ code: "forbidden" });
+
+      await updateMovement(deps(c), owner.id, group.id, movement.id, {
+        kind: "expense",
+        amount_minor: 2000,
+        paid_by: String(me.id),
+        participants: [{ memberId: String(me.id) }],
+        description: "Cena familiar",
+        occurred_on: "2026-11-15",
+      });
+      const { rows } = await query(
+        c,
+        "select description, amount_minor from module_owe_no.owe_no_movements where id = $1",
+        [movement.id],
+      );
+      expect(rows[0]).toMatchObject({ description: "Cena familiar", amount_minor: "2000" });
+
+      await deleteMovement(deps(c), owner.id, group.id, movement.id);
+      const listed = await listMovements(deps(c), owner.id, group.id);
+      expect(listed.find((row) => row.id === movement.id)).toBeUndefined();
     });
   });
 });

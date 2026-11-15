@@ -131,6 +131,22 @@ class ApiClient(
             ),
         ).category
 
+    suspend fun oweUpdateMovement(groupId: String, movementId: String, body: OweCreateMovementBody) {
+        expectSuccess(
+            request(
+                HttpMethod.Patch,
+                "/api/v1/owe-no/groups/$groupId/movements/$movementId",
+                body,
+            ),
+        )
+    }
+
+    suspend fun oweDeleteMovement(groupId: String, movementId: String) {
+        expectSuccess(
+            request(HttpMethod.Delete, "/api/v1/owe-no/groups/$groupId/movements/$movementId"),
+        )
+    }
+
     suspend fun oweLinkMember(groupId: String, memberId: String, userId: String) {
         expectSuccess(
             request(

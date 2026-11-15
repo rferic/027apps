@@ -142,7 +142,7 @@ async function adminMovements(deps: OweDeps, groupId: string): Promise<AdminMove
   const { rows } = await deps.db.query(
     `select mv.id, mv.kind, mv.description, mv.amount_minor, mv.currency,
             mv.paid_by_member_id, to_char(mv.occurred_on, 'YYYY-MM-DD') as occurred_on,
-            mv.category_id,
+            mv.category_id, mv.created_by,
             mv.created_at, mv.updated_at,
             c.display_name as created_by_name, u.display_name as updated_by_name,
             coalesce(json_agg(json_build_object('memberId', s.member_id,
@@ -167,6 +167,7 @@ async function adminMovements(deps: OweDeps, groupId: string): Promise<AdminMove
     paid_by: String(row.paid_by_member_id),
     occurred_on: String(row.occurred_on),
     category_id: row.category_id === null ? null : String(row.category_id),
+    created_by: row.created_by === null ? null : String(row.created_by),
     shares: row.shares as MovementView["shares"],
     created_by_name: row.created_by_name === null ? null : String(row.created_by_name),
     updated_by_name: row.updated_by_name === null ? null : String(row.updated_by_name),
@@ -441,7 +442,7 @@ export async function adminUpdateMovement(
   const adminId = requireAdmin(caller);
   await assertGroupOpen(deps, groupId);
   const { rows: existing } = await deps.db.query(
-    `select kind from module_owe_no.owe_no_movements
+    `select kind, created_by from module_owe_no.owe_no_movements
       where id = $1 and group_id = $2 and deleted_at is null`,
     [movementId, groupId],
   );
@@ -495,6 +496,7 @@ export async function adminUpdateMovement(
       paid_by: input.paid_by,
       occurred_on: input.occurred_on,
       category_id: input.category_id ?? null,
+      created_by: existing[0].created_by === null ? null : String(existing[0].created_by),
       shares,
     };
   });

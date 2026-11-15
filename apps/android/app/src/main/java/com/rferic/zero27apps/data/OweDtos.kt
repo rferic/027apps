@@ -45,6 +45,7 @@ data class OweMovementDto(
     @SerialName("paid_by") val paidBy: String,
     @SerialName("occurred_on") val occurredOn: String,
     @SerialName("category_id") val categoryId: String? = null,
+    @SerialName("created_by") val createdBy: String? = null,
     val shares: List<OweShareDto> = emptyList(),
 )
 

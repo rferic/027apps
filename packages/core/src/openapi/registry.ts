@@ -322,6 +322,15 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
     status: 201,
   },
   {
+    method: "patch",
+    path: "/owe-no/groups/{id}/movements/{movementId}",
+    summary: "Edit a movement (author or group creator).",
+    scopes: ["expenses:read_write"],
+    request: oweCreateMovement,
+    auth: "session",
+    status: 204,
+  },
+  {
     method: "delete",
     path: "/owe-no/groups/{id}/movements/{movementId}",
     summary: "Soft-delete a movement (author or group creator).",

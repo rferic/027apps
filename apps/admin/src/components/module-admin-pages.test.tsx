@@ -103,6 +103,7 @@ describe("owe-no admin pages", () => {
           category_id: null,
           created_by_name: "Admin",
           updated_by_name: null,
+          created_by: null,
           created_at: "2026-11-14T10:00:00.000Z",
           updated_at: "2026-11-14T10:00:00.000Z",
           shares: [
