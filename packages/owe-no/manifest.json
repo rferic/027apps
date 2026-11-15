@@ -6,7 +6,7 @@
     "icon": "assets/icon.svg",
     "color": "emerald"
   },
-  "version": "1.7.0",
+  "version": "1.8.0",
   "contract": 1,
   "is_public": false,
   "migrations": [
@@ -51,6 +51,13 @@
       "down": "./sql/006-idempotency.down.sql",
       "digest": "sha256:ce9ee1272149f3af72abcfb81f1daf170090060402713f01445221b51bee3d42",
       "down_digest": "sha256:618cceeb1f2381c4465fbaceee72eb1382166769a7a8e4352750aea9ffae7c49"
+    },
+    {
+      "version": "1.8.0",
+      "up": "./sql/007-rls.sql",
+      "down": "./sql/007-rls.down.sql",
+      "digest": "sha256:582abae509376628441f36e43f14e0c83ba6efce25a10d5a2bf4294f54d7e1fc",
+      "down_digest": "sha256:20f405ba7d34d00ba393fc03cef1d583fde35788dff269f0df2be73a57afa8b6"
     }
   ],
   "settings": [
