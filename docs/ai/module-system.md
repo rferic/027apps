@@ -135,7 +135,9 @@ Ejemplo completo:
 - `branding`: `description` en inglés no vacía; `icon` SVG monocromo con `currentColor` y
   safe-zone 24/48 px; `color` entre los 8 slots del DS (`teal`, `indigo`, `violet`, `amber`,
   `rose`, `emerald`, `sky`, `slate`), nunca hex libre. El icono se sirve en
-  `GET /api/v1/modules/{key}/icon.svg`.
+  `GET /api/v1/modules/{key}/icon` (público y cacheable) y el listado de módulos expone
+  `branding: { color, icon }` para que la app pinte cada módulo con su color y su logo; al
+  entrar en un módulo, ese color tiñe botones, enlaces y el degradado de fondo.
 - Cada tool MCP declara `name`, `kind` (`read`|`write`), `description` en inglés y `scopes`;
   `mcp_exposed = read` oculta y bloquea las de `write`.
 - Cada setting declara `key`, `type` (`string`|`int`|`bool`|`currency`|`locale`|`url`|`json`),

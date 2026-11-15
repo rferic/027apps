@@ -218,6 +218,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** The live client, so a screen can subscribe to its realtime channel. */
+    fun supabase(): SupabaseClient? = supabase
+
     /** The session token, for authenticated image requests (module icons). */
     fun accessToken(): String? = supabase?.auth?.currentSessionOrNull()?.accessToken
 

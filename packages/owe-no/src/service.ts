@@ -25,9 +25,12 @@ export async function emit(
   resource: Record<string, unknown>,
   push: boolean,
 ): Promise<void> {
+  // A group event belongs to its members: the channel drives both the realtime
+  // broadcast and the push recipients (D12), not only the administrators.
+  const groupId = typeof resource.group_id === "string" ? resource.group_id : null;
   await enqueueEvent(db as never, {
     type,
-    target: "admins",
+    target: groupId ? `channel:owe-no-group-${groupId}` : "admins",
     module_key: "owe-no",
     resource: resource as never,
     ...(push ? { notify: ["push"] } : {}),

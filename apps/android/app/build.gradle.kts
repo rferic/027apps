@@ -28,8 +28,8 @@ android {
         targetSdk = 37
         // major*10000 + minor*100 + patch; the Core derives the same number from
         // the release tag, so the updater compares plain integers.
-        versionCode = 1102
-        versionName = "0.11.2"
+        versionCode = 1200
+        versionName = "0.12.0"
         resValue("string", "app_name", "027Apps")
 
         // The shell opens against one instance without asking for a URL; a
@@ -88,6 +88,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.supabase.auth)
+    implementation(libs.supabase.realtime)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)

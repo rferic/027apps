@@ -101,6 +101,11 @@ Vercel **Hobby rechaza cualquier cron que corra más de una vez al día** (`Hobb
 
 El disparador vive en `.github/workflows/module-jobs.yml`: cada **5 minutos** llama a `/api/v1/maintenance/module-jobs` con `Authorization: Bearer $CRON_SECRET`. Como el tick es más grueso que un minuto, el endpoint evalúa una **ventana de 5 minutos** (`lookback_minutes`): un job de las 12:00 se ejecuta en el tick de las 12:05 y la reclamación por minuto (`module_job_runs`) impide duplicados. El tope de la ventana es 30 minutos.
 
+El **outbox de eventos no espera a este tick**: el door publica lo pendiente al terminar
+cualquier escritura correcta (`afterWrite`), así que realtime y push salen en el mismo
+segundo de la acción. El job `outbox.publish` sigue existiendo para reintentos, eventos
+fallidos y limpieza.
+
 Los secretos son `MODULE_JOBS_URL_STAGING` + `CRON_SECRET_STAGING` y `MODULE_JOBS_URL_PRODUCTION` + `CRON_SECRET_PRODUCTION`; sin ellos el workflow no hace nada (igual que `migrations.yml`). Los workflows programados solo se ejecutan desde la rama por defecto, así que el tick empieza a funcionar cuando el fichero está en `main`; en staging se puede lanzar a mano con `workflow_dispatch` o un `curl` puntual.
 
 ## App Links (invitaciones en la app)

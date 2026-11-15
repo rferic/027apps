@@ -67,6 +67,11 @@ export interface DoorDeps {
    */
   moduleScopes?: (caller: Caller, moduleKey: string) => Promise<readonly string[] | null>;
   logger: (entry: LogEntry) => void;
+  /**
+   * Runs after a successful write (2xx, non-GET). The admin uses it to publish
+   * the outbox at once, so realtime and push do not wait for a scheduler.
+   */
+  afterWrite?: () => void | Promise<void>;
   /** Optional 5xx reporter (e.g. Sentry). Never called for 4xx. */
   captureError?: (
     err: unknown,

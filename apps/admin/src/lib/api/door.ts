@@ -116,6 +116,24 @@ async function createInfra() {
       },
     }),
     logger,
+    // Every successful write publishes the outbox immediately: realtime and push
+    // do not wait for a scheduler, and no event sits pending until the next tick.
+    afterWrite: async () => {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!url || !key) return;
+      const { publishPending } = await import("@027apps/core/realtime/service.js");
+      const { createBroadcastPort } = await import("@/lib/realtime");
+      await publishPending({
+        db: {
+          async query(sql: string, params: unknown[] = []) {
+            const result = await pool.query(sql, params);
+            return { rows: result.rows as Record<string, unknown>[] };
+          },
+        },
+        realtime: createBroadcastPort(url, key),
+      });
+    },
     captureError(err, context) {
       Sentry.captureException(err, {
         tags: { request_id: context.requestId, route: context.route, code: context.code },

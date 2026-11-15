@@ -249,6 +249,15 @@ export async function withDoor(
     actor = actorLabel(caller);
   });
 
+  if (
+    deps.afterWrite &&
+    response.status < 400 &&
+    !['GET', 'HEAD', 'OPTIONS'].includes(req.method)
+  ) {
+    // Fire and forget: the response already left; a slow publish never blocks it.
+    void Promise.resolve(deps.afterWrite()).catch(() => undefined);
+  }
+
   deps.logger({
     level: response.status >= 500 ? 'error' : 'info',
     requestId,

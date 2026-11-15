@@ -67,6 +67,19 @@ describe('withDoor — success', () => {
     expect(await res.text()).toBe('raw');
   });
 
+  it('runs the afterWrite hook once for a successful write and never for a read', async () => {
+    let writes = 0;
+    const deps = { ...makeDeps(), afterWrite: async () => { writes += 1; } };
+    await withDoor(
+      new Request(URL_BASE, { method: 'POST', body: JSON.stringify({ email: 'a@b.c' }) }),
+      makeOptions(),
+      deps,
+      async () => ({ status: 204, body: null }),
+    );
+    await withDoor(new Request(URL_BASE, { method: 'GET' }), makeOptions(), deps, async () => ({ ok: true }));
+    expect(writes).toBe(1);
+  });
+
   it('answers 204 with no body, so a delete is not a 500 after the write', async () => {
     const res = await withDoor(
       new Request(URL_BASE, { method: 'POST', body: JSON.stringify({ email: 'a@b.c' }) }),

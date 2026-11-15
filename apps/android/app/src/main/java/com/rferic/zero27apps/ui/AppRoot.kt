@@ -321,6 +321,7 @@ private fun Shell(
                     onBack = { openModule = null },
                     startAction = startAction,
                     onStartConsumed = { startAction = null },
+                    realtime = viewModel.supabase(),
                 )
                 tab == 1 -> ModulesScreen(
                     modules = state.modules,

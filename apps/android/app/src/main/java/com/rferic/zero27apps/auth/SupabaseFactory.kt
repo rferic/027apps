@@ -3,6 +3,7 @@ package com.rferic.zero27apps.auth
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.realtime.Realtime
 
 /**
  * One Supabase client per instance. The auth plugin is wired to the encrypted
@@ -16,5 +17,6 @@ class SupabaseFactory(private val sessionStore: EncryptedStringStore) {
                 sessionManager = EncryptedSessionManager(sessionStore)
                 alwaysAutoRefresh = true
             }
+            install(Realtime)
         }
 }

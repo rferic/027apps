@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rferic.zero27apps.BuildConfig
 import com.rferic.zero27apps.data.ApiClient
 import com.rferic.zero27apps.data.ApiException
 import com.rferic.zero27apps.data.OweBalanceDto
@@ -67,6 +68,8 @@ import com.rferic.zero27apps.data.OweMovementDto
 import com.rferic.zero27apps.data.OweParticipantBody
 import com.rferic.zero27apps.data.OweSettlementDto
 import com.rferic.zero27apps.ui.i18n.LocalStrings
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.broadcastFlow
 import com.rferic.zero27apps.ui.theme.LocalPalette
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -159,6 +162,17 @@ private class OweStore(
         balances = api.oweBalances(groupId)
         settlement = runCatching { api.oweSettlement(groupId) }.getOrNull()
         categories = runCatching { api.oweCategories(groupId) }.getOrDefault(emptyList())
+    }
+
+    /** Re-reads the open group without dropping the screen (realtime, resume). */
+    fun refresh() {
+        val id = detail?.group?.id ?: return
+        run {
+            detail = api.oweGroup(id)
+            movements = api.oweMovements(id)
+            balances = api.oweBalances(id)
+            settlement = runCatching { api.oweSettlement(id) }.getOrNull()
+        }
     }
 
     fun close() {
@@ -281,6 +295,7 @@ fun OweNoScreen(
     onBack: () -> Unit,
     startAction: String? = null,
     onStartConsumed: () -> Unit = {},
+    realtime: io.github.jan.supabase.SupabaseClient? = null,
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
@@ -302,6 +317,31 @@ fun OweNoScreen(
     var inviteMode by remember { mutableStateOf("account") }
 
     LaunchedEffect(api) { store.loadGroups() }
+
+    val groupId = store.detail?.group?.id
+    LaunchedEffect(realtime, groupId) {
+        val client = realtime ?: return@LaunchedEffect
+        if (groupId == null) return@LaunchedEffect
+        val channel = client.channel("owe-no-group-$groupId") { isPrivate = true }
+        try {
+            channel.subscribe()
+            channel
+                .broadcastFlow<kotlinx.serialization.json.JsonObject>("*")
+                .collect {
+                    if (BuildConfig.DEBUG) android.util.Log.d("027rt", "event on group $groupId")
+                    store.refresh()
+                }
+        } catch (_: Exception) {
+            // Offline or a rejected channel: the screen keeps working on demand.
+        } finally {
+            runCatching { channel.unsubscribe() }
+        }
+    }
+
+    // Coming back from the background resyncs even if a broadcast was missed.
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        if (store.detail != null) store.refresh()
+    }
     LaunchedEffect(startAction) {
         if (startAction == "expense") pickGroupForExpense = true
     }
