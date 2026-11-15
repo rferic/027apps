@@ -84,7 +84,11 @@ import kotlinx.coroutines.launch
  * reach a tab without a session. The copy follows the device language.
  */
 @Composable
-fun AppRoot(deepLink: String? = null, viewModel: AppViewModel = viewModel()) {
+fun AppRoot(
+    deepLink: String? = null,
+    startAction: String? = null,
+    viewModel: AppViewModel = viewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val login by viewModel.login.collectAsStateWithLifecycle()
     val invite by viewModel.invite.collectAsStateWithLifecycle()
@@ -133,7 +137,7 @@ fun AppRoot(deepLink: String? = null, viewModel: AppViewModel = viewModel()) {
                         onSubmit = viewModel::acceptInvite,
                         onCancel = viewModel::cancelInvite,
                     )
-                    is AppState.SignedIn -> Shell(current, viewModel, instances, update)
+                    is AppState.SignedIn -> Shell(current, viewModel, instances, update, startAction)
                     is AppState.Failure -> FailureScreen(
                         reason = current.reason,
                         knownInstances = instances,
@@ -229,6 +233,7 @@ private fun Shell(
     viewModel: AppViewModel,
     instances: List<String>,
     update: UpdateState,
+    initialAction: String? = null,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var openModule by rememberSaveable { mutableStateOf<String?>(null) }
@@ -248,6 +253,12 @@ private fun Shell(
     val actions = state.modules.flatMap { module -> module.appActions }.distinctBy { it.key }
     var showActions by remember { mutableStateOf(false) }
     var startAction by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(initialAction) {
+        if (initialAction == "owe_expense") {
+            startAction = "expense"
+            openModule = "owe-no"
+        }
+    }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -360,6 +371,10 @@ private fun Shell(
                         } else {
                             scope.launch { snackbar.showSnackbar(strings.actionSoon) }
                         }
+                    },
+                    onAddExpense = {
+                        startAction = "expense"
+                        openModule = "owe-no"
                     },
                 )
             }

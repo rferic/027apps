@@ -25,6 +25,11 @@ data class WidgetSnapshot(
     val owedToYouMinor: Long = 0,
     val youOweMinor: Long = 0,
     val groups: List<WidgetGroup> = emptyList(),
+    /** Newest movement, so the card has something to say when the balance is zero. */
+    val lastGroup: String? = null,
+    val lastDescription: String? = null,
+    val lastAmountMinor: Long = 0,
+    val lastDate: String? = null,
     val locale: String = "en",
     val updatedAt: Long = 0,
 )

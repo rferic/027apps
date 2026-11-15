@@ -62,10 +62,22 @@ class OweWidgetWorker(
             var owedToYou = 0L
             var youOwe = 0L
             var currency = "EUR"
+            var lastGroup: String? = null
+            var lastDescription: String? = null
+            var lastAmount = 0L
+            var lastDate: String? = null
             for (group in groups.take(6)) {
                 val detail = runCatching { api.oweGroup(group.id) }.getOrNull() ?: continue
                 val mine = detail.members.firstOrNull { it.userId == session.user?.id } ?: continue
                 val balances = runCatching { api.oweBalances(group.id) }.getOrDefault(emptyList())
+                val newest = runCatching { api.oweMovements(group.id) }.getOrDefault(emptyList())
+                    .maxByOrNull { it.occurredOn }
+                if (newest != null && (lastDate == null || newest.occurredOn > lastDate)) {
+                    lastGroup = detail.group.name
+                    lastDescription = newest.description
+                    lastAmount = newest.amountMinor
+                    lastDate = newest.occurredOn
+                }
                 val amount = balances.firstOrNull { it.memberId == mine.id }?.amountMinor ?: 0L
                 currency = detail.group.currency
                 net += amount
@@ -82,6 +94,10 @@ class OweWidgetWorker(
                     owedToYouMinor = owedToYou,
                     youOweMinor = youOwe,
                     groups = rows.take(4),
+                    lastGroup = lastGroup,
+                    lastDescription = lastDescription,
+                    lastAmountMinor = lastAmount,
+                    lastDate = lastDate,
                     locale = locale,
                     updatedAt = System.currentTimeMillis(),
                 ),

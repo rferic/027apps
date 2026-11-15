@@ -16,12 +16,15 @@ import com.rferic.zero27apps.ui.AppRoot
 class MainActivity : ComponentActivity() {
     /** The invitation link that opened (or re-opened) the activity. */
     private val deepLink = mutableStateOf<String?>(null)
+    /** A quick action, e.g. the widget's "+" (`owe_expense`). */
+    private val startAction = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         deepLink.value = intent?.dataString
+        startAction.value = intent?.getStringExtra(EXTRA_START)
         if (Build.VERSION.SDK_INT >= 33) {
             ActivityCompat.requestPermissions(
                 this,
@@ -29,12 +32,17 @@ class MainActivity : ComponentActivity() {
                 1,
             )
         }
-        setContent { AppRoot(deepLink = deepLink.value) }
+        setContent { AppRoot(deepLink = deepLink.value, startAction = startAction.value) }
+    }
+
+    private companion object {
+        const val EXTRA_START = "start"
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         deepLink.value = intent.dataString
+        startAction.value = intent.getStringExtra(EXTRA_START)
     }
 }

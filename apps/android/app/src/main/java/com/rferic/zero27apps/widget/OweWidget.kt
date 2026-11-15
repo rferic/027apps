@@ -7,7 +7,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.action.actionStartActivity
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
@@ -15,6 +15,7 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.updateAll
 import androidx.glance.background
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.fillMaxSize
@@ -40,24 +41,38 @@ class OweWidget : GlanceAppWidget() {
     @Composable
     private fun Content(snapshot: WidgetSnapshot) {
         val strings = AppStrings.forLanguage(snapshot.locale)
+        val context = androidx.glance.LocalContext.current
         // Same palette as the app: the widget never invents its own colours.
-        val tokens = com.rferic.zero27apps.ui.theme.Tokens.light
-        val surface = ColorProvider(tokens.surface)
-        val ink = ColorProvider(tokens.foreground)
-        val muted = ColorProvider(tokens.mutedForeground)
-        val accent = ColorProvider(tokens.accent)
+        // Resource colours carry a night variant, so the widget follows the system theme.
+        val surface = ColorProvider(com.rferic.zero27apps.R.color.owe_widget_surface)
+        val ink = ColorProvider(com.rferic.zero27apps.R.color.owe_widget_ink)
+        val muted = ColorProvider(com.rferic.zero27apps.R.color.owe_widget_muted)
+        val accent = ColorProvider(com.rferic.zero27apps.R.color.owe_widget_accent)
+        val danger = ColorProvider(com.rferic.zero27apps.R.color.owe_widget_danger)
 
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(surface)
                 .padding(14.dp)
-                .clickable(actionStartActivity<MainActivity>()),
+                .clickable(actionStartActivity(android.content.Intent(context, MainActivity::class.java))),
         ) {
             Row(modifier = GlanceModifier.fillMaxWidth()) {
                 Text(
                     "OweNo",
                     style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ink),
+                )
+                Text(
+                    "+",
+                    modifier = GlanceModifier
+                        .clickable(
+                            actionStartActivity(
+                                android.content.Intent(context, MainActivity::class.java)
+                                    .putExtra("start", "owe_expense"),
+                            ),
+                        )
+                        .padding(start = 10.dp, end = 4.dp),
+                    style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = accent),
                 )
             }
             val line = when {
@@ -78,7 +93,7 @@ class OweWidget : GlanceAppWidget() {
                 style = TextStyle(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (snapshot.netMinor < 0 && snapshot.signedIn) ColorProvider(tokens.destructive) else accent,
+                    color = if (snapshot.netMinor < 0 && snapshot.signedIn) danger else accent,
                 ),
             )
             if (snapshot.signedIn && (snapshot.owedToYouMinor > 0 || snapshot.youOweMinor > 0)) {
@@ -95,10 +110,17 @@ class OweWidget : GlanceAppWidget() {
                     if (snapshot.youOweMinor > 0) {
                         Text(
                             strings.youOwe.replace("{amount}", money(snapshot.youOweMinor, snapshot.currency)),
-                            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = ColorProvider(tokens.destructive)),
+                            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = danger),
                         )
                     }
                 }
+            }
+            if (snapshot.lastDescription != null) {
+                Text(
+                    "${strings.lastActivity}: ${snapshot.lastDescription}",
+                    modifier = GlanceModifier.padding(top = 6.dp),
+                    style = TextStyle(fontSize = 11.sp, color = muted),
+                )
             }
             if (snapshot.groups.isEmpty()) {
                 Text(
@@ -123,7 +145,7 @@ class OweWidget : GlanceAppWidget() {
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = if (group.amountMinor < 0) {
-                                ColorProvider(tokens.destructive)
+                                danger
                             } else {
                                 accent
                             },

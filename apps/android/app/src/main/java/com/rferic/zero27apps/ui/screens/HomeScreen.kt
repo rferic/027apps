@@ -23,6 +23,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +57,7 @@ fun HomeScreen(
     update: UpdateState,
     onInstallUpdate: () -> Unit,
     onOpenModule: (String) -> Unit = {},
+    onAddExpense: () -> Unit = {},
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
@@ -97,7 +101,7 @@ fun HomeScreen(
             widgets.isNotEmpty() -> for (widget in widgets) {
                 val open = { widget.moduleKey?.let(onOpenModule) ?: Unit }
                 if (widget.moduleKey == "owe-no") {
-                    OweNoHomeCard(onOpen = open)
+                    OweNoHomeCard(onOpen = open, onAddExpense = onAddExpense)
                 } else {
                     WidgetCard(widget, onOpen = open)
                 }
@@ -285,12 +289,18 @@ private fun WidgetCard(widget: WidgetDto, onOpen: () -> Unit) {
  * snapshot the launcher widget uses.
  */
 @Composable
-private fun OweNoHomeCard(onOpen: () -> Unit) {
+private fun OweNoHomeCard(onOpen: () -> Unit, onAddExpense: () -> Unit) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     val context = LocalContext.current
-    val snapshot = remember { com.rferic.zero27apps.widget.WidgetSnapshotStore(context).read() }
-    LaunchedEffect(Unit) { com.rferic.zero27apps.widget.OweWidgetWorker.refreshNow(context) }
+    val store = remember { com.rferic.zero27apps.widget.WidgetSnapshotStore(context) }
+    var snapshot by remember { mutableStateOf(store.read()) }
+    LaunchedEffect(Unit) {
+        com.rferic.zero27apps.widget.OweWidgetWorker.refreshNow(context)
+        // The worker runs off the main thread: re-read once it has written.
+        kotlinx.coroutines.delay(1_500)
+        snapshot = store.read()
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -309,6 +319,18 @@ private fun OweNoHomeCard(onOpen: () -> Unit) {
             }
             Text("OweNo", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             Spacer(Modifier.weight(1f))
+            Row(
+                modifier = Modifier
+                    .background(palette.accent.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
+                    .clickable(onClick = onAddExpense)
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("+", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = palette.accent)
+                Spacer(Modifier.size(6.dp))
+                Text(strings.addExpenseShort, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = palette.accent)
+            }
+            Spacer(Modifier.size(8.dp))
             Text("›", fontSize = 18.sp, color = palette.mutedForeground)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -347,6 +369,23 @@ private fun OweNoHomeCard(onOpen: () -> Unit) {
             }
         } else {
             Text(strings.activityEmpty, fontSize = 12.sp, color = palette.mutedForeground)
+        }
+        val last = snapshot.lastDescription
+        if (last != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${strings.lastActivity}: $last",
+                    modifier = Modifier.weight(1f),
+                    fontSize = 12.sp,
+                    color = palette.mutedForeground,
+                    maxLines = 1,
+                )
+                Text(
+                    moneyText(snapshot.lastAmountMinor, snapshot.currency, snapshot.locale),
+                    fontSize = 12.sp,
+                    color = palette.mutedForeground,
+                )
+            }
         }
     }
 }
