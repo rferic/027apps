@@ -1,0 +1,21 @@
+# NOTA: OpenCode V2 no lee este fichero (no existe en su documentación).
+# La exclusión real para OpenCode vive en ./opencode.json -> watcher.ignore.
+# Este archivo se mantiene por compatibilidad con otras herramientas que sí
+# lo respetan y como documentación de los directorios pesados del repo.
+
+# Control de versiones
+.git/
+
+# Dependencias
+node_modules/
+vendor/
+
+# Builds y cachés
+.next/
+apps/android/**/build/
+apps/android/.gradle/
+public/build/
+coverage/
+
+# Almacenamiento generado
+storage/

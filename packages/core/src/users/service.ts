@@ -36,6 +36,7 @@ export type UserView = {
   display_name: string;
   locale: string;
   timezone: string;
+  theme: "system" | "light" | "dark";
   role: Role;
   created_at: string;
   deactivated_at: string | null;
@@ -111,12 +112,18 @@ function toCategories(value: unknown): UserCategory[] {
   return categories.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** Stored value or the safe default; the CHECK constraint keeps it valid. */
+function themeOf(value: unknown): UserView["theme"] {
+  return value === "light" || value === "dark" ? value : "system";
+}
+
 function toView(row: Record<string, unknown>): UserView {
   return {
     id: String(row.id),
     display_name: String(row.display_name),
     locale: String(row.locale),
     timezone: String(row.timezone),
+    theme: themeOf(row.theme),
     role: row.role as Role,
     created_at: toIso(row.created_at) ?? new Date(0).toISOString(),
     deactivated_at: toIso(row.deactivated_at),
@@ -132,7 +139,7 @@ function likePattern(q: string): string {
 /** One profile plus its categories, aggregated in the same query (no N+1). */
 async function getUserFrom(db: QueryClient, id: string): Promise<UserView> {
   const { rows } = await db.query(
-    `select p.id, p.display_name, p.locale, p.timezone, p.role, p.created_at, p.deactivated_at,
+    `select p.id, p.display_name, p.locale, p.timezone, p.theme, p.role, p.created_at, p.deactivated_at,
             coalesce(
               json_agg(json_build_object('id', c.id, 'name', c.name) order by c.name asc)
                 filter (where c.id is not null),
@@ -202,7 +209,7 @@ export async function listUsers(
   // read per user. The `exists` subquery keeps the membership filter separate
   // from the join that feeds the aggregate.
   const { rows } = await deps.db.query(
-    `select p.id, p.display_name, p.locale, p.timezone, p.role, p.created_at, p.deactivated_at,
+    `select p.id, p.display_name, p.locale, p.timezone, p.theme, p.role, p.created_at, p.deactivated_at,
             coalesce(
               json_agg(json_build_object('id', c.id, 'name', c.name) order by c.name asc)
                 filter (where c.id is not null),

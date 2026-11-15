@@ -208,7 +208,7 @@ export function InvitationCreatedPanel({
           <Button variant="secondary" className="min-h-11" onClick={onCreateAnother}>
             {t("Create another", messages)}
           </Button>
-          <Link href="/invitations" className={secondaryLinkClass}>
+          <Link href="/panel/invitations" className={secondaryLinkClass}>
             {t("Done", messages)}
           </Link>
         </FormActions>
@@ -444,7 +444,7 @@ export function InvitationCreateForm({
       {createForm.error && <InvitationCreateError error={createForm.error} messages={messages} />}
 
       <FormActions>
-        <Link href="/invitations" className={cancelClass}>
+        <Link href="/panel/invitations" className={cancelClass}>
           {t("Cancel", messages)}
         </Link>
         <Button

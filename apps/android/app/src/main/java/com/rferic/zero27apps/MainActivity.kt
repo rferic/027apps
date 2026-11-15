@@ -1,81 +1,75 @@
 package com.rferic.zero27apps
 
+import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.getValue
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.rferic.zero27apps.ui.AppRoot
 
-/** Minimal FCM acceptance screen until the real auth/onboarding flow lands. */
+/** One activity, Compose only; the shell owns the session and the push registration. */
 class MainActivity : ComponentActivity() {
+    /** The invitation link that opened (or re-opened) the activity. */
+    private val deepLink = mutableStateOf<String?>(null)
+    /** A quick action, e.g. the widget's "+" (`owe_expense`). */
+    private val startAction = mutableStateOf<String?>(null)
+    /** The group a notification points at, when it does. */
+    private val startGroup = mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        consumeIntent(intent)
         if (Build.VERSION.SDK_INT >= 33) {
-            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1)
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                1,
+            )
         }
-        val registrar = FcmRegistrar(this)
-
         setContent {
-            MaterialTheme {
-                var instanceUrl by remember { mutableStateOf(registrar.instanceUrl.orEmpty()) }
-                var jwt by remember { mutableStateOf(registrar.sessionToken.orEmpty()) }
-                var status by remember { mutableStateOf("Instance URL and session JWT are required.") }
-                var busy by remember { mutableStateOf(false) }
-
-                Column(
-                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text("027Apps FCM", style = MaterialTheme.typography.headlineSmall)
-                    OutlinedTextField(
-                        value = instanceUrl,
-                        onValueChange = { instanceUrl = it },
-                        label = { Text("Instance URL") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = jwt,
-                        onValueChange = { jwt = it },
-                        label = { Text("Session JWT") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Button(
-                        enabled = !busy,
-                        onClick = {
-                            busy = true
-                            status = "Configuring Firebase and registering the device..."
-                            registrar.configure(instanceUrl, jwt) { result ->
-                                busy = false
-                                status = result.fold(
-                                    onSuccess = { "Device registered. Token: ${it.take(20)}..." },
-                                    onFailure = { "Error: ${it.message}" },
-                                )
-                            }
-                        },
-                    ) {
-                        Text("Configure FCM and register")
-                    }
-                    Text(status)
-                }
-            }
+            AppRoot(
+                deepLink = deepLink.value,
+                startAction = startAction.value,
+                startGroup = startGroup.value,
+            )
         }
+    }
+
+    /**
+     * Reads the launch extras and clears them: a rotation or a re-creation used
+     * to replay the same "open this group / start an expense" request, and an
+     * external app could aim the same extras at us again.
+     */
+    private fun consumeIntent(intent: Intent?) {
+        val group = intent?.getStringExtra(EXTRA_GROUP)?.takeIf(::isUuid)
+        deepLink.value = intent?.dataString
+        startAction.value = intent?.getStringExtra(EXTRA_START)?.takeIf { it in START_ACTIONS }
+        startGroup.value = group
+        intent?.removeExtra(EXTRA_START)
+        intent?.removeExtra(EXTRA_GROUP)
+        intent?.data = null
+    }
+
+    private fun isUuid(value: String): Boolean = UUID_PATTERN.matches(value)
+
+    private companion object {
+        const val EXTRA_START = "start"
+        const val EXTRA_GROUP = "group"
+        val START_ACTIONS = setOf("owe_group", "owe_expense", "modules", "settings")
+        val UUID_PATTERN =
+            Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        consumeIntent(intent)
     }
 }

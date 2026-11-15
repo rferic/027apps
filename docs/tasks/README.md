@@ -17,10 +17,14 @@ estable: no se reutiliza ni se reordena. Este índice es la fuente del orden rea
 | 10 | `sprint-10-mcp` | 2026-10-27 | pendiente |
 | 11 | `sprint-11-prod-activation` | 2026-11-01 | absorbida por sprint-13 |
 | 12 | `sprint-12-new-module-skill` | 2026-11-06 | finalizada |
-| 13 | `sprint-13-staging-prod` | 2026-11-08 | en curso |
+| 13 | `sprint-13-staging-prod` | 2026-11-08 | finalizada |
+| 14 | `sprint-14-mejoras` | 2026-11-10 | finalizada |
+| 15 | `sprint-15-app-y-finanzas` | 2026-11-12 | finalizada 2026-11-15 (12 tareas) · PR #97 |
 
 ## Regla
 
 1. El número se asigna cuando el sprint arranca (primer commit de su directorio) y no cambia.
 2. El directorio es `docs/tasks/sprint-NN-<slug>/`; el `id` de la tarea es `sprint-NN-task-MM`.
 3. Al crear un sprint nuevo: número siguiente libre, entrada en esta tabla y rama `sprint/NN-<slug>`.
+4. Lo aceptado que no entra en un sprint se anota en [`backlog.md`](backlog.md); al planificarse se
+   convierte en tarea del sprint y se borra del backlog.

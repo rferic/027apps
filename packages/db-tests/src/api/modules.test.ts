@@ -28,6 +28,7 @@ function demoManifest() {
     name: "Demo",
     branding: { description: "Demo module", icon: "assets/icon.svg", color: "teal" },
     version: "1.0.0",
+    contract: 1,
     is_public: false,
     migrations: [
       { version: "1.0.0", up: UP, down: DOWN, digest: sha256(UP), down_digest: sha256(DOWN) },

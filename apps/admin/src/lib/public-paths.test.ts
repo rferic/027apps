@@ -22,7 +22,7 @@ describe("isPublicPath", () => {
   it.each([
     "/setup",
     "/login",
-    "/members",
+    "/panel/members",
     "/helpful",
     "/help/other",
     "/help/firebase/secret",
@@ -31,7 +31,7 @@ describe("isPublicPath", () => {
     "/invite/a/b",
     "/invites/x",
     "/invite/..",
-    "/invite/../members",
+    "/invite/../panel/members",
   ])("does not expose %s", (pathname) => {
     expect(isPublicPath(pathname)).toBe(false);
   });

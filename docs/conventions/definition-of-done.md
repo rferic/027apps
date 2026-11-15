@@ -12,7 +12,11 @@ Una tarea puede combinar tipos (p. ej. código + docs): cumple la unión.
 4. Docs y flujos (`docs/flows/`) actualizados si cambia el comportamiento.
 5. **Cumplimiento de ADRs aplicables**: la tarea declara en su frontmatter `adrs: [NNNN, …]` (los ADRs que tocan el cambio, p. ej. `0004` bordes, `0007` errores, `0008` fechas/moneda, `0006` realtime) y su implementación los respeta. Lo mecánico se apoya en los checks deterministas de cada ADR (schemas zod compartidos, reglas ESLint propias, check de i18n); lo no automatizable lo verifica la revisión de ojos nuevos (punto 6). Un cambio no puede contradecir un ADR aprobado sin un ADR nuevo que lo sustituya.
 6. **QA con ojos nuevos**: un agente que no escribió el código revisa bugs, casos límite, estilo contra `docs/conventions/code-style.md`, cumplimiento de los ADRs declarados en el frontmatter y los criterios de aceptación de la spec/plan. Los hallazgos se corrigen o se rechazan con motivo.
-7. **Auditoría de seguridad obligatoria e incondicional (OWASP)** en toda implementación — se ejecuta con la [checklist de seguridad](security-checklist.md) (controles concretos por punto A01–A11, incluido el cliente Android) —feature, bugfix y refactor, sin importar el ámbito del cambio—, por un agente distinto del autor, **antes de marcar `finalizada`** (requisito explícito del usuario). Mínimo:
+7. **Changelog de la app**: si el cambio llega a un APK, sube `versionName`/`versionCode` y añade
+   su entrada en `apps/android/app/src/main/java/com/rferic/zero27apps/Changelog.kt`, en español
+   e inglés, con las notas de lo que el propietario va a notar. `ChangelogTest` falla si la
+   versión en curso no tiene entrada; una versión sin changelog no está terminada.
+8. **Auditoría de seguridad obligatoria e incondicional (OWASP)** en toda implementación — se ejecuta con la [checklist de seguridad](security-checklist.md) (controles concretos por punto A01–A11, incluido el cliente Android) —feature, bugfix y refactor, sin importar el ámbito del cambio—, por un agente distinto del autor, **antes de marcar `finalizada`** (requisito explícito del usuario). Mínimo:
    - Control de acceso y autorización: ¿cada ruta/acción comprueba quién es y qué puede hacer? (A01)
    - Inyección y validación de entrada: zod en los bordes, consultas parametrizadas, sin HTML/URL sin sanear (A03)
    - Autenticación y gestión de sesión/tokens: caducidad, rotación, revocación; nunca tokens inmortales (A07)
@@ -21,6 +25,14 @@ Una tarea puede combinar tipos (p. ej. código + docs): cumple la unión.
    - Registro y diseño inseguro: fallos explícitos, límites de uso (rate limiting) en superficies públicas (A04, A09)
 
    El resultado queda por escrito (hallazgos, severidad, resolución) en el informe de la tarea/PR. Hallazgos críticos o altos sin resolver bloquean `finalizada`.
+
+## Entrega al propietario
+
+1. **Verificación previa ejecutada**, no prometida: `scripts/verify-local.sh` en verde y la
+   checklist de `docs/flows/pre-delivery-verification.md` completada (suites, build, rutas del
+   panel con sesión, endpoints, APK instalado si toca). La salida se pega en la tarea/PR.
+2. Un error encontrado ahí se corrige y se cubre con un test de regresión o una comprobación del
+   script antes de volver a anunciar nada.
 
 ## Docs
 

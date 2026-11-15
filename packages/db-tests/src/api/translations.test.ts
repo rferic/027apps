@@ -151,6 +151,8 @@ describe("GET /api/v1/translations — authorization, limits and ETag", () => {
   it("returns an empty map when an enabled locale has no rows", async () => {
     await inRollback(async (c) => {
       await enableSpanish(c);
+      // A developer's instance may already hold module copy for `es`.
+      await query(c, "delete from public.translations where locale = 'es'");
       const res = await route(c)(new Request("http://local/api/v1/translations?locale=es"));
       expect(res.status).toBe(200);
       const body = (await res.json()) as { translations: Record<string, string> };

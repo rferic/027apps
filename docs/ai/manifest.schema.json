@@ -16,6 +16,7 @@
     "name": { "type": "string", "minLength": 1 },
     "branding": { "$ref": "#/$defs/branding" },
     "version": { "$ref": "#/$defs/semver" },
+    "contract": { "type": "integer", "minimum": 1 },
     "is_public": { "type": "boolean" },
     "migrations": { "type": "array", "items": { "$ref": "#/$defs/migration" } },
     "settings": { "type": "array", "items": { "$ref": "#/$defs/settingsCategory" } },
@@ -40,6 +41,17 @@
       "additionalProperties": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" }
     },
     "admin_pages": { "type": "array", "items": { "$ref": "#/$defs/adminPage" } },
+    "dashboard_widgets": { "type": "array", "items": { "$ref": "#/$defs/dashboardWidget" } },
+    "demo": { "$ref": "#/$defs/demoHooks" },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visible"],
+      "properties": { "visible": { "type": "boolean" } }
+    },
+    "requires": { "type": "array", "items": { "$ref": "#/$defs/moduleRequirement" } },
+    "jobs": { "type": "array", "items": { "$ref": "#/$defs/moduleJob" } },
+    "app_actions": { "type": "array", "items": { "$ref": "#/$defs/appAction" } },
     "docs": { "$ref": "#/$defs/docs" }
   },
   "allOf": [
@@ -84,6 +96,7 @@
       "required": ["version", "up", "down", "digest", "down_digest"],
       "properties": {
         "version": { "$ref": "#/$defs/semver" },
+    "contract": { "type": "integer", "minimum": 1 },
         "up": { "type": "string", "minLength": 1 },
         "down": { "type": "string", "minLength": 1 },
         "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
@@ -127,12 +140,36 @@
         "default": {},
         "label": { "type": "string", "minLength": 1 },
         "help": { "type": "string", "minLength": 1 },
+        "min": { "type": "integer" },
+        "max": { "type": "integer" },
+        "step": { "type": "number", "exclusiveMinimum": 0 },
+        "control": { "type": "string", "enum": ["number", "slider"] },
         "is_public": { "type": "boolean" },
         "is_secret": { "type": "boolean" },
         "mcp_access": { "type": "string", "enum": ["read", "write", "none"] },
         "sort_order": { "type": "integer", "minimum": 0 }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "not": { "const": "int" } } },
+            "required": ["type"]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                { "required": ["min"] },
+                { "required": ["max"] },
+                { "required": ["step"] },
+                { "required": ["control"] }
+              ]
+            }
+          }
+        },
+        {
+          "if": { "properties": { "control": { "const": "slider" } }, "required": ["control"] },
+          "then": { "required": ["min", "max"] }
+        },
         {
           "if": { "properties": { "is_secret": { "const": true } }, "required": ["is_secret"] },
           "then": { "not": { "required": ["default"] } }
@@ -192,6 +229,60 @@
         "icon": { "type": "string", "minLength": 1 },
         "group": { "type": "string", "enum": ["module"] },
         "role": { "type": "string", "enum": ["admin", "super_admin"] }
+      }
+    },
+    "dashboardWidget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "type", "surface", "title", "icon", "order", "data_fn"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*\\.[a-z][a-z0-9_]*$" },
+        "type": { "type": "string", "enum": ["summary", "metric", "list"] },
+        "surface": { "type": "string", "enum": ["app", "panel"] },
+        "title": { "type": "string", "minLength": 1 },
+        "icon": { "type": "string", "minLength": 1 },
+        "order": { "type": "integer", "minimum": 0 },
+        "data_fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" }
+      }
+    },
+    "moduleRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "version"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
+      }
+    },
+    "moduleJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "schedule", "fn"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "schedule": { "type": "string", "minLength": 1 },
+        "fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" },
+        "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 300, "default": 30 }
+      }
+    },
+    "demoHooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seed_fn", "clear_fn"],
+      "properties": {
+        "seed_fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" },
+        "clear_fn": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" }
+      }
+    },
+    "appAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "icon", "screen"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "label": { "type": "string", "minLength": 1 },
+        "icon": { "type": "string", "minLength": 1 },
+        "screen": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
       }
     },
     "docs": {

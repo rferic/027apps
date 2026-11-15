@@ -15,6 +15,7 @@ type Translator = (messages: TranslationMap) => string;
 const SETTING_LABELS: Record<string, Translator> = {
   "instance.name": (messages) => t("Instance name", messages),
   "instance.public_url": (messages) => t("Public URL", messages),
+  "demo.enabled": (messages) => t("Demo data", messages),
   "localization.default_locale": (messages) => t("Default locale", messages),
   "localization.timezone": (messages) => t("Timezone", messages),
   "localization.default_currency": (messages) => t("Default currency", messages),
@@ -38,6 +39,11 @@ const SETTING_HELPS: Record<string, Translator> = {
   "instance.name": (messages) => t("Public name of this 027Apps instance.", messages),
   "instance.public_url": (messages) =>
     t("https origin used for invitation links and deep links.", messages),
+  "demo.enabled": (messages) =>
+    t(
+      "Allow installing sample members, categories and module data. Refused in production unless ALLOW_DEMO_DATA=true.",
+      messages,
+    ),
   "localization.default_locale": (messages) =>
     t("Locale for users without a preference.", messages),
   "localization.timezone": (messages) =>

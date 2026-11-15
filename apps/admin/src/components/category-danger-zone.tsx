@@ -42,7 +42,7 @@ export function CategoryDangerZone({
       return;
     }
     dialogRef.current?.close();
-    router.push("/categories");
+    router.push("/panel/categories");
     router.refresh();
   }
 

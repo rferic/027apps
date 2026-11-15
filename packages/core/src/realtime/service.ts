@@ -120,8 +120,34 @@ async function resolveTopic(db: QueryClient, event: OutboxEvent): Promise<string
   return topic;
 }
 
-async function recipients(db: QueryClient, event: OutboxEvent): Promise<string[]> {
-  let rows: Record<string, unknown>[];
+/**
+ * Where the channel's members function actually lives. The module's own schema
+ * (`module_<key>`) comes first, `public` only as a legacy fallback: the
+ * installer gives a module nothing but its schema, so its function is there.
+ */
+async function membersSchema(
+  db: QueryClient,
+  fn: string,
+  moduleKey: string | null,
+): Promise<string | null> {
+  const fromKey = `module_${(moduleKey ?? "").replace(/-/g, "_")}`;
+  const { rows } = await db.query(
+    `select n.nspname from pg_proc p
+       join pg_namespace n on n.oid = p.pronamespace
+      where p.proname = $1 and n.nspname in ($2, 'public')`,
+    [fn, fromKey],
+  );
+  const schemas = rows.map((row) => String(row.nspname));
+  const chosen = schemas.includes(fromKey) ? fromKey : schemas.includes("public") ? "public" : null;
+  // Both halves end up concatenated into SQL: only plain identifiers pass.
+  if (!chosen || !/^[a-z][a-z0-9_]{0,62}$/.test(chosen)) return null;
+  return chosen;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function recipients(deps: RealtimeDeps, event: OutboxEvent): Promise<string[]> {
+  const db = deps.db;  let rows: Record<string, unknown>[];
   if (event.target === "admins") {
     ({ rows } = await db.query(
       `select distinct d.push_token from public.devices d
@@ -158,6 +184,18 @@ async function recipients(db: QueryClient, event: OutboxEvent): Promise<string[]
     );
     const fn = channels[0]?.members_fn;
     if (!fn || !/^[a-z][a-z0-9_]{0,62}$/.test(String(fn))) return [];
+    // A module's DDL only runs inside its own schema, so its members function
+    // lives there, not in `public`. Guessing `public.` silently returned no
+    // recipients and every channel push was dropped.
+    const schema = await membersSchema(db, String(fn), event.module_key);
+    if (!schema) return [];
+    // The actor never gets a push for its own change: it already saw the result.
+    const resource = (event.resource ?? {}) as Record<string, unknown>;
+    // `actor_id` is optional and comes from the module: anything that is not a
+    // uuid would make the cast fail and drop the whole event's notifications.
+    const actor = typeof resource.actor_id === "string" && UUID.test(resource.actor_id)
+      ? resource.actor_id
+      : null;
     try {
       ({ rows } = await db.query(
         `select distinct d.push_token
@@ -165,11 +203,18 @@ async function recipients(db: QueryClient, event: OutboxEvent): Promise<string[]
            join public.profiles p on p.id = d.user_id
           where p.deactivated_at is null
             and d.push_token is not null and d.revoked_at is null
-            and d.user_id in (select member from public.${String(fn)}($1) as t(member))`,
-        [topic],
+            and d.user_id in (select member from ${schema}.${String(fn)}($1) as t(member))
+            and ($2::uuid is null or d.user_id <> $2::uuid)`,
+        [topic, actor],
       ));
-    } catch {
-      // A broken members_fn degrades push delivery instead of failing the event.
+    } catch (err) {
+      // A broken members_fn degrades push delivery instead of failing the event,
+      // but it must not do it in silence: nobody would ever notice the loss.
+      deps.logger?.({
+        level: "warn",
+        message: `push recipients resolution failed: ${(err as Error).message}`,
+        eventId: event.event_id,
+      });
       rows = [];
     }
   }
@@ -259,11 +304,24 @@ export async function publishPending(
       }
 
       if (event.notify?.includes("push") && deps.push) {
-        const tokens = await recipients(deps.db, event);
+        const tokens = await recipients(deps, event);
         if (tokens.length > 0) {
+          // Only the context a notification needs: the client composes the text
+          // and decides whether an amount may be shown (its privacy switch).
+          const resource = (event.resource ?? {}) as Record<string, unknown>;
+          const text = (value: unknown) =>
+            typeof value === "string" && value.trim() !== "" ? value.slice(0, 80) : undefined;
+          const amount = typeof resource.amount_minor === "number" ? resource.amount_minor : undefined;
           const results = await deps.push.send(tokens, {
             key: `push.${event.type.replace(/\./g, "_")}`,
-            payload: JSON.stringify(wireEvent(event)),
+            module: event.module_key ?? "027apps",
+            ...(text(resource.description) ? { description: text(resource.description)! } : {}),
+            ...(text(resource.group_name) ? { group: text(resource.group_name)! } : {}),
+            ...(text(resource.actor_name) ? { actor: text(resource.actor_name)! } : {}),
+            ...(amount !== undefined ? { amount: String(amount) } : {}),
+            ...(text(resource.currency) ? { currency: text(resource.currency)! } : {}),
+            ...(text(resource.movement_id) ? { resource_id: text(resource.movement_id)! } : {}),
+            ...(text(resource.group_id) ? { target: text(resource.group_id)! } : {}),
           });
           const invalid = results
             .filter((result) => result.error === "UNREGISTERED" || result.error === "INVALID_ARGUMENT")

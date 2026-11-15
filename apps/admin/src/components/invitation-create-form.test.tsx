@@ -35,7 +35,7 @@ describe("InvitationCreateForm", () => {
     expect(html).toContain("invitation-delivery");
     expect(html).toContain("invitation-locale");
     expect(html).toContain("Cancel");
-    expect(html).toContain('href="/invitations"');
+    expect(html).toContain('href="/panel/invitations"');
     expect(html).not.toContain("<dialog");
   });
 
@@ -101,7 +101,7 @@ describe("InvitationCreatedPanel", () => {
     expect(html).toContain(
       "The invitee opens the invitation link in the browser or redeems the token from the mobile app to join the instance.",
     );
-    expect(html).toContain('href="/invitations"');
+    expect(html).toContain('href="/panel/invitations"');
     expect(html).toContain("Done");
     expect(html).not.toContain("<form");
     expect(html).not.toContain("invitation-email");

@@ -13,7 +13,15 @@ import { PanelNav } from "./panel-nav";
  * free — focus trap, top layer, Escape — so no dependency or custom focus
  * management is needed. The trigger lives in the header and is hidden at `lg`.
  */
-export function PanelMobileMenu({ role, messages }: { role: PanelRole; messages: TranslationMap }) {
+export function PanelMobileMenu({
+  role,
+  messages,
+  modules = [],
+}: {
+  role: PanelRole;
+  messages: TranslationMap;
+  modules?: Array<{ key: string; name: string; color?: string }>;
+}) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   const close = () => dialogRef.current?.close();
@@ -55,7 +63,13 @@ export function PanelMobileMenu({ role, messages }: { role: PanelRole; messages:
             <CloseIcon className="h-5 w-5" />
           </button>
         </div>
-        <PanelNav role={role} messages={messages} variant="drawer" onNavigate={close} />
+        <PanelNav
+          role={role}
+          messages={messages}
+          variant="drawer"
+          onNavigate={close}
+          modules={modules}
+        />
       </dialog>
     </>
   );

@@ -1,0 +1,34 @@
+{
+  "name": "@027apps/owe-no",
+  "version": "1.5.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "tsc": "tsc --noEmit"
+  },
+  "exports": {
+    "./admin/overview/page": "./admin/overview/page.tsx",
+    "./admin/groups/page": "./admin/groups/page.tsx",
+    "./admin/imports/page": "./admin/imports/page.tsx",
+    "./domain/*.js": "./src/*.ts"
+  },
+  "peerDependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "react": "19.3.1",
+    "vitest": "^5",
+    "typescript": "^5",
+    "@types/node": "^22.20.5",
+    "react-dom": "19.3.1",
+    "@types/react-dom": "^19"
+  },
+  "dependencies": {
+    "zod": "^4.6.7",
+    "@027apps/core": "workspace:*",
+    "@027apps/i18n": "workspace:*"
+  }
+}

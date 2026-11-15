@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
@@ -5,11 +6,20 @@ import { join, resolve } from "node:path";
  * Trusted module packages live under `packages/<key>/`. The manifest and SQL
  * are read server-side; the HTTP client never supplies DDL.
  *
- * On a serverless deploy the packages must be bundled with the app; the
- * packaging step lands with the first real module (task-11).
+ * `MODULES_ROOT` wins. Otherwise the first existing candidate is used: the
+ * monorepo checkout next to the app (dev) or the `packages/` folder Next copies
+ * into the serverless bundle beside the function root. The last candidate is
+ * returned even when missing so a broken deploy fails as "no packages" instead
+ * of throwing a different error than dev.
  */
-export function modulesRoot(): string {
-  return process.env.MODULES_ROOT ?? resolve(process.cwd(), "../../packages");
+export function modulesRoot(cwd: string = process.cwd()): string {
+  const explicit = process.env.MODULES_ROOT;
+  if (explicit) return explicit;
+  const monorepo = resolve(cwd, "../../packages");
+  if (existsSync(monorepo)) return monorepo;
+  const bundled = resolve(cwd, "packages");
+  if (existsSync(bundled)) return bundled;
+  return monorepo;
 }
 
 export async function loadModuleManifest(key: string): Promise<unknown | null> {

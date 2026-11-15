@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { isValidCron } from "./cron";
 import { DomainError } from "../errors";
 
 /**
@@ -9,7 +10,25 @@ import { DomainError } from "../errors";
  */
 
 export const MODULE_KEY = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-export const RESERVED_MODULE_KEYS = new Set(["admin", "mcp", "api", "core"]);
+/**
+ * Keys a module cannot take: the panel serves each active module at
+ * `/panel/<key>` (D27), so a key that matches a fixed panel route would make
+ * the module unreachable or shadow a platform page.
+ */
+export const RESERVED_MODULE_KEYS = new Set([
+  "admin",
+  "api",
+  "categories",
+  "core",
+  "docs",
+  "help",
+  "invitations",
+  "keys",
+  "mcp",
+  "members",
+  "modules",
+  "settings",
+]);
 export const MODULE_COLORS = [
   "teal",
   "indigo",
@@ -56,6 +75,12 @@ const settingSchema = z
     default: z.unknown().optional(),
     label: z.string().trim().min(1),
     help: z.string().trim().min(1).optional(),
+    /** Numeric range, only meaningful for `int` (D3.7). */
+    min: z.number().int().optional(),
+    max: z.number().int().optional(),
+    step: z.number().positive().optional(),
+    /** How the panel renders it; `slider` requires `min` and `max`. */
+    control: z.enum(["number", "slider"]).optional(),
     is_public: z.boolean(),
     is_secret: z.boolean(),
     mcp_access: z.enum(["none", "read", "write"]),
@@ -67,6 +92,43 @@ const settingSchema = z
   })
   .refine((setting) => !(setting.is_secret && setting.is_public), {
     message: "a secret setting cannot be public",
+  })
+  .superRefine((setting, ctx) => {
+    const ranged =
+      setting.min !== undefined ||
+      setting.max !== undefined ||
+      setting.step !== undefined ||
+      setting.control !== undefined;
+    if (ranged && setting.type !== "int") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["type"],
+        message: "only an int setting declares min, max, step or control",
+      });
+      return;
+    }
+    if (setting.min !== undefined && setting.max !== undefined && setting.min > setting.max) {
+      ctx.addIssue({ code: "custom", path: ["min"], message: "min cannot be greater than max" });
+    }
+    if (setting.control === "slider" && (setting.min === undefined || setting.max === undefined)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["control"],
+        message: "a slider needs min and max",
+      });
+    }
+    if (setting.default === undefined || setting.default === null) return;
+    if (setting.type !== "int" || !Number.isInteger(setting.default)) return;
+    const value = setting.default as number;
+    if (setting.min !== undefined && value < setting.min) {
+      ctx.addIssue({ code: "custom", path: ["default"], message: "default is below min" });
+    }
+    if (setting.max !== undefined && value > setting.max) {
+      ctx.addIssue({ code: "custom", path: ["default"], message: "default is above max" });
+    }
+    if (setting.step !== undefined && (value - (setting.min ?? 0)) % setting.step !== 0) {
+      ctx.addIssue({ code: "custom", path: ["default"], message: "default is off the step" });
+    }
   });
 
 const settingsCategorySchema = z
@@ -113,6 +175,54 @@ const adminPageSchema = z
   })
   .strict();
 
+const dashboardWidgetSchema = z
+  .object({
+    key: z.string().regex(/^[a-z][a-z0-9_-]*\.[a-z][a-z0-9_]*$/),
+    type: z.enum(["summary", "metric", "list"]),
+    surface: z.enum(["app", "panel"]),
+    title: z.string().trim().min(1),
+    icon: z.string().trim().min(1),
+    order: z.number().int().min(0),
+    /** Function in the module schema: `(user_id uuid) returns jsonb`. */
+    data_fn: z.string().regex(FUNCTION_NAME),
+  })
+  .strict();
+
+const demoHooksSchema = z
+  .object({
+    seed_fn: z.string().regex(FUNCTION_NAME),
+    clear_fn: z.string().regex(FUNCTION_NAME),
+  })
+  .strict();
+
+const appActionSchema = z
+  .object({
+    key: z.string().regex(SNAKE),
+    label: z.string().trim().min(1),
+    icon: z.string().trim().min(1),
+    screen: z.string().regex(/^[a-z][a-z0-9_]*$/),
+  })
+  .strict();
+
+const moduleJobSchema = z
+  .object({
+    key: z.string().regex(SNAKE),
+    schedule: z
+      .string()
+      .trim()
+      .refine(isValidCron, { message: "schedule must be a 5-field cron expression" }),
+    fn: z.string().regex(FUNCTION_NAME),
+    timeout_seconds: z.number().int().min(1).max(300).default(30),
+  })
+  .strict();
+
+const moduleRequirementSchema = z
+  .object({
+    key: z.string().regex(MODULE_KEY),
+    version: z.string().regex(/^[0-9]+\.[0-9]+\.[0-9]+$/),
+  })
+  .strict();
+
 const docsSchema = z
   .object({
     readme: z.string().regex(RELATIVE_FILE),
@@ -135,6 +245,7 @@ export const manifestSchema = z
       })
       .strict(),
     version: z.string().regex(SEMVER),
+    contract: z.number().int().min(1),
     is_public: z.boolean(),
     migrations: z.array(migrationSchema).default([]),
     settings: z.array(settingsCategorySchema).default([]),
@@ -145,6 +256,15 @@ export const manifestSchema = z
     events: z.array(eventSchema).default([]),
     hooks: z.record(z.string(), z.string().regex(FUNCTION_NAME)).default({}),
     admin_pages: z.array(adminPageSchema).default([]),
+    dashboard_widgets: z.array(dashboardWidgetSchema).default([]),
+    demo: demoHooksSchema.optional(),
+    app: z
+      .object({ visible: z.boolean() })
+      .strict()
+      .default({ visible: true }),
+    requires: z.array(moduleRequirementSchema).default([]),
+    jobs: z.array(moduleJobSchema).default([]),
+    app_actions: z.array(appActionSchema).default([]),
     docs: docsSchema,
   })
   .strict()
@@ -203,6 +323,42 @@ export const manifestSchema = z
         }
       }
     }
+    for (const requirement of manifest.requires) {
+      if (requirement.key === manifest.key) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["requires", requirement.key],
+          message: "a module cannot require itself",
+        });
+      }
+    }
+    const requiredKeys = manifest.requires.map((requirement) => requirement.key);
+    if (new Set(requiredKeys).size !== requiredKeys.length) {
+      ctx.addIssue({ code: "custom", path: ["requires"], message: "duplicate requirement" });
+    }
+    if (manifest.app_actions.length > 0 && !manifest.app.visible) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["app_actions"],
+        message: "a background module (app.visible: false) cannot declare app actions",
+      });
+    }
+    const actionKeys = manifest.app_actions.map((action) => action.key);
+    if (new Set(actionKeys).size !== actionKeys.length) {
+      ctx.addIssue({ code: "custom", path: ["app_actions"], message: "duplicate app action key" });
+    }
+    const jobKeys = manifest.jobs.map((job) => job.key);
+    if (new Set(jobKeys).size !== jobKeys.length) {
+      ctx.addIssue({ code: "custom", path: ["jobs"], message: "duplicate job key" });
+    }
+    const widgetKeys = manifest.dashboard_widgets.map((widget) => widget.key);
+    if (new Set(widgetKeys).size !== widgetKeys.length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dashboard_widgets"],
+        message: "duplicate widget key",
+      });
+    }
     const routes = manifest.admin_pages.map((page) => page.route);
     if (new Set(routes).size !== routes.length) {
       ctx.addIssue({ code: "custom", path: ["admin_pages"], message: "duplicate admin route" });
@@ -257,9 +413,15 @@ export function manifestDigest(manifest: ModuleManifest): string {
  */
 export function assertSafeModuleSql(sql: string, moduleKey: string): void {
   const schema = `module_${moduleKey.replace(/-/g, "_")}`;
+  // Two audited public references are allowed: the identity helper the Core
+  // exposes for RLS, and `profiles` as a foreign-key target (never as a read).
+  // Everything else in `public` stays forbidden.
+  const audited = sql
+    .replace(/public\s*\.\s*core_current_user_id\s*\(/gi, "core_current_user_id(")
+    .replace(/references\s+public\s*\.\s*profiles\s*\(/gi, "references profiles(");
   const forbiddenSchema = /\b(auth|storage|realtime|extensions|vault|pg_catalog|information_schema|supabase_migrations)\s*\./i;
-  if (forbiddenSchema.test(sql)) throw new Error(`module SQL may not reference reserved schemas (${schema})`);
-  if (/\bpublic\s*\./i.test(sql)) throw new Error("module SQL may not reference the public schema");
+  if (forbiddenSchema.test(audited)) throw new Error(`module SQL may not reference reserved schemas (${schema})`);
+  if (/\bpublic\s*\./i.test(audited)) throw new Error("module SQL may not reference the public schema");
   // A module may only touch its own schema, never another module's.
   for (const match of sql.matchAll(/\bmodule_([a-z0-9_]+)\s*\./gi)) {
     if (`module_${match[1]}` !== schema) throw new Error("module SQL may not reference another module schema");

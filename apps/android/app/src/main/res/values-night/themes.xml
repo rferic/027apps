@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark window: the platform Light theme would paint white behind Compose. -->
+<resources>
+    <style name="Theme.Zero27Apps.Base" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/splash_background</item>
+    </style>
+</resources>

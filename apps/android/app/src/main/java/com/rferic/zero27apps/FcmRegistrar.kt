@@ -7,12 +7,21 @@ import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
+import com.rferic.zero27apps.auth.EncryptedStringStore
+import com.rferic.zero27apps.auth.KeystoreSecretCipher
+import com.rferic.zero27apps.prefs.PrefsStringStore
 import java.net.HttpURLConnection
 import java.net.URL
 
 /** Registers this installation with the instance and keeps its FCM token fresh. */
 class FcmRegistrar(private val context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    // The session JWT never lands in clear text, not even for the FCM callback.
+    private val secrets = EncryptedStringStore(
+        KeystoreSecretCipher(),
+        PrefsStringStore(context, PREFS),
+        "session_token",
+    )
     private val mainHandler = Handler(Looper.getMainLooper())
 
     var instanceUrl: String?
@@ -20,15 +29,17 @@ class FcmRegistrar(private val context: Context) {
         private set(value) = prefs.edit().putString("instance_url", value).apply()
 
     var sessionToken: String?
-        get() = prefs.getString("session_token", null)
-        private set(value) = prefs.edit().putString("session_token", value).apply()
+        get() = secrets.load()
+        private set(value) {
+            if (value == null) secrets.clear() else secrets.save(value)
+        }
 
     fun configure(
         rawInstanceUrl: String,
         jwt: String,
         callback: (Result<String>) -> Unit,
     ) {
-        val baseUrl = ServerUrl.normalize(rawInstanceUrl)
+        val baseUrl = ServerUrl.normalize(rawInstanceUrl, requireHttps = !BuildConfig.DEBUG)
         if (baseUrl == null) {
             callback(Result.failure(IllegalArgumentException("Invalid instance URL")))
             return
@@ -56,23 +67,71 @@ class FcmRegistrar(private val context: Context) {
         }.start()
     }
 
-    /** Called by Firebase when the installation token rotates. */
+    /** Forgets the session material on sign-out or an instance change. */
+    /**
+     * Signing out or switching instance must stop the pushes: the server still
+     * had the token and kept sending a former account's groups to this phone.
+     * It runs before the session is dropped, so the JWT is still valid.
+     */
+    fun revoke() {
+        val baseUrl = instanceUrl
+        val jwt = sessionToken
+        val deviceId = prefs.getString("device_id", null)
+        val token = prefs.getString("push_token", null)
+        if (baseUrl != null && jwt != null) {
+            Thread {
+                runCatching {
+                    if (deviceId != null) request("DELETE", "$baseUrl/api/v1/devices/$deviceId", jwt, null)
+                }.onFailure { Log.w(TAG, "Could not revoke this device", it) }
+                FirebaseMessaging.getInstance().deleteToken()
+            }.start()
+        }
+        if (token != null) prefs.edit().remove("push_token").apply()
+        clear()
+    }
+
+    fun clear() {
+        secrets.clear()
+        prefs.edit().remove("instance_url").remove("device_id").apply()
+    }
+
+    /** The server returns `{ device: { id } }`; keep it for the revoke call. */
+    private fun rememberDeviceId(body: String) {
+        val id = Regex("\"id\"\\s*:\\s*\"([0-9a-fA-F-]{36})\"").find(body)?.groupValues?.get(1)
+        if (id != null) prefs.edit().putString("device_id", id).apply()
+        else prefs.edit().remove("device_id").apply()
+    }
+
+    /**
+     * Called by Firebase when the installation token rotates. The stored JWT may
+     * have expired by then, so a failure keeps the token pending: the next app
+     * start registers it with a fresh session instead of losing the device.
+     */
     fun registerToken(token: String) {
         val baseUrl = instanceUrl ?: return
         val jwt = sessionToken ?: return
         Thread {
             runCatching {
                 request("POST", "$baseUrl/api/v1/devices", jwt, FcmConfig.deviceJson(token))
-            }.onFailure { Log.w(TAG, "Could not refresh the FCM token", it) }
+                prefs.edit().remove("pending_token").apply()
+            }.onFailure { error ->
+                Log.w(TAG, "Could not refresh the FCM token", error)
+                prefs.edit().putString("pending_token", token).apply()
+            }
         }.start()
     }
+
+    /** A token Firebase rotated while the session was not usable yet, if any. */
+    fun pendingToken(): String? = prefs.getString("pending_token", null)
 
     private fun registerDevice(token: String, callback: (Result<String>) -> Unit) {
         val baseUrl = instanceUrl ?: return
         val jwt = sessionToken ?: return
         Thread {
             try {
-                request("POST", "$baseUrl/api/v1/devices", jwt, FcmConfig.deviceJson(token))
+                val body = request("POST", "$baseUrl/api/v1/devices", jwt, FcmConfig.deviceJson(token))
+                prefs.edit().remove("pending_token").apply()
+                rememberDeviceId(body)
                 mainHandler.post { callback(Result.success(token)) }
             } catch (error: Exception) {
                 mainHandler.post { callback(Result.failure(error)) }

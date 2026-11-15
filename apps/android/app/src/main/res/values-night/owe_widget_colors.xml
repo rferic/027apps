@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="owe_widget_surface">#FF14201D</color>
+    <color name="owe_widget_ink">#FFF3F6F5</color>
+    <color name="owe_widget_muted">#FF9DB3AC</color>
+    <color name="owe_widget_accent">#FF4FD1AE</color>
+    <color name="owe_widget_danger">#FFFF8A80</color>
+</resources>
