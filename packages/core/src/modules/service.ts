@@ -425,6 +425,35 @@ async function grantModulePrivileges(db: QueryClient, schema: string): Promise<v
     `alter default privileges for role ${MODULE_ROLE} in schema ${s}
        grant usage, select on sequences to authenticated, service_role`,
   );
+  // `create function` grants EXECUTE to PUBLIC: without this, every function of
+  // the module (demo seeding, widget helpers) is callable by any signed-in user.
+  // Only the `is_*` helpers that RLS policies call stay available to them.
+  await db.query(`revoke execute on all functions in schema ${s} from public, anon, authenticated`);
+  await db.query(`grant execute on all functions in schema ${s} to service_role`);
+  await db.query(
+    `alter default privileges for role ${MODULE_ROLE} in schema ${s}
+       revoke execute on functions from public, anon, authenticated`,
+  );
+  await db.query(
+    `alter default privileges for role ${MODULE_ROLE} in schema ${s}
+       grant execute on functions to service_role`,
+  );
+  await db.query(
+    `do $$
+     declare fn record;
+     begin
+       for fn in
+         select p.proname, pg_get_function_identity_arguments(p.oid) as args
+           from pg_proc p
+           join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = '${schema}'
+            and p.proname like 'is\_%'
+       loop
+         execute format('grant execute on function %I.%I(%s) to authenticated', '${schema}', fn.proname, fn.args);
+       end loop;
+     end
+     $$`,
+  );
 }
 
 /**
