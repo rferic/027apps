@@ -13,6 +13,22 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.16.1",
+            date = "2026-11-15",
+            notes = mapOf(
+                "es" to listOf(
+                    "La app vuelve a la última página que viste al abrirla; dentro de un módulo, siempre a su portada.",
+                    "Comprueba actualizaciones al abrir y avisa con una franja en cualquier pantalla.",
+                    "Ya no puedes relanzar la comprobación de actualizaciones justo después de hacerla.",
+                ),
+                "en" to listOf(
+                    "The app reopens on the last page you saw; inside a module, always at its root.",
+                    "Checks for updates on launch and shows a banner on any screen.",
+                    "You can no longer re-run the update check right after checking.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.16.0",
             date = "2026-11-15",
             notes = mapOf(

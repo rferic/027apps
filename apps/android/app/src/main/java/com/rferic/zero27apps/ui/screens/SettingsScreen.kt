@@ -71,6 +71,7 @@ fun SettingsScreen(
     onRememberInstance: (String) -> String?,
     onChangeInstance: (String) -> Boolean,
     update: UpdateState,
+    lastCheckAt: Long? = null,
     onCheckUpdates: () -> Unit,
     onInstallUpdate: () -> Unit,
     onTheme: (String) -> Unit,
@@ -214,7 +215,16 @@ fun SettingsScreen(
                     UpdateState.Downloading -> Text(strings.updateDownloading, fontSize = 12.sp, color = palette.mutedForeground)
                     UpdateState.Installing -> Text(strings.updateInstalling, fontSize = 12.sp, color = palette.mutedForeground)
                     UpdateState.Checking -> Text(strings.checking, fontSize = 12.sp, color = palette.mutedForeground)
-                    UpdateState.UpToDate -> Text(strings.upToDate, fontSize = 12.sp, color = palette.mutedForeground)
+                    UpdateState.UpToDate -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(strings.upToDate, fontSize = 12.sp, color = palette.mutedForeground)
+                        // A second check right after the first is noise; after a minute
+                        // it is a normal thing to want.
+                        val canRecheck = lastCheckAt == null ||
+                            System.currentTimeMillis() - lastCheckAt > 60_000
+                        if (canRecheck) {
+                            TextButton(onClick = onCheckUpdates) { Text(strings.recheck, fontSize = 12.sp) }
+                        }
+                    }
                     UpdateState.Failed -> Text(strings.updateFailed, fontSize = 12.sp, color = palette.destructive)
                     UpdateState.None -> TextButton(onClick = onCheckUpdates) { Text(strings.checkUpdates, fontSize = 12.sp) }
                 }

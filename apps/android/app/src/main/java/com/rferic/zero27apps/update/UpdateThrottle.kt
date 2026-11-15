@@ -17,6 +17,8 @@ class UpdateThrottle(
         return now() - last >= intervalMs
     }
 
+    fun lastCheckAt(): Long? = store.get(KEY)?.toLongOrNull()
+
     fun markChecked() {
         store.put(KEY, now().toString())
     }

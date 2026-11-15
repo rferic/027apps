@@ -42,6 +42,7 @@ data class LoginState(val pending: Boolean = false, val error: LoginError? = nul
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     private companion object {
         const val PRIVACY_KEY = "privacy.masked"
+        const val LOCATION_KEY = "shell.location"
     }
 
     private val prefs = PrefsStringStore(application)
@@ -89,10 +90,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * Asks the instance for its latest Android build. Silent on failure: an
      * updater that cannot check is not worth a screen.
      */
+    private var bootCheckDone = false
+
     fun checkForUpdate(manual: Boolean = false) {
         val api = client ?: return
-        // Automatic checks are throttled; the Settings button always asks.
-        if (!manual && !updateThrottle.shouldCheck()) return
+        // The first check of a launch always runs, so a new build shows up as
+        // soon as the app opens; later automatic checks keep the six-hour throttle.
+        val firstOfLaunch = !manual && !bootCheckDone
+        if (!manual && !firstOfLaunch && !updateThrottle.shouldCheck()) return
+        bootCheckDone = true
         updateThrottle.markChecked()
         if (manual) _update.value = UpdateState.Checking
         viewModelScope.launch {
@@ -101,7 +107,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     _update.value = if (release.versionCode > BuildConfig.VERSION_CODE) {
                         UpdateState.Available(release.versionName, release.apkUrl)
                     } else {
-                        if (manual) UpdateState.UpToDate else UpdateState.None
+                        // A successful check always leaves the row settled: no button
+                        // inviting a second check seconds later.
+                        UpdateState.UpToDate
                     }
                 }
                 .onFailure {
@@ -220,9 +228,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             sessionStore.clear()
             FcmRegistrar(getApplication()).clear()
             com.rferic.zero27apps.widget.WidgetSnapshotStore(getApplication()).clear()
+            prefs.remove(LOCATION_KEY)
             _login.value = LoginState()
             awaitLogin()
         }
+    }
+
+    fun lastUpdateCheckAt(): Long? = updateThrottle.lastCheckAt()
+
+    /** Where the shell was: "home", "modules", "settings" or "module:<key>". */
+    fun lastLocation(): String? = prefs.get(LOCATION_KEY)
+
+    fun rememberLocation(value: String) {
+        prefs.put(LOCATION_KEY, value)
     }
 
     fun togglePrivacy() {

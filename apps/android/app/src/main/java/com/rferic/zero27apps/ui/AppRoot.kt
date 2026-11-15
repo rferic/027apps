@@ -242,8 +242,21 @@ private fun Shell(
     initialAction: String? = null,
     initialGroup: String? = null,
 ) {
-    var tab by rememberSaveable { mutableIntStateOf(0) }
-    var openModule by rememberSaveable { mutableStateOf<String?>(null) }
+    // D18: the shell restores the last place, but a module always opens at its root.
+    val saved = viewModel.lastLocation()
+    val savedModule = saved?.takeIf { it.startsWith("module:") }?.removePrefix("module:")
+        ?.takeIf { key -> state.modules.any { it.key == key } }
+    var tab by rememberSaveable {
+        mutableIntStateOf(
+            when {
+                savedModule != null -> 0
+                saved == "modules" -> 1
+                saved == "settings" -> 2
+                else -> 0
+            },
+        )
+    }
+    var openModule by rememberSaveable { mutableStateOf(savedModule) }
     val strings = LocalStrings.current
     val basePalette = LocalPalette.current
     // Inside a module the whole shell takes its colour: buttons, links and the wash.
@@ -256,6 +269,16 @@ private fun Shell(
             moduleAccent(openBranding?.color).copy(alpha = 0.12f)
         },
     )
+
+    LaunchedEffect(tab, openModule) {
+        val location = when {
+            openModule != null -> "module:$openModule"
+            tab == 1 -> "modules"
+            tab == 2 -> "settings"
+            else -> "home"
+        }
+        viewModel.rememberLocation(location)
+    }
 
     val actions = state.modules.flatMap { module -> module.appActions }.distinctBy { it.key }
     var showActions by remember { mutableStateOf(false) }
@@ -292,7 +315,33 @@ private fun Shell(
             }
         },
         bottomBar = {
-            NavigationBar(containerColor = palette.surface, tonalElevation = 0.dp) {
+            Column {
+                val available = update as? UpdateState.Available
+                if (available != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(palette.accent.copy(alpha = 0.14f))
+                            .clickable { viewModel.installUpdate() }
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            strings.newVersion.replace("{version}", available.version),
+                            modifier = Modifier.weight(1f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = palette.accent,
+                        )
+                        Text(
+                            strings.updateInstall,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.accent,
+                        )
+                    }
+                }
+                NavigationBar(containerColor = palette.surface, tonalElevation = 0.dp) {
                 NavigationBarItem(
                     selected = tab == 0,
                     onClick = { tab = 0; openModule = null },
@@ -332,6 +381,7 @@ private fun Shell(
                         indicatorColor = palette.muted,
                     ),
                 )
+                }
             }
         },
     ) { padding ->
