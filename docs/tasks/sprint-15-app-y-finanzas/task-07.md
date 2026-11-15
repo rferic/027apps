@@ -2,7 +2,7 @@
 id: sprint-15-task-07
 titulo: OweNo en Android: pantallas, importador y capturas
 area: app
-estado: pendiente
+estado: en curso
 fuente: docs/superpowers/specs/2026-11-12-android-access-shell.md; spec de OweNo (pendiente); docs/tasks/sprint-15-app-y-finanzas/splitwise-export.md
 adrs: [0002, 0004, 0007, 0008]
 ---
@@ -60,3 +60,16 @@ móvil llega tarde; el release firmado exige subir `versionCode` y una orden exp
 
 **Auditoría de seguridad**: obligatoria antes de `finalizada` (autorización de las pantallas,
 manejo de importes, logs y release).
+
+## Auditorías (2026-11-15)
+
+- **Diseño/UX** (agente independiente): jerarquía, contraste de la pestaña activa, tamaños
+  táctiles ≥ 44 dp, placeholders AA, foco en el primer campo vacío, un solo H1, error dentro
+  de la hoja y feedback de guardado. Aplicado; quedan como deuda el footer único de las hojas
+  y las capturas en 9 idiomas a fontScale 2.0.
+- **Seguridad** (agente independiente): cerrados la inyección de miembros de otro grupo en
+  movimientos e importación, la validación de categoría, el censo visible a exmiembros, el IDOR
+  del historial de importación, el lock de importación concurrente, el JWT en claro del
+  registro FCM, `allowBackup`, el payload crudo en las notificaciones, el snapshot del widget
+  sin cifrar y el log de errores con cuerpo. Pendientes menores: límite de cuerpo del import
+  (400 KB), hash del APK en la actualización.
