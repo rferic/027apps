@@ -1,7 +1,7 @@
 import { grantUserModuleRoute, revokeUserModuleRoute } from "@027apps/core/modules/api.js";
 import { modulesRouteDeps } from "@/lib/modules-route-deps";
 
-/** POST/DELETE /api/v1/users/{id}/modules/{key} — grant or revoke module access. */
+/** POST/DELETE /api/v1/users/{id}/panel/modules/{key} — grant or revoke module access. */
 export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string; key: string }> },

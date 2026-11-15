@@ -95,6 +95,57 @@ function userId(value: string): string {
   return value;
 }
 
+/** The caller's own id: only a session or a delegated key can be "me". */
+function selfId(caller: Caller): string {
+  if (caller.kind === "session" || caller.kind === "delegated") return caller.userId;
+  throw new DomainError("insufficient_scope");
+}
+
+/** The app's own profile edit: name, language and theme. Never role or timezone. */
+export const mePatchSchema = z
+  .object({
+    display_name: z.string().min(1).max(80).optional(),
+    locale: localeSchema.optional(),
+    theme: z.enum(["system", "light", "dark"]).optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, { message: "at least one field is required" });
+
+/** GET /api/v1/me — the caller's profile (session or delegated key). */
+export function meRoute(deps: UsersRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:read"],
+        auth: deps.auth,
+        cors: deps.cors,
+        rateLimit: { identity: "user", limit: deps.rateLimits?.read ?? DEFAULT_READ_LIMIT },
+      },
+      deps.door,
+      async (ctx) => ({ user: await getUser(deps.users, selfId(ctx.caller)) }),
+    );
+}
+
+/** PATCH /api/v1/me — edits the caller's own display name, locale and theme. */
+export function mePatchRoute(deps: UsersRouteDeps) {
+  return (req: Request): Promise<Response> =>
+    withDoor(
+      req,
+      {
+        scopes: ["profile:write"],
+        auth: deps.auth,
+        cors: deps.cors,
+        schema: mePatchSchema,
+        rateLimit: { identity: "user", limit: deps.rateLimits?.write ?? DEFAULT_WRITE_LIMIT },
+      },
+      deps.door,
+      async (ctx) => ({
+        user: await updateUser(deps.users, ctx.caller, selfId(ctx.caller), ctx.body as UserPatch),
+      }),
+    );
+}
+
 /** GET /api/v1/users — list with `q`, `role`, `state`, `category`, `limit`, `offset`. */
 export function usersRoute(deps: UsersRouteDeps) {
   return (req: Request): Promise<Response> =>

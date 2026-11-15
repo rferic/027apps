@@ -23,3 +23,6 @@ coverage/
 # NO es un backup: `git clean -xdf` borra ficheros ignorados. Ver private/README.md.
 private/
 .vercel
+
+# CodeGraph local index cache
+.codegraph/

@@ -79,7 +79,7 @@ describe("ApiKeyCreateForm", () => {
     expect(html).toMatch(/<form[^>]*rounded-card[^>]*bg-surface/);
     expect(html).toContain("api-key-name");
     expect(html).toContain("Cancel");
-    expect(html).toContain('href="/keys"');
+    expect(html).toContain('href="/panel/keys"');
     expect(html).not.toContain("<dialog");
   });
 
@@ -612,7 +612,7 @@ describe("ApiKeyCreatedPanel", () => {
     expect(html).toContain("027_svc_abc");
     expect(html).toContain("Copy this key now. It will not be shown again.");
     expect(html).toContain("Done");
-    expect(html).toContain('href="/keys"');
+    expect(html).toContain('href="/panel/keys"');
     expect(html).not.toContain("<form");
     expect(html).not.toContain("Create API key<");
     expect(html).not.toContain("api-key-name");

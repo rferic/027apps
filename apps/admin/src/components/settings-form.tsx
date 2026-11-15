@@ -230,6 +230,37 @@ function EnumInput({
   );
 }
 
+/** A boolean setting is a checkbox: its draft value is "true" or "false". */
+function BooleanInput({
+  setting,
+  value,
+  onChange,
+  messages,
+}: {
+  setting: SettingRow;
+  value: string;
+  onChange: (value: string) => void;
+  messages: TranslationMap;
+}) {
+  const id = fieldId(setting.key);
+  return (
+    <FormField
+      id={id}
+      label={settingLabel(setting.key, messages, setting.label)}
+      hint={settingHelp(setting.key, messages, setting.help)}
+    >
+      <input
+        id={id}
+        name={setting.key}
+        type="checkbox"
+        checked={value === "true"}
+        onChange={(event) => onChange(event.target.checked ? "true" : "false")}
+        className="h-4 w-4 accent-accent"
+      />
+    </FormField>
+  );
+}
+
 function ScalarInput({
   setting,
   value,
@@ -395,6 +426,13 @@ export function SettingField({
         />
       ) : setting.type === "array" ? (
         <ArrayInput
+          setting={setting}
+          value={value}
+          onChange={(next) => onChange(setting.key, next)}
+          messages={messages}
+        />
+      ) : setting.type === "boolean" ? (
+        <BooleanInput
           setting={setting}
           value={value}
           onChange={(next) => onChange(setting.key, next)}

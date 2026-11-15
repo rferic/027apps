@@ -207,7 +207,7 @@ function FormFooter({
 }) {
   return (
     <FormActions>
-      <Link href={`/keys/${encodeURIComponent(id)}`} className={cancelClass}>
+      <Link href={`/panel/keys/${encodeURIComponent(id)}`} className={cancelClass}>
         {t("Cancel", messages)}
       </Link>
       <Button type="submit" variant="primary" className="min-h-11" disabled={pending || blocked}>

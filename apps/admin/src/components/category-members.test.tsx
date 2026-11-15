@@ -17,7 +17,7 @@ describe("CategoryMembers", () => {
         choices={[]}
         memberQuery=""
         truncated={false}
-        retryHref="/categories/c1"
+        retryHref="/panel/categories/c1"
         messages={{}}
       />,
     );

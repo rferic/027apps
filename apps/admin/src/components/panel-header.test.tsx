@@ -39,6 +39,16 @@ describe("PanelHeader", () => {
     expect(html).not.toContain("/brand/mark.svg");
   });
 
+  it("takes the logo and the title to the public site", () => {
+    const html = renderHeader("Familia García");
+    const linkAt = html.indexOf('href="/"');
+    expect(linkAt).toBeGreaterThan(-1);
+    const anchor = html.slice(linkAt, html.indexOf("</a>", linkAt));
+    // The mark and the instance name share the same anchor.
+    expect(anchor).toContain("<svg");
+    expect(anchor).toContain("Familia García");
+  });
+
   it("falls back to the product name when the instance has no name", () => {
     const html = renderHeader("");
 

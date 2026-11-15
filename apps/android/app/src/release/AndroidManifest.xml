@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Only the shipped app verifies the production invitation App Link. A debug
+  build uses the `027apps-dev://` scheme, so the two installs never fight for
+  the same https host (and the debug certificate is not in assetlinks.json).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="027apps.ericrf.com"
+                    android:pathPrefix="/invite/" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

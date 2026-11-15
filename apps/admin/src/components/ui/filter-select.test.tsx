@@ -8,54 +8,54 @@ vi.mock("next/navigation", () => ({
 
 describe("filterHref", () => {
   it("sets the changed filter on the base path", () => {
-    expect(filterHref({ basePath: "/keys", params: {}, name: "state", value: "active" })).toBe(
-      "/keys?state=active",
+    expect(filterHref({ basePath: "/panel/keys", params: {}, name: "state", value: "active" })).toBe(
+      "/panel/keys?state=active",
     );
   });
 
   it("keeps the other filters and resets the page", () => {
     const href = filterHref({
-      basePath: "/members",
+      basePath: "/panel/members",
       params: { q: "ana", role: "admin", page: "3" },
       name: "state",
       value: "deactivated",
     });
 
-    expect(href).toBe("/members?q=ana&role=admin&state=deactivated");
+    expect(href).toBe("/panel/members?q=ana&role=admin&state=deactivated");
     expect(href).not.toContain("page");
   });
 
   it("replaces the value of the changed filter instead of duplicating it", () => {
     expect(
       filterHref({
-        basePath: "/modules",
+        basePath: "/panel/modules",
         params: { state: "active", public: "yes" },
         name: "state",
         value: "disabled",
       }),
-    ).toBe("/modules?public=yes&state=disabled");
+    ).toBe("/panel/modules?public=yes&state=disabled");
   });
 
   it("drops the key when the value is empty (all)", () => {
     expect(
       filterHref({
-        basePath: "/invitations",
+        basePath: "/panel/invitations",
         params: { status: "pending" },
         name: "status",
         value: "",
       }),
-    ).toBe("/invitations");
+    ).toBe("/panel/invitations");
   });
 
   it("never emits a page key even when the filter params carry one", () => {
     const href = filterHref({
-      basePath: "/keys",
+      basePath: "/panel/keys",
       params: { page: "2" },
       name: "state",
       value: "",
     });
 
-    expect(href).toBe("/keys");
+    expect(href).toBe("/panel/keys");
   });
 });
 
@@ -72,7 +72,7 @@ describe("FilterSelect", () => {
         label="Status"
         value="active"
         options={options}
-        basePath="/keys"
+        basePath="/panel/keys"
         params={{}}
       />,
     );

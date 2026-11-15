@@ -227,7 +227,7 @@ async function emailsFor(ids: readonly string[]): Promise<EmailLookup> {
     logger?.({
       level: "warn",
       requestId: "panel-members",
-      route: "/members",
+      route: "/panel/members",
       code: "email_lookup_failed",
       message: "auth.users email lookup failed",
     });

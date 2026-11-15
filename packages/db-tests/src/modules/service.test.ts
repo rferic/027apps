@@ -44,7 +44,7 @@ function deps(c: ClientBase, overrides: Partial<ModulesDeps> = {}): ModulesDeps 
     moduleRoot: (key) => `/modules/${key}`,
     readFile: async (path) => {
       if (path.endsWith("README.md")) return "# Demo module";
-      if (path.endsWith("docs/settings.md")) return "enabled";
+      if (path.endsWith("docs/settings.md")) return "enabled limit";
       if (path.endsWith("assets/icon.svg")) {
         return '<svg xmlns="http://www.w3.org/2000/svg"><path fill="currentColor"/></svg>';
       }
@@ -60,6 +60,7 @@ function manifest(overrides: Record<string, unknown> = {}) {
     name: "Demo",
     branding: { description: "Demo module", icon: "assets/icon.svg", color: "teal" },
     version: "1.0.0",
+    contract: 1,
     is_public: false,
     migrations: [
       {
@@ -135,12 +136,46 @@ describe("modules installer", () => {
       );
       expect(migrations).toEqual([{ version: "1.0.0", direction: "up" }]);
 
-      const { rows: event } = await query(c, "select type, target from public.event_outbox where type = 'module.installed'");
+      const { rows: event } = await query(
+        c,
+        "select type, target from public.event_outbox where type = 'module.installed' and module_key = $1",
+        ["demo-module"],
+      );
       expect(event).toEqual([{ type: "module.installed", target: "admins" }]);
 
       await expect(installModule(deps(c), admin, manifest())).rejects.toMatchObject({
         code: "conflict",
       });
+    });
+  });
+
+  it("installs again when a failed attempt left its settings behind", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      // Settings live in `public`, so a rolled-back install leaves them there:
+      // the next install must upsert them instead of dying on the primary key.
+      await c.query(
+        `insert into public.settings_categories (category_key, label, sort_order, source)
+         values ('demo_module', 'Stale', 99, 'module:demo-module')`,
+      );
+      await c.query(
+        `insert into public.settings (category_key, key, label, value, is_public)
+         values ('demo_module', 'demo_module.gone', 'Gone', 'true', false)`,
+      );
+
+      const installed = await installModule(deps(c), admin, manifest());
+      expect(installed.state).toBe("installed");
+
+      const { rows: categories } = await query(
+        c,
+        "select label from public.settings_categories where category_key = 'demo_module'",
+      );
+      expect(categories).toEqual([{ label: "Demo" }]);
+      const { rows: settings } = await query(
+        c,
+        "select key, label from public.settings where category_key = 'demo_module'",
+      );
+      expect(settings).toEqual([{ key: "demo_module.enabled", label: "Enabled" }]);
     });
   });
 
@@ -156,7 +191,11 @@ describe("modules installer", () => {
       await expect(installModule(deps(c), admin, tampered)).rejects.toMatchObject({
         code: "validation_failed",
       });
-      const { rows } = await query(c, "select 1 from public.module_registry");
+      const { rows } = await query(
+        c,
+        "select 1 from public.module_registry where key = $1",
+        ["demo-module"],
+      );
       expect(rows).toHaveLength(0);
     });
   });
@@ -197,7 +236,8 @@ describe("modules installer", () => {
       await expect(activateModule(deps(c), admin, "demo-module")).resolves.toMatchObject({
         state: "active",
       });
-      expect((await listModules(deps(c), admin, PAGE)).modules).toHaveLength(1);
+      const listed = (await listModules(deps(c), admin, PAGE)).modules;
+      expect(listed.filter((module) => module.key === "demo-module")).toHaveLength(1);
     });
   });
 
@@ -244,9 +284,77 @@ describe("modules installer", () => {
         admin,
         "demo-module",
         { key: "enabled", value: false },
-        "bool",
+        { type: "bool" },
       );
       expect(updated.value).toBe(false);
+    });
+  });
+
+  it("refuses a module built for another contract generation", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      await expect(
+        installModule(deps(c), admin, manifest({ contract: 2 })),
+      ).rejects.toMatchObject({ details: { code: "contract_mismatch", expected: 1 } });
+    });
+  });
+
+  it("enforces the range of an int setting with a slider", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin");
+      const ranged = manifest({
+        settings: [
+          {
+            category: "demo_module",
+            label: "Demo",
+            sort_order: 10,
+            settings: [
+              {
+                key: "limit",
+                type: "int",
+                min: 4,
+                max: 20,
+                step: 1,
+                control: "slider",
+                default: 12,
+                label: "Limit",
+                is_public: false,
+                is_secret: false,
+                mcp_access: "read",
+                sort_order: 10,
+              },
+            ],
+          },
+        ],
+        docs: { readme: "README.md", settings: "docs/settings.md" },
+      });
+      await installModule(deps(c), admin, ranged);
+
+      await expect(
+        updateModuleSetting(deps(c), admin, "demo-module", { key: "limit", value: 21 }, {
+          type: "int",
+          min: 4,
+          max: 20,
+          step: 1,
+        }),
+      ).rejects.toMatchObject({ code: "validation_failed" });
+      await expect(
+        updateModuleSetting(deps(c), admin, "demo-module", { key: "limit", value: 4.5 }, {
+          type: "int",
+          min: 4,
+          max: 20,
+          step: 1,
+        }),
+      ).rejects.toMatchObject({ code: "validation_failed" });
+
+      const updated = await updateModuleSetting(
+        deps(c),
+        admin,
+        "demo-module",
+        { key: "limit", value: 18 },
+        { type: "int", min: 4, max: 20, step: 1 },
+      );
+      expect(updated.value).toBe(18);
     });
   });
 
@@ -264,7 +372,11 @@ describe("modules installer", () => {
 
       await uninstallModule(deps(c), superAdmin, "demo-module", manifest(), true);
 
-      const { rows: registry } = await query(c, "select 1 from public.module_registry");
+      const { rows: registry } = await query(
+        c,
+        "select 1 from public.module_registry where key = $1",
+        ["demo-module"],
+      );
       expect(registry).toHaveLength(0);
       const { rows: table } = await query(
         c,
@@ -281,6 +393,38 @@ describe("modules installer", () => {
     });
   });
 
+  it("uninstalls even when the module's demo clear hook raises", async () => {
+    await inRollback(async (c) => {
+      const superAdmin = await session(c, "super_admin");
+      // A failing clear hook used to abort the transaction, so the uninstall
+      // died with "current transaction is aborted" instead of continuing to
+      // drop a schema that is going away anyway.
+      const up = `${UP}
+        create function clear_demo() returns jsonb language plpgsql as $$
+        begin
+          raise exception 'demo still linked';
+        end
+        $$;`;
+      const down = `drop function if exists clear_demo();\n${DOWN}`;
+      const withHooks = manifest({
+        migrations: [
+          { version: "1.0.0", up, down, digest: sha256(up), down_digest: sha256(down) },
+        ],
+        demo: { seed_fn: "seed_demo", clear_fn: "clear_demo" },
+      });
+      await installModule(deps(c), superAdmin, withHooks);
+
+      await expect(
+        uninstallModule(deps(c), superAdmin, "demo-module", withHooks, true),
+      ).resolves.toBeUndefined();
+      const { rows } = await query(
+        c,
+        "select 1 from public.module_registry where key = 'demo-module'",
+      );
+      expect(rows).toHaveLength(0);
+    });
+  });
+
   it("filters the catalogue for non-admins and requires a transaction runner", async () => {
     await inRollback(async (c) => {
       const admin = await session(c, "admin");
@@ -288,14 +432,21 @@ describe("modules installer", () => {
       const d = deps(c);
       await installModule(d, admin, manifest());
 
-      expect((await listModules(d, admin, PAGE)).modules).toHaveLength(1);
-      expect((await listModules(d, user, PAGE)).modules).toHaveLength(0);
+      const adminList = (await listModules(d, admin, PAGE)).modules;
+      expect(adminList.filter((module) => module.key === "demo-module")).toHaveLength(1);
+      expect(
+        (await listModules(d, user, PAGE)).modules.filter((module) => module.key === "demo-module"),
+      ).toHaveLength(0);
 
       await activateModule(d, admin, "demo-module");
-      expect((await listModules(d, user, PAGE)).modules).toHaveLength(0);
+      expect(
+        (await listModules(d, user, PAGE)).modules.filter((module) => module.key === "demo-module"),
+      ).toHaveLength(0);
 
       await grantUserModule(d, admin, user.userId, "demo-module");
-      expect((await listModules(d, user, PAGE)).modules).toHaveLength(1);
+      expect(
+        (await listModules(d, user, PAGE)).modules.filter((module) => module.key === "demo-module"),
+      ).toHaveLength(1);
 
       await expect(
         installModule({ ...d, withTransaction: undefined }, admin, manifest()),
@@ -309,7 +460,7 @@ describe("modules installer", () => {
       const d = deps(c);
       await installModule(d, admin, manifest());
       await expect(
-        updateModuleSetting(d, admin, "demo-module", { key: "enabled", value: "yes" }, "bool"),
+        updateModuleSetting(d, admin, "demo-module", { key: "enabled", value: "yes" }, { type: "bool" }),
       ).rejects.toMatchObject({ code: "validation_failed" });
     });
   });

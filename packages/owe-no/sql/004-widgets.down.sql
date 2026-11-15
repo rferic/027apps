@@ -1,0 +1,2 @@
+-- 1.4.0 only changes the JSON payload of two functions; dropping the module
+-- schema removes them, so there is nothing to reverse.

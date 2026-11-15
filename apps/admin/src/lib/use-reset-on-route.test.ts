@@ -18,7 +18,7 @@ const runtime = vi.hoisted(() => {
   }
 
   let cursor = 0;
-  let pathname = "/settings/instance";
+  let pathname = "/panel/settings/instance";
   const refs: Array<{ current: unknown }> = [];
   const slots: EffectSlot[] = [];
   let pending: Array<() => void> = [];
@@ -49,7 +49,7 @@ const runtime = vi.hoisted(() => {
     },
     clear() {
       cursor = 0;
-      pathname = "/settings/instance";
+      pathname = "/panel/settings/instance";
       refs.length = 0;
       slots.length = 0;
       pending = [];
@@ -128,7 +128,7 @@ describe("useResetOnRouteChange", () => {
   it("resets when the route changes", () => {
     mount({ name: "027Apps" });
 
-    runtime.setPathname("/settings/localization");
+    runtime.setPathname("/panel/settings/localization");
     render({ name: "027Apps" });
     runtime.flush();
 

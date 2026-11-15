@@ -16,6 +16,7 @@ export function encodeSettingValue(setting: SettingRow): string {
   if (setting.isSecret) return "";
   if (setting.type === "locales") return listToText(setting.value, ", ");
   if (setting.type === "array") return listToText(setting.value, "\n");
+  if (setting.type === "boolean") return setting.value === true ? "true" : "false";
   if (setting.value === null || setting.value === undefined) return "";
   return String(setting.value);
 }
@@ -48,6 +49,7 @@ function locales(value: string): string[] {
 export function parseSettingValue(setting: SettingRow, raw: string): unknown {
   if (setting.type === "locales") return locales(raw);
   if (setting.type === "array") return lines(raw);
+  if (setting.type === "boolean") return raw === "true";
   if (setting.type === "int") {
     const parsed = Number(raw);
     return raw.trim() !== "" && Number.isFinite(parsed) ? parsed : raw;

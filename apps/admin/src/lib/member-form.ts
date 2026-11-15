@@ -111,4 +111,4 @@ export function canConfirmPurge(typed: string, name: string): boolean {
 }
 
 /** Where the page lands after a successful purge: the list no longer has it. */
-export const PURGE_REDIRECT = "/members";
+export const PURGE_REDIRECT = "/panel/members";

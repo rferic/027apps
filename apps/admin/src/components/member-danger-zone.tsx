@@ -45,7 +45,7 @@ export function MemberDangerZone({ id, name, isSelf, messages }: MemberDangerZon
       return;
     }
     dialogRef.current?.close();
-    router.push("/members");
+    router.push("/panel/members");
     router.refresh();
   }
 

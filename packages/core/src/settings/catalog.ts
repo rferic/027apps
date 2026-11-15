@@ -12,6 +12,7 @@ import { z } from 'zod';
 
 export type SettingType =
   | 'string'
+  | 'boolean'
   | 'int'
   | 'url'
   | 'locale'
@@ -217,6 +218,13 @@ export const SETTINGS_CATALOG: SettingMeta[] = [
     schema: publicUrlSchema,
   },
   {
+    key: 'demo.enabled', category: 'instance', type: 'boolean',
+    label: 'Demo data', help: 'Allow installing sample members, categories and module data. Refused in production unless ALLOW_DEMO_DATA=true.',
+    isSecret: false, isPublic: false, mcpAccess: 'none', sortOrder: 30,
+    superAdminOnly: false, readOnly: false,
+    schema: z.boolean(),
+  },
+  {
     key: 'localization.default_locale', category: 'localization', type: 'locale',
     label: 'Default locale', help: 'Locale for users without a preference.',
     isSecret: false, isPublic: true, mcpAccess: 'read', sortOrder: 10,
@@ -389,6 +397,7 @@ export function getSettingMeta(key: string): SettingMeta | undefined {
 export const CATALOG_DEFAULTS: Record<string, unknown> = {
   'instance.name': '027Apps',
   'instance.public_url': null,
+  'demo.enabled': false,
   'localization.default_locale': 'en',
   'localization.timezone': 'UTC',
   'localization.default_currency': 'EUR',

@@ -23,11 +23,11 @@ describe("panel pagination", () => {
   });
 
   it("keeps the active filters and omits page=1 and empty filters", () => {
-    expect(pageHref("/members", { q: "ana" }, 1)).toBe("/members?q=ana");
-    expect(pageHref("/members", { q: "ana" }, 3)).toBe("/members?q=ana&page=3");
-    expect(pageHref("/keys", { state: "active", empty: undefined }, 2)).toBe(
-      "/keys?state=active&page=2",
+    expect(pageHref("/panel/members", { q: "ana" }, 1)).toBe("/panel/members?q=ana");
+    expect(pageHref("/panel/members", { q: "ana" }, 3)).toBe("/panel/members?q=ana&page=3");
+    expect(pageHref("/panel/keys", { state: "active", empty: undefined }, 2)).toBe(
+      "/panel/keys?state=active&page=2",
     );
-    expect(pageHref("/modules", {}, 1)).toBe("/modules");
+    expect(pageHref("/panel/modules", {}, 1)).toBe("/panel/modules");
   });
 });

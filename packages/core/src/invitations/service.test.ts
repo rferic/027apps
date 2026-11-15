@@ -18,6 +18,7 @@ const INVITATION = {
   email: "ana@example.com",
   name: "Ana",
   user_category_id: null,
+  locale: null,
   expires_at: "2099-01-01T00:00:00.000Z",
   used_at: null,
   revoked_at: null,
@@ -38,13 +39,14 @@ interface RecordedQuery {
 function fakeDb(input: {
   settings: { key: string; value: unknown }[];
   profile?: { display_name: string } | null;
+  invitation?: { locale: string | null };
 }): { db: QueryClient; queries: RecordedQuery[] } {
   const queries: RecordedQuery[] = [];
   const db: QueryClient = {
     async query(sql: string, params: unknown[] = []) {
       queries.push({ sql, params });
       if (sql.includes("from public.invitations") && sql.includes("token_hash")) {
-        return { rows: [INVITATION] };
+        return { rows: [{ ...INVITATION, ...(input.invitation ?? {}) }] };
       }
       if (sql.includes("select deactivated_at from public.profiles")) {
         return { rows: [] };
@@ -132,6 +134,39 @@ describe("redeemInvitation localization", () => {
   it("falls back per key when only one of the two settings is usable", async () => {
     const fake = fakeDb({
       settings: [{ key: "localization.default_locale", value: "gl" }],
+    });
+    const deps: InvitationsDeps = { db: fake.db, auth: auth() };
+
+    await redeemInvitation(deps, "027_inv_valid", {
+      email: "ana@example.com",
+      password: "correct-horse-battery",
+    });
+
+    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "gl", "UTC"]);
+  });
+
+  it("prefers the invitation's locale over the instance default", async () => {
+    const fake = fakeDb({
+      settings: [
+        { key: "localization.default_locale", value: "es" },
+        { key: "localization.timezone", value: "Europe/Madrid" },
+      ],
+      invitation: { locale: "ca" },
+    });
+    const deps: InvitationsDeps = { db: fake.db, auth: auth() };
+
+    await redeemInvitation(deps, "027_inv_valid", {
+      email: "ana@example.com",
+      password: "correct-horse-battery",
+    });
+
+    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "ca", "Europe/Madrid"]);
+  });
+
+  it("ignores an unsupported invitation locale and keeps the default", async () => {
+    const fake = fakeDb({
+      settings: [{ key: "localization.default_locale", value: "gl" }],
+      invitation: { locale: "xx" },
     });
     const deps: InvitationsDeps = { db: fake.db, auth: auth() };
 

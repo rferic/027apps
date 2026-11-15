@@ -1,0 +1,107 @@
+package com.rferic.zero27apps.ui.theme
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+
+/** The user's preference; `system` follows the device. */
+enum class ThemePreference { SYSTEM, LIGHT, DARK }
+
+/** Identity D tokens the Material scheme has no slot for (border, success…). */
+val LocalPalette = staticCompositionLocalOf { Tokens.light }
+
+/** Which palette is active, for the few assets that ship two drawings. */
+val LocalIsDark = staticCompositionLocalOf { false }
+
+private fun scheme(palette: Palette) = lightColorScheme(
+    primary = palette.primary,
+    onPrimary = palette.primaryForeground,
+    background = palette.background,
+    onBackground = palette.foreground,
+    surface = palette.surface,
+    onSurface = palette.foreground,
+    surfaceVariant = palette.muted,
+    onSurfaceVariant = palette.mutedForeground,
+    secondary = palette.accent,
+    onSecondary = palette.primaryForeground,
+    error = palette.destructive,
+    onError = palette.destructiveForeground,
+    outline = palette.border,
+)
+
+private fun darkScheme(palette: Palette) = darkColorScheme(
+    primary = palette.primary,
+    onPrimary = palette.primaryForeground,
+    background = palette.background,
+    onBackground = palette.foreground,
+    surface = palette.surface,
+    onSurface = palette.foreground,
+    surfaceVariant = palette.muted,
+    onSurfaceVariant = palette.mutedForeground,
+    secondary = palette.accent,
+    onSecondary = palette.primaryForeground,
+    error = palette.destructive,
+    onError = palette.destructiveForeground,
+    outline = palette.border,
+)
+
+/**
+ * The app theme: one place that maps the tokens onto Material and exposes the
+ * extra roles through [LocalPalette]. No screen picks a colour of its own.
+ */
+@Composable
+fun Zero27AppsTheme(
+    preference: ThemePreference = ThemePreference.SYSTEM,
+    content: @Composable () -> Unit,
+) {
+    val dark = when (preference) {
+        ThemePreference.SYSTEM -> isSystemInDarkTheme()
+        ThemePreference.LIGHT -> false
+        ThemePreference.DARK -> true
+    }
+    val palette = if (dark) Tokens.dark else Tokens.light
+    CompositionLocalProvider(
+        LocalPalette provides palette,
+        LocalIsDark provides dark,
+        LocalTextSelectionColors provides TextSelectionColors(
+            handleColor = palette.accent,
+            backgroundColor = palette.accent.copy(alpha = 0.3f),
+        ),
+    ) {
+        MaterialTheme(
+            colorScheme = if (dark) darkScheme(palette) else scheme(palette),
+            typography = appTypography,
+            content = content,
+        )
+    }
+}
+
+/** Tighter line heights: the M3 defaults leave 11-13 sp labels in tall boxes. */
+private val appTypography = androidx.compose.material3.Typography().let { base ->
+    base.copy(
+        bodyLarge = base.bodyLarge.copy(lineHeight = 20.sp),
+        bodyMedium = base.bodyMedium.copy(lineHeight = 18.sp),
+        bodySmall = base.bodySmall.copy(lineHeight = 16.sp),
+        labelSmall = base.labelSmall.copy(lineHeight = 14.sp),
+        titleLarge = base.titleLarge.copy(lineHeight = 26.sp),
+    )
+}
+
+/** The brand wash of the login screen, shared by every app surface. */
+fun appGradient(palette: Palette): Brush = Brush.verticalGradient(
+    0f to palette.accent.copy(alpha = 0.24f),
+    0.45f to palette.background,
+    1f to palette.background,
+)
+
+/** Marker for tests/previews that need a colour without the theme. */
+internal fun previewColor(palette: Palette): Color = palette.accent

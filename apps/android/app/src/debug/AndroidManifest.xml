@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Debug-only: the FCM acceptance screen talks to the local dev server over
-     HTTP through `adb reverse`. Release builds keep cleartext disabled. -->
+<!--
+  Debug builds talk to the LAN development stack over plain HTTP and own the
+  `027apps-dev://` invitation scheme. Release builds inherit neither.
+-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:usesCleartextTraffic="true" />
+    <application android:usesCleartextTraffic="true">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="027apps-dev" android:host="invite" />
+            </intent-filter>
+        </activity>
+    </application>
 </manifest>

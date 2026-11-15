@@ -25,6 +25,8 @@ export default defineConfig({
     // Runs serialized: each test seeds data and verifies RLS policies;
     // no parallelism because the database is shared and state matters.
     include: ['src/**/*.test.ts'],
+    // Cleans the accounts a few suites commit through the app's real pool.
+    globalSetup: ['./src/global-setup.ts'],
     environment: 'node',
     testTimeout: 30000,
     hookTimeout: 30000,

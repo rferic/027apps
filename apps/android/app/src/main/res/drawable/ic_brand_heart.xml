@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The heartbeat mark, exactly the path the public web serves (brand/mark.svg),
+     in white so Compose can tint it with the brand colour. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="13dp"
+    android:viewportWidth="48"
+    android:viewportHeight="26">
+    <path
+        android:pathData="M2,14 L9,14 L11.5,10 L14,14 L17,14 L18.5,16.5 L20.5,1.5 L22.5,23 L25,14 L27,10.5 L29.5,14 L46,14"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

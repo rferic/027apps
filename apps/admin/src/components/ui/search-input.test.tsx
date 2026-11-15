@@ -9,28 +9,28 @@ vi.mock("next/navigation", () => ({
 describe("searchHref", () => {
   it("sets the search on the base path", () => {
     expect(
-      searchHref({ basePath: "/members", params: {}, name: "q", value: "ana" }),
-    ).toBe("/members?q=ana");
+      searchHref({ basePath: "/panel/members", params: {}, name: "q", value: "ana" }),
+    ).toBe("/panel/members?q=ana");
   });
 
   it("keeps the other filters and resets the page", () => {
     const href = searchHref({
-      basePath: "/members",
+      basePath: "/panel/members",
       params: { role: "admin", state: "deactivated", page: "3" },
       name: "q",
       value: "ana",
     });
 
-    expect(href).toBe("/members?role=admin&state=deactivated&q=ana");
+    expect(href).toBe("/panel/members?role=admin&state=deactivated&q=ana");
     expect(href).not.toContain("page");
   });
 
   it("normalises the search and drops the key when it is empty", () => {
-    expect(searchHref({ basePath: "/categories", params: {}, name: "q", value: "  fam  " })).toBe(
-      "/categories?q=fam",
+    expect(searchHref({ basePath: "/panel/categories", params: {}, name: "q", value: "  fam  " })).toBe(
+      "/panel/categories?q=fam",
     );
-    expect(searchHref({ basePath: "/categories", params: { q: "fam" }, name: "q", value: "   " })).toBe(
-      "/categories",
+    expect(searchHref({ basePath: "/panel/categories", params: { q: "fam" }, name: "q", value: "   " })).toBe(
+      "/panel/categories",
     );
   });
 });
@@ -56,7 +56,7 @@ describe("SearchInput", () => {
       <SearchInput
         name="q"
         value="ana"
-        basePath="/members"
+        basePath="/panel/members"
         params={{}}
         label="Search by name or email"
         placeholder="Search"
@@ -76,7 +76,7 @@ describe("SearchInput", () => {
       <SearchInput
         name="q"
         value="ana"
-        basePath="/members"
+        basePath="/panel/members"
         params={{}}
         label="Search by name or email"
         placeholder="Search"
@@ -94,7 +94,7 @@ describe("SearchInput", () => {
   it("offers a labelled clear button only while there is text", () => {
     const props = {
       name: "q",
-      basePath: "/members",
+      basePath: "/panel/members",
       params: {},
       label: "Search by name or email",
       placeholder: "Search",

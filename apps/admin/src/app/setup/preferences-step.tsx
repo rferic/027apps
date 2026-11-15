@@ -94,7 +94,7 @@ export async function patchSettings(
  * the admin's own profile keeps its seeded `en`/`UTC` until this call. It is
  * best-effort on purpose: the settings batch already cleared `setup_incomplete`,
  * so a failure here must not block the installation (the profile stays editable
- * from /members afterwards). No console output by design.
+ * from /panel/members afterwards). No console output by design.
  */
 export async function patchUserPreferences(
   userId: string,

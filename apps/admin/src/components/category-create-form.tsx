@@ -52,7 +52,7 @@ function CategoryFormError({
 
 /** Where the create form lands: the new detail, or the list without an id. */
 export function categoryCreatedHref(id: string | undefined): string {
-  return id ? `/categories/${encodeURIComponent(id)}` : "/categories";
+  return id ? `/panel/categories/${encodeURIComponent(id)}` : "/panel/categories";
 }
 
 /**
@@ -137,7 +137,7 @@ export function CategoryCreateForm({ messages }: { messages: TranslationMap }) {
       {error && <CategoryFormError error={error} messages={messages} />}
 
       <FormActions>
-        <Link href="/categories" className={cancelClass}>
+        <Link href="/panel/categories" className={cancelClass}>
           {t("Cancel", messages)}
         </Link>
         <Button type="submit" variant="primary" className="min-h-11" disabled={createForm.submitting}>

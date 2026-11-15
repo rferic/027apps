@@ -211,6 +211,31 @@ async function readBody(req: Request, options: DoorOptions): Promise<unknown> {
   return parsed.data;
 }
 
+/**
+ * Module routes name their module (`moduleKey`), so the grant is checked
+ * against that module and the requested scopes must be declared by its
+ * manifest. A module route never falls back to Core roles: two modules that
+ * share a scope name must not open each other. No access and an unknown
+ * module answer the same 403, so existence is not leaked.
+ */
+async function authorizeRequest(
+  caller: Caller,
+  options: DoorOptions,
+  deps: DoorDeps,
+): Promise<Caller> {
+  if (!options.moduleKey) {
+    return options.scopes.length > 0 ? authorize(caller, options.scopes) : caller;
+  }
+  if (caller.kind === 'anon') throw new DomainError('unauthorized');
+  const granted = deps.moduleScopes
+    ? await deps.moduleScopes(caller, options.moduleKey)
+    : null;
+  if (!granted) throw new DomainError('insufficient_scope');
+  const missing = options.scopes.filter((scope) => !granted.includes(scope));
+  if (missing.length > 0) throw new DomainError('insufficient_scope');
+  return caller;
+}
+
 export async function withDoor(
   req: Request,
   options: DoorOptions,
@@ -223,6 +248,15 @@ export async function withDoor(
   const response = await runDoor(req, options, deps, handler, requestId, (caller) => {
     actor = actorLabel(caller);
   });
+
+  if (
+    deps.afterWrite &&
+    response.status < 400 &&
+    !['GET', 'HEAD', 'OPTIONS'].includes(req.method)
+  ) {
+    // Fire and forget: the response already left; a slow publish never blocks it.
+    void Promise.resolve(deps.afterWrite()).catch(() => undefined);
+  }
 
   deps.logger({
     level: response.status >= 500 ? 'error' : 'info',
@@ -292,7 +326,7 @@ async function runDoor(
     // Scope enforcement (ADR 0004): the guard consumes options.scopes before
     // rate limiting, so unauthorized callers never consume rate-limit budget.
     // With an empty scopes list the route is public: the caller passes through.
-    const authorizedCaller = options.scopes.length > 0 ? authorize(caller, options.scopes) : caller;
+    const authorizedCaller = await authorizeRequest(caller, options, deps);
     onCaller(authorizedCaller);
 
     if (options.rateLimit) {
@@ -332,7 +366,10 @@ async function runDoor(
       'body' in result
     ) {
       const { status, body: responseBody } = result as { status: number; body: JsonValue };
-      return new Response(JSON.stringify(responseBody), {
+      // 204/205/304 must not carry a body: the Response constructor throws, which
+      // turned every successful delete into a 500 after the write had happened.
+      const bodyless = status === 204 || status === 205 || status === 304;
+      return new Response(bodyless ? null : JSON.stringify(responseBody), {
         status,
         headers: baseHeaders(requestId, cors),
       });
