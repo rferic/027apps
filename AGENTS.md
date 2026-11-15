@@ -81,6 +81,9 @@ Definición completa de "terminado" por tipo: `docs/conventions/definition-of-do
 - [ ] Sin colores hardcodeados, sin `any` injustificado, sin `console.log` olvidados, sin código comentado.
 - [ ] Sin secretos ni ficheros `.env*`/keystores en `git status`.
 - [ ] Docs, flujos y fichero de tarea actualizados si procede.
+- [ ] Si toqué la app Android: subí `versionName`/`versionCode` y añadí su entrada en
+      `apps/android/app/src/main/java/com/rferic/zero27apps/Changelog.kt` (español e inglés).
+      `ChangelogTest` falla si la versión en curso no tiene entrada.
 - [ ] Si cambié el contrato del módulo, actualicé `docs/ai/module-system.md`, el esquema y los envoltorios.
 - [ ] Mensaje de commit y título de PR en Conventional Commits: `tipo(ámbito opcional): asunto en minúsculas` con tipo en `feat|fix|docs|chore|ci|refactor|test|perf|build`. El job `commitlint` rechaza el PR si no.
 

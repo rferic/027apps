@@ -25,6 +25,9 @@ Release malo: se corrige con un tag nuevo de `versionCode` mayor, no se reescrib
 ## Changelog
 
 - Hoy: las **notas del GitHub Release se autogeneran** desde los commits/PRs mergeados (`gh release create`, ver [cicd.md](cicd.md#flujo-nueva-versión)). Como el squash merge usa el título del PR como commit, los títulos convencionales son la fuente del changelog.
+- **App móvil**: el changelog que ve el propietario vive en la propia app
+  (`apps/android/.../Changelog.kt`) y se actualiza en **cada** subida de `versionName`; el test
+  `ChangelogTest` lo exige y la sección **Ajustes → Novedades** lo muestra sin conexión.
 - **TODO:** `CHANGELOG.md` en la raíz generado desde releases/commits (la spec exige que no se edite a mano). Aún no existe ni su generador; se define en una tarea propia del backlog. Hasta entonces el changelog es la página de Releases.
 
 ## Puerta previa (una sola vez)
