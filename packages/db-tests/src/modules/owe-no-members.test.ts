@@ -589,3 +589,43 @@ describe("owe-no invitation decline", () => {
     });
   });
 });
+
+describe("owe-no idempotency", () => {
+  it("answers the same movement when the client retries with its key", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const me = (await listMembers(deps(c), owner.id, group.id)).find(
+        (row) => row.user_id === owner.id,
+      )!;
+      const input = {
+        kind: "expense" as const,
+        description: "Cena",
+        amount_minor: 1500,
+        occurred_on: "2026-05-10",
+        paid_by: me.id,
+        participants: [{ memberId: me.id, amount_minor: 1500 }],
+      };
+
+      const first = await createMovementForGroup(deps(c), owner.id, group.id, input, "retry-1");
+      const again = await createMovementForGroup(deps(c), owner.id, group.id, input, "retry-1");
+      expect(again.id).toBe(first.id);
+      const { rows } = await query(
+        c,
+        "select count(*)::int as n from module_owe_no.owe_no_movements where group_id = $1",
+        [group.id],
+      );
+      expect(rows[0].n).toBe(1);
+
+      // A different body under a used key is a client bug, not a silent replay.
+      await expect(
+        createMovementForGroup(
+          deps(c),
+          owner.id,
+          group.id,
+          { ...input, amount_minor: 9900, participants: [{ memberId: me.id, amount_minor: 9900 }] },
+          "retry-1",
+        ),
+      ).rejects.toMatchObject({ details: { code: "idempotency_key_reused" } });
+    });
+  });
+});

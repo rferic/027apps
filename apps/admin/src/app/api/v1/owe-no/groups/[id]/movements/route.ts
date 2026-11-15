@@ -40,6 +40,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           category_id?: string | null;
           participants: Array<{ member_id: string; amount_minor?: number }>;
         };
+        // A retry after a lost reply carries the same key and must not create a
+        // second expense (spec §7). The header is optional for older clients.
+        const idempotencyKey = req.headers.get("idempotency-key")?.slice(0, 200) || undefined;
         const movement = await addMovement(owe, callerId(ctx.caller), id, {
           kind: body.kind,
           description: body.description,
@@ -51,7 +54,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             memberId: share.member_id,
             ...(share.amount_minor === undefined ? {} : { amount_minor: share.amount_minor }),
           })),
-        });
+        }, idempotencyKey);
         return { status: 201, body: json({ movement }) };
       } catch (error) {
         domainError(error);

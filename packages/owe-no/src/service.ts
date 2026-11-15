@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { enqueueEvent } from "@027apps/core/realtime/service.js";
 import { computeBalances, nonZeroBalances } from "./balances";
 import { splitEqual } from "./money";
@@ -443,9 +444,10 @@ export async function addMovement(
   userId: string,
   groupId: string,
   input: MovementInput,
+  idempotencyKey?: string,
 ): Promise<MovementView> {
   await requireActiveMember(deps, userId, groupId);
-  return createMovementForGroup(deps, userId, groupId, input);
+  return createMovementForGroup(deps, userId, groupId, input, idempotencyKey);
 }
 
 /**
@@ -528,6 +530,7 @@ export async function createMovementForGroup(
   actorId: string,
   groupId: string,
   input: MovementInput,
+  idempotencyKey?: string,
 ): Promise<MovementView> {
   const { currency, shares } = await prepareMovement(deps, groupId, input);
   if (input.category_id) {
@@ -541,8 +544,25 @@ export async function createMovementForGroup(
       });
     }
   }
+  // Same key and same body: the client is retrying, so it gets the original
+  // answer instead of a second expense. Another body with the same key is a bug.
+  const requestHash = idempotencyKey ? movementRequestHash(input) : null;
   const run = deps.withTransaction ?? ((fn: (db: OweDb) => Promise<MovementView>) => fn(deps.db));
   return run(async (db) => {
+    if (idempotencyKey && requestHash) {
+      const { rows: seen } = await db.query(
+        "select request_hash, result from module_owe_no.owe_no_idempotency where group_id = $1 and key = $2",
+        [groupId, idempotencyKey],
+      );
+      if (seen[0]) {
+        if (String(seen[0].request_hash) !== requestHash) {
+          throw new OweDomainError("conflict", "that idempotency key was used with another body", {
+            code: "idempotency_key_reused",
+          });
+        }
+        return seen[0].result as MovementView;
+      }
+    }
     const { rows } = await db.query(
       `insert into module_owe_no.owe_no_movements
          (group_id, kind, description, amount_minor, currency, paid_by_member_id,
@@ -581,7 +601,7 @@ export async function createMovementForGroup(
       ...context,
       actor_id: actorId,
     }, true);
-    return {
+    const view: MovementView = {
       id,
       kind: input.kind,
       description: input.description.trim(),
@@ -593,7 +613,34 @@ export async function createMovementForGroup(
       created_by: actorId,
       shares,
     };
+    if (idempotencyKey && requestHash) {
+      await db.query(
+        `insert into module_owe_no.owe_no_idempotency (group_id, key, request_hash, result)
+         values ($1, $2, $3, $4::jsonb)
+         on conflict (group_id, key) do nothing`,
+        [groupId, idempotencyKey, requestHash, JSON.stringify(view)],
+      );
+    }
+    return view;
   });
+}
+
+/** Stable fingerprint of a movement request: same body, same hash. */
+function movementRequestHash(input: MovementInput): string {
+  const shares = [...input.participants]
+    .map((share) => `${share.memberId}:${share.amount_minor}`)
+    .sort()
+    .join(",");
+  const material = [
+    input.kind,
+    input.description.trim(),
+    String(input.amount_minor),
+    input.occurred_on,
+    input.paid_by,
+    input.category_id ?? "",
+    shares,
+  ].join("|");
+  return createHash("sha256").update(material).digest("hex");
 }
 
 export async function listMovements(
