@@ -1335,8 +1335,12 @@ private fun MembersTab(
         AppSheet(
             onDismissRequest = { balanceRemove = null },
             title = member.displayName,
-            subtitle = formatMinor(if (owed < 0) -owed else owed, detail.group.currency, locale) +
-                " · " + strings.removeBalanceBody,
+            subtitle = maskedMoney(
+                LocalPrivacyMasked.current,
+                if (owed < 0) -owed else owed,
+                detail.group.currency,
+                locale,
+            ) + " · " + strings.removeBalanceBody,
             primaryLabel = strings.settleFirst,
             onPrimary = {
                 balanceRemove = null
@@ -2383,7 +2387,11 @@ private fun SettlementDialog(
                             fontSize = 13.sp,
                             modifier = Modifier.weight(1f),
                         )
-                        Text(formatMinor(transfer.amountMinor, currency, locale), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            maskedMoney(LocalPrivacyMasked.current, transfer.amountMinor, currency, locale),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                         if (transfer.from == myMemberId) {
                             TextButton(
                                 enabled = !saving,

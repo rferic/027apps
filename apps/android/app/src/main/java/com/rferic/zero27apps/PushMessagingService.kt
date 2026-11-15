@@ -30,7 +30,15 @@ class PushMessagingService : FirebaseMessagingService() {
         )
         val open = Intent(this, MainActivity::class.java).putExtra("start", "owe_group")
         data["target"]?.let { open.putExtra("group", it) }
-        val intent = PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_IMMUTABLE)
+        // One PendingIntent per group: with a fixed request code every
+        // notification reused the first group's intent and opened the wrong one.
+        val requestCode = data["target"]?.hashCode() ?: 0
+        val intent = PendingIntent.getActivity(
+            this,
+            requestCode,
+            open,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)

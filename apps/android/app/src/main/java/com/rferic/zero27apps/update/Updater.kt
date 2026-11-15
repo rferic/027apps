@@ -35,16 +35,15 @@ class Updater(private val context: Context) {
         onResult: (Result<Unit>) -> Unit,
     ) {
         val absolute = if (apkUrl.startsWith("http")) apkUrl else baseUrl.trimEnd('/') + apkUrl
-        // The APK must come over TLS from the instance itself or a release host:
-        // a plain-http or foreign origin is refused before downloading anything.
-        // A local instance over plain HTTP is fine in debug builds only; release
-        // builds require TLS and the instance's own origin.
-        val secure = absolute.startsWith("https://")
-        val localDebug = BuildConfig.DEBUG && absolute.startsWith("http://")
-        val allowed = (secure || localDebug) &&
-            (absolute.startsWith(baseUrl.trimEnd('/')) || BuildConfig.DEBUG)
-        if (!allowed) {
+        // Exact origin, not a string prefix: `https://example.com.evil.tld` used to
+        // pass for `https://example.com`.
+        if (!UpdatePolicy.trustedUrl(absolute, baseUrl, BuildConfig.DEBUG)) {
             onResult(Result.failure(IllegalArgumentException("update source is not trusted")))
+            return
+        }
+        if (UpdatePolicy.digestRequired(BuildConfig.DEBUG) && !UpdatePolicy.validDigest(expectedSha256)) {
+            // A release without a published digest cannot be verified, so it is refused.
+            onResult(Result.failure(IllegalArgumentException("update has no published digest")))
             return
         }
         thread(name = "027apps-update") {
@@ -53,7 +52,8 @@ class Updater(private val context: Context) {
                 // A fixed name means an old, half-downloaded file is replaced
                 // instead of adding another one.
                 val target = File(dir, FILE_NAME)
-                download(absolute, target)
+                target.delete()
+                download(absolute, baseUrl)
                 if (!expectedSha256.isNullOrBlank()) {
                     val actual = sha256(target)
                     if (!actual.equals(expectedSha256, ignoreCase = true)) {
@@ -81,22 +81,41 @@ class Updater(private val context: Context) {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    private fun download(url: String, target: File) {
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-            connectTimeout = 15_000
-            readTimeout = 60_000
-            instanceFollowRedirects = true
-            requestMethod = "GET"
-        }
-        try {
-            if (connection.responseCode !in 200..299) {
-                error("download answered ${connection.responseCode}")
+    /**
+     * Downloads following at most three redirects, and only to a location the
+     * same policy trusts: a redirect cannot move the download to another host.
+     */
+    private fun download(url: String, baseUrl: String) {
+        var current = url
+        repeat(MAX_REDIRECTS + 1) { attempt ->
+            val connection = (URL(current).openConnection() as HttpURLConnection).apply {
+                connectTimeout = 15_000
+                readTimeout = 60_000
+                instanceFollowRedirects = false
+                requestMethod = "GET"
             }
-            connection.inputStream.use { input ->
-                target.outputStream().use { output -> input.copyTo(output) }
+            try {
+                when (connection.responseCode) {
+                    in 200..299 -> {
+                        connection.inputStream.use { input ->
+                            val dir = File(context.cacheDir, DIRECTORY).apply { mkdirs() }
+                            File(dir, FILE_NAME).outputStream().use { output -> input.copyTo(output) }
+                        }
+                        return
+                    }
+                    in 300..399 -> {
+                        val location = connection.getHeaderField("Location") ?: error("redirect without a location")
+                        val next = if (location.startsWith("http")) location else URL(URL(current), location).toString()
+                        if (attempt == MAX_REDIRECTS || !UpdatePolicy.trustedUrl(next, baseUrl, BuildConfig.DEBUG)) {
+                            error("redirect to an untrusted location")
+                        }
+                        current = next
+                    }
+                    else -> error("download answered ${connection.responseCode}")
+                }
+            } finally {
+                connection.disconnect()
             }
-        } finally {
-            connection.disconnect()
         }
     }
 
@@ -112,5 +131,6 @@ class Updater(private val context: Context) {
     private companion object {
         const val DIRECTORY = "updates"
         const val FILE_NAME = "update.apk"
+        const val MAX_REDIRECTS = 3
     }
 }
