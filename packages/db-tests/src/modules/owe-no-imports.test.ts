@@ -146,23 +146,83 @@ describe("owe-no importer", () => {
       expect(history).toHaveLength(1);
       expect(history[0]).toMatchObject({ group_name: "Viaje", created_count: 2 });
 
-      // A second run lists the duplicates and refuses without confirmation.
+      // A second run skips what was already imported; it never doubles the debt.
       const again = await previewImport(deps, ana.userId, group.id, CSV);
       expect(again.duplicates).toBe(2);
-      await expect(commitImport(deps, ana.userId, group.id, CSV)).rejects.toMatchObject({
-        code: "conflict",
-        details: { code: "duplicates" },
-      });
+      const repeat = await commitImport(deps, ana.userId, group.id, CSV);
+      expect(repeat).toMatchObject({ created: 0, skipped_duplicates: 2 });
       const forced = await commitImport(deps, ana.userId, group.id, CSV, {
         confirmDuplicates: true,
       });
-      expect(forced.skipped_duplicates).toBe(2);
-      expect(await listImports(deps)).toHaveLength(2);
+      expect(forced).toMatchObject({ created: 0, skipped_duplicates: 2 });
+      expect(await listImports(deps)).toHaveLength(3);
+      const { rows: stillTwo } = await query(
+        c,
+        "select count(*)::int as n from module_owe_no.owe_no_movements where group_id = $1",
+        [group.id],
+      );
+      expect(stillTwo[0].n).toBe(2);
 
       // Only the creator imports.
       await expect(previewImport(deps, luis.userId, group.id, CSV)).rejects.toMatchObject({
         code: "forbidden",
       });
+    });
+  });
+
+  it("imports two identical rows in the same file as two expenses", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin", "Admin");
+      const manifest = JSON.parse(await readFile(resolve(ROOT, "manifest.json"), "utf8"));
+      const { rows: installed } = await query(
+        c,
+        "select 1 from public.module_registry where key = 'owe-no'",
+      );
+      if (installed[0]) {
+        await uninstallModule(
+          modulesDeps(c),
+          await session(c, "super_admin", "Root"),
+          "owe-no",
+          manifest,
+          true,
+        );
+      }
+      await installModule(modulesDeps(c), admin, manifest);
+      await activateModule(modulesDeps(c), admin, "owe-no");
+
+      const ana = await session(c, "user", "Ana");
+      const luis = await session(c, "user", "Luis");
+      const deps = oweDeps(c);
+      const group = await createGroup(deps, ana.userId, { name: "Metro", currency: "EUR" });
+      await addMember(deps, ana.userId, group.id, {
+        displayName: "Ana",
+        inviteeId: ana.userId,
+      });
+      await addMember(deps, ana.userId, group.id, {
+        displayName: "Luis",
+        inviteeId: luis.userId,
+      });
+      await query(
+        c,
+        "update module_owe_no.owe_no_members set state = 'active', joined_at = now() where state = 'invited'",
+      );
+
+      // Two tickets, same day, same amount: a real export carries them and the
+      // tracking row for each one shares the same hash.
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis",
+        "2026-05-10,Metro,Transporte,1.50,EUR,1.50,-1.50",
+        "2026-05-10,Metro,Transporte,1.50,EUR,1.50,-1.50",
+      ].join("\n");
+
+      const result = await commitImport(deps, ana.userId, group.id, csv);
+      expect(result).toMatchObject({ created: 2, errors: 0 });
+      const { rows } = await query(
+        c,
+        "select count(*)::int as n from module_owe_no.owe_no_movements where group_id = $1",
+        [group.id],
+      );
+      expect(rows[0].n).toBe(2);
     });
   });
 

@@ -240,12 +240,9 @@ export async function commitImport(
     duplicate: hashes.has(rowHash(movement)),
   }));
   const duplicates = rows.filter((row) => row.duplicate).length;
-  if (duplicates > 0 && options.confirmDuplicates !== true) {
-    throw new OweDomainError("conflict", "the file repeats already imported rows", {
-      code: "duplicates",
-      duplicates,
-    });
-  }
+  // Repeating a file is not an error: the already imported rows are skipped and
+  // only the new ones come in. `confirmDuplicates` is kept for compatibility.
+  void options.confirmDuplicates;
 
   const run = deps.withTransaction ?? (<T>(fn: (db: OweDb) => Promise<T>) => fn(deps.db));
   return run(async (db) => {
@@ -272,16 +269,20 @@ export async function commitImport(
       }
     }
 
+    // Rows already imported in this group are skipped, never re-inserted: the
+    // owner's rule is "bring in what is missing". The counters below report what
+    // actually happened, so the batch row cannot claim to have created what it skipped.
+    const fresh = rows.filter((row) => !row.duplicate);
     const { rows: batch } = await db.query(
       `insert into module_owe_no.owe_no_imports
          (group_id, imported_by, source, row_count, created_count, skipped_count, error_count)
        values ($1, $2, 'splitwise', $3, $4, $5, $6) returning id`,
-      [groupId, userId, rows.length, rows.length - duplicates, duplicates, 0],
+      [groupId, userId, rows.length, fresh.length, duplicates, 0],
     );
     const importId = String(batch[0].id);
 
     let created = 0;
-    for (const row of rows) {
+    for (const row of fresh) {
       const movementId = await addMovement(scoped, userId, groupId, {
         kind: row.movement.kind,
         description: row.movement.description,
@@ -297,9 +298,12 @@ export async function commitImport(
         })),
       });
       created += 1;
+      // Two identical rows inside the same file are two real expenses (two metro
+      // tickets); the tracking row is what collides, so it must not abort the batch.
       await db.query(
         `insert into module_owe_no.owe_no_import_rows (import_id, row_hash, movement_id)
-         values ($1, $2, $3)`,
+         values ($1, $2, $3)
+         on conflict (import_id, row_hash) do nothing`,
         [importId, row.hash, movementId.id],
       );
     }
