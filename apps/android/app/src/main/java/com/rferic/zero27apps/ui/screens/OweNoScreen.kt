@@ -38,6 +38,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -68,6 +69,7 @@ import com.rferic.zero27apps.data.OweMemberDto
 import com.rferic.zero27apps.data.OweMovementDto
 import com.rferic.zero27apps.data.OweParticipantBody
 import com.rferic.zero27apps.data.OweSettlementDto
+import com.rferic.zero27apps.data.OweTransferDto
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.broadcastFlow
@@ -265,6 +267,30 @@ private class OweStore(
         open(groupId)
     }
 
+    /** Registers the plan's transfers one by one, then reloads the group. */
+    fun settleAll(
+        groupId: String,
+        transfers: List<OweTransferDto>,
+        description: String,
+        occurredOn: String,
+        onSuccess: () -> Unit,
+    ) = run(onSuccess) {
+        for (transfer in transfers) {
+            api.oweCreateMovement(
+                groupId,
+                OweCreateMovementBody(
+                    kind = "settlement",
+                    description = description,
+                    amountMinor = transfer.amountMinor,
+                    occurredOn = occurredOn,
+                    paidBy = transfer.from,
+                    participants = listOf(OweParticipantBody(memberId = transfer.to, amountMinor = transfer.amountMinor)),
+                ),
+            )
+        }
+        open(groupId)
+    }
+
     fun leaveGroup(groupId: String) = run {
         api.oweLeaveGroup(groupId)
         close()
@@ -328,6 +354,8 @@ fun OweNoScreen(
     var pendingAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     var tab by remember { mutableStateOf(0) }
     var showAddPerson by remember { mutableStateOf(false) }
+    var settleWithMember by remember { mutableStateOf<OweMemberDto?>(null) }
+    var showSettleAll by remember { mutableStateOf(false) }
     var pickGroupForExpense by remember { mutableStateOf(startAction == "expense") }
     var inviteMode by remember { mutableStateOf("account") }
 
@@ -501,6 +529,8 @@ fun OweNoScreen(
                     onAddExpense = { showExpense = true },
                     onSettle = { showSettlement = true },
                     onPay = { showPayment = true },
+                    onSettleWith = { settleWithMember = it },
+                    onSettleAll = { showSettleAll = true },
                 )
                 2 -> MembersTab(
                     store = store,
@@ -511,6 +541,7 @@ fun OweNoScreen(
                         showAddPerson = true
                     },
                     onSettle = { showSettlement = true },
+                    onSettleWith = { settleWithMember = it },
                 )
                 else -> OweSummaryScreen(
                     movements = store.movements,
@@ -651,6 +682,73 @@ fun OweNoScreen(
             dismissButton = {
                 TextButton(onClick = { pendingAction = null }) { Text(strings.cancel) }
             },
+        )
+    }
+
+    val settleTarget = settleWithMember
+    if (settleTarget != null && current != null) {
+        val mine = current.members.firstOrNull { it.userId == store.userId }
+        val myBalance = store.balances.firstOrNull { it.memberId == mine?.id }?.amountMinor ?: 0L
+        val theirBalance = store.balances.firstOrNull { it.memberId == settleTarget.id }?.amountMinor ?: 0L
+        val amount = kotlin.math.min(kotlin.math.abs(myBalance), kotlin.math.abs(theirBalance))
+        val masked = LocalPrivacyMasked.current
+        val iOwe = myBalance < 0 && theirBalance > 0
+        AppSheet(
+            onDismissRequest = { settleWithMember = null },
+            title = strings.settleWith.replace("{name}", settleTarget.displayName),
+            subtitle = if (amount == 0L) {
+                strings.noMovements
+            } else if (iOwe) {
+                strings.youOwe.replace("{amount}", maskedMoney(masked, amount, current.group.currency, locale))
+            } else {
+                strings.owedToYou.replace("{amount}", maskedMoney(masked, amount, current.group.currency, locale))
+            },
+            primaryLabel = if (amount > 0L) strings.settle else null,
+            onPrimary = if (amount > 0L) {
+                {
+                    val from = if (iOwe) mine?.id else settleTarget.id
+                    val to = if (iOwe) settleTarget.id else mine?.id
+                    if (from != null && to != null) {
+                        store.settleUp(
+                            current.group.id,
+                            from,
+                            to,
+                            amount,
+                            strings.settle,
+                            LocalDate.now().toString(),
+                        ) { settleWithMember = null }
+                    }
+                }
+            } else {
+                null
+            },
+            secondaryLabel = strings.cancel,
+            onSecondary = { settleWithMember = null },
+        )
+    }
+
+    if (showSettleAll && current != null) {
+        val transfers = store.settlement?.transfers.orEmpty()
+        val total = transfers.sumOf { it.amountMinor }
+        val masked = LocalPrivacyMasked.current
+        AppSheet(
+            onDismissRequest = { showSettleAll = false },
+            title = strings.settleAll,
+            subtitle = strings.settleAllBody
+                .replace("{count}", transfers.size.toString())
+                .replace("{amount}", maskedMoney(masked, total, current.group.currency, locale)),
+            primaryLabel = strings.settle,
+            primaryEnabled = transfers.isNotEmpty(),
+            onPrimary = {
+                store.settleAll(
+                    current.group.id,
+                    transfers,
+                    strings.settle,
+                    LocalDate.now().toString(),
+                ) { showSettleAll = false }
+            },
+            secondaryLabel = strings.cancel,
+            onSecondary = { showSettleAll = false },
         )
     }
 
@@ -913,14 +1011,32 @@ private fun BalancesTab(
     onAddExpense: () -> Unit,
     onSettle: () -> Unit,
     onPay: () -> Unit,
+    onSettleWith: (OweMemberDto) -> Unit,
+    onSettleAll: () -> Unit,
 ) {
     val strings = LocalStrings.current
     val palette = LocalPalette.current
     val myMemberId = detail.members.firstOrNull { it.userId == store.userId }?.id
-    Balances(store.balances, detail.group.currency, locale, myMemberId)
+    val creator = detail.group.createdBy != null && detail.group.createdBy == store.userId
+    Balances(
+        balances = store.balances,
+        currency = detail.group.currency,
+        locale = locale,
+        myMemberId = myMemberId,
+        onSettleWith = { balance ->
+            detail.members.firstOrNull { it.id == balance.memberId }?.let(onSettleWith)
+        },
+    )
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = onSettle) { Text(strings.settle) }
-        TextButton(onClick = onPay) { Text(strings.registerPayment) }
+        Button(onClick = onSettle, shape = RoundedCornerShape(14.dp)) { Text(strings.viewPlan) }
+        OutlinedButton(onClick = onPay, shape = RoundedCornerShape(14.dp)) { Text(strings.registerPayment) }
+    }
+    if (creator && (store.settlement?.transfers?.isNotEmpty() == true)) {
+        Button(
+            onClick = onSettleAll,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+        ) { Text(strings.settleAll) }
     }
 }
 
@@ -931,6 +1047,7 @@ private fun MembersTab(
     locale: String,
     onAddPerson: () -> Unit,
     onSettle: () -> Unit,
+    onSettleWith: (OweMemberDto) -> Unit = {},
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
@@ -1335,6 +1452,7 @@ private fun Balances(
     currency: String,
     locale: String,
     myMemberId: String?,
+    onSettleWith: (OweBalanceDto) -> Unit = {},
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
@@ -1354,8 +1472,9 @@ private fun Balances(
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        val mine = balances.firstOrNull { it.memberId == myMemberId }?.amountMinor ?: 0L
         for (balance in pending) {
-            Row {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(balance.displayName, modifier = Modifier.weight(1f), fontSize = 13.sp)
                 Text(
                     when {
@@ -1376,6 +1495,17 @@ private fun Balances(
                     fontWeight = FontWeight.SemiBold,
                     color = if (balance.amountMinor >= 0) palette.accent else palette.destructive,
                 )
+                // A real button: only when this person and I have opposite signs.
+                if (balance.memberId != myMemberId && mine != 0L && balance.amountMinor != 0L &&
+                    (mine > 0) != (balance.amountMinor > 0)
+                ) {
+                    OutlinedButton(
+                        onClick = { onSettleWith(balance) },
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(start = 10.dp).heightIn(min = 36.dp),
+                    ) { Text(strings.settle, fontSize = 12.sp) }
+                }
             }
         }
     }
