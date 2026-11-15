@@ -1,6 +1,7 @@
 package com.rferic.zero27apps.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +53,7 @@ fun HomeScreen(
     widgets: List<WidgetDto>,
     update: UpdateState,
     onInstallUpdate: () -> Unit,
+    onOpenModule: (String) -> Unit = {},
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
@@ -74,19 +79,6 @@ fun HomeScreen(
                 )
             }
             Spacer(Modifier.weight(1f))
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .border(1.dp, palette.border, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.Notifications,
-                    contentDescription = null,
-                    tint = palette.foreground,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
         }
 
         Text(
@@ -102,9 +94,16 @@ fun HomeScreen(
         when {
             // A module that contributes a widget takes the home; the modules
             // without one stay reachable from the Módulos tab.
-            widgets.isNotEmpty() -> for (widget in widgets) WidgetCard(widget)
+            widgets.isNotEmpty() -> for (widget in widgets) {
+                val open = { widget.moduleKey?.let(onOpenModule) ?: Unit }
+                if (widget.moduleKey == "owe-no") {
+                    OweNoHomeCard(onOpen = open)
+                } else {
+                    WidgetCard(widget, onOpen = open)
+                }
+            }
             modules.isEmpty() -> Text(strings.noModulesHome, color = palette.mutedForeground, fontSize = 13.sp)
-            else -> for (module in modules) ModuleCard(module)
+            else -> for (module in modules) ModuleCard(module, onClick = { onOpenModule(module.key) })
         }
     }
 }
@@ -129,11 +128,12 @@ private fun Avatar(name: String) {
 
 /** One module tile, as the mockup's dashboard card: icon, name, version. */
 @Composable
-private fun ModuleCard(module: ModuleDto) {
+private fun ModuleCard(module: ModuleDto, onClick: () -> Unit = {}) {
     val palette = LocalPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .background(palette.surface, RoundedCornerShape(16.dp))
             .border(1.dp, palette.border, RoundedCornerShape(16.dp))
             .padding(16.dp),
@@ -213,12 +213,15 @@ private fun widgetValue(widget: WidgetDto): WidgetValue? {
 
 /** One dashboard card, rendered natively: the module never sends HTML. */
 @Composable
-private fun WidgetCard(widget: WidgetDto) {
+private fun WidgetCard(widget: WidgetDto, onOpen: () -> Unit) {
     val palette = LocalPalette.current
+    val strings = LocalStrings.current
     val resolved = widgetValue(widget)
+    val copy = widgetCopy(widget, resolved)
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onOpen)
             .background(palette.surface, RoundedCornerShape(16.dp))
             .border(1.dp, palette.border, RoundedCornerShape(16.dp))
             .padding(16.dp),
@@ -232,16 +235,16 @@ private fun WidgetCard(widget: WidgetDto) {
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    widget.title.take(1).uppercase().ifEmpty { "•" },
+                    copy.title.take(1).uppercase().ifEmpty { "•" },
                     color = palette.accent,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
             }
-            Text(widget.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(copy.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             Spacer(Modifier.weight(1f))
             Text(
-                "WIDGET",
+                strings.widgetBadge,
                 fontSize = 10.sp,
                 letterSpacing = 0.6.sp,
                 color = palette.mutedForeground,
@@ -258,20 +261,125 @@ private fun WidgetCard(widget: WidgetDto) {
                     fontWeight = FontWeight.Bold,
                     color = palette.foreground,
                 )
-                if (resolved.label != null) {
+                if (copy.label != null) {
                     Text(
-                        resolved.label,
+                        copy.label,
                         fontSize = 12.sp,
                         color = palette.mutedForeground,
                         modifier = Modifier.padding(bottom = 5.dp),
                     )
                 }
             }
-            if (resolved.detail != null) {
-                Text(resolved.detail, fontSize = 12.sp, color = palette.mutedForeground)
+            if (copy.detail != null) {
+                Text(copy.detail, fontSize = 12.sp, color = palette.mutedForeground)
             }
         } else {
             Text("—", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = palette.mutedForeground)
         }
+    }
+}
+
+/**
+ * OweNo lives on the home with the two numbers that matter (what you owe and
+ * what you are owed) and the groups that move them, from the same encrypted
+ * snapshot the launcher widget uses.
+ */
+@Composable
+private fun OweNoHomeCard(onOpen: () -> Unit) {
+    val palette = LocalPalette.current
+    val strings = LocalStrings.current
+    val context = LocalContext.current
+    val snapshot = remember { com.rferic.zero27apps.widget.WidgetSnapshotStore(context).read() }
+    LaunchedEffect(Unit) { com.rferic.zero27apps.widget.OweWidgetWorker.refreshNow(context) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+            .background(palette.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                modifier = Modifier.size(32.dp).background(palette.successSubtle, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("€", color = palette.accent, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+            Text("OweNo", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Spacer(Modifier.weight(1f))
+            Text("›", fontSize = 18.sp, color = palette.mutedForeground)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Column {
+                Text(strings.owedToYouLabel, fontSize = 11.sp, color = palette.mutedForeground)
+                Text(
+                    moneyText(snapshot.owedToYouMinor, snapshot.currency, snapshot.locale),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (snapshot.owedToYouMinor > 0) palette.accent else palette.mutedForeground,
+                )
+            }
+            Column {
+                Text(strings.youOweLabel, fontSize = 11.sp, color = palette.mutedForeground)
+                Text(
+                    moneyText(snapshot.youOweMinor, snapshot.currency, snapshot.locale),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (snapshot.youOweMinor > 0) palette.destructive else palette.mutedForeground,
+                )
+            }
+        }
+        if (snapshot.groups.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                for (group in snapshot.groups.subList(0, minOf(3, snapshot.groups.size))) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(group.name, modifier = Modifier.weight(1f), fontSize = 13.sp)
+                        Text(
+                            moneyText(group.amountMinor, snapshot.currency, snapshot.locale),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (group.amountMinor < 0) palette.destructive else palette.accent,
+                        )
+                    }
+                }
+            }
+        } else {
+            Text(strings.activityEmpty, fontSize = 12.sp, color = palette.mutedForeground)
+        }
+    }
+}
+
+private fun moneyText(amountMinor: Long, currency: String, locale: String = "en"): String =
+    runCatching {
+        java.text.NumberFormat.getCurrencyInstance(java.util.Locale.forLanguageTag(locale)).apply {
+            this.currency = java.util.Currency.getInstance(currency)
+        }.format(amountMinor / 100.0)
+    }.getOrDefault("${amountMinor / 100.0} $currency")
+
+/** The server sends widget text in English: our own modules get a local copy. */
+private data class WidgetCopy(val title: String, val label: String?, val detail: String?)
+
+@Composable
+private fun widgetCopy(widget: WidgetDto, resolved: WidgetValue?): WidgetCopy {
+    val strings = LocalStrings.current
+    val key = widget.key
+    return when {
+        key.startsWith("owe-no") || key.contains("groups") -> WidgetCopy(
+            title = "OweNo",
+            label = if (resolved?.value == "1") strings.groupOne else strings.groupMany,
+            detail = null,
+        )
+        key.contains("notes") -> WidgetCopy(
+            title = strings.notesTitle,
+            label = if (resolved?.value == "1") strings.noteOne else strings.noteMany,
+            detail = null,
+        )
+        else -> WidgetCopy(
+            title = widget.title,
+            label = resolved?.label,
+            detail = resolved?.detail,
+        )
     }
 }

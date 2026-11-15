@@ -144,7 +144,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
             return@Column
         }
 
-        Button(onClick = { picker.launch("*/*") }, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = { picker.launch("text/*") }, modifier = Modifier.fillMaxWidth()) {
             Text(strings.chooseCsv)
         }
 
@@ -201,6 +201,16 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
             current.errors.isEmpty() &&
             current.unresolved.all { mapping.containsKey(it) } &&
             (current.duplicates == 0 || duplicates)
+        val whyDisabled = when {
+            current.currencies.size > 1 -> strings.multiCurrency
+            current.errors.isNotEmpty() -> strings.fileError
+            current.unresolved.any { !mapping.containsKey(it) } -> strings.mapIdentity
+            current.duplicates > 0 && !duplicates -> strings.importDuplicates
+            else -> null
+        }
+        if (whyDisabled != null) {
+            Text(whyDisabled, fontSize = 12.sp, color = palette.mutedForeground)
+        }
         Button(
             onClick = {
                 val text = csv ?: return@Button

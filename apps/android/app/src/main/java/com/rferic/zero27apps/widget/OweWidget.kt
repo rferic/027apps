@@ -40,10 +40,12 @@ class OweWidget : GlanceAppWidget() {
     @Composable
     private fun Content(snapshot: WidgetSnapshot) {
         val strings = AppStrings.forLanguage(snapshot.locale)
-        val surface = ColorProvider(Color(0xFFFFFFFF))
-        val ink = ColorProvider(Color(0xFF11181C))
-        val muted = ColorProvider(Color(0xFF62766F))
-        val accent = ColorProvider(Color(0xFF0F7A63))
+        // Same palette as the app: the widget never invents its own colours.
+        val tokens = com.rferic.zero27apps.ui.theme.Tokens.light
+        val surface = ColorProvider(tokens.surface)
+        val ink = ColorProvider(tokens.foreground)
+        val muted = ColorProvider(tokens.mutedForeground)
+        val accent = ColorProvider(tokens.accent)
 
         Column(
             modifier = GlanceModifier
@@ -76,9 +78,28 @@ class OweWidget : GlanceAppWidget() {
                 style = TextStyle(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (snapshot.netMinor < 0 && snapshot.signedIn) ColorProvider(Color(0xFFB3261E)) else accent,
+                    color = if (snapshot.netMinor < 0 && snapshot.signedIn) ColorProvider(tokens.destructive) else accent,
                 ),
             )
+            if (snapshot.signedIn && (snapshot.owedToYouMinor > 0 || snapshot.youOweMinor > 0)) {
+                Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 6.dp)) {
+                    if (snapshot.owedToYouMinor > 0) {
+                        Text(
+                            strings.owedToYou.replace("{amount}", money(snapshot.owedToYouMinor, snapshot.currency)),
+                            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = accent),
+                        )
+                    }
+                    if (snapshot.owedToYouMinor > 0 && snapshot.youOweMinor > 0) {
+                        Text("  ·  ", style = TextStyle(fontSize = 12.sp, color = muted))
+                    }
+                    if (snapshot.youOweMinor > 0) {
+                        Text(
+                            strings.youOwe.replace("{amount}", money(snapshot.youOweMinor, snapshot.currency)),
+                            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = ColorProvider(tokens.destructive)),
+                        )
+                    }
+                }
+            }
             if (snapshot.groups.isEmpty()) {
                 Text(
                     if (snapshot.signedIn) strings.activityEmpty else "",
@@ -102,7 +123,7 @@ class OweWidget : GlanceAppWidget() {
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = if (group.amountMinor < 0) {
-                                ColorProvider(Color(0xFFB3261E))
+                                ColorProvider(tokens.destructive)
                             } else {
                                 accent
                             },

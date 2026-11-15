@@ -799,6 +799,13 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
   },
   {
     method: "get",
+    path: "/modules/{key}/icon",
+    summary: "The module's branded SVG icon (public, cacheable).",
+    scopes: [],
+    auth: "public",
+  },
+  {
+    method: "get",
     path: "/modules/{key}/jobs",
     summary: "Last runs of the module's scheduled jobs.",
     scopes: ["modules:read"],

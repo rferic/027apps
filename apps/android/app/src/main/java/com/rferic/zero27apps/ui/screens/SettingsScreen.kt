@@ -80,6 +80,7 @@ fun SettingsScreen(
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     var showPicker by rememberSaveable { mutableStateOf(false) }
+    var confirmSignOut by rememberSaveable { mutableStateOf(false) }
 
     if (showPicker) {
         InstancePickerDialog(
@@ -216,7 +217,7 @@ fun SettingsScreen(
                 .fillMaxWidth()
                 .background(palette.surface, RoundedCornerShape(16.dp))
                 .border(1.dp, palette.border, RoundedCornerShape(16.dp))
-                .clickable { onSignOut() }
+                .clickable { confirmSignOut = true }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -230,20 +231,26 @@ fun SettingsScreen(
             )
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
             BrandWordmark(height = 18.dp)
-            Spacer(Modifier.weight(1f))
-            Text(
-                "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" +
-                    if (BuildConfig.DEBUG) " · ${strings.debugBuild}" else "",
-                fontSize = 12.sp,
-                color = palette.mutedForeground,
-            )
         }
         Text(strings.sessionNote, color = palette.mutedForeground, fontSize = 12.sp)
+    }
+
+    if (confirmSignOut) {
+        com.rferic.zero27apps.ui.components.AppSheet(
+            onDismissRequest = { confirmSignOut = false },
+            title = strings.signOut,
+            subtitle = strings.confirmQuestion,
+            primaryLabel = strings.signOut,
+            destructive = true,
+            onPrimary = {
+                confirmSignOut = false
+                onSignOut()
+            },
+            secondaryLabel = strings.cancel,
+            onSecondary = { confirmSignOut = false },
+        )
     }
 }
 

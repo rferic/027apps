@@ -6,6 +6,8 @@ import com.rferic.zero27apps.ui.components.SheetAction
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -314,22 +316,6 @@ fun OweNoScreen(
         }
     }
 
-    if (showSettings) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { showSettings = false }) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = strings.back, tint = palette.foreground)
-                }
-                Text(strings.moduleSettings, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            }
-            Text(strings.settingsPanelNote, fontSize = 13.sp, color = palette.mutedForeground)
-        }
-        return
-    }
-
     val importing = store.detail
     if (showImport && importing != null) {
         OweImportScreen(
@@ -405,13 +391,6 @@ fun OweNoScreen(
                         },
                     )
                 }
-                DropdownMenuItem(
-                    text = { Text(strings.moduleSettings) },
-                    onClick = {
-                        showMenu = false
-                        showSettings = true
-                    },
-                )
             }
         }
 
@@ -633,7 +612,7 @@ private fun Groups(
     val palette = LocalPalette.current
     val strings = LocalStrings.current
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        Spacer(Modifier.weight(1f))
         TextButton(onClick = onNew) { Text(newGroup) }
     }
     if (store.groups.isEmpty() && !store.loading) {
@@ -664,7 +643,13 @@ private fun Groups(
             Column(Modifier.weight(1f)) {
                 Text(group.name, fontWeight = FontWeight.SemiBold)
                 Text(
-                    if (invited) strings.invitations else "${group.members} ${strings.members} · ${group.currency}",
+                    if (invited) {
+                        strings.invitations
+                    } else {
+                        (if (group.members == 1) strings.peopleCountOne else strings.peopleCount)
+                            .replace("{count}", group.members.toString())
+                            .replace("{currency}", group.currency)
+                    },
                     fontSize = 12.sp,
                     color = if (invited) palette.accent else palette.mutedForeground,
                 )
@@ -766,7 +751,7 @@ private fun GroupTabs(selected: Int, onSelect: (Int) -> Unit) {
                         if (on) palette.accent.copy(alpha = 0.14f) else androidx.compose.ui.graphics.Color.Transparent,
                         RoundedCornerShape(10.dp),
                     )
-                    .clickable { onSelect(index) }
+                    .selectable(selected = on, role = androidx.compose.ui.semantics.Role.Tab) { onSelect(index) }
                     .then(
                         if (on) {
                             Modifier.border(1.dp, palette.accent, RoundedCornerShape(10.dp))
@@ -820,6 +805,7 @@ private fun ActivityTab(
             onValueChange = { query = it },
             label = { Text(strings.search) },
             singleLine = true,
+            shape = RoundedCornerShape(14.dp),
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -1596,7 +1582,10 @@ private fun ExpenseDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .toggleable(
+                                value = checked,
+                                role = androidx.compose.ui.semantics.Role.Checkbox,
+                            ) {
                                 selected = if (checked) selected - member.id else selected + member.id
                             }
                             .heightIn(min = 44.dp)
@@ -1664,16 +1653,22 @@ private fun ExpenseDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                enabled = ready,
+            Button(
+                enabled = ready && !saving,
                 onClick = {
                     onSave(description.trim(), minor!!, payer!!, participants, occurredOn, categoryId)
                 },
+                modifier = Modifier.heightIn(min = 44.dp),
+                shape = RoundedCornerShape(14.dp),
             ) {
                 if (saving) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = palette.primaryForeground,
+                    )
                 } else {
-                    Text(strings.save, color = if (ready) palette.accent else palette.mutedForeground)
+                    Text(strings.save, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         },

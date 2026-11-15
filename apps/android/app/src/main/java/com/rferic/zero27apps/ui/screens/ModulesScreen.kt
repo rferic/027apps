@@ -17,6 +17,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.rferic.zero27apps.ui.theme.moduleAccent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -31,7 +40,12 @@ import com.rferic.zero27apps.ui.theme.LocalPalette
  * card per module.
  */
 @Composable
-fun ModulesScreen(modules: List<ModuleDto>, onOpen: (String) -> Unit) {
+fun ModulesScreen(
+    modules: List<ModuleDto>,
+    onOpen: (String) -> Unit,
+    iconUrl: (String) -> String? = { null },
+    token: String? = null,
+) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
 
@@ -53,7 +67,12 @@ fun ModulesScreen(modules: List<ModuleDto>, onOpen: (String) -> Unit) {
             modules.chunked(2).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     for (module in row) {
-                        ModuleTile(module, Modifier.weight(1f)) { onOpen(module.key) }
+                        ModuleTile(
+                            module = module,
+                            iconUrl = iconUrl(module.key),
+                            token = token,
+                            modifier = Modifier.weight(1f),
+                        ) { onOpen(module.key) }
                     }
                     if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
@@ -66,6 +85,8 @@ fun ModulesScreen(modules: List<ModuleDto>, onOpen: (String) -> Unit) {
 @Composable
 private fun ModuleTile(
     module: ModuleDto,
+    iconUrl: String? = null,
+    token: String? = null,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
 ) {
@@ -73,7 +94,7 @@ private fun ModuleTile(
     Column(
         modifier = modifier
             .clickable(onClick = onClick)
-            .background(palette.successSubtle, RoundedCornerShape(18.dp))
+            .background(palette.surface, RoundedCornerShape(18.dp))
             .border(1.dp, palette.border, RoundedCornerShape(18.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -81,15 +102,31 @@ private fun ModuleTile(
         Box(
             modifier = Modifier
                 .size(52.dp)
-                .background(palette.accent, RoundedCornerShape(14.dp)),
+                .background(moduleAccent(module.branding.color).copy(alpha = 0.14f), RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                module.name.take(1).uppercase(),
-                color = palette.background,
-                fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
-            )
+            val context = LocalContext.current
+            val accent = moduleAccent(module.branding.color)
+            var failed by remember(iconUrl) { mutableStateOf(false) }
+            if (iconUrl == null || failed) {
+                Text(
+                    if (module.key.startsWith("owe")) "€" else module.name.take(1).uppercase(),
+                    color = accent,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                )
+            } else {
+                AsyncImage(
+                    model = ImageRequest.Builder(context).data(iconUrl).build(),
+                    contentDescription = null,
+                    colorFilter = ColorFilter.tint(accent),
+                    onError = { error ->
+                        android.util.Log.w("027icon", "failed $iconUrl", error.result.throwable)
+                        failed = true
+                    },
+                    modifier = Modifier.size(26.dp),
+                )
+            }
         }
         Text(module.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
         Text("v${module.version}", fontSize = 12.sp, color = palette.mutedForeground)

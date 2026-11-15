@@ -59,6 +59,8 @@ class OweWidgetWorker(
             val groups = api.oweGroups().filter { it.role == "active" }
             val rows = mutableListOf<WidgetGroup>()
             var net = 0L
+            var owedToYou = 0L
+            var youOwe = 0L
             var currency = "EUR"
             for (group in groups.take(6)) {
                 val detail = runCatching { api.oweGroup(group.id) }.getOrNull() ?: continue
@@ -67,6 +69,7 @@ class OweWidgetWorker(
                 val amount = balances.firstOrNull { it.memberId == mine.id }?.amountMinor ?: 0L
                 currency = detail.group.currency
                 net += amount
+                if (amount > 0) owedToYou += amount else youOwe += -amount
                 rows += WidgetGroup(detail.group.name, amount)
             }
             finish(
@@ -76,6 +79,8 @@ class OweWidgetWorker(
                     signedIn = true,
                     currency = currency,
                     netMinor = net,
+                    owedToYouMinor = owedToYou,
+                    youOweMinor = youOwe,
                     groups = rows.take(4),
                     locale = locale,
                     updatedAt = System.currentTimeMillis(),

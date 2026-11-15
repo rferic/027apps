@@ -3373,6 +3373,25 @@
             },
             "type": "array"
           },
+          "branding": {
+            "additionalProperties": false,
+            "properties": {
+              "color": {
+                "type": "string"
+              },
+              "icon": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "color",
+              "icon"
+            ],
+            "type": "object"
+          },
           "demo": {
             "anyOf": [
               {
@@ -3449,7 +3468,8 @@
           "installed_at",
           "updated_at",
           "app_actions",
-          "demo"
+          "demo",
+          "branding"
         ],
         "type": "object"
       },
@@ -3522,6 +3542,25 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "branding": {
+            "additionalProperties": false,
+            "properties": {
+              "color": {
+                "type": "string"
+              },
+              "icon": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "color",
+              "icon"
+            ],
+            "type": "object"
           },
           "demo": {
             "anyOf": [
@@ -3674,6 +3713,7 @@
           "updated_at",
           "app_actions",
           "demo",
+          "branding",
           "settings_public"
         ],
         "type": "object"
@@ -3738,6 +3778,25 @@
                   "type": "object"
                 },
                 "type": "array"
+              },
+              "branding": {
+                "additionalProperties": false,
+                "properties": {
+                  "color": {
+                    "type": "string"
+                  },
+                  "icon": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "color",
+                  "icon"
+                ],
+                "type": "object"
               },
               "demo": {
                 "anyOf": [
@@ -3890,6 +3949,7 @@
               "updated_at",
               "app_actions",
               "demo",
+              "branding",
               "settings_public"
             ],
             "type": "object"
@@ -4195,6 +4255,25 @@
                   },
                   "type": "array"
                 },
+                "branding": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "color": {
+                      "type": "string"
+                    },
+                    "icon": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "color",
+                    "icon"
+                  ],
+                  "type": "object"
+                },
                 "demo": {
                   "anyOf": [
                     {
@@ -4271,7 +4350,8 @@
                 "installed_at",
                 "updated_at",
                 "app_actions",
-                "demo"
+                "demo",
+                "branding"
               ],
               "type": "object"
             },
@@ -4328,6 +4408,25 @@
                   "type": "object"
                 },
                 "type": "array"
+              },
+              "branding": {
+                "additionalProperties": false,
+                "properties": {
+                  "color": {
+                    "type": "string"
+                  },
+                  "icon": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "color",
+                  "icon"
+                ],
+                "type": "object"
               },
               "demo": {
                 "anyOf": [
@@ -4405,7 +4504,8 @@
               "installed_at",
               "updated_at",
               "app_actions",
-              "demo"
+              "demo",
+              "branding"
             ],
             "type": "object"
           }
@@ -8694,6 +8794,37 @@
         "x-027-scopes": [
           "modules:manage"
         ]
+      }
+    },
+    "/modules/{key}/icon": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [],
+        "summary": "The module's branded SVG icon (public, cacheable)."
       }
     },
     "/modules/{key}/install": {

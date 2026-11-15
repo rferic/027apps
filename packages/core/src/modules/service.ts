@@ -68,6 +68,7 @@ export type ModuleView = {
   updated_at: string;
   app_actions: ModuleAppAction[];
   demo: ModuleDemo | null;
+  branding: { color: string; icon: string | null };
 };
 
 /** Access holder of a module: a user grant or a category assignment. */
@@ -152,7 +153,10 @@ function isDemoHooks(value: unknown): value is ModuleDemo {
   return typeof record.seed_fn === "string" && typeof record.clear_fn === "string";
 }
 
-function toModuleView(row: Record<string, unknown>): ModuleView {
+function toModuleView(
+  row: Record<string, unknown>,
+  branding: { color: string; icon: string | null } = { color: "emerald", icon: null },
+): ModuleView {
   return {
     key: String(row.key),
     name: String(row.name),
@@ -165,6 +169,7 @@ function toModuleView(row: Record<string, unknown>): ModuleView {
     updated_at: toIso(row.updated_at),
     app_actions: Array.isArray(row.app_actions) ? (row.app_actions as ModuleView["app_actions"]) : [],
     demo: isDemoHooks(row.demo) ? row.demo : null,
+    branding,
   };
 }
 
@@ -187,6 +192,32 @@ function toSettingView(row: Record<string, unknown>): ModuleSettingView {
 
 const MODULE_COLUMNS =
   "key, name, version, state, is_public, mcp_exposed, manifest_digest, installed_at, updated_at, app_actions, demo";
+
+const BRANDING_COLOR = /^[a-z]{3,20}$/;
+
+/**
+ * Branding lives in the package manifest, not in the registry: read it per
+ * module so the app can paint each module with its own colour and icon.
+ */
+async function readBranding(
+  deps: ModulesDeps,
+  key: string,
+): Promise<{ color: string; icon: string | null }> {
+  if (!deps.readFile || !deps.moduleRoot) return { color: "emerald", icon: null };
+  try {
+    const raw = await deps.readFile(`${deps.moduleRoot(key)}/manifest.json`);
+    const parsed = JSON.parse(raw) as { branding?: { color?: unknown; icon?: unknown } };
+    const color = typeof parsed.branding?.color === "string" && BRANDING_COLOR.test(parsed.branding.color)
+      ? parsed.branding.color
+      : "emerald";
+    const icon = typeof parsed.branding?.icon === "string" && parsed.branding.icon.length > 0
+      ? parsed.branding.icon
+      : null;
+    return { color, icon };
+  } catch {
+    return { color: "emerald", icon: null };
+  }
+}
 
 async function getModuleRow(db: QueryClient, key: string): Promise<Record<string, unknown>> {
   const { rows } = await db.query(`select ${MODULE_COLUMNS} from public.module_registry where key = $1`, [
@@ -615,7 +646,10 @@ export async function listModules(
       [page.limit, page.offset, state, isPublic],
     );
     const modules = rows.filter((row) => row.key !== null && row.key !== undefined);
-    return { modules: modules.map(toModuleView), total: Number(rows[0]?.total ?? 0) };
+    const withBranding = await Promise.all(
+      modules.map(async (row) => toModuleView(row, await readBranding(deps, String(row.key)))),
+    );
+    return { modules: withBranding, total: Number(rows[0]?.total ?? 0) };
   }
   const userId =
     caller.kind === "session" || caller.kind === "delegated" ? caller.userId : null;
@@ -641,7 +675,10 @@ export async function listModules(
     [userId, page.limit, page.offset, state, isPublic],
   );
   const modules = rows.filter((row) => row.key !== null && row.key !== undefined);
-  return { modules: modules.map(toModuleView), total: Number(rows[0]?.total ?? 0) };
+  const withBranding = await Promise.all(
+    modules.map(async (row) => toModuleView(row, await readBranding(deps, String(row.key)))),
+  );
+  return { modules: withBranding, total: Number(rows[0]?.total ?? 0) };
 }
 
 async function hasAccess(
@@ -676,7 +713,7 @@ export async function getModule(
       order by sort_order asc, key asc`,
     [categoryFor(key)],
   );
-  return { ...toModuleView(row), settings_public: rows.map(toSettingView) };
+  return { ...toModuleView(row, await readBranding(deps, key)), settings_public: rows.map(toSettingView) };
 }
 
 /**

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { resolve, sep } from "node:path"
 import { withDoor } from "../api/door";
 import { pageParams } from "../api/pagination";
 import { DEFAULT_READ_LIMIT, DEFAULT_WRITE_LIMIT } from "../api/rate-limits";
@@ -200,6 +201,43 @@ export function dashboardRoute(deps: ModulesRouteDeps) {
         ),
       };
     });
+}
+
+/**
+ * GET /api/v1/modules/{key}/icon — the module's own monochrome SVG. Branding is
+ * public on purpose: the panel and the landing show it too, and it carries no data.
+ */
+export function moduleIconRoute(deps: ModulesRouteDeps) {
+  return (req: Request, rawKey: string): Promise<Response> =>
+    withDoor(
+      req,
+      { scopes: [], auth: deps.auth, cors: deps.cors, rateLimit: { identity: "ip" as const, limit: 240 } },
+      deps.door,
+      async () => {
+        const key = moduleKey(rawKey);
+        const manifest = (await deps.manifest(key)) as
+          | { branding?: { icon?: string } }
+          | null;
+        const icon = manifest?.branding?.icon;
+        if (!icon || !deps.modules.readFile || !deps.modules.moduleRoot) {
+          throw new DomainError("not_found");
+        }
+        const root = resolve(deps.modules.moduleRoot(key));
+        const full = resolve(root, icon);
+        // A manifest must not read outside its own package.
+        if (full !== root && !full.startsWith(root + sep)) {
+          throw new DomainError("validation_failed", "icon escapes its package");
+        }
+        const svg = await deps.modules.readFile(full);
+        return new Response(svg, {
+          status: 200,
+          headers: {
+            "content-type": "image/svg+xml",
+            "cache-control": "public, max-age=300",
+          },
+        });
+      },
+    );
 }
 
 /** GET /api/v1/modules/{key}/jobs — last runs of the module's scheduled jobs. */

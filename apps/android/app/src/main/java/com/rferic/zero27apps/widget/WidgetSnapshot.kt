@@ -22,6 +22,8 @@ data class WidgetSnapshot(
     val signedIn: Boolean = false,
     val currency: String = "EUR",
     val netMinor: Long = 0,
+    val owedToYouMinor: Long = 0,
+    val youOweMinor: Long = 0,
     val groups: List<WidgetGroup> = emptyList(),
     val locale: String = "en",
     val updatedAt: Long = 0,

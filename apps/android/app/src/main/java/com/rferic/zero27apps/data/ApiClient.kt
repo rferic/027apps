@@ -46,6 +46,9 @@ class ApiClient(
         install(ContentNegotiation) { json(json) }
     }
 
+    /** Absolute URL of a module icon; the request still carries the session. */
+    fun moduleIconUrl(key: String): String = "$baseUrl/api/v1/modules/$key/icon"
+
     suspend fun instance(): InstanceResponse = read(request(HttpMethod.Get, "/api/v1/instance"))
 
     suspend fun me(): UserDto = read<MeResponse>(request(HttpMethod.Get, "/api/v1/me")).user

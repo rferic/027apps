@@ -451,6 +451,12 @@ export const moduleSchema = component(
       updated_at: isoDate,
       app_actions: z.array(moduleAppActionSchema),
       demo: moduleDemoSchema.nullable(),
+      branding: z
+        .object({
+          color: z.string(),
+          icon: z.string().nullable(),
+        })
+        .strict(),
     })
     .strict() satisfies z.ZodType<ModuleView>,
 );

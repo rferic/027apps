@@ -71,6 +71,7 @@ import com.rferic.zero27apps.ui.screens.SettingsScreen
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
 import com.rferic.zero27apps.ui.theme.LocalPalette
+import com.rferic.zero27apps.ui.theme.moduleAccent
 import com.rferic.zero27apps.ui.theme.appGradient
 import com.rferic.zero27apps.ui.theme.ThemePreference
 import com.rferic.zero27apps.ui.theme.Zero27AppsTheme
@@ -232,7 +233,17 @@ private fun Shell(
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var openModule by rememberSaveable { mutableStateOf<String?>(null) }
     val strings = LocalStrings.current
-    val palette = LocalPalette.current
+    val basePalette = LocalPalette.current
+    // Inside a module the whole shell takes its colour: buttons, links and the wash.
+    val openBranding = state.modules.firstOrNull { it.key == openModule }?.branding
+    val palette = basePalette.copy(
+        accent = if (openModule == null) basePalette.accent else moduleAccent(openBranding?.color),
+        successSubtle = if (openModule == null) {
+            basePalette.successSubtle
+        } else {
+            moduleAccent(openBranding?.color).copy(alpha = 0.12f)
+        },
+    )
 
     val actions = state.modules.flatMap { module -> module.appActions }.distinctBy { it.key }
     var showActions by remember { mutableStateOf(false) }
@@ -245,7 +256,7 @@ private fun Shell(
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
-            if (actions.isNotEmpty() && openModule == null) {
+            if (actions.isNotEmpty() && openModule == null && tab == 0) {
                 FloatingActionButton(
                     onClick = { showActions = true },
                     containerColor = palette.accent,
@@ -311,7 +322,12 @@ private fun Shell(
                     startAction = startAction,
                     onStartConsumed = { startAction = null },
                 )
-                tab == 1 -> ModulesScreen(state.modules, onOpen = { key -> openModule = key })
+                tab == 1 -> ModulesScreen(
+                    modules = state.modules,
+                    onOpen = { key -> openModule = key },
+                    iconUrl = { key -> viewModel.api()?.moduleIconUrl(key) },
+                    token = viewModel.accessToken(),
+                )
                 openModule != null -> LaunchedEffect(openModule) {
                     // A module without screens yet still answers, honestly.
                     openModule = null
@@ -336,6 +352,14 @@ private fun Shell(
                     widgets = state.widgets,
                     update = update,
                     onInstallUpdate = viewModel::installUpdate,
+                    onOpenModule = { key ->
+                        if (key == "owe-no") {
+                            startAction = null
+                            openModule = "owe-no"
+                        } else {
+                            scope.launch { snackbar.showSnackbar(strings.actionSoon) }
+                        }
+                    },
                 )
             }
         }

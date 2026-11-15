@@ -49,6 +49,13 @@ data class ModuleDto(
     @SerialName("is_public") val isPublic: Boolean = false,
     @SerialName("manifest_digest") val manifestDigest: String = "",
     @SerialName("app_actions") val appActions: List<AppActionDto> = emptyList(),
+    val branding: ModuleBrandingDto = ModuleBrandingDto(),
+)
+
+@Serializable
+data class ModuleBrandingDto(
+    val color: String = "emerald",
+    val icon: String? = null,
 )
 
 @Serializable

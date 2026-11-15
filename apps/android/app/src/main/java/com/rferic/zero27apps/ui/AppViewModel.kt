@@ -218,6 +218,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** The session token, for authenticated image requests (module icons). */
+    fun accessToken(): String? = supabase?.auth?.currentSessionOrNull()?.accessToken
+
     /** Registers this installation for push once there is a session. */
     private fun registerPush(instance: String, supabaseClient: SupabaseClient?) {
         val jwt = supabaseClient?.auth?.currentSessionOrNull()?.accessToken
