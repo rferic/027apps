@@ -2,7 +2,7 @@
 id: sprint-15-task-11
 titulo: Extras — descarga de la app con icono de Android y literal revisado
 area: web
-estado: test
+estado: finalizada
 fuente: apps/admin/src/components/landing/app-landing.tsx; apps/admin/src/components/landing/github-icon.tsx; docs/mockups/landing-buttons/index.html
 adrs: [0002, 0004]
 ---

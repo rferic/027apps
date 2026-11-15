@@ -2,7 +2,7 @@
 id: sprint-15-task-12
 titulo: Extras — versión del APK a la vista en el botón de descarga
 area: web
-estado: pendiente
+estado: finalizada
 fuente: apps/admin/src/components/landing/download-button.tsx; apps/admin/src/components/landing/app-landing.tsx; apps/admin/src/lib/android-release.ts
 adrs: [0002, 0004]
 ---
