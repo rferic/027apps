@@ -108,28 +108,28 @@
   "events": [
     {
       "type": "owe_no.movement_created",
-      "target": "admins",
+      "target": "channel:owe-no-group-{id}",
       "notify": [
         "push"
       ]
     },
     {
       "type": "owe_no.movement_updated",
-      "target": "admins",
+      "target": "channel:owe-no-group-{id}",
       "notify": [
         "push"
       ]
     },
     {
       "type": "owe_no.movement_deleted",
-      "target": "admins",
+      "target": "channel:owe-no-group-{id}",
       "notify": [
         "push"
       ]
     },
     {
       "type": "owe_no.member_linked",
-      "target": "admins"
+      "target": "channel:owe-no-group-{id}"
     }
   ],
   "admin_pages": [

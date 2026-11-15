@@ -5,6 +5,7 @@ import {
   createMovementForGroup,
   emit,
   groupBalances,
+  movementContext,
   prepareMovement,
   settlementPlanForGroup,
   type MovementInput,
@@ -107,7 +108,7 @@ export async function adminGroupDetail(
   const movements = await adminMovements(deps, groupId);
   const { rows: categories } = await deps.db.query(
     `select id, name from module_owe_no.owe_no_categories
-      where group_id = $1 order by name`,
+      where group_id = $1 and archived_at is null order by name`,
     [groupId],
   );
 
@@ -481,11 +482,16 @@ export async function adminUpdateMovement(
         [movementId, share.memberId, share.amount_minor],
       );
     }
+    const context = await movementContext(db, groupId, adminId);
     await emit(db, "owe_no.movement_updated", {
       group_id: groupId,
       movement_id: movementId,
       kind: input.kind,
       amount_minor: input.amount_minor,
+      currency,
+      description: input.description.trim(),
+      actor_id: adminId,
+      ...context,
     }, true);
     return {
       id: movementId,
@@ -519,7 +525,13 @@ export async function adminDeleteMovement(
     [movementId, groupId, adminId],
   );
   if (!rows[0]) throw new OweDomainError("not_found", "movement not found");
-  await emit(deps.db, "owe_no.movement_deleted", { group_id: groupId, movement_id: movementId }, true);
+  const context = await movementContext(deps.db, groupId, adminId);
+  await emit(deps.db, "owe_no.movement_deleted", {
+    group_id: groupId,
+    movement_id: movementId,
+    actor_id: adminId,
+    ...context,
+  }, true);
 }
 
 /** The settlement plan of any group; the panel then records each payment. */

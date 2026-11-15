@@ -144,7 +144,10 @@ async function membersSchema(
   return chosen;
 }
 
-async function recipients(db: QueryClient, event: OutboxEvent): Promise<string[]> {  let rows: Record<string, unknown>[];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function recipients(deps: RealtimeDeps, event: OutboxEvent): Promise<string[]> {
+  const db = deps.db;  let rows: Record<string, unknown>[];
   if (event.target === "admins") {
     ({ rows } = await db.query(
       `select distinct d.push_token from public.devices d
@@ -188,7 +191,11 @@ async function recipients(db: QueryClient, event: OutboxEvent): Promise<string[]
     if (!schema) return [];
     // The actor never gets a push for its own change: it already saw the result.
     const resource = (event.resource ?? {}) as Record<string, unknown>;
-    const actor = typeof resource.actor_id === "string" ? resource.actor_id : null;
+    // `actor_id` is optional and comes from the module: anything that is not a
+    // uuid would make the cast fail and drop the whole event's notifications.
+    const actor = typeof resource.actor_id === "string" && UUID.test(resource.actor_id)
+      ? resource.actor_id
+      : null;
     try {
       ({ rows } = await db.query(
         `select distinct d.push_token
@@ -200,8 +207,14 @@ async function recipients(db: QueryClient, event: OutboxEvent): Promise<string[]
             and ($2::uuid is null or d.user_id <> $2::uuid)`,
         [topic, actor],
       ));
-    } catch {
-      // A broken members_fn degrades push delivery instead of failing the event.
+    } catch (err) {
+      // A broken members_fn degrades push delivery instead of failing the event,
+      // but it must not do it in silence: nobody would ever notice the loss.
+      deps.logger?.({
+        level: "warn",
+        message: `push recipients resolution failed: ${(err as Error).message}`,
+        eventId: event.event_id,
+      });
       rows = [];
     }
   }
@@ -291,7 +304,7 @@ export async function publishPending(
       }
 
       if (event.notify?.includes("push") && deps.push) {
-        const tokens = await recipients(deps.db, event);
+        const tokens = await recipients(deps, event);
         if (tokens.length > 0) {
           // Only the context a notification needs: the client composes the text
           // and decides whether an amount may be shown (its privacy switch).

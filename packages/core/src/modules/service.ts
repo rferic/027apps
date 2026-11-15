@@ -874,7 +874,9 @@ async function syncModuleSettings(
          on conflict (category_key, key) do update
            set label = excluded.label, help = excluded.help,
                is_secret = excluded.is_secret, is_public = excluded.is_public,
-               mcp_access = excluded.mcp_access, sort_order = excluded.sort_order`,
+               mcp_access = excluded.mcp_access, sort_order = excluded.sort_order,
+               -- A setting that becomes secret must not keep its old plaintext.
+               value = case when excluded.is_secret then null else public.settings.value end`,
         [
           group.category,
           `${group.category}.${setting.key}`,

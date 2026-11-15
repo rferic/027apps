@@ -531,7 +531,7 @@ export async function createMovementForGroup(
   const { currency, shares } = await prepareMovement(deps, groupId, input);
   if (input.category_id) {
     const { rows: category } = await deps.db.query(
-      "select 1 from module_owe_no.owe_no_categories where id = $1 and group_id = $2",
+      "select 1 from module_owe_no.owe_no_categories where id = $1 and group_id = $2 and archived_at is null",
       [input.category_id, groupId],
     );
     if (!category[0]) {
@@ -569,13 +569,7 @@ export async function createMovementForGroup(
       );
     }
     // Context for the notification: what/where/who, never rendered as JSON.
-    const { rows: context } = await db.query(
-      `select g.name as group_name, p.display_name as actor_name
-         from module_owe_no.owe_no_groups g
-         left join public.profiles p on p.id = $2
-        where g.id = $1`,
-      [groupId, actorId],
-    );
+    const context = await movementContext(db, groupId, actorId);
     await emit(db, "owe_no.movement_created", {
       group_id: groupId,
       movement_id: id,
@@ -583,8 +577,7 @@ export async function createMovementForGroup(
       amount_minor: input.amount_minor,
       currency,
       description: input.description.trim(),
-      group_name: context[0]?.group_name ?? null,
-      actor_name: context[0]?.actor_name ?? null,
+      ...context,
       actor_id: actorId,
     }, true);
     return {
@@ -668,9 +661,15 @@ export async function updateMovement(
     kind: existing[0].kind as "expense" | "settlement",
   });
   if (input.category_id) {
+    // Keeping the category a movement already had is fine even if archived;
+    // choosing a new one from an archived list is not.
     const { rows: category } = await deps.db.query(
-      "select 1 from module_owe_no.owe_no_categories where id = $1 and group_id = $2",
-      [input.category_id, groupId],
+      `select 1 from module_owe_no.owe_no_categories c
+        where c.id = $1 and c.group_id = $2
+          and (c.archived_at is null
+               or exists (select 1 from module_owe_no.owe_no_movements m
+                           where m.id = $3 and m.category_id = c.id))`,
+      [input.category_id, groupId, movementId],
     );
     if (!category[0]) {
       throw new OweDomainError("validation_failed", "that category is not in this group", {
@@ -683,7 +682,8 @@ export async function updateMovement(
     await db.query(
       `update module_owe_no.owe_no_movements
           set description = $3, amount_minor = $4, currency = $5,
-              paid_by_member_id = $6, category_id = $7, occurred_on = $8
+              paid_by_member_id = $6, category_id = $7, occurred_on = $8,
+              updated_by = $9, updated_at = now()
         where id = $1 and group_id = $2`,
       [
         movementId,
@@ -694,6 +694,7 @@ export async function updateMovement(
         input.paid_by,
         input.category_id ?? null,
         input.occurred_on,
+        userId,
       ],
     );
     await db.query("delete from module_owe_no.owe_no_movement_shares where movement_id = $1", [
@@ -706,8 +707,41 @@ export async function updateMovement(
         [movementId, share.memberId, share.amount_minor],
       );
     }
-    await emit(db, "owe_no.movement_updated", { group_id: groupId, movement_id: movementId }, true);
+    const context = await movementContext(db, groupId, userId);
+    await emit(db, "owe_no.movement_updated", {
+      group_id: groupId,
+      movement_id: movementId,
+      kind: input.kind,
+      amount_minor: input.amount_minor,
+      currency,
+      description: input.description.trim(),
+      actor_id: userId,
+      ...context,
+    }, true);
   });
+}
+
+/**
+ * What a notification needs about the change: group and who did it. Shared by
+ * every event that carries push, so an edit or a delete reads like a creation
+ * instead of an anonymous blip.
+ */
+export async function movementContext(
+  db: OweDb,
+  groupId: string,
+  actorId: string,
+): Promise<{ group_name: string | null; actor_name: string | null }> {
+  const { rows } = await db.query(
+    `select g.name as group_name, p.display_name as actor_name
+       from module_owe_no.owe_no_groups g
+       left join public.profiles p on p.id = $2
+      where g.id = $1`,
+    [groupId, actorId],
+  );
+  return {
+    group_name: (rows[0]?.group_name as string | undefined) ?? null,
+    actor_name: (rows[0]?.actor_name as string | undefined) ?? null,
+  };
 }
 
 /** Soft delete: the row and its shares stay, the history and balances change. */
@@ -739,7 +773,13 @@ export async function deleteMovement(
       where id = $1 and group_id = $2`,
     [movementId, groupId, member.user_id],
   );
-  await emit(deps.db, "owe_no.movement_deleted", { group_id: groupId, movement_id: movementId }, true);
+  const context = await movementContext(deps.db, groupId, userId);
+  await emit(deps.db, "owe_no.movement_deleted", {
+    group_id: groupId,
+    movement_id: movementId,
+    actor_id: userId,
+    ...context,
+  }, true);
 }
 
 /** Balances of every member of a group, from the single SQL definition. */
