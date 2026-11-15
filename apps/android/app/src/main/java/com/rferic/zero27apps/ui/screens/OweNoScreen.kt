@@ -1316,32 +1316,76 @@ private fun Movements(
     }
     val byId = members.associateBy { it.id }
     for (movement in movements) {
+        val share = movement.shares.firstOrNull { it.memberId == myMemberId }?.amountMinor
+        // What this movement did to my pocket: positive means it is owed to me.
+        val impact = when {
+            movement.kind == "settlement" && movement.paidBy == myMemberId -> -movement.amountMinor
+            movement.kind == "settlement" && movement.shares.any { it.memberId == myMemberId } ->
+                movement.amountMinor
+            movement.kind == "expense" && movement.paidBy == myMemberId ->
+                movement.amountMinor - (share ?: 0)
+            movement.kind == "expense" && share != null -> -share
+            else -> 0L
+        }
+        val favourable = impact > 0
+        val neutral = impact == 0L
+        val tone = when {
+            neutral -> palette.mutedForeground
+            favourable -> palette.accent
+            else -> palette.destructive
+        }
+        val background = if (neutral) palette.muted else tone.copy(alpha = 0.12f)
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(palette.surface, RoundedCornerShape(12.dp))
                 .border(1.dp, palette.border, RoundedCornerShape(12.dp))
                 .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .background(background, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    if (neutral) "·" else if (favourable) "↑" else "↓",
+                    color = tone,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                )
+            }
+            Spacer(Modifier.size(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     if (movement.kind == "settlement") strings.settle else movement.description,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
                 )
-                val share = movement.shares.firstOrNull { it.memberId == myMemberId }?.amountMinor
                 Text(
-                    "${byId[movement.paidBy]?.displayName ?: ""} · ${formatDay(movement.occurredOn, locale)}" +
-                        if (share != null && share > 0 && movement.kind == "expense") {
-                            " · ${strings.yourShare.replace("{amount}", formatMinor(share, currency, locale))}"
-                        } else {
-                            ""
-                        },
+                    "${byId[movement.paidBy]?.displayName ?: ""} · ${formatDay(movement.occurredOn, locale)}",
                     fontSize = 11.sp,
                     color = palette.mutedForeground,
                 )
             }
-            Text(formatMinor(movement.amountMinor, currency, locale), fontSize = 13.sp)
+            Column(horizontalAlignment = Alignment.End) {
+                if (!neutral) {
+                    Text(
+                        (if (favourable) "+" else "−") +
+                            formatMinor(if (favourable) impact else -impact, currency, locale),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = tone,
+                    )
+                }
+                Text(
+                    formatMinor(movement.amountMinor, currency, locale),
+                    fontSize = 11.sp,
+                    color = palette.mutedForeground,
+                )
+            }
         }
     }
 }
