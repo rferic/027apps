@@ -114,5 +114,12 @@
   "Import from Splitwise": "Import from Splitwise",
   "Upload the CSV on the computer; the wizard previews it and asks who each name is before writing anything.": "Upload the CSV on the computer; the wizard previews it and asks who each name is before writing anything.",
   "You need to create a group first: only its creator imports.": "You need to create a group first: only its creator imports.",
-  "Previous imports": "Previous imports"
+  "Previous imports": "Previous imports",
+  "This month": "This month",
+  "By category": "By category",
+  "People": "People",
+  "Evolution": "Evolution",
+  "Paid": "Paid",
+  "Consumed": "Consumed",
+  "No movements this month.": "No movements this month."
 }

@@ -114,5 +114,12 @@
   "Import from Splitwise": "Importar do Splitwise",
   "Upload the CSV on the computer; the wizard previews it and asks who each name is before writing anything.": "Carrega o CSV no computador; o assistente pré-visualiza e pergunta quem é cada nome antes de escrever.",
   "You need to create a group first: only its creator imports.": "Primeiro tens de criar um grupo: só o criador pode importar.",
-  "Previous imports": "Importações anteriores"
+  "Previous imports": "Importações anteriores",
+  "This month": "Este mês",
+  "By category": "Por categoria",
+  "People": "Pessoas",
+  "Evolution": "Evolução",
+  "Paid": "Pagou",
+  "Consumed": "Consumiu",
+  "No movements this month.": "Sem movimentos este mês."
 }

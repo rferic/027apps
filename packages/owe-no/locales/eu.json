@@ -114,5 +114,12 @@
   "Import from Splitwise": "Inportatu Splitwise-tik",
   "Upload the CSV on the computer; the wizard previews it and asks who each name is before writing anything.": "Igo CSV fitxategia ordenagailutik; morroiak aurrebista erakutsiko du eta izen bakoitza nor den galdetuko du ezer idatzi aurretik.",
   "You need to create a group first: only its creator imports.": "Lehenengo talde bat sortu behar duzu: bere sortzaileak soilik inporta dezake.",
-  "Previous imports": "Aurreko inportazioak"
+  "Previous imports": "Aurreko inportazioak",
+  "This month": "Hilabete hau",
+  "By category": "Kategoriaren arabera",
+  "People": "Pertsonak",
+  "Evolution": "Bilakaera",
+  "Paid": "Ordaindu",
+  "Consumed": "Kontsumitu",
+  "No movements this month.": "Ez dago mugimendurik hilabete honetan."
 }

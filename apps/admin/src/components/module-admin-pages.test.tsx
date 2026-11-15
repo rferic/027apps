@@ -72,6 +72,33 @@ describe("owe-no admin pages", () => {
     expect(html).not.toContain("No imports yet");
   });
 
+  it("renders the month summary with categories and people", async () => {
+    const page = context(await spanish());
+    page.db = {
+      query: async (sql: string) => {
+        if (sql.includes("to_char(mv.occurred_on")) {
+          return { rows: [
+            { month: "2026-10", total: "1000" },
+            { month: "2026-11", total: "2000" },
+          ] };
+        }
+        if (sql.includes("coalesce(c.name")) {
+          return { rows: [{ name: "Comida", total: "2000" }] };
+        }
+        if (sql.includes("with paid as")) {
+          return { rows: [{ display_name: "Ana", paid: "2000", consumed: "1000" }] };
+        }
+        return { rows: [] };
+      },
+    };
+    const html = renderToStaticMarkup(await OweNoOverview({ context: page }));
+    expect(html).toContain("Este mes");
+    expect(html).toContain("Por categoría");
+    expect(html).toContain("Comida");
+    expect(html).toContain("Ana");
+    expect(html).toContain("Personas");
+  });
+
   it("renders one group with its balances, movements and settlement", async () => {
     const noop = async () => {};
     const detail = {
