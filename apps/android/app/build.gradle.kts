@@ -28,8 +28,8 @@ android {
         targetSdk = 37
         // major*10000 + minor*100 + patch; the Core derives the same number from
         // the release tag, so the updater compares plain integers.
-        versionCode = 1604
-        versionName = "0.16.4"
+        versionCode = 1605
+        versionName = "0.16.5"
         resValue("string", "app_name", "027Apps")
 
         // The shell opens against one instance without asking for a URL; a

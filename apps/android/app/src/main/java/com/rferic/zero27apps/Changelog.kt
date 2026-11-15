@@ -13,6 +13,14 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.16.5",
+            date = "2026-11-15",
+            notes = mapOf(
+                "es" to listOf("Los logos de los módulos aparecen al instante: se precargan y se cachean."),
+                "en" to listOf("Module logos appear instantly: they are prefetched and cached."),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.16.4",
             date = "2026-11-15",
             notes = mapOf(

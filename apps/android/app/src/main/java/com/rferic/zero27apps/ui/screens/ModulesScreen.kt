@@ -17,13 +17,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.imageLoader
 import coil.request.ImageRequest
 import com.rferic.zero27apps.ui.theme.moduleAccent
 import androidx.compose.ui.Alignment
@@ -48,6 +50,22 @@ fun ModulesScreen(
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
+    val context = LocalContext.current
+    // Warm the image cache as soon as the list exists: the icons then appear
+    // without a blank beat when the tab opens.
+    LaunchedEffect(modules.size, token) {
+        val loader = context.imageLoader
+        modules.forEach { module ->
+            iconUrl(module.key)?.let { url ->
+                loader.enqueue(
+                    ImageRequest.Builder(context)
+                        .data(url)
+                        .apply { if (token != null) addHeader("Authorization", "Bearer $token") }
+                        .build(),
+                )
+            }
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -107,24 +125,21 @@ private fun ModuleTile(
         ) {
             val context = LocalContext.current
             val accent = moduleAccent(module.branding.color)
-            var failed by remember(iconUrl) { mutableStateOf(false) }
-            if (iconUrl == null || failed) {
-                Text(
-                    if (module.key.startsWith("owe")) "€" else module.name.take(1).uppercase(),
-                    color = accent,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                )
+            val fallback = if (module.key.startsWith("owe")) "€" else module.name.take(1).uppercase()
+            if (iconUrl == null) {
+                Text(fallback, color = accent, fontWeight = FontWeight.Bold, fontSize = 22.sp)
             } else {
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = ImageRequest.Builder(context).data(iconUrl).build(),
                     contentDescription = null,
                     colorFilter = ColorFilter.tint(accent),
-                    onError = { error ->
-                        android.util.Log.w("027icon", "failed $iconUrl", error.result.throwable)
-                        failed = true
-                    },
                     modifier = Modifier.size(26.dp),
+                    loading = {
+                        Text(fallback, color = accent, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                    },
+                    error = {
+                        Text(fallback, color = accent, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                    },
                 )
             }
         }
