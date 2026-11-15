@@ -26,3 +26,5 @@ estable: no se reutiliza ni se reordena. Este índice es la fuente del orden rea
 1. El número se asigna cuando el sprint arranca (primer commit de su directorio) y no cambia.
 2. El directorio es `docs/tasks/sprint-NN-<slug>/`; el `id` de la tarea es `sprint-NN-task-MM`.
 3. Al crear un sprint nuevo: número siguiente libre, entrada en esta tabla y rama `sprint/NN-<slug>`.
+4. Lo aceptado que no entra en un sprint se anota en [`backlog.md`](backlog.md); al planificarse se
+   convierte en tarea del sprint y se borra del backlog.
