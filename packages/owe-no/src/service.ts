@@ -1070,6 +1070,15 @@ export async function blockMember(
   const ghost = balance !== 0 && mode === "ghost";
   const run = deps.withTransaction ?? (<T,>(fn: (db: OweDb) => Promise<T>) => fn(deps.db));
   await run(async (db) => {
+    // Same serialization as leaving: the balance check above and the writes
+    // below must not race a movement on this group.
+    const scoped: OweDeps = { ...deps, db };
+    await lockGroup(db, groupId);
+    if ((await activeMemberCount(scoped, groupId)) <= 1) {
+      throw new OweDomainError("conflict", "a group needs an active member", {
+        code: "last_member",
+      });
+    }
     if (ghost) {
       await db.query(
         `update module_owe_no.owe_no_members
