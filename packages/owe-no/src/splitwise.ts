@@ -84,10 +84,20 @@ function splitCsvLine(line: string, delimiter = ","): string[] {
 }
 
 function cents(raw: string): number | null {
-  if (raw === "") return null;
-  if (!/^-?\d+(\.\d{1,2})?$/.test(raw)) return null;
-  const value = Math.round(Number(raw) * 100);
-  return Number.isSafeInteger(value) ? value : null;
+  let text = raw.trim();
+  if (text === "") return null;
+  // Splitwise exports an expense as `(12.50)` when the account is negative.
+  const parenthesised = /^\(.*\)$/.test(text);
+  if (parenthesised) text = text.slice(1, -1).trim();
+  // A single comma is the decimal separator of a Spanish export; two or more
+  // would be thousands separators, which this file never carries.
+  if (!text.includes(".") && (text.match(/,/g) ?? []).length === 1) {
+    text = text.replace(",", ".");
+  }
+  if (!/^-?\d+(\.\d{1,2})?$/.test(text)) return null;
+  const value = Math.round(Number(text) * 100);
+  if (!Number.isSafeInteger(value)) return null;
+  return parenthesised ? -value : value;
 }
 
 export function parseSplitwiseCsv(text: string): ParseResult {
@@ -187,13 +197,23 @@ export function parseSplitwiseCsv(text: string): ParseResult {
       impacts.set(name, value + (negativeTotal - impact));
     }
 
+    // Read the corrected impacts back: using the pre-adjustment values left the
+    // shares one cent short of the total and the commit failed on validation.
+    const corrected = (name: string): number => (impacts.get(name) ?? 0) as number;
+    const payerImpact = corrected(payer);
+    const debtors = [...impacts.entries()]
+      .filter(([, value]) => (value ?? 0) < 0)
+      .map(([name, value]) => ({ name, amount_minor: -(value as number) }));
+    const owed = debtors.reduce((sum, debtor) => sum + debtor.amount_minor, 0);
+
     const category = at("category");
     const kind = PAYMENT.has(category.toLowerCase()) ? "settlement" : "expense";
     const declared = cents(at("cost"));
     // A missing cost is derived from the impacts and flagged: the export does
-    // this on a trailing row, and the preview asks the user to review it.
-    const amount = declared ?? impact + negativeTotal;
-    if (amount < impact) {
+    // this on a trailing row, and the preview asks the user to review it. The
+    // payer's impact already equals the total owed, so adding both doubled it.
+    const amount = declared ?? Math.max(payerImpact, owed);
+    if (amount < payerImpact) {
       errors.push({ line: index + 1, message: "the cost is lower than what the payer put in" });
       continue;
     }
@@ -208,8 +228,8 @@ export function parseSplitwiseCsv(text: string): ParseResult {
       kind === "settlement"
         ? [{ name: negative[0][0], amount_minor: amount }]
         : [
-            { name: payer, amount_minor: amount - impact },
-            ...negative.map(([name, value]) => ({ name, amount_minor: -(value as number) })),
+            { name: payer, amount_minor: amount - payerImpact },
+            ...debtors,
           ].filter((share) => share.amount_minor > 0);
 
     movements.push({

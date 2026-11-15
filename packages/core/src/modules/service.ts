@@ -752,6 +752,41 @@ export async function getModule(
  * is not a strictly newer version is refused, and a failed migration rolls the
  * whole upgrade back.
  */
+/**
+ * The manifest is the source of truth for a module's realtime channels. An
+ * upgrade that adds, renames or drops one must be reflected here, or the
+ * channel exists in the manifest and nowhere in the database.
+ */
+async function syncChannels(
+  db: QueryClient,
+  key: string,
+  channels: { pattern: string; members_fn: string }[],
+): Promise<void> {
+  const { rows } = await db.query(
+    "select id, pattern from public.module_channels where module_key = $1",
+    [key],
+  );
+  const existing = new Map(rows.map((row) => [String(row.pattern), String(row.id)]));
+  for (const channel of channels) {
+    if (existing.has(channel.pattern)) {
+      await db.query(
+        "update public.module_channels set members_fn = $2 where module_key = $1 and pattern = $3",
+        [key, channel.members_fn, channel.pattern],
+      );
+      existing.delete(channel.pattern);
+    } else {
+      await db.query(
+        "insert into public.module_channels (module_key, pattern, members_fn) values ($1, $2, $3)",
+        [key, channel.pattern, channel.members_fn],
+      );
+    }
+  }
+  // Anything left declared a channel the new manifest no longer serves.
+  for (const id of existing.values()) {
+    await db.query("delete from public.module_channels where id = $1", [id]);
+  }
+}
+
 export async function upgradeModule(
   deps: ModulesDeps,
   caller: Caller,
@@ -771,6 +806,7 @@ export async function upgradeModule(
   const files = await verifyModuleFiles(deps, manifest);
   const digest = manifestDigest(manifest);
   const category = categoryFor(manifest.key);
+  const schema = schemaFor(manifest.key);
 
   return withTx(deps, async (db) => {
     const current = await getModuleRow(db, manifest.key);
@@ -836,6 +872,11 @@ export async function upgradeModule(
 
     await syncModuleTranslations(deps, db, manifest);
     await syncModuleSettings(db, manifest, category);
+    // An upgrade creates new tables, functions and channels: the same rules the
+    // installer applies must run again, or a new version silently skips them.
+    await grantModulePrivileges(db, schema);
+    await assertProfileForeignKeys(db, schema);
+    await syncChannels(db, manifest.key, manifest.channels);
 
     await enqueueEvent(db, {
       type: "module.upgraded",

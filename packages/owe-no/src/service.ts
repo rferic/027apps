@@ -854,28 +854,38 @@ async function requireZeroBalance(deps: OweDeps, groupId: string, memberId: stri
  * payment could never close the debt. The creator hands the group to the oldest
  * active account (a group without a reachable creator cannot be managed).
  */
+/**
+ * Serializes the writes that read a balance and then change membership: two
+ * people leaving at once used to see the group as "still has members" and both
+ * exit, leaving a group nobody belongs to. The lock is per group and released
+ * with the transaction.
+ */
+async function lockGroup(db: OweDb, groupId: string): Promise<void> {
+  await db.query("select pg_advisory_xact_lock(hashtext($1))", [groupId]);
+}
+
 export async function leaveGroup(
   deps: OweDeps,
   userId: string,
   groupId: string,
 ): Promise<void> {
-  const group = await assertGroupOpen(deps, groupId);
-  void group;
-  const member = await requireActiveMember(deps, userId, groupId);
-  await requireZeroBalance(deps, groupId, member.id);
-  if ((await activeMemberCount(deps, groupId)) <= 1) {
-    throw new OweDomainError("conflict", "a group needs an active member", {
-      code: "last_member",
-    });
-  }
-
-  const { rows: rowsGroup } = await deps.db.query(
-    "select created_by from module_owe_no.owe_no_groups where id = $1",
-    [groupId],
-  );
-  const isCreator = rowsGroup[0]?.created_by === userId;
+  await assertGroupOpen(deps, groupId);
   const run = deps.withTransaction ?? (<T,>(fn: (db: OweDb) => Promise<T>) => fn(deps.db));
   await run(async (db) => {
+    await lockGroup(db, groupId);
+    const scoped: OweDeps = { ...deps, db };
+    const member = await requireActiveMember(scoped, userId, groupId);
+    await requireZeroBalance(scoped, groupId, member.id);
+    if ((await activeMemberCount(scoped, groupId)) <= 1) {
+      throw new OweDomainError("conflict", "a group needs an active member", {
+        code: "last_member",
+      });
+    }
+    const { rows: rowsGroup } = await db.query(
+      "select created_by from module_owe_no.owe_no_groups where id = $1",
+      [groupId],
+    );
+    const isCreator = rowsGroup[0]?.created_by === userId;
     if (isCreator) {
       const { rows: next } = await db.query(
         `select user_id from module_owe_no.owe_no_members
@@ -912,7 +922,13 @@ export async function removeMember(
 ): Promise<void> {
   await assertGroupOpen(deps, groupId);
   await requireCreator(deps, actorId, groupId);
-  const { rows: member } = await deps.db.query(
+  // Same lock as `leaveGroup`: the balance check and the removal must not race
+  // a movement or another removal.
+  const run = deps.withTransaction ?? (<T,>(fn: (db: OweDb) => Promise<T>) => fn(deps.db));
+  await run(async (db) => {
+  const scoped: OweDeps = { ...deps, db };
+  await lockGroup(db, groupId);
+  const { rows: member } = await db.query(
     "select id, user_id, state from module_owe_no.owe_no_members where id = $1 and group_id = $2",
     [memberId, groupId],
   );
@@ -926,12 +942,12 @@ export async function removeMember(
     });
   }
   if (member[0].state === "active") {
-    if ((await activeMemberCount(deps, groupId)) <= 1) {
+    if ((await activeMemberCount(scoped, groupId)) <= 1) {
       throw new OweDomainError("conflict", "a group needs an active member", {
         code: "last_member",
       });
     }
-    const balances = await groupBalances(deps, groupId);
+    const balances = await groupBalances(scoped, groupId);
     const balance = balances.get(memberId) ?? 0;
     if (balance !== 0) {
       if (mode === "ghost" && member[0].user_id === null) {
@@ -944,7 +960,7 @@ export async function removeMember(
       }
       if (mode === "ghost") {
         // D29: the account leaves but the balance stays with a fictitious row.
-        await deps.db.query(
+        await db.query(
           `update module_owe_no.owe_no_members
               set user_id = null, updated_at = now()
             where id = $1 and group_id = $2`,
@@ -957,12 +973,13 @@ export async function removeMember(
       });
     }
   }
-  await deps.db.query(
+  await db.query(
     `update module_owe_no.owe_no_members
         set state = 'removed', left_at = now(), updated_at = now()
       where id = $1 and group_id = $2`,
     [memberId, groupId],
   );
+  });
 }
 
 /** Blocks an account so it cannot be invited again; it must have no balance. */

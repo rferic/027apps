@@ -83,3 +83,46 @@ describe("splitwise CSV", () => {
     expect(english.movements[0].payer).toBe("Luis");
   });
 });
+
+describe("export formats and rounding", () => {
+  // A Spanish export writes `12,50` and a negative account as `(12.50)`.
+  it("reads a comma decimal and a parenthesised negative", () => {
+    const csv = [
+      "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis",
+      '2026-05-10,Cena,Comida,"12,50",EUR,12.50,(12.50)',
+    ].join("\n");
+    const parsed = parseSplitwiseCsv(csv);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.movements[0]).toMatchObject({
+      amount_minor: 1250,
+      payer: "Ana",
+      shares: [{ name: "Luis", amount_minor: 1250 }],
+    });
+  });
+
+  // Regression: the derived cost was `impact + negativeTotal`, which is twice
+  // the impact, so a payment without `Cost` came out at double the amount.
+  it("derives a missing cost from the impacts, not from their sum", () => {
+    const csv = [
+      "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis",
+      "2026-05-10,Pago,Pago,,EUR,21.25,-21.25",
+    ].join("\n");
+    const parsed = parseSplitwiseCsv(csv);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.movements[0]).toMatchObject({ amount_minor: 2125, derived: true });
+  });
+
+  // Regression: the one-cent correction changed the map but the shares were
+  // built from the old values, so the commit failed with "shares do not add up".
+  it("keeps the shares adding up when Splitwise rounds a cent", () => {
+    const csv = [
+      "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis,Marta",
+      "2026-05-10,Cena,Comida,10.00,EUR,6.67,-3.33,-3.33",
+    ].join("\n");
+    const parsed = parseSplitwiseCsv(csv);
+    expect(parsed.errors).toEqual([]);
+    const movement = parsed.movements[0]!;
+    const total = movement.shares.reduce((sum, share) => sum + share.amount_minor, 0);
+    expect(total).toBe(movement.amount_minor);
+  });
+});
