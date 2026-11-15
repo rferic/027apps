@@ -763,10 +763,11 @@ async function syncChannels(
   channels: { pattern: string; members_fn: string }[],
 ): Promise<void> {
   const { rows } = await db.query(
-    "select id, pattern from public.module_channels where module_key = $1",
+    "select pattern from public.module_channels where module_key = $1",
     [key],
   );
-  const existing = new Map(rows.map((row) => [String(row.pattern), String(row.id)]));
+  // The table is keyed by (module_key, pattern); there is no surrogate id.
+  const existing = new Set(rows.map((row) => String(row.pattern)));
   for (const channel of channels) {
     if (existing.has(channel.pattern)) {
       await db.query(
@@ -782,8 +783,11 @@ async function syncChannels(
     }
   }
   // Anything left declared a channel the new manifest no longer serves.
-  for (const id of existing.values()) {
-    await db.query("delete from public.module_channels where id = $1", [id]);
+  for (const pattern of existing) {
+    await db.query("delete from public.module_channels where module_key = $1 and pattern = $2", [
+      key,
+      pattern,
+    ]);
   }
 }
 
