@@ -298,6 +298,8 @@ fun OweNoScreen(
     startAction: String? = null,
     onStartConsumed: () -> Unit = {},
     realtime: io.github.jan.supabase.SupabaseClient? = null,
+    initialGroupId: String? = null,
+    onInitialGroupConsumed: () -> Unit = {},
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
@@ -319,6 +321,11 @@ fun OweNoScreen(
     var inviteMode by remember { mutableStateOf("account") }
 
     LaunchedEffect(api) { store.loadGroups() }
+    LaunchedEffect(initialGroupId) {
+        val id = initialGroupId ?: return@LaunchedEffect
+        store.open(id)
+        onInitialGroupConsumed()
+    }
 
     val groupId = store.detail?.group?.id
     LaunchedEffect(realtime, groupId) {

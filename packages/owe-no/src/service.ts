@@ -558,11 +558,23 @@ export async function createMovementForGroup(
         [id, share.memberId, share.amount_minor],
       );
     }
+    // Context for the notification: what/where/who, never rendered as JSON.
+    const { rows: context } = await db.query(
+      `select g.name as group_name, p.display_name as actor_name
+         from module_owe_no.owe_no_groups g
+         left join public.profiles p on p.id = $2
+        where g.id = $1`,
+      [groupId, actorId],
+    );
     await emit(db, "owe_no.movement_created", {
       group_id: groupId,
       movement_id: id,
       kind: input.kind,
       amount_minor: input.amount_minor,
+      currency,
+      description: input.description.trim(),
+      group_name: context[0]?.group_name ?? null,
+      actor_name: context[0]?.actor_name ?? null,
     }, true);
     return {
       id,

@@ -261,10 +261,22 @@ export async function publishPending(
       if (event.notify?.includes("push") && deps.push) {
         const tokens = await recipients(deps.db, event);
         if (tokens.length > 0) {
+          // Only the context a notification needs: the client composes the text
+          // and decides whether an amount may be shown (its privacy switch).
+          const resource = (event.resource ?? {}) as Record<string, unknown>;
+          const text = (value: unknown) =>
+            typeof value === "string" && value.trim() !== "" ? value.slice(0, 80) : undefined;
+          const amount = typeof resource.amount_minor === "number" ? resource.amount_minor : undefined;
           const results = await deps.push.send(tokens, {
             key: `push.${event.type.replace(/\./g, "_")}`,
-            // No payload: a lock screen must not show amounts, names or ids.
             module: event.module_key ?? "027apps",
+            ...(text(resource.description) ? { description: text(resource.description)! } : {}),
+            ...(text(resource.group_name) ? { group: text(resource.group_name)! } : {}),
+            ...(text(resource.actor_name) ? { actor: text(resource.actor_name)! } : {}),
+            ...(amount !== undefined ? { amount: String(amount) } : {}),
+            ...(text(resource.currency) ? { currency: text(resource.currency)! } : {}),
+            ...(text(resource.movement_id) ? { resource_id: text(resource.movement_id)! } : {}),
+            ...(text(resource.group_id) ? { target: text(resource.group_id)! } : {}),
           });
           const invalid = results
             .filter((result) => result.error === "UNREGISTERED" || result.error === "INVALID_ARGUMENT")

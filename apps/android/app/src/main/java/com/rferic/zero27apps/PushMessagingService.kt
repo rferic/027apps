@@ -19,22 +19,22 @@ class PushMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
-        val strings = AppStrings.forLanguage(Locale.getDefault().language)
-        val title = data["module"]?.takeIf { it.isNotBlank() } ?: "027Apps"
+        val locale = Locale.getDefault().language
+        val strings = AppStrings.forLanguage(locale)
+        val masked = com.rferic.zero27apps.prefs.PrefsStringStore(applicationContext)
+            .get("privacy.masked") == "true"
+        val title = PushText.title(data["module"])
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL_ID, "027Apps events", NotificationManager.IMPORTANCE_DEFAULT),
         )
-        val intent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE,
-        )
+        val open = Intent(this, MainActivity::class.java).putExtra("start", "owe_group")
+        data["target"]?.let { open.putExtra("group", it) }
+        val intent = PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
-            .setContentText(strings.pushEvent)
+            .setContentText(PushText.body(data, masked, locale, strings.pushEvent))
             .setContentIntent(intent)
             .setAutoCancel(true)
             .build()

@@ -87,6 +87,7 @@ import kotlinx.coroutines.launch
 fun AppRoot(
     deepLink: String? = null,
     startAction: String? = null,
+    startGroup: String? = null,
     viewModel: AppViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -142,7 +143,7 @@ fun AppRoot(
                         onSubmit = viewModel::acceptInvite,
                         onCancel = viewModel::cancelInvite,
                     )
-                    is AppState.SignedIn -> Shell(current, viewModel, instances, update, startAction)
+                    is AppState.SignedIn -> Shell(current, viewModel, instances, update, startAction, startGroup)
                     is AppState.Failure -> FailureScreen(
                         reason = current.reason,
                         knownInstances = instances,
@@ -239,6 +240,7 @@ private fun Shell(
     instances: List<String>,
     update: UpdateState,
     initialAction: String? = null,
+    initialGroup: String? = null,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var openModule by rememberSaveable { mutableStateOf<String?>(null) }
@@ -258,10 +260,17 @@ private fun Shell(
     val actions = state.modules.flatMap { module -> module.appActions }.distinctBy { it.key }
     var showActions by remember { mutableStateOf(false) }
     var startAction by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(initialAction) {
-        if (initialAction == "owe_expense") {
-            startAction = "expense"
-            openModule = "owe-no"
+    var targetGroup by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(initialAction, initialGroup) {
+        when (initialAction) {
+            "owe_expense" -> {
+                startAction = "expense"
+                openModule = "owe-no"
+            }
+            "owe_group" -> {
+                targetGroup = initialGroup
+                openModule = "owe-no"
+            }
         }
     }
     val snackbar = remember { SnackbarHostState() }
@@ -338,6 +347,8 @@ private fun Shell(
                     startAction = startAction,
                     onStartConsumed = { startAction = null },
                     realtime = viewModel.supabase(),
+                    initialGroupId = targetGroup,
+                    onInitialGroupConsumed = { targetGroup = null },
                 )
                 tab == 1 -> ModulesScreen(
                     modules = state.modules,
