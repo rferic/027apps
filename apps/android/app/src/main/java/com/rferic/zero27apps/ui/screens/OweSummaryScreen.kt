@@ -4,8 +4,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,20 +32,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
-import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.compose.cartesian.data.columnSeries
 import com.patrykandpatrick.vico.compose.cartesian.layer.ColumnCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.rferic.zero27apps.data.OweBalanceDto
@@ -59,7 +61,6 @@ import com.rferic.zero27apps.ui.privacy.maskedMoney
 import com.rferic.zero27apps.ui.theme.LocalPalette
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -71,8 +72,8 @@ private data class MonthBar(val month: YearMonth, val amount: Long)
 
 /**
  * The group at a glance: the month's total, where the money went, who paid
- * versus who consumed, and the last six months. Every number goes through the
- * privacy mask; the charts keep their shape but lose the figures.
+ * versus who consumed, and the last six months. Every figure respects the
+ * privacy mask; the charts keep their shape but lose the numbers.
  */
 @Composable
 fun OweSummaryScreen(
@@ -83,7 +84,44 @@ fun OweSummaryScreen(
     settlementCount: Int,
     currency: String,
     locale: String,
-    onBack: () -> Unit,
+    onBack: () -> Unit = {},
+    embedded: Boolean = false,
+) {
+    if (embedded) {
+        SummaryBody(movements, members, categories, balances, settlementCount, currency, locale)
+        return
+    }
+    val palette = LocalPalette.current
+    val strings = LocalStrings.current
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Filled.ArrowBack, contentDescription = strings.back, tint = palette.foreground)
+            }
+            Text(
+                strings.summary,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+            )
+            PrivacyEye()
+        }
+        SummaryBody(movements, members, categories, balances, settlementCount, currency, locale)
+    }
+}
+
+@Composable
+private fun SummaryBody(
+    movements: List<OweMovementDto>,
+    members: List<OweMemberDto>,
+    categories: List<OweCategoryDto>,
+    balances: List<OweBalanceDto>,
+    settlementCount: Int,
+    currency: String,
+    locale: String,
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
@@ -101,7 +139,6 @@ fun OweSummaryScreen(
     val previousTotal = past.sumOf { it.amountMinor }
     val delta = if (previousTotal > 0) ((total - previousTotal) * 100 / previousTotal) else null
 
-    // Categories of this month, biggest first, with the tail grouped.
     val names = categories.associate { it.id to it.name }
     val paletteColors = listOf(
         palette.accent,
@@ -120,8 +157,7 @@ fun OweSummaryScreen(
     val slices = (top + if (rest > 0) listOf(strings.category to rest) else emptyList())
         .mapIndexed { index, (name, amount) -> CategorySlice(name, amount, paletteColors[index % paletteColors.size]) }
 
-    val byMember = members.filter { it.state == "active" || it.state == "invited" }
-    val people = byMember.map { member ->
+    val people = members.filter { it.state == "active" || it.state == "invited" }.map { member ->
         val paid = current.filter { it.paidBy == member.id }.sumOf { it.amountMinor }
         val consumed = current.sumOf { movement ->
             movement.shares.firstOrNull { it.memberId == member.id }?.amountMinor ?: 0L
@@ -134,24 +170,7 @@ fun OweSummaryScreen(
         MonthBar(target, movements.filter { it.kind == "expense" && inMonth(it, target) }.sumOf { it.amountMinor })
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = strings.back, tint = palette.foreground)
-            }
-            Text(
-                strings.summary,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            PrivacyEye()
-        }
-
-        // Hero: the month's number, oversized, over the module's own wash.
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -227,8 +246,6 @@ fun OweSummaryScreen(
             1 -> PeopleReport(people, currency, locale, masked)
             else -> MonthsReport(months, currency, locale)
         }
-
-        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -382,13 +399,6 @@ private fun LegendDot(color: Color, label: String) {
 @Composable
 private fun MonthsReport(months: List<MonthBar>, currency: String, locale: String) {
     val palette = LocalPalette.current
-    val strings = LocalStrings.current
-    val masked = LocalPrivacyMasked.current
-    val max = months.maxOfOrNull { it.amount }?.coerceAtLeast(1) ?: 1
-    var progress by remember { mutableStateOf(0f) }
-    LaunchedEffect(Unit) { progress = 1f }
-    val grow by animateFloatAsState(progress, tween(700), label = "months")
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -433,7 +443,7 @@ private fun MonthColumns(months: List<MonthBar>, accent: Color, locale: String) 
                 modifier = Modifier.weight(1f),
                 fontSize = 10.sp,
                 color = LocalPalette.current.mutedForeground,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
             )
         }
     }

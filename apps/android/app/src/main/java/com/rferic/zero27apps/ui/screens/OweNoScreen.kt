@@ -325,7 +325,6 @@ fun OweNoScreen(
     var showSettings by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var showInvitations by remember { mutableStateOf(false) }
-    var showSummary by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     var tab by remember { mutableStateOf(0) }
     var showAddPerson by remember { mutableStateOf(false) }
@@ -370,27 +369,11 @@ fun OweNoScreen(
     androidx.activity.compose.BackHandler {
         when {
             showImport -> showImport = false
-            showSummary -> showSummary = false
             showSettings -> showSettings = false
             showInvitations -> showInvitations = false
             store.detail != null -> store.close()
             else -> onBack()
         }
-    }
-
-    val summaryDetail = store.detail
-    if (showSummary && summaryDetail != null) {
-        OweSummaryScreen(
-            movements = store.movements,
-            members = summaryDetail.members,
-            categories = store.categories,
-            balances = store.balances,
-            settlementCount = store.settlement?.transfers?.size ?: 0,
-            currency = summaryDetail.group.currency,
-            locale = locale,
-            onBack = { showSummary = false },
-        )
-        return
     }
 
     val importing = store.detail
@@ -440,10 +423,11 @@ fun OweNoScreen(
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             }
             com.rferic.zero27apps.ui.components.PrivacyEye()
-            IconButton(onClick = { showMenu = true }) {
-                Icon(Icons.Filled.MoreVert, contentDescription = strings.menu, tint = palette.foreground)
-            }
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+            androidx.compose.foundation.layout.Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = strings.menu, tint = palette.foreground)
+                }
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 DropdownMenuItem(
                     text = { Text(strings.groups) },
                     onClick = {
@@ -460,15 +444,6 @@ fun OweNoScreen(
                         store.close()
                     },
                 )
-                if (store.detail != null) {
-                    DropdownMenuItem(
-                        text = { Text(strings.summary) },
-                        onClick = {
-                            showMenu = false
-                            showSummary = true
-                        },
-                    )
-                }
                 if (store.detail?.group?.createdBy == store.userId) {
                     DropdownMenuItem(
                         text = { Text(strings.importTitle) },
@@ -477,6 +452,7 @@ fun OweNoScreen(
                             showImport = true
                         },
                     )
+                }
                 }
             }
         }
@@ -526,7 +502,7 @@ fun OweNoScreen(
                     onSettle = { showSettlement = true },
                     onPay = { showPayment = true },
                 )
-                else -> MembersTab(
+                2 -> MembersTab(
                     store = store,
                     detail = detail,
                     locale = locale,
@@ -535,6 +511,16 @@ fun OweNoScreen(
                         showAddPerson = true
                     },
                     onSettle = { showSettlement = true },
+                )
+                else -> OweSummaryScreen(
+                    movements = store.movements,
+                    members = detail.members,
+                    categories = store.categories,
+                    balances = store.balances,
+                    settlementCount = store.settlement?.transfers?.size ?: 0,
+                    currency = detail.group.currency,
+                    locale = locale,
+                    embedded = true,
                 )
             }
         }
@@ -826,7 +812,7 @@ private fun BalanceStrip(amountMinor: Long, currency: String, locale: String, on
 private fun GroupTabs(selected: Int, onSelect: (Int) -> Unit) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
-    val labels = listOf(strings.tabActivity, strings.tabBalances, strings.tabMembers)
+    val labels = listOf(strings.tabActivity, strings.tabBalances, strings.tabMembers, strings.summary)
     Row(
         modifier = Modifier
             .fillMaxWidth()
