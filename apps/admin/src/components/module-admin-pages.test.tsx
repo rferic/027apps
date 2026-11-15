@@ -67,8 +67,8 @@ describe("owe-no admin pages", () => {
 
   it("renders the import history in the panel locale", async () => {
     const html = renderToStaticMarkup(await OweNoImports({ context: context(await spanish()) }));
-    expect(html).toContain("Importaciones");
-    expect(html).toContain("Aún no hay importaciones.");
+    expect(html).toContain("Importar de Splitwise");
+    expect(html).toContain("necesitas crear un grupo");
     expect(html).not.toContain("No imports yet");
   });
 

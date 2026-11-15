@@ -110,5 +110,9 @@
   "Edited by {name}": "Edited by {name}",
   "Added by {name}": "Added by {name}",
   "Showing the latest {shown} of {total} movements.": "Showing the latest {shown} of {total} movements.",
-  "Search a name": "Search a name"
+  "Search a name": "Search a name",
+  "Import from Splitwise": "Import from Splitwise",
+  "Upload the CSV on the computer; the wizard previews it and asks who each name is before writing anything.": "Upload the CSV on the computer; the wizard previews it and asks who each name is before writing anything.",
+  "You need to create a group first: only its creator imports.": "You need to create a group first: only its creator imports.",
+  "Previous imports": "Previous imports"
 }

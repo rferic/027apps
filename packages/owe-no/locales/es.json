@@ -110,5 +110,9 @@
   "Edited by {name}": "Editado por {name}",
   "Added by {name}": "Añadido por {name}",
   "Showing the latest {shown} of {total} movements.": "Mostrando los últimos {shown} de {total} movimientos.",
-  "Search a name": "Buscar un nombre"
+  "Search a name": "Buscar un nombre",
+  "Import from Splitwise": "Importar de Splitwise",
+  "Upload the CSV on the computer; the wizard previews it and asks who each name is before writing anything.": "Sube el CSV desde el ordenador; el asistente lo previsualiza y te pregunta quién es cada nombre antes de escribir nada.",
+  "You need to create a group first: only its creator imports.": "Primero necesitas crear un grupo: solo su creador puede importar.",
+  "Previous imports": "Importaciones anteriores"
 }

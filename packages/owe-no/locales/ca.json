@@ -110,5 +110,9 @@
   "Edited by {name}": "Editat per {name}",
   "Added by {name}": "Afegit per {name}",
   "Showing the latest {shown} of {total} movements.": "Mostrant els últims {shown} de {total} moviments.",
-  "Search a name": "Cerca un nom"
+  "Search a name": "Cerca un nom",
+  "Import from Splitwise": "Importar de Splitwise",
+  "Upload the CSV on the computer; the wizard previews it and asks who each name is before writing anything.": "Puja el CSV des de l'ordinador; l'assistent el previsualitza i et pregunta qui és cada nom abans d'escriure res.",
+  "You need to create a group first: only its creator imports.": "Primer has de crear un grup: només el seu creador pot importar.",
+  "Previous imports": "Importacions anteriors"
 }
