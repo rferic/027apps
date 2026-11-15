@@ -70,6 +70,8 @@ import com.rferic.zero27apps.data.OweSettlementDto
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.broadcastFlow
+import com.rferic.zero27apps.ui.privacy.LocalPrivacyMasked
+import com.rferic.zero27apps.ui.privacy.maskedMoney
 import com.rferic.zero27apps.ui.theme.LocalPalette
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -402,6 +404,7 @@ fun OweNoScreen(
             if (store.loading) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             }
+            com.rferic.zero27apps.ui.components.PrivacyEye()
             IconButton(onClick = { showMenu = true }) {
                 Icon(Icons.Filled.MoreVert, contentDescription = strings.menu, tint = palette.foreground)
             }
@@ -743,9 +746,11 @@ private fun Invitations(
 private fun BalanceStrip(amountMinor: Long, currency: String, locale: String, onOpen: () -> Unit) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
+    val masked = LocalPrivacyMasked.current
+    fun money(value: Long) = maskedMoney(masked, value, currency, locale)
     val text = when {
-        amountMinor < 0 -> strings.youOwe.replace("{amount}", formatMinor(-amountMinor, currency, locale))
-        amountMinor > 0 -> strings.owedToYou.replace("{amount}", formatMinor(amountMinor, currency, locale))
+        amountMinor < 0 -> strings.youOwe.replace("{amount}", money(-amountMinor))
+        amountMinor > 0 -> strings.owedToYou.replace("{amount}", money(amountMinor))
         else -> strings.youSettled
     }
     Row(
@@ -824,6 +829,7 @@ private fun ActivityTab(
 ) {
     val strings = LocalStrings.current
     val palette = LocalPalette.current
+    val privacyMasked = LocalPrivacyMasked.current
     var query by remember { mutableStateOf("") }
     val myMemberId = detail.members.firstOrNull { it.userId == store.userId }?.id
     val month = LocalDate.now().toString().take(7)
@@ -834,7 +840,10 @@ private fun ActivityTab(
     if (store.movements.isNotEmpty()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                strings.monthTotal.replace("{amount}", formatMinor(monthTotal, detail.group.currency, locale)),
+                strings.monthTotal.replace(
+                    "{amount}",
+                    maskedMoney(privacyMasked, monthTotal, detail.group.currency, locale),
+                ),
                 fontSize = 12.sp,
                 color = palette.mutedForeground,
                 modifier = Modifier.weight(1f),
@@ -909,22 +918,18 @@ private fun MembersTab(
         else -> strings.stateActive
     }
 
+    val privacyMasked = LocalPrivacyMasked.current
+    fun money(value: Long) = maskedMoney(privacyMasked, value, detail.group.currency, locale)
     fun directionText(member: OweMemberDto): String? {
         val owed = balanceOf(member.id)
         val self = member.userId != null && member.userId == store.userId
         return when {
-            owed > 0 && self ->
-                strings.owedToYou.replace("{amount}", formatMinor(owed, detail.group.currency, locale))
-            owed < 0 && self ->
-                strings.youOwe.replace("{amount}", formatMinor(-owed, detail.group.currency, locale))
+            owed > 0 && self -> strings.owedToYou.replace("{amount}", money(owed))
+            owed < 0 && self -> strings.youOwe.replace("{amount}", money(-owed))
             owed > 0 ->
-                strings.theyAreOwed
-                    .replace("{name}", member.displayName)
-                    .replace("{amount}", formatMinor(owed, detail.group.currency, locale))
+                strings.theyAreOwed.replace("{name}", member.displayName).replace("{amount}", money(owed))
             owed < 0 ->
-                strings.theyOweYou
-                    .replace("{name}", member.displayName)
-                    .replace("{amount}", formatMinor(-owed, detail.group.currency, locale))
+                strings.theyOweYou.replace("{name}", member.displayName).replace("{amount}", money(-owed))
             else -> null
         }
     }
@@ -1299,6 +1304,8 @@ private fun Balances(
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
+    val privacyMasked = LocalPrivacyMasked.current
+    fun money(value: Long) = maskedMoney(privacyMasked, value, currency, locale)
     // A row of zeroes is noise: the card lists only who owes or is owed.
     val pending = balances.filter { it.amountMinor != 0L }
     if (pending.isEmpty()) {
@@ -1319,17 +1326,17 @@ private fun Balances(
                 Text(
                     when {
                         balance.memberId == myMemberId && balance.amountMinor >= 0 ->
-                            strings.owedToYou.replace("{amount}", formatMinor(balance.amountMinor, currency, locale))
+                            strings.owedToYou.replace("{amount}", money(balance.amountMinor))
                         balance.memberId == myMemberId ->
-                            strings.youOwe.replace("{amount}", formatMinor(-balance.amountMinor, currency, locale))
+                            strings.youOwe.replace("{amount}", money(-balance.amountMinor))
                         balance.amountMinor >= 0 ->
                             strings.theyAreOwed
                                 .replace("{name}", balance.displayName)
-                                .replace("{amount}", formatMinor(balance.amountMinor, currency, locale))
+                                .replace("{amount}", money(balance.amountMinor))
                         else ->
                             strings.theyOweYou
                                 .replace("{name}", balance.displayName)
-                                .replace("{amount}", formatMinor(-balance.amountMinor, currency, locale))
+                                .replace("{amount}", money(-balance.amountMinor))
                     },
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -1351,6 +1358,7 @@ private fun Movements(
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
+    val privacyMasked = LocalPrivacyMasked.current
     if (movements.isEmpty()) {
         Text(emptyText, fontSize = 13.sp, color = palette.mutedForeground)
     }
@@ -1413,15 +1421,19 @@ private fun Movements(
             Column(horizontalAlignment = Alignment.End) {
                 if (!neutral) {
                     Text(
-                        (if (favourable) "+" else "−") +
-                            formatMinor(if (favourable) impact else -impact, currency, locale),
+                        if (privacyMasked) {
+                            maskedMoney(true, 0, currency, locale)
+                        } else {
+                            (if (favourable) "+" else "−") +
+                                formatMinor(if (favourable) impact else -impact, currency, locale)
+                        },
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = tone,
                     )
                 }
                 Text(
-                    formatMinor(movement.amountMinor, currency, locale),
+                    maskedMoney(privacyMasked, movement.amountMinor, currency, locale),
                     fontSize = 11.sp,
                     color = palette.mutedForeground,
                 )

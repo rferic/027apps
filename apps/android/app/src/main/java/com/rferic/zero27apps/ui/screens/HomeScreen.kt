@@ -83,6 +83,7 @@ fun HomeScreen(
                 )
             }
             Spacer(Modifier.weight(1f))
+            com.rferic.zero27apps.ui.components.PrivacyEye()
         }
 
         Text(
@@ -292,6 +293,7 @@ private fun WidgetCard(widget: WidgetDto, onOpen: () -> Unit) {
 private fun OweNoHomeCard(onOpen: () -> Unit, onAddExpense: () -> Unit) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
+    val privacyMasked = com.rferic.zero27apps.ui.privacy.LocalPrivacyMasked.current
     val context = LocalContext.current
     val store = remember { com.rferic.zero27apps.widget.WidgetSnapshotStore(context) }
     var snapshot by remember { mutableStateOf(store.read()) }
@@ -337,7 +339,7 @@ private fun OweNoHomeCard(onOpen: () -> Unit, onAddExpense: () -> Unit) {
             Column {
                 Text(strings.owedToYouLabel, fontSize = 11.sp, color = palette.mutedForeground)
                 Text(
-                    moneyText(snapshot.owedToYouMinor, snapshot.currency, snapshot.locale),
+                    moneyText(snapshot.owedToYouMinor, snapshot.currency, snapshot.locale, privacyMasked),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (snapshot.owedToYouMinor > 0) palette.accent else palette.mutedForeground,
@@ -346,7 +348,7 @@ private fun OweNoHomeCard(onOpen: () -> Unit, onAddExpense: () -> Unit) {
             Column {
                 Text(strings.youOweLabel, fontSize = 11.sp, color = palette.mutedForeground)
                 Text(
-                    moneyText(snapshot.youOweMinor, snapshot.currency, snapshot.locale),
+                    moneyText(snapshot.youOweMinor, snapshot.currency, snapshot.locale, privacyMasked),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (snapshot.youOweMinor > 0) palette.destructive else palette.mutedForeground,
@@ -359,7 +361,7 @@ private fun OweNoHomeCard(onOpen: () -> Unit, onAddExpense: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(group.name, modifier = Modifier.weight(1f), fontSize = 13.sp)
                         Text(
-                            moneyText(group.amountMinor, snapshot.currency, snapshot.locale),
+                            moneyText(group.amountMinor, snapshot.currency, snapshot.locale, privacyMasked),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (group.amountMinor < 0) palette.destructive else palette.accent,
@@ -381,7 +383,7 @@ private fun OweNoHomeCard(onOpen: () -> Unit, onAddExpense: () -> Unit) {
                     maxLines = 1,
                 )
                 Text(
-                    moneyText(snapshot.lastAmountMinor, snapshot.currency, snapshot.locale),
+                    moneyText(snapshot.lastAmountMinor, snapshot.currency, snapshot.locale, privacyMasked),
                     fontSize = 12.sp,
                     color = palette.mutedForeground,
                 )
@@ -390,8 +392,14 @@ private fun OweNoHomeCard(onOpen: () -> Unit, onAddExpense: () -> Unit) {
     }
 }
 
-private fun moneyText(amountMinor: Long, currency: String, locale: String = "en"): String =
-    runCatching {
+private fun moneyText(
+    amountMinor: Long,
+    currency: String,
+    locale: String = "en",
+    masked: Boolean = false,
+): String = if (masked) {
+    "••• ${com.rferic.zero27apps.ui.privacy.currencySymbol(currency)}"
+} else runCatching {
         java.text.NumberFormat.getCurrencyInstance(java.util.Locale.forLanguageTag(locale)).apply {
             this.currency = java.util.Currency.getInstance(currency)
         }.format(amountMinor / 100.0)

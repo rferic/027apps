@@ -35,11 +35,13 @@ import com.rferic.zero27apps.ui.i18n.AppStrings
 class OweWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotStore(context).read()
-        provideContent { Content(snapshot) }
+        val masked = com.rferic.zero27apps.prefs.PrefsStringStore(context)
+            .get("privacy.masked") == "true"
+        provideContent { Content(snapshot, masked) }
     }
 
     @Composable
-    private fun Content(snapshot: WidgetSnapshot) {
+    private fun Content(snapshot: WidgetSnapshot, masked: Boolean) {
         val strings = AppStrings.forLanguage(snapshot.locale)
         val context = androidx.glance.LocalContext.current
         // Same palette as the app: the widget never invents its own colours.
@@ -79,11 +81,11 @@ class OweWidget : GlanceAppWidget() {
                 !snapshot.signedIn -> strings.signIn
                 snapshot.netMinor > 0 -> strings.owedToYou.replace(
                     "{amount}",
-                    money(snapshot.netMinor, snapshot.currency),
+                    money(snapshot.netMinor, snapshot.currency, masked),
                 )
                 snapshot.netMinor < 0 -> strings.youOwe.replace(
                     "{amount}",
-                    money(-snapshot.netMinor, snapshot.currency),
+                    money(-snapshot.netMinor, snapshot.currency, masked),
                 )
                 else -> strings.youSettled
             }
@@ -100,7 +102,7 @@ class OweWidget : GlanceAppWidget() {
                 Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 6.dp)) {
                     if (snapshot.owedToYouMinor > 0) {
                         Text(
-                            strings.owedToYou.replace("{amount}", money(snapshot.owedToYouMinor, snapshot.currency)),
+                            strings.owedToYou.replace("{amount}", money(snapshot.owedToYouMinor, snapshot.currency, masked)),
                             style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = accent),
                         )
                     }
@@ -109,7 +111,7 @@ class OweWidget : GlanceAppWidget() {
                     }
                     if (snapshot.youOweMinor > 0) {
                         Text(
-                            strings.youOwe.replace("{amount}", money(snapshot.youOweMinor, snapshot.currency)),
+                            strings.youOwe.replace("{amount}", money(snapshot.youOweMinor, snapshot.currency, masked)),
                             style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = danger),
                         )
                     }
@@ -140,7 +142,7 @@ class OweWidget : GlanceAppWidget() {
                         style = TextStyle(fontSize = 12.sp, color = ink),
                     )
                     Text(
-                        money(group.amountMinor, snapshot.currency),
+                        money(group.amountMinor, snapshot.currency, masked),
                         style = TextStyle(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
@@ -156,8 +158,10 @@ class OweWidget : GlanceAppWidget() {
         }
     }
 
-    private fun money(amountMinor: Long, currency: String): String =
-        runCatching {
+    private fun money(amountMinor: Long, currency: String, masked: Boolean = false): String =
+        if (masked) {
+            "••• ${com.rferic.zero27apps.ui.privacy.currencySymbol(currency)}"
+        } else runCatching {
             java.text.NumberFormat.getCurrencyInstance().apply {
                 this.currency = java.util.Currency.getInstance(currency)
             }.format(amountMinor / 100.0)

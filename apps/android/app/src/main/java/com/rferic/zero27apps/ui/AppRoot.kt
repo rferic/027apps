@@ -93,6 +93,7 @@ fun AppRoot(
     val login by viewModel.login.collectAsStateWithLifecycle()
     val invite by viewModel.invite.collectAsStateWithLifecycle()
     val instances by viewModel.instances.collectAsStateWithLifecycle()
+    val privacyMasked by viewModel.privacyMasked.collectAsStateWithLifecycle()
     val update by viewModel.update.collectAsStateWithLifecycle()
 
     LaunchedEffect(deepLink) {
@@ -118,7 +119,11 @@ fun AppRoot(
 
     Zero27AppsTheme(preference = theme) {
         Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
-            CompositionLocalProvider(LocalStrings provides strings) {
+            CompositionLocalProvider(
+                LocalStrings provides strings,
+                com.rferic.zero27apps.ui.privacy.LocalPrivacyMasked provides privacyMasked,
+                com.rferic.zero27apps.ui.components.LocalTogglePrivacy provides viewModel::togglePrivacy,
+            ) {
                 when (val current = state) {
                     AppState.Loading -> Splash(viewModel.currentInstance())
                     is AppState.NeedsLogin -> LoginScreen(

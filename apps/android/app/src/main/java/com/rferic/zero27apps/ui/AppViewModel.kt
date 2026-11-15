@@ -40,6 +40,10 @@ data class LoginState(val pending: Boolean = false, val error: LoginError? = nul
  * never build their own clients.
  */
 class AppViewModel(application: Application) : AndroidViewModel(application) {
+    private companion object {
+        const val PRIVACY_KEY = "privacy.masked"
+    }
+
     private val prefs = PrefsStringStore(application)
     private val instanceStore = InstanceStore(prefs, BuildConfig.DEFAULT_INSTANCE_URL)
     private val sessionStore = EncryptedStringStore(
@@ -57,6 +61,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val updater = Updater(application)
     private val updateThrottle = UpdateThrottle(prefs)
+    /** The eye: only amounts are masked; the choice is remembered (default open). */
+    private val _privacyMasked = MutableStateFlow(prefs.get(PRIVACY_KEY) == "true")
+    val privacyMasked: StateFlow<Boolean> = _privacyMasked.asStateFlow()
 
     private val _update = MutableStateFlow<UpdateState>(UpdateState.None)
     val update: StateFlow<UpdateState> = _update.asStateFlow()
@@ -216,6 +223,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _login.value = LoginState()
             awaitLogin()
         }
+    }
+
+    fun togglePrivacy() {
+        val next = !_privacyMasked.value
+        _privacyMasked.value = next
+        prefs.put(PRIVACY_KEY, next.toString())
+        // The launcher widget follows the same switch, without waiting for the timer.
+        com.rferic.zero27apps.widget.OweWidgetWorker.refreshNow(getApplication())
     }
 
     /** The live client, so a screen can subscribe to its realtime channel. */

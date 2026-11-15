@@ -99,6 +99,15 @@ fun SettingsScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                strings.settings,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+            )
+            com.rferic.zero27apps.ui.components.PrivacyEye()
+        }
         Text(
             strings.settings,
             fontSize = 24.sp,
