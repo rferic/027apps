@@ -11,6 +11,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 
 /** The user's preference; `system` follows the device. */
 enum class ThemePreference { SYSTEM, LIGHT, DARK }
@@ -76,8 +77,23 @@ fun Zero27AppsTheme(
             backgroundColor = palette.accent.copy(alpha = 0.3f),
         ),
     ) {
-        MaterialTheme(colorScheme = if (dark) darkScheme(palette) else scheme(palette), content = content)
+        MaterialTheme(
+            colorScheme = if (dark) darkScheme(palette) else scheme(palette),
+            typography = appTypography,
+            content = content,
+        )
     }
+}
+
+/** Tighter line heights: the M3 defaults leave 11-13 sp labels in tall boxes. */
+private val appTypography = androidx.compose.material3.Typography().let { base ->
+    base.copy(
+        bodyLarge = base.bodyLarge.copy(lineHeight = 20.sp),
+        bodyMedium = base.bodyMedium.copy(lineHeight = 18.sp),
+        bodySmall = base.bodySmall.copy(lineHeight = 16.sp),
+        labelSmall = base.labelSmall.copy(lineHeight = 14.sp),
+        titleLarge = base.titleLarge.copy(lineHeight = 26.sp),
+    )
 }
 
 /** The brand wash of the login screen, shared by every app surface. */

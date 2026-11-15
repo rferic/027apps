@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -45,6 +47,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -304,6 +307,8 @@ fun OweNoScreen(
     androidx.activity.compose.BackHandler {
         when {
             showImport -> showImport = false
+            showSettings -> showSettings = false
+            showInvitations -> showInvitations = false
             store.detail != null -> store.close()
             else -> onBack()
         }
@@ -339,7 +344,7 @@ fun OweNoScreen(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).padding(bottom = 120.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -350,7 +355,7 @@ fun OweNoScreen(
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    store.detail?.group?.name ?: "OweNo",
+                    store.detail?.group?.name ?: strings.groups,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                 )
@@ -516,6 +521,7 @@ fun OweNoScreen(
             currency = current.group.currency,
             locale = locale,
             saving = store.loading,
+            error = store.error,
             onDismiss = { showExpense = false },
             onSave = { description, amountMinor, payer, participants, occurredOn, categoryId ->
                 store.addExpense(
@@ -757,18 +763,26 @@ private fun GroupTabs(selected: Int, onSelect: (Int) -> Unit) {
                 modifier = Modifier
                     .weight(1f)
                     .background(
-                        if (on) palette.background else androidx.compose.ui.graphics.Color.Transparent,
+                        if (on) palette.accent.copy(alpha = 0.14f) else androidx.compose.ui.graphics.Color.Transparent,
                         RoundedCornerShape(10.dp),
                     )
                     .clickable { onSelect(index) }
-                    .padding(vertical = 8.dp),
+                    .then(
+                        if (on) {
+                            Modifier.border(1.dp, palette.accent, RoundedCornerShape(10.dp))
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .heightIn(min = 44.dp)
+                    .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     label,
                     fontSize = 12.sp,
                     fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (on) palette.foreground else palette.mutedForeground,
+                    color = if (on) palette.accent else palette.mutedForeground,
                 )
             }
         }
@@ -785,8 +799,37 @@ private fun ActivityTab(
 ) {
     val strings = LocalStrings.current
     val palette = LocalPalette.current
+    var query by remember { mutableStateOf("") }
+    val myMemberId = detail.members.firstOrNull { it.userId == store.userId }?.id
+    val month = LocalDate.now().toString().take(7)
+    val monthTotal = store.movements
+        .filter { it.kind == "expense" && it.occurredOn.take(7) == month }
+        .sumOf { it.amountMinor }
     Button(onClick = onAddExpense, modifier = Modifier.fillMaxWidth()) { Text(strings.addExpense) }
-    Movements(store.movements, detail.members, detail.group.currency, locale, strings.activityEmpty)
+    if (store.movements.isNotEmpty()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                strings.monthTotal.replace("{amount}", formatMinor(monthTotal, detail.group.currency, locale)),
+                fontSize = 12.sp,
+                color = palette.mutedForeground,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            label = { Text(strings.search) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+    val shown = if (query.isBlank()) {
+        store.movements
+    } else {
+        val wanted = query.trim().lowercase()
+        store.movements.filter { it.description.lowercase().contains(wanted) }
+    }
+    Movements(shown, detail.members, detail.group.currency, locale, myMemberId, strings.activityEmpty)
     if (detail.members.count { it.state == "active" } <= 1) {
         Text(strings.aloneInGroup, fontSize = 12.sp, color = palette.mutedForeground)
         TextButton(onClick = onAddPerson) { Text(strings.addPerson) }
@@ -809,39 +852,6 @@ private fun BalancesTab(
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(onClick = onSettle) { Text(strings.settle) }
         TextButton(onClick = onPay) { Text(strings.registerPayment) }
-    }
-    val transfers = store.settlement?.transfers.orEmpty()
-    if (transfers.isNotEmpty()) {
-        Text(
-            strings.settlementPlan.uppercase(),
-            fontSize = 11.sp,
-            letterSpacing = 1.sp,
-            color = palette.mutedForeground,
-        )
-        val names = detail.members.associate { it.id to it.displayName }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(palette.surface, RoundedCornerShape(16.dp))
-                .border(1.dp, palette.border, RoundedCornerShape(16.dp))
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            for (transfer in transfers) {
-                Row {
-                    Text(
-                        "${names[transfer.from] ?: ""} → ${names[transfer.to] ?: ""}",
-                        modifier = Modifier.weight(1f),
-                        fontSize = 13.sp,
-                    )
-                    Text(
-                        formatMinor(transfer.amountMinor, detail.group.currency, locale),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -882,9 +892,13 @@ private fun MembersTab(
             owed < 0 && self ->
                 strings.youOwe.replace("{amount}", formatMinor(-owed, detail.group.currency, locale))
             owed > 0 ->
-                strings.owesYou.replace("{amount}", formatMinor(owed, detail.group.currency, locale))
+                strings.theyAreOwed
+                    .replace("{name}", member.displayName)
+                    .replace("{amount}", formatMinor(owed, detail.group.currency, locale))
             owed < 0 ->
-                strings.youOweThem.replace("{amount}", formatMinor(-owed, detail.group.currency, locale))
+                strings.theyOweYou
+                    .replace("{name}", member.displayName)
+                    .replace("{amount}", formatMinor(-owed, detail.group.currency, locale))
             else -> null
         }
     }
@@ -992,7 +1006,7 @@ private fun MembersTab(
                         else -> {
                             SheetAction(
                                 label = strings.removeFromGroup,
-                                note = if (owed != 0L) strings.removeBalanceBody else null,
+                                note = null,
                                 destructive = true,
                             ) {
                                 sheet = null
@@ -1112,6 +1126,8 @@ private fun LinkDialog(
 ) {
     val strings = LocalStrings.current
     var query by remember { mutableStateOf("") }
+    val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
     val wanted = query.trim().lowercase()
     val matches = identities.filter { wanted.isNotEmpty() && it.displayName.lowercase().contains(wanted) }.take(6)
     AppSheet(
@@ -1127,6 +1143,7 @@ private fun LinkDialog(
                 label = { Text(strings.nameLabel) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                modifier = Modifier.focusRequester(focus),
             )
             matches.forEach { identity ->
                 SheetAction(label = identity.displayName) { onPick(identity) }
@@ -1183,6 +1200,8 @@ private fun InviteDialog(
     val palette = LocalPalette.current
     val account = mode == "account"
     var query by remember { mutableStateOf("") }
+    val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
     val wanted = query.trim().lowercase()
     val matches = if (wanted.isEmpty()) {
         emptyList()
@@ -1203,6 +1222,7 @@ private fun InviteDialog(
                     label = { Text(strings.nameLabel) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    modifier = Modifier.focusRequester(focus),
                 )
                 matches.forEach { identity ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1277,9 +1297,13 @@ private fun Balances(
                         balance.memberId == myMemberId ->
                             strings.youOwe.replace("{amount}", formatMinor(-balance.amountMinor, currency, locale))
                         balance.amountMinor >= 0 ->
-                            strings.owesYou.replace("{amount}", formatMinor(balance.amountMinor, currency, locale))
+                            strings.theyAreOwed
+                                .replace("{name}", balance.displayName)
+                                .replace("{amount}", formatMinor(balance.amountMinor, currency, locale))
                         else ->
-                            strings.youOweThem.replace("{amount}", formatMinor(-balance.amountMinor, currency, locale))
+                            strings.theyOweYou
+                                .replace("{name}", balance.displayName)
+                                .replace("{amount}", formatMinor(-balance.amountMinor, currency, locale))
                     },
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -1296,6 +1320,7 @@ private fun Movements(
     members: List<OweMemberDto>,
     currency: String,
     locale: String,
+    myMemberId: String?,
     emptyText: String,
 ) {
     val palette = LocalPalette.current
@@ -1318,8 +1343,14 @@ private fun Movements(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
                 )
+                val share = movement.shares.firstOrNull { it.memberId == myMemberId }?.amountMinor
                 Text(
-                    "${byId[movement.paidBy]?.displayName ?: ""} · ${formatDay(movement.occurredOn, locale)}",
+                    "${byId[movement.paidBy]?.displayName ?: ""} · ${formatDay(movement.occurredOn, locale)}" +
+                        if (share != null && share > 0 && movement.kind == "expense") {
+                            " · ${strings.yourShare.replace("{amount}", formatMinor(share, currency, locale))}"
+                        } else {
+                            ""
+                        },
                     fontSize = 11.sp,
                     color = palette.mutedForeground,
                 )
@@ -1334,6 +1365,8 @@ private fun NewGroupDialog(onDismiss: () -> Unit, onCreate: (String, String) -> 
     val strings = LocalStrings.current
     var name by remember { mutableStateOf("") }
     var currency by remember { mutableStateOf("EUR") }
+    val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
     AppFormSheet(
         onDismissRequest = onDismiss,
         title = { Text(strings.newGroup) },
@@ -1345,6 +1378,7 @@ private fun NewGroupDialog(onDismiss: () -> Unit, onCreate: (String, String) -> 
                     label = { Text(strings.groupName) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    modifier = Modifier.focusRequester(focus),
                 )
                 OutlinedTextField(
                     value = currency,
@@ -1371,10 +1405,12 @@ private fun ExpenseDialog(
     currency: String,
     locale: String,
     saving: Boolean,
+    error: String?,
     onDismiss: () -> Unit,
     onSave: (String, Long, String, List<OweParticipantBody>, String, String?) -> Unit,
 ) {
     val strings = LocalStrings.current
+    val palette = LocalPalette.current
     val active = members.filter { it.state == "active" }
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
@@ -1384,6 +1420,9 @@ private fun ExpenseDialog(
     var selected by remember { mutableStateOf(active.map { it.id }.toSet()) }
     var exact by remember { mutableStateOf(false) }
     var exactAmounts by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var payerOpen by remember { mutableStateOf(false) }
+    var splitOpen by remember { mutableStateOf(false) }
+    val focus = remember { androidx.compose.ui.focus.FocusRequester() }
     val minor = parseMinor(amount)
     val total = minor ?: 0
     val exactSum = selected.sumOf { parseMinor(exactAmounts[it] ?: "") ?: 0L }
@@ -1394,6 +1433,10 @@ private fun ExpenseDialog(
     } else {
         selected.map { OweParticipantBody(it) }
     }
+    val ready = description.isNotBlank() && minor != null && payer != null &&
+        selected.isNotEmpty() && exactReady && dateValid && !saving
+
+    LaunchedEffect(Unit) { focus.requestFocus() }
 
     AppFormSheet(
         onDismissRequest = onDismiss,
@@ -1401,96 +1444,204 @@ private fun ExpenseDialog(
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text(strings.description) },
-                    singleLine = true,
+                Text(
+                    strings.withPeople.replace("{names}", active.joinToString(", ") { it.displayName }),
+                    fontSize = 12.sp,
+                    color = palette.mutedForeground,
                 )
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it },
-                    label = { Text("${strings.amount} (${currency})") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                )
-                OutlinedTextField(
-                    value = occurredOn,
-                    onValueChange = { occurredOn = it },
-                    label = { Text(strings.date) },
-                    singleLine = true,
-                )
-                Text("${strings.category}:", fontSize = 12.sp)
+                // Description: a single quiet line, the first thing to fill.
                 Column {
-                    TextButton(onClick = { categoryId = null }) {
-                        Text(
-                            strings.noCategory,
-                            fontWeight = if (categoryId == null) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 11.sp,
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontSize = 16.sp,
+                            color = palette.foreground,
+                        ),
+                        cursorBrush = androidx.compose.ui.graphics.SolidColor(palette.accent),
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focus)
+                            .padding(vertical = 6.dp),
+                        decorationBox = { inner ->
+                            androidx.compose.foundation.layout.Box {
+                                if (description.isEmpty()) {
+                                    Text(
+                                        strings.description,
+                                        fontSize = 16.sp,
+                                        color = palette.mutedForeground,
+                                    )
+                                }
+                                inner()
+                            }
+                        },
+                    )
+                    androidx.compose.material3.HorizontalDivider(color = palette.border)
+                }
+                // Amount: the number is the hero of this screen.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(currencySymbol(currency), fontSize = 22.sp, color = palette.mutedForeground)
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = amount,
+                        onValueChange = { amount = it.filter { ch -> ch.isDigit() || ch == ',' || ch == '.' } },
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = palette.foreground,
+                        ),
+                        cursorBrush = androidx.compose.ui.graphics.SolidColor(palette.accent),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp, top = 4.dp, bottom = 4.dp),
+                        decorationBox = { inner ->
+                            androidx.compose.foundation.layout.Box {
+                                if (amount.isEmpty()) {
+                                    Text(
+                                        formatMinor(0, currency, locale),
+                                        fontSize = 26.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = palette.mutedForeground,
+                                    )
+                                }
+                                inner()
+                            }
+                        },
+                    )
+                }
+                androidx.compose.material3.HorizontalDivider(color = palette.border)
+                if (error != null) {
+                    Text(error, fontSize = 12.sp, color = palette.destructive)
+                }
+
+                // Payer and split: chips that read as a sentence.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${strings.paidBy} ", fontSize = 13.sp, color = palette.mutedForeground)
+                    androidx.compose.foundation.layout.Box {
+                        Chip(
+                            label = active.firstOrNull { it.id == payer }?.displayName ?: "—",
+                            open = true,
+                            onClick = { payerOpen = true },
                         )
+                        DropdownMenu(expanded = payerOpen, onDismissRequest = { payerOpen = false }) {
+                            for (member in active) {
+                                DropdownMenuItem(
+                                    text = { Text(member.displayName) },
+                                    onClick = {
+                                        payer = member.id
+                                        payerOpen = false
+                                    },
+                                )
+                            }
+                        }
                     }
-                    categories.forEach { category ->
-                        TextButton(onClick = { categoryId = category.id }) {
-                            Text(
-                                category.name,
-                                fontWeight = if (categoryId == category.id) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 11.sp,
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${strings.splitWith} ", fontSize = 13.sp, color = palette.mutedForeground)
+                    androidx.compose.foundation.layout.Box {
+                        Chip(
+                            label = if (exact) strings.splitExact else strings.splitEqually,
+                            open = true,
+                            onClick = { splitOpen = true },
+                        )
+                        DropdownMenu(expanded = splitOpen, onDismissRequest = { splitOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text(strings.splitEqually) },
+                                onClick = {
+                                    exact = false
+                                    splitOpen = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(strings.splitExact) },
+                                onClick = {
+                                    exact = true
+                                    splitOpen = false
+                                },
                             )
                         }
                     }
                 }
-                Text("${strings.paidBy}:", fontSize = 12.sp)
-                for (member in active) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { payer = member.id },
-                    ) {
-                        Checkbox(checked = payer == member.id, onCheckedChange = { payer = member.id })
-                        Text(member.displayName, fontSize = 13.sp)
+
+                // Category as one scrollable row of chips.
+                Text(strings.category, fontSize = 11.sp, color = palette.mutedForeground)
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Chip(
+                        label = strings.noCategory,
+                        selected = categoryId == null,
+                        onClick = { categoryId = null },
+                    )
+                    for (category in categories) {
+                        Chip(
+                            label = category.name,
+                            selected = categoryId == category.id,
+                            onClick = { categoryId = category.id },
+                        )
                     }
                 }
-                Text("${strings.participants}:", fontSize = 12.sp)
+
+                // Participants, each with what they take.
+                Text(strings.participants, fontSize = 11.sp, color = palette.mutedForeground)
                 for (member in active) {
+                    val checked = selected.contains(member.id)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                selected = if (selected.contains(member.id)) {
-                                    selected - member.id
-                                } else {
-                                    selected + member.id
-                                }
-                            },
+                                selected = if (checked) selected - member.id else selected + member.id
+                            }
+                            .heightIn(min = 44.dp)
+                            .padding(vertical = 6.dp),
                     ) {
-                        Checkbox(checked = selected.contains(member.id), onCheckedChange = null)
-                        Text(member.displayName, fontSize = 13.sp, modifier = Modifier.weight(1f))
-                        if (selected.contains(member.id) && selected.isNotEmpty() && total > 0) {
-                            if (!exact) {
-                                val chosenList = active.filter { selected.contains(it.id) }
-                                val share = equalShare(total, chosenList.size, chosenList.indexOf(member))
-                                Text(formatMinor(share, currency, locale), fontSize = 12.sp)
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .background(
+                                    if (checked) palette.accent else androidx.compose.ui.graphics.Color.Transparent,
+                                    RoundedCornerShape(6.dp),
+                                )
+                                .border(1.dp, if (checked) palette.accent else palette.border, RoundedCornerShape(6.dp)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (checked) {
+                                Text("✓", fontSize = 12.sp, color = palette.background)
                             }
                         }
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = { exact = false }) {
                         Text(
-                            strings.splitEqually,
-                            fontWeight = if (!exact) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 11.sp,
+                            member.displayName,
+                            modifier = Modifier.weight(1f).padding(start = 10.dp),
+                            fontSize = 14.sp,
                         )
+                        if (checked && !exact && total > 0) {
+                            val chosenList = active.filter { selected.contains(it.id) }
+                            Text(
+                                formatMinor(
+                                    equalShare(total, chosenList.size, chosenList.indexOf(member)),
+                                    currency,
+                                    locale,
+                                ),
+                                fontSize = 12.sp,
+                                color = palette.mutedForeground,
+                            )
+                        }
                     }
-                    TextButton(onClick = { exact = true }) {
-                        Text(
-                            strings.splitExact,
-                            fontWeight = if (exact) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 11.sp,
+                    if (exact && checked) {
+                        OutlinedTextField(
+                            value = exactAmounts[member.id] ?: "",
+                            onValueChange = { value -> exactAmounts = exactAmounts + (member.id to value) },
+                            label = { Text(member.displayName) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
@@ -1498,37 +1649,81 @@ private fun ExpenseDialog(
                     Text(
                         "${formatMinor(exactSum, currency, locale)} / ${formatMinor(total, currency, locale)}",
                         fontSize = 11.sp,
-                        color = if (exactReady) {
-                            LocalPalette.current.mutedForeground
-                        } else {
-                            LocalPalette.current.destructive
-                        },
+                        color = if (exactReady) palette.mutedForeground else palette.destructive,
                     )
-                    for (member in active.filter { selected.contains(it.id) }) {
-                        OutlinedTextField(
-                            value = exactAmounts[member.id] ?: "",
-                            onValueChange = { value ->
-                                exactAmounts = exactAmounts + (member.id to value)
-                            },
-                            label = { Text(member.displayName) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        )
-                    }
                 }
+
+                // Date last: it is usually today.
+                OutlinedTextField(
+                    value = occurredOn,
+                    onValueChange = { occurredOn = it },
+                    label = { Text(strings.date) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         },
         confirmButton = {
             TextButton(
-                enabled = description.isNotBlank() && minor != null && payer != null &&
-                    selected.isNotEmpty() && exactReady && dateValid && !saving,
+                enabled = ready,
                 onClick = {
                     onSave(description.trim(), minor!!, payer!!, participants, occurredOn, categoryId)
                 },
-            ) { Text(strings.save) }
+            ) {
+                if (saving) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(strings.save, color = if (ready) palette.accent else palette.mutedForeground)
+                }
+            }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },
     )
+}
+
+/** A quiet inline selector: text plus a chevron, no boxed field. */
+@Composable
+private fun Chip(
+    label: String,
+    onClick: () -> Unit,
+    selected: Boolean = false,
+    open: Boolean = false,
+) {
+    val palette = LocalPalette.current
+    Row(
+        modifier = Modifier
+            .background(
+                if (selected) palette.accent.copy(alpha = 0.12f) else palette.muted,
+                RoundedCornerShape(10.dp),
+            )
+            .border(
+                1.dp,
+                if (selected) palette.accent else palette.border,
+                RoundedCornerShape(10.dp),
+            )
+            .clickable(onClick = onClick)
+            .heightIn(min = 44.dp)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (selected) palette.accent else palette.foreground,
+        )
+        if (open) {
+            Text("  ▾", fontSize = 11.sp, color = palette.mutedForeground)
+        }
+    }
+}
+
+/** "EUR" -> "€": the amount reads better with the symbol next to it. */
+private fun currencySymbol(currency: String): String = when (currency.uppercase()) {
+    "EUR" -> "€"
+    "USD" -> "$"
+    "GBP" -> "£"
+    else -> currency.uppercase()
 }
 
 @Composable

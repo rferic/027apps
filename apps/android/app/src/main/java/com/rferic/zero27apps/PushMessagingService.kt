@@ -8,6 +8,8 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.rferic.zero27apps.ui.i18n.AppStrings
+import java.util.Locale
 
 /** Displays data-only FCM messages; the server sends a key, never localized text. */
 class PushMessagingService : FirebaseMessagingService() {
@@ -17,7 +19,8 @@ class PushMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
-        val title = FcmConfig.notificationTitle(data)
+        val strings = AppStrings.forLanguage(Locale.getDefault().language)
+        val title = data["module"]?.takeIf { it.isNotBlank() } ?: "027Apps"
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL_ID, "027Apps events", NotificationManager.IMPORTANCE_DEFAULT),
@@ -31,7 +34,7 @@ class PushMessagingService : FirebaseMessagingService() {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
-            .setContentText(data["payload"]?.take(200))
+            .setContentText(strings.pushEvent)
             .setContentIntent(intent)
             .setAutoCancel(true)
             .build()

@@ -263,7 +263,8 @@ export async function publishPending(
         if (tokens.length > 0) {
           const results = await deps.push.send(tokens, {
             key: `push.${event.type.replace(/\./g, "_")}`,
-            payload: JSON.stringify(wireEvent(event)),
+            // No payload: a lock screen must not show amounts, names or ids.
+            module: event.module_key ?? "027apps",
           });
           const invalid = results
             .filter((result) => result.error === "UNREGISTERED" || result.error === "INVALID_ARGUMENT")

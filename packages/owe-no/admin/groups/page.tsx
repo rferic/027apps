@@ -346,6 +346,7 @@ function NewGroup({
             <input
               name="name"
               required
+              autoFocus
               maxLength={80}
               autoCapitalize="words"
               className={`${control} font-normal`}
@@ -707,6 +708,8 @@ function MovementView({
               <input
                 name="description"
                 required
+                autoFocus
+                autoCapitalize="sentences"
                 maxLength={200}
                 defaultValue={editing?.description ?? ""}
                 className={`${control} font-normal`}
@@ -965,6 +968,7 @@ function MemberView({
             <input
               name="display_name"
               required
+              autoFocus
               maxLength={80}
               autoCapitalize="words"
               className={`${control} font-normal`}

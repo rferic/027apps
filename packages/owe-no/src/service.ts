@@ -13,22 +13,10 @@ export interface OweDeps {
   withTransaction?: <T>(fn: (db: OweDb) => Promise<T>) => Promise<T>;
 }
 
-export type OweError =
-  | "not_found"
-  | "forbidden"
-  | "validation_failed"
-  | "conflict";
+import { OweDomainError, type OweError } from "./errors";
 
-export class OweDomainError extends Error {
-  constructor(
-    readonly code: OweError,
-    message: string,
-    readonly details?: Record<string, unknown>,
-  ) {
-    super(message);
-    this.name = "OweDomainError";
-  }
-}
+export { OweDomainError };
+export type { OweError };
 
 /** One outbox row per event; the Core delivers it (push included). */
 export async function emit(
@@ -222,7 +210,9 @@ export async function listMembers(
   groupId: string,
 ): Promise<MemberView[]> {
   const member = await memberFor(deps, userId, groupId);
-  if (!member) throw new OweDomainError("not_found", "group not found");
+  if (!member || member.state !== "active") {
+    throw new OweDomainError("not_found", "group not found");
+  }
   const { rows } = await deps.db.query(
     `select m.id, m.display_name, m.state, m.user_id,
             exists (
@@ -331,6 +321,15 @@ export async function linkMember(
   if (!member[0]) throw new OweDomainError("not_found", "member not found");
   if (member[0].user_id !== null) {
     throw new OweDomainError("conflict", "the member already belongs to an account");
+  }
+  const { rows: blocked } = await deps.db.query(
+    "select 1 from module_owe_no.owe_no_blocks where group_id = $1 and user_id = $2",
+    [groupId, userId],
+  );
+  if (blocked[0]) {
+    throw new OweDomainError("conflict", "that account is blocked in this group", {
+      code: "member_blocked",
+    });
   }
   const { rows: existing } = await deps.db.query(
     `select 1 from module_owe_no.owe_no_members
@@ -466,6 +465,22 @@ export async function prepareMovement(
     members.map((member) => [String(member.id), String(member.state)]),
   ) as Record<string, "invited" | "active" | "left" | "removed">;
 
+  // Ids arrive from the client: a member of another group must never enter this
+  // group's balances, and its name must not leak through a movement.
+  const known = (id: string) => Object.prototype.hasOwnProperty.call(states, id);
+  if (!known(input.paid_by)) {
+    throw new OweDomainError("validation_failed", "payer is not a member of this group", {
+      code: "unknown_member",
+    });
+  }
+  for (const participant of input.participants) {
+    if (!known(participant.memberId)) {
+      throw new OweDomainError("validation_failed", "participant is not a member of this group", {
+        code: "unknown_member",
+      });
+    }
+  }
+
   const shares =
     input.kind === "settlement"
       ? input.participants.map((participant) => ({
@@ -501,6 +516,17 @@ export async function createMovementForGroup(
   input: MovementInput,
 ): Promise<MovementView> {
   const { currency, shares } = await prepareMovement(deps, groupId, input);
+  if (input.category_id) {
+    const { rows: category } = await deps.db.query(
+      "select 1 from module_owe_no.owe_no_categories where id = $1 and group_id = $2",
+      [input.category_id, groupId],
+    );
+    if (!category[0]) {
+      throw new OweDomainError("validation_failed", "that category is not in this group", {
+        code: "unknown_category",
+      });
+    }
+  }
   const run = deps.withTransaction ?? ((fn: (db: OweDb) => Promise<MovementView>) => fn(deps.db));
   return run(async (db) => {
     const { rows } = await db.query(

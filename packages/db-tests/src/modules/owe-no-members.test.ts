@@ -20,6 +20,7 @@ import {
   removeMember,
   unblockMember,
   linkMemberAsCreator,
+  createMovementForGroup,
   declineInvitation,
 } from "@027apps/owe-no/domain/service.js";
 import type { Caller } from "@027apps/core/api/types.js";
@@ -195,6 +196,64 @@ describe("owe-no linking a name to an account (D31)", () => {
         kind: "user",
         state: "active",
       });
+    });
+  });
+});
+
+describe("owe-no isolation (security)", () => {
+  it("refuses a movement that names a member of another group", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
+      const mine = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+        active: true,
+      });
+      const otherGroup = await createGroup(deps(c), owner.id, { name: "Viaje", currency: "EUR" });
+      await expect(
+        createMovementForGroup(deps(c), owner.id, otherGroup.id, {
+          kind: "expense",
+          amount_minor: 1000,
+          paid_by: mine.id,
+          participants: [{ memberId: mine.id, amount_minor: 1000 }],
+          description: "Cena",
+          occurred_on: "2026-11-15",
+        }),
+      ).rejects.toMatchObject({ code: "validation_failed" });
+    });
+  });
+
+  it("hides the census from a member who left", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
+      await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+        active: true,
+      });
+      await leaveGroup(deps(c), luis, group.id);
+      await expect(listMembers(deps(c), luis, group.id)).rejects.toMatchObject({
+        code: "not_found",
+      });
+    });
+  });
+
+  it("refuses to link a name to a blocked account", async () => {
+    await inRollback(async (c) => {
+      const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
+      const member = await addMember(deps(c), owner.id, group.id, {
+        displayName: "Luis",
+        inviteeId: luis,
+        active: true,
+      });
+      await blockMember(deps(c), owner.id, group.id, member.id);
+      const fake = await addMember(deps(c), owner.id, group.id, { displayName: "Luis" });
+      await expect(
+        linkMemberAsCreator(deps(c), owner.id, group.id, fake.id, luis),
+      ).rejects.toMatchObject({ code: "conflict", details: { code: "member_blocked" } });
     });
   });
 });

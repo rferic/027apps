@@ -211,6 +211,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             runCatching { supabase?.auth?.signOut() }
             sessionStore.clear()
+            FcmRegistrar(getApplication()).clear()
+            com.rferic.zero27apps.widget.WidgetSnapshotStore(getApplication()).clear()
             _login.value = LoginState()
             awaitLogin()
         }
@@ -259,6 +261,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             runCatching { supabase?.auth?.signOut() }
             sessionStore.clear()
+            FcmRegistrar(getApplication()).clear()
+            com.rferic.zero27apps.widget.WidgetSnapshotStore(getApplication()).clear()
             client?.close()
             client = null
             supabase = null

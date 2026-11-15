@@ -1,5 +1,7 @@
 package com.rferic.zero27apps.data
 
+import com.rferic.zero27apps.BuildConfig
+
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
@@ -208,8 +210,15 @@ class ApiClient(
 
     private suspend fun errorOf(response: HttpResponse): ApiException {
         val status = response.status.value
-        runCatching {
-            android.util.Log.w("027api", "HTTP $status ${response.call.request.url.encodedPath} ${response.bodyAsText()}")
+        if (BuildConfig.DEBUG) {
+            // Status and a path with ids redacted; never the body (it can carry a token).
+            runCatching {
+                val path = response.call.request.url.encodedPath.replace(
+                    Regex("/[0-9a-f-]{16,}"),
+                    "/:id",
+                )
+                android.util.Log.w("027api", "HTTP $status $path")
+            }
         }
         val envelope = runCatching { response.body<ErrorEnvelope>() }.getOrNull()
         return if (envelope != null) {

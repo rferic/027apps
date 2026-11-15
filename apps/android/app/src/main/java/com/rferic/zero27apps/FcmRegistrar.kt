@@ -7,12 +7,21 @@ import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
+import com.rferic.zero27apps.auth.EncryptedStringStore
+import com.rferic.zero27apps.auth.KeystoreSecretCipher
+import com.rferic.zero27apps.prefs.PrefsStringStore
 import java.net.HttpURLConnection
 import java.net.URL
 
 /** Registers this installation with the instance and keeps its FCM token fresh. */
 class FcmRegistrar(private val context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    // The session JWT never lands in clear text, not even for the FCM callback.
+    private val secrets = EncryptedStringStore(
+        KeystoreSecretCipher(),
+        PrefsStringStore(context, PREFS),
+        "session_token",
+    )
     private val mainHandler = Handler(Looper.getMainLooper())
 
     var instanceUrl: String?
@@ -20,8 +29,10 @@ class FcmRegistrar(private val context: Context) {
         private set(value) = prefs.edit().putString("instance_url", value).apply()
 
     var sessionToken: String?
-        get() = prefs.getString("session_token", null)
-        private set(value) = prefs.edit().putString("session_token", value).apply()
+        get() = secrets.load()
+        private set(value) {
+            if (value == null) secrets.clear() else secrets.save(value)
+        }
 
     fun configure(
         rawInstanceUrl: String,
@@ -54,6 +65,12 @@ class FcmRegistrar(private val context: Context) {
                 mainHandler.post { callback(Result.failure(error)) }
             }
         }.start()
+    }
+
+    /** Forgets the session material on sign-out or an instance change. */
+    fun clear() {
+        secrets.clear()
+        prefs.edit().remove("instance_url").apply()
     }
 
     /** Called by Firebase when the installation token rotates. */

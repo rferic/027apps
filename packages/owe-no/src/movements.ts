@@ -1,3 +1,5 @@
+import { OweDomainError } from "./errors";
+
 export type MemberState = "invited" | "active" | "left" | "removed";
 export type MovementKind = "expense" | "settlement";
 
@@ -16,28 +18,28 @@ export interface MovementInput {
  */
 export function validateMovement(input: MovementInput): void {
   if (!Number.isInteger(input.amount_minor) || input.amount_minor <= 0) {
-    throw new Error("amount_minor must be a positive integer");
+    throw new OweDomainError("validation_failed", "amount_minor must be a positive integer");
   }
-  if (input.participants.length === 0) throw new Error("no_participants");
+  if (input.participants.length === 0) throw new OweDomainError("validation_failed", "no_participants");
   const sum = input.participants.reduce((total, share) => total + share.amount_minor, 0);
-  if (sum !== input.amount_minor) throw new Error("shares do not add up to the total");
+  if (sum !== input.amount_minor) throw new OweDomainError("validation_failed", "shares do not add up to the total");
 
   const states = input.memberStates ?? {};
   for (const share of input.participants) {
     if (share.memberId === input.paidBy) continue;
     const state = states[share.memberId];
-    if (state !== undefined && state !== "active") throw new Error("participant is not active");
+    if (state !== undefined && state !== "active") throw new OweDomainError("validation_failed", "participant is not active");
   }
   const payerState = states[input.paidBy];
-  if (payerState !== undefined && payerState !== "active") throw new Error("payer is not active");
+  if (payerState !== undefined && payerState !== "active") throw new OweDomainError("validation_failed", "payer is not active");
 
   if (input.kind === "settlement") {
-    if (input.participants.length !== 1) throw new Error("a settlement has exactly one receiver");
+    if (input.participants.length !== 1) throw new OweDomainError("validation_failed", "a settlement has exactly one receiver");
     if (input.participants[0].memberId === input.paidBy) {
-      throw new Error("the payer cannot be the receiver");
+      throw new OweDomainError("validation_failed", "the payer cannot be the receiver");
     }
     if (input.participants[0].amount_minor !== input.amount_minor) {
-      throw new Error("a settlement pays the full amount to the receiver");
+      throw new OweDomainError("validation_failed", "a settlement pays the full amount to the receiver");
     }
   }
 }

@@ -1,5 +1,7 @@
 package com.rferic.zero27apps.update
 
+import com.rferic.zero27apps.BuildConfig
+
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
@@ -32,6 +34,14 @@ class Updater(private val context: Context) {
         onResult: (Result<Unit>) -> Unit,
     ) {
         val absolute = if (apkUrl.startsWith("http")) apkUrl else baseUrl.trimEnd('/') + apkUrl
+        // The APK must come over TLS from the instance itself or a release host:
+        // a plain-http or foreign origin is refused before downloading anything.
+        val allowed = absolute.startsWith("https://") &&
+            (absolute.startsWith(baseUrl.trimEnd('/')) || BuildConfig.DEBUG)
+        if (!allowed) {
+            onResult(Result.failure(IllegalArgumentException("update source is not trusted")))
+            return
+        }
         thread(name = "027apps-update") {
             val result = runCatching {
                 val dir = File(context.cacheDir, DIRECTORY).apply { mkdirs() }

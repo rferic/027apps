@@ -4,7 +4,8 @@ import { OweDomainError } from "./service";
 import { parseSplitwiseCsv, type ParsedMovement } from "./splitwise";
 
 /** 2 MB and 5.000 rows, as the spec caps a user file. */
-const MAX_BYTES = 2 * 1024 * 1024;
+// The API door caps a request body at 1 MB; leave room for JSON escaping.
+const MAX_BYTES = 400 * 1024;
 const MAX_ROWS = 5_000;
 
 export interface ImportPreviewRow {
@@ -50,7 +51,7 @@ export function rowHash(movement: ParsedMovement): string {
 
 function assertSize(csv: string): ParsedMovement[] {
   if (Buffer.byteLength(csv, "utf8") > MAX_BYTES) {
-    throw new OweDomainError("validation_failed", "the file is larger than 2 MB", {
+    throw new OweDomainError("validation_failed", "the file is larger than 400 KB", {
       code: "file_too_large",
     });
   }
@@ -172,6 +173,17 @@ export interface ImportCommitResult {
  * Commits the file in one transaction: either every accepted row lands with its
  * batch record, or nothing does. Names must already be mapped to members.
  */
+/** The batches of one group; only its creator reads them (no cross-group listing). */
+export async function importsForGroup(
+  deps: OweDeps,
+  userId: string,
+  groupId: string,
+): Promise<ImportBatchView[]> {
+  await groupContext(deps, userId, groupId);
+  const all = await listImports(deps);
+  return all.filter((batch) => batch.group_id === groupId);
+}
+
 export async function commitImport(
   deps: OweDeps,
   userId: string,
@@ -197,7 +209,16 @@ export async function commitImport(
   for (const member of members) {
     if (!byName.has(member.display_name)) byName.set(member.display_name, member.id);
   }
-  for (const [name, memberId] of Object.entries(options.mapping ?? {})) byName.set(name, memberId);
+  for (const [name, memberId] of Object.entries(options.mapping ?? {})) {
+    // A mapping is client input: it may only point at an active member of this
+    // group, never at an id from another group.
+    if (!byName.has(name) && !members.some((member) => member.id === memberId)) {
+      throw new OweDomainError("validation_failed", "that member is not in this group", {
+        code: "unmapped_identity",
+      });
+    }
+    byName.set(name, memberId);
+  }
 
   const unresolved = new Set<string>();
   for (const movement of parsed.movements) {
@@ -228,6 +249,9 @@ export async function commitImport(
 
   const run = deps.withTransaction ?? (<T>(fn: (db: OweDb) => Promise<T>) => fn(deps.db));
   return run(async (db) => {
+    // Two imports of the same group must not race the hash check: one commits,
+    // the other waits and then sees the rows.
+    await db.query("select pg_advisory_xact_lock(hashtext($1))", [groupId]);
     const scoped: OweDeps = { ...deps, db };
     const categories = new Map<string, string>();
     for (const movement of parsed.movements) {
@@ -338,7 +362,7 @@ export async function importIdentities(
            where m.group_id = $1 and m.user_id = p.id
         )
       order by p.display_name
-      limit 200`,
+      limit 50`,
     [groupId],
   );
   return rows.map((row) => ({ id: String(row.id), display_name: String(row.display_name) }));

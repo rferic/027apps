@@ -1,6 +1,6 @@
 import { withDoor } from "@027apps/core/api/door.js";
 import { importCommitSchema } from "@027apps/owe-no/domain/requests.js";
-import { commitImport, listImports } from "@027apps/owe-no/domain/importer.js";
+import { commitImport, importsForGroup } from "@027apps/owe-no/domain/importer.js";
 import { domainError, json, oweDeps } from "@/lib/owe-no";
 
 /** GET /api/v1/owe-no/groups/{id}/imports — batches of this group. */
@@ -17,9 +17,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     },
     door,
     async (ctx) => {
-      const all = await listImports(owe);
-      void callerId(ctx.caller);
-      return json({ imports: all.filter((batch) => batch.group_id === id) });
+      try {
+        return json({ imports: await importsForGroup(owe, callerId(ctx.caller), id) });
+      } catch (error) {
+        domainError(error);
+      }
     },
   );
 }
