@@ -72,7 +72,8 @@ describe("movement rules", () => {
     ).not.toThrow();
   });
 
-  it("refuses an invited participant, an empty split or a bad total", () => {
+  it("charges an invited member but refuses one who left, an empty split or a bad total", () => {
+    // Owner's ruling: an invited account behaves like a fictitious member.
     expect(() =>
       validateMovement({
         kind: "expense",
@@ -81,7 +82,16 @@ describe("movement rules", () => {
         participants: [{ memberId: "marta", amount_minor: 100 }],
         memberStates: states,
       }),
-    ).toThrow(/not active/);
+    ).not.toThrow();
+    expect(() =>
+      validateMovement({
+        kind: "expense",
+        amount_minor: 100,
+        paidBy: "ana",
+        participants: [{ memberId: "gone", amount_minor: 100 }],
+        memberStates: { ...states, gone: "left" },
+      }),
+    ).toThrow(/not in this group/);
     expect(() =>
       validateMovement({ kind: "expense", amount_minor: 100, paidBy: "ana", participants: [] }),
     ).toThrow(/no_participants/);

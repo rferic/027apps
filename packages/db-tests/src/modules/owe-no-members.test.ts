@@ -29,6 +29,7 @@ import {
   archiveCategory,
   listCategories,
   declineInvitation,
+  acceptInvitation,
 } from "@027apps/owe-no/domain/service.js";
 import type { Caller } from "@027apps/core/api/types.js";
 
@@ -101,11 +102,8 @@ describe("owe-no member visibility (D31)", () => {
     await inRollback(async (c) => {
       const { group, owner } = await setup(c);
       const luis = await other(c, "Luis");
-      await addMember(deps(c), owner.id, group.id, {
-        displayName: "Luis",
-        inviteeId: luis,
-        active: true,
-      });
+      await addMember(deps(c), owner.id, group.id, { displayName: "Luis", inviteeId: luis });
+      await acceptInvitation(deps(c), luis, group.id);
       const again = await addMember(deps(c), owner.id, group.id, {
         displayName: "Luis",
         inviteeId: luis,
@@ -121,8 +119,9 @@ describe("owe-no member visibility (D31)", () => {
       const member = await addMember(deps(c), owner.id, group.id, {
         displayName: "Luis",
         inviteeId: luis,
-        active: true,
       });
+      // The account accepts the invitation: that is what makes it active.
+      await acceptInvitation(deps(c), luis, group.id);
       await blockMember(deps(c), owner.id, group.id, member.id);
       const listed = await listMembers(deps(c), owner.id, group.id);
       expect(listed.find((row) => row.id === member.id)).toMatchObject({
@@ -142,8 +141,9 @@ describe("owe-no member visibility (D31)", () => {
       const member = await addMember(deps(c), owner.id, group.id, {
         displayName: "Luis",
         inviteeId: luis,
-        active: true,
       });
+      // The account accepts the invitation: that is what makes it active.
+      await acceptInvitation(deps(c), luis, group.id);
       await c.query(
         `insert into module_owe_no.owe_no_movements
            (group_id, kind, description, amount_minor, currency, paid_by_member_id, occurred_on, created_by)
@@ -215,8 +215,9 @@ describe("owe-no editing and deleting a movement", () => {
       const member = await addMember(deps(c), owner.id, group.id, {
         displayName: "Luis",
         inviteeId: luis,
-        active: true,
       });
+      // The account accepts the invitation: that is what makes it active.
+      await acceptInvitation(deps(c), luis, group.id);
       const me = await addMember(deps(c), owner.id, group.id, { displayName: "Ana" });
       const movement = await createMovementForGroup(deps(c), owner.id, group.id, {
         kind: "expense",
@@ -299,8 +300,9 @@ describe("owe-no payer outside the split (D17)", () => {
       const guest = await addMember(deps(c), owner.id, group.id, {
         displayName: "Luis",
         inviteeId: luis,
-        active: true,
       });
+      // The account accepts the invitation: that is what makes it active.
+      await acceptInvitation(deps(c), luis, group.id);
       const me = await addMember(deps(c), owner.id, group.id, { displayName: "Ana" });
       // Ana pays, only Luis takes part: it is a loan, not her own expense.
       const movement = await createMovementForGroup(deps(c), owner.id, group.id, {
@@ -327,8 +329,9 @@ describe("owe-no isolation (security)", () => {
       const mine = await addMember(deps(c), owner.id, group.id, {
         displayName: "Luis",
         inviteeId: luis,
-        active: true,
       });
+      // The account accepts the invitation: that is what makes it active.
+      await acceptInvitation(deps(c), luis, group.id);
       const otherGroup = await createGroup(deps(c), owner.id, { name: "Viaje", currency: "EUR" });
       await expect(
         createMovementForGroup(deps(c), owner.id, otherGroup.id, {
@@ -347,11 +350,8 @@ describe("owe-no isolation (security)", () => {
     await inRollback(async (c) => {
       const { group, owner } = await setup(c);
       const luis = await other(c, "Luis");
-      await addMember(deps(c), owner.id, group.id, {
-        displayName: "Luis",
-        inviteeId: luis,
-        active: true,
-      });
+      await addMember(deps(c), owner.id, group.id, { displayName: "Luis", inviteeId: luis });
+      await acceptInvitation(deps(c), luis, group.id);
       await leaveGroup(deps(c), luis, group.id);
       await expect(listMembers(deps(c), luis, group.id)).rejects.toMatchObject({
         code: "not_found",
@@ -366,8 +366,9 @@ describe("owe-no isolation (security)", () => {
       const member = await addMember(deps(c), owner.id, group.id, {
         displayName: "Luis",
         inviteeId: luis,
-        active: true,
       });
+      // The account accepts the invitation: that is what makes it active.
+      await acceptInvitation(deps(c), luis, group.id);
       await blockMember(deps(c), owner.id, group.id, member.id);
       const fake = await addMember(deps(c), owner.id, group.id, { displayName: "Luis" });
       await expect(
@@ -493,15 +494,37 @@ describe("owe-no member lifecycle", () => {
   });
 });
 
-describe("owe-no active member (importer)", () => {
-  it("adds a member as active when the creator imports history", async () => {
+describe("owe-no invited account (owner's ruling)", () => {
+  it("adds a real account as invited, chargeable, and active once it accepts", async () => {
     await inRollback(async (c) => {
       const { group, owner } = await setup(c);
+      const luis = await other(c, "Luis");
       const member = await addMember(deps(c), owner.id, group.id, {
-        displayName: "Histórico",
-        active: true,
+        displayName: "Luis",
+        inviteeId: luis,
       });
-      expect(member.state).toBe("active");
+      expect(member.state).toBe("invited");
+      const ownerMember = (await listMembers(deps(c), owner.id, group.id)).find(
+        (row) => row.user_id === owner.id,
+      )!;
+      // It behaves like a fictitious member: the creator can charge it.
+      await createMovementForGroup(deps(c), owner.id, group.id, {
+        kind: "expense",
+        description: "Cena",
+        amount_minor: 1000,
+        occurred_on: "2026-05-10",
+        paid_by: ownerMember.id,
+        participants: [
+          { memberId: ownerMember.id, amount_minor: 500 },
+          { memberId: member.id, amount_minor: 500 },
+        ],
+      });
+      await acceptInvitation(deps(c), luis, group.id);
+      const listed = await listMembers(deps(c), owner.id, group.id);
+      expect(listed.find((row) => row.id === member.id)?.state).toBe("active");
+      // The balance travelled with the account instead of starting over.
+      const balances = await groupBalances(deps(c), group.id);
+      expect(balances.get(member.id)).toBe(-500);
     });
   });
 });
@@ -514,8 +537,9 @@ describe("owe-no removal with a pending balance (D29)", () => {
       const member = await addMember(deps(c), owner.id, group.id, {
         displayName: "Luis",
         inviteeId: luis,
-        active: true,
       });
+      // The account accepts the invitation: that is what makes it active.
+      await acceptInvitation(deps(c), luis, group.id);
       const { rows: ownerMember } = await query(
         c,
         "select id from module_owe_no.owe_no_members where group_id = $1 and user_id = $2",

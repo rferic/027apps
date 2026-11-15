@@ -28,7 +28,6 @@ export const addMemberSchema = z
   .object({
     display_name: z.string().trim().min(1).max(80),
     invitee_id: z.uuid().optional(),
-    active: z.boolean().optional(),
   })
   .strict();
 

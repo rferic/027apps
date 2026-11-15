@@ -257,7 +257,7 @@ export async function addMember(
   deps: OweDeps,
   userId: string,
   groupId: string,
-  input: { displayName: string; inviteeId?: string; active?: boolean },
+  input: { displayName: string; inviteeId?: string },
 ): Promise<MemberView> {
   await assertGroupOpen(deps, groupId);
   await requireCreator(deps, userId, groupId);
@@ -279,9 +279,10 @@ export async function addMember(
       });
     }
   }
-  // D30: a name without an account is a participant from the moment it is
-  // added; only a real account waits for the invitation to be accepted.
-  const state = input.inviteeId && input.active !== true ? "invited" : "active";
+  // D30 + owner's ruling (2026-11-15): a name without an account is a
+  // participant from the moment it is added; a real account is always invited
+  // and, while it has not accepted, it is charged like a fictitious member.
+  const state = input.inviteeId ? "invited" : "active";
   const { rows } = await deps.db.query(
     `insert into module_owe_no.owe_no_members
        (group_id, user_id, display_name, state, invited_by, invited_at, joined_at)

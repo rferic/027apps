@@ -123,8 +123,10 @@ export async function previewImport(
   assertSize(csv);
   assertOneCurrency(parsed.movements, parsed.currencies, currency);
 
+  // Invited accounts are charged like fictitious ones, so the historical rows
+  // may point at them before they accept.
   const members = (await listMembers(deps, userId, groupId)).filter(
-    (member) => member.state === "active",
+    (member) => member.state === "active" || member.state === "invited",
   );
   const names = new Set(members.map((member) => member.display_name));
   const unresolved = new Set<string>();

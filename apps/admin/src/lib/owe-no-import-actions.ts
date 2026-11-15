@@ -65,10 +65,11 @@ export async function importCommitAction(
     // member first, exactly like the app does.
     const mapping: Record<string, string> = {};
     for (const [name, choice] of Object.entries(choices)) {
+      // A real account enters invited and is charged like a fictitious one
+      // (owner's ruling, 2026-11-15); it inherits this balance when it accepts.
       const member = await addMember(owe, userId, groupId, {
         displayName: choice.display_name || name,
         ...(choice.user_id ? { inviteeId: choice.user_id } : {}),
-        active: true,
       });
       mapping[name] = member.id;
     }
