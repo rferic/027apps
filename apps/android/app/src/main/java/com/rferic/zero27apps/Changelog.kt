@@ -13,6 +13,14 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.16.6",
+            date = "2026-11-15",
+            notes = mapOf(
+                "es" to listOf("El widget se adapta al tamaño: saldo, totales o grupos y última actividad."),
+                "en" to listOf("The widget adapts to its size: balance, totals, or groups and latest activity."),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.16.5",
             date = "2026-11-15",
             notes = mapOf(

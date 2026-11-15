@@ -33,6 +33,16 @@ import com.rferic.zero27apps.ui.i18n.AppStrings
  * from the last snapshot so it never blocks on the network.
  */
 class OweWidget : GlanceAppWidget() {
+    /** Three shapes: balance only, both totals, and the full card. */
+    override val sizeMode: androidx.glance.appwidget.SizeMode =
+        androidx.glance.appwidget.SizeMode.Responsive(
+            setOf(
+                androidx.compose.ui.unit.DpSize(140.dp, 110.dp),
+                androidx.compose.ui.unit.DpSize(250.dp, 110.dp),
+                androidx.compose.ui.unit.DpSize(250.dp, 220.dp),
+            ),
+        )
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotStore(context).read()
         val masked = com.rferic.zero27apps.prefs.PrefsStringStore(context)
@@ -44,6 +54,9 @@ class OweWidget : GlanceAppWidget() {
     private fun Content(snapshot: WidgetSnapshot, masked: Boolean) {
         val strings = AppStrings.forLanguage(snapshot.locale)
         val context = androidx.glance.LocalContext.current
+        val size = androidx.glance.LocalSize.current
+        val compact = size.width < 200.dp
+        val tall = size.height > 160.dp
         // Same palette as the app: the widget never invents its own colours.
         // Resource colours carry a night variant, so the widget follows the system theme.
         val surface = ColorProvider(com.rferic.zero27apps.R.color.owe_widget_surface)
@@ -98,7 +111,7 @@ class OweWidget : GlanceAppWidget() {
                     color = if (snapshot.netMinor < 0 && snapshot.signedIn) danger else accent,
                 ),
             )
-            if (snapshot.signedIn && (snapshot.owedToYouMinor > 0 || snapshot.youOweMinor > 0)) {
+            if (!compact && snapshot.signedIn && (snapshot.owedToYouMinor > 0 || snapshot.youOweMinor > 0)) {
                 Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 6.dp)) {
                     if (snapshot.owedToYouMinor > 0) {
                         Text(
@@ -117,21 +130,21 @@ class OweWidget : GlanceAppWidget() {
                     }
                 }
             }
-            if (snapshot.lastDescription != null) {
+            if (tall && snapshot.lastDescription != null) {
                 Text(
                     "${strings.lastActivity}: ${snapshot.lastDescription}",
                     modifier = GlanceModifier.padding(top = 6.dp),
                     style = TextStyle(fontSize = 11.sp, color = muted),
                 )
             }
-            if (snapshot.groups.isEmpty()) {
+            if (tall && snapshot.groups.isEmpty()) {
                 Text(
                     if (snapshot.signedIn) strings.activityEmpty else "",
                     modifier = GlanceModifier.padding(top = 4.dp),
                     style = TextStyle(fontSize = 11.sp, color = muted),
                 )
             }
-            snapshot.groups.take(3).forEach { group ->
+            (if (tall) snapshot.groups.take(3) else emptyList()).forEach { group ->
                 Row(
                     modifier = GlanceModifier.fillMaxWidth().padding(top = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
