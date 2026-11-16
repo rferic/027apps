@@ -56,6 +56,7 @@ import com.rferic.zero27apps.ui.theme.LocalPalette
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.roundToInt
 
 private data class PersonRow(val name: String, val paid: Long, val consumed: Long, val net: Long)
 
@@ -123,7 +124,12 @@ private fun SummaryBody(
 
     val total = summary.monthTotal
     val previousTotal = summary.previousMonthTotal
-    val delta = if (previousTotal > 0) ((total - previousTotal) * 100 / previousTotal) else null
+    val delta =
+        if (previousTotal > 0) {
+            (((total - previousTotal).toDouble() / previousTotal) * 100).roundToInt()
+        } else {
+            null
+        }
 
     val people = summary.peopleTotals.map { person ->
         PersonRow(
@@ -284,7 +290,8 @@ private fun CategoryReport(
             fontWeight = FontWeight.Bold,
         )
         categories.forEach { entry ->
-            val percent = if (total > 0) ((entry.total * 100) / total).toInt() else 0
+            val percent =
+                if (total > 0) ((entry.total.toDouble() / total) * 100).roundToInt() else 0
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
