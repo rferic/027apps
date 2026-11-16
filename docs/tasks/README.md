@@ -20,6 +20,7 @@ estable: no se reutiliza ni se reordena. Este índice es la fuente del orden rea
 | 13 | `sprint-13-staging-prod` | 2026-11-08 | finalizada |
 | 14 | `sprint-14-mejoras` | 2026-11-10 | finalizada |
 | 15 | `sprint-15-app-y-finanzas` | 2026-11-12 | finalizada 2026-11-15 (12 tareas) · PR #97 |
+| 16 | `sprint-16-panel-y-notificaciones` | 2026-11-16 | pendiente de aprobación (5 tareas) |
 
 ## Regla
 
