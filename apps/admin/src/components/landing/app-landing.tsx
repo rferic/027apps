@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DownloadButton } from "@/components/landing/download-button";
+import { PanelIcon, ServerIcon } from "@/components/landing/action-icons";
 import { GitHubIcon } from "@/components/landing/github-icon";
 import { CookieNotice } from "@/components/cookie-notice";
 import { LanguageMenu } from "@/components/landing/language-menu";
@@ -60,7 +61,9 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
                 <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.87-.01-1.71-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z" />
               </svg>
             </a>
-            <Link className="btn primary" href="/panel" prefetch={false}>{t("Open panel")}</Link>
+            <Link className="btn primary" href="/panel" prefetch={false}>
+              <PanelIcon />{" "}{t("Open panel")}
+            </Link>
           </div>
         </nav>
       </div>
@@ -86,7 +89,7 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
           </div>
           <p style={s("margin-top: 14px")}>
             <span className="note-pill">
-              <b>●</b>{" "}{t("Android app in development · these screens are from the current build")}{" "}</span>
+              <b>●</b>{" "}{t("Android app in development · the screens are simulated with sample data")}{" "}</span>
           </p>
 
           <div className="tabs">
@@ -413,7 +416,9 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
             </h2>
             <p className="lead" style={s("font-size: 16px")}>{t("Members, invitations, categories, modules, API keys and MCP. The panel lives in the browser and is where everything is set up.")}{" "}</p>
             <div className="hero-actions">
-              <Link className="btn primary" href={landingHref(locale, "selfhost")}>{t("Self-host the project")}{" "}</Link>
+              <Link className="btn primary" href={landingHref(locale, "selfhost")}>
+                <ServerIcon />{" "}{t("Self-host the project")}{" "}
+              </Link>
               <a className="btn ghost" href="https://github.com/rferic/027apps">
                 <GitHubIcon />{" "}{t("View on GitHub")}{" "}</a>
             </div>
@@ -479,11 +484,37 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
           <div className="phone">
             <div className="notch"></div>
             <div className="screen">
-              <img
-                className="shot"
-                src="/landing/owe-no-group.png"
-                alt={t("OweNo group with balances and members")}
-              />
+              {/* Simulated screen: every visual on the site is drawn, not a
+                  capture, so the page keeps one style and one theme. */}
+              <div className="ph-head">
+                <span>{t("OweNo · Home")}</span>
+                <span>ER</span>
+              </div>
+              <div className="ph-card">
+                <div className="k">{t("Balances")}</div>
+                <div className="ph-list">
+                  <div className="ph-item">
+                    <span className="mini-avatar">A</span>
+                    <span className="who">{t("Ana")}</span>
+                    <span className="amt pos">+32,10 €</span>
+                  </div>
+                  <div className="ph-item">
+                    <span className="mini-avatar">L</span>
+                    <span className="who">{t("Luis")}</span>
+                    <span className="amt neg">−32,10 €</span>
+                  </div>
+                </div>
+              </div>
+              <div className="ph-card">
+                <div className="k">{t("This month")}</div>
+                <div className="v teal">18,75 €</div>
+              </div>
+              <div className="ph-tabs">
+                <b>{t("Activity")}</b>
+                <span>{t("Balances")}</span>
+                <span>{t("Members")}</span>
+                <span>{t("Summary")}</span>
+              </div>
             </div>
           </div>
         </div>

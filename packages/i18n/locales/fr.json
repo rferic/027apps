@@ -817,5 +817,12 @@
   "{name} leaves this category. Module access they already have does not change.": "{name} quitte cette catégorie. L'accès aux modules déjà accordé ne change pas.",
   "{name} will be able to sign in again.": "{name} pourra se reconnecter.",
   "{name} will lose access immediately.": "{name} perdra l'accès immédiatement.",
-  "{selected} of {total} selected": "{selected} sur {total} sélectionnées"
+  "{selected} of {total} selected": "{selected} sur {total} sélectionnées",
+  "Activity": "Activité",
+  "Ana": "Ana",
+  "Android app in development · the screens are simulated with sample data": "Application Android en développement · les écrans sont simulés avec des données d'exemple",
+  "Balances": "Soldes",
+  "Luis": "Luis",
+  "OweNo · Home": "OweNo · Accueil",
+  "Summary": "Résumé"
 }
