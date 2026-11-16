@@ -3,6 +3,7 @@ package com.rferic.zero27apps.ui.screens
 import com.rferic.zero27apps.data.OweCategoryDto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -40,5 +41,22 @@ class OweCategoryTest {
         assertEquals("food", categoryAfterArchive("food", "food", "food"))
         assertEquals("food", categoryAfterArchive("food", "other", "other"))
         assertNull(categoryAfterArchive(null, "food", null))
+    }
+
+    @Test
+    fun `typing narrows the list ignoring case and accents`() {
+        val all = listOf(
+            OweCategoryDto(id = "food", name = "Alimentos"),
+            OweCategoryDto(id = "flight", name = "Avión"),
+            OweCategoryDto(id = "rent", name = "Alquiler"),
+            OweCategoryDto(id = "old", name = "Antigua", archived = true),
+        )
+        val usable = selectableCategories(all)
+        assertEquals(listOf("flight"), categoriesMatching(usable, "avion").map { it.id })
+        assertEquals(listOf("flight"), categoriesMatching(usable, "AVIÓN").map { it.id })
+        assertEquals(listOf("food", "rent"), categoriesMatching(usable, "al").map { it.id })
+        assertEquals(usable, categoriesMatching(usable, "  "))
+        assertTrue(categoriesMatching(usable, "ant").isEmpty())
+        assertTrue(categoriesMatching(usable, "zzz").isEmpty())
     }
 }

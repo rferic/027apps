@@ -124,6 +124,22 @@ internal fun categoryAfterArchive(
     originalId: String?,
 ): String? = if (categoryId == archivedId && originalId != archivedId) null else categoryId
 
+/** Search text folded so names compare without caring about case or accents. */
+private fun foldCategorySearch(text: String): String =
+    java.text.Normalizer.normalize(text.trim(), java.text.Normalizer.Form.NFD)
+        .replace(Regex("\\p{Mn}+"), "")
+        .lowercase(java.util.Locale.ROOT)
+
+/** Categories whose name contains what the owner typed; a blank query keeps them all. */
+internal fun categoriesMatching(
+    categories: List<OweCategoryDto>,
+    query: String,
+): List<OweCategoryDto> {
+    val wanted = foldCategorySearch(query)
+    if (wanted.isEmpty()) return categories
+    return categories.filter { foldCategorySearch(it.name).contains(wanted) }
+}
+
 /** Equal split: base cents plus one cent for the first `remainder` members. */
 internal fun equalShare(total: Long, chosen: Int, index: Int): Long {
     if (chosen <= 0) return 0
@@ -1877,10 +1893,12 @@ private fun ExpenseDialog(
     var showSplit by remember { mutableStateOf(false) }
     var showNewCategory by remember { mutableStateOf(false) }
     var showCategoryPicker by remember { mutableStateOf(false) }
+    var categorySearch by remember { mutableStateOf("") }
     var newCategoryName by remember { mutableStateOf("") }
     var editingCategory by remember { mutableStateOf<OweCategoryDto?>(null) }
     var editingName by remember { mutableStateOf("") }
     val newCategoryFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val categorySearchFocus = remember { androidx.compose.ui.focus.FocusRequester() }
     val editingFocus = remember { androidx.compose.ui.focus.FocusRequester() }
     LaunchedEffect(showNewCategory) {
         if (showNewCategory) newCategoryFocus.requestFocus()
@@ -2090,7 +2108,10 @@ private fun ExpenseDialog(
                 SelectField(
                     text = chosenCategory ?: strings.noCategory,
                     empty = chosenCategory == null,
-                    onClick = { showCategoryPicker = true },
+                    onClick = {
+                        categorySearch = ""
+                        showCategoryPicker = true
+                    },
                 )
                 if (showNewCategory) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -2212,6 +2233,15 @@ private fun ExpenseDialog(
             secondaryLabel = strings.cancel,
             onSecondary = { showCategoryPicker = false },
             content = {
+                LaunchedEffect(Unit) { categorySearchFocus.requestFocus() }
+                OutlinedTextField(
+                    value = categorySearch,
+                    onValueChange = { categorySearch = it },
+                    label = { Text(strings.search) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth().focusRequester(categorySearchFocus),
+                )
                 CategoryChoice(
                     label = strings.noCategory,
                     selected = categoryId == null,
@@ -2220,7 +2250,8 @@ private fun ExpenseDialog(
                         showCategoryPicker = false
                     },
                 )
-                for (category in selectableCategories(categories)) {
+                val matches = categoriesMatching(selectableCategories(categories), categorySearch)
+                for (category in matches) {
                     CategoryChoice(
                         label = category.name,
                         selected = categoryId == category.id,
@@ -2236,11 +2267,14 @@ private fun ExpenseDialog(
                         },
                     )
                 }
+                if (matches.isEmpty() && categorySearch.isNotBlank()) {
+                    Text(strings.noResults, fontSize = 12.sp, color = palette.mutedForeground)
+                }
                 SheetAction(label = "+ ${strings.newCategory}") {
                     showCategoryPicker = false
                     editingCategory = null
                     showNewCategory = true
-                    newCategoryName = ""
+                    newCategoryName = categorySearch.trim()
                 }
             },
         )
