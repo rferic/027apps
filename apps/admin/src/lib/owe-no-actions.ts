@@ -14,6 +14,7 @@ import {
   adminDeleteMovement,
   adminLinkMember,
   adminRemoveMember,
+  adminDeleteGroup,
   adminSetArchived,
   adminUpdateMovement,
 } from "@027apps/owe-no/domain/admin.js";
@@ -83,6 +84,24 @@ export async function createGroupAction(formData: FormData): Promise<void> {
   }
   // `redirect` throws; it must run outside the try or the catch would eat it.
   refresh(created);
+}
+
+/**
+ * Deletes a group for good. The form carries the group's name as typed by the
+ * administrator; the domain refuses anything that is not an exact match.
+ */
+export async function deleteGroupAction(formData: FormData): Promise<void> {
+  const caller = await gate();
+  const groupId = String(formData.get("group") ?? "");
+  if (!groupId) fail("validation_failed");
+  try {
+    const { owe } = await oweDeps();
+    await adminDeleteGroup(owe, caller, groupId, String(formData.get("confirm") ?? ""));
+  } catch (error) {
+    fail(errorCode(error), groupId);
+  }
+  // No group to return to: back to the catalogue.
+  redirect("/panel/owe-no/groups");
 }
 
 export async function archiveGroupAction(formData: FormData): Promise<void> {

@@ -14,6 +14,7 @@ import {
   addMemberAction,
   archiveGroupAction,
   createGroupAction,
+  deleteGroupAction,
   deleteMovementAction,
   linkMemberAction,
   removeMemberAction,
@@ -91,6 +92,7 @@ export default async function OweNoGroupsPage({ context }: { context: ModulePage
       actions={{
         createGroup: createGroupAction,
         archiveGroup: archiveGroupAction,
+        deleteGroup: deleteGroupAction,
         addMember: addMemberAction,
         linkMember: linkMemberAction,
         removeMember: removeMemberAction,

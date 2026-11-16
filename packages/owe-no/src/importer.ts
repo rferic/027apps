@@ -273,6 +273,17 @@ export async function commitImport(
       await db.query("delete from module_owe_no.owe_no_imports where group_id = $1", [groupId]);
       await db.query("delete from module_owe_no.owe_no_categories where group_id = $1", [groupId]);
       await db.query("delete from module_owe_no.owe_no_idempotency where group_id = $1", [groupId]);
+      // Fictitious members exist only for the expenses they were created for: once
+      // those are gone, keeping them only accumulates "Bolli" four times.
+      await db.query(
+        `delete from module_owe_no.owe_no_members m
+          where m.group_id = $1 and m.user_id is null and m.state in ('active', 'invited')
+            and not exists (select 1 from module_owe_no.owe_no_movements mv
+                             where mv.group_id = $1 and mv.paid_by_member_id = m.id)
+            and not exists (select 1 from module_owe_no.owe_no_movement_shares s
+                             where s.member_id = m.id)`,
+        [groupId],
+      );
     }
     // Every write of the import runs on THIS transaction: the categories and
     // members created above are not committed yet, and opening a second one (the

@@ -20,6 +20,7 @@ type UserPicker = ComponentType<{
 export interface OweNoGroupsActions {
   createGroup: Action;
   archiveGroup: Action;
+  deleteGroup: Action;
   addMember: Action;
   linkMember: Action;
   removeMember: Action;
@@ -402,10 +403,15 @@ function GroupDetail({
             </span>
           </span>
         }
-        description={tr("Members {members} · Movements {movements}", {
-          members: group.members,
-          movements: group.movements,
-        })}
+        description={tr(
+          "Members {members} · Movements {movements} · Expenses {expenses} · Payments {payments}",
+          {
+            members: group.members,
+            movements: group.movements,
+            expenses: money(detail.expenses_total, group.currency, context.locale),
+            payments: money(detail.payments_total, group.currency, context.locale),
+          },
+        )}
         tr={tr}
       >
         <div className="flex w-full flex-col gap-2 sm:w-auto">
@@ -438,6 +444,31 @@ function GroupDetail({
                 className="w-full"
               />
             </div>
+            <form action={actions.deleteGroup} className="flex flex-col gap-2 rounded-control border border-destructive/60 p-3">
+              <input type="hidden" name="group" value={group.id} />
+              <p className="text-[11px] font-semibold text-destructive">
+                {tr("Delete this group for good.")}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {tr(
+                  "Its expenses, payments, categories, imports and members are deleted. This cannot be undone.",
+                )}
+              </p>
+              <label className="flex flex-col gap-1 text-[11px]">
+                {tr("Type the group name to confirm: {name}", { name: group.name })}
+                <input
+                  name="confirm"
+                  autoComplete="off"
+                  className="min-h-11 rounded-control border border-border bg-background px-2 text-sm"
+                />
+              </label>
+              <button
+                type="submit"
+                className="min-h-11 rounded-control bg-destructive px-3 text-xs font-semibold text-background"
+              >
+                {tr("Delete group")}
+              </button>
+            </form>
           </div>
         </div>
       </PageHeader>

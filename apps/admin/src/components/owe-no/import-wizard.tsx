@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Dialog } from "@/components/ui/dialog";
 import {
   importCommitAction,
   importIdentitiesAction,
@@ -65,6 +66,8 @@ const COPY = {
     duplicatesNote: "Los movimientos que ya se importaron antes se omiten.",
     run: "Importar",
     running: "Importando…",
+    open: "Importar un CSV",
+    close: "Cerrar",
     reset: "Empezar de cero: borrar los movimientos actuales del grupo",
     resetHint:
       "Los gastos, pagos, categorías e importaciones anteriores de este grupo se borran antes de importar. Los miembros se conservan. No se puede deshacer.",
@@ -116,6 +119,8 @@ const COPY = {
     duplicatesNote: "Movements imported before are skipped.",
     run: "Import",
     running: "Importing…",
+    open: "Import a CSV",
+    close: "Close",
     reset: "Start from scratch: delete the group's current movements",
     resetHint:
       "The group's expenses, payments, categories and previous imports are deleted before importing. Members are kept. This cannot be undone.",
@@ -175,6 +180,15 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
   const [busy, setBusy] = useState(false);
   // Named `wipe`: `reset` is already the function that clears the form.
   const [wipe, setWipe] = useState(false);
+  const [open, setOpen] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const element = dialog.current;
+    if (!element) return;
+    if (open && !element.open) element.showModal();
+    if (!open && element.open) element.close();
+  }, [open]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ created: number; skipped: number } | null>(null);
 
@@ -243,9 +257,41 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
     }
   }
 
+  if (!open) return <ImportLauncher copy={copy} onOpen={() => setOpen(true)} />;
+
   return (
-    <section className="flex flex-col gap-4">
-      <Stepper copy={copy} step={step} />
+    <>
+      <Dialog
+        ref={dialog}
+        labelledBy="owe-import-title"
+        className="max-w-3xl"
+        onCancel={(event) => {
+          event.preventDefault();
+          setOpen(false);
+          reset();
+        }}
+        onBackdropClick={() => {
+          setOpen(false);
+          reset();
+        }}
+      >
+        <header className="mb-3 flex items-start justify-between gap-3">
+          <h2 id="owe-import-title" className="text-sm font-bold">
+            {copy.title}
+          </h2>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              reset();
+            }}
+            className="min-h-9 rounded-control border border-border px-3 text-[11px] font-semibold"
+          >
+            {copy.close}
+          </button>
+        </header>
+        <section className="flex flex-col gap-4">
+          <Stepper copy={copy} step={step} />
       {result !== null ? (
         <ResultStep copy={copy} created={result.created} skipped={result.skipped} onAgain={reset} />
       ) : (
@@ -283,7 +329,25 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
           onRun={run}
         />
       ) : null}
-    </section>
+        </section>
+      </Dialog>
+    </>
+  );
+}
+
+/** Closed state: one line of explanation and the button that opens the modal. */
+function ImportLauncher({ copy, onOpen }: { copy: Copy; onOpen: () => void }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4">
+      <p className="text-xs text-muted-foreground">{copy.intro}</p>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="min-h-10 w-fit rounded-control bg-accent px-4 text-xs font-semibold text-background"
+      >
+        {copy.open}
+      </button>
+    </div>
   );
 }
 

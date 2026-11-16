@@ -50,6 +50,7 @@ describe("owe-no admin pages", () => {
         actions: {
           createGroup: noop,
           archiveGroup: noop,
+          deleteGroup: noop,
           addMember: noop,
           linkMember: noop,
           removeMember: noop,
@@ -139,6 +140,8 @@ describe("owe-no admin pages", () => {
           ],
         },
       ],
+      expenses_total: 1000,
+      payments_total: 0,
       movements_total: 1,
       movements_page: 1,
       movements_per_page: 25,
@@ -154,6 +157,7 @@ describe("owe-no admin pages", () => {
         actions: {
           createGroup: noop,
           archiveGroup: noop,
+          deleteGroup: noop,
           addMember: noop,
           linkMember: noop,
           removeMember: noop,
@@ -203,6 +207,8 @@ describe("owe-no admin pages", () => {
         { id: "m2", display_name: "Luis", state: "active" as const, user_id: null, balance: 0 },
       ],
       movements: [],
+      expenses_total: 1000,
+      payments_total: 0,
       movements_total: 1,
       movements_page: 1,
       movements_per_page: 25,
@@ -210,6 +216,7 @@ describe("owe-no admin pages", () => {
     const actions = {
       createGroup: noop,
       archiveGroup: noop,
+      deleteGroup: noop,
       addMember: noop,
       linkMember: noop,
       removeMember: noop,

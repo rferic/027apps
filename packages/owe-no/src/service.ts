@@ -284,6 +284,29 @@ export async function addMember(
   // participant from the moment it is added; a real account is always invited
   // and, while it has not accepted, it is charged like a fictitious member.
   const state = input.inviteeId ? "invited" : "active";
+  if (!input.inviteeId) {
+    // Adding "Bolli" twice must return the same member: the importer asks for a
+    // name on every run, and duplicates split the balances of one person.
+    const { rows: existing } = await deps.db.query(
+      `select id, display_name, state, user_id
+         from module_owe_no.owe_no_members
+        where group_id = $1 and user_id is null
+          and state in ('active', 'invited')
+          and lower(btrim(display_name)) = lower(btrim($2))
+        limit 1`,
+      [groupId, displayName],
+    );
+    if (existing[0]) {
+      return {
+        id: String(existing[0].id),
+        display_name: String(existing[0].display_name),
+        state: existing[0].state as MemberView["state"],
+        user_id: null,
+        kind: "fictitious",
+        blocked: false,
+      };
+    }
+  }
   const { rows } = await deps.db.query(
     `insert into module_owe_no.owe_no_members
        (group_id, user_id, display_name, state, invited_by, invited_at, joined_at)
