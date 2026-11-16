@@ -59,6 +59,9 @@ export interface AdminGroupDetail {
   /** The movements of the requested page, newest first. */
   movements: AdminMovementView[];
   categories: AdminCategoryView[];
+  /** What the group holds, in minor units, split by kind. */
+  expenses_total: number;
+  payments_total: number;
   /** Paging and totals, so the panel never guesses how many are left. */
   movements_total: number;
   movements_page: number;
@@ -124,6 +127,15 @@ export async function adminGroupDetail(
     [groupId],
   );
   const movements = await adminMovements(deps, groupId, query);
+  const { rows: totals } = await deps.db.query(
+    `select mv.kind, sum(mv.amount_minor)::bigint as total
+       from module_owe_no.owe_no_movements mv
+      where mv.group_id = $1 and mv.deleted_at is null
+      group by 1`,
+    [groupId],
+  );
+  const totalOf = (kind: string) =>
+    Number(totals.find((row) => row.kind === kind)?.total ?? 0);
   const { rows: categories } = await deps.db.query(
     `select id, name from module_owe_no.owe_no_categories
       where group_id = $1 and archived_at is null order by name`,
@@ -150,6 +162,8 @@ export async function adminGroupDetail(
     })),
     movements: movements.rows,
     categories: categories.map((row) => ({ id: String(row.id), name: String(row.name) })),
+    expenses_total: totalOf("expense"),
+    payments_total: totalOf("settlement"),
     movements_total: movements.total,
     movements_page: movements.page,
     movements_per_page: movements.perPage,
@@ -309,6 +323,52 @@ export async function adminSetArchived(
     [groupId, archived, adminId],
   );
   if (!rows[0]) throw new OweDomainError("not_found", "group not found");
+}
+
+/**
+ * Deletes a group and everything that hangs from it. Hard delete on purpose: an
+ * archived group that can never be removed is poison for a family that created
+ * one by mistake, and the owner asked for a real delete. `confirmation` must be
+ * the group's name, so a misclick cannot wipe a year of expenses.
+ */
+export async function adminDeleteGroup(
+  deps: OweDeps,
+  caller: Caller,
+  groupId: string,
+  confirmation: string,
+): Promise<void> {
+  requireAdmin(caller);
+  const { rows } = await deps.db.query(
+    "select name from module_owe_no.owe_no_groups where id = $1",
+    [groupId],
+  );
+  if (!rows[0]) throw new OweDomainError("not_found", "group not found");
+  const name = String(rows[0].name);
+  if (confirmation.trim() !== name) {
+    throw new OweDomainError("validation_failed", "the name does not match", {
+      code: "confirmation_mismatch",
+    });
+  }
+  const run = deps.withTransaction ?? (<T,>(fn: (db: OweDeps["db"]) => Promise<T>) => fn(deps.db));
+  await run(async (db) => {
+    // Order matters: children first, the group last. `on delete cascade` covers
+    // some of it, but naming every table makes the intent readable.
+    await db.query(
+      "delete from module_owe_no.owe_no_movement_shares where movement_id in (select id from module_owe_no.owe_no_movements where group_id = $1)",
+      [groupId],
+    );
+    await db.query("delete from module_owe_no.owe_no_movements where group_id = $1", [groupId]);
+    await db.query(
+      "delete from module_owe_no.owe_no_import_rows where import_id in (select id from module_owe_no.owe_no_imports where group_id = $1)",
+      [groupId],
+    );
+    await db.query("delete from module_owe_no.owe_no_imports where group_id = $1", [groupId]);
+    await db.query("delete from module_owe_no.owe_no_categories where group_id = $1", [groupId]);
+    await db.query("delete from module_owe_no.owe_no_blocks where group_id = $1", [groupId]);
+    await db.query("delete from module_owe_no.owe_no_idempotency where group_id = $1", [groupId]);
+    await db.query("delete from module_owe_no.owe_no_members where group_id = $1", [groupId]);
+    await db.query("delete from module_owe_no.owe_no_groups where id = $1", [groupId]);
+  });
 }
 
 /** Adds an active member; an account is optional (a fictitious member). */
