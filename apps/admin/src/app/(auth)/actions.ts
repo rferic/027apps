@@ -30,7 +30,7 @@ export async function signInAction(formData: FormData): Promise<void> {
  * browser's sessions are revoked by an administrator, not by this action
  * (sprint 16, task 03).
  */
-export const LOCAL_SIGN_OUT = { scope: "local" as const };
+const LOCAL_SIGN_OUT = { scope: "local" as const };
 
 /** Server action: drops this browser's session cookies and returns to login. */
 export async function signOutAction(): Promise<void> {
