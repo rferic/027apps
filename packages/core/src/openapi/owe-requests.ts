@@ -43,5 +43,6 @@ export const oweImportCommit = z
     csv: z.string().min(1).max(2 * 1024 * 1024),
     mapping: z.record(z.string(), z.uuid()).optional(),
     confirm_duplicates: z.boolean().optional(),
+    reset: z.boolean().optional(),
   })
   .strict();
