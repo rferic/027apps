@@ -6,7 +6,6 @@ import com.rferic.zero27apps.ui.components.SheetAction
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.BuildConfig
@@ -103,6 +104,25 @@ internal fun oweErrorText(
         else -> strings.actionFailed
     }
 }
+
+/** Categories offered when picking one: archived ones leave the list, the history keeps them. */
+internal fun selectableCategories(categories: List<OweCategoryDto>): List<OweCategoryDto> =
+    categories.filter { !it.archived }
+
+/** Name of the chosen category; an archived one still resolves so an old expense reads right. */
+internal fun chosenCategoryName(categories: List<OweCategoryDto>, categoryId: String?): String? =
+    categories.firstOrNull { it.id == categoryId }?.name
+
+/**
+ * Category to keep after archiving [archivedId]: a fresh choice is dropped (the
+ * API refuses archived categories for new movements), while the category an
+ * edited movement already had may stay.
+ */
+internal fun categoryAfterArchive(
+    categoryId: String?,
+    archivedId: String,
+    originalId: String?,
+): String? = if (categoryId == archivedId && originalId != archivedId) null else categoryId
 
 /** Equal split: base cents plus one cent for the first `remainder` members. */
 internal fun equalShare(total: Long, chosen: Int, index: Int): Long {
@@ -1856,6 +1876,7 @@ private fun ExpenseDialog(
     var payerOpen by remember { mutableStateOf(false) }
     var showSplit by remember { mutableStateOf(false) }
     var showNewCategory by remember { mutableStateOf(false) }
+    var showCategoryPicker by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
     var editingCategory by remember { mutableStateOf<OweCategoryDto?>(null) }
     var editingName by remember { mutableStateOf("") }
@@ -2062,36 +2083,15 @@ private fun ExpenseDialog(
                     )
                 }
 
-                // Category as one scrollable row of chips.
+                // Category: a single value, picked from a vertical list. The old
+                // chip row scrolled sideways and hid most of the categories.
                 Text(strings.category, fontSize = 11.sp, color = palette.mutedForeground)
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Chip(
-                        label = strings.noCategory,
-                        selected = categoryId == null,
-                        onClick = { categoryId = null },
-                    )
-                    for (category in categories.filter { !it.archived }) {
-                        Chip(
-                            label = category.name,
-                            selected = categoryId == category.id,
-                            onClick = { categoryId = category.id },
-                            onLongClick = {
-                                editingCategory = category
-                                editingName = category.name
-                            },
-                        )
-                    }
-                    Chip(
-                        label = "+ ${strings.newCategory}",
-                        onClick = {
-                            showNewCategory = true
-                            newCategoryName = ""
-                        },
-                    )
-                }
+                val chosenCategory = chosenCategoryName(categories, categoryId)
+                SelectField(
+                    text = chosenCategory ?: strings.noCategory,
+                    empty = chosenCategory == null,
+                    onClick = { showCategoryPicker = true },
+                )
                 if (showNewCategory) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(
@@ -2133,6 +2133,7 @@ private fun ExpenseDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             TextButton(onClick = {
                                 onUpdateCategory(category.id, null, true)
+                                categoryId = categoryAfterArchive(categoryId, category.id, editing?.categoryId)
                                 editingCategory = null
                             }) { Text(strings.archive, color = palette.destructive, fontSize = 12.sp) }
                             Text(
@@ -2203,6 +2204,47 @@ private fun ExpenseDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(strings.cancel) } },
     )
+
+    if (showCategoryPicker) {
+        AppSheet(
+            onDismissRequest = { showCategoryPicker = false },
+            title = strings.category,
+            secondaryLabel = strings.cancel,
+            onSecondary = { showCategoryPicker = false },
+            content = {
+                CategoryChoice(
+                    label = strings.noCategory,
+                    selected = categoryId == null,
+                    onSelect = {
+                        categoryId = null
+                        showCategoryPicker = false
+                    },
+                )
+                for (category in selectableCategories(categories)) {
+                    CategoryChoice(
+                        label = category.name,
+                        selected = categoryId == category.id,
+                        onSelect = {
+                            categoryId = category.id
+                            showCategoryPicker = false
+                        },
+                        onEdit = {
+                            showCategoryPicker = false
+                            showNewCategory = false
+                            editingCategory = category
+                            editingName = category.name
+                        },
+                    )
+                }
+                SheetAction(label = "+ ${strings.newCategory}") {
+                    showCategoryPicker = false
+                    editingCategory = null
+                    showNewCategory = true
+                    newCategoryName = ""
+                }
+            },
+        )
+    }
 
     if (showSplit) {
         AppSheet(
@@ -2277,6 +2319,80 @@ private fun ExpenseDialog(
     }
 }
 
+/** A read-only field that opens a vertical list: the app's single-choice input. */
+@Composable
+private fun SelectField(text: String, empty: Boolean, onClick: () -> Unit) {
+    val palette = LocalPalette.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(palette.surface, RoundedCornerShape(12.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(12.dp))
+            .clickable(role = androidx.compose.ui.semantics.Role.DropdownList, onClick = onClick)
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text,
+            modifier = Modifier.weight(1f),
+            fontSize = 14.sp,
+            color = if (empty) palette.mutedForeground else palette.foreground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text("▾", fontSize = 11.sp, color = palette.mutedForeground)
+    }
+}
+
+/** One row of the category picker: tap to choose it, pencil to rename or archive it. */
+@Composable
+private fun CategoryChoice(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    onEdit: (() -> Unit)? = null,
+) {
+    val palette = LocalPalette.current
+    val strings = LocalStrings.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                if (selected) palette.accent.copy(alpha = 0.12f) else androidx.compose.ui.graphics.Color.Transparent,
+                RoundedCornerShape(10.dp),
+            )
+            .selectable(
+                selected = selected,
+                role = androidx.compose.ui.semantics.Role.RadioButton,
+                onClick = onSelect,
+            )
+            .heightIn(min = 44.dp)
+            .padding(start = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            modifier = Modifier.weight(1f),
+            fontSize = 14.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) palette.accent else palette.foreground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (selected) {
+            Text("✓", fontSize = 13.sp, color = palette.accent, modifier = Modifier.padding(end = 8.dp))
+        }
+        if (onEdit != null) {
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Filled.Edit, contentDescription = "${strings.edit} $label", tint = palette.mutedForeground)
+            }
+        } else {
+            Spacer(Modifier.size(12.dp))
+        }
+    }
+}
+
 /** A quiet inline selector: text plus a chevron, no boxed field. */
 @Composable
 private fun Chip(
@@ -2284,16 +2400,11 @@ private fun Chip(
     onClick: () -> Unit,
     selected: Boolean = false,
     open: Boolean = false,
-    onLongClick: (() -> Unit)? = null,
 ) {
     val palette = LocalPalette.current
     Row(
         modifier = Modifier
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-                onLongClickLabel = null,
-            )
+            .clickable(onClick = onClick)
             .background(
                 if (selected) palette.accent.copy(alpha = 0.12f) else palette.muted,
                 RoundedCornerShape(10.dp),

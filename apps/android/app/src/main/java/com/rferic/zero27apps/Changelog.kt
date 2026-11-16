@@ -13,6 +13,20 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.18.2",
+            date = "2026-11-16",
+            notes = mapOf(
+                "es" to listOf(
+                    "Al crear o editar un gasto, la categoría se elige en una lista vertical: se acabó arrastrar de lado una fila de etiquetas.",
+                    "El lápiz de cada categoría del selector permite renombrarla o archivarla sin salir del gasto.",
+                ),
+                "en" to listOf(
+                    "When adding or editing an expense, the category is chosen from a vertical list: no more dragging a row of chips sideways.",
+                    "The pencil on each category in the picker renames or archives it without leaving the expense.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.18.1",
             date = "2026-11-16",
             notes = mapOf(
