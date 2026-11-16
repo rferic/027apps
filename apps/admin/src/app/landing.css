@@ -935,6 +935,10 @@
   margin: 2px auto 10px;
 }
 .lp .phone .screen {
+  /* The real capture is absolutely positioned inside the phone: without a
+     positioned parent it escaped to the viewport and covered the whole page. */
+  position: relative;
+  overflow: hidden;
   background: #08090a;
   border-radius: 22px;
   padding: 14px;
