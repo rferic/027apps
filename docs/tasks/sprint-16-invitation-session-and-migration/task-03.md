@@ -2,7 +2,7 @@
 id: sprint-16-task-03
 titulo: Ciclo de sesión (logout local, expulsión limpia y errores reintentables)
 area: web + app + core
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0004, 0007, 0010]
@@ -10,6 +10,9 @@ adrs: [0004, 0007, 0010]
 
 **Tarea**: que la sesión solo termine por logout del usuario o por expulsión, y que ni el panel ni
 la app confundan un error de red con una sesión revocada.
+
+**Implementación web, Core y Android completa 2026-11-16; pendiente la aceptación en dispositivo
+real, la revisión/QA y la auditoría de seguridad antes de `finalizada`.**
 
 **Punto de partida (verificado)**
 - `apps/admin/src/app/(auth)/actions.ts` hace `signOut()` sin scope; en JS el default es `global`,
