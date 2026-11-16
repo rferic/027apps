@@ -14,6 +14,7 @@ import type { Caller } from "@027apps/core/api/types.js";
 import { addMember, createGroup, groupBalances, listMembers, type OweDeps } from "@027apps/owe-no/domain/service.js";
 import {
   commitImport,
+  importMappingOptions,
   listImports,
   previewImport,
 } from "@027apps/owe-no/domain/importer.js";
@@ -130,6 +131,21 @@ describe("owe-no importer", () => {
         duplicates: 0,
         currencies: ["EUR"],
       });
+
+      // The panel's mapping select lists the group's own members, including the
+      // creator (the owner asked why their account was missing), and the
+      // accounts still outside the group as invitable choices.
+      const members = await listMembers(deps, ana.userId, group.id);
+      const anaMember = members.find((member) => member.user_id === ana.userId)!;
+      const mapping = await importMappingOptions(deps, ana.userId, group.id);
+      expect(mapping).toContainEqual({
+        id: anaMember.id,
+        display_name: "Ana",
+        kind: "member",
+      });
+      expect(mapping.filter((option) => option.kind === "account").map((option) => option.id)).not.toContain(
+        ana.userId,
+      );
 
       const result = await commitImport(deps, ana.userId, group.id, CSV);
       expect(result).toMatchObject({ created: 2, skipped_duplicates: 0, errors: 0 });

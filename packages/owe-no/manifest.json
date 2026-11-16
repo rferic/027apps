@@ -160,13 +160,6 @@
       "icon": "users",
       "group": "module",
       "role": "admin"
-    },
-    {
-      "route": "imports",
-      "label": "Imports",
-      "icon": "download",
-      "group": "module",
-      "role": "admin"
     }
   ],
   "dashboard_widgets": [

@@ -169,7 +169,7 @@
   "Currently expires on {date}": "{date} iraungitzen da une honetan",
   "Daily encrypted backups": "Egunkako babeskopia zifratuak",
   "Daily encrypted dump and a restore drill.": "Egunkako dump zifratua eta leheneratze-proba bat.",
-  "Danger zone": "Arrisku-eremua",
+  "Danger zone": "Arrisku eremua",
   "Dark": "Iluna",
   "Dashboard": "Panela",
   "Database": "Datu-basea",
@@ -916,5 +916,17 @@
   "You need to create a group first: only its creator imports.": "Lehenik talde bat behar duzu: sortzaileak baino ez du inportatzen.",
   "movements": "mugimenduak",
   "{created} of {total} rows · {date}": "{created} / {total} errenkada · {date}",
-  "Spent": "Gastatuta"
+  "Spent": "Gastatuta",
+  "Deleting the group cannot be undone.": "Taldea ezabatzea ezin da desegin.",
+  "Account": "Kontua",
+  "Already in the group": "Taldean dagoeneko",
+  "Choose an account": "Aukeratu kontu bat",
+  "Accounts already in the group are disabled: each account can belong to one member.": "Taldean dauden kontuak desgaituta agertzen dira: kontu bakoitza kide bati baino ez zaio dagokio.",
+  "If your account does not appear, it is already in the group. Accounts already here cannot be added twice.": "Zure kontua agertzen ez bada, taldean dagoeneko dagoelako da. Hemengo kontu bat ezin da bitan gehitu.",
+  "The name does not match. Type it exactly as it appears.": "Izena ez dator bat. Idatzi agertzen den bezala.",
+  "vs last month": "aurreko hilabetearen aldean",
+  "First month": "Mugimenduak dituen lehen hilabetea",
+  "Members {members} · Movements {movements} · Historical expenses {expenses}": "Kideak {members} · Mugimenduak {movements} · Gastu historikoak {expenses}",
+  "Group history: {expenses} in expenses and {payments} in payments since {date}.": "Taldearen historikoa: {expenses} gastu eta {payments} ordainketa {date}(e)tik.",
+  "Only categories with expenses this month are listed.": "Hilabete honetan gastua duten kategoriak baino ez dira agertzen."
 }

@@ -148,5 +148,18 @@
   "Who receives": "Nork jasotzen du",
   "You do not have permission to do that.": "Ez duzu horretarako baimenik.",
   "You need to create a group first: only its creator imports.": "Lehenengo talde bat sortu behar duzu: bere sortzaileak soilik inporta dezake.",
-  "Your groups": "Zure taldeak"
+  "Your groups": "Zure taldeak",
+  "Deleting the group cannot be undone.": "Taldea ezabatzea ezin da desegin.",
+  "Danger zone": "Arrisku eremua",
+  "Account": "Kontua",
+  "Already in the group": "Taldean dagoeneko",
+  "Choose an account": "Aukeratu kontu bat",
+  "Accounts already in the group are disabled: each account can belong to one member.": "Taldean dauden kontuak desgaituta agertzen dira: kontu bakoitza kide bati baino ez zaio dagokio.",
+  "If your account does not appear, it is already in the group. Accounts already here cannot be added twice.": "Zure kontua agertzen ez bada, taldean dagoeneko dagoelako da. Hemengo kontu bat ezin da bitan gehitu.",
+  "The name does not match. Type it exactly as it appears.": "Izena ez dator bat. Idatzi agertzen den bezala.",
+  "vs last month": "aurreko hilabetearen aldean",
+  "First month": "Mugimenduak dituen lehen hilabetea",
+  "Members {members} · Movements {movements} · Historical expenses {expenses}": "Kideak {members} · Mugimenduak {movements} · Gastu historikoak {expenses}",
+  "Group history: {expenses} in expenses and {payments} in payments since {date}.": "Taldearen historikoa: {expenses} gastu eta {payments} ordainketa {date}(e)tik.",
+  "Only categories with expenses this month are listed.": "Hilabete honetan gastua duten kategoriak baino ez dira agertzen."
 }

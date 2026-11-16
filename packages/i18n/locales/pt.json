@@ -916,5 +916,17 @@
   "You need to create a group first: only its creator imports.": "Primeiro precisas de um grupo: só o criador importa.",
   "movements": "movimentos",
   "{created} of {total} rows · {date}": "{created} de {total} linhas · {date}",
-  "Spent": "Gasto"
+  "Spent": "Gasto",
+  "Deleting the group cannot be undone.": "Eliminar o grupo não se pode desfazer.",
+  "Account": "Conta",
+  "Already in the group": "Já no grupo",
+  "Choose an account": "Escolhe uma conta",
+  "Accounts already in the group are disabled: each account can belong to one member.": "As contas que já estão no grupo aparecem desativadas: cada conta só pode pertencer a um membro.",
+  "If your account does not appear, it is already in the group. Accounts already here cannot be added twice.": "Se a tua conta não aparece, é porque já está no grupo. Uma conta daqui não pode ser adicionada duas vezes.",
+  "The name does not match. Type it exactly as it appears.": "O nome não coincide. Escreve-o exatamente como aparece.",
+  "vs last month": "vs. mês anterior",
+  "First month": "Primeiro mês com movimentos",
+  "Members {members} · Movements {movements} · Historical expenses {expenses}": "Membros {members} · Movimentos {movements} · Despesas históricas {expenses}",
+  "Group history: {expenses} in expenses and {payments} in payments since {date}.": "Histórico do grupo: {expenses} em despesas e {payments} em pagamentos desde {date}.",
+  "Only categories with expenses this month are listed.": "Só aparecem as categorias com despesas este mês."
 }

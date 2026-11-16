@@ -148,5 +148,18 @@
   "Who receives": "Qui rep",
   "You do not have permission to do that.": "No tens permís per fer això.",
   "You need to create a group first: only its creator imports.": "Primer has de crear un grup: només el seu creador pot importar.",
-  "Your groups": "Els teus grups"
+  "Your groups": "Els teus grups",
+  "Deleting the group cannot be undone.": "Esborrar el grup no es pot desfer.",
+  "Danger zone": "Zona perillosa",
+  "Account": "Compte",
+  "Already in the group": "Ja al grup",
+  "Choose an account": "Tria un compte",
+  "Accounts already in the group are disabled: each account can belong to one member.": "Els comptes que ja són al grup surten desactivats: cada compte només pot pertànyer a un membre.",
+  "If your account does not appear, it is already in the group. Accounts already here cannot be added twice.": "Si el teu compte no apareix, és que ja és al grup. Un compte d’aquí no es pot afegir dues vegades.",
+  "The name does not match. Type it exactly as it appears.": "El nom no coincideix. Escriu-lo exactament com apareix.",
+  "vs last month": "vs. mes anterior",
+  "First month": "Primer mes amb moviments",
+  "Members {members} · Movements {movements} · Historical expenses {expenses}": "Membres {members} · Moviments {movements} · Despeses històriques {expenses}",
+  "Group history: {expenses} in expenses and {payments} in payments since {date}.": "Historial del grup: {expenses} en despeses i {payments} en pagaments des del {date}.",
+  "Only categories with expenses this month are listed.": "Només surten les categories amb despesa aquest mes."
 }

@@ -5,7 +5,7 @@ import { oweDeps } from "@/lib/owe-no";
 import { OweDomainError } from "@027apps/owe-no/domain/service.js";
 import {
   commitImport,
-  importIdentities,
+  importMappingOptions,
   previewImport,
 } from "@027apps/owe-no/domain/importer.js";
 import { addMember } from "@027apps/owe-no/domain/service.js";
@@ -44,13 +44,14 @@ export async function importIdentitiesAction(groupId: string) {
   try {
     const userId = await callerId();
     const { owe } = await oweDeps();
-    return { ok: true as const, identities: await importIdentities(owe, userId, groupId) };
+    return { ok: true as const, identities: await importMappingOptions(owe, userId, groupId) };
   } catch (error) {
     return { ok: false as const, code: codeOf(error) };
   }
 }
 
-export type ImportChoice = { user_id?: string | null; display_name: string };
+/** A mapping choice: reuse a member, invite an account, or create a fictitious one. */
+export type ImportChoice = { member_id?: string; user_id?: string; display_name: string };
 
 export async function importCommitAction(
   groupId: string,
@@ -65,6 +66,12 @@ export async function importCommitAction(
     // member first, exactly like the app does.
     const mapping: Record<string, string> = {};
     for (const [name, choice] of Object.entries(choices)) {
+      // A CSV name may point at a member that already exists under another
+      // spelling; reuse it instead of creating a duplicate person.
+      if (choice.member_id) {
+        mapping[name] = choice.member_id;
+        continue;
+      }
       // A real account enters invited and is charged like a fictitious one
       // (owner's ruling, 2026-11-15); it inherits this balance when it accepts.
       const member = await addMember(owe, userId, groupId, {

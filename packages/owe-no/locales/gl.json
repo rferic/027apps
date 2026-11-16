@@ -148,5 +148,18 @@
   "Who receives": "Quen recibe",
   "You do not have permission to do that.": "Non tes permiso para facelo.",
   "You need to create a group first: only its creator imports.": "Primeiro tes que crear un grupo: só o seu creador pode importar.",
-  "Your groups": "Os teus grupos"
+  "Your groups": "Os teus grupos",
+  "Deleting the group cannot be undone.": "Borrar o grupo non se pode desfacer.",
+  "Danger zone": "Zona perigosa",
+  "Account": "Conta",
+  "Already in the group": "Xa no grupo",
+  "Choose an account": "Escolle unha conta",
+  "Accounts already in the group are disabled: each account can belong to one member.": "As contas que xa están no grupo aparecen desactivadas: cada conta só pode pertencer a un membro.",
+  "If your account does not appear, it is already in the group. Accounts already here cannot be added twice.": "Se a túa conta non aparece, é que xa está no grupo. Unha conta de aquí non se pode engadir dúas veces.",
+  "The name does not match. Type it exactly as it appears.": "O nome non coincide. Escríbeo exactamente como aparece.",
+  "vs last month": "vs. mes anterior",
+  "First month": "Primeiro mes con movementos",
+  "Members {members} · Movements {movements} · Historical expenses {expenses}": "Membros {members} · Movementos {movements} · Gastos históricos {expenses}",
+  "Group history: {expenses} in expenses and {payments} in payments since {date}.": "Histórico do grupo: {expenses} en gastos e {payments} en pagamentos desde {date}.",
+  "Only categories with expenses this month are listed.": "Só aparecen as categorías con gasto este mes."
 }

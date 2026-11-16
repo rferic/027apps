@@ -6,16 +6,13 @@ import type {
   AdminGroupView,
   AdminUserOption,
 } from "../../src/admin";
+import type { ImportBatchView } from "../../src/importer";
 import type { MovementView } from "../../src/service";
 import type { SettlementPlan } from "../../src/settlement";
 import { ConfirmForm } from "../components/confirm-form";
 
 type Action = (formData: FormData) => Promise<void>;
-type UserPicker = ComponentType<{
-  options: AdminUserOption[];
-  placeholder: string;
-  noAccountLabel: string;
-}>;
+type ImportWizard = ComponentType<{ groupId: string; locale: string }>;
 
 export interface OweNoGroupsActions {
   createGroup: Action;
@@ -37,6 +34,7 @@ const ERROR_KEYS: Record<string, string> = {
   last_member: "A group needs at least one active member.",
   group_archived: "The group is archived. Reopen it to make changes.",
   kind_immutable: "A movement cannot change between expense and settlement.",
+  confirmation_mismatch: "The name does not match. Type it exactly as it appears.",
   validation_failed: "Check the values and try again.",
   forbidden: "You do not have permission to do that.",
   failed: "Something went wrong. Try again.",
@@ -104,7 +102,8 @@ export default async function OweNoGroups({
   userOptions,
   plan,
   actions,
-  UserPicker,
+  ImportWizard,
+  imports = [],
 }: {
   context: ModulePageContext;
   groups: AdminGroupView[];
@@ -112,7 +111,10 @@ export default async function OweNoGroups({
   userOptions: AdminUserOption[];
   plan: SettlementPlan | null;
   actions: OweNoGroupsActions;
-  UserPicker?: UserPicker;
+  /** The panel injects its client wizard; the package stays Next-free. */
+  ImportWizard?: ImportWizard;
+  /** Batches of the group when the imports tab is open. */
+  imports?: ImportBatchView[];
 }) {
   const tr = (text: string, params?: Record<string, string | number>) =>
     t(text, context.messages, params);
@@ -155,7 +157,6 @@ export default async function OweNoGroups({
             context={context}
             detail={detail}
             userOptions={userOptions}
-            userPicker={UserPicker}
             actions={actions}
             tr={tr}
           />
@@ -169,7 +170,14 @@ export default async function OweNoGroups({
             tr={tr}
           />
         ) : (
-          <GroupDetail context={context} detail={detail} actions={actions} tr={tr} />
+          <GroupDetail
+            context={context}
+            detail={detail}
+            actions={actions}
+            imports={imports}
+            ImportWizard={ImportWizard}
+            tr={tr}
+          />
         )
       ) : context.searchParams.new === "1" ? (
         <NewGroup context={context} actions={actions} tr={tr} />
@@ -380,23 +388,39 @@ function GroupDetail({
   context,
   detail,
   actions,
+  imports,
+  ImportWizard,
   tr,
 }: {
   context: ModulePageContext;
   detail: AdminGroupDetail;
   actions: OweNoGroupsActions;
+  imports: ImportBatchView[];
+  ImportWizard?: ImportWizard;
   tr: (text: string, params?: Record<string, string | number>) => string;
 }) {
   const AnchorTag = anchorOf(context);
   const { group, members, movements } = detail;
   const tabParam = context.searchParams.tab;
+  const canImport = group.created_by !== null && group.created_by === context.caller.userId;
   const tab =
-    tabParam === "balances" || tabParam === "members" || tabParam === "summary"
+    tabParam === "movements" ||
+    tabParam === "balances" ||
+    tabParam === "members" ||
+    tabParam === "summary" ||
+    (tabParam === "imports" && canImport)
       ? tabParam
-      : "movements";
+      : "summary";
   const tabHref = (value: string) => href(group.id, undefined, { tab: value });
   const active = members.filter((member) => member.state === "active");
   const byId = new Map(members.map((member) => [member.id, member.display_name]));
+  const tabs = [
+    { key: "summary", label: tr("Summary") },
+    { key: "movements", label: tr("Movements") },
+    { key: "balances", label: tr("Balances") },
+    { key: "members", label: tr("Members") },
+    ...(canImport ? [{ key: "imports", label: tr("Import from Splitwise") }] : []),
+  ];
 
   return (
     <>
@@ -410,83 +434,36 @@ function GroupDetail({
           </span>
         }
         description={tr(
-          "Members {members} · Movements {movements} · Expenses {expenses} · Payments {payments}",
+          "Members {members} · Movements {movements} · Historical expenses {expenses}",
           {
             members: group.members,
             movements: group.movements,
             expenses: money(detail.expenses_total, group.currency, context.locale),
-            payments: money(detail.payments_total, group.currency, context.locale),
           },
         )}
         tr={tr}
       >
-        <div className="flex w-full flex-col gap-2 sm:w-auto">
+        {/* Only the two day-to-day actions live here. Archiving and deleting
+            wait at the bottom of the page, behind "Danger zone". */}
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           {!group.archived ? (
-            <AnchorTag href={href(group.id, "movement")} className={`${primary} w-full sm:w-auto`}>
+            <AnchorTag href={href(group.id, "movement")} className={`${primary} whitespace-nowrap`}>
               {tr("Add expense")}
             </AnchorTag>
           ) : null}
-          <div className={group.archived ? "" : "grid grid-cols-2 gap-2 sm:flex"}>
-            {!group.archived ? (
-              <AnchorTag href={href(group.id, "settle")} className={secondary}>
-                {tr("Settle up")}
-              </AnchorTag>
-            ) : null}
-            <div>
-              <ConfirmForm
-                action={actions.archiveGroup}
-                fields={{ group: group.id, archived: group.archived ? "false" : "true", tab }}
-                label={group.archived ? tr("Reopen group") : tr("Archive group")}
-                title={group.archived ? tr("Reopen group?") : tr("Archive group?")}
-                body={
-                  group.archived
-                    ? tr("The group becomes writable again.")
-                    : tr("The group becomes read-only for everyone.")
-                }
-                confirmLabel={group.archived ? tr("Reopen group") : tr("Archive group")}
-                cancelLabel={tr("Cancel")}
-                variant="neutral"
-                confirmVariant="primary"
-                className="w-full"
-              />
-            </div>
-            <form action={actions.deleteGroup} className="flex flex-col gap-2 rounded-control border border-destructive/60 p-3">
-              <input type="hidden" name="group" value={group.id} />
-              <input type="hidden" name="tab" value={tab} />
-              <p className="text-[11px] font-semibold text-destructive">
-                {tr("Delete this group for good.")}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                {tr(
-                  "Its expenses, payments, categories, imports and members are deleted. This cannot be undone.",
-                )}
-              </p>
-              <label className="flex flex-col gap-1 text-[11px]">
-                {tr("Type the group name to confirm: {name}", { name: group.name })}
-                <input
-                  name="confirm"
-                  autoComplete="off"
-                  className="min-h-11 rounded-control border border-border bg-background px-2 text-sm"
-                />
-              </label>
-              <button
-                type="submit"
-                className="min-h-11 rounded-control bg-destructive px-3 text-xs font-semibold text-background"
-              >
-                {tr("Delete group")}
-              </button>
-            </form>
-          </div>
+          {!group.archived ? (
+            <AnchorTag href={href(group.id, "settle")} className={`${secondary} whitespace-nowrap`}>
+              {tr("Settle up")}
+            </AnchorTag>
+          ) : null}
         </div>
       </PageHeader>
 
-      <nav className="flex flex-wrap gap-1 rounded-card border border-border bg-surface p-1 text-xs" aria-label={tr("Group sections")}>
-        {[
-          { key: "movements", label: tr("Movements") },
-          { key: "balances", label: tr("Balances") },
-          { key: "members", label: tr("Members") },
-          { key: "summary", label: tr("Summary") },
-        ].map((entry) => (
+      <nav
+        className="flex flex-wrap gap-1 rounded-card border border-border bg-surface p-1 text-xs"
+        aria-label={tr("Group sections")}
+      >
+        {tabs.map((entry) => (
           <AnchorTag
             key={entry.key}
             href={tabHref(entry.key)}
@@ -501,7 +478,7 @@ function GroupDetail({
       </nav>
 
       {tab === "balances" ? (
-      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <dl className="grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-3">
         {active.map((member) => (
           <div key={member.id} className="rounded-card border border-border bg-surface p-3">
             <dt className="truncate text-xs text-muted-foreground">{member.display_name}</dt>
@@ -577,6 +554,38 @@ function GroupDetail({
       ) : null}
 
       {tab === "summary" ? <GroupSummary context={context} detail={detail} tr={tr} /> : null}
+
+      {tab === "imports" ? (
+        <section className="flex max-w-3xl flex-col gap-3 rounded-card border border-border bg-surface p-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {tr("Import from Splitwise")}
+          </h2>
+          {ImportWizard ? (
+            <ImportWizard groupId={group.id} locale={context.locale} />
+          ) : null}
+          <h3 className="text-sm font-bold">{tr("Previous imports")}</h3>
+          {imports.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{tr("No imports yet.")}</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {imports.map((batch) => (
+                <li
+                  key={batch.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border p-3 text-xs"
+                >
+                  <span className="text-muted-foreground">
+                    {tr("{created} of {total} rows · {date}", {
+                      created: batch.created_count,
+                      total: batch.row_count,
+                      date: batch.created_at.slice(0, 10),
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       {tab === "movements" ? (
       <section className="rounded-card border border-border bg-surface p-3">
@@ -726,6 +735,62 @@ function GroupDetail({
         <MovementPager context={context} detail={detail} tr={tr} />
       </section>
       ) : null}
+
+      {/* Archiving and deleting are irreversible or close to it: they wait at
+          the bottom, collapsed, instead of competing with "Add expense". */}
+      <details className="max-w-3xl rounded-card border border-destructive/40 bg-surface p-3">
+        <summary className="cursor-pointer text-xs font-semibold text-destructive">
+          {tr("Danger zone")}
+        </summary>
+        <div className="mt-3 flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <p className="text-[11px] text-muted-foreground">
+              {group.archived
+                ? tr("The group becomes writable again.")
+                : tr("The group becomes read-only for everyone.")}
+            </p>
+            <ConfirmForm
+              action={actions.archiveGroup}
+              fields={{ group: group.id, archived: group.archived ? "false" : "true", tab }}
+              label={group.archived ? tr("Reopen group") : tr("Archive group")}
+              title={group.archived ? tr("Reopen group?") : tr("Archive group?")}
+              body={
+                group.archived
+                  ? tr("The group becomes writable again.")
+                  : tr("The group becomes read-only for everyone.")
+              }
+              confirmLabel={group.archived ? tr("Reopen group") : tr("Archive group")}
+              cancelLabel={tr("Cancel")}
+              variant="neutral"
+              confirmVariant="primary"
+              className="w-fit"
+            />
+          </div>
+          <div className="flex flex-col gap-2 border-t border-border pt-3">
+            <p className="text-[11px] text-muted-foreground">
+              {tr("Deleting the group cannot be undone.")}
+            </p>
+            <form action={actions.deleteGroup} className="flex max-w-md flex-col gap-2">
+              <input type="hidden" name="group" value={group.id} />
+              <input type="hidden" name="tab" value={tab} />
+              <label className="flex flex-col gap-1 text-[11px]">
+                {tr("Type the group name to confirm: {name}", { name: group.name })}
+                <input
+                  name="confirm"
+                  autoComplete="off"
+                  className="min-h-11 rounded-control border border-border bg-background px-2 text-sm"
+                />
+              </label>
+              <button
+                type="submit"
+                className="min-h-11 w-fit rounded-control bg-destructive px-3 text-xs font-semibold text-background"
+              >
+                {tr("Delete group")}
+              </button>
+            </form>
+          </div>
+        </div>
+      </details>
     </>
   );
 }
@@ -1013,18 +1078,18 @@ function MemberView({
   context,
   detail,
   userOptions,
-  userPicker,
   actions,
   tr,
 }: {
   context: ModulePageContext;
   detail: AdminGroupDetail;
   userOptions: AdminUserOption[];
-  userPicker?: UserPicker;
   actions: OweNoGroupsActions;
   tr: (text: string, params?: Record<string, string | number>) => string;
 }) {
-  const Picker = userPicker!;
+  const linked = new Set(
+    detail.members.map((member) => member.user_id).filter((id): id is string => id !== null),
+  );
   return (
     <>
       <PageHeader
@@ -1049,23 +1114,21 @@ function MemberView({
             />
           </Field>
           <Field label={tr("Account (optional)")}>
-            {userPicker ? (
-              <Picker
-                options={userOptions}
-                placeholder={tr("Search a name")}
-                noAccountLabel={tr("No account")}
-              />
-            ) : (
-              <select name="user_id" className={`${control} font-normal`}>
-                <option value="">{tr("No account")}</option>
-                {userOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.display_name}
-                  </option>
-                ))}
-              </select>
-            )}
+            <select name="user_id" defaultValue="" className={`${control} font-normal`}>
+              <option value="">{tr("No account")}</option>
+              {userOptions.map((option) => (
+                <option key={option.id} value={option.id} disabled={linked.has(option.id)}>
+                  {option.display_name}
+                  {linked.has(option.id) ? ` · ${tr("Already in the group")}` : ""}
+                </option>
+              ))}
+            </select>
           </Field>
+          <p className="text-[11px] text-muted-foreground">
+            {tr(
+              "If your account does not appear, it is already in the group. Accounts already here cannot be added twice.",
+            )}
+          </p>
                   <div className="flex flex-wrap items-center justify-end gap-3">
             <a href={href(detail.group.id)} className={link}>
               {tr("Cancel")}
@@ -1096,6 +1159,9 @@ function LinkView({
   tr: (text: string, params?: Record<string, string | number>) => string;
 }) {
   const member = detail.members.find((candidate) => candidate.id === memberId);
+  const linked = new Set(
+    detail.members.map((row) => row.user_id).filter((id): id is string => id !== null),
+  );
   return (
     <>
       <PageHeader
@@ -1111,16 +1177,20 @@ function LinkView({
                     <form action={actions.linkMember} className="flex flex-col gap-3">
             <input type="hidden" name="group" value={detail.group.id} />
             <input type="hidden" name="member" value={member.id} />
-            <Field label={tr("Account (optional)")}>
-              <select name="user_id" required className={`${control} font-normal`}>
-                <option value="">{tr("Link account")}</option>
+            <Field label={tr("Account")}>
+              <select name="user_id" required defaultValue="" className={`${control} font-normal`}>
+                <option value="">{tr("Choose an account")}</option>
                 {userOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
+                  <option key={option.id} value={option.id} disabled={linked.has(option.id)}>
                     {option.display_name}
+                    {linked.has(option.id) ? ` · ${tr("Already in the group")}` : ""}
                   </option>
                 ))}
               </select>
             </Field>
+            <p className="text-[11px] text-muted-foreground">
+              {tr("Accounts already in the group are disabled: each account can belong to one member.")}
+            </p>
                       <div className="flex flex-wrap items-center justify-end gap-3">
               <a href={href(detail.group.id)} className={link}>
                 {tr("Cancel")}
@@ -1269,7 +1339,39 @@ function MovementPager({
   );
 }
 
-/** The group's own summary: what it holds and where it goes, by category. */
+/** The last six months of a group, oldest first. */
+function monthLabel(month: string, locale: string): string {
+  const [year, index] = month.split("-").map(Number);
+  if (!year || !index) return month;
+  return new Intl.DateTimeFormat(locale, { month: "short" }).format(
+    new Date(Date.UTC(year, index - 1, 1)),
+  );
+}
+
+function dayLabel(value: string, locale: string): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function fullMonthLabel(month: string, locale: string): string {
+  const [year, index] = month.split("-").map(Number);
+  if (!year || !index) return month;
+  return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(
+    new Date(Date.UTC(year, index - 1, 1)),
+  );
+}
+
+/**
+ * The group at a glance, exactly like the app's Summary tab: this month's
+ * total and its change, who paid versus who consumed this month, where this
+ * month's money went, and the last six months. The lifetime totals stay in the
+ * header, labelled as history, so they never read as this month's spending.
+ */
 function GroupSummary({
   context,
   detail,
@@ -1281,70 +1383,74 @@ function GroupSummary({
 }) {
   const { group } = detail;
   const max = Math.max(1, ...detail.category_totals.map((entry) => entry.total));
-  const total = Math.max(1, detail.expenses_total);
-  const net = detail.expenses_total - detail.payments_total;
+  const monthMax = Math.max(1, ...detail.months.map((entry) => entry.total));
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const delta =
+    detail.previous_month_total > 0
+      ? Math.round(
+          ((detail.month_total - detail.previous_month_total) / detail.previous_month_total) * 100,
+        )
+      : null;
 
   return (
-    <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-3">
+    <section className="flex max-w-3xl flex-col gap-3 rounded-card border border-border bg-surface p-3">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {tr("Summary")}
       </h2>
-      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <div className="rounded-control border border-border p-3">
-          <dt className="text-[11px] text-muted-foreground">{tr("Expenses")}</dt>
-          <dd className="text-lg font-bold tabular-nums">
-            {money(detail.expenses_total, group.currency, context.locale)}
-          </dd>
-        </div>
-        <div className="rounded-control border border-border p-3">
-          <dt className="text-[11px] text-muted-foreground">{tr("Payments")}</dt>
-          <dd className="text-lg font-bold tabular-nums">
-            {money(detail.payments_total, group.currency, context.locale)}
-          </dd>
-        </div>
-        <div className="rounded-control border border-border p-3">
-          <dt className="text-[11px] text-muted-foreground">{tr("Net")}</dt>
-          <dd className="text-lg font-bold tabular-nums">
-            {money(net, group.currency, context.locale)}
-          </dd>
-        </div>
-      </dl>
-      <h3 className="text-xs font-semibold">{tr("This month")}</h3>
-      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <div className="rounded-control border border-border p-3">
-          <dt className="text-[11px] text-muted-foreground">{tr("Spent")}</dt>
-          <dd className="text-lg font-bold tabular-nums">
-            {money(detail.month_total, group.currency, context.locale)}
-          </dd>
-        </div>
-      </dl>
+
+      <div className="rounded-card border border-accent/40 bg-accent/5 p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {tr("This month")}
+        </p>
+        <p className="text-3xl font-bold tabular-nums">
+          {money(detail.month_total, group.currency, context.locale)}
+        </p>
+        {delta !== null ? (
+          <p className="text-xs text-muted-foreground">
+            <span className={delta > 0 ? "font-semibold text-destructive" : "font-semibold text-success"}>
+              {delta > 0 ? "↑" : "↓"} {Math.abs(delta)} %
+            </span>{" "}
+            {tr("vs last month")}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">{tr("First month")}</p>
+        )}
+      </div>
+
       <h3 className="text-xs font-semibold">{tr("People")}</h3>
       {detail.people_totals.length === 0 ? (
         <p className="text-xs text-muted-foreground">{tr("No movements this month.")}</p>
       ) : (
         <ul className="flex flex-col gap-1 text-xs">
           {detail.people_totals.map((person) => (
-            <li key={person.name} className="flex items-center justify-between gap-2">
-              <span className="truncate">{person.name}</span>
+            <li key={person.name} className="flex flex-wrap items-center justify-between gap-2">
+              <span className="truncate font-semibold">{person.name}</span>
               <span className="tabular-nums text-muted-foreground">
-                {money(person.paid, group.currency, context.locale)} ·{" "}
-                {money(person.consumed, group.currency, context.locale)}
+                {tr("Paid")} {money(person.paid, group.currency, context.locale)} ·{" "}
+                {tr("Consumed")} {money(person.consumed, group.currency, context.locale)}
               </span>
             </li>
           ))}
         </ul>
       )}
-      <h3 className="text-xs font-semibold">{tr("By category")}</h3>
+
+      <h3 className="text-xs font-semibold">
+        {tr("By category")} · {fullMonthLabel(currentMonth, context.locale)}
+      </h3>
+      <p className="text-[11px] text-muted-foreground">
+        {tr("Only categories with expenses this month are listed.")}
+      </p>
       {detail.category_totals.length === 0 ? (
-        <p className="text-xs text-muted-foreground">{tr("No movements yet.")}</p>
+        <p className="text-xs text-muted-foreground">{tr("No movements this month.")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {detail.category_totals.map((entry) => (
             <li key={entry.name || "none"} className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="truncate">{entry.name || tr("No category")}</span>
-                <span className="tabular-nums text-muted-foreground">
-                  {money(entry.total, group.currency, context.locale)}
+                <span className="whitespace-nowrap tabular-nums text-muted-foreground">
+                  {money(entry.total, group.currency, context.locale)} ·{" "}
+                  {Math.round((entry.total / Math.max(1, detail.month_total)) * 100)}%
                 </span>
               </div>
               <div className="h-2 rounded-full bg-muted">
@@ -1359,9 +1465,73 @@ function GroupSummary({
           ))}
         </ul>
       )}
+
+      <h3 className="text-xs font-semibold">{tr("Evolution")}</h3>
+      <ul className="flex items-end gap-2">
+        {detail.months.map((entry) => {
+          const breakdown = entry.categories
+            .map(
+              (category) =>
+                `${category.name || tr("No category")} ${Math.round(
+                  (category.total / Math.max(1, entry.total)) * 100,
+                )}%`,
+            )
+            .join(", ");
+          return (
+            <li
+              key={entry.month}
+              tabIndex={0}
+              aria-label={`${fullMonthLabel(entry.month, context.locale)}: ${
+                breakdown || tr("No movements this month.")
+              }`}
+              className="group relative flex flex-1 flex-col items-center gap-1 rounded-control outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <span className="text-[10px] tabular-nums text-muted-foreground">
+                {money(entry.total, group.currency, context.locale)}
+              </span>
+              <div className="flex h-24 w-full items-end rounded-t bg-muted">
+                <div
+                  className="w-full rounded-t bg-accent"
+                  style={{ height: `${Math.max(2, Math.round((entry.total / monthMax) * 100))}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground">
+                {monthLabel(entry.month, context.locale)}
+              </span>
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-52 -translate-x-1/2 rounded-control border border-border bg-surface p-2 text-left text-[11px] shadow-xl group-hover:block group-focus:block">
+                <p className="mb-1 font-semibold">
+                  {fullMonthLabel(entry.month, context.locale)}
+                </p>
+                {entry.categories.length === 0 ? (
+                  <p className="text-muted-foreground">{tr("No movements this month.")}</p>
+                ) : (
+                  <ul className="flex flex-col gap-0.5">
+                    {entry.categories.map((category) => (
+                      <li key={category.name || "none"} className="flex items-center justify-between gap-3">
+                        <span className="truncate">{category.name || tr("No category")}</span>
+                        <span className="tabular-nums text-muted-foreground">
+                          {Math.round(
+                            (category.total / Math.max(1, entry.total)) * 100,
+                          )}
+                          %
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
       <p className="text-[11px] text-muted-foreground">
-        {tr("Share of expenses shown as bars; total {total}.", {
-          total: money(total, group.currency, context.locale),
+        {tr("Group history: {expenses} in expenses and {payments} in payments since {date}.", {
+          expenses: money(detail.expenses_total, group.currency, context.locale),
+          payments: money(detail.payments_total, group.currency, context.locale),
+          date: detail.first_movement_on
+            ? dayLabel(detail.first_movement_on, context.locale)
+            : "—",
         })}
       </p>
     </section>

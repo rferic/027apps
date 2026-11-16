@@ -2,7 +2,6 @@ import type { ComponentType } from "react";
 import type { ModulePageContext } from "@027apps/core/modules/pages.js";
 import FixtureOverview from "@027apps/fixture/admin/overview/page";
 import OweNoGroups from "@/components/owe-no/groups-page";
-import OweNoImports from "@/components/owe-no/imports-page";
 import OweNoOverview from "@027apps/owe-no/admin/overview/page";
 
 /**
@@ -18,5 +17,4 @@ export const MODULE_PAGES: Record<string, ComponentType<{ context: ModulePageCon
   "fixture/overview": FixtureOverview,
   "owe-no/overview": OweNoOverview,
   "owe-no/groups": OweNoGroups,
-  "owe-no/imports": OweNoImports,
 };
