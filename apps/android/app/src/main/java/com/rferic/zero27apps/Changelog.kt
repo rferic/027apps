@@ -13,6 +13,20 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.17.0",
+            date = "2026-11-16",
+            notes = mapOf(
+                "es" to listOf(
+                    "Primera versión firmada: la app ya se instala como cualquier otra y se actualiza sin builds de pruebas.",
+                    "Si venías de la compilación de pruebas, hay que desinstalarla una vez: Android no acepta cambiar de firma encima.",
+                ),
+                "en" to listOf(
+                    "First signed build: the app installs like any other and updates without testing builds.",
+                    "Coming from the testing build? Uninstall it once: Android does not accept a different signature on top.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.16.9",
             date = "2026-11-15",
             notes = mapOf(
