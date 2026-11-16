@@ -13,6 +13,7 @@ import {
   type OweDeps,
 } from "./service";
 import type { SettlementPlan } from "./settlement";
+import { groupSummary } from "./summary";
 
 /**
  * OweNo as an administrator sees it (D26).
@@ -143,112 +144,7 @@ export async function adminGroupDetail(
     [groupId],
   );
   const movements = await adminMovements(deps, groupId, query);
-  const { rows: totals } = await deps.db.query(
-    `select mv.kind, sum(mv.amount_minor)::bigint as total
-       from module_owe_no.owe_no_movements mv
-      where mv.group_id = $1 and mv.deleted_at is null
-      group by 1`,
-    [groupId],
-  );
-  const totalOf = (kind: string) =>
-    Number(totals.find((row) => row.kind === kind)?.total ?? 0);
-  const { rows: monthRows } = await deps.db.query(
-    `select coalesce(sum(mv.amount_minor) filter (
-              where mv.occurred_on >= date_trunc('month', current_date)), 0)::bigint as total,
-            coalesce(sum(mv.amount_minor) filter (
-              where mv.occurred_on >= date_trunc('month', current_date) - interval '1 month'
-                and mv.occurred_on < date_trunc('month', current_date)), 0)::bigint as previous
-       from module_owe_no.owe_no_movements mv
-      where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'`,
-    [groupId],
-  );
-  const { rows: peopleRows } = await deps.db.query(
-    `with paid as (
-       select mv.paid_by_member_id as id, sum(mv.amount_minor) as total
-         from module_owe_no.owe_no_movements mv
-        where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
-          and mv.occurred_on >= date_trunc('month', current_date)
-        group by 1
-     ), consumed as (
-       select s.member_id as id, sum(s.amount_minor) as total
-         from module_owe_no.owe_no_movement_shares s
-         join module_owe_no.owe_no_movements mv on mv.id = s.movement_id
-        where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
-          and mv.occurred_on >= date_trunc('month', current_date)
-        group by 1
-     )
-     select m.display_name,
-            coalesce(p.total, 0)::bigint as paid,
-            coalesce(c.total, 0)::bigint as consumed
-       from module_owe_no.owe_no_members m
-       left join paid p on p.id = m.id
-       left join consumed c on c.id = m.id
-      where m.group_id = $1 and m.state = 'active'
-        and (coalesce(p.total, 0) > 0 or coalesce(c.total, 0) > 0)
-      order by 2 desc`,
-    [groupId],
-  );
-  const { rows: categoryTotals } = await deps.db.query(
-    `select coalesce(c.name, '') as name, sum(mv.amount_minor)::bigint as total
-       from module_owe_no.owe_no_movements mv
-       left join module_owe_no.owe_no_categories c on c.id = mv.category_id
-      where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
-        and mv.occurred_on >= date_trunc('month', current_date)
-      group by 1 order by 2 desc`,
-    [groupId],
-  );
-  const { rows: categoryHistoryRows } = await deps.db.query(
-    `select c.name, coalesce(sum(mv.amount_minor), 0)::bigint as total
-       from module_owe_no.owe_no_categories c
-       left join module_owe_no.owe_no_movements mv
-         on mv.category_id = c.id and mv.group_id = c.group_id
-        and mv.deleted_at is null and mv.kind = 'expense'
-      where c.group_id = $1
-      group by c.name
-     union all
-     select '' as name, coalesce(sum(mv.amount_minor), 0)::bigint as total
-       from module_owe_no.owe_no_movements mv
-      where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
-        and mv.category_id is null
-     having coalesce(sum(mv.amount_minor), 0) > 0
-      order by total desc`,
-    [groupId],
-  );
-  const { rows: monthHistory } = await deps.db.query(
-    `with span as (
-       select generate_series(
-         date_trunc('month', current_date) - interval '5 months',
-         date_trunc('month', current_date),
-         interval '1 month'
-       ) as month
-     )
-     select to_char(s.month, 'YYYY-MM') as month,
-            coalesce(sum(mv.amount_minor), 0)::bigint as total
-       from span s
-       left join module_owe_no.owe_no_movements mv
-         on mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
-        and date_trunc('month', mv.occurred_on) = s.month
-      group by s.month order by s.month`,
-    [groupId],
-  );
-  const { rows: monthCategoryRows } = await deps.db.query(
-    `select to_char(date_trunc('month', mv.occurred_on), 'YYYY-MM') as month,
-            coalesce(c.name, '') as name,
-            sum(mv.amount_minor)::bigint as total
-       from module_owe_no.owe_no_movements mv
-       left join module_owe_no.owe_no_categories c on c.id = mv.category_id
-      where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
-        and mv.occurred_on >= date_trunc('month', current_date) - interval '5 months'
-      group by 1, 2
-      order by 1, 3 desc`,
-    [groupId],
-  );
-  const { rows: firstMovement } = await deps.db.query(
-    `select to_char(min(occurred_on), 'YYYY-MM-DD') as first_on
-       from module_owe_no.owe_no_movements
-      where group_id = $1 and deleted_at is null`,
-    [groupId],
-  );
+  const summary = await groupSummary(deps, groupId);
   const { rows: categories } = await deps.db.query(
     `select id, name from module_owe_no.owe_no_categories
       where group_id = $1 and archived_at is null order by name`,
@@ -275,39 +171,19 @@ export async function adminGroupDetail(
     })),
     movements: movements.rows,
     categories: categories.map((row) => ({ id: String(row.id), name: String(row.name) })),
-    expenses_total: totalOf("expense"),
-    payments_total: totalOf("settlement"),
-    category_totals: categoryTotals.map((row) => ({
-      name: String(row.name),
-      total: Number(row.total),
+    expenses_total: summary.expenses_total,
+    payments_total: summary.payments_total,
+    category_totals: summary.category_totals,
+    category_history: summary.category_history,
+    month_total: summary.month_total,
+    previous_month_total: summary.previous_month_total,
+    people_totals: summary.people_totals.map(({ name, paid, consumed }) => ({
+      name,
+      paid,
+      consumed,
     })),
-    category_history: categoryHistoryRows.map((row) => ({
-      name: String(row.name),
-      total: Number(row.total),
-    })),
-    month_total: Number(monthRows[0]?.total ?? 0),
-    previous_month_total: Number(monthRows[0]?.previous ?? 0),
-    people_totals: peopleRows.map((row) => ({
-      name: String(row.display_name),
-      paid: Number(row.paid),
-      consumed: Number(row.consumed),
-    })),
-    months: monthHistory.map((row) => {
-      const month = String(row.month);
-      return {
-        month,
-        total: Number(row.total),
-        categories: monthCategoryRows
-          .filter((category) => String(category.month) === month && Number(category.total) > 0)
-          .map((category) => ({
-            name: String(category.name),
-            total: Number(category.total),
-          })),
-      };
-    }),
-    first_movement_on: firstMovement[0]?.first_on
-      ? String(firstMovement[0].first_on)
-      : null,
+    months: summary.months,
+    first_movement_on: summary.first_movement_on,
     movements_total: movements.total,
     movements_page: movements.page,
     movements_per_page: movements.perPage,
