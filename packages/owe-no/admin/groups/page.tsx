@@ -517,14 +517,17 @@ function GroupDetail({
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {tr("Movements")}
         </h2>
-        {group.movements > movements.length ? (
-          <p className="mb-2 text-[11px] text-muted-foreground">
-            {tr("Showing the latest {shown} of {total} movements.", {
-              shown: movements.length,
-              total: group.movements,
-            })}
-          </p>
-        ) : null}
+        <MovementFilters
+          context={context}
+          detail={detail}
+          tr={tr}
+        />
+        <p className="mb-2 text-[11px] text-muted-foreground">
+          {tr("Showing {shown} of {total} movements.", {
+            shown: movements.length,
+            total: detail.movements_total,
+          })}
+        </p>
         {movements.length === 0 ? (
           <p className="text-xs text-muted-foreground">{tr("No movements yet.")}</p>
         ) : (
@@ -654,6 +657,7 @@ function GroupDetail({
           </div>
           </>
         )}
+        <MovementPager context={context} detail={detail} tr={tr} />
       </section>
     </>
   );
@@ -1061,5 +1065,136 @@ function LinkView({
         )}
       </section>
     </>
+  );
+}
+
+/**
+ * Filters for the movement list. A plain GET form: the panel is a server
+ * component, so the browser reloads with the query and the API does the work.
+ */
+function MovementFilters({
+  context,
+  detail,
+  tr,
+}: {
+  context: ModulePageContext;
+  detail: AdminGroupDetail;
+  tr: (text: string, params?: Record<string, string | number>) => string;
+}) {
+  const value = (key: string) => {
+    const raw = context.searchParams[key];
+    return typeof raw === "string" ? raw : "";
+  };
+  const field =
+    "min-h-11 rounded-control border border-border bg-background px-2 text-xs text-foreground";
+  const anchor = anchorOf(context);
+  const AnchorTag = anchor;
+
+  return (
+    <form method="get" className="mb-3 flex flex-wrap items-end gap-2">
+      <input type="hidden" name="group" value={detail.group.id} />
+      <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("Type")}
+        <select name="kind" defaultValue={value("kind")} className={field}>
+          <option value="">{tr("All")}</option>
+          <option value="expense">{tr("Expense")}</option>
+          <option value="settlement">{tr("Settlement")}</option>
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("Member")}
+        <select name="member" defaultValue={value("member")} className={field}>
+          <option value="">{tr("All")}</option>
+          {detail.members.map((member) => (
+            <option key={member.id} value={member.id}>
+              {member.display_name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("Category")}
+        <select name="category" defaultValue={value("category")} className={field}>
+          <option value="">{tr("All")}</option>
+          {detail.categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("From")}
+        <input type="date" name="from" defaultValue={value("from")} className={field} />
+      </label>
+      <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("To")}
+        <input type="date" name="to" defaultValue={value("to")} className={field} />
+      </label>
+      <label className="flex min-w-40 flex-1 flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("Search description")}
+        <input
+          type="search"
+          name="mq"
+          defaultValue={value("mq")}
+          placeholder={tr("Description")}
+          className={field}
+        />
+      </label>
+      <button type="submit" className={secondary}>
+        {tr("Filter")}
+      </button>
+      <AnchorTag href={href(detail.group.id)} className={link}>
+        {tr("Clear")}
+      </AnchorTag>
+    </form>
+  );
+}
+
+/** Previous/next plus the page count; links keep the active filters. */
+function MovementPager({
+  context,
+  detail,
+  tr,
+}: {
+  context: ModulePageContext;
+  detail: AdminGroupDetail;
+  tr: (text: string, params?: Record<string, string | number>) => string;
+}) {
+  const pages = Math.max(1, Math.ceil(detail.movements_total / detail.movements_per_page));
+  if (pages <= 1) return null;
+  const current = detail.movements_page;
+  const base = new URLSearchParams();
+  for (const [key, value] of Object.entries(context.searchParams)) {
+    if (typeof value !== "string" || value === "" || key === "page") continue;
+    base.set(key, value);
+  }
+  const pageHref = (page: number) => {
+    const params = new URLSearchParams(base);
+    params.set("page", String(page));
+    return `?${params.toString()}`;
+  };
+  const AnchorTag = anchorOf(context);
+
+  return (
+    <nav className="mt-3 flex items-center justify-between gap-2 text-xs" aria-label={tr("Movements")}>
+      {current > 1 ? (
+        <AnchorTag href={pageHref(current - 1)} className={secondary}>
+          {tr("Previous")}
+        </AnchorTag>
+      ) : (
+        <span />
+      )}
+      <span className="text-[11px] text-muted-foreground tabular-nums">
+        {tr("Page {page} of {pages}", { page: current, pages })}
+      </span>
+      {current < pages ? (
+        <AnchorTag href={pageHref(current + 1)} className={secondary}>
+          {tr("Next")}
+        </AnchorTag>
+      ) : (
+        <span />
+      )}
+    </nav>
   );
 }

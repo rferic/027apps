@@ -825,5 +825,15 @@
   "Balances": "Saldos",
   "Luis": "Luis",
   "OweNo · Home": "OweNo · Inici",
-  "Summary": "Resum"
+  "Summary": "Resum",
+  "Expense": "Despesa",
+  "Settlement": "Pagament",
+  "Member": "Membre",
+  "From": "Des de",
+  "To": "Fins a",
+  "Search description": "Cerca a la descripció",
+  "Filter": "Filtra",
+  "Clear": "Neteja",
+  "Showing {shown} of {total} movements.": "Mostrant {shown} de {total} moviments.",
+  "Movements": "Moviments"
 }

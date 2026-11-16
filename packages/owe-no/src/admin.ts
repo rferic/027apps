@@ -56,8 +56,25 @@ export interface AdminMovementView extends MovementView {
 export interface AdminGroupDetail {
   group: AdminGroupView & { archived_by: string | null };
   members: AdminMemberView[];
+  /** The movements of the requested page, newest first. */
   movements: AdminMovementView[];
   categories: AdminCategoryView[];
+  /** Paging and totals, so the panel never guesses how many are left. */
+  movements_total: number;
+  movements_page: number;
+  movements_per_page: number;
+}
+
+/** Filters the panel can apply to a group's movement list. */
+export interface AdminMovementQuery {
+  page?: number;
+  perPage?: number;
+  kind?: "expense" | "settlement";
+  memberId?: string;
+  categoryId?: string;
+  q?: string;
+  from?: string;
+  to?: string;
 }
 
 export interface AdminUserOption {
@@ -83,6 +100,7 @@ export async function adminGroupDetail(
   deps: OweDeps,
   caller: Caller,
   groupId: string,
+  query: AdminMovementQuery = {},
 ): Promise<AdminGroupDetail> {
   requireAdmin(caller);
   const { rows: group } = await deps.db.query(
@@ -105,7 +123,7 @@ export async function adminGroupDetail(
       order by (state = 'active') desc, display_name`,
     [groupId],
   );
-  const movements = await adminMovements(deps, groupId);
+  const movements = await adminMovements(deps, groupId, query);
   const { rows: categories } = await deps.db.query(
     `select id, name from module_owe_no.owe_no_categories
       where group_id = $1 and archived_at is null order by name`,
@@ -130,8 +148,11 @@ export async function adminGroupDetail(
       user_id: row.user_id === null ? null : String(row.user_id),
       balance: balances.get(String(row.id)) ?? 0,
     })),
-    movements,
+    movements: movements.rows,
     categories: categories.map((row) => ({ id: String(row.id), name: String(row.name) })),
+    movements_total: movements.total,
+    movements_page: movements.page,
+    movements_per_page: movements.perPage,
   };
 }
 
@@ -139,7 +160,36 @@ export async function adminGroupDetail(
  * Every live movement of the group, newest first. The panel caps the list at
  * 100: `group.movements` still counts them all, so the page can say so.
  */
-async function adminMovements(deps: OweDeps, groupId: string): Promise<AdminMovementView[]> {
+async function adminMovements(
+  deps: OweDeps,
+  groupId: string,
+  query: AdminMovementQuery = {},
+): Promise<{ rows: AdminMovementView[]; total: number; page: number; perPage: number }> {
+  const perPage = Math.min(100, Math.max(5, query.perPage ?? 25));
+  const page = Math.max(1, query.page ?? 1);
+  const params = [
+    groupId,
+    query.kind ?? null,
+    query.memberId ?? null,
+    query.categoryId ?? null,
+    query.q?.trim() ? query.q.trim() : null,
+    query.from ?? null,
+    query.to ?? null,
+  ];
+  const filter = `mv.group_id = $1 and mv.deleted_at is null
+      and ($2::text is null or mv.kind = $2)
+      and ($3::uuid is null or mv.paid_by_member_id = $3
+           or exists (select 1 from module_owe_no.owe_no_movement_shares s2
+                       where s2.movement_id = mv.id and s2.member_id = $3))
+      and ($4::uuid is null or mv.category_id = $4)
+      and ($5::text is null or mv.description ilike '%' || $5 || '%')
+      and ($6::date is null or mv.occurred_on >= $6::date)
+      and ($7::date is null or mv.occurred_on <= $7::date)`;
+  const { rows: counted } = await deps.db.query(
+    `select count(*)::int as total from module_owe_no.owe_no_movements mv where ${filter}`,
+    params,
+  );
+  const total = Number(counted[0]?.total ?? 0);
   const { rows } = await deps.db.query(
     `select mv.id, mv.kind, mv.description, mv.amount_minor, mv.currency,
             mv.paid_by_member_id, to_char(mv.occurred_on, 'YYYY-MM-DD') as occurred_on,
@@ -153,13 +203,13 @@ async function adminMovements(deps: OweDeps, groupId: string): Promise<AdminMove
        left join module_owe_no.owe_no_movement_shares s on s.movement_id = mv.id
        left join public.profiles c on c.id = mv.created_by
        left join public.profiles u on u.id = mv.updated_by
-      where mv.group_id = $1 and mv.deleted_at is null
+      where ${filter}
       group by mv.id, c.display_name, u.display_name
       order by mv.occurred_on desc, mv.created_at desc
-      limit 100`,
-    [groupId],
+      limit $8 offset $9`,
+    [...params, perPage, (page - 1) * perPage],
   );
-  return rows.map((row) => ({
+  const mapped = rows.map((row) => ({
     id: String(row.id),
     kind: row.kind as MovementView["kind"],
     description: String(row.description),
@@ -175,6 +225,7 @@ async function adminMovements(deps: OweDeps, groupId: string): Promise<AdminMove
     created_at: new Date(String(row.created_at)).toISOString(),
     updated_at: new Date(String(row.updated_at)).toISOString(),
   }));
+  return { rows: mapped, total, page, perPage };
 }
 
 /** Accounts an administrator can add to a group, by name. */

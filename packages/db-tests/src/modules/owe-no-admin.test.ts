@@ -382,3 +382,68 @@ describe("owe-no administration", () => {
   });
 });
 
+
+describe("owe-no admin movement paging and filters", () => {
+  it("pages the list and filters by kind, member, category and text", async () => {
+    await inRollback(async (c) => {
+      const { admin } = await install(c);
+      const group = await adminCreateGroup(oweDeps(c), admin, { name: "Casa", currency: "EUR" });
+      const member = (await adminGroupDetail(oweDeps(c), admin, group.id)).members[0]!;
+      const { rows: categoryRows } = await query(
+        c,
+        "insert into module_owe_no.owe_no_categories (group_id, name) values ($1, $2) returning id",
+        [group.id, "Comida"],
+      );
+      const category = String(categoryRows[0]!.id);
+      for (let index = 0; index < 7; index += 1) {
+        await adminCreateMovement(oweDeps(c), admin, group.id, {
+          kind: "expense",
+          description: `Cena ${index}`,
+          amount_minor: 1000,
+          occurred_on: "2026-11-0" + String((index % 9) + 1),
+          paid_by: member.id,
+          category_id: index % 2 === 0 ? category : null,
+          participants: [{ memberId: member.id, amount_minor: 1000 }],
+        });
+      }
+      const luis = await adminAddMember(oweDeps(c), admin, group.id, { displayName: "Luis" });
+      await adminCreateMovement(oweDeps(c), admin, group.id, {
+        kind: "settlement",
+        description: "Pago",
+        amount_minor: 500,
+        occurred_on: "2026-11-10",
+        paid_by: member.id,
+        participants: [{ memberId: luis.id, amount_minor: 500 }],
+      });
+
+      const firstPage = await adminGroupDetail(oweDeps(c), admin, group.id, { perPage: 5 });
+      expect(firstPage.movements).toHaveLength(5);
+      expect(firstPage.movements_total).toBe(8);
+
+      const secondPage = await adminGroupDetail(oweDeps(c), admin, group.id, {
+        perPage: 5,
+        page: 2,
+      });
+      expect(secondPage.movements).toHaveLength(3);
+      expect(secondPage.movements[0]!.id).not.toBe(firstPage.movements[0]!.id);
+
+      const expenses = await adminGroupDetail(oweDeps(c), admin, group.id, {
+        kind: "expense",
+        perPage: 100,
+      });
+      expect(expenses.movements_total).toBe(7);
+
+      const withCategory = await adminGroupDetail(oweDeps(c), admin, group.id, {
+        categoryId: category,
+        perPage: 100,
+      });
+      expect(withCategory.movements_total).toBe(4);
+
+      const searched = await adminGroupDetail(oweDeps(c), admin, group.id, {
+        q: "Cena 3",
+        perPage: 100,
+      });
+      expect(searched.movements_total).toBe(1);
+    });
+  });
+});
