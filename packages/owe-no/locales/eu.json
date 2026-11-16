@@ -161,5 +161,7 @@
   "First month": "Mugimenduak dituen lehen hilabetea",
   "Members {members} · Movements {movements} · Historical expenses {expenses}": "Kideak {members} · Mugimenduak {movements} · Gastu historikoak {expenses}",
   "Group history: {expenses} in expenses and {payments} in payments since {date}.": "Taldearen historikoa: {expenses} gastu eta {payments} ordainketa {date}(e)tik.",
-  "Only categories with expenses this month are listed.": "Hilabete honetan gastua duten kategoriak baino ez dira agertzen."
+  "Only categories with expenses this month are listed.": "Hilabete honetan gastua duten kategoriak baino ez dira agertzen.",
+  "All history": "Historial osoa",
+  "All categories in the group, with their historical expenses.": "Taldeko kategoria guztiak, beren gastu historikoekin."
 }

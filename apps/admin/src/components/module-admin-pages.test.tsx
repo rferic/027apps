@@ -134,6 +134,10 @@ describe("owe-no admin pages", () => {
       ],
       expenses_total: 1000,
       category_totals: [{ name: "Comida", total: 1000 }],
+      category_history: [
+        { name: "Comida", total: 3000 },
+        { name: "Avión", total: 2000 },
+      ],
       month_total: 1000,
       previous_month_total: 800,
       people_totals: [{ name: "Ana", paid: 1000, consumed: 500 }],
@@ -216,6 +220,10 @@ describe("owe-no admin pages", () => {
       movements: [],
       expenses_total: 1000,
       category_totals: [{ name: "Comida", total: 1000 }],
+      category_history: [
+        { name: "Comida", total: 3000 },
+        { name: "Avión", total: 2000 },
+      ],
       month_total: 1000,
       previous_month_total: 800,
       people_totals: [{ name: "Ana", paid: 1000, consumed: 500 }],
@@ -318,9 +326,13 @@ describe("owe-no group page translations", () => {
         { id: "m2", display_name: "Luis", state: "active" as const, user_id: null, balance: -500 },
       ],
       movements: [],
-      expenses_total: 1000,
+      expenses_total: 5000,
       payments_total: 0,
       category_totals: [{ name: "Comida", total: 1000 }],
+      category_history: [
+        { name: "Comida", total: 3000 },
+        { name: "Avión", total: 2000 },
+      ],
       month_total: 1000,
       previous_month_total: 800,
       people_totals: [{ name: "Ana", paid: 1000, consumed: 500 }],
@@ -397,6 +409,13 @@ describe("owe-no group page translations", () => {
     expect(summary).toContain("Consumió");
     expect(summary).toContain("Solo aparecen las categorías con gasto este mes.");
     expect(summary).toContain("100%");
+    expect(summary).not.toContain("Avión");
+
+    const history = await render({ group, tab: "summary", cats: "all" });
+    expect(history).toContain("Todo el histórico");
+    expect(history).toContain("Todas las categorías del grupo, con sus gastos históricos.");
+    expect(history).toContain("Avión");
+    expect(history).toContain("20,00");
   });
 
   it("keeps the import inside the group, with no group picker", async () => {
@@ -422,6 +441,7 @@ describe("owe-no group page translations", () => {
       expenses_total: 4516772,
       payments_total: 217679,
       category_totals: [],
+      category_history: [],
       month_total: 0,
       previous_month_total: 0,
       people_totals: [],
