@@ -161,5 +161,7 @@
   "First month": "Primer mes amb moviments",
   "Members {members} · Movements {movements} · Historical expenses {expenses}": "Membres {members} · Moviments {movements} · Despeses històriques {expenses}",
   "Group history: {expenses} in expenses and {payments} in payments since {date}.": "Historial del grup: {expenses} en despeses i {payments} en pagaments des del {date}.",
-  "Only categories with expenses this month are listed.": "Només surten les categories amb despesa aquest mes."
+  "Only categories with expenses this month are listed.": "Només surten les categories amb despesa aquest mes.",
+  "All history": "Tot l’historial",
+  "All categories in the group, with their historical expenses.": "Totes les categories del grup, amb les seves despeses històriques."
 }

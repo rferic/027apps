@@ -64,6 +64,8 @@ export interface AdminGroupDetail {
   payments_total: number;
   /** Expense totals per category for the current month, largest first. */
   category_totals: Array<{ name: string; total: number }>;
+  /** Every category in the group with its lifetime expense total, largest first. */
+  category_history: Array<{ name: string; total: number }>;
   /** What the group spent this month, and who paid or consumed it. */
   month_total: number;
   previous_month_total: number;
@@ -195,6 +197,23 @@ export async function adminGroupDetail(
       group by 1 order by 2 desc`,
     [groupId],
   );
+  const { rows: categoryHistoryRows } = await deps.db.query(
+    `select c.name, coalesce(sum(mv.amount_minor), 0)::bigint as total
+       from module_owe_no.owe_no_categories c
+       left join module_owe_no.owe_no_movements mv
+         on mv.category_id = c.id and mv.group_id = c.group_id
+        and mv.deleted_at is null and mv.kind = 'expense'
+      where c.group_id = $1
+      group by c.name
+     union all
+     select '' as name, coalesce(sum(mv.amount_minor), 0)::bigint as total
+       from module_owe_no.owe_no_movements mv
+      where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
+        and mv.category_id is null
+     having coalesce(sum(mv.amount_minor), 0) > 0
+      order by total desc`,
+    [groupId],
+  );
   const { rows: monthHistory } = await deps.db.query(
     `with span as (
        select generate_series(
@@ -259,6 +278,10 @@ export async function adminGroupDetail(
     expenses_total: totalOf("expense"),
     payments_total: totalOf("settlement"),
     category_totals: categoryTotals.map((row) => ({
+      name: String(row.name),
+      total: Number(row.total),
+    })),
+    category_history: categoryHistoryRows.map((row) => ({
       name: String(row.name),
       total: Number(row.total),
     })),

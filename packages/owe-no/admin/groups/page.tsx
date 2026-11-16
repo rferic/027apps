@@ -1382,9 +1382,18 @@ function GroupSummary({
   tr: (text: string, params?: Record<string, string | number>) => string;
 }) {
   const { group } = detail;
-  const max = Math.max(1, ...detail.category_totals.map((entry) => entry.total));
+  const AnchorTag = anchorOf(context);
+  const showHistory = context.searchParams.cats === "all";
+  const categories = showHistory ? detail.category_history : detail.category_totals;
+  const categoryTotal = showHistory ? detail.expenses_total : detail.month_total;
+  const max = Math.max(1, ...categories.map((entry) => entry.total));
   const monthMax = Math.max(1, ...detail.months.map((entry) => entry.total));
   const currentMonth = new Date().toISOString().slice(0, 7);
+  const categoryHref = (value: "month" | "all") => {
+    const params = new URLSearchParams({ group: group.id, tab: "summary" });
+    if (value === "all") params.set("cats", "all");
+    return `?${params.toString()}`;
+  };
   const delta =
     detail.previous_month_total > 0
       ? Math.round(
@@ -1434,30 +1443,55 @@ function GroupSummary({
         </ul>
       )}
 
+      <div className="flex w-fit gap-1 rounded-control border border-border bg-background p-1 text-[11px]">
+        <AnchorTag
+          href={categoryHref("month")}
+          aria-current={showHistory ? undefined : "page"}
+          className={`min-h-7 rounded-control px-2 py-1 font-semibold ${
+            showHistory ? "text-muted-foreground" : "bg-accent/10 text-accent"
+          }`}
+        >
+          {tr("This month")}
+        </AnchorTag>
+        <AnchorTag
+          href={categoryHref("all")}
+          aria-current={showHistory ? "page" : undefined}
+          className={`min-h-7 rounded-control px-2 py-1 font-semibold ${
+            showHistory ? "bg-accent/10 text-accent" : "text-muted-foreground"
+          }`}
+        >
+          {tr("All history")}
+        </AnchorTag>
+      </div>
       <h3 className="text-xs font-semibold">
-        {tr("By category")} · {fullMonthLabel(currentMonth, context.locale)}
+        {tr("By category")} ·{" "}
+        {showHistory ? tr("All history") : fullMonthLabel(currentMonth, context.locale)}
       </h3>
       <p className="text-[11px] text-muted-foreground">
-        {tr("Only categories with expenses this month are listed.")}
+        {showHistory
+          ? tr("All categories in the group, with their historical expenses.")
+          : tr("Only categories with expenses this month are listed.")}
       </p>
-      {detail.category_totals.length === 0 ? (
-        <p className="text-xs text-muted-foreground">{tr("No movements this month.")}</p>
+      {categories.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{tr("No movements yet.")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {detail.category_totals.map((entry) => (
+          {categories.map((entry) => (
             <li key={entry.name || "none"} className="flex flex-col gap-1">
               <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="truncate">{entry.name || tr("No category")}</span>
+                <span className={`truncate ${entry.total === 0 ? "text-muted-foreground" : ""}`}>
+                  {entry.name || tr("No category")}
+                </span>
                 <span className="whitespace-nowrap tabular-nums text-muted-foreground">
                   {money(entry.total, group.currency, context.locale)} ·{" "}
-                  {Math.round((entry.total / Math.max(1, detail.month_total)) * 100)}%
+                  {Math.round((entry.total / Math.max(1, categoryTotal)) * 100)}%
                 </span>
               </div>
               <div className="h-2 rounded-full bg-muted">
                 <div
                   className="h-2 rounded-full bg-accent"
                   style={{
-                    width: `${Math.max(2, Math.round((entry.total / max) * 100))}%`,
+                    width: `${Math.max(entry.total === 0 ? 0 : 2, Math.round((entry.total / max) * 100))}%`,
                   }}
                 />
               </div>
