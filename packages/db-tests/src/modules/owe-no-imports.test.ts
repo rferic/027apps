@@ -226,6 +226,65 @@ describe("owe-no importer", () => {
     });
   });
 
+  // Regression: the import created categories in its own transaction and then
+  // opened another one per movement (the app's runner), which cannot see rows
+  // that are not committed yet, so a new category failed the movement's FK.
+  it("keeps every write of an import in the same transaction", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin", "Admin");
+      const manifest = JSON.parse(await readFile(resolve(ROOT, "manifest.json"), "utf8"));
+      const { rows: installed } = await query(
+        c,
+        "select 1 from public.module_registry where key = 'owe-no'",
+      );
+      if (installed[0]) {
+        await uninstallModule(
+          modulesDeps(c),
+          await session(c, "super_admin", "Root"),
+          "owe-no",
+          manifest,
+          true,
+        );
+      }
+      await installModule(modulesDeps(c), admin, manifest);
+      await activateModule(modulesDeps(c), admin, "owe-no");
+
+      const ana = await session(c, "user", "Ana");
+      const luis = await session(c, "user", "Luis");
+      const base = oweDeps(c);
+      const group = await createGroup(base, ana.userId, { name: "Viaje", currency: "EUR" });
+      await addMember(base, ana.userId, group.id, { displayName: "Ana", inviteeId: ana.userId });
+      await addMember(base, ana.userId, group.id, { displayName: "Luis", inviteeId: luis.userId });
+      await query(
+        c,
+        "update module_owe_no.owe_no_members set state = 'active', joined_at = now() where state = 'invited'",
+      );
+
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis",
+        "2026-05-10,Cena,Categoría nueva,20.00,EUR,20.00,-20.00",
+      ].join("\n");
+
+      // One transaction for the whole import: a second call to the runner is the
+      // bug (it cannot see the rows the first one has not committed yet).
+      let calls = 0;
+      const db = { query: (sql: string, params: unknown[] = []) => query(c, sql, params) };
+      const deps = {
+        ...base,
+        db,
+        withTransaction: async <T,>(fn: (tx: typeof db) => Promise<T>): Promise<T> => {
+          calls += 1;
+          if (calls > 1) throw new Error("an import must not open a second transaction");
+          return fn(db);
+        },
+      };
+
+      const result = await commitImport(deps, ana.userId, group.id, csv);
+      expect(result).toMatchObject({ created: 1, errors: 0, categories: 1 });
+      expect(calls).toBe(1);
+    });
+  });
+
   it("refuses another currency and an unmapped name", async () => {
     await inRollback(async (c) => {
       const admin = await session(c, "admin", "Admin");
