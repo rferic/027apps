@@ -611,11 +611,11 @@ No se usan las plantillas de email de Supabase (una sola plantilla, un solo idio
   Keystore y el `boot()` lo usa al volver. Se cierra por logout local, por expulsión
   (desactivación/borrado/revocación) o si el refresh token deja de ser válido (revocado o política
   de Supabase).
-- **P10 (política de Supabase):** confirmar en el proyecto cloud (no solo en
-  `supabase/config.toml`) que **«Time-box user sessions»** e **«Inactivity timeout»** están
-  desactivados, o el valor que el propietario quiera. Si están activos, la sesión termina por
-  política aunque el código haga todo bien; el `config.toml` local fija `jwt_expiry = 900`,
-  rotación y reutilización 10 s, y no fija una caducidad absoluta.
+- **P10 (política de Supabase):** **confirmado por el propietario el 2026-11-16**: «Time-box user
+  sessions» e «Inactivity timeout» no se activaron en `027apps-dev` ni `027apps-prod` (valores por
+  defecto: off). El `config.toml` local fija `jwt_expiry = 900`, rotación y reutilización 10 s, y
+  no fija una caducidad absoluta. La prueba real de la tarea 11 (app sin usar) lo valida; si
+  alguna vez se activa una política, la sesión terminará por ella y se documentará como excepción.
 - `ApiClient` distingue tres resultados de refresh: `Refreshed`, `NoSession` (refresh inválido o
   revocado) y `Network` (IO/timeout/5xx). En 401:
   - `Refreshed` → reintenta una vez;
@@ -855,8 +855,8 @@ recuperación; sin sesión, la propia página redirige a `/forgot-password`.
   del email; formulario precargado; cuenta creada; sesión iniciada.
 - Sesión: reinicio, modo avión, actualización, app sin usar mucho tiempo (el refresh token sigue
   renovando), logout web (móvil sigue), logout móvil (web sigue), desactivación, borrado,
-  revocación. Confirmar P10 (sin time-box ni inactivity timeout en Supabase) antes de afirmar que
-  la sesión no caduca sola.
+  revocación. P10 confirmado por el propietario (sin time-box ni inactivity timeout); la app sin
+  usar valida que la sesión sigue.
 - Recuperación: email real, enlace, nueva contraseña, login; sin enumeración.
 - QR: dos dispositivos reales; el nuevo entra; el viejo queda fuera; el código caduca y no se
   reutiliza; el dispositivo viejo deja de recibir push.
@@ -896,7 +896,7 @@ tarea/PR. Un fallo encontrado se convierte en test de regresión o comprobación
 | P7 | Orden explícita de merge del sprint 16 y del 17 | Propietario | Al final |
 | P8 | Orden explícita de promoción `staging → main` | Propietario | Tras aceptar staging |
 | P9 | Leer el resumen de las auditorías finales de seguridad y UX | Propietario | Antes de `finalizada`/merge |
-| P10 | Confirmar en Supabase Auth que «Time-box user sessions» e «Inactivity timeout» están desactivados (o el valor que quiera) | Propietario | Antes de afirmar que la sesión no caduca sola (tarea 03) |
+| P10 | Confirmar en Supabase Auth que «Time-box user sessions» e «Inactivity timeout» están desactivados (o el valor que quiera) | Propietario | Confirmado 2026-11-16 (no se activaron; defaults off); validación real en la tarea 11 |
 
 **Entregables del sprint**: spec + plan + tareas (este PR), revisión pre-implementación, mockups,
 código y tests de las tareas 03–10, docs/flows, OpenAPI, evidencia de verificación y **auditorías
@@ -918,7 +918,7 @@ finales de seguridad (OWASP A01–A11) y de UX**, ambas por agentes distintos de
 | Una cuenta existente cambia de rol sin querer | Escalada o degradación | D6: el rol no cambia al canjear; el panel lo cambia explícitamente. |
 | La renovación invalida un enlace que alguien está usando | Fricción | Confirmación en el panel; el token nuevo se muestra una vez; la invitación usada no se renueva. |
 | El email de reset no llega | El usuario no puede recuperar | Resend ya configurado; fallo visible en logs; el UI dice «si existe, recibirás»; soporte puede reenviar. |
-| Supabase tiene «Time-box» o «Inactivity timeout» activos | La app pide login aunque el código esté bien | P10: confirmar y documentar; si el propietario quiere caducidad por política, se acepta como excepción. |
+| Supabase tiene «Time-box» o «Inactivity timeout» activos | La app pide login aunque el código esté bien | P10 confirmado (off por defecto); si se activa una política, se documenta como excepción y la prueba de sesión lo detecta. |
 | El sprint se alarga | Se descubre tarde | Tareas independientes, aceptación por tarea, gates P2–P5; el 17 no se pierde. |
 | La release firmada no está lista | No hay App Link ni QR real | P3/P4; el APK v0.18.1 ya sirve para App Links de invitación; el QR exige el APK del sprint. |
 

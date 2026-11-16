@@ -117,7 +117,7 @@ que más cambian el producto:
 | El QR se filtra | Sesión de otro | 60 s, single-use, hash, `FLAG_SECURE`, rate limit, magic link de un solo uso. |
 | El rol admin se cuela | Escalada | Guard en el servicio, no solo en la UI; tests de sesión/service/delegated. |
 | La renovación invalida un enlace en uso | Fricción | Confirmación en el panel; el token nuevo se muestra una vez. |
-| Supabase tiene «Time-box» o «Inactivity timeout» | La sesión caduca por política aunque el código esté bien | P10: confirmar y documentar; si el propietario quiere caducidad, se acepta como excepción. |
+| Supabase tiene «Time-box» o «Inactivity timeout» | La sesión caduca por política aunque el código esté bien | P10 confirmado (off por defecto); si se activa, se documenta como excepción y la prueba de sesión lo detecta. |
 | La app ya tiene sesión de otra instancia | El enlace podría reutilizarla o mezclar la sesión | Crear el cliente de la instancia del enlace; no cambiar en silencio; cerrar/limpiar la anterior (S9). |
 | El sprint se alarga | Aceptación tardía | Aceptación por tarea; el 17 se preserva; gates P2–P5/P10. |
 
@@ -130,7 +130,8 @@ que más cambian el producto:
 4. **Facilitar un Android real** para App Links y **dos** para el QR (P4).
 5. **Confirmar la recuperación** y las credenciales de Resend en producción (P5).
 6. **Confirmar en Supabase Auth** que «Time-box user sessions» e «Inactivity timeout» están
-   desactivados, o el valor que quiera (P10).
+   desactivados, o el valor que quiera (P10) — confirmado 2026-11-16: no se activaron; valores por
+   defecto off. La prueba real de sesión lo valida.
 7. **Leer el resumen de las auditorías finales** de seguridad y UX (P9).
 8. **Dar la orden explícita de merge** del sprint 16 y del 17 (P7) y de promoción (P8).
 
@@ -148,7 +149,8 @@ que más cambian el producto:
   pegada.
 - La revisión pre-implementación está en `pre-implementation-review.md`; **D21** (verificación de la
   contraseña existente) está resuelto como **sesión primero** desde el 2026-11-16.
-- **P10**: confirmar en Supabase Auth que «Time-box user sessions» e «Inactivity timeout» están
-  desactivados (o el valor deseado) antes de afirmar que la sesión no caduca sola.
+- **P10**: confirmado por el propietario (2026-11-16): «Time-box user sessions» e «Inactivity
+  timeout» no se activaron; valores por defecto off. La prueba real de sesión de la tarea 11 lo
+  valida.
 - El plan anterior (panel y notificaciones) queda como sprint 17, sin tocar su contenido; su rama
   `docs/sprint-16` no se borra.

@@ -85,9 +85,9 @@ renovando el acceso, pero no es una «firma» propia, es la sesión de Supabase 
   error de red; si no hay red, conserva la sesión y reintenta.
 - **Fin**: logout local, expulsión (desactivación, borrado, revocación) o que el refresh token deje
   de ser válido. **P10**: si el proyecto Supabase tiene «Time-box user sessions» o «Inactivity
-  timeout» activos, la sesión terminará por esa política aunque el código esté bien; hay que
-  confirmarlo en el dashboard (el `config.toml` local solo fija `jwt_expiry=900`, rotación y
-  reutilización 10 s).
+  timeout» activos, la sesión terminará por esa política aunque el código esté bien. **Confirmado
+  por el propietario el 2026-11-16: no se activaron; valores por defecto off.** La prueba real de
+  sesión de la tarea 11 lo valida.
 - **Excepciones**: perder la clave del Keystore (reinstalar/restaurar), una expulsión, una política
   de Supabase activa o una interrupción justo durante la rotación (ventana de 10 s, riesgo residual
   raro). La migración por QR existe para el caso de cambiar de teléfono sin perder la cuenta.

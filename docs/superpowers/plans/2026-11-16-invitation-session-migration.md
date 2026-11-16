@@ -22,9 +22,9 @@ cuenta a un teléfono nuevo por QR, todo con i18n, OpenAPI y auditoría.
       verifica contraseñas) — 2026-11-16.
 - [ ] **P2** El propietario aprueba los mockups de `docs/mockups/invitation-flow/` (app, wizard,
       QR y reset) antes de escribir UI nueva.
-- [ ] **P10** El propietario confirma en Supabase Auth que «Time-box user sessions» e «Inactivity
-      timeout» están desactivados (o el valor que quiera); sin esto no se puede afirmar que la
-      sesión no caduque sola.
+- [x] **P10** El propietario confirma que «Time-box user sessions» e «Inactivity timeout» no se
+      activaron en `027apps-dev` ni `027apps-prod` (valores por defecto: off) — 2026-11-16. La
+      prueba real de sesión sin usar la app lo valida en la tarea 11.
 - [ ] **P3** `ANDROID_APP_SHA256` en Vercel Production (y Preview si se prueba) con
       `00:6A:22:FA:7A:A4:76:A5:5D:B7:C4:62:2E:FF:19:3F:76:4F:66:10:A3:6D:9C:D1:DF:CE:C8:03:AE:A1:39:C6`,
       y redeploy. Verificar `curl https://027apps.ericrf.com/.well-known/assetlinks.json`.
@@ -158,8 +158,8 @@ de producto.
 
 - [ ] Documentar el modelo de sesión en el código: access token de 15 min + refresh token durable
       en el Keystore; la app **no guarda la contraseña**; la rotación persiste el token nuevo; el
-      access token caducado solo obliga a renovar. Confirmar P10 (sin time-box/inactivity en
-      Supabase) antes de afirmar que no caduca sola.
+      access token caducado solo obliga a renovar. P10 confirmado por el propietario (sin
+      time-box/inactivity); la prueba real de la tarea 11 lo valida.
 - [ ] `apps/android/.../data/ApiClient.kt`: `RefreshResult` sellado (`Refreshed`, `NoSession`,
       `Network`); `request` mapea 401 a `unauthorized` con `revoked` o a error de red.
 - [ ] `apps/android/.../ui/AppViewModel.kt`:
@@ -577,7 +577,8 @@ de producto.
       build, rutas, endpoints, APK instalado, navegador con `lerd diag browser_toggle` + `request
       lenses`.
 - [ ] Sesión: reinicio, avión, actualización, app sin usar mucho tiempo (refresh token), logout
-      web/móvil, desactivación, borrado, revocación; P10 confirmado en Supabase.
+      web/móvil, desactivación, borrado, revocación; P10 confirmado por el propietario y validado
+      con la app sin usar.
 - [ ] Recuperación con email real; QR con dos dispositivos; App Links.
 - [ ] `assetlinks.json` y `/download/android` verificados.
 
