@@ -817,5 +817,12 @@
   "{name} leaves this category. Module access they already have does not change.": "{name} kategoria hau uzten du. Dagoeneko duen modulu-sarbidea ez da aldatzen.",
   "{name} will be able to sign in again.": "{name} berriro hasi ahal izango da saioa.",
   "{name} will lose access immediately.": "{name}k berehala galduko du sarbidea.",
-  "{selected} of {total} selected": "{selected} / {total} hautatuta"
+  "{selected} of {total} selected": "{selected} / {total} hautatuta",
+  "Activity": "Jarduera",
+  "Ana": "Ana",
+  "Android app in development · the screens are simulated with sample data": "Android aplikazioa garatzen · pantailak datu adibideekin simulatuak dira",
+  "Balances": "Saldoak",
+  "Luis": "Luis",
+  "OweNo · Home": "OweNo · Hasiera",
+  "Summary": "Laburpena"
 }

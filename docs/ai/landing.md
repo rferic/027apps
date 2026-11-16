@@ -76,10 +76,12 @@ aviso «Coming soon» mientras la app no tenga pantallas reales.
 | Copias y recuperación | — | Dump diario y simulacro | `available` |
 | 9 idiomas | Sí | Sí | `available`; revisión nativa de las traducciones pendiente |
 
-La app Android ya tiene pantallas de producto: la sección Android usa una **captura real** de la
-compilación actual (OweNo, 2026-11-14) y el hero lo dice («App in development · these screens are
-from the current build»). Las maquetas de las demás secciones siguen siendo diseño hasta que
-cada módulo tenga captura.
+**Todas las pantallas de la web son simuladas** (HTML+CSS con datos de ejemplo), en las tres
+páginas: la app, el panel y `/self-host`. El propietario lo decidió el 2026-11-16: mezclar una
+captura real con maquetas se nota y una captura clara rompe el tema oscuro. La sección Android lo
+declara en el hero («the screens are simulated with sample data»). No hay capturas reales hasta
+que la app esté probada de verdad, y entonces se cambian **todas a la vez**, también las del panel
+y `/self-host`.
 
 Las notificaciones push ya no son una promesa: viajan como notificación del sistema, sin importe
 mientras el ojo está cerrado, y al tocarlas abren el grupo. La sección Android lo dice así; antes
@@ -125,9 +127,10 @@ características**). El panel la muestra como tarjeta (nombre + una línea + est
 ## Capturas
 
 - Datos de demo, nunca de la familia: sin nombres, correos, importes ni tokens reales.
-- Panel: captura real a 1440 px con datos ficticios.
-- App: maqueta hasta que existan pantallas; después, captura real de un dispositivo.
-- Formato WebP, dimensiones fijas y `alt` traducido.
+- Hoy **no hay imágenes**: las pantallas son maquetas HTML+CSS dentro de la propia página, en tema
+  oscuro y con los mismos tokens que el resto de la web.
+- Si algún día se usan capturas: todas de golpe (app, panel y `/self-host`), en tema oscuro,
+  formato WebP, dimensiones fijas y `alt` traducido. Nunca una captura real junto a maquetas.
 
 ## Lo que no va en la landing
 
