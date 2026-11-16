@@ -5314,6 +5314,337 @@
         ],
         "type": "object"
       },
+      "OweGroupSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "category_history": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "total": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "name",
+                "total"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "category_totals": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "total": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "name",
+                "total"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "expenses_total": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "first_movement_on": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "month_total": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "months": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "categories": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "total": {
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "total"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "month": {
+                  "type": "string"
+                },
+                "total": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "month",
+                "total",
+                "categories"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "payments_total": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "people_totals": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "consumed": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                },
+                "member_id": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "paid": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "member_id",
+                "name",
+                "paid",
+                "consumed"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "previous_month_total": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month_total",
+          "previous_month_total",
+          "expenses_total",
+          "payments_total",
+          "category_totals",
+          "category_history",
+          "people_totals",
+          "months",
+          "first_movement_on"
+        ],
+        "type": "object"
+      },
+      "OweGroupSummaryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "summary": {
+            "additionalProperties": false,
+            "properties": {
+              "category_history": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "maximum": 9007199254740991,
+                      "minimum": -9007199254740991,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "total"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "category_totals": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "maximum": 9007199254740991,
+                      "minimum": -9007199254740991,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "total"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "expenses_total": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "first_movement_on": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "month_total": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "months": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "categories": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "total": {
+                            "maximum": 9007199254740991,
+                            "minimum": -9007199254740991,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "total"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "month": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "maximum": 9007199254740991,
+                      "minimum": -9007199254740991,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "month",
+                    "total",
+                    "categories"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "payments_total": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "people_totals": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "consumed": {
+                      "maximum": 9007199254740991,
+                      "minimum": -9007199254740991,
+                      "type": "integer"
+                    },
+                    "member_id": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "paid": {
+                      "maximum": 9007199254740991,
+                      "minimum": -9007199254740991,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "member_id",
+                    "name",
+                    "paid",
+                    "consumed"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "previous_month_total": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "month_total",
+              "previous_month_total",
+              "expenses_total",
+              "payments_total",
+              "category_totals",
+              "category_history",
+              "people_totals",
+              "months",
+              "first_movement_on"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "summary"
+        ],
+        "type": "object"
+      },
       "OweIdentity": {
         "additionalProperties": false,
         "properties": {
@@ -5424,6 +5755,70 @@
         },
         "required": [
           "imports"
+        ],
+        "type": "object"
+      },
+      "OweImportMappingList": {
+        "additionalProperties": false,
+        "properties": {
+          "options": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "display_name": {
+                  "type": "string"
+                },
+                "id": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "member",
+                    "account"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "display_name",
+                "kind"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "options"
+        ],
+        "type": "object"
+      },
+      "OweImportMappingOption": {
+        "additionalProperties": false,
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "member",
+              "account"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "display_name",
+          "kind"
         ],
         "type": "object"
       },
@@ -9819,6 +10214,54 @@
         ]
       }
     },
+    "/owe-no/groups/{id}/imports/mapping": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweImportMappingList"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Members and accounts the creator can map a CSV name to.",
+        "x-027-scopes": [
+          "expenses:read_write"
+        ]
+      }
+    },
     "/owe-no/groups/{id}/imports/preview": {
       "post": {
         "parameters": [
@@ -10747,6 +11190,54 @@
         "summary": "Who pays whom, exact when the group is small enough.",
         "x-027-scopes": [
           "balances:read"
+        ]
+      }
+    },
+    "/owe-no/groups/{id}/summary": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OweGroupSummaryResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Month and history totals, people, categories and six-month evolution.",
+        "x-027-scopes": [
+          "expenses:read"
         ]
       }
     },

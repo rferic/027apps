@@ -64,6 +64,7 @@ import com.rferic.zero27apps.data.OweCreateMovementBody
 import com.rferic.zero27apps.data.OweGroupDetail
 import com.rferic.zero27apps.data.OweCategoryDto
 import com.rferic.zero27apps.data.OweGroupDto
+import com.rferic.zero27apps.data.OweGroupSummaryDto
 import com.rferic.zero27apps.data.OweIdentityDto
 import com.rferic.zero27apps.data.OweMemberDto
 import com.rferic.zero27apps.data.OweMovementDto
@@ -148,6 +149,7 @@ private class OweStore(
     var detail by mutableStateOf<OweGroupDetail?>(null)
     var movements by mutableStateOf<List<OweMovementDto>>(emptyList())
     var balances by mutableStateOf<List<OweBalanceDto>>(emptyList())
+    var summary by mutableStateOf<OweGroupSummaryDto?>(null)
     var settlement by mutableStateOf<OweSettlementDto?>(null)
     var loading by mutableStateOf(false)
     var error by mutableStateOf<String?>(null)
@@ -178,6 +180,7 @@ private class OweStore(
     fun open(groupId: String) = run {
         detail = api.oweGroup(groupId)
         movements = firstPage(groupId)
+        summary = api.oweSummary(groupId)
         balances = api.oweBalances(groupId)
         settlement = runCatching { api.oweSettlement(groupId) }.getOrNull()
         categories = runCatching { api.oweCategories(groupId) }.getOrDefault(emptyList())
@@ -189,6 +192,7 @@ private class OweStore(
         run {
             detail = api.oweGroup(id)
             movements = firstPage(id)
+            summary = api.oweSummary(id)
             balances = api.oweBalances(id)
             settlement = runCatching { api.oweSettlement(id) }.getOrNull()
         }
@@ -214,6 +218,7 @@ private class OweStore(
     fun close() {
         detail = null
         movements = emptyList()
+        summary = null
         balances = emptyList()
         settlement = null
         movementsHasMore = false
@@ -616,9 +621,7 @@ fun OweNoScreen(
                     onSettleWith = { settleWithMember = it },
                 )
                 else -> OweSummaryScreen(
-                    movements = store.movements,
-                    members = detail.members,
-                    categories = store.categories,
+                    summary = store.summary,
                     balances = store.balances,
                     settlementCount = store.settlement?.transfers?.size ?: 0,
                     currency = detail.group.currency,

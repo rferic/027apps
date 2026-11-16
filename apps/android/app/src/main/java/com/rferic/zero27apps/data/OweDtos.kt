@@ -117,6 +117,53 @@ data class OweIdentityDto(
 data class OweIdentityList(val identities: List<OweIdentityDto> = emptyList())
 
 @Serializable
+data class OweCategoryTotalDto(
+    val name: String,
+    @SerialName("total") val total: Long,
+)
+
+@Serializable
+data class OweSummaryPersonDto(
+    @SerialName("member_id") val memberId: String,
+    val name: String,
+    val paid: Long,
+    val consumed: Long,
+)
+
+@Serializable
+data class OweSummaryMonthDto(
+    val month: String,
+    val total: Long,
+    val categories: List<OweCategoryTotalDto> = emptyList(),
+)
+
+@Serializable
+data class OweGroupSummaryDto(
+    @SerialName("month_total") val monthTotal: Long = 0,
+    @SerialName("previous_month_total") val previousMonthTotal: Long = 0,
+    @SerialName("expenses_total") val expensesTotal: Long = 0,
+    @SerialName("payments_total") val paymentsTotal: Long = 0,
+    @SerialName("category_totals") val categoryTotals: List<OweCategoryTotalDto> = emptyList(),
+    @SerialName("category_history") val categoryHistory: List<OweCategoryTotalDto> = emptyList(),
+    @SerialName("people_totals") val peopleTotals: List<OweSummaryPersonDto> = emptyList(),
+    val months: List<OweSummaryMonthDto> = emptyList(),
+    @SerialName("first_movement_on") val firstMovementOn: String? = null,
+)
+
+@Serializable
+data class OweGroupSummaryResponse(val summary: OweGroupSummaryDto)
+
+@Serializable
+data class OweMappingOptionDto(
+    val id: String,
+    @SerialName("display_name") val displayName: String,
+    val kind: String,
+)
+
+@Serializable
+data class OweMappingOptionList(val options: List<OweMappingOptionDto> = emptyList())
+
+@Serializable
 data class OweCategoryBody(val name: String? = null, val archived: Boolean? = null)
 
 @Serializable

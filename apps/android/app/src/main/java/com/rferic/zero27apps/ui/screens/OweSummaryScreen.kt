@@ -2,7 +2,6 @@ package com.rferic.zero27apps.ui.screens
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,12 +31,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -51,21 +46,16 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.rferic.zero27apps.data.OweBalanceDto
-import com.rferic.zero27apps.data.OweCategoryDto
-import com.rferic.zero27apps.data.OweMemberDto
-import com.rferic.zero27apps.data.OweMovementDto
+import com.rferic.zero27apps.data.OweCategoryTotalDto
+import com.rferic.zero27apps.data.OweGroupSummaryDto
 import com.rferic.zero27apps.ui.components.PrivacyEye
 import com.rferic.zero27apps.ui.i18n.LocalStrings
 import com.rferic.zero27apps.ui.privacy.LocalPrivacyMasked
 import com.rferic.zero27apps.ui.privacy.maskedMoney
-import com.rferic.zero27apps.ui.theme.ChartSeries
 import com.rferic.zero27apps.ui.theme.LocalPalette
-import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
-
-private data class CategorySlice(val name: String, val amount: Long, val color: Color)
 
 private data class PersonRow(val name: String, val paid: Long, val consumed: Long, val net: Long)
 
@@ -74,13 +64,13 @@ private data class MonthBar(val month: YearMonth, val amount: Long)
 /**
  * The group at a glance: the month's total, where the money went, who paid
  * versus who consumed, and the last six months. Every figure respects the
- * privacy mask; the charts keep their shape but lose the numbers.
+ * privacy mask; the charts keep their shape but lose the numbers. The totals
+ * come from the server summary, so they cover every movement instead of only
+ * the pages the list has loaded.
  */
 @Composable
 fun OweSummaryScreen(
-    movements: List<OweMovementDto>,
-    members: List<OweMemberDto>,
-    categories: List<OweCategoryDto>,
+    summary: OweGroupSummaryDto?,
     balances: List<OweBalanceDto>,
     settlementCount: Int,
     currency: String,
@@ -88,12 +78,16 @@ fun OweSummaryScreen(
     onBack: () -> Unit = {},
     embedded: Boolean = false,
 ) {
+    val strings = LocalStrings.current
+    if (summary == null) {
+        EmptyCard(strings.noMovements)
+        return
+    }
     if (embedded) {
-        SummaryBody(movements, members, categories, balances, settlementCount, currency, locale)
+        SummaryBody(summary, balances, settlementCount, currency, locale)
         return
     }
     val palette = LocalPalette.current
-    val strings = LocalStrings.current
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -110,15 +104,13 @@ fun OweSummaryScreen(
             )
             PrivacyEye()
         }
-        SummaryBody(movements, members, categories, balances, settlementCount, currency, locale)
+        SummaryBody(summary, balances, settlementCount, currency, locale)
     }
 }
 
 @Composable
 private fun SummaryBody(
-    movements: List<OweMovementDto>,
-    members: List<OweMemberDto>,
-    categories: List<OweCategoryDto>,
+    summary: OweGroupSummaryDto,
     balances: List<OweBalanceDto>,
     settlementCount: Int,
     currency: String,
@@ -129,46 +121,21 @@ private fun SummaryBody(
     val masked = LocalPrivacyMasked.current
     var tab by remember { mutableStateOf(0) }
 
-    val month = YearMonth.now()
-    val previous = month.minusMonths(1)
-    fun inMonth(movement: OweMovementDto, target: YearMonth): Boolean =
-        runCatching { YearMonth.from(LocalDate.parse(movement.occurredOn)) == target }.getOrDefault(false)
-
-    val current = movements.filter { it.kind == "expense" && inMonth(it, month) }
-    val past = movements.filter { it.kind == "expense" && inMonth(it, previous) }
-    val total = current.sumOf { it.amountMinor }
-    val previousTotal = past.sumOf { it.amountMinor }
+    val total = summary.monthTotal
+    val previousTotal = summary.previousMonthTotal
     val delta = if (previousTotal > 0) ((total - previousTotal) * 100 / previousTotal) else null
 
-    val names = categories.associate { it.id to it.name }
-    val paletteColors = listOf(
-        palette.accent,
-        ChartSeries[0],
-        ChartSeries[1],
-        ChartSeries[2],
-        ChartSeries[3],
-        palette.mutedForeground,
-    )
-    val grouped = current.groupBy { it.categoryId }.entries
-        .map { (id, rows) -> (names[id] ?: strings.noCategory) to rows.sumOf { it.amountMinor } }
-        .filter { it.second > 0 }
-        .sortedByDescending { it.second }
-    val top = grouped.take(5)
-    val rest = grouped.drop(5).sumOf { it.second }
-    val slices = (top + if (rest > 0) listOf(strings.category to rest) else emptyList())
-        .mapIndexed { index, (name, amount) -> CategorySlice(name, amount, paletteColors[index % paletteColors.size]) }
+    val people = summary.peopleTotals.map { person ->
+        PersonRow(
+            person.name,
+            person.paid,
+            person.consumed,
+            balances.firstOrNull { it.memberId == person.memberId }?.amountMinor ?: 0L,
+        )
+    }
 
-    val people = members.filter { it.state == "active" || it.state == "invited" }.map { member ->
-        val paid = current.filter { it.paidBy == member.id }.sumOf { it.amountMinor }
-        val consumed = current.sumOf { movement ->
-            movement.shares.firstOrNull { it.memberId == member.id }?.amountMinor ?: 0L
-        }
-        PersonRow(member.displayName, paid, consumed, balances.firstOrNull { it.memberId == member.id }?.amountMinor ?: 0L)
-    }.filter { it.paid > 0 || it.consumed > 0 }
-
-    val months = (5 downTo 0).map { back ->
-        val target = month.minusMonths(back.toLong())
-        MonthBar(target, movements.filter { it.kind == "expense" && inMonth(it, target) }.sumOf { it.amountMinor })
+    val months = summary.months.mapNotNull { entry ->
+        runCatching { MonthBar(YearMonth.parse(entry.month), entry.total) }.getOrNull()
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -243,7 +210,15 @@ private fun SummaryBody(
         }
 
         when (tab) {
-            0 -> CategoryReport(slices, total, currency, locale, masked)
+            0 -> CategoryReport(
+                month = summary.categoryTotals,
+                history = summary.categoryHistory,
+                monthTotal = summary.monthTotal,
+                historyTotal = summary.expensesTotal,
+                currency = currency,
+                locale = locale,
+                masked = masked,
+            )
             1 -> PeopleReport(people, currency, locale, masked)
             else -> MonthsReport(months, currency, locale)
         }
@@ -252,71 +227,89 @@ private fun SummaryBody(
 
 @Composable
 private fun CategoryReport(
-    slices: List<CategorySlice>,
-    total: Long,
+    month: List<OweCategoryTotalDto>,
+    history: List<OweCategoryTotalDto>,
+    monthTotal: Long,
+    historyTotal: Long,
     currency: String,
     locale: String,
     masked: Boolean,
 ) {
     val palette = LocalPalette.current
     val strings = LocalStrings.current
-    if (slices.isEmpty() || total == 0L) {
+    var historical by remember { mutableStateOf(false) }
+    val categories = if (historical) history else month
+    val total = if (historical) historyTotal else monthTotal
+    if (categories.isEmpty() || (total == 0L && !historical)) {
         EmptyCard(strings.noMovements)
         return
     }
-    var progress by remember { mutableStateOf(0f) }
-    LaunchedEffect(Unit) { progress = 1f }
-    val sweep by animateFloatAsState(progress, tween(700), label = "donut")
+    val max = categories.maxOf { it.total }.coerceAtLeast(1)
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(palette.surface, RoundedCornerShape(24.dp))
             .border(1.dp, palette.border, RoundedCornerShape(24.dp))
             .padding(18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(modifier = Modifier.size(140.dp), contentAlignment = Alignment.Center) {
-            Canvas(Modifier.size(140.dp)) {
-                val stroke = 18.dp.toPx()
-                var start = -90f
-                val gap = 3f
-                for (slice in slices) {
-                    val angle = (slice.amount.toFloat() / total.toFloat()) * 360f
-                    drawArc(
-                        color = slice.color,
-                        startAngle = start + gap / 2,
-                        sweepAngle = (angle - gap).coerceAtLeast(1f) * sweep,
-                        useCenter = false,
-                        style = Stroke(width = stroke, cap = StrokeCap.Round),
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(strings.thisMonth to false, strings.allHistory to true).forEach { (label, value) ->
+                val on = historical == value
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            if (on) palette.accent.copy(alpha = 0.14f) else palette.background,
+                            RoundedCornerShape(10.dp),
+                        )
+                        .border(1.dp, if (on) palette.accent else palette.border, RoundedCornerShape(10.dp))
+                        .clickable { historical = value }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        label,
+                        fontSize = 11.sp,
+                        fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (on) palette.accent else palette.mutedForeground,
                     )
-                    start += angle
                 }
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    maskedMoney(masked, total, currency, locale),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(strings.thisMonth, fontSize = 10.sp, color = palette.mutedForeground)
-            }
         }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (slice in slices) {
+        Text(
+            maskedMoney(masked, total, currency, locale),
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        categories.forEach { entry ->
+            val percent = if (total > 0) ((entry.total * 100) / total).toInt() else 0
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(9.dp).background(slice.color, RoundedCornerShape(3.dp)))
                     Text(
-                        slice.name,
-                        modifier = Modifier.weight(1f).padding(start = 8.dp),
+                        entry.name.ifEmpty { strings.noCategory },
+                        modifier = Modifier.weight(1f),
                         fontSize = 12.sp,
                         maxLines = 1,
                     )
                     Text(
-                        maskedMoney(masked, slice.amount, currency, locale),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        "${maskedMoney(masked, entry.total, currency, locale)} · $percent %",
+                        fontSize = 11.sp,
+                        color = palette.mutedForeground,
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .background(palette.mutedForeground.copy(alpha = 0.12f), RoundedCornerShape(4.dp)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(if (entry.total == 0L) 0f else (entry.total.toFloat() / max).coerceIn(0f, 1f))
+                            .height(8.dp)
+                            .background(palette.accent, RoundedCornerShape(4.dp)),
                     )
                 }
             }

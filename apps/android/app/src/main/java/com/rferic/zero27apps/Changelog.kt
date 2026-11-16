@@ -13,6 +13,22 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.18.0",
+            date = "2026-11-16",
+            notes = mapOf(
+                "es" to listOf(
+                    "El resumen del grupo ya no se queda solo con los primeros movimientos: totales, personas y evolución salen de todos los datos.",
+                    "Resumen por categoría con todas las categorías, en el mes o en todo el histórico, con su porcentaje.",
+                    "El importador de Splitwise deja asignar un nombre del CSV a alguien que ya está en el grupo, sin crear otra persona.",
+                ),
+                "en" to listOf(
+                    "The group summary no longer stops at the first movements: totals, people and evolution use every row.",
+                    "Category summary with every category, for the month or the whole history, with its percentage.",
+                    "The Splitwise importer lets you map a CSV name to someone already in the group, without creating a duplicate.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.17.1",
             date = "2026-11-16",
             notes = mapOf(

@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.data.ApiClient
 import com.rferic.zero27apps.data.OweAddMemberBody
-import com.rferic.zero27apps.data.OweIdentityDto
+import com.rferic.zero27apps.data.OweMappingOptionDto
 import com.rferic.zero27apps.data.OweImportPreviewDto
 import com.rferic.zero27apps.data.OweImportResultDto
 import com.rferic.zero27apps.ui.i18n.LocalStrings
@@ -87,7 +87,7 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
 
     var csv by remember { mutableStateOf<String?>(null) }
     var preview by remember { mutableStateOf<OweImportPreviewDto?>(null) }
-    var identities by remember { mutableStateOf<List<OweIdentityDto>>(emptyList()) }
+    var mappingOptions by remember { mutableStateOf<List<OweMappingOptionDto>>(emptyList()) }
     var mapping by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var mappingName by remember { mutableStateOf<String?>(null) }
     var duplicates by remember { mutableStateOf(false) }
@@ -114,21 +114,27 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
             runCatching { api.oweImportPreview(groupId, text) }
                 .onSuccess { value ->
                     preview = value
-                    identities = runCatching { api.oweIdentities(groupId) }.getOrDefault(emptyList())
+                    mappingOptions = runCatching { api.oweMappingOptions(groupId) }.getOrDefault(emptyList())
                 }
                 .onFailure { error = oweErrorText(it, strings) }
             busy = false
         }
     }
 
-    fun mapName(name: String, inviteeId: String?) {
+    fun mapName(name: String, option: OweMappingOptionDto?) {
+        // A member that already exists is reused as-is: no duplicate person.
+        if (option?.kind == "member") {
+            mapping = mapping + (name to option.id)
+            mappingName = null
+            return
+        }
         busy = true
         scope.launch {
             runCatching {
                 api.oweAddMember(
                     groupId,
                     // A real account is invited: the server refuses to force it active.
-                    OweAddMemberBody(if (inviteeId == null) name else displayNameFor(identities, inviteeId), inviteeId),
+                    OweAddMemberBody(option?.displayName ?: name, option?.id),
                 )
             }.onSuccess { member ->
                 // Several CSV names may point at the same member (a merge).
@@ -261,15 +267,15 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    ranked(name, identities).forEach { identity ->
-                        TextButton(onClick = { mapName(name, identity.id) }, modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                if (normalized(identity.displayName) == normalized(name)) {
-                                    "✓ ${identity.displayName}"
-                                } else {
-                                    identity.displayName
-                                },
-                            )
+                    ranked(name, mappingOptions).forEach { option ->
+                        TextButton(onClick = { mapName(name, option) }, modifier = Modifier.fillMaxWidth()) {
+                            val marker = if (normalized(option.displayName) == normalized(name)) "✓ " else ""
+                            val suffix = if (option.kind == "member") {
+                                " · ${strings.inGroup}"
+                            } else {
+                                " · ${strings.account}"
+                            }
+                            Text("$marker${option.displayName}$suffix")
                         }
                     }
                     TextButton(onClick = { mapName(name, null) }, modifier = Modifier.fillMaxWidth()) {
@@ -283,19 +289,17 @@ fun OweImportScreen(api: ApiClient, groupId: String, onClose: () -> Unit) {
     }
 }
 
-private fun displayNameFor(identities: List<OweIdentityDto>, userId: String): String =
-    identities.firstOrNull { it.id == userId }?.displayName ?: ""
-
 private fun normalized(value: String): String =
     java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
         .replace(Regex("\\p{M}"), "")
         .lowercase()
 
-/** Exact matches first, then similar names, then the rest. */
-private fun ranked(name: String, identities: List<OweIdentityDto>): List<OweIdentityDto> {
+/** Exact matches first, members before accounts, then similar names. */
+private fun ranked(name: String, options: List<OweMappingOptionDto>): List<OweMappingOptionDto> {
     val wanted = normalized(name)
-    return identities.sortedWith(
-        compareByDescending<OweIdentityDto> { normalized(it.displayName) == wanted }
+    return options.sortedWith(
+        compareByDescending<OweMappingOptionDto> { normalized(it.displayName) == wanted }
+            .thenByDescending { it.kind == "member" }
             .thenByDescending {
                 val other = normalized(it.displayName)
                 other.contains(wanted) || wanted.contains(other)
