@@ -670,7 +670,12 @@ export async function listMovements(
   deps: OweDeps,
   userId: string,
   groupId: string,
+  page: { limit?: number; offset?: number } = {},
 ): Promise<MovementView[]> {
+  // Paged on purpose: a big imported group has hundreds of rows and the app
+  // renders them all, so the list arrives in slices.
+  const limit = Math.min(200, Math.max(1, page.limit ?? 100));
+  const offset = Math.max(0, page.offset ?? 0);
   await requireActiveMember(deps, userId, groupId);
   const { rows } = await deps.db.query(
     `select mv.id, mv.kind, mv.description, mv.amount_minor, mv.currency,
@@ -683,8 +688,9 @@ export async function listMovements(
        left join module_owe_no.owe_no_movement_shares s on s.movement_id = mv.id
       where mv.group_id = $1 and mv.deleted_at is null
       group by mv.id
-      order by mv.occurred_on desc, mv.created_at desc`,
-    [groupId],
+      order by mv.occurred_on desc, mv.created_at desc
+      limit $2 offset $3`,
+    [groupId, limit, offset],
   );
   return rows.map((row) => ({
     id: String(row.id),

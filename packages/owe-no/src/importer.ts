@@ -274,15 +274,26 @@ export async function commitImport(
       await db.query("delete from module_owe_no.owe_no_categories where group_id = $1", [groupId]);
       await db.query("delete from module_owe_no.owe_no_idempotency where group_id = $1", [groupId]);
       // Fictitious members exist only for the expenses they were created for: once
-      // those are gone, keeping them only accumulates "Bolli" four times.
+      // those are gone, keeping them only accumulates "Bolli" four times. Names
+      // this very file uses are kept: the panel created them a moment ago for the
+      // mapping, and deleting them here made the import fail with unknown_member.
+      const usedNames = [
+        ...new Set(
+          parsed.movements.flatMap((movement) => [
+            movement.payer,
+            ...movement.shares.map((share) => share.name),
+          ]).map((name) => name.trim().toLowerCase()),
+        ),
+      ];
       await db.query(
         `delete from module_owe_no.owe_no_members m
           where m.group_id = $1 and m.user_id is null and m.state in ('active', 'invited')
+            and not (lower(btrim(m.display_name)) = any($2::text[]))
             and not exists (select 1 from module_owe_no.owe_no_movements mv
                              where mv.group_id = $1 and mv.paid_by_member_id = m.id)
             and not exists (select 1 from module_owe_no.owe_no_movement_shares s
                              where s.member_id = m.id)`,
-        [groupId],
+        [groupId, usedNames],
       );
     }
     // Every write of the import runs on THIS transaction: the categories and
