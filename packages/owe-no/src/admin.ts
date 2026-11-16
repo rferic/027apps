@@ -64,6 +64,9 @@ export interface AdminGroupDetail {
   payments_total: number;
   /** Expense totals per category, largest first: the group's own summary. */
   category_totals: Array<{ name: string; total: number }>;
+  /** What the group spent this month, and who paid or consumed it. */
+  month_total: number;
+  people_totals: Array<{ name: string; paid: number; consumed: number }>;
   /** Paging and totals, so the panel never guesses how many are left. */
   movements_total: number;
   movements_page: number;
@@ -138,6 +141,39 @@ export async function adminGroupDetail(
   );
   const totalOf = (kind: string) =>
     Number(totals.find((row) => row.kind === kind)?.total ?? 0);
+  const { rows: monthRows } = await deps.db.query(
+    `select coalesce(sum(mv.amount_minor), 0)::bigint as total
+       from module_owe_no.owe_no_movements mv
+      where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
+        and mv.occurred_on >= date_trunc('month', current_date)`,
+    [groupId],
+  );
+  const { rows: peopleRows } = await deps.db.query(
+    `with paid as (
+       select mv.paid_by_member_id as id, sum(mv.amount_minor) as total
+         from module_owe_no.owe_no_movements mv
+        where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
+          and mv.occurred_on >= date_trunc('month', current_date)
+        group by 1
+     ), consumed as (
+       select s.member_id as id, sum(s.amount_minor) as total
+         from module_owe_no.owe_no_movement_shares s
+         join module_owe_no.owe_no_movements mv on mv.id = s.movement_id
+        where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
+          and mv.occurred_on >= date_trunc('month', current_date)
+        group by 1
+     )
+     select m.display_name,
+            coalesce(p.total, 0)::bigint as paid,
+            coalesce(c.total, 0)::bigint as consumed
+       from module_owe_no.owe_no_members m
+       left join paid p on p.id = m.id
+       left join consumed c on c.id = m.id
+      where m.group_id = $1 and m.state = 'active'
+        and (coalesce(p.total, 0) > 0 or coalesce(c.total, 0) > 0)
+      order by 2 desc`,
+    [groupId],
+  );
   const { rows: categoryTotals } = await deps.db.query(
     `select coalesce(c.name, '') as name, sum(mv.amount_minor)::bigint as total
        from module_owe_no.owe_no_movements mv
@@ -177,6 +213,12 @@ export async function adminGroupDetail(
     category_totals: categoryTotals.map((row) => ({
       name: String(row.name),
       total: Number(row.total),
+    })),
+    month_total: Number(monthRows[0]?.total ?? 0),
+    people_totals: peopleRows.map((row) => ({
+      name: String(row.display_name),
+      paid: Number(row.paid),
+      consumed: Number(row.consumed),
     })),
     movements_total: movements.total,
     movements_page: movements.page,
@@ -371,11 +413,13 @@ export async function adminDeleteGroup(
       "delete from module_owe_no.owe_no_movement_shares where movement_id in (select id from module_owe_no.owe_no_movements where group_id = $1)",
       [groupId],
     );
-    await db.query("delete from module_owe_no.owe_no_movements where group_id = $1", [groupId]);
+    // `owe_no_import_rows` points at movements: the tracking rows go first or the
+    // delete fails on a foreign key (that is why deleting a group failed).
     await db.query(
       "delete from module_owe_no.owe_no_import_rows where import_id in (select id from module_owe_no.owe_no_imports where group_id = $1)",
       [groupId],
     );
+    await db.query("delete from module_owe_no.owe_no_movements where group_id = $1", [groupId]);
     await db.query("delete from module_owe_no.owe_no_imports where group_id = $1", [groupId]);
     await db.query("delete from module_owe_no.owe_no_categories where group_id = $1", [groupId]);
     await db.query("delete from module_owe_no.owe_no_blocks where group_id = $1", [groupId]);

@@ -14,6 +14,7 @@ import {
   adminAddMember,
   adminCreateGroup,
   adminCreateMovement,
+  adminDeleteGroup,
   adminDeleteMovement,
   adminGroupDetail,
   adminLinkMember,
@@ -444,6 +445,39 @@ describe("owe-no admin movement paging and filters", () => {
         perPage: 100,
       });
       expect(searched.movements_total).toBe(1);
+    });
+  });
+});
+
+describe("owe-no group deletion with an import", () => {
+  // Regression: `owe_no_import_rows` references movements, and deleting the
+  // movements first failed the foreign key, so the panel could not delete a
+  // group that had been imported.
+  it("deletes a group that has imports and movements", async () => {
+    await inRollback(async (c) => {
+      const { admin } = await install(c);
+      const group = await adminCreateGroup(oweDeps(c), admin, { name: "Casa", currency: "EUR" });
+      const member = (await adminGroupDetail(oweDeps(c), admin, group.id)).members[0]!;
+      await adminAddMember(oweDeps(c), admin, group.id, { displayName: "Bolli" });
+      const members = (await adminGroupDetail(oweDeps(c), admin, group.id)).members;
+      const bolli = members.find((row) => row.display_name === "Bolli")!;
+
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Bolli",
+        "2026-05-10,Cena,Comida,20.00,EUR,20.00,-20.00",
+      ].join("\n");
+      const { commitImport } = await import("@027apps/owe-no/domain/importer.js");
+      await commitImport(oweDeps(c), admin.userId, group.id, csv, {
+        mapping: { Ana: member.id, Bolli: bolli.id },
+      });
+
+      await adminDeleteGroup(oweDeps(c), admin, group.id, "Casa");
+      const { rows } = await query(
+        c,
+        "select count(*)::int as n from module_owe_no.owe_no_groups where id = $1",
+        [group.id],
+      );
+      expect(rows[0]!.n).toBe(0);
     });
   });
 });

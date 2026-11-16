@@ -142,6 +142,8 @@ describe("owe-no admin pages", () => {
       ],
       expenses_total: 1000,
       category_totals: [{ name: "Comida", total: 1000 }],
+      month_total: 1000,
+      people_totals: [{ name: "Ana", paid: 1000, consumed: 500 }],
       payments_total: 0,
       movements_total: 1,
       movements_page: 1,
@@ -211,6 +213,8 @@ describe("owe-no admin pages", () => {
       movements: [],
       expenses_total: 1000,
       category_totals: [{ name: "Comida", total: 1000 }],
+      month_total: 1000,
+      people_totals: [{ name: "Ana", paid: 1000, consumed: 500 }],
       payments_total: 0,
       movements_total: 1,
       movements_page: 1,
@@ -272,3 +276,80 @@ describe("owe-no admin pages", () => {
   });
 });
 
+
+describe("owe-no group page translations", () => {
+  it("renders every tab in Spanish, without leaking English keys", async () => {
+    const noop = async () => {};
+    const messages = await spanish();
+    const group = "11111111-1111-4111-8111-111111111111";
+    const detail = {
+      group: {
+        id: group,
+        name: "Casa",
+        currency: "EUR",
+        archived: false,
+        created_by: null,
+        archived_by: null,
+        members: 2,
+        movements: 1,
+      },
+      categories: [{ id: "c1", name: "Comida" }],
+      members: [
+        { id: "m1", display_name: "Ana", state: "active" as const, user_id: "u1", balance: 500 },
+        { id: "m2", display_name: "Luis", state: "active" as const, user_id: null, balance: -500 },
+      ],
+      movements: [],
+      expenses_total: 1000,
+      payments_total: 0,
+      category_totals: [{ name: "Comida", total: 1000 }],
+      month_total: 1000,
+      people_totals: [{ name: "Ana", paid: 1000, consumed: 500 }],
+      movements_total: 0,
+      movements_page: 1,
+      movements_per_page: 25,
+    };
+    const actions = {
+      createGroup: noop,
+      archiveGroup: noop,
+      deleteGroup: noop,
+      addMember: noop,
+      linkMember: noop,
+      removeMember: noop,
+      saveMovement: noop,
+      deleteMovement: noop,
+      settle: noop,
+      transfer: noop,
+    };
+    const render = async (searchParams: Record<string, string>) =>
+      renderToStaticMarkup(
+        await OweNoGroups({
+          context: context(messages, searchParams),
+          groups: [],
+          detail,
+          userOptions: [],
+          plan: null,
+          actions,
+        }),
+      );
+
+    // The module page renders synchronously for a detail view.
+    const movements = await render({ group });
+    expect(movements).toContain("Movimientos");
+    expect(movements).toContain("Tipo");
+    expect(movements).toContain("Filtrar");
+    expect(movements).toContain("Mostrando 0 de 0 movimientos.");
+    expect(movements).not.toContain("Showing {shown}");
+    expect(movements).not.toContain("Delete this group for good.");
+    expect(movements).toContain("Borrar este grupo definitivamente.");
+
+    const members = await render({ group, tab: "members" });
+    expect(members).toContain("Miembros");
+
+    const summary = await render({ group, tab: "summary" });
+    expect(summary).toContain("Resumen");
+    expect(summary).toContain("Gastado");
+    expect(summary).toContain("Por categoría");
+    expect(summary).toContain("Personas");
+    expect(summary).toContain("Neto");
+  });
+});

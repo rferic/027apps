@@ -1309,6 +1309,31 @@ function GroupSummary({
           </dd>
         </div>
       </dl>
+      <h3 className="text-xs font-semibold">{tr("This month")}</h3>
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="rounded-control border border-border p-3">
+          <dt className="text-[11px] text-muted-foreground">{tr("Spent")}</dt>
+          <dd className="text-lg font-bold tabular-nums">
+            {money(detail.month_total, group.currency, context.locale)}
+          </dd>
+        </div>
+      </dl>
+      <h3 className="text-xs font-semibold">{tr("People")}</h3>
+      {detail.people_totals.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{tr("No movements this month.")}</p>
+      ) : (
+        <ul className="flex flex-col gap-1 text-xs">
+          {detail.people_totals.map((person) => (
+            <li key={person.name} className="flex items-center justify-between gap-2">
+              <span className="truncate">{person.name}</span>
+              <span className="tabular-nums text-muted-foreground">
+                {money(person.paid, group.currency, context.locale)} ·{" "}
+                {money(person.consumed, group.currency, context.locale)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
       <h3 className="text-xs font-semibold">{tr("By category")}</h3>
       {detail.category_totals.length === 0 ? (
         <p className="text-xs text-muted-foreground">{tr("No movements yet.")}</p>
