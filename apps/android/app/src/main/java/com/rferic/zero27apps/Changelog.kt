@@ -13,6 +13,18 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.18.1",
+            date = "2026-11-16",
+            notes = mapOf(
+                "es" to listOf(
+                    "Los porcentajes del resumen se redondean igual que en el panel: el mismo gasto muestra el mismo porcentaje en la app y en la web.",
+                ),
+                "en" to listOf(
+                    "Summary percentages round like the panel: the same expense shows the same percentage in the app and on the web.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.18.0",
             date = "2026-11-16",
             notes = mapOf(
