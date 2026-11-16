@@ -25,9 +25,16 @@ export async function signInAction(formData: FormData): Promise<void> {
   redirect(postLoginPath(await isSetupIncomplete(settingsDeps)));
 }
 
-/** Server action: drops the session cookies and returns to the login screen. */
+/**
+ * Local logout: it ends this browser's session only. The app's and the other
+ * browser's sessions are revoked by an administrator, not by this action
+ * (sprint 16, task 03).
+ */
+export const LOCAL_SIGN_OUT = { scope: "local" as const };
+
+/** Server action: drops this browser's session cookies and returns to login. */
 export async function signOutAction(): Promise<void> {
   const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut(LOCAL_SIGN_OUT);
   redirect("/login");
 }

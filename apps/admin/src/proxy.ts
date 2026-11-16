@@ -5,6 +5,7 @@ import { entryGate } from "@/lib/instance-gate";
 import { readInstanceState } from "@/lib/instance-state";
 import { isPublicPath } from "@/lib/public-paths";
 import { isSameOriginMutation } from "@/lib/same-origin";
+import { classifyRefreshError, type SessionRefreshOutcome } from "@/lib/session-refresh";
 import { SESSION_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options";
 
 /** Paths whose access depends on the instance state (the gate's inputs). */
@@ -55,11 +56,17 @@ export async function proxy(request: NextRequest) {
   }
 
   const { supabase, refreshedCookies } = sessionClient(request);
-  const hasSession = await refreshSession(
+  const { outcome, hasSession } = await refreshSession(
     supabase,
     request.nextUrl.pathname,
     requestHeaders,
   );
+
+  // A network, timeout or 5xx failure is not a logout: answer a retryable 503
+  // and do not send the cleared cookies the Supabase client may have queued.
+  if (outcome === "unavailable") {
+    return unavailableResponse(request, contentSecurityPolicy, reportOnlyPolicy);
+  }
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   applyContentSecurityPolicies(response, contentSecurityPolicy, reportOnlyPolicy);
@@ -116,21 +123,29 @@ type SessionClient = ReturnType<typeof sessionClient>["supabase"];
  * - any other page: the panel layout verifies it; the proxy only refreshes the
  *   cookie when the token is about to expire.
  */
+type SessionRefresh = { outcome: SessionRefreshOutcome; hasSession: boolean };
+
 async function refreshSession(
   supabase: SessionClient,
   pathname: string,
   headers: Headers,
-): Promise<boolean> {
-  if (pathname.startsWith("/api/v1")) {
-    await forwardSessionToken(supabase, headers);
-    return false;
+): Promise<SessionRefresh> {
+  try {
+    if (pathname.startsWith("/api/v1")) {
+      await forwardSessionToken(supabase, headers);
+      return { outcome: "ok", hasSession: false };
+    }
+    if (GATED_PATHS.has(pathname)) {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return { outcome: "ok", hasSession: data.user !== null };
+    }
+    const { error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return { outcome: "ok", hasSession: false };
+  } catch (error) {
+    return { outcome: classifyRefreshError(error), hasSession: false };
   }
-  if (GATED_PATHS.has(pathname)) {
-    const { data } = await supabase.auth.getUser();
-    return data.user !== null;
-  }
-  await supabase.auth.getSession();
-  return false;
 }
 
 /** Copies the session token onto the upstream request for `/api/v1` calls. */
@@ -138,9 +153,34 @@ async function forwardSessionToken(
   supabase: ReturnType<typeof sessionClient>["supabase"],
   headers: Headers,
 ): Promise<void> {
-  const { data } = await supabase.auth.getSession();
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
   const token = data.session?.access_token;
   if (token) headers.set("authorization", `Bearer ${token}`);
+}
+
+/**
+ * Retryable outage: a Supabase network error must not look like a logout. The
+ * session cookies stay untouched and the browser can retry.
+ */
+function unavailableResponse(
+  request: NextRequest,
+  contentSecurityPolicy: string,
+  reportOnlyPolicy: string,
+): NextResponse {
+  const isApi = request.nextUrl.pathname.startsWith("/api/v1");
+  const response = isApi
+    ? NextResponse.json(
+        { error: { code: "service_unavailable", message: "Temporarily unavailable" } },
+        { status: 503 },
+      )
+    : new NextResponse("Temporarily unavailable. Please retry.", {
+        status: 503,
+        headers: { "content-type": "text/plain; charset=utf-8" },
+      });
+  response.headers.set("retry-after", "30");
+  applyContentSecurityPolicies(response, contentSecurityPolicy, reportOnlyPolicy);
+  return response;
 }
 
 /** Redirect while keeping the refreshed session cookies and both CSP headers. */
