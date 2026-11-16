@@ -20,10 +20,10 @@ const handlers = {
 };
 
 const authenticatedRoutes = [
-  { route: "users", handler: handlers.users, invalid: { users: "not-an-array" } },
-  { route: "user categories", handler: handlers.categories, invalid: { categories: "not-an-array" } },
-  { route: "invitations", handler: handlers.invitations, invalid: { invitations: "not-an-array" } },
-  { route: "modules", handler: handlers.modules, invalid: { modules: "not-an-array" } },
+  { route: "users", handler: handlers.users, invalid: { users: "not-an-array" }, section: "members" },
+  { route: "user categories", handler: handlers.categories, invalid: { categories: "not-an-array" }, section: "categories" },
+  { route: "invitations", handler: handlers.invitations, invalid: { invitations: "not-an-array" }, section: "invitations" },
+  { route: "modules", handler: handlers.modules, invalid: { modules: "not-an-array" }, section: "modules" },
 ] as const;
 
 vi.mock("next/navigation", () => ({
@@ -260,7 +260,7 @@ describe("loadPanelDashboard", () => {
 
   it.each(authenticatedRoutes)(
     "fails the whole dashboard with the request id when $route returns 500",
-    async ({ handler }) => {
+    async ({ handler, section }) => {
       handler.mockResolvedValue(
         json(
           { error: { code: "internal", message: "Internal server error", request_id: "req-500" } },
@@ -273,6 +273,7 @@ describe("loadPanelDashboard", () => {
         ok: false,
         code: "internal",
         requestId: "req-500",
+        section,
       });
     },
   );
@@ -282,6 +283,7 @@ describe("loadPanelDashboard", () => {
     async ({ handler, invalid }) => {
       handler.mockResolvedValue(json(invalid, 200, { "x-request-id": "req-shape" }));
 
+      // A malformed body is caught while composing: there is no section to blame.
       await expect(loadPanelDashboard()).resolves.toEqual({
         ok: false,
         requestId: "req-shape",

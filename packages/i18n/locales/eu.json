@@ -244,6 +244,7 @@
   "Expires in": "Iraungiko da",
   "Expires in days": "Iraungitzen da egunetan",
   "Expiry": "Iraungitzea",
+  "Failed section: {section}": "Huts egin duen atala: {section}",
   "FCM API key": "FCM API gakoa",
   "FCM app id": "FCM app ID-a",
   "FCM project id": "FCM proiektu ID-a",

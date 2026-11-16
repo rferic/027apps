@@ -244,6 +244,7 @@
   "Expires in": "Expire dans",
   "Expires in days": "Expire dans (jours)",
   "Expiry": "Expiration",
+  "Failed section: {section}": "Section en échec : {section}",
   "FCM API key": "Clé d’API FCM",
   "FCM app id": "ID d'application FCM",
   "FCM project id": "ID de projet FCM",
