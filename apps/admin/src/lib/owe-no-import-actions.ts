@@ -56,7 +56,7 @@ export async function importCommitAction(
   groupId: string,
   csv: string,
   choices: Record<string, ImportChoice>,
-  confirmDuplicates: boolean,
+  options: { confirmDuplicates?: boolean; reset?: boolean } = {},
 ) {
   try {
     const userId = await callerId();
@@ -75,7 +75,8 @@ export async function importCommitAction(
     }
     const result = await commitImport(owe, userId, groupId, csv, {
       mapping,
-      confirmDuplicates,
+      confirmDuplicates: options.confirmDuplicates === true,
+      ...(options.reset === true ? { reset: true } : {}),
     });
     return { ok: true as const, result };
   } catch (error) {

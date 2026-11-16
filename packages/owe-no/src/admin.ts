@@ -56,8 +56,30 @@ export interface AdminMovementView extends MovementView {
 export interface AdminGroupDetail {
   group: AdminGroupView & { archived_by: string | null };
   members: AdminMemberView[];
+  /** The movements of the requested page, newest first. */
   movements: AdminMovementView[];
   categories: AdminCategoryView[];
+  /** What the group holds, in minor units, split by kind. */
+  expenses_total: number;
+  payments_total: number;
+  /** Expense totals per category, largest first: the group's own summary. */
+  category_totals: Array<{ name: string; total: number }>;
+  /** Paging and totals, so the panel never guesses how many are left. */
+  movements_total: number;
+  movements_page: number;
+  movements_per_page: number;
+}
+
+/** Filters the panel can apply to a group's movement list. */
+export interface AdminMovementQuery {
+  page?: number;
+  perPage?: number;
+  kind?: "expense" | "settlement";
+  memberId?: string;
+  categoryId?: string;
+  q?: string;
+  from?: string;
+  to?: string;
 }
 
 export interface AdminUserOption {
@@ -83,6 +105,7 @@ export async function adminGroupDetail(
   deps: OweDeps,
   caller: Caller,
   groupId: string,
+  query: AdminMovementQuery = {},
 ): Promise<AdminGroupDetail> {
   requireAdmin(caller);
   const { rows: group } = await deps.db.query(
@@ -105,7 +128,24 @@ export async function adminGroupDetail(
       order by (state = 'active') desc, display_name`,
     [groupId],
   );
-  const movements = await adminMovements(deps, groupId);
+  const movements = await adminMovements(deps, groupId, query);
+  const { rows: totals } = await deps.db.query(
+    `select mv.kind, sum(mv.amount_minor)::bigint as total
+       from module_owe_no.owe_no_movements mv
+      where mv.group_id = $1 and mv.deleted_at is null
+      group by 1`,
+    [groupId],
+  );
+  const totalOf = (kind: string) =>
+    Number(totals.find((row) => row.kind === kind)?.total ?? 0);
+  const { rows: categoryTotals } = await deps.db.query(
+    `select coalesce(c.name, '') as name, sum(mv.amount_minor)::bigint as total
+       from module_owe_no.owe_no_movements mv
+       left join module_owe_no.owe_no_categories c on c.id = mv.category_id
+      where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
+      group by 1 order by 2 desc`,
+    [groupId],
+  );
   const { rows: categories } = await deps.db.query(
     `select id, name from module_owe_no.owe_no_categories
       where group_id = $1 and archived_at is null order by name`,
@@ -130,8 +170,17 @@ export async function adminGroupDetail(
       user_id: row.user_id === null ? null : String(row.user_id),
       balance: balances.get(String(row.id)) ?? 0,
     })),
-    movements,
+    movements: movements.rows,
     categories: categories.map((row) => ({ id: String(row.id), name: String(row.name) })),
+    expenses_total: totalOf("expense"),
+    payments_total: totalOf("settlement"),
+    category_totals: categoryTotals.map((row) => ({
+      name: String(row.name),
+      total: Number(row.total),
+    })),
+    movements_total: movements.total,
+    movements_page: movements.page,
+    movements_per_page: movements.perPage,
   };
 }
 
@@ -139,7 +188,36 @@ export async function adminGroupDetail(
  * Every live movement of the group, newest first. The panel caps the list at
  * 100: `group.movements` still counts them all, so the page can say so.
  */
-async function adminMovements(deps: OweDeps, groupId: string): Promise<AdminMovementView[]> {
+async function adminMovements(
+  deps: OweDeps,
+  groupId: string,
+  query: AdminMovementQuery = {},
+): Promise<{ rows: AdminMovementView[]; total: number; page: number; perPage: number }> {
+  const perPage = Math.min(100, Math.max(5, query.perPage ?? 25));
+  const page = Math.max(1, query.page ?? 1);
+  const params = [
+    groupId,
+    query.kind ?? null,
+    query.memberId ?? null,
+    query.categoryId ?? null,
+    query.q?.trim() ? query.q.trim() : null,
+    query.from ?? null,
+    query.to ?? null,
+  ];
+  const filter = `mv.group_id = $1 and mv.deleted_at is null
+      and ($2::text is null or mv.kind = $2)
+      and ($3::uuid is null or mv.paid_by_member_id = $3
+           or exists (select 1 from module_owe_no.owe_no_movement_shares s2
+                       where s2.movement_id = mv.id and s2.member_id = $3))
+      and ($4::uuid is null or mv.category_id = $4)
+      and ($5::text is null or mv.description ilike '%' || $5 || '%')
+      and ($6::date is null or mv.occurred_on >= $6::date)
+      and ($7::date is null or mv.occurred_on <= $7::date)`;
+  const { rows: counted } = await deps.db.query(
+    `select count(*)::int as total from module_owe_no.owe_no_movements mv where ${filter}`,
+    params,
+  );
+  const total = Number(counted[0]?.total ?? 0);
   const { rows } = await deps.db.query(
     `select mv.id, mv.kind, mv.description, mv.amount_minor, mv.currency,
             mv.paid_by_member_id, to_char(mv.occurred_on, 'YYYY-MM-DD') as occurred_on,
@@ -153,13 +231,13 @@ async function adminMovements(deps: OweDeps, groupId: string): Promise<AdminMove
        left join module_owe_no.owe_no_movement_shares s on s.movement_id = mv.id
        left join public.profiles c on c.id = mv.created_by
        left join public.profiles u on u.id = mv.updated_by
-      where mv.group_id = $1 and mv.deleted_at is null
+      where ${filter}
       group by mv.id, c.display_name, u.display_name
       order by mv.occurred_on desc, mv.created_at desc
-      limit 100`,
-    [groupId],
+      limit $8 offset $9`,
+    [...params, perPage, (page - 1) * perPage],
   );
-  return rows.map((row) => ({
+  const mapped = rows.map((row) => ({
     id: String(row.id),
     kind: row.kind as MovementView["kind"],
     description: String(row.description),
@@ -175,6 +253,7 @@ async function adminMovements(deps: OweDeps, groupId: string): Promise<AdminMove
     created_at: new Date(String(row.created_at)).toISOString(),
     updated_at: new Date(String(row.updated_at)).toISOString(),
   }));
+  return { rows: mapped, total, page, perPage };
 }
 
 /** Accounts an administrator can add to a group, by name. */
@@ -258,6 +337,52 @@ export async function adminSetArchived(
     [groupId, archived, adminId],
   );
   if (!rows[0]) throw new OweDomainError("not_found", "group not found");
+}
+
+/**
+ * Deletes a group and everything that hangs from it. Hard delete on purpose: an
+ * archived group that can never be removed is poison for a family that created
+ * one by mistake, and the owner asked for a real delete. `confirmation` must be
+ * the group's name, so a misclick cannot wipe a year of expenses.
+ */
+export async function adminDeleteGroup(
+  deps: OweDeps,
+  caller: Caller,
+  groupId: string,
+  confirmation: string,
+): Promise<void> {
+  requireAdmin(caller);
+  const { rows } = await deps.db.query(
+    "select name from module_owe_no.owe_no_groups where id = $1",
+    [groupId],
+  );
+  if (!rows[0]) throw new OweDomainError("not_found", "group not found");
+  const name = String(rows[0].name);
+  if (confirmation.trim() !== name) {
+    throw new OweDomainError("validation_failed", "the name does not match", {
+      code: "confirmation_mismatch",
+    });
+  }
+  const run = deps.withTransaction ?? (<T,>(fn: (db: OweDeps["db"]) => Promise<T>) => fn(deps.db));
+  await run(async (db) => {
+    // Order matters: children first, the group last. `on delete cascade` covers
+    // some of it, but naming every table makes the intent readable.
+    await db.query(
+      "delete from module_owe_no.owe_no_movement_shares where movement_id in (select id from module_owe_no.owe_no_movements where group_id = $1)",
+      [groupId],
+    );
+    await db.query("delete from module_owe_no.owe_no_movements where group_id = $1", [groupId]);
+    await db.query(
+      "delete from module_owe_no.owe_no_import_rows where import_id in (select id from module_owe_no.owe_no_imports where group_id = $1)",
+      [groupId],
+    );
+    await db.query("delete from module_owe_no.owe_no_imports where group_id = $1", [groupId]);
+    await db.query("delete from module_owe_no.owe_no_categories where group_id = $1", [groupId]);
+    await db.query("delete from module_owe_no.owe_no_blocks where group_id = $1", [groupId]);
+    await db.query("delete from module_owe_no.owe_no_idempotency where group_id = $1", [groupId]);
+    await db.query("delete from module_owe_no.owe_no_members where group_id = $1", [groupId]);
+    await db.query("delete from module_owe_no.owe_no_groups where id = $1", [groupId]);
+  });
 }
 
 /** Adds an active member; an account is optional (a fictitious member). */

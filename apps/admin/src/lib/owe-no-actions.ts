@@ -14,6 +14,7 @@ import {
   adminDeleteMovement,
   adminLinkMember,
   adminRemoveMember,
+  adminDeleteGroup,
   adminSetArchived,
   adminUpdateMovement,
 } from "@027apps/owe-no/domain/admin.js";
@@ -33,9 +34,26 @@ function adminCaller(user: { id: string; role: string }): Caller {
   return { kind: "session", userId: user.id, role: user.role };
 }
 
-function fail(code: string, groupId?: string, extra?: Record<string, string>): never {
+/**
+ * The tab the form was submitted from, so an action returns the administrator to
+ * where they were instead of the default one. Anything unknown is dropped.
+ */
+function tabOf(formData: FormData): string | undefined {
+  const value = formData.get("tab");
+  return value === "balances" || value === "members" || value === "summary" || value === "movements"
+    ? value
+    : undefined;
+}
+
+function fail(
+  code: string,
+  groupId?: string,
+  extra?: Record<string, string>,
+  tab?: string,
+): never {
   const params = new URLSearchParams({ error: code });
   if (groupId) params.set("group", groupId);
+  if (tab) params.set("tab", tab);
   for (const [key, value] of Object.entries(extra ?? {})) params.set(key, value);
   redirect(`${GROUP}?${params.toString()}`);
 }
@@ -55,10 +73,13 @@ async function gate(): Promise<Caller> {
   return adminCaller(panel.user);
 }
 
-function refresh(groupId?: string): never {
+function refresh(groupId?: string, tab?: string): never {
   revalidatePath("/panel/owe-no");
   revalidatePath(GROUP);
-  redirect(groupId ? `${GROUP}?group=${encodeURIComponent(groupId)}` : GROUP);
+  if (!groupId) redirect(GROUP);
+  const params = new URLSearchParams({ group: groupId });
+  if (tab) params.set("tab", tab);
+  redirect(`${GROUP}?${params.toString()}`);
 }
 
 const createGroupSchema = z.object({
@@ -85,18 +106,37 @@ export async function createGroupAction(formData: FormData): Promise<void> {
   refresh(created);
 }
 
+/**
+ * Deletes a group for good. The form carries the group's name as typed by the
+ * administrator; the domain refuses anything that is not an exact match.
+ */
+export async function deleteGroupAction(formData: FormData): Promise<void> {
+  const caller = await gate();
+  const groupId = String(formData.get("group") ?? "");
+  if (!groupId) fail("validation_failed");
+  try {
+    const { owe } = await oweDeps();
+    await adminDeleteGroup(owe, caller, groupId, String(formData.get("confirm") ?? ""));
+  } catch (error) {
+    fail(errorCode(error), groupId);
+  }
+  // No group to return to: back to the catalogue.
+  redirect("/panel/owe-no/groups");
+}
+
 export async function archiveGroupAction(formData: FormData): Promise<void> {
   const caller = await gate();
   const groupId = String(formData.get("group") ?? "");
   const archived = formData.get("archived") === "true";
+  const tab = tabOf(formData);
   if (!groupId) fail("validation_failed");
   try {
     const { owe } = await oweDeps();
     await adminSetArchived(owe, caller, groupId, archived);
   } catch (error) {
-    fail(errorCode(error), groupId);
+    fail(errorCode(error), groupId, undefined, tab);
   }
-  refresh(groupId);
+  refresh(groupId, tab);
 }
 
 const addMemberSchema = z.object({
@@ -107,6 +147,7 @@ const addMemberSchema = z.object({
 
 export async function addMemberAction(formData: FormData): Promise<void> {
   const caller = await gate();
+  const tab = tabOf(formData);
   const parsed = addMemberSchema.safeParse({
     group: formData.get("group"),
     display_name: formData.get("display_name"),
@@ -124,13 +165,14 @@ export async function addMemberAction(formData: FormData): Promise<void> {
   } catch (error) {
     fail(errorCode(error), parsed.data.group, { view: "member" });
   }
-  refresh(parsed.data.group);
+  refresh(parsed.data.group, tab);
 }
 
 const linkMemberSchema = z.object({ group: z.uuid(), member: z.uuid(), user_id: z.uuid() });
 
 export async function linkMemberAction(formData: FormData): Promise<void> {
   const caller = await gate();
+  const tab = tabOf(formData);
   const parsed = linkMemberSchema.safeParse({
     group: formData.get("group"),
     member: formData.get("member"),
@@ -148,13 +190,14 @@ export async function linkMemberAction(formData: FormData): Promise<void> {
       member: parsed.data.member,
     });
   }
-  refresh(parsed.data.group);
+  refresh(parsed.data.group, tab);
 }
 
 const memberActionSchema = z.object({ group: z.uuid(), member: z.uuid() });
 
 export async function removeMemberAction(formData: FormData): Promise<void> {
   const caller = await gate();
+  const tab = tabOf(formData);
   const parsed = memberActionSchema.safeParse({
     group: formData.get("group"),
     member: formData.get("member"),
@@ -164,9 +207,9 @@ export async function removeMemberAction(formData: FormData): Promise<void> {
     const { owe } = await oweDeps();
     await adminRemoveMember(owe, caller, parsed.data.group, parsed.data.member);
   } catch (error) {
-    fail(errorCode(error), parsed.data.group);
+    fail(errorCode(error), parsed.data.group, undefined, tab);
   }
-  refresh(parsed.data.group);
+  refresh(parsed.data.group, tab);
 }
 
 const movementSchema = z.object({
@@ -263,14 +306,15 @@ export async function deleteMovementAction(formData: FormData): Promise<void> {
   const parsed = z
     .object({ group: z.uuid(), movement: z.uuid() })
     .safeParse({ group: formData.get("group"), movement: formData.get("movement") });
+  const tab = tabOf(formData);
   if (!parsed.success) fail("validation_failed", String(formData.get("group") ?? ""));
   try {
     const { owe } = await oweDeps();
     await adminDeleteMovement(owe, caller, parsed.data.group, parsed.data.movement);
   } catch (error) {
-    fail(errorCode(error), parsed.data.group);
+    fail(errorCode(error), parsed.data.group, undefined, tab);
   }
-  refresh(parsed.data.group);
+  refresh(parsed.data.group, tab);
 }
 
 const settleSchema = z.object({

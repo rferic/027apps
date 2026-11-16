@@ -13,6 +13,32 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.17.1",
+            date = "2026-11-16",
+            notes = mapOf(
+                "es" to listOf(
+                    "La lista de movimientos de un grupo carga de 50 en 50 con «Cargar más»: los grupos importados de Splitwise ya no tardan en abrir.",
+                ),
+                "en" to listOf(
+                    "A group's movement list loads 50 at a time with «Load more»: groups imported from Splitwise open fast again.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
+            version = "0.17.0",
+            date = "2026-11-16",
+            notes = mapOf(
+                "es" to listOf(
+                    "Primera versión firmada: la app ya se instala como cualquier otra y se actualiza sin builds de pruebas.",
+                    "Si venías de la compilación de pruebas, hay que desinstalarla una vez: Android no acepta cambiar de firma encima.",
+                ),
+                "en" to listOf(
+                    "First signed build: the app installs like any other and updates without testing builds.",
+                    "Coming from the testing build? Uninstall it once: Android does not accept a different signature on top.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.16.9",
             date = "2026-11-15",
             notes = mapOf(

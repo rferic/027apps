@@ -91,6 +91,11 @@ function DashboardError({
       <h1 className="text-sm font-semibold text-destructive">
         {t("We couldn't load the dashboard.", messages)}
       </h1>
+      {error.section && (
+        <p className="mt-2 text-muted-foreground">
+          {t("Failed section: {section}", messages, { section: error.section })}
+        </p>
+      )}
       {error.code && (
         <p className="mt-2 text-muted-foreground">{errorCodeLabel(error.code, messages)}</p>
       )}

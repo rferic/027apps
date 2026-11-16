@@ -11,7 +11,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     req,
     { scopes: ["expenses:read"], moduleKey: "owe-no", auth, rateLimit: { identity: "user", limit: 120 } },
     door,
-    async (ctx) => ({ movements: json(await listMovements(owe, callerId(ctx.caller), id)) }),
+    async (ctx) => {
+      // `limit`/`offset` keep the app's list light: the newest slice first.
+      const limit = Number(ctx.searchParams.get("limit") ?? "");
+      const offset = Number(ctx.searchParams.get("offset") ?? "");
+      return {
+        movements: json(
+          await listMovements(owe, callerId(ctx.caller), id, {
+            ...(Number.isFinite(limit) && limit > 0 ? { limit } : {}),
+            ...(Number.isFinite(offset) && offset > 0 ? { offset } : {}),
+          }),
+        ),
+      };
+    },
   );
 }
 

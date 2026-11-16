@@ -20,6 +20,7 @@ type UserPicker = ComponentType<{
 export interface OweNoGroupsActions {
   createGroup: Action;
   archiveGroup: Action;
+  deleteGroup: Action;
   addMember: Action;
   linkMember: Action;
   removeMember: Action;
@@ -388,6 +389,12 @@ function GroupDetail({
 }) {
   const AnchorTag = anchorOf(context);
   const { group, members, movements } = detail;
+  const tabParam = context.searchParams.tab;
+  const tab =
+    tabParam === "balances" || tabParam === "members" || tabParam === "summary"
+      ? tabParam
+      : "movements";
+  const tabHref = (value: string) => href(group.id, undefined, { tab: value });
   const active = members.filter((member) => member.state === "active");
   const byId = new Map(members.map((member) => [member.id, member.display_name]));
 
@@ -402,10 +409,15 @@ function GroupDetail({
             </span>
           </span>
         }
-        description={tr("Members {members} · Movements {movements}", {
-          members: group.members,
-          movements: group.movements,
-        })}
+        description={tr(
+          "Members {members} · Movements {movements} · Expenses {expenses} · Payments {payments}",
+          {
+            members: group.members,
+            movements: group.movements,
+            expenses: money(detail.expenses_total, group.currency, context.locale),
+            payments: money(detail.payments_total, group.currency, context.locale),
+          },
+        )}
         tr={tr}
       >
         <div className="flex w-full flex-col gap-2 sm:w-auto">
@@ -423,7 +435,7 @@ function GroupDetail({
             <div>
               <ConfirmForm
                 action={actions.archiveGroup}
-                fields={{ group: group.id, archived: group.archived ? "false" : "true" }}
+                fields={{ group: group.id, archived: group.archived ? "false" : "true", tab }}
                 label={group.archived ? tr("Reopen group") : tr("Archive group")}
                 title={group.archived ? tr("Reopen group?") : tr("Archive group?")}
                 body={
@@ -438,10 +450,57 @@ function GroupDetail({
                 className="w-full"
               />
             </div>
+            <form action={actions.deleteGroup} className="flex flex-col gap-2 rounded-control border border-destructive/60 p-3">
+              <input type="hidden" name="group" value={group.id} />
+              <input type="hidden" name="tab" value={tab} />
+              <p className="text-[11px] font-semibold text-destructive">
+                {tr("Delete this group for good.")}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {tr(
+                  "Its expenses, payments, categories, imports and members are deleted. This cannot be undone.",
+                )}
+              </p>
+              <label className="flex flex-col gap-1 text-[11px]">
+                {tr("Type the group name to confirm: {name}", { name: group.name })}
+                <input
+                  name="confirm"
+                  autoComplete="off"
+                  className="min-h-11 rounded-control border border-border bg-background px-2 text-sm"
+                />
+              </label>
+              <button
+                type="submit"
+                className="min-h-11 rounded-control bg-destructive px-3 text-xs font-semibold text-background"
+              >
+                {tr("Delete group")}
+              </button>
+            </form>
           </div>
         </div>
       </PageHeader>
 
+      <nav className="flex flex-wrap gap-1 rounded-card border border-border bg-surface p-1 text-xs" aria-label={tr("Group sections")}>
+        {[
+          { key: "movements", label: tr("Movements") },
+          { key: "balances", label: tr("Balances") },
+          { key: "members", label: tr("Members") },
+          { key: "summary", label: tr("Summary") },
+        ].map((entry) => (
+          <AnchorTag
+            key={entry.key}
+            href={tabHref(entry.key)}
+            aria-current={tab === entry.key ? "page" : undefined}
+            className={`min-h-9 rounded-control px-3 py-1.5 font-semibold ${
+              tab === entry.key ? "bg-accent/10 text-accent" : "text-muted-foreground"
+            }`}
+          >
+            {entry.label}
+          </AnchorTag>
+        ))}
+      </nav>
+
+      {tab === "balances" ? (
       <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {active.map((member) => (
           <div key={member.id} className="rounded-card border border-border bg-surface p-3">
@@ -457,7 +516,9 @@ function GroupDetail({
           </div>
         ))}
       </dl>
+      ) : null}
 
+      {tab === "members" ? (
       <section className="rounded-card border border-border bg-surface p-3">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -498,7 +559,7 @@ function GroupDetail({
                   ) : null}
                   <ConfirmForm
                     action={actions.removeMember}
-                    fields={{ group: group.id, member: member.id }}
+                    fields={{ group: group.id, member: member.id, tab }}
                     label={tr("Remove")}
                     title={tr("Remove member?")}
                     body={tr("Their balance must be zero; a removed member could no longer be paid.")}
@@ -513,18 +574,26 @@ function GroupDetail({
         </ul>
       </section>
 
+      ) : null}
+
+      {tab === "summary" ? <GroupSummary context={context} detail={detail} tr={tr} /> : null}
+
+      {tab === "movements" ? (
       <section className="rounded-card border border-border bg-surface p-3">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {tr("Movements")}
         </h2>
-        {group.movements > movements.length ? (
-          <p className="mb-2 text-[11px] text-muted-foreground">
-            {tr("Showing the latest {shown} of {total} movements.", {
-              shown: movements.length,
-              total: group.movements,
-            })}
-          </p>
-        ) : null}
+        <MovementFilters
+          context={context}
+          detail={detail}
+          tr={tr}
+        />
+        <p className="mb-2 text-[11px] text-muted-foreground">
+          {tr("Showing {shown} of {total} movements.", {
+            shown: movements.length,
+            total: detail.movements_total,
+          })}
+        </p>
         {movements.length === 0 ? (
           <p className="text-xs text-muted-foreground">{tr("No movements yet.")}</p>
         ) : (
@@ -635,7 +704,7 @@ function GroupDetail({
                           </AnchorTag>
                           <ConfirmForm
                             action={actions.deleteMovement}
-                            fields={{ group: group.id, movement: movement.id }}
+                            fields={{ group: group.id, movement: movement.id, tab }}
                             label={tr("Delete")}
                             title={tr("Delete movement?")}
                             body={tr("It leaves the balances and the history; the row stays for audit.")}
@@ -654,7 +723,9 @@ function GroupDetail({
           </div>
           </>
         )}
+        <MovementPager context={context} detail={detail} tr={tr} />
       </section>
+      ) : null}
     </>
   );
 }
@@ -701,6 +772,7 @@ function MovementView({
       <section className="max-w-3xl rounded-card border border-border bg-surface p-4">
                 <form action={actions.saveMovement} className="flex flex-col gap-3">
           <input type="hidden" name="group" value={group.id} />
+              <input type="hidden" name="tab" value="movements" />
           {editing ? <input type="hidden" name="movement" value={editing.id} /> : null}
           <input type="hidden" name="kind" value={editing?.kind ?? "expense"} />
           <div className="flex flex-wrap gap-2">
@@ -866,6 +938,7 @@ function SettleView({
                 </span>
                 <form action={actions.transfer}>
                   <input type="hidden" name="group" value={group.id} />
+              <input type="hidden" name="tab" value="balances" />
                   <input type="hidden" name="from" value={transfer.from} />
                   <input type="hidden" name="to" value={transfer.to} />
                   <input
@@ -891,6 +964,7 @@ function SettleView({
         </h2>
                 <form action={actions.settle} className="flex flex-col gap-3">
           <input type="hidden" name="group" value={group.id} />
+              <input type="hidden" name="tab" value="balances" />
           <input type="hidden" name="occurred_on" value={today()} />
           <input type="hidden" name="description" value="Settlement" />
           <div className="flex flex-wrap items-end gap-2">
@@ -1061,5 +1135,210 @@ function LinkView({
         )}
       </section>
     </>
+  );
+}
+
+/**
+ * Filters for the movement list. A plain GET form: the panel is a server
+ * component, so the browser reloads with the query and the API does the work.
+ */
+function MovementFilters({
+  context,
+  detail,
+  tr,
+}: {
+  context: ModulePageContext;
+  detail: AdminGroupDetail;
+  tr: (text: string, params?: Record<string, string | number>) => string;
+}) {
+  const value = (key: string) => {
+    const raw = context.searchParams[key];
+    return typeof raw === "string" ? raw : "";
+  };
+  const field =
+    "min-h-11 rounded-control border border-border bg-background px-2 text-xs text-foreground";
+  const anchor = anchorOf(context);
+  const AnchorTag = anchor;
+
+  return (
+    <form method="get" className="mb-3 flex flex-wrap items-end gap-2">
+      <input type="hidden" name="group" value={detail.group.id} />
+      <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("Type")}
+        <select name="kind" defaultValue={value("kind")} className={field}>
+          <option value="">{tr("All")}</option>
+          <option value="expense">{tr("Expense")}</option>
+          <option value="settlement">{tr("Settlement")}</option>
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("Member")}
+        <select name="member" defaultValue={value("member")} className={field}>
+          <option value="">{tr("All")}</option>
+          {detail.members.map((member) => (
+            <option key={member.id} value={member.id}>
+              {member.display_name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("Category")}
+        <select name="category" defaultValue={value("category")} className={field}>
+          <option value="">{tr("All")}</option>
+          {detail.categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("From")}
+        <input type="date" name="from" defaultValue={value("from")} className={field} />
+      </label>
+      <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("To")}
+        <input type="date" name="to" defaultValue={value("to")} className={field} />
+      </label>
+      <label className="flex min-w-40 flex-1 flex-col gap-1 text-[11px] text-muted-foreground">
+        {tr("Search description")}
+        <input
+          type="search"
+          name="mq"
+          defaultValue={value("mq")}
+          placeholder={tr("Description")}
+          className={field}
+        />
+      </label>
+      <button type="submit" className={secondary}>
+        {tr("Filter")}
+      </button>
+      <AnchorTag href={href(detail.group.id)} className={link}>
+        {tr("Clear")}
+      </AnchorTag>
+    </form>
+  );
+}
+
+/** Previous/next plus the page count; links keep the active filters. */
+function MovementPager({
+  context,
+  detail,
+  tr,
+}: {
+  context: ModulePageContext;
+  detail: AdminGroupDetail;
+  tr: (text: string, params?: Record<string, string | number>) => string;
+}) {
+  const pages = Math.max(1, Math.ceil(detail.movements_total / detail.movements_per_page));
+  if (pages <= 1) return null;
+  const current = detail.movements_page;
+  const base = new URLSearchParams();
+  for (const [key, value] of Object.entries(context.searchParams)) {
+    if (typeof value !== "string" || value === "" || key === "page") continue;
+    base.set(key, value);
+  }
+  const pageHref = (page: number) => {
+    const params = new URLSearchParams(base);
+    params.set("page", String(page));
+    return `?${params.toString()}`;
+  };
+  const AnchorTag = anchorOf(context);
+
+  return (
+    <nav className="mt-3 flex items-center justify-between gap-2 text-xs" aria-label={tr("Movements")}>
+      {current > 1 ? (
+        <AnchorTag href={pageHref(current - 1)} className={secondary}>
+          {tr("Previous")}
+        </AnchorTag>
+      ) : (
+        <span />
+      )}
+      <span className="text-[11px] text-muted-foreground tabular-nums">
+        {tr("Page {page} of {pages}", { page: current, pages })}
+      </span>
+      {current < pages ? (
+        <AnchorTag href={pageHref(current + 1)} className={secondary}>
+          {tr("Next")}
+        </AnchorTag>
+      ) : (
+        <span />
+      )}
+    </nav>
+  );
+}
+
+/** The group's own summary: what it holds and where it goes, by category. */
+function GroupSummary({
+  context,
+  detail,
+  tr,
+}: {
+  context: ModulePageContext;
+  detail: AdminGroupDetail;
+  tr: (text: string, params?: Record<string, string | number>) => string;
+}) {
+  const { group } = detail;
+  const max = Math.max(1, ...detail.category_totals.map((entry) => entry.total));
+  const total = Math.max(1, detail.expenses_total);
+  const net = detail.expenses_total - detail.payments_total;
+
+  return (
+    <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-3">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {tr("Summary")}
+      </h2>
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="rounded-control border border-border p-3">
+          <dt className="text-[11px] text-muted-foreground">{tr("Expenses")}</dt>
+          <dd className="text-lg font-bold tabular-nums">
+            {money(detail.expenses_total, group.currency, context.locale)}
+          </dd>
+        </div>
+        <div className="rounded-control border border-border p-3">
+          <dt className="text-[11px] text-muted-foreground">{tr("Payments")}</dt>
+          <dd className="text-lg font-bold tabular-nums">
+            {money(detail.payments_total, group.currency, context.locale)}
+          </dd>
+        </div>
+        <div className="rounded-control border border-border p-3">
+          <dt className="text-[11px] text-muted-foreground">{tr("Net")}</dt>
+          <dd className="text-lg font-bold tabular-nums">
+            {money(net, group.currency, context.locale)}
+          </dd>
+        </div>
+      </dl>
+      <h3 className="text-xs font-semibold">{tr("By category")}</h3>
+      {detail.category_totals.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{tr("No movements yet.")}</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {detail.category_totals.map((entry) => (
+            <li key={entry.name || "none"} className="flex flex-col gap-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="truncate">{entry.name || tr("No category")}</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {money(entry.total, group.currency, context.locale)}
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted">
+                <div
+                  className="h-2 rounded-full bg-accent"
+                  style={{
+                    width: `${Math.max(2, Math.round((entry.total / max) * 100))}%`,
+                  }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-[11px] text-muted-foreground">
+        {tr("Share of expenses shown as bars; total {total}.", {
+          total: money(total, group.currency, context.locale),
+        })}
+      </p>
+    </section>
   );
 }

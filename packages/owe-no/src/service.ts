@@ -284,6 +284,29 @@ export async function addMember(
   // participant from the moment it is added; a real account is always invited
   // and, while it has not accepted, it is charged like a fictitious member.
   const state = input.inviteeId ? "invited" : "active";
+  if (!input.inviteeId) {
+    // Adding "Bolli" twice must return the same member: the importer asks for a
+    // name on every run, and duplicates split the balances of one person.
+    const { rows: existing } = await deps.db.query(
+      `select id, display_name, state, user_id
+         from module_owe_no.owe_no_members
+        where group_id = $1 and user_id is null
+          and state in ('active', 'invited')
+          and lower(btrim(display_name)) = lower(btrim($2))
+        limit 1`,
+      [groupId, displayName],
+    );
+    if (existing[0]) {
+      return {
+        id: String(existing[0].id),
+        display_name: String(existing[0].display_name),
+        state: existing[0].state as MemberView["state"],
+        user_id: null,
+        kind: "fictitious",
+        blocked: false,
+      };
+    }
+  }
   const { rows } = await deps.db.query(
     `insert into module_owe_no.owe_no_members
        (group_id, user_id, display_name, state, invited_by, invited_at, joined_at)
@@ -647,7 +670,12 @@ export async function listMovements(
   deps: OweDeps,
   userId: string,
   groupId: string,
+  page: { limit?: number; offset?: number } = {},
 ): Promise<MovementView[]> {
+  // Paged on purpose: a big imported group has hundreds of rows and the app
+  // renders them all, so the list arrives in slices.
+  const limit = Math.min(200, Math.max(1, page.limit ?? 100));
+  const offset = Math.max(0, page.offset ?? 0);
   await requireActiveMember(deps, userId, groupId);
   const { rows } = await deps.db.query(
     `select mv.id, mv.kind, mv.description, mv.amount_minor, mv.currency,
@@ -660,8 +688,9 @@ export async function listMovements(
        left join module_owe_no.owe_no_movement_shares s on s.movement_id = mv.id
       where mv.group_id = $1 and mv.deleted_at is null
       group by mv.id
-      order by mv.occurred_on desc, mv.created_at desc`,
-    [groupId],
+      order by mv.occurred_on desc, mv.created_at desc
+      limit $2 offset $3`,
+    [groupId, limit, offset],
   );
   return rows.map((row) => ({
     id: String(row.id),

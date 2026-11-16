@@ -5,7 +5,8 @@ import { parseSplitwiseCsv, type ParsedMovement } from "./splitwise";
 
 /** 2 MB and 5.000 rows, as the spec caps a user file. */
 // The API door caps a request body at 1 MB; leave room for JSON escaping.
-const MAX_BYTES = 400 * 1024;
+/** The same limit the API declares (2 MB): a bigger export is split, not truncated. */
+const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_ROWS = 5_000;
 
 export interface ImportPreviewRow {
@@ -135,6 +136,8 @@ export async function previewImport(
     for (const person of people) if (!names.has(person)) unresolved.add(person);
   }
 
+
+
   const hashes = await knownHashes(deps, groupId);
   const withHash = parsed.movements.map((movement) => ({
     movement,
@@ -191,7 +194,12 @@ export async function commitImport(
   userId: string,
   groupId: string,
   csv: string,
-  options: { mapping?: Record<string, string>; confirmDuplicates?: boolean } = {},
+  options: {
+    mapping?: Record<string, string>;
+    confirmDuplicates?: boolean;
+    /** Wipe the group's movements, imports and categories before importing. */
+    reset?: boolean;
+  } = {},
 ): Promise<ImportCommitResult> {
   const { currency } = await groupContext(deps, userId, groupId);
   const parsed = parseSplitwiseCsv(csv);
@@ -235,7 +243,9 @@ export async function commitImport(
     });
   }
 
-  const hashes = await knownHashes(deps, groupId);
+  // A reset deletes the previous rows inside the transaction, so the dedup set
+  // read here would still count them as duplicates and import nothing.
+  const hashes = options.reset === true ? new Set<string>() : await knownHashes(deps, groupId);
   const rows = parsed.movements.map((movement) => ({
     movement,
     hash: rowHash(movement),
@@ -251,7 +261,49 @@ export async function commitImport(
     // Two imports of the same group must not race the hash check: one commits,
     // the other waits and then sees the rows.
     await db.query("select pg_advisory_xact_lock(hashtext($1))", [groupId]);
-    const scoped: OweDeps = { ...deps, db };
+    if (options.reset === true) {
+      // "Start from scratch": the group keeps its members and settings, and loses
+      // what the import can rebuild. Balances follow the movements, so they go too.
+      await db.query(
+        "delete from module_owe_no.owe_no_movement_shares where movement_id in (select id from module_owe_no.owe_no_movements where group_id = $1)",
+        [groupId],
+      );
+      await db.query("delete from module_owe_no.owe_no_movements where group_id = $1", [groupId]);
+      await db.query("delete from module_owe_no.owe_no_import_rows where import_id in (select id from module_owe_no.owe_no_imports where group_id = $1)", [groupId]);
+      await db.query("delete from module_owe_no.owe_no_imports where group_id = $1", [groupId]);
+      await db.query("delete from module_owe_no.owe_no_categories where group_id = $1", [groupId]);
+      await db.query("delete from module_owe_no.owe_no_idempotency where group_id = $1", [groupId]);
+      // Fictitious members exist only for the expenses they were created for: once
+      // those are gone, keeping them only accumulates "Bolli" four times. Names
+      // this very file uses are kept: the panel created them a moment ago for the
+      // mapping, and deleting them here made the import fail with unknown_member.
+      const usedNames = [
+        ...new Set(
+          parsed.movements.flatMap((movement) => [
+            movement.payer,
+            ...movement.shares.map((share) => share.name),
+          ]).map((name) => name.trim().toLowerCase()),
+        ),
+      ];
+      await db.query(
+        `delete from module_owe_no.owe_no_members m
+          where m.group_id = $1 and m.user_id is null and m.state in ('active', 'invited')
+            and not (lower(btrim(m.display_name)) = any($2::text[]))
+            and not exists (select 1 from module_owe_no.owe_no_movements mv
+                             where mv.group_id = $1 and mv.paid_by_member_id = m.id)
+            and not exists (select 1 from module_owe_no.owe_no_movement_shares s
+                             where s.member_id = m.id)`,
+        [groupId, usedNames],
+      );
+    }
+    // Every write of the import runs on THIS transaction: the categories and
+    // members created above are not committed yet, and opening a second one (the
+    // app's runner does) cannot see them — the movement would fail its FK.
+    const scoped: OweDeps = {
+      ...deps,
+      db,
+      withTransaction: async <T,>(fn: (tx: OweDb) => Promise<T>): Promise<T> => fn(db as OweDb),
+    };
     const categories = new Map<string, string>();
     for (const movement of parsed.movements) {
       const name = movement.category.trim();

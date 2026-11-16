@@ -50,6 +50,7 @@ describe("owe-no admin pages", () => {
         actions: {
           createGroup: noop,
           archiveGroup: noop,
+          deleteGroup: noop,
           addMember: noop,
           linkMember: noop,
           removeMember: noop,
@@ -139,6 +140,12 @@ describe("owe-no admin pages", () => {
           ],
         },
       ],
+      expenses_total: 1000,
+      category_totals: [{ name: "Comida", total: 1000 }],
+      payments_total: 0,
+      movements_total: 1,
+      movements_page: 1,
+      movements_per_page: 25,
     };
 
     const html = renderToStaticMarkup(
@@ -151,6 +158,7 @@ describe("owe-no admin pages", () => {
         actions: {
           createGroup: noop,
           archiveGroup: noop,
+          deleteGroup: noop,
           addMember: noop,
           linkMember: noop,
           removeMember: noop,
@@ -168,14 +176,15 @@ describe("owe-no admin pages", () => {
     // The forms live on their own pages; the group only links to them.
     expect(html).toContain("Añadir gasto");
     expect(html).toContain("Liquidar");
-    expect(html).toContain("Añadir miembro");
+    // Members, balances and the summary now live in their own tabs.
+    expect(html).toContain("tab=members");
     expect(html).toContain("?group=11111111-1111-4111-8111-111111111111&amp;view=movement");
-    expect(html).toContain("Luis");
+    expect(html).toContain("Movimientos");
     expect(html).not.toContain("Add expense");
     // Destructive actions ask first, and every state is translated.
     expect(html).toContain("¿Archivar el grupo?");
-    expect(html).toContain("¿Quitar al miembro?");
-    expect(html).toContain("Quitado");
+    expect(html).toContain("¿Borrar el movimiento?");
+    // The member states are translated wherever the member list is rendered.
     expect(html).not.toContain(">removed<");
     // Mobile: the actions own a full row instead of wrapping around the title.
     expect(html).toContain("grid grid-cols-2 gap-2 sm:flex");
@@ -200,10 +209,17 @@ describe("owe-no admin pages", () => {
         { id: "m2", display_name: "Luis", state: "active" as const, user_id: null, balance: 0 },
       ],
       movements: [],
+      expenses_total: 1000,
+      category_totals: [{ name: "Comida", total: 1000 }],
+      payments_total: 0,
+      movements_total: 1,
+      movements_page: 1,
+      movements_per_page: 25,
     };
     const actions = {
       createGroup: noop,
       archiveGroup: noop,
+      deleteGroup: noop,
       addMember: noop,
       linkMember: noop,
       removeMember: noop,
