@@ -72,8 +72,18 @@ class ApiClient(
             request(HttpMethod.Post, "/api/v1/owe-no/groups", OweCreateGroupBody(name, currency, locale)),
         ).group
 
-    suspend fun oweMovements(groupId: String): List<OweMovementDto> =
-        read<OweMovementList>(request(HttpMethod.Get, "/api/v1/owe-no/groups/$groupId/movements")).movements
+    /** One slice of movements, newest first: the app asks for the next page on demand. */
+    suspend fun oweMovements(
+        groupId: String,
+        limit: Int = 50,
+        offset: Int = 0,
+    ): List<OweMovementDto> =
+        read<OweMovementList>(
+            request(
+                HttpMethod.Get,
+                "/api/v1/owe-no/groups/$groupId/movements?limit=$limit&offset=$offset",
+            ),
+        ).movements
 
     suspend fun oweBalances(groupId: String): List<OweBalanceDto> =
         read<OweBalanceList>(request(HttpMethod.Get, "/api/v1/owe-no/groups/$groupId/balances")).balances

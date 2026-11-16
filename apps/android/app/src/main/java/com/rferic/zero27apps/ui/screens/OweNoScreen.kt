@@ -153,6 +153,9 @@ private class OweStore(
     var error by mutableStateOf<String?>(null)
     var identities by mutableStateOf<List<OweIdentityDto>>(emptyList())
     var categories by mutableStateOf<List<OweCategoryDto>>(emptyList())
+    // The list arrives in slices: the group may hold hundreds of imported rows.
+    var movementsHasMore by mutableStateOf(false)
+    private var movementsLoadingMore by mutableStateOf(false)
 
     private fun run(onSuccess: (() -> Unit)? = null, block: suspend () -> Unit) {
         scope.launch {
@@ -166,9 +169,15 @@ private class OweStore(
 
     fun loadGroups() = run { groups = api.oweGroups() }
 
+    private suspend fun firstPage(groupId: String): List<OweMovementDto> {
+        val page = api.oweMovements(groupId, PAGE_SIZE, 0)
+        movementsHasMore = page.size == PAGE_SIZE
+        return page
+    }
+
     fun open(groupId: String) = run {
         detail = api.oweGroup(groupId)
-        movements = api.oweMovements(groupId)
+        movements = firstPage(groupId)
         balances = api.oweBalances(groupId)
         settlement = runCatching { api.oweSettlement(groupId) }.getOrNull()
         categories = runCatching { api.oweCategories(groupId) }.getOrDefault(emptyList())
@@ -179,9 +188,26 @@ private class OweStore(
         val id = detail?.group?.id ?: return
         run {
             detail = api.oweGroup(id)
-            movements = api.oweMovements(id)
+            movements = firstPage(id)
             balances = api.oweBalances(id)
             settlement = runCatching { api.oweSettlement(id) }.getOrNull()
+        }
+    }
+
+    /** Next slice, appended: the loader never replaces what is already read. */
+    fun loadMoreMovements() {
+        val id = detail?.group?.id ?: return
+        if (movementsLoadingMore || !movementsHasMore) return
+        movementsLoadingMore = true
+        scope.launch {
+            runCatching { api.oweMovements(id, PAGE_SIZE, movements.size) }
+                .onSuccess { next ->
+                    movements = movements + next.filter { fresh ->
+                        movements.none { it.id == fresh.id }
+                    }
+                    movementsHasMore = next.size == PAGE_SIZE
+                }
+            movementsLoadingMore = false
         }
     }
 
@@ -190,6 +216,11 @@ private class OweStore(
         movements = emptyList()
         balances = emptyList()
         settlement = null
+        movementsHasMore = false
+    }
+
+    private companion object {
+        const val PAGE_SIZE = 50
     }
 
     fun createGroup(name: String, currency: String, locale: String) = run {
@@ -1100,6 +1131,15 @@ private fun ActivityTab(
         canEdit = { movement -> creator || movement.createdBy == store.userId },
         onEdit = onEdit,
     )
+    // A big imported group arrives in slices: ask for the next one on demand.
+    if (query.isBlank() && store.movementsHasMore) {
+        TextButton(
+            onClick = { store.loadMoreMovements() },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(strings.loadMore, fontSize = 12.sp)
+        }
+    }
     if (detail.members.count { it.state == "active" } <= 1) {
         Text(strings.aloneInGroup, fontSize = 12.sp, color = palette.mutedForeground)
         TextButton(onClick = onAddPerson) { Text(strings.addPerson) }
