@@ -62,6 +62,8 @@ export interface AdminGroupDetail {
   /** What the group holds, in minor units, split by kind. */
   expenses_total: number;
   payments_total: number;
+  /** Expense totals per category, largest first: the group's own summary. */
+  category_totals: Array<{ name: string; total: number }>;
   /** Paging and totals, so the panel never guesses how many are left. */
   movements_total: number;
   movements_page: number;
@@ -136,6 +138,14 @@ export async function adminGroupDetail(
   );
   const totalOf = (kind: string) =>
     Number(totals.find((row) => row.kind === kind)?.total ?? 0);
+  const { rows: categoryTotals } = await deps.db.query(
+    `select coalesce(c.name, '') as name, sum(mv.amount_minor)::bigint as total
+       from module_owe_no.owe_no_movements mv
+       left join module_owe_no.owe_no_categories c on c.id = mv.category_id
+      where mv.group_id = $1 and mv.deleted_at is null and mv.kind = 'expense'
+      group by 1 order by 2 desc`,
+    [groupId],
+  );
   const { rows: categories } = await deps.db.query(
     `select id, name from module_owe_no.owe_no_categories
       where group_id = $1 and archived_at is null order by name`,
@@ -164,6 +174,10 @@ export async function adminGroupDetail(
     categories: categories.map((row) => ({ id: String(row.id), name: String(row.name) })),
     expenses_total: totalOf("expense"),
     payments_total: totalOf("settlement"),
+    category_totals: categoryTotals.map((row) => ({
+      name: String(row.name),
+      total: Number(row.total),
+    })),
     movements_total: movements.total,
     movements_page: movements.page,
     movements_per_page: movements.perPage,
