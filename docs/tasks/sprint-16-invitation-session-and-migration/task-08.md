@@ -25,10 +25,14 @@ al login con las otras sesiones revocadas.
   - Core `requestPasswordReset` con límites `recovery:ip:<ip>` (5/h) y
     `recovery:email:<sha256>` (3/h); no revela si el email existe; no envía a desactivados.
   - Email propio en 9 idiomas con `generateLink({ type: "recovery" })` → `token_hash` y enlace a
-    `/auth/confirm`.
-  - `/forgot-password` (formulario + mensaje neutro), `/auth/confirm` (route handler,
-    `verifyOtp`, `next` allowlist), `/reset-password` (sesión de recuperación, `updateUser`,
+    `/auth/confirm`; **suelo de respuesta común de ~700 ms** exista o no la cuenta (S3).
+  - `/forgot-password` (formulario + mensaje neutro), `/auth/confirm` (**página** con botón
+    «Continuar»; el `GET` no consume el token, el `POST` verifica con `verifyOtp` y `next`
+    allowlist; S2) y `/reset-password` (sesión de recuperación, `updateUser`,
     `signOut({ scope: "others" })` y `local`).
+  - Enlace «¿Olvidaste tu contraseña?» para la cuenta existente del flujo de invitación: en la app
+    abre la web de la instancia; en la web va a `/forgot-password`; tras el reset se vuelve al
+    enlace de invitación, que sigue pendiente (U2).
   - `/login` localizado (D7) con wordmark + `instance.name`, el enlace y avisos `password-reset`,
     `access-revoked`, `session-expired`.
   - App: «¿Olvidaste tu contraseña?» en el login abre la web de la instancia.

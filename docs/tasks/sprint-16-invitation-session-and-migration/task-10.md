@@ -29,7 +29,10 @@ el código: el viejo lo muestra, el nuevo lo escanea, entra y expulsa al viejo.
   - Adaptador `createMagicLink(email)` con `generateLink` y `getUserEmail(userId)`.
   - Android: `MigrationLink`; deep link https y esquema propio; `acceptMigration` (exchange →
     `verifyOtp` → `me` → push → revoke-others → `signOut(OTHERS)`); pantalla QR del viejo con
-    ZXing, cuenta atrás, `FLAG_SECURE` y polling; escáner del nuevo; «cierra sesión primero».
+    ZXing sobre **tarjeta blanca**, email + instancia visibles, cuenta atrás, **autoregeneración a
+    los ~45 s** (el código anterior sigue válido hasta su TTL), `FLAG_SECURE` y polling; escáner
+    del nuevo con la instancia del QR antes de escanear y el email en el estado de éxito; «cierra
+    sesión primero».
   - `FcmRegistrar.deviceId()`; permiso de cámara; manifest debug/release.
   - Web `/migrate/[token]`: página pública que solo explica «abre este enlace en el móvil nuevo»,
     con «Abrir en la app» y descarga; **no canjea** en el navegador. Añadirla a `public-paths.ts`,

@@ -29,11 +29,15 @@ gates mecánicos, evidencia real y auditoría de seguridad. Sin esto ninguna tar
   - CI del PR: `admin`, `android`, `supabase`, `guard-secrets`, `commitlint`, `ai-docs`.
   - Verificación real de la checklist de pre-entrega (suites, build, rutas, endpoints, APK,
     navegador con `lerd diag browser_toggle` + `request lenses`).
-  - Auditoría OWASP A01–A11 por un agente distinto del autor, con la checklist
-    `docs/conventions/security-checklist.md` (incluye A11 Android); informe con hallazgos,
-    severidad y resolución.
+  - **Auditoría de seguridad** OWASP A01–A11 por un agente distinto de quien implementó, con la
+    checklist `docs/conventions/security-checklist.md` (incluye A11 Android); informe con
+    hallazgos, severidad y resolución.
+  - **Auditoría de UX** por un agente distinto de quien implementó: flujos app/web,
+    estados vacío/carga/error/sin conexión, copy en los 9 idiomas, contraste claro/oscuro, 375 px
+    web y 390 px app, teclado y lector de pantalla, QR legible en claro y oscuro, reset,
+    bienvenida y migración; capturas reales o código + APK si no hay dispositivo.
   - Revisión/QA y estilo por agentes distintos del autor.
-  - Actualizar `estado` de las tareas; PR con la evidencia.
+  - Actualizar `estado` de las tareas; PR con la evidencia y el resumen para el propietario (P9).
 - Fuera: merge sin orden; promoción sin orden; cambiar el alcance del sprint 17.
 
 **Dependencias**: todas.
@@ -57,5 +61,7 @@ se toque sin necesidad (solo si cambia el copy).
 - Aprobar la evidencia y dar la orden de merge (P7) y de promoción (P8).
 - Revisar el resumen de seguridad.
 
-**Auditoría de seguridad**: es el cierre de la auditoría incondicional del sprint (A01–A11); se
-ejecuta aquí si no se hizo por tarea, y siempre antes de `finalizada`.
+**Auditorías finales**: la de seguridad cierra la auditoría incondicional del sprint (A01–A11); la
+de UX cubre los flujos, estados, copy, contraste y accesibilidad. Ambas las hace un agente distinto
+del implementador, con informe escrito y resumen para el propietario, y siempre antes de
+`finalizada`.

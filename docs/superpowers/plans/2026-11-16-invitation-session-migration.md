@@ -4,6 +4,7 @@
 mantener la sesión hasta que el usuario salga o sea expulsado, recuperar la contraseña y mover la
 cuenta a un teléfono nuevo por QR, todo con i18n, OpenAPI y auditoría.
 **Spec:** [`2026-11-16-invitation-session-migration-design.md`](../specs/2026-11-16-invitation-session-migration-design.md).
+**Revisión pre-implementación:** [`pre-implementation-review.md`](../../tasks/sprint-16-invitation-session-and-migration/pre-implementation-review.md).
 **Tareas:** [`docs/tasks/sprint-16-invitation-session-and-migration/`](../../tasks/sprint-16-invitation-session-and-migration/README.md).
 **Rama:** `sprint/16-invitation-session-and-migration` (desde `origin/staging`).
 **PR:** uno, draft contra `staging`, desde el primer commit.
@@ -16,6 +17,9 @@ cuenta a un teléfono nuevo por QR, todo con i18n, OpenAPI y auditoría.
 ## 0. Precondiciones y puertas
 
 - [ ] **P1** El propietario aprueba la spec y este plan (incluidas D1–D20).
+- [ ] **P1.5** El propietario acepta la revisión pre-implementación y resuelve **D21** (verificación
+      de la contraseña existente: sesión primero recomendada, o 5 intentos/token). Sin esta
+      decisión no se implementa el canje de una cuenta existente.
 - [ ] **P2** El propietario aprueba los mockups de `docs/mockups/invitation-flow/` (app, wizard,
       QR y reset) antes de escribir UI nueva.
 - [ ] **P3** `ANDROID_APP_SHA256` en Vercel Production (y Preview si se prueba) con
@@ -54,6 +58,8 @@ cuenta a un teléfono nuevo por QR, todo con i18n, OpenAPI y auditoría.
 - [x] `docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md`.
 - [x] `docs/superpowers/plans/2026-11-16-invitation-session-migration.md` (este).
 - [x] `docs/tasks/sprint-16-invitation-session-and-migration/README.md` y `task-01…11.md`.
+- [x] `docs/tasks/sprint-16-invitation-session-and-migration/pre-implementation-review.md`
+      (revisión de seguridad y UX del planteamiento, con D21).
 - [x] `docs/tasks/sprint-17-panel-y-notificaciones/README.md` (plan anterior preservado).
 - [x] `docs/tasks/README.md` (filas 16 y 17; nota de renumeración).
 - [x] `docs/tasks/backlog.md` (la nota del sprint 16 pasa al 17).
@@ -155,7 +161,8 @@ de producto.
       - `NeedsLogin(instance, reason)` para `revoked`, `invitation_accepted`, `password_reset`;
       - `signOut()` y `changeInstance()` con `SignOutScope.LOCAL`;
       - `FcmRegistrar.revoke()` usa `DELETE /devices/{id}?sessions=local` (no cierra la web).
-- [ ] `LoginScreen`: muestra el aviso de `reason`; botón «Reintentar» en el estado de red.
+- [ ] `LoginScreen`: muestra el aviso de `reason`; botón «Reintentar» en el estado de red y copy
+      «Sin conexión. Tu sesión sigue guardada.» (no pedir login por red).
 - [ ] Tests: `ApiClientTest` (MockEngine: 401→refreshed, 401→revoked, red), `AppViewModelTest`
       (sin sesión, válida, 401, red, 5xx, desactivado), `SessionScopeTest` (LOCAL).
 
@@ -282,9 +289,10 @@ de producto.
       deja reintentar; si es inválida, estado sin formulario.
 - [ ] `acceptInvite`: sin `display_name`; canje → `signInWithPassword` → `me`/módulos/widgets;
       si el login falla tras un 201, `NeedsLogin(invitation_accepted)` y **no** reintenta el canje.
-- [ ] `InviteScreen`: wordmark + instancia; campos bloqueados (email, nombre, instancia,
-      invitador, caducidad, rol); contraseña + confirmación (nueva) o solo contraseña (existente);
-      errores mapeados de §8.1; `readOnly` con aspecto de bloqueado.
+- [ ] `InviteScreen`: wordmark + instancia; datos bloqueados como **ficha** (email, nombre,
+      instancia, invitador, caducidad, rol), no inputs deshabilitados; contraseña + confirmación
+      (nueva) o solo contraseña (existente) con «¿Olvidaste tu contraseña?»; errores mapeados de
+      §8.1 (incluido `invitation_password_invalid`); el idioma sale del `locale` del preview.
 - [ ] `LoginScreen`: aviso `invitation_accepted` y `revoked`.
 
 ### 06.3 Tests
@@ -311,8 +319,8 @@ de producto.
 
 - [ ] `apps/admin/src/app/invite/[token]/page.tsx`: resuelve `previewInvitation` en el servidor
       (sin Supabase, `instant = false`, `await connection()` antes de la BD para que el build sin
-      env no la ejecute), lee `user-agent` para la variante, pasa solo los campos públicos al
-      cliente.
+      env no la ejecute), usa el `locale` del preview con la cookie como fallback, lee `user-agent`
+      para la variante, pasa solo los campos públicos al cliente.
 - [ ] `apps/admin/src/lib/public-paths.ts`: sin cambios (ya cubre `/invite/<token>`).
 - [ ] La página aplica el límite de 60/min por IP (`invite-page:<ip>`) antes del preview; si se
       supera, tarjeta de reintento (no un error interno).
@@ -320,21 +328,24 @@ de producto.
       del propietario; descarga `/download/android` con versión; «Abrir en la app» con timeout de
       1,5 s y fallback; «Continuar en el navegador» siempre visible; QR de escritorio.
 - [ ] Dependencia `qrcode` (MIT) para el QR del servidor; justificar en el PR; sin servicios
-      externos.
+      externos. SVG inline (o ruta same-origin), tarjeta blanca con quiet zone en claro/oscuro; no
+      ampliar la CSP con `data:`.
 - [ ] `metadata`: `robots: { index: false, follow: false }`, `referrer: "no-referrer"`.
 
 ### 07.2 Formulario
 
-- [ ] `invite-form.tsx`: email y nombre bloqueados; instancia, invitador, caducidad y rol visibles;
-      contraseña + confirmación (nueva) o contraseña actual (existente); `readOnly` +
-      `aria-readonly`; errores inline; `submitOnce`.
+- [ ] `invite-form.tsx`: datos de la invitación como ficha (email, nombre, instancia, invitador,
+      caducidad, rol), no inputs deshabilitados; contraseña + confirmación (nueva) o contraseña
+      actual (existente) con «¿Olvidaste tu contraseña?»; errores inline accionables (U8);
+      `submitOnce`.
 - [ ] `lib/invite-submit.ts`: envía `{ token, email, password }`; éxito → si A1, llama a
       `signInAfterRedeem`; si no, `/login?notice=invitation-redeemed`.
 - [ ] `apps/admin/src/app/invite/[token]/actions.ts` (si A1): `signInAfterRedeem` valida zod,
       comprueba que la invitación del token está `used` con ese email, `signInWithPassword` con el
       SSR, devuelve `{ role }`.
-- [ ] `apps/admin/src/app/welcome/page.tsx`: pública, «cuenta creada», descarga, enlace a login;
-      `noindex`; aviso `signin_failed`.
+- [ ] `apps/admin/src/app/welcome/page.tsx`: pública, «cuenta creada», descarga de la app, enlace
+      a login y explicación de que el panel es solo para administradores; `noindex`; aviso
+      `signin_failed`.
 - [ ] Si A1 se rechaza (D2), no se crea `/welcome` ni la action; el flujo actual queda.
 
 ### 07.3 i18n y tests
@@ -371,17 +382,20 @@ de producto.
 - [ ] `apps/admin/src/lib/email/recovery-mailer.ts` (Resend), mismo patrón que invitaciones.
 - [ ] `apps/admin/src/lib/password-recovery-deps.ts`: Supabase Admin `generateLink({ type:
       "recovery" })` → `hashed_token`; locale del perfil; rate limit con
-      `createPostgresRateLimitStorage`.
+      `createPostgresRateLimitStorage`; suelo de respuesta común de ~700 ms (S3), con un puerto de
+      espera inyectable para el test.
 - [ ] Tests: existencia/desactivado no envían; límites; fallo del mailer; URL con `public_url`;
-      token no logueado.
+      token no logueado; el suelo de tiempo se cumple en ambos caminos.
 
 ### 08.2 Web
 
 - [ ] `apps/admin/src/app/forgot-password/page.tsx` + `actions.ts`: formulario localizado,
       mensaje neutro siempre; `noindex`, `no-referrer`.
-- [ ] `apps/admin/src/app/auth/confirm/route.ts`: `type=recovery`, `next` allowlist
-      `/reset-password`, `verifyOtp({ type: "recovery", token_hash })`, cookies, redirect;
-      error → `/forgot-password?notice=invalid`.
+- [ ] `apps/admin/src/app/auth/confirm/page.tsx` + server action: el `GET` solo pinta un botón
+      «Continuar» y **no consume** el token (los escáneres de enlaces lo invalidarían); el `POST`
+      valida `type=recovery` y `next` allowlist `/reset-password`, llama a
+      `verifyOtp({ type: "recovery", token_hash })`, fija cookies y redirige; error →
+      `/forgot-password?notice=invalid`. `noindex`/`no-referrer`, sin recursos de terceros.
 - [ ] `apps/admin/src/app/reset-password/page.tsx` + `actions.ts`: exige sesión; contraseña +
       confirmación 12–200; `updateUser`; `signOut({ scope: "others" })`; `signOut({ scope: "local"
       })`; `/login?notice=password-reset`; rate limit `reset:<userId>`.
@@ -471,10 +485,12 @@ de producto.
 - [ ] `AppViewModel.acceptMigration`: exchange → `verifyOtp(OtpType.Email.MAGIC_LINK, token_hash)`
       → `me` → registrar push (nuevo `device_id`) → `revokeOtherDevices` → `signOut(OTHERS)` →
       `SignedIn`.
-- [ ] `SettingsScreen`: «Mover a otro teléfono» (solo Android): QR con ZXing, cuenta atrás 60 s,
-      `FLAG_SECURE`, «Generar otro», polling de estado; al `used`, limpiar sesión y login con aviso.
-- [ ] `LoginScreen`: «Mover desde otro teléfono»: escáner ZXing (permiso de cámara), errores de
-      token caducado/usado, «cierra sesión primero».
+- [ ] `SettingsScreen`: «Mover a otro teléfono» (solo Android): QR con ZXing sobre tarjeta blanca,
+      cuenta atrás 60 s, `FLAG_SECURE`, email + instancia visibles, **autoregeneración a los ~45 s**
+      (el código anterior sigue válido hasta su TTL), «Generar otro», polling de estado; al `used`,
+      limpiar sesión y login con aviso.
+- [ ] `LoginScreen`: «Mover desde otro teléfono»: escáner ZXing (permiso de cámara), email +
+      instancia antes de confirmar, errores de token caducado/usado, «cierra sesión primero».
 - [ ] Dependencias: `com.google.zxing:core` (generar) + CameraX/Zxing embedded (escanear); justificar
       en el PR; sin Google Play Services si es posible.
 - [ ] `app/src/main/AndroidManifest.xml`: permiso `CAMERA` y `027apps-dev://migrate`; release
@@ -531,14 +547,20 @@ de producto.
 - [ ] Recuperación con email real; QR con dos dispositivos; App Links.
 - [ ] `assetlinks.json` y `/download/android` verificados.
 
-### 11.4 Auditoría de seguridad
+### 11.4 Auditorías finales (seguridad y UX)
 
-- [ ] Auditoría OWASP A01–A11 por un agente distinto del autor, con la checklist de
-      `docs/conventions/security-checklist.md` (incluye A11 Android).
-- [ ] Hallazgos críticos/altos resueltos; el resto, con motivo escrito.
+- [ ] **Auditoría de seguridad** OWASP A01–A11 por un agente distinto de quien implementó, con la
+      checklist de `docs/conventions/security-checklist.md` (incluye A11 Android): tokens/PII en logs,
+      preview público, QR bearer, reset, enumeración, rate limits, CSRF, open redirects, App Links,
+      deep links, `no-referrer`, `noindex` y descarga del APK.
+- [ ] **Auditoría de UX** por un agente distinto de quien implementó: flujos app/web,
+      estados vacío/carga/error/sin conexión, copy en los 9 idiomas, contraste claro/oscuro, 375 px
+      web y 390 px app, teclado y lector de pantalla, QR legible en claro y oscuro, reset,
+      bienvenida y migración. Capturas reales; si no hay dispositivo, código + APK y se dice.
+- [ ] Hallazgos críticos/altos de ambas auditorías resueltos; el resto, con motivo escrito.
 - [ ] Revisión/QA y estilo por agentes distintos del autor; hallazgos corregidos o rechazados con
       motivo.
-- [ ] Informe pegado en la tarea/PR.
+- [ ] Informes pegados en la tarea/PR y resumen para el propietario (P9).
 
 ### 11.5 Cierre
 

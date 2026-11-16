@@ -12,6 +12,7 @@ y su rama original no se borra ni se pisa.
 
 **Spec:** [`2026-11-16-invitation-session-migration-design.md`](../../superpowers/specs/2026-11-16-invitation-session-migration-design.md)
 **Plan:** [`2026-11-16-invitation-session-migration.md`](../../superpowers/plans/2026-11-16-invitation-session-migration.md)
+**Revisión pre-implementación (seguridad y UX):** [`pre-implementation-review.md`](pre-implementation-review.md)
 
 ## Por qué este sprint
 
@@ -36,7 +37,7 @@ nuevo. El sprint cierra esos cuatro frentes con A1–A7.
 | 08 | [Recuperación de contraseña](task-08.md) | feature | 02 | El flujo que hoy no existe, en 9 idiomas y sin enumeración. |
 | 09 | [Renovación A3 + cierre A3–A7](task-09.md) | feature | 04, 06, 07 | Renovar caducadas y dejar A4/A5/A6/A7 coherentes. |
 | 10 | [Migración por QR](task-10.md) | feature | 02, 03, 05, 06 | Dos móviles reales; el nuevo entra y el viejo queda fuera. |
-| 11 | [Cierre](task-11.md) | docs + infra | todas | i18n, flujos, gates, auditoría y verificación real. |
+| 11 | [Cierre](task-11.md) | docs + infra | todas | i18n, flujos, gates, auditorías de seguridad y UX, y verificación real. |
 
 ### Mapa con el orden recomendado del propietario
 
@@ -131,8 +132,13 @@ La spec §4.2 tiene la tabla completa. Las que más cambian el producto:
 - Spec → mockup aprobado → TDD → revisión → auditoría de seguridad. Nada de UI antes de P2.
 - `pnpm lint && pnpm tsc && pnpm test && pnpm i18n:check && pnpm --filter admin build`; si toca
   Core/BD, `pnpm --filter db-tests test`; si toca Android, tests + `assembleDebug`.
-- Auditoría de seguridad incondicional antes de `finalizada`, por un agente distinto del autor.
+- **Dos auditorías finales** antes de `finalizada`, por agentes distintos del implementador:
+  **seguridad** (OWASP A01–A11, incluido Android) y **UX** (flujos, estados, copy 9 idiomas,
+  contraste, 375/390 px, teclado y lector de pantalla, QR, reset, bienvenida y migración). Informes
+  escritos y resumen para el propietario (P9).
 - Nada se anuncia sin la verificación de `docs/flows/pre-delivery-verification.md` y su salida
   pegada.
+- La revisión pre-implementación está en `pre-implementation-review.md`; **D21** (verificación de la
+  contraseña existente) se resuelve antes de la tarea 04.
 - El plan anterior (panel y notificaciones) queda como sprint 17, sin tocar su contenido; su rama
   `docs/sprint-16` no se borra.

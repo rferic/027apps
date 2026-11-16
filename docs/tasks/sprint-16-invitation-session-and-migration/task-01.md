@@ -27,6 +27,8 @@ producto.**
   - `docs/superpowers/plans/2026-11-16-invitation-session-migration.md`: pasos con checkbox,
     ficheros, interfaces, TDD rojo→verde y aceptación por tarea.
   - `docs/tasks/sprint-16-invitation-session-and-migration/README.md` + `task-01…11.md`.
+  - `docs/tasks/sprint-16-invitation-session-and-migration/pre-implementation-review.md`:
+    revisión de seguridad y UX del planteamiento, con D21 y los ajustes incorporados.
   - `docs/tasks/sprint-17-panel-y-notificaciones/README.md` con el plan anterior íntegro y una nota
     de renumeración.
   - `docs/tasks/README.md` con las filas 16 y 17; `docs/tasks/backlog.md` con la nota actualizada.
@@ -40,7 +42,8 @@ en el índice); que la spec proponga decisiones que el propietario no quiera (es
 propuestas, no como cerradas).
 
 **Criterios de aceptación**
-- El propietario puede leer la spec, el plan y las 11 tareas y aprobar o pedir cambios.
+- El propietario puede leer la spec, el plan, las 11 tareas y la revisión pre-implementación y
+  aprobar o pedir cambios.
 - `git diff --check` limpio; las rutas citadas existen o se marcan como «se crearán».
 - El plan anterior está preservado en `sprint-17-panel-y-notificaciones` y la rama
   `origin/docs/sprint-16` no se ha tocado.

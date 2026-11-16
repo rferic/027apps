@@ -20,15 +20,16 @@ HTML+JS, no mirar una imagen.
 - Dentro:
   - `docs/mockups/invitation-flow/index.html`: app (390 px) y web (390/1440 px), claro y oscuro.
   - App: invitación cargando; cuenta nueva con email, nombre, instancia, invitador, caducidad y
-    rol bloqueados + contraseña y confirmación; cuenta existente solo con contraseña actual;
-    caducada, usada, inválida; error de red con reintento y sesión conservada; canje ok; login
-    fallido tras el canje; sesión revocada; pantalla de servidor no disponible (web).
+    rol como **ficha** (no inputs deshabilitados) + contraseña y confirmación; cuenta existente
+    solo con contraseña actual y «¿Olvidaste tu contraseña?»; caducada, usada, inválida; error de
+    red con reintento y sesión conservada; canje ok; login fallido tras el canje; sesión revocada;
+    pantalla de servidor no disponible (web).
   - Web: paso 1 aviso Android 8+; paso 2 descarga; paso 3 reintento con fallback; paso 4
     formulario; variantes Android/iPhone/escritorio con QR; estados caducada/usada/inválida.
-  - QR: pantalla del viejo (QR + cuenta atrás + FLAG_SECURE) y del nuevo (escáner, «cierra sesión
-    primero», éxito).
-  - Reset: login con «¿Olvidaste tu contraseña?», solicitud, email (9 idiomas), confirmación,
-    nueva contraseña, éxito y aviso.
+  - QR: pantalla del viejo (QR sobre tarjeta blanca + cuenta atrás + autoregeneración + FLAG_SECURE
+    + email/instancia) y del nuevo (escáner, instancia, «cierra sesión primero», éxito).
+  - Reset: login con «¿Olvidaste tu contraseña?», solicitud, email (9 idiomas), confirmación con
+    botón «Continuar» (no se consume al cargar), nueva contraseña, éxito y aviso.
   - `README.md` con pantallas, estados, copy, tokens, contraste AA y decisiones.
   - PNG a 390 px y 1440 px, claro y oscuro.
 - Fuera: código de producto; cambiar la navegación del shell; un logo configurable.

@@ -26,9 +26,16 @@ con QR en escritorio y auto-login para roles de panel.
     la BD para que el build sin env no la ejecute), aplica 60/min por IP (`invite-page:<ip>`) y
     elige variante Android/iPhone/escritorio.
   - Wizard: aviso literal del propietario, descarga con versión, «abrir en la app» con timeout y
-    fallback, «continuar en el navegador» siempre visible, QR de escritorio con `qrcode`.
-  - Formulario bloqueado (email/nombre) + instancia/invitador/caducidad/rol; contraseña +
-    confirmación o contraseña actual; estados de §8.1.
+    fallback («si no se abre, usa las opciones de abajo»), «continuar en el navegador» siempre
+    visible, QR de escritorio con `qrcode` en **SVG inline sobre tarjeta blanca** (sin `data:` ni
+    CSP nueva).
+  - El idioma de la página sale del `locale` del preview (el de la invitación), con la cookie como
+    fallback.
+  - Formulario: datos como ficha (email, nombre, instancia, invitador, caducidad, rol), no inputs
+    deshabilitados; contraseña + confirmación o contraseña actual con «¿Olvidaste tu contraseña?»;
+    estados de §8.1 y copy accionable.
+  - `/welcome` para `user`: «Cuenta creada», descarga, enlace a login y explicación de que el panel
+    es solo para administradores.
   - A1 (si se aprueba): server action `signInAfterRedeem` que exige que la invitación esté usada por
     ese email y firma con el cliente SSR; `/welcome` para `user` (añadirla a `public-paths.ts`).
   - i18n de todo; tests de página, wizard, formulario y action.

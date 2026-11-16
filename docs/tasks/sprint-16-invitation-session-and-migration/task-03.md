@@ -33,9 +33,12 @@ la app confundan un error de red con una sesión revocada.
     fuerza `all`.
   - App: `RefreshResult` (`Refreshed`/`NoSession`/`Network`); `boot()` clasifica
     `awaitInitialization`, un refresco inicial, `me()`, 401, red y 5xx; `Offline`/`Failure`
-    conservan la sesión;
-    `NeedsLogin(reason)`; `signOut`/`changeInstance` con `SignOutScope.LOCAL` y
-    `FcmRegistrar.revoke()` con `sessions=local`; avisos en login.
+    conservan la sesión; `NeedsLogin(reason)`; `signOut`/`changeInstance` con
+    `SignOutScope.LOCAL` y `FcmRegistrar.revoke()` con `sessions=local`; avisos en login y copy
+    «Sin conexión. Tu sesión sigue guardada.» en el estado de red (no pedir login).
+  - Documentar el límite de 15 min del access JWT tras revocar un dispositivo/sesión (la
+    desactivación y el borrado son inmediatos por el perfil); la migración fuerza refresco al
+    arrancar y el viejo borra al ver `used` (S4).
 - Fuera: cambiar el modelo de sesiones de Supabase; un panel de sesiones por dispositivo; el QR
   (tarea 10); la recuperación (tarea 08).
 

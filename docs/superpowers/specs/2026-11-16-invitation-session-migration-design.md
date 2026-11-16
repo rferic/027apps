@@ -401,8 +401,9 @@ No se añaden códigos para el QR: un token inválido, usado o caducado es `not_
 1. El administrador crea la invitación; el email lleva `https://<instancia>/invite/<token>`.
 2. Android con el App Link verificado abre la app directamente. Si no, se abre la web (7.2).
 3. La app parsea el enlace, llama a `GET /invitations/{token}/preview` y muestra:
-   - wordmark + `instance_name`; email, nombre, instancia, `inviter_name`, caducidad y rol
-     bloqueados;
+   - wordmark + `instance_name`; email, nombre, instancia, `inviter_name`, caducidad y rol como
+     ficha bloqueada; el idioma del formulario sale del `locale` del preview (el de la
+     invitación);
    - contraseña + confirmación (cuenta nueva) o solo contraseña existente (cuenta existente);
    - estado de la invitación si está caducada, usada o inválida, sin formulario.
 4. Al enviar: `POST /invitations/{token}/redeem`; si 201, la app hace
@@ -429,22 +430,32 @@ preview en el servidor (mismo servicio que el endpoint) y renderiza según el es
   navegador.»
 - «Continuar en el navegador» está siempre visible; el wizard nunca bloquea el canje.
 - El QR de escritorio codifica la misma URL de invitación y se genera en el servidor con `qrcode`
-  (sin servicios externos).
+  (sin servicios externos), como **SVG inline** (o ruta same-origin), sobre **tarjeta blanca con
+  quiet zone** en claro y oscuro. No se amplía la CSP con `data:` (S6/U5).
+- El idioma de la página sale del `locale` del preview (el de la invitación), con la cookie
+  `027_locale` como fallback, para que el email y la web coincidan (A4/U3).
 - El clic en «Abrir en la app» no redirige solo al cargar la página; solo tras una acción del
   usuario y con timeout, para no crear un bucle.
 - Si el preview es `used`: «Ya se aceptó; inicia sesión». Si `expired`: «Caducó; pide una nueva».
   Si es inválida/revocada: tarjeta genérica, igual que hoy.
-- El formulario bloquea email y nombre; muestra instancia, invitador, caducidad y rol. Para cuenta
-  existente pide la contraseña actual y no muestra confirmación.
+- El formulario bloquea email y nombre; muestra instancia, invitador, caducidad y rol. Los datos
+  bloqueados se presentan como ficha (label + valor), no como inputs deshabilitados; solo las
+  contraseñas son inputs (U4). Para cuenta existente pide la contraseña actual, no muestra
+  confirmación y ofrece «¿Olvidaste tu contraseña?» junto al campo (U2).
 - El submit usa el endpoint público de canje (mismo rate limit y CSRF que hoy) y, si A1 está
   aprobado, llama a la server action `signInAfterRedeem` (7.4).
 
 ### 7.3 Cuenta existente (A7)
 
 - El preview devuelve `account_exists: true` y `role_applies: false`.
-- El formulario cambia a «Contraseña actual»; sin confirmación; `autocomplete="current-password"`.
+- El formulario cambia a «Contraseña actual»; sin confirmación; `autocomplete="current-password"` y
+  un enlace «¿Olvidaste tu contraseña?» que abre `/forgot-password` (en la app, la web de la
+  instancia). Tras el reset se vuelve al enlace de invitación, que sigue pendiente (U2).
 - El Core verifica la contraseña existente contra Supabase Auth antes de consumir la invitación. Si
-  falla, error inline y la invitación sigue pendiente.
+  falla, error inline y la invitación sigue pendiente. **D21 (revisión pre-implementación,
+  [`pre-implementation-review.md`](../../tasks/sprint-16-invitation-session-and-migration/pre-implementation-review.md)):
+  la alternativa recomendada es firmar primero y canjear con la sesión, sin verificar contraseñas
+  en el servidor; si se aprueba, este punto cambia.**
 - La cuenta conserva contraseña, nombre y rol; se añaden categoría/módulos de la invitación.
 - El email de invitación usa la variante «ya tienes cuenta» (D16): CTA «Entra y acepta», nota
   «tu contraseña no cambia».
@@ -490,11 +501,16 @@ exige la sesión de recuperación y **no** se añade a `isPublicPath` (el proxy 
    - renderiza el email propio (9 idiomas) con el enlace
      `https://<public_url>/auth/confirm?token_hash=…&type=recovery&next=%2Freset-password`;
    - nunca revela si el email existe; el UI dice siempre «Si ese email tiene cuenta, recibirás un
-     enlace».
-4. `/auth/confirm` valida `type === "recovery"` y que `next` sea exactamente `/reset-password`
-   (allowlist); `verifyOtp({ type: "recovery", token_hash })` con el cliente SSR, que fija cookies;
-   redirige a `/reset-password`. Un token inválido/caducado muestra un enlace a
-   `/forgot-password`.
+     enlace»;
+   - mantiene un **suelo de respuesta común de ~700 ms** exista o no la cuenta, para no filtrar por
+     temporización (S3).
+4. `/auth/confirm` es una **página** con un botón «Continuar»; el `GET` solo pinta y no consume el
+   token (los escáneres de enlaces de los clientes de correo prefetchean y lo invalidarían, S2).
+   Al pulsar, la server action valida `type === "recovery"` y que `next` sea exactamente
+   `/reset-password` (allowlist), llama a `verifyOtp({ type: "recovery", token_hash })` con el
+   cliente SSR (fija cookies) y redirige a `/reset-password`. Un token inválido/caducado muestra un
+   enlace a `/forgot-password`. La página es `noindex`/`no-referrer` y no carga recursos de
+   terceros.
 5. `/reset-password` exige una sesión de recuperación (`getUser`); formulario de contraseña +
    confirmación (12–200); `updateUser({ password })`; `signOut({ scope: "others" })` para revocar
    las demás sesiones; `signOut({ scope: "local" })` y `/login?notice=password-reset` (D8).
@@ -510,7 +526,9 @@ No se usan las plantillas de email de Supabase (una sola plantilla, un solo idio
 1. Móvil viejo, con sesión: Ajustes → «Mover a otro teléfono». La app pide
    `POST /me/device-transfers`, compone la URL `https://<instancia>/migrate/<token>` y muestra el
    QR (ZXing), la instancia, la cuenta y una cuenta atrás de 60 s. La pantalla lleva `FLAG_SECURE`
-   (sin capturas ni miniatura en recientes).
+   (sin capturas ni miniatura en recientes), **tarjeta blanca** con quiet zone en claro y oscuro
+   (U5) y **autoregenera** el código a los ~45 s mientras está abierta (U1); el código anterior
+   sigue válido hasta su TTL.
 2. Móvil nuevo, app instalada y **sin sesión**: Ajustes/login → «Mover desde otro teléfono» abre el
    escáner de la app (cámara). También vale la cámara del sistema: el QR es un App Link
    `/migrate/`, y la app lo abre.
@@ -645,6 +663,11 @@ Supabase caído → 503 reintentable (sin borrar cookie)
 - El QR no lleva email, contraseña, refresh token ni push token.
 - El magic link se acuña en el servidor y se entrega a la app sobre HTTPS; no se pinta ni se guarda.
 - La pantalla del QR del móvil viejo usa `FLAG_SECURE`; el bitmap no se guarda en disco.
+- **Revocación de dispositivo/sesión**: `revokeDevice` borra `auth.sessions`, pero el access JWT
+  sigue válido hasta 15 min; la desactivación y el borrado son inmediatos porque el door comprueba
+  el perfil. La migración fuerza refresco al arrancar y el viejo borra al ver `used`. Es el mismo
+  límite documentado en el código de dispositivos; si se exige inmediato, hace falta una época de
+  sesión por usuario (fuera de alcance).
 
 ### 9.3 Superficies públicas nuevas
 
@@ -695,10 +718,13 @@ recuperación; sin sesión, la propia página redirige a `/forgot-password`.
   instancia se lee de `instance.name` (web/email) y del preview (app); fallback `027Apps`.
 - **Login (D7)**: se localiza; los avisos `invitation-redeemed`, `password-reset`,
   `access-revoked` y `session-expired` se traducen.
-- **Accesibilidad**: campos bloqueados con `readOnly`/`aria-readonly` (no `disabled` para que se
-  puedan leer y copiar); errores con `aria-describedby`/`aria-invalid`; foco visible; botones
-  ≥ 44 px en web y 48 dp en app; contraste AA en claro y oscuro; el QR tiene texto alternativo y
-  la cuenta atrás no depende solo del color.
+- **Accesibilidad**: los datos bloqueados se muestran como ficha (label + valor) y no como inputs
+  deshabilitados; si se pueden copiar, con botón. Solo las contraseñas son inputs. Errores con
+  `aria-describedby`/`aria-invalid`; foco visible; botones ≥ 44 px en web y 48 dp en app; contraste
+  AA en claro y oscuro; el QR tiene texto alternativo y la cuenta atrás no depende solo del color.
+- **Errores accionables (U8)**: «Esa no es la contraseña de esta cuenta» (`invitation_password_invalid`),
+  «Caducó; pide una nueva a {invitador}», «Ya se aceptó; inicia sesión», «Demasiados intentos;
+  espera un minuto». Nada de un genérico que deje al usuario sin salida.
 - **Fechas**: caducidad con el locale y la zona de la instancia (`timezone` del preview), no con la
   del navegador por defecto (ADR 0008).
 
@@ -778,6 +804,10 @@ recuperación; sin sesión, la propia página redirige a `/forgot-password`.
   reutiliza; el dispositivo viejo deja de recibir push.
 - `assetlinks.json` con el fingerprint; `/download/android` sirve el APK.
 - `lerd diag browser_toggle` + `request lenses` en las páginas nuevas (web) sin incidencias.
+- **Auditoría de UX experta** (agente distinto del implementador, además de la revisión/QA de la
+  tarea 11): flujos app/web, estados vacío/carga/error/sin conexión, copy en los 9 idiomas,
+  contraste claro/oscuro, 375 px web y 390 px app, teclado y lector de pantalla, QR legible,
+  reset y bienvenida. Informe con hallazgos y resolución.
 
 ### 11.6 Evidencia
 
@@ -807,9 +837,11 @@ tarea/PR. Un fallo encontrado se convierte en test de regresión o comprobación
 | P6 | Confirmar D1–D20 (A1, login, rol existente, escáner, etc.) | Propietario | Con esta spec |
 | P7 | Orden explícita de merge del sprint 16 y del 17 | Propietario | Al final |
 | P8 | Orden explícita de promoción `staging → main` | Propietario | Tras aceptar staging |
+| P9 | Leer el resumen de las auditorías finales de seguridad y UX | Propietario | Antes de `finalizada`/merge |
 
-**Entregables del sprint**: spec + plan + tareas (este PR), mockups, código y tests de las tareas
-03–10, docs/flows, OpenAPI, evidencia de verificación y auditoría de seguridad.
+**Entregables del sprint**: spec + plan + tareas (este PR), revisión pre-implementación, mockups,
+código y tests de las tareas 03–10, docs/flows, OpenAPI, evidencia de verificación y **auditorías
+finales de seguridad (OWASP A01–A11) y de UX**, ambas por agentes distintos del implementador.
 
 ## 14. Riesgos y mitigaciones
 

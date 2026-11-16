@@ -26,9 +26,11 @@ auto-login tras el canje, con estados idénticos a la web.
   - `AppViewModel`: carga el preview al abrir el enlace; estados de carga/red/caducada/usada/
     inválida; `acceptInvite` sin `display_name`; canje → login → shell; 201 + login fallido →
     `NeedsLogin(invitation_accepted)`, sin reintentar el canje.
-  - `InviteScreen`: wordmark + instancia; email, nombre, instancia, invitador, caducidad y rol
-    bloqueados (`readOnly`); contraseña + confirmación (nueva) o solo contraseña (existente);
-    errores mapeados; `readOnly` con aspecto de bloqueado.
+  - `InviteScreen`: wordmark + instancia; datos bloqueados como **ficha** (email, nombre,
+    instancia, invitador, caducidad y rol), no inputs deshabilitados; contraseña + confirmación
+    (nueva) o solo contraseña (existente) con «¿Olvidaste tu contraseña?»; el idioma sale del
+    `locale` del preview; errores accionables (`invitation_password_invalid`, caducada, usada,
+    rate limit).
   - `LoginScreen`: avisos `invitation_accepted` y `revoked`.
   - Strings en los 9 idiomas.
 - Fuera: el wizard web (07); el QR (10); el reset in-app (08 enlaza a la web); el nombre editable.
