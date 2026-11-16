@@ -389,6 +389,12 @@ function GroupDetail({
 }) {
   const AnchorTag = anchorOf(context);
   const { group, members, movements } = detail;
+  const tabParam = context.searchParams.tab;
+  const tab =
+    tabParam === "balances" || tabParam === "members" || tabParam === "summary"
+      ? tabParam
+      : "movements";
+  const tabHref = (value: string) => href(group.id, undefined, { tab: value });
   const active = members.filter((member) => member.state === "active");
   const byId = new Map(members.map((member) => [member.id, member.display_name]));
 
@@ -473,6 +479,27 @@ function GroupDetail({
         </div>
       </PageHeader>
 
+      <nav className="flex flex-wrap gap-1 rounded-card border border-border bg-surface p-1 text-xs" aria-label={tr("Group sections")}>
+        {[
+          { key: "movements", label: tr("Movements") },
+          { key: "balances", label: tr("Balances") },
+          { key: "members", label: tr("Members") },
+          { key: "summary", label: tr("Summary") },
+        ].map((entry) => (
+          <AnchorTag
+            key={entry.key}
+            href={tabHref(entry.key)}
+            aria-current={tab === entry.key ? "page" : undefined}
+            className={`min-h-9 rounded-control px-3 py-1.5 font-semibold ${
+              tab === entry.key ? "bg-accent/10 text-accent" : "text-muted-foreground"
+            }`}
+          >
+            {entry.label}
+          </AnchorTag>
+        ))}
+      </nav>
+
+      {tab === "balances" ? (
       <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {active.map((member) => (
           <div key={member.id} className="rounded-card border border-border bg-surface p-3">
@@ -488,7 +515,9 @@ function GroupDetail({
           </div>
         ))}
       </dl>
+      ) : null}
 
+      {tab === "members" ? (
       <section className="rounded-card border border-border bg-surface p-3">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -544,6 +573,11 @@ function GroupDetail({
         </ul>
       </section>
 
+      ) : null}
+
+      {tab === "summary" ? <GroupSummary context={context} detail={detail} tr={tr} /> : null}
+
+      {tab === "movements" ? (
       <section className="rounded-card border border-border bg-surface p-3">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {tr("Movements")}
@@ -690,6 +724,7 @@ function GroupDetail({
         )}
         <MovementPager context={context} detail={detail} tr={tr} />
       </section>
+      ) : null}
     </>
   );
 }
@@ -1227,5 +1262,79 @@ function MovementPager({
         <span />
       )}
     </nav>
+  );
+}
+
+/** The group's own summary: what it holds and where it goes, by category. */
+function GroupSummary({
+  context,
+  detail,
+  tr,
+}: {
+  context: ModulePageContext;
+  detail: AdminGroupDetail;
+  tr: (text: string, params?: Record<string, string | number>) => string;
+}) {
+  const { group } = detail;
+  const max = Math.max(1, ...detail.category_totals.map((entry) => entry.total));
+  const total = Math.max(1, detail.expenses_total);
+  const net = detail.expenses_total - detail.payments_total;
+
+  return (
+    <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-3">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {tr("Summary")}
+      </h2>
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="rounded-control border border-border p-3">
+          <dt className="text-[11px] text-muted-foreground">{tr("Expenses")}</dt>
+          <dd className="text-lg font-bold tabular-nums">
+            {money(detail.expenses_total, group.currency, context.locale)}
+          </dd>
+        </div>
+        <div className="rounded-control border border-border p-3">
+          <dt className="text-[11px] text-muted-foreground">{tr("Payments")}</dt>
+          <dd className="text-lg font-bold tabular-nums">
+            {money(detail.payments_total, group.currency, context.locale)}
+          </dd>
+        </div>
+        <div className="rounded-control border border-border p-3">
+          <dt className="text-[11px] text-muted-foreground">{tr("Net")}</dt>
+          <dd className="text-lg font-bold tabular-nums">
+            {money(net, group.currency, context.locale)}
+          </dd>
+        </div>
+      </dl>
+      <h3 className="text-xs font-semibold">{tr("By category")}</h3>
+      {detail.category_totals.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{tr("No movements yet.")}</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {detail.category_totals.map((entry) => (
+            <li key={entry.name || "none"} className="flex flex-col gap-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="truncate">{entry.name || tr("No category")}</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {money(entry.total, group.currency, context.locale)}
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted">
+                <div
+                  className="h-2 rounded-full bg-accent"
+                  style={{
+                    width: `${Math.max(2, Math.round((entry.total / max) * 100))}%`,
+                  }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-[11px] text-muted-foreground">
+        {tr("Share of expenses shown as bars; total {total}.", {
+          total: money(total, group.currency, context.locale),
+        })}
+      </p>
+    </section>
   );
 }
