@@ -2,7 +2,7 @@
 id: sprint-16-task-02
 titulo: Mockups de invitación, wizard, QR y recuperación
 area: diseño
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 mockup: docs/mockups/invitation-flow/index.html
@@ -12,8 +12,8 @@ adrs: [0002]
 **Tarea**: producir y hacer aprobar los mockups de las pantallas nuevas **antes** de escribir UI:
 aceptación en la app, wizard web, migración por QR y recuperación de contraseña.
 
-**Entregado 2026-11-16** en `docs/mockups/invitation-flow/`; pendiente de la aprobación del
-propietario (P2).
+**Entregado y aprobado 2026-11-16** (P2; el propietario dio el visto bueno tras la corrección de
+la entrada al escáner del móvil nuevo).
 
 **Punto de partida**: el shell de la app (mockup A, sprint 15) y el panel ya tienen tokens,
 tipografía y patrones. No hay mockup de este flujo; el propietario debe poder recorrerlo en

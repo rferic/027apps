@@ -2,7 +2,7 @@
 id: sprint-16-task-03
 titulo: Ciclo de sesión (logout local, expulsión limpia y errores reintentables)
 area: web + app + core
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0004, 0007, 0010]

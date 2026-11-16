@@ -20,9 +20,9 @@ cuenta a un teléfono nuevo por QR, todo con i18n, OpenAPI y auditoría.
 - [x] **P1.5** El propietario acepta la revisión pre-implementación y resuelve **D21**:
       **sesión primero** (la app y la web firman antes de canjear; el Core valida la sesión y no
       verifica contraseñas) — 2026-11-16.
-- [ ] **P2** El propietario aprueba los mockups de `docs/mockups/invitation-flow/` (app, wizard,
-      QR y reset) antes de escribir UI nueva. **Entregados 2026-11-16**; pendiente de revisión y
-      aprobación.
+- [x] **P2** El propietario aprueba los mockups de `docs/mockups/invitation-flow/` (app, wizard,
+      QR y reset) antes de escribir UI nueva — **aprobado 2026-11-16** tras la corrección de la
+      entrada al escáner del móvil nuevo.
 - [x] **P10** El propietario confirma que «Time-box user sessions» e «Inactivity timeout» no se
       activaron en `027apps-dev` ni `027apps-prod` (valores por defecto: off) — 2026-11-16. La
       prueba real de sesión sin usar la app lo valida en la tarea 11.
