@@ -13,6 +13,18 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.17.1",
+            date = "2026-11-16",
+            notes = mapOf(
+                "es" to listOf(
+                    "La lista de movimientos de un grupo carga de 50 en 50 con «Cargar más»: los grupos importados de Splitwise ya no tardan en abrir.",
+                ),
+                "en" to listOf(
+                    "A group's movement list loads 50 at a time with «Load more»: groups imported from Splitwise open fast again.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.17.0",
             date = "2026-11-16",
             notes = mapOf(
