@@ -1,6 +1,11 @@
 # Spec — Canje público de invitaciones desde el navegador
 
 **Fecha:** 2026-11-07 · **Estado:** Pendiente de aprobación del usuario
+> **Actualizada por** la [spec del sprint 16](2026-11-16-invitation-session-migration-design.md)
+> (2026-11-16): el canje web pasa a un wizard app-first, email y nombre se bloquean, se añaden
+> preview público, rol, cuenta existente, renovación y auto-login. Esta spec sigue siendo la
+> referencia del canje público y del token; donde choque con la nueva, manda la nueva.
+
 **Base:** [API del Core](2026-10-26-core-api.md) (`POST /api/v1/invitations/{token}/redeem`) ·
 [web admin](2026-11-06-web-admin-design.md) (patrones de formulario) · [auth](2026-10-25-auth.md) §3 ·
 [ADR 0004](../../adr/0004-bordes-y-capa-de-aplicacion.md) ·
