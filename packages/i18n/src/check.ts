@@ -105,6 +105,37 @@ export function checkStaleness(catalog: readonly string[], codeStrings: readonly
   return result;
 }
 
+/**
+ * A module's panel pages translate with their own `locales/<locale>.json`, not
+ * with the core catalog: every `tr()` key must exist there, or the page shows the
+ * English key inside a Spanish panel.
+ */
+export function checkModuleLocales(input: {
+  moduleKey: string;
+  keys: readonly string[];
+  locales: Record<string, TranslationMap>;
+}): CheckResult {
+  const result = ok();
+  const wanted = new Set(input.keys);
+  for (const locale of SUPPORTED_LOCALES) {
+    if (locale === "en") continue;
+    const map = input.locales[locale];
+    if (!map) {
+      result.success = false;
+      result.errors.push(`${input.moduleKey} ${locale}: missing locale file`);
+      continue;
+    }
+    const missing = [...wanted].filter((key) => !(key in map));
+    if (missing.length > 0) {
+      result.success = false;
+      result.errors.push(
+        `${input.moduleKey} ${locale}: missing ${missing.length} key(s): ${missing.slice(0, 3).join(" | ")}`,
+      );
+    }
+  }
+  return result;
+}
+
 /** Runs every check and merges the results. */
 export function runCheck(input: {
   catalog: readonly string[];
@@ -142,6 +173,32 @@ function main(): void {
   const codeStrings = scanSources(path.join(repoRoot, "apps/admin/src"));
 
   const result = runCheck({ catalog, locales, codeStrings });
+  // Each module's own locales must cover what its pages ask for.
+  const packagesDir = path.join(repoRoot, "packages");
+  for (const entry of fs.readdirSync(packagesDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const adminDir = path.join(packagesDir, entry.name, "admin");
+    const localesDirOfModule = path.join(packagesDir, entry.name, "locales");
+    if (!fs.existsSync(adminDir) || !fs.existsSync(localesDirOfModule)) continue;
+    const keys = scanSources(adminDir);
+    const moduleLocales: Record<string, TranslationMap> = {};
+    for (const locale of SUPPORTED_LOCALES) {
+      if (locale === "en") continue;
+      const file = path.join(localesDirOfModule, `${locale}.json`);
+      if (fs.existsSync(file)) moduleLocales[locale] = loadJson<TranslationMap>(file);
+    }
+    // A module that only ships its own language is not a regression here: the
+    // panel falls back to English. It is checked when at least two locales exist.
+    if (Object.keys(moduleLocales).length < 2) continue;
+    const moduleResult = checkModuleLocales({
+      moduleKey: entry.name,
+      keys,
+      locales: moduleLocales,
+    });
+    result.success = result.success && moduleResult.success;
+    result.errors.push(...moduleResult.errors);
+  }
+
   for (const warning of result.warnings) process.stdout.write(`warning: ${warning}\n`);
   for (const error of result.errors) process.stderr.write(`error: ${error}\n`);
 

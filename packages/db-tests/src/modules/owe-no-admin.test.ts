@@ -14,6 +14,7 @@ import {
   adminAddMember,
   adminCreateGroup,
   adminCreateMovement,
+  adminDeleteGroup,
   adminDeleteMovement,
   adminGroupDetail,
   adminLinkMember,
@@ -116,8 +117,58 @@ describe("owe-no administration", () => {
     });
   });
 
-  it("adds fictitious members and links them to an account", async () => {
+  it("summarizes only the current month, like the app", async () => {
     await inRollback(async (c) => {
+      const { admin } = await install(c);
+      const group = await adminCreateGroup(oweDeps(c), admin, { name: "Casa", currency: "EUR" });
+      const { members } = await adminGroupDetail(oweDeps(c), admin, group.id);
+      const member = members[0]!;
+      const { rows: categoryRows } = await query(
+        c,
+        "insert into module_owe_no.owe_no_categories (group_id, name) values ($1, 'Comida') returning id",
+        [group.id],
+      );
+      const categoryId = String(categoryRows[0]!.id);
+      const { rows: dates } = await query(
+        c,
+        `select to_char(current_date, 'YYYY-MM-DD') as today,
+                to_char(date_trunc('month', current_date) - interval '1 day', 'YYYY-MM-DD') as previous`,
+      );
+      const today = String(dates[0]!.today);
+      const previous = String(dates[0]!.previous);
+      const movement = (description: string, amount: number, occurredOn: string) =>
+        adminCreateMovement(oweDeps(c), admin, group.id, {
+          kind: "expense",
+          description,
+          amount_minor: amount,
+          occurred_on: occurredOn,
+          paid_by: member.id,
+          category_id: categoryId,
+          participants: [{ memberId: member.id }],
+        });
+
+      await movement("Este mes", 1000, today);
+      await movement("Mes anterior", 2000, previous);
+
+      const detail = await adminGroupDetail(oweDeps(c), admin, group.id);
+      // The header keeps the lifetime total; the summary is this month only.
+      expect(detail.expenses_total).toBe(3000);
+      expect(detail.month_total).toBe(1000);
+      expect(detail.previous_month_total).toBe(2000);
+      expect(detail.category_totals).toEqual([{ name: "Comida", total: 1000 }]);
+      expect(detail.months).toHaveLength(6);
+      expect(detail.months.at(-2)?.categories).toEqual([{ name: "Comida", total: 2000 }]);
+      expect(detail.months.at(-1)).toEqual({
+        month: today.slice(0, 7),
+        total: 1000,
+        categories: [{ name: "Comida", total: 1000 }],
+      });
+      expect(detail.first_movement_on).toBe(previous);
+      expect(detail.people_totals).toEqual([{ name: member.display_name, paid: 1000, consumed: 1000 }]);
+    });
+  });
+
+  it("adds fictitious members and links them to an account", async () => {    await inRollback(async (c) => {
       const { admin } = await install(c);
       const luis = await user(c, "Luis");
       const group = await adminCreateGroup(oweDeps(c), admin, { name: "Casa", currency: "EUR" });
@@ -444,6 +495,39 @@ describe("owe-no admin movement paging and filters", () => {
         perPage: 100,
       });
       expect(searched.movements_total).toBe(1);
+    });
+  });
+});
+
+describe("owe-no group deletion with an import", () => {
+  // Regression: `owe_no_import_rows` references movements, and deleting the
+  // movements first failed the foreign key, so the panel could not delete a
+  // group that had been imported.
+  it("deletes a group that has imports and movements", async () => {
+    await inRollback(async (c) => {
+      const { admin } = await install(c);
+      const group = await adminCreateGroup(oweDeps(c), admin, { name: "Casa", currency: "EUR" });
+      const member = (await adminGroupDetail(oweDeps(c), admin, group.id)).members[0]!;
+      await adminAddMember(oweDeps(c), admin, group.id, { displayName: "Bolli" });
+      const members = (await adminGroupDetail(oweDeps(c), admin, group.id)).members;
+      const bolli = members.find((row) => row.display_name === "Bolli")!;
+
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Bolli",
+        "2026-05-10,Cena,Comida,20.00,EUR,20.00,-20.00",
+      ].join("\n");
+      const { commitImport } = await import("@027apps/owe-no/domain/importer.js");
+      await commitImport(oweDeps(c), admin.userId, group.id, csv, {
+        mapping: { Ana: member.id, Bolli: bolli.id },
+      });
+
+      await adminDeleteGroup(oweDeps(c), admin, group.id, "Casa");
+      const { rows } = await query(
+        c,
+        "select count(*)::int as n from module_owe_no.owe_no_groups where id = $1",
+        [group.id],
+      );
+      expect(rows[0]!.n).toBe(0);
     });
   });
 });

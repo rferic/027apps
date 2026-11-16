@@ -216,8 +216,8 @@ export function SelfHostLanding({ locale }: { locale: Locale }) {
                   <rect x="3" y="6" width="18" height="13" rx="2.5" /><path d="M3 10h18M16 15h2" />
                 </svg>
               </div>
-              <h3>{t("Finances")}{" "}<span className="soon">{t("Soon")}</span></h3>
-              <p>{t("Currencies, budgets per category and the family history.")}</p>
+              <h3>OweNo</h3>
+              <p>{t("Shared expenses, balances, settlements and Splitwise import.")}</p>
             </article>
             <article className="module">
               <div className="ico">
@@ -270,8 +270,8 @@ export function SelfHostLanding({ locale }: { locale: Locale }) {
                   <rect x="7" y="2.5" width="10" height="19" rx="2.5" /><path d="M10.5 5h3" />
                 </svg>
               </div>
-              <h3>{t("Android app")}{" "}<span className="soon">{t("In development")}</span></h3>
-              <p>{t("The same instance for the family, on the phone.")}</p>
+              <h3>{t("Android app")}</h3>
+              <p>{t("The same instance for the family, on the phone. Signed APK published.")}</p>
             </article>
             <article className="module">
               <div className="ico">

@@ -29,14 +29,13 @@ type Preview = {
   }>;
 };
 
-type Identity = { id: string; display_name: string };
+type Identity = { id: string; display_name: string; kind: "member" | "account" };
 
 /** 2 MB: the same limit the API enforces, so the browser never truncates silently. */
 const MAX_BYTES = 2 * 1024 * 1024;
 
-const COPY = {
-  es: {
-    title: "Importar de Splitwise",
+export const IMPORT_COPY = {
+  es: {    title: "Importar de Splitwise",
     intro:
       "Sube el CSV del grupo. Primero verás qué entra, después a quién corresponde cada nombre y solo entonces se escribe nada.",
     where: "¿Dónde está el CSV? En Splitwise: grupo → ajustes → Exportar como CSV.",
@@ -60,9 +59,15 @@ const COPY = {
     errors: "Filas con error",
     unresolved: "Nombres que no están en el grupo",
     create: "Crear sin cuenta (ficticio)",
-    allMapped: "Todos los nombres están asignados.",
+    groupMembers: "Ya en el grupo",
+    accounts: "Cuentas",
+    memberSuffix: "· en el grupo",
+    accountSuffix: "· cuenta",
     mappingHint:
-      "Si un nombre no existe en el grupo, créalo sin cuenta: se le podrán imputar gastos desde ya.",
+      "Elige a quién corresponde cada nombre. Si ya está en el grupo, reutilízalo; si no, crea un miembro sin cuenta o invita una cuenta.",
+    accountHint:
+      "Tu cuenta no aparece aquí si ya eres miembro del grupo: búscala arriba, en «Ya en el grupo».",
+    allMapped: "Todos los nombres están asignados.",
     duplicatesNote: "Los movimientos que ya se importaron antes se omiten.",
     run: "Importar",
     running: "Importando…",
@@ -118,9 +123,15 @@ const COPY = {
     errors: "Rows with errors",
     unresolved: "Names that are not in the group",
     create: "Create without an account (fictitious)",
-    allMapped: "Every name is mapped.",
+    groupMembers: "Already in the group",
+    accounts: "Accounts",
+    memberSuffix: "· in the group",
+    accountSuffix: "· account",
     mappingHint:
-      "If a name is not in the group, create it without an account: it can receive expenses from now on.",
+      "Pick who each name is. If they are already in the group, reuse them; otherwise create a member without an account or invite an account.",
+    accountHint:
+      "Your account is not listed here if you are already a member of the group: look under “Already in the group”.",
+    allMapped: "Every name is mapped.",
     duplicatesNote: "Movements imported before are skipped.",
     run: "Import",
     running: "Importing…",
@@ -153,7 +164,7 @@ const COPY = {
   },
 };
 
-type Copy = (typeof COPY)["es"];
+type Copy = (typeof IMPORT_COPY)["es"];
 
 /** Which step is on screen, one at a time. */
 function stepOf(state: { result: boolean; preview: boolean; file: boolean }): number {
@@ -199,7 +210,7 @@ function humanSize(bytes: number): string {
  * so the flow reads top to bottom.
  */
 export function OweImportWizard({ groupId, locale }: { groupId: string; locale: string }) {
-  const copy = COPY[locale === "es" ? "es" : "en"];
+  const copy = IMPORT_COPY[locale === "es" ? "es" : "en"];
   const [csv, setCsv] = useState("");
   const [file, setFile] = useState<{ name: string; size: number } | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -434,10 +445,7 @@ function FileStep({
 
   return (
     <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-sm font-bold">{copy.title}</h2>
-        <p className="text-xs text-muted-foreground">{copy.intro}</p>
-      </div>
+      <p className="text-xs text-muted-foreground">{copy.intro}</p>
       <label
         onDragOver={(event) => {
           event.preventDefault();
@@ -552,7 +560,14 @@ function PreviewStep({ copy, preview }: { copy: Copy; preview: Preview }) {
   );
 }
 
-function MappingStep({
+/** The value the mapping select carries: a member, an account, or a new person. */
+function choiceValue(choice: ImportChoice | undefined): string {
+  if (choice?.member_id) return `member:${choice.member_id}`;
+  if (choice?.user_id) return `account:${choice.user_id}`;
+  return "";
+}
+
+export function MappingStep({
   copy,
   preview,
   identities,
@@ -575,6 +590,24 @@ function MappingStep({
   onWipe: (value: boolean) => void;
   onRun: () => void;
 }) {
+  const members = identities.filter((identity) => identity.kind === "member");
+  const accounts = identities.filter((identity) => identity.kind === "account");
+  const identityById = new Map(identities.map((identity) => [identity.id, identity]));
+
+  function choose(name: string, value: string) {
+    const separator = value.indexOf(":");
+    const kind = separator === -1 ? "" : value.slice(0, separator);
+    const id = separator === -1 ? "" : value.slice(separator + 1);
+    const identity = identityById.get(id);
+    if (kind === "member") {
+      onChoice(name, { member_id: id, display_name: identity?.display_name ?? name });
+    } else if (kind === "account") {
+      onChoice(name, { user_id: id, display_name: identity?.display_name ?? name });
+    } else {
+      onChoice(name, { display_name: name });
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4">
       <h2 className="text-sm font-bold">{copy.step3}</h2>
@@ -589,27 +622,34 @@ function MappingStep({
                 <span className="min-w-32 font-semibold">{name}</span>
                 <select
                   aria-label={`${copy.step3}: ${name}`}
-                  className="min-h-10 rounded-control border border-border bg-background px-2 text-xs"
-                  value={choices[name]?.user_id ?? ""}
-                  onChange={(event) => {
-                    const userId = event.target.value;
-                    const identity = identities.find((entry) => entry.id === userId);
-                    onChoice(name, {
-                      user_id: userId === "" ? null : userId,
-                      display_name: identity?.display_name ?? name,
-                    });
-                  }}
+                  className="min-h-10 min-w-48 flex-1 rounded-control border border-border bg-background px-2 text-xs sm:max-w-md"
+                  value={choiceValue(choices[name])}
+                  onChange={(event) => choose(name, event.target.value)}
                 >
                   <option value="">{copy.create}</option>
-                  {identities.map((identity) => (
-                    <option key={identity.id} value={identity.id}>
-                      {identity.display_name}
-                    </option>
-                  ))}
+                  {members.length > 0 ? (
+                    <optgroup label={copy.groupMembers}>
+                      {members.map((identity) => (
+                        <option key={identity.id} value={`member:${identity.id}`}>
+                          {identity.display_name} {copy.memberSuffix}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                  {accounts.length > 0 ? (
+                    <optgroup label={copy.accounts}>
+                      {accounts.map((identity) => (
+                        <option key={identity.id} value={`account:${identity.id}`}>
+                          {identity.display_name} {copy.accountSuffix}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
                 </select>
               </li>
             ))}
           </ul>
+          <p className="text-[11px] text-muted-foreground">{copy.accountHint}</p>
         </>
       )}
       <p className="text-[11px] text-muted-foreground">{copy.duplicatesNote}</p>

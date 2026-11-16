@@ -32,6 +32,7 @@ interface ReleaseAsset {
 interface Release {
   tag_name?: string;
   draft?: boolean;
+  prerelease?: boolean;
   assets?: ReleaseAsset[];
 }
 
@@ -118,7 +119,13 @@ export async function latestAndroidRelease(
 
   const releases = (await response.json()) as Release[];
   cachedAt = Date.now();
-  const found = releases.map(toRelease).find((release) => release !== null) ?? null;
+  // A published stable release always wins over a newer pre-release: the site
+  // must offer the signed build the family should install, not the nightly.
+  const stable = releases
+    .filter((release) => release.prerelease !== true)
+    .map(toRelease)
+    .find((release): release is AndroidRelease => release !== null);
+  const found = stable ?? releases.map(toRelease).find((release): release is AndroidRelease => release !== null) ?? null;
   cache = found;
   return cache;
 }
