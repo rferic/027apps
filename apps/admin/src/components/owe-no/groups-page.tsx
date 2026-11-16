@@ -6,6 +6,7 @@ import {
   adminGroupDetail,
   adminSettlementPlan,
   adminUserOptions,
+  type AdminMovementQuery,
 } from "@027apps/owe-no/domain/admin.js";
 import { listAllGroups } from "@027apps/owe-no/domain/service.js";
 import { OweUserPicker } from "@/components/owe-no/user-picker";
@@ -23,6 +24,35 @@ import {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Paging and filters of the movement list, as the module page expects them. */
+function movementsQuery(
+  searchParams: Record<string, string | string[] | undefined>,
+): AdminMovementQuery {
+  const read = (key: string) => {
+    const value = searchParams[key];
+    return typeof value === "string" ? value.trim() : "";
+  };
+  const page = Number(read("page"));
+  const query: AdminMovementQuery = {
+    page: Number.isFinite(page) && page > 1 ? page : 1,
+    perPage: 25,
+  };
+  const kind = read("kind");
+  if (kind === "expense" || kind === "settlement") query.kind = kind;
+  const pairs = [
+    ["member", "memberId"],
+    ["category", "categoryId"],
+    ["mq", "q"],
+    ["from", "from"],
+    ["to", "to"],
+  ] as const;
+  for (const [param, field] of pairs) {
+    const value = read(param);
+    if (value !== "") query[field] = value;
+  }
+  return query;
+}
+
 /**
  * Wires the module's presentational groups page to the panel's server actions.
  * The package cannot import `@/lib/owe-no-actions` (that is app code), so the
@@ -38,7 +68,9 @@ export default async function OweNoGroupsPage({ context }: { context: ModulePage
   const deps = { db: context.db };
 
   const detail = groupId
-    ? await adminGroupDetail(deps, caller, groupId).catch(() => notFound())
+    ? await adminGroupDetail(deps, caller, groupId, movementsQuery(context.searchParams)).catch(
+        () => notFound(),
+      )
     : null;
   const query = typeof context.searchParams.q === "string" ? context.searchParams.q : "";
   const groups = detail ? [] : await listAllGroups(deps, query);

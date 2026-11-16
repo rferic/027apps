@@ -139,6 +139,9 @@ describe("owe-no admin pages", () => {
           ],
         },
       ],
+      movements_total: 1,
+      movements_page: 1,
+      movements_per_page: 25,
     };
 
     const html = renderToStaticMarkup(
@@ -200,6 +203,9 @@ describe("owe-no admin pages", () => {
         { id: "m2", display_name: "Luis", state: "active" as const, user_id: null, balance: 0 },
       ],
       movements: [],
+      movements_total: 1,
+      movements_page: 1,
+      movements_per_page: 25,
     };
     const actions = {
       createGroup: noop,

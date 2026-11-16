@@ -825,5 +825,15 @@
   "Balances": "Balances",
   "Luis": "Luis",
   "OweNo · Home": "OweNo · Inicio",
-  "Summary": "Resumen"
+  "Summary": "Resumen",
+  "Expense": "Gasto",
+  "Settlement": "Pago",
+  "Member": "Miembro",
+  "From": "Desde",
+  "To": "Hasta",
+  "Search description": "Buscar en la descripción",
+  "Filter": "Filtrar",
+  "Clear": "Limpiar",
+  "Showing {shown} of {total} movements.": "Mostrando {shown} de {total} movimientos.",
+  "Movements": "Movimientos"
 }

@@ -825,5 +825,15 @@
   "Balances": "Saldoak",
   "Luis": "Luis",
   "OweNo · Home": "OweNo · Hasiera",
-  "Summary": "Laburpena"
+  "Summary": "Laburpena",
+  "Expense": "Gastua",
+  "Settlement": "Ordainketa",
+  "Member": "Kidea",
+  "From": "Noiztik",
+  "To": "Noiz arte",
+  "Search description": "Bilatu deskribapenean",
+  "Filter": "Iragazi",
+  "Clear": "Garbitu",
+  "Showing {shown} of {total} movements.": "{shown} erakusten {total} mugimendutik.",
+  "Movements": "Mugimenduak"
 }
