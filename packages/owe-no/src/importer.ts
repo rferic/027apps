@@ -401,6 +401,50 @@ export interface ImportIdentity {
 }
 
 /**
+ * One selectable row of the panel's mapping step: a name the CSV can point at.
+ * A group member is chosen to reuse it; an account is invited as a new member.
+ */
+export interface ImportMappingOption {
+  id: string;
+  display_name: string;
+  kind: "member" | "account";
+}
+
+/**
+ * Everything the panel can map a CSV name to: the group's members first (the
+ * owner asked why their own account was missing — it is already a member) and
+ * then active accounts outside the group. Only the creator reads it.
+ */
+export async function importMappingOptions(
+  deps: OweDeps,
+  userId: string,
+  groupId: string,
+): Promise<ImportMappingOption[]> {
+  await groupContext(deps, userId, groupId);
+  const { rows } = await deps.db.query(
+    `select m.id, m.display_name, 'member' as kind
+       from module_owe_no.owe_no_members m
+      where m.group_id = $1 and m.state in ('active', 'invited')
+     union all
+     select p.id, p.display_name, 'account' as kind
+       from public.profiles p
+      where p.deactivated_at is null
+        and not exists (
+          select 1 from module_owe_no.owe_no_members m
+           where m.group_id = $1 and m.user_id = p.id
+        )
+      order by display_name
+      limit 200`,
+    [groupId],
+  );
+  return rows.map((row) => ({
+    id: String(row.id),
+    display_name: String(row.display_name),
+    kind: String(row.kind) === "member" ? "member" : "account",
+  }));
+}
+
+/**
  * Active accounts that are not in the group yet, for the mapping step. Only the
  * group creator gets them: the importer needs a name → account decision, and
  * the caller is already allowed to invite those users. Capped at 200.

@@ -34,4 +34,29 @@ describe("android release", () => {
     await latestAndroidRelease();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("prefers the signed stable release over a newer pre-release", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify([
+          {
+            tag_name: "dev-0.18.0",
+            prerelease: true,
+            assets: [{ name: "dev.apk", browser_download_url: "https://x/dev.apk" }],
+          },
+          {
+            tag_name: "v0.17.1",
+            prerelease: false,
+            assets: [{ name: "app.apk", browser_download_url: "https://x/app.apk" }],
+          },
+        ]),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const release = await latestAndroidRelease();
+    expect(release?.versionName).toBe("0.17.1");
+    expect(release?.assetUrl).toBe("https://x/app.apk");
+  });
 });

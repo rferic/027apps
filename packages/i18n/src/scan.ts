@@ -7,13 +7,17 @@ import { fileURLToPath } from "node:url";
  * avoids matching `it("...")`, `expect.t(...)` or identifiers ending in `t`.
  */
 const T_CALL = /(?<![\w.$])t\(\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*[,)]/g;
+/** Module panels wrap the translator once, as `tr("...")`. */
+const TR_CALL = /(?<![\w.$])tr\(\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*[,)]/g;
 
 /** Strings passed to `t(...)` in a source file, in order and without dedupe. */
 export function extractStrings(source: string): string[] {
   const strings: string[] = [];
-  for (const match of source.matchAll(T_CALL)) {
-    const literal = match[1];
-    if (literal) strings.push(literal.slice(1, -1));
+  for (const pattern of [T_CALL, TR_CALL]) {
+    for (const match of source.matchAll(pattern)) {
+      const literal = match[1];
+      if (literal) strings.push(literal.slice(1, -1));
+    }
   }
   return strings;
 }
@@ -55,13 +59,28 @@ export function writeCatalog(catalogPath: string, strings: string[]): void {
   fs.writeFileSync(catalogPath, `${JSON.stringify(sorted, null, 2)}\n`, "utf8");
 }
 
+/** `t()` strings of every module's panel pages (packages/<key>/admin). */
+function moduleAdminSources(repoRoot: string): string[] {
+  const packagesDir = path.join(repoRoot, "packages");
+  if (!fs.existsSync(packagesDir)) return [];
+  return fs
+    .readdirSync(packagesDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => scanSources(path.join(packagesDir, entry.name, "admin")));
+}
+
 function main(): void {
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
   const catalogPath = path.join(repoRoot, "packages/i18n/catalog.en.json");
   const existing = fs.existsSync(catalogPath)
     ? (JSON.parse(fs.readFileSync(catalogPath, "utf8")) as string[])
     : [];
-  const found = scanSources(path.join(repoRoot, "apps/admin/src"));
+  // Module packages render panels of their own: their `t()` strings need the same
+  // catalog, or the panel shows English keys inside a Spanish UI.
+  const found = [
+    ...scanSources(path.join(repoRoot, "apps/admin/src")),
+    ...moduleAdminSources(repoRoot),
+  ];
   const strings = mergeCatalog(existing, found);
   writeCatalog(catalogPath, strings);
   process.stdout.write(`i18n scan: ${strings.length} strings written to catalog.en.json\n`);

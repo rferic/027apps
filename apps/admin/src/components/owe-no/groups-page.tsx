@@ -8,8 +8,9 @@ import {
   adminUserOptions,
   type AdminMovementQuery,
 } from "@027apps/owe-no/domain/admin.js";
+import { importsForGroup } from "@027apps/owe-no/domain/importer.js";
 import { listAllGroups } from "@027apps/owe-no/domain/service.js";
-import { OweUserPicker } from "@/components/owe-no/user-picker";
+import { OweImportWizard } from "@/components/owe-no/import-wizard";
 import {
   addMemberAction,
   archiveGroupAction,
@@ -24,6 +25,18 @@ import {
 } from "@/lib/owe-no-actions";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The group's import batches, only for the tab and only for its creator. */
+async function groupImports(
+  deps: { db: ModulePageContext["db"] },
+  context: ModulePageContext,
+  detail: Awaited<ReturnType<typeof adminGroupDetail>> | null,
+) {
+  if (!detail) return [];
+  if (context.searchParams.tab !== "imports") return [];
+  if (detail.group.created_by !== context.caller.userId) return [];
+  return importsForGroup(deps, context.caller.userId, detail.group.id).catch(() => []);
+}
 
 /** Paging and filters of the movement list, as the module page expects them. */
 function movementsQuery(
@@ -80,6 +93,9 @@ export default async function OweNoGroupsPage({ context }: { context: ModulePage
     detail && !detail.group.archived
       ? await adminSettlementPlan(deps, caller, detail.group.id)
       : null;
+  // The imports tab belongs to the group: no group picker, and only its creator
+  // may read or write the batches (the domain enforces the same rule).
+  const imports = await groupImports(deps, context, detail);
 
   return (
     <GroupsPage
@@ -88,7 +104,8 @@ export default async function OweNoGroupsPage({ context }: { context: ModulePage
       detail={detail}
       userOptions={userOptions}
       plan={plan}
-      UserPicker={OweUserPicker}
+      ImportWizard={OweImportWizard}
+      imports={imports}
       actions={{
         createGroup: createGroupAction,
         archiveGroup: archiveGroupAction,

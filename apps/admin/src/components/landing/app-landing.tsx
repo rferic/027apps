@@ -81,7 +81,7 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
           <h1>{t("The app for")}{" "}<br />
             <span style={s("color: #1cc29f")}>{t("your family.")}</span>
           </h1>
-          <p className="lead">{t("Finances, categories and members on your phone. One instance you own, without ads or a closed platform.")}{" "}</p>
+          <p className="lead">{t("Shared expenses, balances and settlements on your phone. One instance you own, without ads or a closed platform.")}{" "}</p>
           <div className="hero-actions">
             <DownloadButton label={t("Download for Android")} version={version} />
             <a className="btn ghost" href="https://github.com/rferic/027apps">
@@ -89,12 +89,12 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
           </div>
           <p style={s("margin-top: 14px")}>
             <span className="note-pill">
-              <b>●</b>{" "}{t("Android app in development · the screens are simulated with sample data")}{" "}</span>
+              <b>●</b>{" "}{t("Android app published · the screens are simulated with sample data")}{" "}</span>
           </p>
 
           <div className="tabs">
             <span className="on">{t("Overview")}</span>
-            <span>{t("Finances")}</span>
+            <span>OweNo</span>
             <span>{t("Categories")}</span>
             <span>{t("Members")}</span>
             <span>{t("Modules")}</span>
@@ -105,15 +105,15 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
               <div className="notch"></div>
               <div className="screen">
                 <div className="ph-head">
-                  <span>{t("Finances")}</span>
+                  <span>OweNo</span>
                   <span>ER</span>
                 </div>
                 <div className="ph-card">
-                  <div className="k">{t("Balance this month")}</div>
-                  <div className="v teal">1.842,50 €</div>
+                  <div className="k">{t("Group balance")}</div>
+                  <div className="v teal">0,00 €</div>
                 </div>
                 <div className="ph-card">
-                  <div className="k">{t("Spending by category")}</div>
+                  <div className="k">{t("This month")}</div>
                   <div className="ph-bars">
                     <i style={s("height: 42%")}></i>
                     <i style={s("height: 68%")}></i>
@@ -125,26 +125,26 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
                 </div>
                 <div className="ph-list">
                   <div className="ph-item">
-                    <span className="ph-dot">H</span>
-                    <span className="who">{t("Mortgage")}</span>
-                    <span className="amt neg">−820,00 €</span>
+                    <span className="ph-dot">D</span>
+                    <span className="who">{t("Dinner")}</span>
+                    <span className="amt neg">−48,00 €</span>
                   </div>
                   <div className="ph-item">
-                    <span className="ph-dot">C</span>
-                    <span className="who">{t("School")}</span>
-                    <span className="amt neg">−240,00 €</span>
+                    <span className="ph-dot">G</span>
+                    <span className="who">{t("Groceries")}</span>
+                    <span className="amt neg">−62,30 €</span>
                   </div>
                   <div className="ph-item">
-                    <span className="ph-dot">N</span>
-                    <span className="who">{t("Salary")}</span>
-                    <span className="amt pos">+2.400,00 €</span>
+                    <span className="ph-dot">A</span>
+                    <span className="who">{t("Ana settled")}</span>
+                    <span className="amt pos">+32,10 €</span>
                   </div>
                 </div>
                 <div className="ph-tabs">
-                  <b>{t("Home")}</b>
-                  <span>{t("Categories")}</span>
+                  <b>{t("Activity")}</b>
+                  <span>{t("Balances")}</span>
                   <span>{t("Members")}</span>
-                  <span>{t("Modules")}</span>
+                  <span>{t("Summary")}</span>
                 </div>
               </div>
             </div>
@@ -210,11 +210,11 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
             <article className="feature-row">
               <div className="copy">
                 <p className="eyebrow">
-                  <strong>01</strong>{" / "}{t("FINANCES")}
+                  <strong>01</strong>{" / "}OWENO
                 </p>
-                <h3>{t("The family money, clear.")}</h3>
-                <p>{t("Expenses and income in your currency and format. Every category with its budget and history, no spreadsheets.")}{" "}</p>
-              <ul className="check-list"><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Currencies and local format")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Budget per category")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Full history")}</li></ul>
+                <h3>{t("Shared expenses, clear balances.")}</h3>
+                <p>{t("For the house, a trip or any shared plan: split each expense, record who paid and settle up without spreadsheets.")}{" "}</p>
+              <ul className="check-list"><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Equal or exact split")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Settle up and record the payment")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("History, filters and monthly summary")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Categories and Splitwise import")}</li></ul>
               </div>
               <div className="visual">
                 <div className="phone">
@@ -225,11 +225,11 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
                       <span>ER</span>
                     </div>
                     <div className="ph-card">
-                      <div className="k">{t("Balance")}</div>
-                      <div className="v teal">1.842,50 €</div>
+                      <div className="k">{t("Group balance")}</div>
+                      <div className="v teal">0,00 €</div>
                     </div>
                     <div className="ph-card">
-                      <div className="k">{t("Home · 62%")}</div>
+                      <div className="k">{t("Food · 62%")}</div>
                       <div className="ph-bars">
                         <i className="hi" style={s("height: 62%")}></i>
                         <i style={s("height: 26%")}></i>
@@ -239,21 +239,21 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
                     </div>
                     <div className="ph-list">
                       <div className="ph-item">
-                        <span className="ph-dot">H</span>
-                        <span className="who">{t("Mortgage")}</span>
-                        <span className="amt neg">−820,00 €</span>
+                        <span className="ph-dot">D</span>
+                        <span className="who">{t("Dinner")}</span>
+                        <span className="amt neg">−48,00 €</span>
                       </div>
                       <div className="ph-item">
-                        <span className="ph-dot">L</span>
-                        <span className="who">{t("Utilities")}</span>
+                        <span className="ph-dot">G</span>
+                        <span className="who">{t("Groceries")}</span>
                         <span className="amt neg">−64,20 €</span>
                       </div>
                     </div>
                     <div className="ph-tabs">
-                      <b>{t("Home")}</b>
-                      <span>{t("Categories")}</span>
+                      <b>{t("Activity")}</b>
+                      <span>{t("Balances")}</span>
                       <span>{t("Members")}</span>
-                      <span>{t("Modules")}</span>
+                      <span>{t("Summary")}</span>
                     </div>
                   </div>
                 </div>
@@ -356,7 +356,7 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
                   <strong>04</strong>{" / "}{t("MODULES")}
                 </p>
                 <h3>{t("Turn on only what you use.")}</h3>
-                <p>{t("Finances, categories, API… Modules switch on and off without touching the rest. The app shows only what is active.")}{" "}</p>
+                <p>{t("OweNo, categories, API… Modules switch on and off without touching the rest. The app shows only what is active.")}{" "}</p>
               <ul className="check-list"><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Turn modules on and off")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Only active modules in the app")}</li><li><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 8.5 3 3 7-7" /></svg>{t("Access per member")}</li></ul>
               </div>
               <div className="visual">
@@ -368,7 +368,7 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
                       <span>4/6</span>
                     </div>
                     <div className="ph-toggle">
-                      <span className="who">{t("Finances")}</span>
+                      <span className="who">OweNo</span>
                       <span className="ph-switch on"></span>
                     </div>
                     <div className="ph-toggle">
@@ -414,7 +414,7 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
             <h2 className="display" style={s("margin-top: 16px")}>{t("The desktop")}{" "}<br />
               <span className="dim">{t("side.")}</span>
             </h2>
-            <p className="lead" style={s("font-size: 16px")}>{t("Members, invitations, categories, modules, API keys and MCP. The panel lives in the browser and is where everything is set up.")}{" "}</p>
+            <p className="lead" style={s("font-size: 16px")}>{t("Members, invitations, categories, OweNo groups and imports, modules, API keys and MCP. The panel lives in the browser and is where everything is set up.")}{" "}</p>
             <div className="hero-actions">
               <Link className="btn primary" href={landingHref(locale, "selfhost")}>
                 <ServerIcon />{" "}{t("Self-host the project")}{" "}
@@ -474,7 +474,7 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
             <h2 className="display" style={s("margin-top: 16px")}>{t("The same app,")}{" "}<br />
               <span className="dim">{t("in your pocket.")}</span>
             </h2>
-            <p className="lead" style={s("font-size: 16px")}>{t("The app is in development. The signed APK will be published on GitHub Releases and can be downloaded without an account.")}{" "}</p>
+            <p className="lead" style={s("font-size: 16px")}>{t("Available on Android. Download the signed APK from this page; it installs without an account.")}{" "}</p>
             <div className="hero-actions">
               <DownloadButton label={t("Download for Android")} version={version} />
               <a className="btn ghost" href="https://github.com/rferic/027apps">
@@ -542,8 +542,8 @@ export function AppLanding({ locale, version }: { locale: Locale; version?: stri
               <p>{t("With an invitation from the admin. The link opens the app, you choose a password and you are in; there is no public signup.")}{" "}</p>
             </details>
             <details>
-              <summary>{t("Is the app available?")}</summary>
-              <p>{t("A testing build is available from your instance today; the signed APK will be published on GitHub Releases and can be downloaded without an account.")}{" "}</p>
+              <summary>{t("How do I install the app?")}</summary>
+              <p>{t("Download the signed APK from this page and open it on an Android phone. No account is needed to download; to use it you need an invitation from your instance.")}{" "}</p>
             </details>
             <details>
               <summary>{t("In which languages?")}</summary>

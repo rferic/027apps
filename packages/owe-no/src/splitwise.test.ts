@@ -126,3 +126,19 @@ describe("export formats and rounding", () => {
     expect(total).toBe(movement.amount_minor);
   });
 });
+
+describe("the export's summary line", () => {
+  // Regression: this row is Splitwise's "total balance" footer, not an expense.
+  // Importing it added 212,50 € to the group and the totals stopped matching.
+  it("skips the closing balance row", () => {
+    const csv = [
+      "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis",
+      "2026-05-10,Cena,Comida,20.00,EUR,10.00,-10.00",
+      "2026-05-13,Saldo total, , ,EUR,212.50,-212.50",
+    ].join("\n");
+    const parsed = parseSplitwiseCsv(csv);
+    expect(parsed.movements).toHaveLength(1);
+    expect(parsed.skipped).toBe(1);
+    expect(parsed.movements[0]).toMatchObject({ amount_minor: 2000, description: "Cena" });
+  });
+});

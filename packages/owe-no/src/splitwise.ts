@@ -83,6 +83,9 @@ function splitCsvLine(line: string, delimiter = ","): string[] {
   return cells.map((cell) => cell.trim());
 }
 
+/** The export's closing summary line, in the languages Splitwise exports. */
+const BALANCE_ROW = /^(saldo total|total balance|balance total|saldo totale)$/i;
+
 function cents(raw: string): number | null {
   let text = raw.trim();
   if (text === "") return null;
@@ -169,6 +172,13 @@ export function parseSplitwiseCsv(text: string): ParseResult {
       impacts.set(person, cents(cells[position] ?? ""));
     }
     if ([...impacts.values()].every((value) => value === null)) {
+      skipped += 1;
+      continue;
+    }
+    // Splitwise closes the export with a "Total balance"/"Saldo total" row: it is
+    // the summary of the file, not a movement. Importing it added its amount on
+    // top of the real expenses (212,50 € in the owner's group).
+    if (BALANCE_ROW.test(at("description")) && at("cost") === "") {
       skipped += 1;
       continue;
     }
