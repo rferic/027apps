@@ -16,12 +16,15 @@ cuenta a un teléfono nuevo por QR, todo con i18n, OpenAPI y auditoría.
 
 ## 0. Precondiciones y puertas
 
-- [ ] **P1** El propietario aprueba la spec y este plan (incluidas D1–D20).
-- [ ] **P1.5** El propietario acepta la revisión pre-implementación y resuelve **D21** (verificación
-      de la contraseña existente: sesión primero recomendada, o 5 intentos/token). Sin esta
-      decisión no se implementa el canje de una cuenta existente.
+- [x] **P1** El propietario aprueba la spec y este plan (incluidas D1–D20) — 2026-11-16.
+- [x] **P1.5** El propietario acepta la revisión pre-implementación y resuelve **D21**:
+      **sesión primero** (la app y la web firman antes de canjear; el Core valida la sesión y no
+      verifica contraseñas) — 2026-11-16.
 - [ ] **P2** El propietario aprueba los mockups de `docs/mockups/invitation-flow/` (app, wizard,
       QR y reset) antes de escribir UI nueva.
+- [ ] **P10** El propietario confirma en Supabase Auth que «Time-box user sessions» e «Inactivity
+      timeout» están desactivados (o el valor que quiera); sin esto no se puede afirmar que la
+      sesión no caduque sola.
 - [ ] **P3** `ANDROID_APP_SHA256` en Vercel Production (y Preview si se prueba) con
       `00:6A:22:FA:7A:A4:76:A5:5D:B7:C4:62:2E:FF:19:3F:76:4F:66:10:A3:6D:9C:D1:DF:CE:C8:03:AE:A1:39:C6`,
       y redeploy. Verificar `curl https://027apps.ericrf.com/.well-known/assetlinks.json`.
@@ -153,6 +156,10 @@ de producto.
 
 ### 03.3 App
 
+- [ ] Documentar el modelo de sesión en el código: access token de 15 min + refresh token durable
+      en el Keystore; la app **no guarda la contraseña**; la rotación persiste el token nuevo; el
+      access token caducado solo obliga a renovar. Confirmar P10 (sin time-box/inactivity en
+      Supabase) antes de afirmar que no caduca sola.
 - [ ] `apps/android/.../data/ApiClient.kt`: `RefreshResult` sellado (`Refreshed`, `NoSession`,
       `Network`); `request` mapea 401 a `unauthorized` con `revoked` o a error de red.
 - [ ] `apps/android/.../ui/AppViewModel.kt`:
@@ -171,6 +178,8 @@ de producto.
 - [ ] Logout web no cierra el móvil; logout móvil no cierra la web (verificado en dispositivo y
       navegador).
 - [ ] Reinicio, actualización y modo avión conservan la sesión; el reintento entra al volver la red.
+- [ ] La app sin usar mucho tiempo sigue entrando con el refresh token (sin volver a pedir la
+      contraseña), con P10 confirmado.
 - [ ] Un perfil desactivado va a `/logout` → `/login` sin bucle; el móvil recibe 401 y limpia.
 - [ ] `pnpm lint && pnpm tsc && pnpm test` y `./gradlew :app:testDebugUnitTest`.
 
@@ -194,12 +203,16 @@ de producto.
       - `previewInvitation(deps, token)` (spec §6.2);
       - `renewInvitation` (spec §6.5) — aunque el panel se cablee en la tarea 09, el servicio y sus
         tests entran aquí.
-- [ ] `InvitationsAuth` añade `verifyPassword(email, password)`; adaptador
-      `apps/admin/src/lib/invitations.ts` con un cliente Supabase anon sin persistencia,
-      `signInWithPassword` y `signOut({ scope: "local" })` inmediato.
-- [ ] `packages/core/src/errors.ts`: `invitation_password_invalid`, `invitation_not_expired`.
+- [ ] `redeemInvitation` recibe el `Caller` y exige una **sesión del mismo usuario** para una
+      cuenta existente; no verifica contraseñas. El adaptador de Auth **no** necesita
+      `verifyPassword`; se queda con `findUserByEmail`, `createUser` y `deleteUser`.
+- [ ] `redeemInvitationRoute` usa el resolvedor de auth real (no `anon` fijo): un anónimo canjea
+      una cuenta nueva; una cuenta existente exige el Bearer de su sesión.
+- [ ] `packages/core/src/errors.ts`: `existing_account_signin_required`,
+      `invitation_not_expired` (y retirar `invitation_password_invalid`).
 - [ ] `packages/core/src/invitations/api.ts`: schemas de preview/create/redeem/renew; el email
-      existente se permite; `account_exists` en la respuesta de creación; `role` en redeem.
+      existente se permite; `account_exists` en la respuesta de creación; `role` en redeem; el
+      `password` es opcional para una cuenta existente con sesión.
 - [ ] `packages/core/src/email/{types,catalog,invitation}.ts`: `accountExists` y `role`; variantes
       de copy en 9 idiomas; asunto con `instance.name`; nota «tu contraseña no cambia».
 - [ ] `apps/admin/src/lib/email/invitation-mailer.ts`: pasa `accountExists` y `role`; el route de
@@ -222,8 +235,9 @@ de producto.
 ### 04.4 Tests
 
 - [ ] Core: preview (5 estados), create (guardrails de rol, email existente, duración), redeem
-      (nueva/existente, contraseña mala, rol conservado, nombre ignorado), renew (caducada/usada,
-      TTL, cooldown).
+      (nueva anónima; existente con sesión del mismo usuario; sin sesión/otro usuario → 409
+      `existing_account_signin_required`; rol conservado; nombre ignorado; la contraseña existente
+      no llega al Core), renew (caducada/usada, TTL, cooldown).
 - [ ] `packages/db-tests/src/invitations/*`: migración, rol, canje, RLS existente.
 - [ ] `packages/core/src/openapi/generate.test.ts`: rutas y schemas nuevos.
 
@@ -286,19 +300,30 @@ de producto.
 - [ ] `apps/android/.../ui/AppState.kt`: `NeedsInvite(link)` mantiene el link; `InviteState` añade
       `previewLoading`, `preview`, `pending`, `error`.
 - [ ] `AppViewModel.onInviteLink`: parsea, guarda `pendingLink`, carga el preview; si falla por red,
-      deja reintentar; si es inválida, estado sin formulario.
-- [ ] `acceptInvite`: sin `display_name`; canje → `signInWithPassword` → `me`/módulos/widgets;
-      si el login falla tras un 201, `NeedsLogin(invitation_accepted)` y **no** reintenta el canje.
+      deja reintentar; si es inválida, estado sin formulario. Si ya hay una sesión de **otra**
+      instancia, no se reutiliza: el enlace no cambia de instancia en silencio; la sesión del canje
+      se crea contra la instancia del enlace y la anterior se cierra/limpia si se cambia.
+- [ ] `acceptInvite` debe crear el cliente Supabase de la instancia del enlace **antes** de firmar
+      una cuenta existente; para una cuenta nueva, después del canje y antes del login.
+- [ ] `acceptInvite` (D21, sesión primero):
+      - **cuenta existente**: `signInWithPassword` primero; si falla, `InviteError.WRONG_PASSWORD`
+        y **no** se llama al canje; si funciona, `redeemInvitation` con el Bearer y sin contraseña,
+        luego `me`/módulos/widgets (sin segundo login);
+      - **cuenta nueva**: canje con email+contraseña → `signInWithPassword` → `me`; si el login
+        falla tras un 201, `NeedsLogin(invitation_accepted)` y **no** reintenta el canje.
+      - sin `display_name`.
 - [ ] `InviteScreen`: wordmark + instancia; datos bloqueados como **ficha** (email, nombre,
       instancia, invitador, caducidad, rol), no inputs deshabilitados; contraseña + confirmación
       (nueva) o solo contraseña (existente) con «¿Olvidaste tu contraseña?»; errores mapeados de
-      §8.1 (incluido `invitation_password_invalid`); el idioma sale del `locale` del preview.
+      §8.1 (contraseña incorrecta de Supabase Auth, `existing_account_signin_required`, caducada,
+      usada, rate limit); el idioma sale del `locale` del preview.
 - [ ] `LoginScreen`: aviso `invitation_accepted` y `revoked`.
 
 ### 06.3 Tests
 
-- [ ] Unitarios: DTO/estado, `acceptInvite` nueva/existente, 201+login fallido, red, preview
-      caducada/usada, `display_name` no enviado.
+- [ ] Unitarios: DTO/estado; `acceptInvite` nueva (canje→login) y existente (login→canje, sin
+      segundo login); contraseña incorrecta no canjea; 201+login fallido; red; preview
+      caducada/usada; `display_name` no enviado.
 - [ ] `./gradlew :app:testDebugUnitTest :app:assembleDebug`.
 
 ### 06.4 Aceptación
@@ -338,11 +363,18 @@ de producto.
       caducidad, rol), no inputs deshabilitados; contraseña + confirmación (nueva) o contraseña
       actual (existente) con «¿Olvidaste tu contraseña?»; errores inline accionables (U8);
       `submitOnce`.
-- [ ] `lib/invite-submit.ts`: envía `{ token, email, password }`; éxito → si A1, llama a
-      `signInAfterRedeem`; si no, `/login?notice=invitation-redeemed`.
-- [ ] `apps/admin/src/app/invite/[token]/actions.ts` (si A1): `signInAfterRedeem` valida zod,
-      comprueba que la invitación del token está `used` con ese email, `signInWithPassword` con el
-      SSR, devuelve `{ role }`.
+- [ ] `lib/invite-submit.ts`: llama a la server action `submitInvitation` con `{ token, email,
+      password }`; éxito → `/panel` si el rol es de panel, `/welcome` para `user` (A1 aprobado,
+      D2). La web **no** usa el endpoint público (la app sí).
+- [ ] `apps/admin/src/app/invite/[token]/actions.ts` (`submitInvitation`): valida zod y origen,
+      re-resuelve el preview en el servidor y:
+      - cuenta existente: `signInWithPassword` con el SSR; si falla, error inline y **no** canjea;
+        si funciona, `redeemInvitation` con la sesión y sin contraseña;
+      - cuenta nueva: `redeemInvitation` con el password y, si 201, `signInWithPassword`;
+      - rate limit `redeem-action:<ip>` (30/min), porque no pasa por el door público;
+      - devuelve `{ role }` o el fallo; `user` → `signOut({ scope: "local" })` + `/welcome`.
+- [ ] Compartir `invitationsDeps()` (sin door) entre las rutas y la action; la action llama al
+      Core directamente, no al endpoint público.
 - [ ] `apps/admin/src/app/welcome/page.tsx`: pública, «cuenta creada», descarga de la app, enlace
       a login y explicación de que el panel es solo para administradores; `noindex`; aviso
       `signin_failed`.
@@ -355,7 +387,8 @@ de producto.
 - [ ] Tests de página: preview pending/expired/used/inválida; wizard Android/iPhone/escritorio;
       formulario bloqueado; nueva vs existente; QR presente en escritorio; sin bucle (el clic no
       navega solo).
-- [ ] Tests de la action: panel → `/panel`; `user` → `/welcome`; token no usado → error; login
+- [ ] Tests de la action: cuenta existente firma antes y no canjea con contraseña mala; cuenta
+      nueva canjea y firma; panel → `/panel`; `user` → `/welcome`; token no usado → error; login
       fallido → aviso.
 - [ ] `pnpm --filter admin build`.
 
@@ -543,7 +576,8 @@ de producto.
 - [ ] Pegar la evidencia de la checklist de `docs/flows/pre-delivery-verification.md`: suites,
       build, rutas, endpoints, APK instalado, navegador con `lerd diag browser_toggle` + `request
       lenses`.
-- [ ] Sesión: reinicio, avión, actualización, logout web/móvil, desactivación, borrado, revocación.
+- [ ] Sesión: reinicio, avión, actualización, app sin usar mucho tiempo (refresh token), logout
+      web/móvil, desactivación, borrado, revocación; P10 confirmado en Supabase.
 - [ ] Recuperación con email real; QR con dos dispositivos; App Links.
 - [ ] `assetlinks.json` y `/download/android` verificados.
 

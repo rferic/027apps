@@ -24,13 +24,17 @@ auto-login tras el canje, con estados idénticos a la web.
 - Dentro:
   - DTO de preview y `ApiClient.invitationPreview(token)`.
   - `AppViewModel`: carga el preview al abrir el enlace; estados de carga/red/caducada/usada/
-    inválida; `acceptInvite` sin `display_name`; canje → login → shell; 201 + login fallido →
-    `NeedsLogin(invitation_accepted)`, sin reintentar el canje.
+    inválida; `acceptInvite` sin `display_name` y **sesión primero** (D21): cuenta existente firma
+    con `signInWithPassword` antes de canjear y una contraseña mala **no** llama al canje; cuenta
+    nueva canjea → login → shell; 201 + login fallido → `NeedsLogin(invitation_accepted)`, sin
+    reintentar el canje. El cliente Supabase de la instancia del enlace se crea antes de firmar (o
+    antes del login en una cuenta nueva); una sesión de **otra** instancia no se reutiliza ni se
+    cambia de instancia en silencio.
   - `InviteScreen`: wordmark + instancia; datos bloqueados como **ficha** (email, nombre,
     instancia, invitador, caducidad y rol), no inputs deshabilitados; contraseña + confirmación
     (nueva) o solo contraseña (existente) con «¿Olvidaste tu contraseña?»; el idioma sale del
-    `locale` del preview; errores accionables (`invitation_password_invalid`, caducada, usada,
-    rate limit).
+    `locale` del preview; errores accionables (contraseña incorrecta de Supabase Auth,
+    `existing_account_signin_required`, caducada, usada, rate limit).
   - `LoginScreen`: avisos `invitation_accepted` y `revoked`.
   - Strings en los 9 idiomas.
 - Fuera: el wizard web (07); el QR (10); el reset in-app (08 enlaza a la web); el nombre editable.
@@ -47,7 +51,8 @@ existente aplique la validación de 12 caracteres (solo para cuentas nuevas).
 - En dispositivo real, el enlace abre la app y el formulario aparece precargado y bloqueado; solo
   se editan contraseña y confirmación.
 - Cuenta nueva: crear + auto-login + shell.
-- Cuenta existente: pide la contraseña actual; una mala no consume; una buena entra.
+- Cuenta existente: pide la contraseña actual; una mala **no llama al canje** y la invitación sigue
+  pendiente; una buena firma y canjea con la sesión, sin segundo login.
 - Caducada/usada/inválida: sin formulario, con el texto correcto.
 - Fallo de red tras el canje: aviso y login, sin segundo canje.
 - `./gradlew :app:testDebugUnitTest :app:assembleDebug` en verde.

@@ -28,11 +28,14 @@ cuenta (A7). Incluye la variante de email y la migración de datos.
   - `createInvitation` con `role` (solo sesión `super_admin` o clave de servicio con
     `roleCap: "super_admin"`; una clave delegada nunca), `expires_in_days`, email existente
     permitido y `account_exists` en la respuesta.
-  - `redeemInvitation` con `verifyPassword` para cuentas existentes, nombre de la invitación
-    (ignora `display_name`), rol solo en perfiles nuevos y rol/nombre/contraseña conservados en
-    existentes.
+  - `redeemInvitation` con **sesión del mismo usuario** para cuentas existentes (D21, sesión
+    primero): no verifica contraseñas en el Core; sin sesión u otro usuario →
+    `409 existing_account_signin_required`. Nombre de la invitación (ignora `display_name`), rol
+    solo en perfiles nuevos y rol/nombre/contraseña conservados en existentes. La ruta usa el
+    resolvedor de auth real, no `anon` fijo.
   - `renewInvitation` y su ruta (el panel se cablea en la 09).
-  - `InvitationsAuth.verifyPassword`; adaptador Supabase anon sin persistencia + signOut local.
+  - `InvitationsAuth` se queda con `findUserByEmail`, `createUser` y `deleteUser`; **no** hay
+    `verifyPassword` ni cliente anon de verificación.
   - Email: variantes cuenta nueva/existente y rol admin, en 9 idiomas; asunto con `instance.name`.
   - Panel: selector de rol visible solo a `super_admin`; rol y `account_exists` visibles.
   - OpenAPI y tests.
@@ -41,9 +44,11 @@ cuenta (A7). Incluye la variante de email y la migración de datos.
 **Dependencias**: tarea 01. La 06 y la 07 dependen de esta.
 
 **Riesgos**: que el guardrail de rol se quede solo en la UI (debe estar en el servicio y probarse
-con sesión, service y delegated); que `verifyPassword` cree una sesión de Supabase que quede viva
-(se cierra con `signOut({ scope: "local" })`); que el backfill de `expires_in_days` redondee mal
-(usar `ceil` y probar filas reales); que el email de cuenta existente confunda (copy explícito).
+con sesión, service y delegada; la delegada siempre denegada); que el canje de una cuenta existente
+se haga sin sesión o con otro usuario (debe ser `409 existing_account_signin_required`, sin
+consumir); que el backfill de
+`expires_in_days` redondee mal (usar `ceil` y probar filas reales); que el email de cuenta
+existente confunda (copy explícito).
 
 **Criterios de aceptación**
 - `GET /invitations/{token}/preview` devuelve el contrato de §6.2 sin id, hash, módulos ni rol
@@ -51,8 +56,10 @@ con sesión, service y delegated); que `verifyPassword` cree una sesión de Supa
 - Un `admin` no puede crear `admin` (403); un `super_admin` sí; `super_admin` como rol → 400; una
   clave de servicio con `roleCap` distinto tampoco.
 - Invitar a un email existente devuelve 201 con `account_exists: true` y envía la variante.
-- Canjear una cuenta existente con contraseña mala no consume la invitación; con buena, conserva
-  contraseña, nombre y rol.
+- Canjear una cuenta existente sin sesión o con otro usuario devuelve `409
+  existing_account_signin_required` y no consume; con la sesión del mismo usuario, conserva
+  contraseña, nombre y rol. La contraseña incorrecta la devuelve Supabase Auth al firmar, antes de
+  llamar al canje.
 - Una cuenta nueva nace con el rol de la invitación; `display_name` no cambia el nombre.
 - `renewInvitation` solo actúa sobre caducadas, rota el token, reusa la duración y respeta el
   cooldown.

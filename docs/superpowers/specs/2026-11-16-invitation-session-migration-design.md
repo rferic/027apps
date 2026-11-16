@@ -1,6 +1,6 @@
 # Spec — Aceptación de invitaciones, sesión duradera y migración de teléfono
 
-**Fecha:** 2026-11-16 · **Estado:** Pendiente de aprobación del propietario
+**Fecha:** 2026-11-16 · **Estado:** Aprobada por el propietario (2026-11-16); D21 resuelto
 **Sprint:** 16 · **Rama:** `sprint/16-invitation-session-and-migration`
 **Base:** [diseño 027Apps](2026-10-24-027apps-design.md) · [auth](2026-10-25-auth.md) ·
 [API v1](2026-10-25-api-v1.md) · [canje web](2026-11-07-invitation-redemption-design.md) ·
@@ -46,7 +46,7 @@ el plan estén aprobados** y los mockups de la tarea 02 estén aceptados.
 - **A5**: paridad web/app: nombre bloqueado, confirmación de contraseña, mismos estados.
 - **A6**: rol en la invitación (`user`/`admin`) con guardrails; nunca `super_admin`.
 - **A7**: flujo para un email que ya tiene cuenta (contraseña existente, sin cambiar la contraseña).
-- **A1 (propuesto)**: auto-login web tras canjear para roles de panel; página de bienvenida para
+- **A1 (aprobado)**: auto-login web tras canjear para roles de panel; página de bienvenida para
   `user`.
 - i18n de todo lo nuevo en los 9 idiomas, OpenAPI al día, pruebas y auditoría de seguridad.
 
@@ -105,11 +105,13 @@ re-descubre, solo los usa.
 | C10 | A3: renovar desde ahora con la duración original (7 días por defecto), rotando token y reenviando email. |
 | C11 | A4: nombre de instancia en email, web y app; sin logo configurable; wordmark/icono + nombre. |
 | C12 | A1 se mantiene solo si el propietario lo aprueba en esta spec (D2). |
+| C13 | D21: la verificación de una cuenta existente es **sesión primero** (app/web firman antes de canjear; el Core no verifica contraseñas). Aprobado 2026-11-16. |
 
-### 4.2 Propuestas que requieren confirmación
+### 4.2 Propuestas aprobadas (2026-11-16)
 
-Cada fila es una propuesta, no una decisión tomada. La aprobación de la spec equivale a aceptar la
-columna «Propuesta» salvo que el propietario diga otra cosa.
+D1–D20 quedaron aprobadas por el propietario el 2026-11-16; se mantiene la columna «Propuesta»
+como registro de lo aprobado. D21 (verificación de la contraseña existente) se resolvió como
+**sesión primero** y está en §4.1 C13.
 
 | # | Decisión | Opciones | Propuesta |
 |---|---|---|---|
@@ -299,12 +301,17 @@ Body:
 { "email": "ana@example.com", "password": "…" }
 ```
 
+- `password` solo se usa para una **cuenta nueva**. Para una **cuenta existente** el cliente firma
+  primero con Supabase Auth y llama al canje con el `Authorization: Bearer` de la sesión; el
+  `password` no se envía al endpoint ni se verifica en el Core (D21, aprobado 2026-11-16).
 - `display_name` queda **ignorado** y obsoleto: el nombre sale siempre de la invitación (A5). Se
   mantiene en el esquema por compatibilidad, pero el servicio no lo usa.
 - Cuenta nueva: `password` 12–200; se crea el perfil con `role` de la invitación y el nombre de la
-  invitación.
-- Cuenta existente: `password` 1–200 y **se verifica contra Supabase Auth** antes de consumir la
-  invitación. Si no coincide: `409 invitation_password_invalid`; la invitación no se marca usada.
+  invitación. El llamante puede ser anónimo.
+- Cuenta existente: el Core exige `caller.kind === "session"` y que `caller.userId` sea el id de la
+  cuenta de la invitación. Sin sesión, con otro usuario o con un email distinto:
+  `409 existing_account_signin_required`; la invitación **no** se marca usada. La app y la web
+  firman antes de llamar, así que este error solo lo ve un cliente que no lo hizo.
 - Cuenta existente: se conserva su contraseña, su nombre y su rol; solo se materializan categoría y
   módulos.
 - Cuenta desactivada: `409 conflict` (no se canjea).
@@ -313,6 +320,8 @@ Body:
 - Sigue siendo single-use con `for update` y sigue borrando el usuario de Auth creado si la
   transacción falla.
 - El email debe coincidir con el de la invitación (`validation_failed`), como hoy.
+- La ruta usa el resolvedor de auth real (no `anon` fijo), para poder recibir la sesión; un
+  llamante anónimo sigue pudiendo canjear una cuenta nueva.
 
 ### 6.5 Renovar una invitación caducada (A3)
 
@@ -378,8 +387,11 @@ token.
 
 | Código | HTTP | Cuándo |
 |---|---|---|
-| `invitation_password_invalid` | 409 | Cuenta existente y la contraseña no verifica. |
+| `existing_account_signin_required` | 409 | Cuenta existente y el llamante no trae una sesión de ese usuario. |
 | `invitation_not_expired` | 409 | `renew` sobre una invitación aún vigente. |
+
+La contraseña incorrecta de una cuenta existente la devuelve **Supabase Auth** al firmar (la app
+mapea `invalid_credentials`); el Core no la ve ni la verifica.
 
 No se añaden códigos para el QR: un token inválido, usado o caducado es `not_found` y la UI dice
 «caducado o ya usado, genera otro».
@@ -406,10 +418,20 @@ No se añaden códigos para el QR: un token inválido, usado o caducado es `not_
      invitación);
    - contraseña + confirmación (cuenta nueva) o solo contraseña existente (cuenta existente);
    - estado de la invitación si está caducada, usada o inválida, sin formulario.
-4. Al enviar: `POST /invitations/{token}/redeem`; si 201, la app hace
-   `signInWithPassword(email, password)` y entra al shell. Si el canje fue bien y el login falla,
-   muestra «cuenta creada, inicia sesión» y lleva al login; **no** reintenta el canje (la
-   invitación ya está usada).
+4. Al enviar:
+   - **Cuenta nueva**: `POST /invitations/{token}/redeem` con email + contraseña; si 201, la app
+     hace `signInWithPassword` y entra al shell. Si el canje fue bien y el login falla, muestra
+     «cuenta creada, inicia sesión» y lleva al login; **no** reintenta el canje (la invitación ya
+     está usada). La app crea el cliente Supabase de la instancia del enlace antes de firmar (o
+     después del canje, antes del login); si ya había una sesión de **otra** instancia, no la
+     reutiliza: el enlace no cambia de instancia en silencio y la sesión anterior se cierra/limpia
+     al cambiar.
+   - **Cuenta existente**: la app hace `signInWithPassword` primero (IP del usuario). Si falla,
+     error inline y **no** se canjea; la invitación sigue pendiente. Si funciona, llama a
+     `POST /invitations/{token}/redeem` con el Bearer y sin contraseña; el Core comprueba que la
+     sesión es de esa cuenta y materializa categoría/módulos. No hay un segundo login.
+   - Un cliente que intente canjear una cuenta existente sin sesión recibe
+     `409 existing_account_signin_required`; firma y reintenta.
 5. La app recuerda la instancia del enlace y registra el push como hoy.
 6. El token no se pinta, no se guarda y no se registra.
 
@@ -442,8 +464,9 @@ preview en el servidor (mismo servicio que el endpoint) y renderiza según el es
   bloqueados se presentan como ficha (label + valor), no como inputs deshabilitados; solo las
   contraseñas son inputs (U4). Para cuenta existente pide la contraseña actual, no muestra
   confirmación y ofrece «¿Olvidaste tu contraseña?» junto al campo (U2).
-- El submit usa el endpoint público de canje (mismo rate limit y CSRF que hoy) y, si A1 está
-  aprobado, llama a la server action `signInAfterRedeem` (7.4).
+- El submit usa la server action `submitInvitation` (7.4), que re-resuelve el preview y firma
+  primero si la cuenta existe. La app usa el endpoint público de canje y firma primero con Supabase
+  si la cuenta existe; el endpoint conserva su rate limit y CSRF.
 
 ### 7.3 Cuenta existente (A7)
 
@@ -451,31 +474,40 @@ preview en el servidor (mismo servicio que el endpoint) y renderiza según el es
 - El formulario cambia a «Contraseña actual»; sin confirmación; `autocomplete="current-password"` y
   un enlace «¿Olvidaste tu contraseña?» que abre `/forgot-password` (en la app, la web de la
   instancia). Tras el reset se vuelve al enlace de invitación, que sigue pendiente (U2).
-- El Core verifica la contraseña existente contra Supabase Auth antes de consumir la invitación. Si
-  falla, error inline y la invitación sigue pendiente. **D21 (revisión pre-implementación,
-  [`pre-implementation-review.md`](../../tasks/sprint-16-invitation-session-and-migration/pre-implementation-review.md)):
-  la alternativa recomendada es firmar primero y canjear con la sesión, sin verificar contraseñas
-  en el servidor; si se aprueba, este punto cambia.**
+- **D21 resuelto (sesión primero, aprobado 2026-11-16):** la app y la web firman con Supabase Auth
+  antes de canjear; el Core exige una sesión del mismo usuario y **no verifica contraseñas**. Si la
+  contraseña es incorrecta, el error lo devuelve Supabase Auth al firmar, se muestra inline y la
+  invitación sigue pendiente. Esto elimina el oráculo de contraseñas del token de invitación y no
+  hace que todos los intentos salgan de la IP del servidor.
 - La cuenta conserva contraseña, nombre y rol; se añaden categoría/módulos de la invitación.
 - El email de invitación usa la variante «ya tienes cuenta» (D16): CTA «Entra y acepta», nota
   «tu contraseña no cambia».
 - El panel puede invitar a un email existente; la respuesta 201 incluye `account_exists` y el panel
   lo explica.
 
-### 7.4 A1 — Auto-login web (propuesto)
+### 7.4 A1 — Auto-login web (aprobado: roles de panel)
 
 - Solo para el rol efectivo `admin`/`super_admin` (D2).
-- La server action `signInAfterRedeem({ token, email, password })`:
+- La server action `submitInvitation({ token, email, password })` re-resuelve el preview en el
+  servidor (no confía en `account_exists` del cliente) y:
   1. valida zod y origen (Next server action);
-  2. comprueba que la invitación del token está `used` y que su email coincide (no es un login
-     genérico);
-  3. `signInWithPassword` con el cliente SSR (cookies HttpOnly);
-  4. devuelve `{ role }`; el cliente va a `/panel`.
-- Para `user`: la action no inicia sesión; el cliente va a `/welcome`, una página pública con
-  «Cuenta creada» + descarga de la app + enlace a login.
-- Si el login posterior falla: `/welcome?notice=signin_failed`; el canje no se repite.
-- Si A1 se rechaza: el flujo actual (`/login?notice=invitation-redeemed`) se mantiene y
-  `/welcome` no se usa.
+  2. **cuenta existente**: `signInWithPassword` con el cliente SSR (cookies HttpOnly); si falla,
+     error inline y **no** llama al canje; si funciona, llama al Core `redeemInvitation` con la
+     sesión y sin contraseña;
+  3. **cuenta nueva**: llama al Core `redeemInvitation` con el password y, si 201,
+     `signInWithPassword`;
+  4. según el rol efectivo: `admin`/`super_admin` → `/panel`; `user` → `signOut({ scope: "local" })`
+     y `/welcome` (no se deja una cookie de panel a quien no tiene panel).
+- La action aplica un rate limit `redeem-action:<ip>` (30/min) porque no pasa por el door público;
+  el Core no rate-limita.
+- Para `user`: `/welcome` es una página pública con «Cuenta creada» + descarga de la app + enlace a
+  login.
+- Si el login posterior falla en una cuenta nueva: `/welcome?notice=signin_failed`; el canje no se
+  repite.
+- A1 está aprobado (D2). Si el propietario cambiara de opinión, la action no iniciaría sesión para
+  `user` y el flujo volvería a `/login?notice=invitation-redeemed`; `/welcome` no se usaría.
+- La API pública `POST /invitations/{token}/redeem` sigue siendo el camino de la app y terceros; la
+  web usa esta action.
 
 ### 7.5 Renovación (A3)
 
@@ -567,6 +599,23 @@ No se usan las plantillas de email de Supabase (una sola plantilla, un solo idio
 
 #### App
 
+- **Modelo de sesión:** la app usa la sesión de Supabase Auth, compuesta por un **access token** de
+  15 min y un **refresh token** de larga duración. La app guarda la sesión completa cifrada con el
+  Keystore y **nunca guarda la contraseña**. Para renovar, envía el refresh token a Supabase Auth
+  por HTTPS y recibe un access token nuevo y un refresh token **rotado**; el refresh token es la
+  credencial durable que permite seguir entrando sin volver a pedir la contraseña. La rotación está
+  activada (`refresh_token_rotation=true`, reutilización 10 s en `supabase/config.toml`);
+  `EncryptedSessionManager` persiste el token nuevo en cada refresco.
+- El access token caduca a los 15 min, pero **eso no cierra la sesión**: solo obliga a renovar. No
+  se cierra por inactividad, reinicio, actualización ni modo avión; el refresh token vive en el
+  Keystore y el `boot()` lo usa al volver. Se cierra por logout local, por expulsión
+  (desactivación/borrado/revocación) o si el refresh token deja de ser válido (revocado o política
+  de Supabase).
+- **P10 (política de Supabase):** confirmar en el proyecto cloud (no solo en
+  `supabase/config.toml`) que **«Time-box user sessions»** e **«Inactivity timeout»** están
+  desactivados, o el valor que el propietario quiera. Si están activos, la sesión termina por
+  política aunque el código haga todo bien; el `config.toml` local fija `jwt_expiry = 900`,
+  rotación y reutilización 10 s, y no fija una caducidad absoluta.
 - `ApiClient` distingue tres resultados de refresh: `Refreshed`, `NoSession` (refresh inválido o
   revocado) y `Network` (IO/timeout/5xx). En 401:
   - `Refreshed` → reintenta una vez;
@@ -586,8 +635,9 @@ No se usan las plantillas de email de Supabase (una sola plantilla, un solo idio
   dispositivos.
 - Un logout en la web (local) no toca la sesión del móvil; un logout en el móvil no toca la web ni
   los demás móviles.
-- La única pérdida documentada de sesión es perder la clave del Keystore (reinstalar/restaurar) o
-  una expulsión.
+- Las únicas pérdidas documentadas de sesión son perder la clave del Keystore
+  (reinstalar/restaurar), una expulsión, una política de caducidad de Supabase activa (P10) o una
+  interrupción justo durante la rotación del refresh token (ventana de 10 s; riesgo residual raro).
 
 ## 8. Estados
 
@@ -689,8 +739,9 @@ recuperación; sin sesión, la propia página redirige a `/forgot-password`.
 ### 9.4 CSRF y redirects
 
 - Las mutaciones de `/api/v1` siguen pasando por `isSameOriginMutation`.
-- Las server actions de Next validan origen; además, `signInAfterRedeem` exige que la invitación
-  esté usada por ese email y `resetPassword` exige sesión de recuperación.
+- Las server actions de Next validan origen; además, `submitInvitation` re-resuelve el preview y
+  exige la sesión de la cuenta existente (o crea la nueva con el password) y `resetPassword` exige
+  sesión de recuperación. No es un login genérico.
 - `/logout` solo acepta navegación de mismo origen (`Sec-Fetch-Site: same-origin`/`none`).
 - `next` en `/auth/confirm` es exactamente `/reset-password`; cualquier otro valor se ignora.
 - No se acepta `redirect_to` ni `returnTo` del usuario en ningún flujo.
@@ -722,9 +773,9 @@ recuperación; sin sesión, la propia página redirige a `/forgot-password`.
   deshabilitados; si se pueden copiar, con botón. Solo las contraseñas son inputs. Errores con
   `aria-describedby`/`aria-invalid`; foco visible; botones ≥ 44 px en web y 48 dp en app; contraste
   AA en claro y oscuro; el QR tiene texto alternativo y la cuenta atrás no depende solo del color.
-- **Errores accionables (U8)**: «Esa no es la contraseña de esta cuenta» (`invitation_password_invalid`),
-  «Caducó; pide una nueva a {invitador}», «Ya se aceptó; inicia sesión», «Demasiados intentos;
-  espera un minuto». Nada de un genérico que deje al usuario sin salida.
+- **Errores accionables (U8)**: «Esa no es la contraseña de esta cuenta» (error de Supabase Auth al
+  firmar), «Caducó; pide una nueva a {invitador}», «Ya se aceptó; inicia sesión», «Demasiados
+  intentos; espera un minuto». Nada de un genérico que deje al usuario sin salida.
 - **Fechas**: caducidad con el locale y la zona de la instancia (`timezone` del preview), no con la
   del navegador por defecto (ADR 0008).
 
@@ -736,13 +787,16 @@ recuperación; sin sesión, la propia página redirige a `/forgot-password`.
   revoca a otro fuerza `all`; el dueño puede `local`.
 - `previewInvitation`: pending nueva/existente, expired, used, revocada/desconocida, token mal
   formado, settings ausentes, `role_applies`.
-- `createInvitation`: rol `user` por defecto; `admin` solo super_admin (sesión, service y
-  delegated); `admin` que intenta `admin` → `insufficient_scope`; `super_admin` → 400; email
-  existente permitido; pendiente duplicada; `expires_in_days` guardado; `account_exists` en la
-  respuesta y en el mailer.
-- `redeemInvitation`: cuenta nueva con rol; cuenta existente con contraseña válida/incorrecta;
-  rol/nombre/contraseña conservados; `display_name` ignorado; desactivada; single-use; borrado del
-  usuario de Auth si falla la transacción.
+- `createInvitation`: rol `user` por defecto; `admin` solo con sesión `super_admin` o clave de
+  servicio con `roleCap: "super_admin"`; una clave delegada **nunca**; `admin` que intenta `admin`
+  → `insufficient_scope`; `super_admin` → 400; email existente permitido; pendiente duplicada;
+  `expires_in_days` guardado; `account_exists` en la respuesta y en el mailer.
+- `redeemInvitation`: cuenta nueva anónima con contraseña y rol; cuenta existente **con sesión del
+  mismo usuario**; sin sesión, con otro usuario o con email distinto →
+  `existing_account_signin_required` y la invitación no se consume; rol/nombre/contraseña
+  conservados; `display_name` ignorado; desactivada; single-use; borrado del usuario de Auth si
+  falla la transacción. La contraseña de una cuenta existente nunca llega al Core ni se verifica
+  allí.
 - `renewInvitation`: solo caducada; usada/revocada; TTL original; rotación; cooldown.
 - `device-transfers`: crear, TTL, hash, estado, exchange válido/caducado/usado/perfil inactivo,
   `revoke-others`, aislamiento por usuario.
@@ -764,8 +818,9 @@ recuperación; sin sesión, la propia página redirige a `/forgot-password`.
 
 - Página `/invite/[token]`: preview pending/expired/used/inválida; wizard Android/iPhone/escritorio;
   formulario con campos bloqueados; cuenta nueva vs existente; confirmación solo en nueva.
-- `submitInvite` + `signInAfterRedeem` (mock): panel → `/panel`; `user` → `/welcome`; fallo de
-  login → aviso; A1 apagado → login actual.
+- `submitInvitation` (mock): cuenta existente firma antes y no canjea si la contraseña falla;
+  cuenta nueva canjea y firma después; panel → `/panel`; `user` → `/welcome`; fallo de login →
+  aviso; A1 apagado → login actual.
 - `/forgot-password`, `/auth/confirm` (mock `verifyOtp`), `/reset-password` (mock `updateUser` y
   `signOut`), `next` no permitido.
 - `/logout` mismo origen; `/panel` con perfil inactivo va a `/logout`; `entryGate` no hace bucle.
@@ -783,8 +838,9 @@ recuperación; sin sesión, la propia página redirige a `/forgot-password`.
   `Network` lanza red sin borrar.
 - `AppViewModel.boot`: sin sesión; sesión válida; 401; red (conserva); 5xx (conserva); perfil
   desactivado.
-- `acceptInvite`: precarga, nombre bloqueado, confirmación, cuenta existente, fallo posterior al
-  canje, sin reintento de canje.
+- `acceptInvite`: precarga, nombre bloqueado, confirmación; cuenta existente **firma primero**,
+  contraseña incorrecta no canjea, sesión correcta canjea sin segundo login; cuenta nueva canjea y
+  firma; fallo posterior al canje, sin reintento de canje.
 - `signOut` y `changeInstance` con `LOCAL`; el `FcmRegistrar.revoke()` usa `sessions=local`;
   migración con `OTHERS`.
 - `QrPayload`: URL y esquema; `FcmRegistrar.deviceId`.
@@ -797,8 +853,10 @@ recuperación; sin sesión, la propia página redirige a `/forgot-password`.
 - `pnpm --filter db-tests test` sobre Supabase local limpio.
 - Android: instalar la release firmada en un dispositivo real; `pm get-app-links`; abrir el enlace
   del email; formulario precargado; cuenta creada; sesión iniciada.
-- Sesión: reinicio, modo avión, actualización, logout web (móvil sigue), logout móvil (web sigue),
-  desactivación, borrado, revocación.
+- Sesión: reinicio, modo avión, actualización, app sin usar mucho tiempo (el refresh token sigue
+  renovando), logout web (móvil sigue), logout móvil (web sigue), desactivación, borrado,
+  revocación. Confirmar P10 (sin time-box ni inactivity timeout en Supabase) antes de afirmar que
+  la sesión no caduca sola.
 - Recuperación: email real, enlace, nueva contraseña, login; sin enumeración.
 - QR: dos dispositivos reales; el nuevo entra; el viejo queda fuera; el código caduca y no se
   reutiliza; el dispositivo viejo deja de recibir push.
@@ -829,15 +887,16 @@ tarea/PR. Un fallo encontrado se convierte en test de regresión o comprobación
 
 | # | Puerta | Quién | Cuándo |
 |---|---|---|---|
-| P1 | Aprobar alcance (hecho) y esta spec + el plan | Propietario | Antes de mockups |
+| P1 | Aprobar alcance (hecho) y esta spec + el plan | Propietario | Hecho 2026-11-16 |
 | P2 | Aprobar mockups de app, wizard, QR y reset | Propietario | Antes de UI (tarea 02) |
 | P3 | Poner `ANDROID_APP_SHA256` en Vercel Production (y Preview si se prueba) y redesplegar | Propietario | Antes de la verificación de App Links |
 | P4 | Facilitar un Android real para App Links y dos para el QR | Propietario | Antes de tareas 05/10 |
 | P5 | Confirmar la variante de recuperación (D3) y `RESEND_API_KEY`/`EMAIL_FROM` en producción | Propietario | Antes de la tarea 08 |
-| P6 | Confirmar D1–D20 (A1, login, rol existente, escáner, etc.) | Propietario | Con esta spec |
+| P6 | Confirmar D1–D20 (A1, login, rol existente, escáner, etc.) | Propietario | Hecho 2026-11-16 |
 | P7 | Orden explícita de merge del sprint 16 y del 17 | Propietario | Al final |
 | P8 | Orden explícita de promoción `staging → main` | Propietario | Tras aceptar staging |
 | P9 | Leer el resumen de las auditorías finales de seguridad y UX | Propietario | Antes de `finalizada`/merge |
+| P10 | Confirmar en Supabase Auth que «Time-box user sessions» e «Inactivity timeout» están desactivados (o el valor que quiera) | Propietario | Antes de afirmar que la sesión no caduca sola (tarea 03) |
 
 **Entregables del sprint**: spec + plan + tareas (este PR), revisión pre-implementación, mockups,
 código y tests de las tareas 03–10, docs/flows, OpenAPI, evidencia de verificación y **auditorías
@@ -859,6 +918,7 @@ finales de seguridad (OWASP A01–A11) y de UX**, ambas por agentes distintos de
 | Una cuenta existente cambia de rol sin querer | Escalada o degradación | D6: el rol no cambia al canjear; el panel lo cambia explícitamente. |
 | La renovación invalida un enlace que alguien está usando | Fricción | Confirmación en el panel; el token nuevo se muestra una vez; la invitación usada no se renueva. |
 | El email de reset no llega | El usuario no puede recuperar | Resend ya configurado; fallo visible en logs; el UI dice «si existe, recibirás»; soporte puede reenviar. |
+| Supabase tiene «Time-box» o «Inactivity timeout» activos | La app pide login aunque el código esté bien | P10: confirmar y documentar; si el propietario quiere caducidad por política, se acepta como excepción. |
 | El sprint se alarga | Se descubre tarde | Tareas independientes, aceptación por tarea, gates P2–P5; el 17 no se pierde. |
 | La release firmada no está lista | No hay App Link ni QR real | P3/P4; el APK v0.18.1 ya sirve para App Links de invitación; el QR exige el APK del sprint. |
 

@@ -18,8 +18,8 @@ seguridad/UX que ya he incorporado al plan: la confirmación del enlace de reset
 respuesta de la recuperación, el QR que se autoregenera, el idioma de la invitación y la
 presentación de los campos bloqueados.
 
-**Recomendación:** aprobar S1 (sesión primero) y empezar por los mockups. Si se prefiere no tocar el
-contrato actual, la alternativa es un límite de 5 intentos por token; no dejaría el flujo tal cual.
+**Recomendación:** aprobar S1 (sesión primero) y empezar por los mockups. **Resuelto el
+2026-11-16: se implementa sesión primero.** La alternativa de 5 intentos por token queda descartada.
 
 ## Método
 
@@ -35,7 +35,7 @@ contrato actual, la alternativa es un límite de 5 intentos por token; no dejar�
 
 | ID | Severidad | Hallazgo | Recomendación | Estado |
 |---|---|---|---|---|
-| S1 | **Alta** | `verifyPassword` hace `signInWithPassword` con la anon key **desde el servidor** para verificar la contraseña de una cuenta existente. El token de invitación vive 7 días y no se consume con un intento fallido: un token filtrado es un oráculo de contraseñas (30/min por IP, muchas IPs posibles). Además, todos los intentos comparten la IP del servidor y el límite de Supabase por IP. | **Sesión primero**: la app inicia sesión con Supabase Auth (IP del usuario) y luego canjea con el Bearer; la web firma primero con el cliente SSR y canjea con la sesión. El Core comprueba que el `userId` de la sesión es el de la invitación; no verifica contraseñas. Alternativa: 5 intentos fallidos por token y bloqueo temporal. | **Decisión D21** |
+| S1 | **Alta** | `verifyPassword` hace `signInWithPassword` con la anon key **desde el servidor** para verificar la contraseña de una cuenta existente. El token de invitación vive 7 días y no se consume con un intento fallido: un token filtrado es un oráculo de contraseñas (30/min por IP, muchas IPs posibles). Además, todos los intentos comparten la IP del servidor y el límite de Supabase por IP. | **Sesión primero**: la app inicia sesión con Supabase Auth (IP del usuario) y luego canjea con el Bearer; la web firma primero con el cliente SSR y canjea con la sesión. El Core comprueba que el `userId` de la sesión es el de la invitación; no verifica contraseñas. Alternativa: 5 intentos fallidos por token y bloqueo temporal. | **Resuelto: sesión primero (2026-11-16)** |
 | S2 | **Media** | El enlace del email de reset apunta a un `GET /auth/confirm` que consume el `token_hash` al cargar. Los escáneres de enlaces de los clientes de correo (Outlook Safe Links, antivirus) prefetchean y pueden invalidar el enlace antes de que la persona lo abra. | Convertir `/auth/confirm` en una página con un botón «Continuar» que verifica en `POST` (server action). El `GET` solo pinta; el token no se consume hasta la acción. | **Aplicado a la spec/plan/tarea 08** |
 | S3 | **Media** | La recuperación responde distinto en tiempo si el email existe (genera enlace + Resend) o no (respuesta inmediata). Es una vía de enumeración por temporización aunque el cuerpo sea idéntico. | Suelo de respuesta común (≈700 ms) en ambos caminos, con un puerto de espera inyectable para el test, además de los límites por IP/email. | **Aplicado** |
 | S4 | **Baja/Media** | La revocación de un dispositivo borra `auth.sessions`, pero el access JWT sigue válido hasta 15 min. La desactivación y el borrado sí son inmediatos porque el door comprueba el perfil. | Documentar el límite; la migración fuerza refresco al arrancar y el viejo borra al ver `used`. Si se exige revocación inmediata de sesión, haría falta una época de sesión por usuario (fuera de alcance). | **Documentado en la spec §9.2/§11.5** |
@@ -43,8 +43,9 @@ contrato actual, la alternativa es un límite de 5 intentos por token; no dejar�
 | S6 | **Baja** | El QR como `<img src="data:image/png…">` puede chocar con la CSP (`img-src`); y un QR sobre fondo oscuro no se escanea. | SVG inline (o ruta same-origin), tarjeta blanca con quiet zone en claro y oscuro; no ampliar la CSP. | **Aplicado a 02/07/10** |
 | S7 | **Baja** | Forzar un refresco en cada arranque de la app cierra la ventana de 15 min del móvil viejo, pero añade una rotación de refresh token al inicio; un cierre a mitad podría perder la sesión (la excepción del Keystore). | Mantener el refresco al arrancar por la garantía de la migración y documentar la rotación como riesgo residual raro; el cliente ya guarda la sesión cifrada inmediatamente. | **Documentado; sin cambio** |
 | S8 | **Baja** | El logout del móvil también borraba todas las sesiones (`DELETE /devices/{id}` → `delete from auth.sessions`). | Ya corregido en la tarea 03 con `sessions=local` para el dueño y `all` para el panel. | **Aplicado** |
+| S9 | **Baja** | Si la app ya tiene sesión de **otra** instancia, el enlace de invitación podría reutilizarla o mezclar la sesión. | Crear el cliente Supabase de la instancia del enlace; no cambiar de instancia en silencio; cerrar/limpiar la anterior si se cambia. | **Aplicado a 06** |
 
-### S1 en detalle (la decisión que necesito)
+### S1 en detalle (decisión resuelta: sesión primero)
 
 La spec actual (§6.4) hace que el Core verifique la contraseña existente. Es lo más simple, pero
 convierte el token de invitación en un oráculo de contraseñas y hace que todos los intentos salgan
@@ -65,9 +66,31 @@ de la IP del servidor. La alternativa que recomiendo:
 
 **Coste:** una rama más en la app y en la action, y un cambio en el contrato de redeem. **Beneficio:**
 desaparece el oráculo, el canje de una cuenta existente no verifica contraseñas en el servidor y la
-app inicia sesión una sola vez (mejor UX). Si se rechaza, la alternativa mínima es un contador
-`invite-verify:<hash>` de 5 intentos/15 min y un `429` específico; no dejaría el flujo sin límite
-por token.
+app inicia sesión una sola vez (mejor UX). **Aprobado 2026-11-16.** La alternativa de 5 intentos por
+token no se implementa.
+
+### Modelo de sesión (aclaración)
+
+La intuición del propietario es correcta: la app obtiene una credencial durable y la usa para ir
+renovando el acceso, pero no es una «firma» propia, es la sesión de Supabase Auth:
+
+- **Access token**: dura 15 minutos y es lo que la app envía en cada llamada a `/api/v1`. Caducar no
+  cierra la sesión; solo obliga a renovar.
+- **Refresh token**: es la credencial durable. La app lo guarda **cifrado con el Keystore**
+  (`EncryptedSessionManager` + `EncryptedStringStore`), nunca en claro y nunca la contraseña. Lo
+  envía solo a Supabase Auth por HTTPS y recibe un access token nuevo y un refresh token **rotado**
+  (rotación activa, reutilización 10 s); guarda el nuevo.
+- **Duración**: mientras el refresh token siga siendo válido, la app entra sin pedir la contraseña
+  aunque pasen días o semanas sin usarla. No se cierra por reinicio, actualización, modo avión ni
+  error de red; si no hay red, conserva la sesión y reintenta.
+- **Fin**: logout local, expulsión (desactivación, borrado, revocación) o que el refresh token deje
+  de ser válido. **P10**: si el proyecto Supabase tiene «Time-box user sessions» o «Inactivity
+  timeout» activos, la sesión terminará por esa política aunque el código esté bien; hay que
+  confirmarlo en el dashboard (el `config.toml` local solo fija `jwt_expiry=900`, rotación y
+  reutilización 10 s).
+- **Excepciones**: perder la clave del Keystore (reinstalar/restaurar), una expulsión, una política
+  de Supabase activa o una interrupción justo durante la rotación (ventana de 10 s, riesgo residual
+  raro). La migración por QR existe para el caso de cambiar de teléfono sin perder la cuenta.
 
 ## UX
 
@@ -93,8 +116,11 @@ por token.
 - **Idioma**: la página de invitación y la app usan el `locale` del preview (U3).
 - **Formulario**: datos de la invitación como ficha, no inputs deshabilitados (U4); «¿Olvidaste tu
   contraseña?» para cuentas existentes (U2); copy de errores (U8).
-- **Sesión**: nota del límite de 15 min para revocación de dispositivo/sesión (S4); la app fuerza
-  refresco al arrancar y el viejo borra al ver `used` (S7); offline con «sesión segura» (U10).
+- **Sesión**: D21 sesión primero (S1) en §6.4, §7.1, §7.3, §7.4 y tareas 04/06/07; modelo de
+  refresh token durable explicado en §7.8; P10 (time-box/inactivity de Supabase) añadido a las
+  puertas; nota del límite de 15 min para revocación de dispositivo/sesión (S4); la app fuerza
+  refresco al arrancar y el viejo borra al ver `used` (S7); offline con «sesión segura» (U10);
+  la invitación no reutiliza una sesión de otra instancia (S9).
 - **Auditorías finales**: la tarea 11 añade una **auditoría de UX experta** además de la de
   seguridad; ambas por agentes distintos del implementador, con informe escrito. La spec §11.5 y
   §13, el plan y el README del sprint se actualizan.
@@ -107,16 +133,17 @@ por token.
 - La recuperación no revela si un email existe y no usa las plantillas de Supabase.
 - El logout del panel y el del móvil son locales; la expulsión desde el panel es global.
 - La renovación reutiliza la duración original y rota el token.
-- No hay código de producto hasta que esta revisión y los mockups estén aceptados.
+- No hay código de producto hasta que los mockups estén aceptados (P2).
 
-## Decisión que necesito
+## Decisión resuelta
 
-**D21 — verificación de la contraseña existente.**
+**D21 — verificación de la contraseña existente: sesión primero.** Aprobada el 2026-11-16.
 
-- **Recomendada:** sesión primero (app y web firman antes de canjear; el Core valida el `userId` de
-  la sesión). Elimina el oráculo y simplifica el Core.
-- **Alternativa:** mantener `verifyPassword` con 5 intentos fallidos por token y bloqueo temporal.
-- **No recomendada:** dejar el flujo actual sin límite por token.
+- La app y la web firman con Supabase Auth antes de canjear; el Core valida el `userId` de la sesión
+  y no verifica contraseñas.
+- Se retira `verifyPassword`; el canje de una cuenta existente sin sesión devuelve
+  `409 existing_account_signin_required` y no consume la invitación.
+- La alternativa de 5 intentos por token no se implementa.
 
-Si se aprueba la recomendada, actualizo §6.4, §7.1, §7.3, §7.4, las tareas 04/06/07 y el plan
-antes de tocar código. El resto de la revisión ya está incorporado.
+El resto de la revisión está incorporado a la spec, el plan y las tareas. La siguiente puerta es
+**P2 (mockups)**.

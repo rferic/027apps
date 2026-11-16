@@ -36,8 +36,11 @@ con QR en escritorio y auto-login para roles de panel.
     estados de §8.1 y copy accionable.
   - `/welcome` para `user`: «Cuenta creada», descarga, enlace a login y explicación de que el panel
     es solo para administradores.
-  - A1 (si se aprueba): server action `signInAfterRedeem` que exige que la invitación esté usada por
-    ese email y firma con el cliente SSR; `/welcome` para `user` (añadirla a `public-paths.ts`).
+  - A1 aprobado (D2): server action `submitInvitation` que re-resuelve el preview, **firma
+    primero** si la cuenta existe (y no canjea si la contraseña falla), canjea con la sesión; para
+    una cuenta nueva canjea y luego firma. No usa el endpoint público (la app sí) y aplica
+    `redeem-action:<ip>` 30/min. `user` → `signOut({ scope: "local" })` + `/welcome` (añadirla a
+    `public-paths.ts`).
   - i18n de todo; tests de página, wizard, formulario y action.
 - Fuera: la app (06); el reset (08); la migración (10); un formulario de canje sin el aviso.
 
@@ -52,6 +55,7 @@ redirija en bucle (solo tras clic); que A1 deje una cookie a un `user` sin panel
 - Android sin app: aviso, descarga, reintento y «continuar»; el formulario canjea.
 - iPhone/escritorio: aviso correcto; escritorio con QR; el canje web funciona.
 - Con A1: un admin acaba en `/panel`; un `user` en `/welcome`; sin A1, en `/login` con aviso.
+- Cuenta existente: firma antes; una contraseña mala no canjea; una buena canjea con la sesión.
 - Sin bucles: el botón de abrir en app no redirige solo; siempre hay salida.
 - Formulario bloqueado y confirmación solo en cuenta nueva.
 - `pnpm --filter admin build`, `pnpm i18n:check`, tests de web en verde.

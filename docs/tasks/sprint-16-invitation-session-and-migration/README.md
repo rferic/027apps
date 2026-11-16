@@ -2,11 +2,11 @@
 id: sprint-16-invitation-session-and-migration
 titulo: Invitación app-first, sesión duradera, recuperación y migración de teléfono
 area: producto
-estado: pendiente de aprobación
+estado: aprobado (2026-11-16)
 ---
 
-Sprint **propuesto** (2026-11-16). Toma el número 16 porque el anterior «panel y notificaciones»
-nunca llegó a `staging`: vivía en la rama `docs/sprint-16` sin aprobar. Ese plan se conserva
+Sprint **aprobado** por el propietario el 2026-11-16. Toma el número 16 porque el anterior «panel y
+notificaciones» nunca llegó a `staging`: vivía en la rama `docs/sprint-16` sin aprobar. Ese plan se conserva
 íntegro como **sprint 17** en [`../sprint-17-panel-y-notificaciones/README.md`](../sprint-17-panel-y-notificaciones/README.md)
 y su rama original no se borra ni se pisa.
 
@@ -74,9 +74,11 @@ A3–A7. El resto del orden se mantiene.
    advierte.
 6. **A2–A7**, además de A1 si el propietario lo mantiene.
 
-## Decisiones que necesitan confirmación
+## Decisiones aprobadas
 
-La spec §4.2 tiene la tabla completa. Las que más cambian el producto:
+La spec §4.2 tiene la tabla completa; D1–D20 se aprobaron el 2026-11-16. **D21 se resolvió como
+sesión primero** (la app y la web firman antes de canjear; el Core no verifica contraseñas). Las
+que más cambian el producto:
 
 | # | Decisión | Propuesta |
 |---|---|---|
@@ -115,16 +117,22 @@ La spec §4.2 tiene la tabla completa. Las que más cambian el producto:
 | El QR se filtra | Sesión de otro | 60 s, single-use, hash, `FLAG_SECURE`, rate limit, magic link de un solo uso. |
 | El rol admin se cuela | Escalada | Guard en el servicio, no solo en la UI; tests de sesión/service/delegated. |
 | La renovación invalida un enlace en uso | Fricción | Confirmación en el panel; el token nuevo se muestra una vez. |
-| El sprint se alarga | Aceptación tardía | Aceptación por tarea; el 17 se preserva; gates P2–P5. |
+| Supabase tiene «Time-box» o «Inactivity timeout» | La sesión caduca por política aunque el código esté bien | P10: confirmar y documentar; si el propietario quiere caducidad, se acepta como excepción. |
+| La app ya tiene sesión de otra instancia | El enlace podría reutilizarla o mezclar la sesión | Crear el cliente de la instancia del enlace; no cambiar en silencio; cerrar/limpiar la anterior (S9). |
+| El sprint se alarga | Aceptación tardía | Aceptación por tarea; el 17 se preserva; gates P2–P5/P10. |
 
 ## Puertas del propietario
 
-1. **Aprobar esta spec y el plan** (P1), incluidas D1–D20.
+1. **Aprobar esta spec y el plan** (P1), incluidas D1–D20 — hecho 2026-11-16; D21 resuelto como
+   sesión primero.
 2. **Aprobar los mockups** de app, wizard, QR y reset (P2).
 3. **Poner `ANDROID_APP_SHA256`** en Vercel Production (y Preview si se prueba) y redesplegar (P3).
 4. **Facilitar un Android real** para App Links y **dos** para el QR (P4).
 5. **Confirmar la recuperación** y las credenciales de Resend en producción (P5).
-6. **Dar la orden explícita de merge** del sprint 16 y del 17 (P7) y de promoción (P8).
+6. **Confirmar en Supabase Auth** que «Time-box user sessions» e «Inactivity timeout» están
+   desactivados, o el valor que quiera (P10).
+7. **Leer el resumen de las auditorías finales** de seguridad y UX (P9).
+8. **Dar la orden explícita de merge** del sprint 16 y del 17 (P7) y de promoción (P8).
 
 ## Reglas del sprint
 
@@ -139,6 +147,8 @@ La spec §4.2 tiene la tabla completa. Las que más cambian el producto:
 - Nada se anuncia sin la verificación de `docs/flows/pre-delivery-verification.md` y su salida
   pegada.
 - La revisión pre-implementación está en `pre-implementation-review.md`; **D21** (verificación de la
-  contraseña existente) se resuelve antes de la tarea 04.
+  contraseña existente) está resuelto como **sesión primero** desde el 2026-11-16.
+- **P10**: confirmar en Supabase Auth que «Time-box user sessions» e «Inactivity timeout» están
+  desactivados (o el valor deseado) antes de afirmar que la sesión no caduca sola.
 - El plan anterior (panel y notificaciones) queda como sprint 17, sin tocar su contenido; su rama
   `docs/sprint-16` no se borra.
