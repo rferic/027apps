@@ -10,7 +10,7 @@
 <h3 align="center">A self-hostable, modular platform for families.</h3>
 
 <p align="center">
-  Finances, categories, members and modules on your phone,<br>
+  Shared expenses, balances, categories and modules on your phone,<br>
   running on your own Supabase and Vercel.
 </p>
 
@@ -25,7 +25,7 @@ the visitor's cookie or browser (`Accept-Language`), with English as the default
 
 | Route | Contents |
 |---|---|
-| [`/`](https://027apps.ericrf.com/) | The family app: modules, screenshots and roadmap. |
+| [`/`](https://027apps.ericrf.com/) | The family app: modules, simulated screens and roadmap. |
 | [`/self-host`](https://027apps.ericrf.com/self-host) | The project: admin panel, API v1, MCP, stack and setup. |
 | `/cookies` | The cookies the site and the panel use. |
 | `/panel` | The administration panel (invitation-only, requires a session). |
@@ -62,11 +62,11 @@ Modules live under `packages/<key>/` and follow the contract in
 it never reads the instance database.
 
 **Shipping a module includes updating the public site.** Its catalog entry and both pages (`/`
-and `/self-host`) must reflect the new state, description and three features; a module that
-becomes available replaces its mockup with a real screenshot using demo data. The canonical
-catalog, states and update rules live in [`docs/ai/landing.md`](docs/ai/landing.md). A module is
-not done while the landing still shows it as planned after it ships, or as available before it
-is.
+and `/self-host`) must reflect the new state, description and three or four features; a module
+that becomes available updates its entry and its mockups. The landing keeps every screen
+simulated until they are replaced together with real demo captures. The canonical catalog,
+states and update rules live in [`docs/ai/landing.md`](docs/ai/landing.md). A module is not done
+while the landing still shows it as planned after it ships, or as available before it is.
 
 ## Repository structure
 

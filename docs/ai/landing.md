@@ -59,20 +59,20 @@ Cada módulo declara uno:
 - **`in-development`** — hay código, pero no está listo para la familia.
 - **`planned`** — diseñado, sin implementar. Se muestra como *Coming soon*.
 
-**Regla:** nada `planned` se presenta como disponible. La sección de módulos de la app lleva el
-aviso «Coming soon» mientras la app no tenga pantallas reales.
+**Regla:** nada `planned` se presenta como disponible. Las pantallas de la web son maquetas
+declaradas como simuladas; la app publicada no se presenta como «en desarrollo».
 
 ## Catálogo actual (2026-11-12)
 
 | Módulo | App | Panel | Estado |
 |---|---|---|---|
-| OweNo | Sí | Grupos, gastos, balances, liquidación e importador de Splitwise | app `available` (APK de pruebas), panel `available` |
+| OweNo | Sí | Grupos, gastos, balances, liquidación e importador de Splitwise | app `available` (APK firmado), panel `available` |
 | Categorías | Sí (previsto) | Grupos y permisos | app `planned`, panel `available` |
 | Miembros | Sí (previsto) | Roles, invitaciones, bajas | app `planned`, panel `available` |
 | Módulos | Sí (previsto) | Activar y conceder | app `planned`, panel `available` |
 | API v1 | — | Claves con permisos | `available` |
 | MCP | — | Agentes con OAuth | `available` |
-| App Android | Sí | — | `in-development` (APK de pruebas; release firmado pendiente; push verificado el 2026-11-15) |
+| App Android | Sí | — | `available` (APK firmado en GitHub Releases; push verificado el 2026-11-15) |
 | Copias y recuperación | — | Dump diario y simulacro | `available` |
 | 9 idiomas | Sí | Sí | `available`; revisión nativa de las traducciones pendiente |
 
@@ -94,7 +94,8 @@ actualización la tarea no está `finalizada` (ver `docs/ai/module-system.md`, �
 pública»).
 
 - **Un módulo pasa a `available`**: cambia su estado en las dos páginas y en esta tabla,
-  sustituye la maqueta por una **captura real**, y actualiza el README.
+  actualiza su ficha y sus maquetas, y actualiza el README. Las capturas reales solo entran
+  cuando se cambien todas a la vez (ver «Capturas»).
 - **Se crea un módulo**: rellena su ficha (abajo) y decide si va a la app, al panel o a ambos.
 - **Release del APK**: el botón «Descargar para Android» apunta a `/download/android`, una ruta
   de la instancia que resuelve la última release con APK en GitHub y **la sirve en streaming**,
@@ -121,7 +122,7 @@ página con esta forma:
 }
 ```
 
-La app muestra la ficha como fila alterna (captura + descripción + **lista de 3
+La app muestra la ficha como fila alterna (captura + descripción + **lista de 3–4
 características**). El panel la muestra como tarjeta (nombre + una línea + estado).
 
 ## Capturas
