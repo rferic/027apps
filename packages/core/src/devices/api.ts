@@ -26,6 +26,18 @@ export const registerDeviceSchema = z
   })
   .strict();
 
+/**
+ * `local` is the owner's own logout: it unregisters the push device and leaves
+ * the web/other phones signed in. `all` (the default, used by the panel)
+ * revokes every session. An admin revoking another user's device always gets
+ * `all`; the service enforces that even if the query says `local`.
+ */
+export const revokeDeviceQuerySchema = z
+  .object({
+    sessions: z.enum(["all", "local"]).optional(),
+  })
+  .strict();
+
 function uuid(value: string): string {
   if (!UUID.test(value)) throw new DomainError("validation_failed", "invalid id");
   return value;
@@ -79,7 +91,15 @@ export function registerDeviceRoute(deps: DevicesRouteDeps) {
 export function revokeDeviceRoute(deps: DevicesRouteDeps) {
   return (req: Request, rawId: string): Promise<Response> =>
     withDoor(req, options(deps, ["devices:revoke"]), deps.door, async (ctx) => {
-      await revokeDevice(deps.devices, ctx.caller, uuid(rawId));
+      const parsed = revokeDeviceQuerySchema.safeParse({
+        sessions: ctx.searchParams.get("sessions") || undefined,
+      });
+      if (!parsed.success) {
+        throw new DomainError("validation_failed", "invalid sessions");
+      }
+      await revokeDevice(deps.devices, ctx.caller, uuid(rawId), {
+        revokeSessions: parsed.data.sessions !== "local",
+      });
       return new Response(null, { status: 204 });
     });
 }

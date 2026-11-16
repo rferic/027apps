@@ -333,6 +333,42 @@ describe('deactivateUser — self deactivation', () => {
     expect(updated.deactivated_at).not.toBeNull();
     expect(profiles.get('other')?.deactivated_at).not.toBeNull();
   });
+
+  it('drops the auth sessions after the deactivation commits', async () => {
+    const onDeactivated = vi.fn(async () => undefined);
+    const { deps, profiles } = makeDeps([
+      profile('root', {
+        role: 'super_admin',
+        created_at: '2025-01-01T00:00:00.000Z',
+      }),
+      profile('other', { role: 'admin' }),
+    ]);
+    deps.onDeactivated = onDeactivated;
+
+    await deactivateUser(deps, session('root', 'super_admin'), 'other');
+
+    expect(onDeactivated).toHaveBeenCalledWith('other');
+    expect(profiles.get('other')?.deactivated_at).not.toBeNull();
+  });
+
+  it('keeps the deactivation when the session cleanup fails', async () => {
+    const onDeactivated = vi.fn(async () => {
+      throw new Error('auth down');
+    });
+    const { deps, profiles } = makeDeps([
+      profile('root', {
+        role: 'super_admin',
+        created_at: '2025-01-01T00:00:00.000Z',
+      }),
+      profile('other', { role: 'admin' }),
+    ]);
+    deps.onDeactivated = onDeactivated;
+
+    const updated = await deactivateUser(deps, session('root', 'super_admin'), 'other');
+
+    expect(updated.deactivated_at).not.toBeNull();
+    expect(profiles.get('other')?.deactivated_at).not.toBeNull();
+  });
 });
 
 describe('restoreUser', () => {

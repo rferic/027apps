@@ -119,7 +119,21 @@ export async function listDevices(
   return rows.map(toView);
 }
 
-export async function revokeDevice(deps: DevicesDeps, caller: Caller, id: string): Promise<void> {
+export interface RevokeDeviceOptions {
+  /**
+   * `false` is the owner's own logout: unregister the push device but keep the
+   * other sessions (web and other phones) alive. Admins revoking someone
+   * else's device always revoke all sessions, even if they pass `false`.
+   */
+  revokeSessions?: boolean;
+}
+
+export async function revokeDevice(
+  deps: DevicesDeps,
+  caller: Caller,
+  id: string,
+  options: RevokeDeviceOptions = {},
+): Promise<void> {
   const { rows } = await deps.db.query(
     `select ${VIEW_COLUMNS} from public.devices where id = $1`,
     [id],
@@ -127,7 +141,10 @@ export async function revokeDevice(deps: DevicesDeps, caller: Caller, id: string
   const row = rows[0];
   if (!row) throw new DomainError("not_found");
   const owner = String(row.user_id);
-  if (caller.kind === "service" || (!isAdmin(caller) && actorUserId(caller) !== owner)) {
+  const callerUserId =
+    caller.kind === "session" || caller.kind === "delegated" ? caller.userId : null;
+  const ownerRevokes = callerUserId === owner;
+  if (caller.kind === "service" || (!isAdmin(caller) && !ownerRevokes)) {
     throw new DomainError("not_found");
   }
 
@@ -139,8 +156,10 @@ export async function revokeDevice(deps: DevicesDeps, caller: Caller, id: string
   }
 
   // Best effort: the soft revoke already stands; the access JWT is bounded by
-  // its 15-minute lifetime even if the session cleanup fails.
-  if (deps.revokeSessions) {
+  // its 15-minute lifetime even if the session cleanup fails. The owner's
+  // `local` logout never deletes the other devices' sessions.
+  const revokeAll = !ownerRevokes || options.revokeSessions !== false;
+  if (revokeAll && deps.revokeSessions) {
     await deps.revokeSessions(owner).catch(() => undefined);
   }
 }

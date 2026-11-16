@@ -1,7 +1,7 @@
 import { z, type ZodType } from "zod";
 import { createApiKeySchema, updateApiKeySchema } from "../api-keys/api";
 import { patchCurrenciesBodySchema, patchCurrencyBodySchema } from "../currencies/api";
-import { registerDeviceSchema } from "../devices/api";
+import { registerDeviceSchema, revokeDeviceQuerySchema } from "../devices/api";
 import {
   oweAddMember,
   oweCreateGroup,
@@ -776,8 +776,9 @@ export const OPERATIONS: readonly OpenApiOperation[] = [
   {
     method: "delete",
     path: "/devices/{id}",
-    summary: "Revoke a device (soft) and drop its sessions.",
+    summary: "Revoke a device (soft); `sessions=all` (default) also drops its sessions.",
     scopes: ["devices:revoke"],
+    query: revokeDeviceQuerySchema,
     auth: "session",
     status: 204,
   },

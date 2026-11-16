@@ -8080,6 +8080,18 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "sessions",
+            "required": false,
+            "schema": {
+              "enum": [
+                "all",
+                "local"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8105,7 +8117,7 @@
             "apiKeyAuth": []
           }
         ],
-        "summary": "Revoke a device (soft) and drop its sessions.",
+        "summary": "Revoke a device (soft); `sessions=all` (default) also drops its sessions.",
         "x-027-scopes": [
           "devices:revoke"
         ]
