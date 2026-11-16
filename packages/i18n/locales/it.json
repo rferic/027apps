@@ -244,6 +244,7 @@
   "Expires in": "Scade tra",
   "Expires in days": "Scade tra giorni",
   "Expiry": "Scadenza",
+  "Failed section: {section}": "Sezione non riuscita: {section}",
   "FCM API key": "Chiave API FCM",
   "FCM app id": "ID app FCM",
   "FCM project id": "ID progetto FCM",

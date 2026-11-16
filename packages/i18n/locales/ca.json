@@ -244,6 +244,7 @@
   "Expires in": "Caduca en",
   "Expires in days": "Caduca en dies",
   "Expiry": "Caducitat",
+  "Failed section: {section}": "Secció que ha fallat: {section}",
   "FCM API key": "Clau d'API de FCM",
   "FCM app id": "ID d'aplicació de FCM",
   "FCM project id": "ID de projecte de FCM",

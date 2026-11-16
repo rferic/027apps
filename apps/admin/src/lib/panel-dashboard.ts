@@ -69,6 +69,8 @@ export type DashboardFailure = {
   ok: false;
   requestId?: string;
   code?: string;
+  /** Which section failed: the page says so instead of blaming the whole panel. */
+  section?: "members" | "categories" | "invitations" | "modules";
 };
 
 export type DashboardData = DashboardSuccess | DashboardFailure;
@@ -343,13 +345,14 @@ export async function loadPanelDashboard(): Promise<DashboardData> {
     callRoute(modulesRoute(moduleDeps), MODULES_PAGE, token),
   ]);
 
-  // The first failure wins: showing a partial dashboard would hide a broken source.
+  // The first failure wins: showing a partial dashboard would hide a broken source,
+  // but the page names the section so a 500 is traceable without the server logs.
   if (!health.ok) return health;
   if (!setup.ok) return setup;
-  if (!users.ok) return users;
-  if (!categories.ok) return categories;
-  if (!invitations.ok) return invitations;
-  if (!modules.ok) return modules;
+  if (!users.ok) return { ...users, section: "members" };
+  if (!categories.ok) return { ...categories, section: "categories" };
+  if (!invitations.ok) return { ...invitations, section: "invitations" };
+  if (!modules.ok) return { ...modules, section: "modules" };
 
   return composeDashboard({
     health: health.health,
