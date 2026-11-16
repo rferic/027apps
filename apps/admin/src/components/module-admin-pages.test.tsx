@@ -342,8 +342,12 @@ describe("owe-no group page translations", () => {
     expect(movements).not.toContain("Delete this group for good.");
     expect(movements).toContain("Borrar este grupo definitivamente.");
 
+    // Actions keep the tab: every form on the page posts it back.
+    expect(movements).toContain('name="tab"');
+
     const members = await render({ group, tab: "members" });
     expect(members).toContain("Miembros");
+    expect(members).toContain('value="members"');
 
     const summary = await render({ group, tab: "summary" });
     expect(summary).toContain("Resumen");
