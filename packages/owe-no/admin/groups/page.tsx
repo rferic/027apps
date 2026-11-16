@@ -435,7 +435,7 @@ function GroupDetail({
             <div>
               <ConfirmForm
                 action={actions.archiveGroup}
-                fields={{ group: group.id, archived: group.archived ? "false" : "true" }}
+                fields={{ group: group.id, archived: group.archived ? "false" : "true", tab }}
                 label={group.archived ? tr("Reopen group") : tr("Archive group")}
                 title={group.archived ? tr("Reopen group?") : tr("Archive group?")}
                 body={
@@ -452,6 +452,7 @@ function GroupDetail({
             </div>
             <form action={actions.deleteGroup} className="flex flex-col gap-2 rounded-control border border-destructive/60 p-3">
               <input type="hidden" name="group" value={group.id} />
+              <input type="hidden" name="tab" value={tab} />
               <p className="text-[11px] font-semibold text-destructive">
                 {tr("Delete this group for good.")}
               </p>
@@ -558,7 +559,7 @@ function GroupDetail({
                   ) : null}
                   <ConfirmForm
                     action={actions.removeMember}
-                    fields={{ group: group.id, member: member.id }}
+                    fields={{ group: group.id, member: member.id, tab }}
                     label={tr("Remove")}
                     title={tr("Remove member?")}
                     body={tr("Their balance must be zero; a removed member could no longer be paid.")}
@@ -703,7 +704,7 @@ function GroupDetail({
                           </AnchorTag>
                           <ConfirmForm
                             action={actions.deleteMovement}
-                            fields={{ group: group.id, movement: movement.id }}
+                            fields={{ group: group.id, movement: movement.id, tab }}
                             label={tr("Delete")}
                             title={tr("Delete movement?")}
                             body={tr("It leaves the balances and the history; the row stays for audit.")}
@@ -771,6 +772,7 @@ function MovementView({
       <section className="max-w-3xl rounded-card border border-border bg-surface p-4">
                 <form action={actions.saveMovement} className="flex flex-col gap-3">
           <input type="hidden" name="group" value={group.id} />
+              <input type="hidden" name="tab" value="movements" />
           {editing ? <input type="hidden" name="movement" value={editing.id} /> : null}
           <input type="hidden" name="kind" value={editing?.kind ?? "expense"} />
           <div className="flex flex-wrap gap-2">
@@ -936,6 +938,7 @@ function SettleView({
                 </span>
                 <form action={actions.transfer}>
                   <input type="hidden" name="group" value={group.id} />
+              <input type="hidden" name="tab" value="balances" />
                   <input type="hidden" name="from" value={transfer.from} />
                   <input type="hidden" name="to" value={transfer.to} />
                   <input
@@ -961,6 +964,7 @@ function SettleView({
         </h2>
                 <form action={actions.settle} className="flex flex-col gap-3">
           <input type="hidden" name="group" value={group.id} />
+              <input type="hidden" name="tab" value="balances" />
           <input type="hidden" name="occurred_on" value={today()} />
           <input type="hidden" name="description" value="Settlement" />
           <div className="flex flex-wrap items-end gap-2">

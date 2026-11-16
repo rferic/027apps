@@ -396,3 +396,52 @@ describe("owe-no importer", () => {
     });
   });
 });
+
+describe("owe-no reset with mapped members", () => {
+  // Regression: reset deleted the fictitious members the panel had just created
+  // for the mapping, and the import answered `unknown_member`.
+  it("keeps the members the file uses when starting from scratch", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin", "Admin");
+      const manifest = JSON.parse(await readFile(resolve(ROOT, "manifest.json"), "utf8"));
+      const { rows: installed } = await query(
+        c,
+        "select 1 from public.module_registry where key = 'owe-no'",
+      );
+      if (installed[0]) {
+        await uninstallModule(
+          modulesDeps(c),
+          await session(c, "super_admin", "Root"),
+          "owe-no",
+          manifest,
+          true,
+        );
+      }
+      await installModule(modulesDeps(c), admin, manifest);
+      await activateModule(modulesDeps(c), admin, "owe-no");
+
+      const ana = await session(c, "user", "Ana");
+      const deps = oweDeps(c);
+      const group = await createGroup(deps, ana.userId, { name: "Casa", currency: "EUR" });
+      await addMember(deps, ana.userId, group.id, { displayName: "Ana", inviteeId: ana.userId });
+      const bolli = await addMember(deps, ana.userId, group.id, { displayName: "Bolli" });
+      await query(
+        c,
+        "update module_owe_no.owe_no_members set state = 'active', joined_at = now() where state = 'invited'",
+      );
+
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Bolli",
+        "2026-05-10,Cena,Comida,20.00,EUR,10.00,-10.00",
+      ].join("\n");
+
+      const result = await commitImport(deps, ana.userId, group.id, csv, {
+        reset: true,
+        mapping: { Bolli: bolli.id },
+      });
+      expect(result).toMatchObject({ created: 1, errors: 0 });
+      const listed = await listMembers(deps, ana.userId, group.id);
+      expect(listed.some((member) => member.id === bolli.id)).toBe(true);
+    });
+  });
+});

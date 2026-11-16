@@ -87,6 +87,11 @@ const COPY = {
     amount: "Importe",
     duplicate: "repetido",
     waiting: "Primero analiza el archivo.",
+    code_unknown_member:
+      "Un nombre del CSV apunta a un miembro que ya no está en el grupo. Vuelve a analizar el archivo.",
+    code_validation_failed: "El archivo tiene filas que no se pueden leer. Revisa la vista previa.",
+    code_conflict: "El grupo cambió mientras importabas. Vuelve a analizar el archivo.",
+    code_forbidden: "Solo el creador del grupo puede importar.",
   },
   en: {
     title: "Import from Splitwise",
@@ -140,10 +145,33 @@ const COPY = {
     amount: "Amount",
     duplicate: "duplicate",
     waiting: "Analyze the file first.",
+    code_unknown_member:
+      "A name in the CSV points at a member that is no longer in the group. Analyze the file again.",
+    code_validation_failed: "The file has rows that cannot be read. Check the preview.",
+    code_conflict: "The group changed while importing. Analyze the file again.",
+    code_forbidden: "Only the group's creator can import.",
   },
 };
 
 type Copy = (typeof COPY)["es"];
+
+/** Which step is on screen, one at a time. */
+function stepOf(state: { result: boolean; preview: boolean; file: boolean }): number {
+  if (state.result) return 4;
+  if (state.preview) return 3;
+  return state.file ? 2 : 1;
+}
+
+/** Domain codes turned into a sentence the administrator can act on. */
+function describe(code: string, copy: Copy): string {
+  const map: Record<string, string | undefined> = {
+    unknown_member: copy.code_unknown_member,
+    validation_failed: copy.code_validation_failed,
+    conflict: copy.code_conflict,
+    forbidden: copy.code_forbidden,
+  };
+  return map[code] ?? code;
+}
 
 function choicesFor(preview: Preview): Record<string, ImportChoice> {
   const entries: Array<[string, ImportChoice]> = preview.unresolved.map((name) => [
@@ -192,7 +220,7 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ created: number; skipped: number } | null>(null);
 
-  const step = result !== null ? 4 : preview !== null ? 3 : file !== null ? 2 : 1;
+  const step = stepOf({ result: result !== null, preview: preview !== null, file: file !== null });
 
   async function analyze() {
     setBusy(true);
@@ -203,7 +231,7 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
     ]);
     setBusy(false);
     if (!previewResult.ok) {
-      setError(previewResult.code === "forbidden" ? copy.forbidden : previewResult.code);
+      setError(describe(previewResult.code, copy));
       return;
     }
     const value = previewResult.preview as Preview;
@@ -218,7 +246,7 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
     const response = await importCommitAction(groupId, csv, choices, { reset: wipe });
     setBusy(false);
     if (!response.ok) {
-      setError(response.code === "forbidden" ? copy.forbidden : response.code);
+      setError(describe(response.code, copy));
       return;
     }
     setResult({ created: response.result.created, skipped: response.result.skipped_duplicates });
@@ -264,7 +292,7 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
       <Dialog
         ref={dialog}
         labelledBy="owe-import-title"
-        className="max-w-3xl"
+        className="max-w-md sm:max-w-4xl"
         onCancel={(event) => {
           event.preventDefault();
           setOpen(false);
@@ -294,7 +322,7 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
           <Stepper copy={copy} step={step} />
       {result !== null ? (
         <ResultStep copy={copy} created={result.created} skipped={result.skipped} onAgain={reset} />
-      ) : (
+      ) : preview === null ? (
         <FileStep
           copy={copy}
           file={file}
@@ -308,7 +336,7 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
           }}
           onAnalyze={analyze}
         />
-      )}
+      ) : null}
       {error ? (
         <p role="alert" className="rounded-control border border-destructive bg-surface px-3 py-2 text-xs text-destructive">
           {error}
