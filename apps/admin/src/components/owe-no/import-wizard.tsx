@@ -65,6 +65,9 @@ const COPY = {
     duplicatesNote: "Los movimientos que ya se importaron antes se omiten.",
     run: "Importar",
     running: "Importando…",
+    reset: "Empezar de cero: borrar los movimientos actuales del grupo",
+    resetHint:
+      "Los gastos, pagos, categorías e importaciones anteriores de este grupo se borran antes de importar. Los miembros se conservan. No se puede deshacer.",
     result: "Importación terminada",
     created: "Movimientos creados",
     resultSkipped: "Ya estaban",
@@ -113,6 +116,9 @@ const COPY = {
     duplicatesNote: "Movements imported before are skipped.",
     run: "Import",
     running: "Importing…",
+    reset: "Start from scratch: delete the group's current movements",
+    resetHint:
+      "The group's expenses, payments, categories and previous imports are deleted before importing. Members are kept. This cannot be undone.",
     result: "Import finished",
     created: "Movements created",
     resultSkipped: "Already there",
@@ -167,6 +173,8 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [choices, setChoices] = useState<Record<string, ImportChoice>>({});
   const [busy, setBusy] = useState(false);
+  // Named `wipe`: `reset` is already the function that clears the form.
+  const [wipe, setWipe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ created: number; skipped: number } | null>(null);
 
@@ -193,7 +201,7 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
   async function run() {
     setBusy(true);
     setError(null);
-    const response = await importCommitAction(groupId, csv, choices, false);
+    const response = await importCommitAction(groupId, csv, choices, { reset: wipe });
     setBusy(false);
     if (!response.ok) {
       setError(response.code === "forbidden" ? copy.forbidden : response.code);
@@ -270,6 +278,8 @@ export function OweImportWizard({ groupId, locale }: { groupId: string; locale: 
           onChoice={(name, choice) => setChoices((current) => ({ ...current, [name]: choice }))}
           ready={isReady(preview, choices)}
           busy={busy}
+          wipe={wipe}
+          onWipe={setWipe}
           onRun={run}
         />
       ) : null}
@@ -458,6 +468,8 @@ function MappingStep({
   onChoice,
   ready,
   busy,
+  wipe,
+  onWipe,
   onRun,
 }: {
   copy: Copy;
@@ -467,6 +479,8 @@ function MappingStep({
   onChoice: (name: string, choice: ImportChoice) => void;
   ready: boolean;
   busy: boolean;
+  wipe: boolean;
+  onWipe: (value: boolean) => void;
   onRun: () => void;
 }) {
   return (
@@ -507,6 +521,18 @@ function MappingStep({
         </>
       )}
       <p className="text-[11px] text-muted-foreground">{copy.duplicatesNote}</p>
+      <label className="flex items-start gap-2 rounded-control border border-border px-3 py-2 text-xs">
+        <input
+          type="checkbox"
+          checked={wipe}
+          onChange={(event) => onWipe(event.target.checked)}
+          className="mt-0.5"
+        />
+        <span className="flex flex-col gap-1">
+          <span className="font-semibold">{copy.reset}</span>
+          <span className="text-[11px] text-muted-foreground">{copy.resetHint}</span>
+        </span>
+      </label>
       <button
         type="button"
         disabled={!ready || busy}

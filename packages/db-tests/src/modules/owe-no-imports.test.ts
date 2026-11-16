@@ -11,7 +11,7 @@ import {
   type ModulesDeps,
 } from "@027apps/core/modules/service.js";
 import type { Caller } from "@027apps/core/api/types.js";
-import { addMember, createGroup, listMembers, type OweDeps } from "@027apps/owe-no/domain/service.js";
+import { addMember, createGroup, groupBalances, listMembers, type OweDeps } from "@027apps/owe-no/domain/service.js";
 import {
   commitImport,
   listImports,
@@ -282,6 +282,59 @@ describe("owe-no importer", () => {
       const result = await commitImport(deps, ana.userId, group.id, csv);
       expect(result).toMatchObject({ created: 1, errors: 0, categories: 1 });
       expect(calls).toBe(1);
+    });
+  });
+
+  // The owner's case: the group already had movements and the import doubled
+  // them, so the import needs a "start from scratch" that the caller opts into.
+  it("replaces the group's data when reset is requested", async () => {
+    await inRollback(async (c) => {
+      const admin = await session(c, "admin", "Admin");
+      const manifest = JSON.parse(await readFile(resolve(ROOT, "manifest.json"), "utf8"));
+      const { rows: installed } = await query(
+        c,
+        "select 1 from public.module_registry where key = 'owe-no'",
+      );
+      if (installed[0]) {
+        await uninstallModule(
+          modulesDeps(c),
+          await session(c, "super_admin", "Root"),
+          "owe-no",
+          manifest,
+          true,
+        );
+      }
+      await installModule(modulesDeps(c), admin, manifest);
+      await activateModule(modulesDeps(c), admin, "owe-no");
+
+      const ana = await session(c, "user", "Ana");
+      const luis = await session(c, "user", "Luis");
+      const deps = oweDeps(c);
+      const group = await createGroup(deps, ana.userId, { name: "Casa", currency: "EUR" });
+      await addMember(deps, ana.userId, group.id, { displayName: "Ana", inviteeId: ana.userId });
+      await addMember(deps, ana.userId, group.id, { displayName: "Luis", inviteeId: luis.userId });
+      await query(
+        c,
+        "update module_owe_no.owe_no_members set state = 'active', joined_at = now() where state = 'invited'",
+      );
+
+      const csv = [
+        "Fecha,Descripción,Categoría,Coste,Moneda,Ana,Luis",
+        "2026-05-10,Cena,Comida,20.00,EUR,20.00,-20.00",
+      ].join("\n");
+
+      await commitImport(deps, ana.userId, group.id, csv);
+      // A second run with reset must leave exactly one movement, not two.
+      const reset = await commitImport(deps, ana.userId, group.id, csv, { reset: true });
+      expect(reset).toMatchObject({ created: 1, skipped_duplicates: 0 });
+      const { rows } = await query(
+        c,
+        "select count(*)::int as n from module_owe_no.owe_no_movements where group_id = $1",
+        [group.id],
+      );
+      expect(rows[0].n).toBe(1);
+      const balances = await groupBalances(deps, group.id);
+      expect([...balances.values()].reduce((sum, value) => sum + value, 0)).toBe(0);
     });
   });
 

@@ -9721,6 +9721,9 @@
                       "type": "string"
                     },
                     "type": "object"
+                  },
+                  "reset": {
+                    "type": "boolean"
                   }
                 },
                 "required": [

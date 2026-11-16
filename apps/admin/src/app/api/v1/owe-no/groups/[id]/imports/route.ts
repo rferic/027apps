@@ -46,12 +46,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           csv: string;
           mapping?: Record<string, string>;
           confirm_duplicates?: boolean;
+          reset?: boolean;
         };
         const result = await commitImport(owe, callerId(ctx.caller), id, body.csv, {
           ...(body.mapping ? { mapping: body.mapping } : {}),
           ...(body.confirm_duplicates === undefined
             ? {}
             : { confirmDuplicates: body.confirm_duplicates }),
+          ...(body.reset === true ? { reset: true } : {}),
         });
         return { status: 201, body: json(result) };
       } catch (error) {
