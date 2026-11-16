@@ -29,8 +29,9 @@ HTML+JS, no mirar una imagen.
     pantalla de servidor no disponible (web).
   - Web: paso 1 aviso Android 8+; paso 2 descarga; paso 3 reintento con fallback; paso 4
     formulario; variantes Android/iPhone/escritorio con QR; estados caducada/usada/inválida.
-  - QR: pantalla del viejo (QR sobre tarjeta blanca + cuenta atrás + autoregeneración + FLAG_SECURE
-    + email/instancia) y del nuevo (escáner, instancia, «cierra sesión primero», éxito).
+  - QR: entrada en **Ajustes** del viejo y en el **login** del nuevo (visible sin sesión), QR sobre
+    tarjeta blanca + cuenta atrás + autoregeneración + FLAG_SECURE + email/instancia, escáner,
+    instancia, «cierra sesión primero» y éxito.
   - Reset: login con «¿Olvidaste tu contraseña?», solicitud, email (9 idiomas), confirmación con
     botón «Continuar» (no se consume al cargar), nueva contraseña, éxito y aviso.
   - `README.md` con pantallas, estados, copy, tokens, contraste AA y decisiones.

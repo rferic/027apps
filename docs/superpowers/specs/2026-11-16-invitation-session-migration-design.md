@@ -561,9 +561,10 @@ No se usan las plantillas de email de Supabase (una sola plantilla, un solo idio
    (sin capturas ni miniatura en recientes), **tarjeta blanca** con quiet zone en claro y oscuro
    (U5) y **autoregenera** el código a los ~45 s mientras está abierta (U1); el código anterior
    sigue válido hasta su TTL.
-2. Móvil nuevo, app instalada y **sin sesión**: Ajustes/login → «Mover desde otro teléfono» abre el
-   escáner de la app (cámara). También vale la cámara del sistema: el QR es un App Link
-   `/migrate/`, y la app lo abre.
+2. Móvil nuevo, app instalada y **sin sesión**: el **login de la app** muestra «Mover desde otro
+   teléfono» (no está solo en Ajustes); al pulsarlo se abre el escáner de la app (cámara). Si ya
+   hay sesión, la opción está en Ajustes y el escáner pide cerrar sesión primero. También vale la
+   cámara del sistema: el QR es un App Link `/migrate/`, y la app lo abre.
 3. La app parsea el token, llama a `POST /device-transfers/{token}/exchange`, recibe
    `token_hash` y hace `verifyOtp(OtpType.Email.MAGIC_LINK, token_hash)`, que crea la sesión.
 4. La app carga `/me`, registra su push (nuevo `device_id`) y llama a

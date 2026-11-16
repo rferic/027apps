@@ -35,6 +35,7 @@ producto. Las previews de esta carpeta se generaron así:
 | `preview-web-android.png` | Web móvil, aviso Android 8+ y canje. |
 | `preview-web-desktop.png` | Web escritorio, formulario + QR (1440×1000). |
 | `preview-qr-old.png` | Móvil viejo, QR con cuenta atrás y autoregeneración. |
+| `preview-qr-new-entry.png` | Móvil nuevo, entrada desde el login de la app. |
 | `preview-reset-email.png` | Email de recuperación (700×900). |
 
 ## Qué se revisa
@@ -73,7 +74,9 @@ producto. Las previews de esta carpeta se generaron así:
 
 | Estado | Qué muestra |
 |---|---|
+| Móvil viejo · entrada | Ajustes con «Mover a otro teléfono»; solo Android. |
 | Móvil viejo | QR en tarjeta blanca, cuenta, instancia, cuenta atrás y autoregeneración. |
+| Móvil nuevo · entrada | Login de la app, visible **sin sesión**, con «Mover desde otro teléfono». |
 | Móvil nuevo · escáner | Escáner in-app, instancia, aviso de cerrar sesión si ya hay una. |
 | Móvil nuevo · éxito | La cuenta se movió; el viejo se cerró. |
 | Móvil nuevo con sesión | «Cierra sesión primero»; no se cambia de cuenta en silencio. |

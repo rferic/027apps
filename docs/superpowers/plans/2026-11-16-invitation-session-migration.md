@@ -527,8 +527,9 @@ de producto.
       cuenta atrás 60 s, `FLAG_SECURE`, email + instancia visibles, **autoregeneración a los ~45 s**
       (el código anterior sigue válido hasta su TTL), «Generar otro», polling de estado; al `used`,
       limpiar sesión y login con aviso.
-- [ ] `LoginScreen`: «Mover desde otro teléfono»: escáner ZXing (permiso de cámara), email +
-      instancia antes de confirmar, errores de token caducado/usado, «cierra sesión primero».
+- [ ] `LoginScreen`: «Mover desde otro teléfono» **visible sin sesión** (camino del móvil nuevo;
+      no solo en Ajustes): escáner ZXing (permiso de cámara), instancia antes de escanear, email en
+      el éxito, errores de token caducado/usado, «cierra sesión primero» si ya hay sesión.
 - [ ] Dependencias: `com.google.zxing:core` (generar) + CameraX/Zxing embedded (escanear); justificar
       en el PR; sin Google Play Services si es posible.
 - [ ] `app/src/main/AndroidManifest.xml`: permiso `CAMERA` y `027apps-dev://migrate`; release

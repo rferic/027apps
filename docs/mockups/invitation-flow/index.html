@@ -831,6 +831,21 @@
     };
 
     const qrStates = {
+      'old-entry': {
+        label: 'Móvil viejo · entrada en Ajustes',
+        notes: ['La opción vive en Ajustes → «Mover a otro teléfono»; no está escondida en el login del viejo.', 'Solo Android; el QR se muestra en la pantalla siguiente.', 'El móvil nuevo no necesita esta pantalla: la suya está en el login.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <h1 class="auth-title" style="font-size:22px">Ajustes</h1>
+          <p class="auth-lead">Cuenta y dispositivo.</p>
+          <div class="invite-card">
+            <div class="invite-row"><span class="k">Cuenta</span><span class="v">ana@example.com</span></div>
+            <div class="invite-row"><span class="k">Instancia</span><span class="v">Familia Pérez</span></div>
+          </div>
+          <button class="btn ghost" style="display:flex;align-items:center;justify-content:space-between">Mover a otro teléfono <span aria-hidden="true">›</span></button>
+          <p class="note">Solo Android. El móvil nuevo escanea un QR y el viejo queda fuera. No se transfieren la contraseña ni el refresh token.</p>
+        `)
+      },
       old: {
         label: 'Móvil viejo · mostrar QR',
         notes: ['El viejo muestra el QR, la cuenta y la instancia; el nuevo escanea y entra sin contraseña.', 'El QR se autoregenera a los ~45 s mientras la pantalla está abierta; el código anterior sigue válido hasta su TTL de 60 s.', 'La pantalla lleva FLAG_SECURE: sin capturas ni miniatura en recientes (no se puede enseñar en el mockup).'],
@@ -849,6 +864,22 @@
           </div>
           <button class="btn ghost">Generar otro código</button>
           <p class="note">Solo Android. El código caduca a los 60 s y no se puede reutilizar. No contiene tu contraseña ni el refresh token.</p>
+        `)
+      },
+      'new-entry': {
+        label: 'Móvil nuevo · entrada desde el login',
+        notes: ['La opción está en el login de la app, visible sin sesión: es el camino del móvil nuevo recién instalado.', 'También se llega desde Ajustes si el móvil ya tiene sesión; en ese caso el escáner pide cerrar sesión primero.', 'El escáner es de la app; la cámara del sistema también abre el App Link /migrate.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <h1 class="auth-title" style="font-size:24px">Entra en 027Apps</h1>
+          <p class="auth-lead">Usa tu email y tu contraseña, o trae la cuenta de otro teléfono.</p>
+          <div class="field"><label for="app-login-email">Email</label><input id="app-login-email" type="email" value="ana@example.com" autocomplete="email"></div>
+          <div class="field"><label for="app-login-password">Contraseña</label><input id="app-login-password" type="password" value="············" autocomplete="current-password"></div>
+          <button class="btn accent">Entrar</button>
+          <div class="link-row"><a class="text-link" href="#">¿Olvidaste tu contraseña?</a></div>
+          <div class="divider"></div>
+          <button class="btn ghost">Mover desde otro teléfono</button>
+          <p class="note">Solo Android. Abre el escáner de la app; no necesitas escribir la contraseña en el móvil nuevo.</p>
         `)
       },
       'new-scan': {
