@@ -880,6 +880,22 @@ export const oweIdentityListSchema = component(
   z.object({ identities: z.array(oweIdentitySchema) }).strict(),
 );
 
+export const oweImportMappingOptionSchema = component(
+  "OweImportMappingOption",
+  z
+    .object({
+      id: z.uuid(),
+      display_name: z.string(),
+      kind: z.enum(["member", "account"]),
+    })
+    .strict(),
+);
+
+export const oweImportMappingListSchema = component(
+  "OweImportMappingList",
+  z.object({ options: z.array(oweImportMappingOptionSchema) }).strict(),
+);
+
 export const oweImportListSchema = component(
   "OweImportList",
   z
@@ -899,6 +915,45 @@ export const oweImportListSchema = component(
       ),
     })
     .strict(),
+);
+
+export const oweGroupSummarySchema = component(
+  "OweGroupSummary",
+  z
+    .object({
+      month_total: z.number().int(),
+      previous_month_total: z.number().int(),
+      expenses_total: z.number().int(),
+      payments_total: z.number().int(),
+      category_totals: z.array(z.object({ name: z.string(), total: z.number().int() }).strict()),
+      category_history: z.array(z.object({ name: z.string(), total: z.number().int() }).strict()),
+      people_totals: z.array(
+        z
+          .object({
+            member_id: z.uuid(),
+            name: z.string(),
+            paid: z.number().int(),
+            consumed: z.number().int(),
+          })
+          .strict(),
+      ),
+      months: z.array(
+        z
+          .object({
+            month: z.string(),
+            total: z.number().int(),
+            categories: z.array(z.object({ name: z.string(), total: z.number().int() }).strict()),
+          })
+          .strict(),
+      ),
+      first_movement_on: z.string().nullable(),
+    })
+    .strict(),
+);
+
+export const oweGroupSummaryResponseSchema = component(
+  "OweGroupSummaryResponse",
+  z.object({ summary: oweGroupSummarySchema }).strict(),
 );
 
 export const androidReleaseSchema = component(

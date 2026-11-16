@@ -196,6 +196,16 @@ class ApiClient(
             request(HttpMethod.Get, "/api/v1/owe-no/groups/$groupId/imports/identities"),
         ).identities
 
+    suspend fun oweSummary(groupId: String): OweGroupSummaryDto =
+        read<OweGroupSummaryResponse>(
+            request(HttpMethod.Get, "/api/v1/owe-no/groups/$groupId/summary"),
+        ).summary
+
+    suspend fun oweMappingOptions(groupId: String): List<OweMappingOptionDto> =
+        read<OweMappingOptionList>(
+            request(HttpMethod.Get, "/api/v1/owe-no/groups/$groupId/imports/mapping"),
+        ).options
+
     suspend fun oweImportPreview(groupId: String, csv: String): OweImportPreviewDto =
         read(request(HttpMethod.Post, "/api/v1/owe-no/groups/$groupId/imports/preview", OweImportPreviewBody(csv)))
 
