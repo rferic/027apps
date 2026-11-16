@@ -12,10 +12,13 @@ import com.rferic.zero27apps.auth.EncryptedStringStore
 import com.rferic.zero27apps.auth.InvitationLink
 import com.rferic.zero27apps.auth.KeystoreSecretCipher
 import com.rferic.zero27apps.auth.SupabaseFactory
+import com.rferic.zero27apps.auth.refreshOutcome
 import com.rferic.zero27apps.data.ApiClient
 import com.rferic.zero27apps.data.ApiException
 import com.rferic.zero27apps.data.PatchMeRequest
 import com.rferic.zero27apps.data.RedeemRequest
+import com.rferic.zero27apps.data.RefreshResult
+import io.github.jan.supabase.auth.SignOutScope
 import com.rferic.zero27apps.prefs.PrefsStringStore
 import com.rferic.zero27apps.update.UpdateThrottle
 import com.rferic.zero27apps.update.Updater
@@ -228,7 +231,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             // Revoke the device while the session is still valid: otherwise the
             // server keeps pushing a signed-out account's groups to this phone.
             FcmRegistrar(getApplication()).revoke()
-            runCatching { supabase?.auth?.signOut() }
+            runCatching { supabase?.auth?.signOut(SignOutScope.LOCAL) }
             sessionStore.clear()
             clearWidget()
             prefs.remove(LOCATION_KEY)
@@ -328,7 +331,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val normalized = ServerUrl.normalize(raw, requireHttps = !BuildConfig.DEBUG) ?: return false
         viewModelScope.launch {
             FcmRegistrar(getApplication()).revoke()
-            runCatching { supabase?.auth?.signOut() }
+            runCatching { supabase?.auth?.signOut(SignOutScope.LOCAL) }
             sessionStore.clear()
             clearWidget()
             prefs.remove(LOCATION_KEY)
@@ -351,30 +354,70 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val api = apiFor(base)
             val instance = api.instance()
             val auth = instance.auth ?: throw ApiException("auth_unavailable", 503)
+            val hadStoredSession = runCatching { sessionStore.load() != null }.getOrDefault(false)
             val supabaseClient = supabaseFactory.create(auth.supabaseUrl, auth.supabaseAnonKey)
             supabase = supabaseClient
-            supabaseClient.auth.awaitInitialization()
+            try {
+                supabaseClient.auth.awaitInitialization()
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                if (refreshOutcome(error) == RefreshResult.NoSession) {
+                    sessionStore.clear()
+                    _state.value = AppState.NeedsLogin(base, LoginNotice.SESSION_REVOKED)
+                } else {
+                    _state.value = AppState.Failure(FailureReason.NETWORK)
+                }
+                return
+            }
             // Before the session branch: a fresh install must be able to update
             // from the login screen, without signing in first.
             checkForUpdate()
             if (supabaseClient.auth.currentSessionOrNull() == null) {
-                _state.value = AppState.NeedsLogin(base)
+                if (hadStoredSession) sessionStore.clear()
+                _state.value = AppState.NeedsLogin(
+                    base,
+                    if (hadStoredSession) LoginNotice.SESSION_REVOKED else null,
+                )
                 return
             }
-            val me = api.me()
+            // A revoked refresh token must fail now, not after the first API
+            // call; a network error keeps the stored session and offers retry.
+            try {
+                supabaseClient.auth.refreshCurrentSession()
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                if (refreshOutcome(error) == RefreshResult.NoSession) {
+                    sessionStore.clear()
+                    _state.value = AppState.NeedsLogin(base, LoginNotice.SESSION_REVOKED)
+                } else {
+                    _state.value = AppState.Failure(FailureReason.NETWORK)
+                }
+                return
+            }
+            val me = try {
+                api.me()
+            } catch (error: ApiException) {
+                if (error.code == "unauthorized") {
+                    sessionStore.clear()
+                    _state.value = AppState.NeedsLogin(base, LoginNotice.SESSION_REVOKED)
+                    return
+                }
+                throw error
+            }
             val modules = api.myModules().modules
             val widgets = runCatching { api.dashboard("app").widgets }.getOrDefault(emptyList())
             _state.value = AppState.SignedIn(base, me, modules, widgets)
             registerPush(base, supabase)
         } catch (error: ApiException) {
             _state.value = AppState.Failure(failureReason(error))
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
             _state.value = AppState.Failure(FailureReason.UNKNOWN)
         }
     }
 
-    private suspend fun awaitLogin() {
-        _state.value = AppState.NeedsLogin(instanceStore.current())
+    private suspend fun awaitLogin(notice: LoginNotice? = null) {
+        _state.value = AppState.NeedsLogin(instanceStore.current(), notice)
     }
 
     private fun apiFor(base: String): ApiClient {
@@ -384,11 +427,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             engine = OkHttp.create(),
             token = { supabase?.auth?.currentSessionOrNull()?.accessToken },
             refresh = {
-                val auth = supabase ?: return@ApiClient false
-                runCatching {
-                    auth.auth.refreshCurrentSession()
-                    true
-                }.getOrDefault(false)
+                val auth = supabase
+                if (auth == null) {
+                    RefreshResult.NoSession
+                } else {
+                    runCatching { auth.auth.refreshCurrentSession() }.fold(
+                        onSuccess = { RefreshResult.Refreshed },
+                        onFailure = { refreshOutcome(it) },
+                    )
+                }
             },
         )
         client = api

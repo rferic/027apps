@@ -43,10 +43,15 @@ class OweWidgetWorker(
                 engine = OkHttp.create(),
                 token = { supabase?.auth?.currentSessionOrNull()?.accessToken },
                 refresh = {
-                    runCatching {
-                        supabase?.auth?.refreshCurrentSession()
-                        true
-                    }.getOrDefault(false)
+                    val auth = supabase
+                    if (auth == null) {
+                        com.rferic.zero27apps.data.RefreshResult.NoSession
+                    } else {
+                        runCatching { auth.auth.refreshCurrentSession() }.fold(
+                            onSuccess = { com.rferic.zero27apps.data.RefreshResult.Refreshed },
+                            onFailure = { com.rferic.zero27apps.auth.refreshOutcome(it) },
+                        )
+                    }
                 },
             )
             val instance = api.instance()

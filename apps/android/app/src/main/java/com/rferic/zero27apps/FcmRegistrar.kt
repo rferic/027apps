@@ -81,7 +81,9 @@ class FcmRegistrar(private val context: Context) {
         if (baseUrl != null && jwt != null) {
             Thread {
                 runCatching {
-                    if (deviceId != null) request("DELETE", "$baseUrl/api/v1/devices/$deviceId", jwt, null)
+                    if (deviceId != null) {
+                        request("DELETE", "$baseUrl/api/v1/devices/$deviceId?sessions=local", jwt, null)
+                    }
                 }.onFailure { Log.w(TAG, "Could not revoke this device", it) }
                 FirebaseMessaging.getInstance().deleteToken()
             }.start()

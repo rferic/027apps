@@ -25,7 +25,7 @@ class ApiClientTest {
     private fun client(
         engine: MockEngine,
         token: () -> String? = { "token" },
-        refresh: suspend () -> Boolean = { false },
+        refresh: suspend () -> RefreshResult = { RefreshResult.NoSession },
     ) = ApiClient("https://example.test", engine, token, refresh)
 
     @Test
@@ -136,7 +136,7 @@ class ApiClientTest {
             refresh = {
                 refreshed++
                 token = "new"
-                true
+                RefreshResult.Refreshed
             },
         )
 
@@ -149,10 +149,36 @@ class ApiClientTest {
     @Test
     fun `a second 401 ends the session`() = runTest {
         val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
-        val error = runCatching { client(engine, token = { "t" }).me() }.exceptionOrNull()
+        val error = runCatching {
+            client(engine, token = { "t" }, refresh = { RefreshResult.Refreshed }).me()
+        }.exceptionOrNull()
 
         assertTrue(error is ApiException)
         assertEquals("unauthorized", (error as ApiException).code)
+    }
+
+    @Test
+    fun `a revoked refresh reports unauthorized without a network flag`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        val error = runCatching {
+            client(engine, refresh = { RefreshResult.NoSession }).me()
+        }.exceptionOrNull()
+
+        assertTrue(error is ApiException)
+        assertEquals("unauthorized", (error as ApiException).code)
+        assertEquals(false, (error as ApiException).network)
+    }
+
+    @Test
+    fun `a network refresh is retryable and keeps the session`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        val error = runCatching {
+            client(engine, refresh = { RefreshResult.Network }).me()
+        }.exceptionOrNull()
+
+        assertTrue(error is ApiException)
+        assertEquals("network_error", (error as ApiException).code)
+        assertTrue((error as ApiException).network)
     }
 
     @Test

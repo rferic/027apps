@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.rferic.zero27apps.BuildConfig
 import com.rferic.zero27apps.ui.InstancePickerDialog
 import com.rferic.zero27apps.ui.LoginError
+import com.rferic.zero27apps.ui.LoginNotice
 import com.rferic.zero27apps.ui.LoginState
 import com.rferic.zero27apps.ui.UpdateState
 import com.rferic.zero27apps.ui.components.BrandTile
@@ -104,6 +105,7 @@ fun LoginScreen(
     knownInstances: List<String>,
     state: LoginState,
     update: UpdateState,
+    notice: LoginNotice? = null,
     onLogin: (email: String, password: String) -> Unit,
     onRememberInstance: (String) -> String?,
     onChangeInstance: (String) -> Boolean,
@@ -167,6 +169,22 @@ fun LoginScreen(
             )
 
             Spacer(Modifier.height(28.dp))
+
+            notice?.let {
+                Text(
+                    when (it) {
+                        LoginNotice.SESSION_REVOKED -> strings.sessionRevoked
+                    },
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(palette.surface, RoundedCornerShape(10.dp))
+                        .border(1.dp, palette.border, RoundedCornerShape(10.dp))
+                        .padding(12.dp),
+                )
+                Spacer(Modifier.height(12.dp))
+            }
 
             Column(
                 modifier = Modifier

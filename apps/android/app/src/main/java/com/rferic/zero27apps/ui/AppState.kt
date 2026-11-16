@@ -11,7 +11,10 @@ sealed interface AppState {
     data object Loading : AppState
 
     /** Signed out: the instance is known, the session is not. */
-    data class NeedsLogin(val instance: String) : AppState
+    data class NeedsLogin(
+        val instance: String,
+        val notice: LoginNotice? = null,
+    ) : AppState
 
     /** An invitation link was opened: ask for the account to redeem it. */
     data class NeedsInvite(val link: InvitationLink) : AppState
@@ -35,6 +38,9 @@ fun String.toThemePreference(): ThemePreference = when (this) {
 
 /** Why the app could not boot; the screen turns it into localised copy. */
 enum class FailureReason { NETWORK, AUTH_UNAVAILABLE, UNKNOWN }
+
+/** A one-line explanation on the login screen after an involuntary logout. */
+enum class LoginNotice { SESSION_REVOKED }
 
 /** Result of the last invitation attempt. */
 enum class InviteError { EXPIRED, USED, NOT_FOUND, EMAIL_MISMATCH, NETWORK, GENERIC }

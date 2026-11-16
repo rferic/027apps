@@ -33,7 +33,7 @@ class ApiClient(
     private val baseUrl: String,
     engine: HttpClientEngine,
     private val token: () -> String?,
-    private val refresh: suspend () -> Boolean,
+    private val refresh: suspend () -> RefreshResult,
 ) : Closeable {
     private val json = Json {
         ignoreUnknownKeys = true
@@ -241,10 +241,19 @@ class ApiClient(
     ): HttpResponse {
         val first = send(method, path, body)
         if (first.status != HttpStatusCode.Unauthorized) return first
-        if (!refresh()) throw ApiException("unauthorized", 401)
-        val second = send(method, path, body)
-        if (second.status == HttpStatusCode.Unauthorized) throw ApiException("unauthorized", 401)
-        return second
+        return when (refresh()) {
+            RefreshResult.Refreshed -> {
+                val second = send(method, path, body)
+                if (second.status == HttpStatusCode.Unauthorized) {
+                    throw ApiException("unauthorized", 401, "Session revoked")
+                }
+                second
+            }
+            RefreshResult.NoSession ->
+                throw ApiException("unauthorized", 401, "Session revoked")
+            RefreshResult.Network ->
+                throw ApiException.networkFailure(IOException("network while refreshing the session"))
+        }
     }
 
     private suspend fun send(method: HttpMethod, path: String, body: Any?): HttpResponse =

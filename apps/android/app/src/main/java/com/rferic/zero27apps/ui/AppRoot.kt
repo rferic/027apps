@@ -132,6 +132,7 @@ fun AppRoot(
                         knownInstances = instances,
                         state = login,
                         update = update,
+                        notice = current.notice,
                         onLogin = viewModel::login,
                         onRememberInstance = viewModel::rememberInstance,
                         onChangeInstance = viewModel::changeInstance,
