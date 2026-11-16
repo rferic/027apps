@@ -251,7 +251,14 @@ export async function commitImport(
     // Two imports of the same group must not race the hash check: one commits,
     // the other waits and then sees the rows.
     await db.query("select pg_advisory_xact_lock(hashtext($1))", [groupId]);
-    const scoped: OweDeps = { ...deps, db };
+    // Every write of the import runs on THIS transaction: the categories and
+    // members created above are not committed yet, and opening a second one (the
+    // app's runner does) cannot see them — the movement would fail its FK.
+    const scoped: OweDeps = {
+      ...deps,
+      db,
+      withTransaction: async <T,>(fn: (tx: OweDb) => Promise<T>): Promise<T> => fn(db as OweDb),
+    };
     const categories = new Map<string, string>();
     for (const movement of parsed.movements) {
       const name = movement.category.trim();
