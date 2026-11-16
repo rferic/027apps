@@ -156,6 +156,7 @@ describe("owe-no administration", () => {
       expect(detail.month_total).toBe(1000);
       expect(detail.previous_month_total).toBe(2000);
       expect(detail.category_totals).toEqual([{ name: "Comida", total: 1000 }]);
+      expect(detail.category_history).toEqual([{ name: "Comida", total: 3000 }]);
       expect(detail.months).toHaveLength(6);
       expect(detail.months.at(-2)?.categories).toEqual([{ name: "Comida", total: 2000 }]);
       expect(detail.months.at(-1)).toEqual({

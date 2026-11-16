@@ -161,5 +161,7 @@
   "First month": "Primeiro mês com movimentos",
   "Members {members} · Movements {movements} · Historical expenses {expenses}": "Membros {members} · Movimentos {movements} · Despesas históricas {expenses}",
   "Group history: {expenses} in expenses and {payments} in payments since {date}.": "Histórico do grupo: {expenses} em despesas e {payments} em pagamentos desde {date}.",
-  "Only categories with expenses this month are listed.": "Só aparecem as categorias com despesas este mês."
+  "Only categories with expenses this month are listed.": "Só aparecem as categorias com despesas este mês.",
+  "All history": "Todo o histórico",
+  "All categories in the group, with their historical expenses.": "Todas as categorias do grupo, com as suas despesas históricas."
 }
