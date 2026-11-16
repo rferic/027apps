@@ -888,7 +888,7 @@ tarea/PR. Un fallo encontrado se convierte en test de regresión o comprobación
 | # | Puerta | Quién | Cuándo |
 |---|---|---|---|
 | P1 | Aprobar alcance (hecho) y esta spec + el plan | Propietario | Hecho 2026-11-16 |
-| P2 | Aprobar mockups de app, wizard, QR y reset | Propietario | Antes de UI (tarea 02) |
+| P2 | Aprobar mockups de app, wizard, QR y reset | Propietario | Entregados 2026-11-16; pendiente de revisión antes de UI (tarea 02) |
 | P3 | Poner `ANDROID_APP_SHA256` en Vercel Production (y Preview si se prueba) y redesplegar | Propietario | Antes de la verificación de App Links |
 | P4 | Facilitar un Android real para App Links y dos para el QR | Propietario | Antes de tareas 05/10 |
 | P5 | Confirmar la variante de recuperación (D3) y `RESEND_API_KEY`/`EMAIL_FROM` en producción | Propietario | Antes de la tarea 08 |

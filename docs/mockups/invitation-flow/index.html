@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>027Apps · Mockup de invitación, sesión y migración</title>
+  <style>
+    /* Identidad D. Espejo de apps/admin/tokens.json; no son colores libres. */
+    :root {
+      color-scheme: light;
+      --background: #F6F7F8;
+      --surface: #FFFFFF;
+      --surface-2: #F6F7F8;
+      --muted: #ECEEF0;
+      --muted-foreground: #5B6472;
+      --foreground: #17191C;
+      --primary: #17191C;
+      --primary-foreground: #FFFFFF;
+      --accent: #09795F;
+      --accent-foreground: #FFFFFF;
+      --brand: #0F9B7D;
+      --border: #E3E5E8;
+      --destructive: #BE123C;
+      --destructive-foreground: #FFFFFF;
+      --destructive-subtle: rgba(190, 18, 60, .08);
+      --success: #15803D;
+      --success-subtle: rgba(34, 197, 94, .12);
+      --warning: #B93815;
+      --stage: #E7EAEE;
+      --shadow: 0 18px 50px rgba(23, 25, 28, .14);
+      --card-radius: 16px;
+      --control-radius: 12px;
+    }
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --background: #08090A;
+      --surface: #0E0F11;
+      --surface-2: #141517;
+      --muted: #1A1B1E;
+      --muted-foreground: #8A8F98;
+      --foreground: #F7F8F8;
+      --primary: #F7F8F8;
+      --primary-foreground: #08090A;
+      --accent: #1CC29F;
+      --accent-foreground: #05231C;
+      --brand: #1CC29F;
+      --border: rgba(255, 255, 255, .09);
+      --destructive: #FB7185;
+      --destructive-foreground: #2A0A10;
+      --destructive-subtle: rgba(251, 113, 133, .12);
+      --success: #4ADE80;
+      --success-subtle: rgba(74, 222, 128, .12);
+      --warning: #FF8A5C;
+      --stage: #050607;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .55);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--stage);
+      color: var(--foreground);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .toolbar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      padding: 14px 20px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .toolbar strong { display: block; font-size: 14px; }
+    .toolbar .muted { display: block; font-size: 12px; color: var(--muted-foreground); margin-top: 2px; }
+    .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .controls label {
+      display: flex; flex-direction: column; gap: 4px;
+      font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--muted-foreground);
+    }
+    .controls select {
+      height: 34px; padding: 0 10px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface); color: var(--foreground); font-size: 12px;
+    }
+    .theme-toggle {
+      height: 34px; padding: 0 12px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface); color: var(--foreground); font-size: 12px; font-weight: 700;
+    }
+
+    .stage {
+      display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start;
+      gap: 36px; padding: 30px 20px 18px;
+    }
+    .frame-head { text-align: center; margin-bottom: 12px; }
+    .frame-head h2 { margin: 0 0 3px; font-size: 15px; }
+    .frame-head p { margin: 0; font-size: 11px; color: var(--muted-foreground); }
+
+    .phone {
+      width: 406px; height: 860px;
+      border: 8px solid #15171B; border-radius: 38px;
+      background: var(--background); box-shadow: var(--shadow);
+      overflow: hidden; position: relative; flex: none;
+    }
+    .phone.web { border-color: #2A2D31; }
+    .status {
+      height: 28px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 18px; font-size: 10px; font-weight: 700; color: var(--muted-foreground);
+      background: var(--background); position: relative; z-index: 2;
+    }
+    .status .pill {
+      position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
+      width: 78px; height: 16px; border-radius: 999px; background: #15171B;
+    }
+    .app {
+      height: calc(100% - 28px); display: flex; flex-direction: column;
+      background: var(--background); overflow: hidden;
+    }
+    .scroll {
+      flex: 1; overflow-y: auto; padding: 10px 18px 24px; scrollbar-width: none;
+    }
+    .scroll::-webkit-scrollbar { display: none; }
+
+    .web-top {
+      height: 44px; display: flex; align-items: center; gap: 8px;
+      padding: 0 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+      font-size: 11px; color: var(--muted-foreground);
+    }
+    .web-top .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+    .web-top .url {
+      flex: 1; height: 26px; display: flex; align-items: center;
+      padding: 0 10px; border: 1px solid var(--border); border-radius: 7px;
+      background: var(--background); color: var(--muted-foreground);
+      font-size: 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    }
+    .web-page {
+      height: calc(100% - 44px); overflow-y: auto; padding: 22px 18px 30px;
+      background: var(--background);
+    }
+    .phone.web .web-page {
+      height: calc(100% - 44px); padding: 18px 16px 26px;
+    }
+
+    .browser {
+      width: 1100px; max-width: calc(100vw - 40px); height: 790px;
+      border: 1px solid var(--border); border-radius: 14px;
+      background: var(--background); box-shadow: var(--shadow); overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .browser .chrome {
+      height: 42px; display: flex; align-items: center; gap: 12px;
+      padding: 0 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .browser .lights { display: flex; gap: 6px; }
+    .browser .lights i { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+    .browser .url {
+      flex: 1; height: 26px; display: flex; align-items: center; padding: 0 10px;
+      border: 1px solid var(--border); border-radius: 7px;
+      background: var(--background); color: var(--muted-foreground); font-size: 11px;
+    }
+    .browser .page { flex: 1; overflow-y: auto; padding: 28px 30px 36px; }
+
+    .brand-lockup { display: flex; align-items: center; gap: 10px; margin: 4px 0 20px; }
+    .brand-mark {
+      width: 38px; height: 38px; border-radius: 12px;
+      background: var(--accent); color: var(--accent-foreground);
+      display: grid; place-items: center; font-size: 10px; font-weight: 900; letter-spacing: -.03em;
+      flex: none;
+    }
+    .brand-lockup strong { font-size: 17px; letter-spacing: -.01em; }
+    .brand-lockup span { display: block; font-size: 11px; color: var(--muted-foreground); margin-top: 1px; }
+
+    .auth-title { margin: 0 0 7px; font-size: 26px; line-height: 1.08; letter-spacing: -.025em; }
+    .auth-lead { margin: 0 0 18px; font-size: 13px; line-height: 1.55; color: var(--muted-foreground); }
+    .auth-lead strong { color: var(--foreground); }
+
+    .invite-card {
+      border: 1px solid var(--border); border-radius: var(--card-radius);
+      background: var(--surface); padding: 12px 14px; margin: 0 0 16px;
+    }
+    .invite-card .card-label {
+      margin: 0 0 8px; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted-foreground);
+    }
+    .invite-row {
+      display: flex; justify-content: space-between; gap: 14px;
+      padding: 8px 0; border-top: 1px solid var(--border); font-size: 12px;
+    }
+    .invite-row:first-of-type { border-top: 0; }
+    .invite-row .k { color: var(--muted-foreground); flex: none; }
+    .invite-row .v { font-weight: 700; text-align: right; overflow-wrap: anywhere; }
+    .invite-row .v small { display: block; font-weight: 500; color: var(--muted-foreground); margin-top: 2px; }
+    .ficha-note {
+      display: flex; gap: 6px; align-items: flex-start;
+      margin-top: 8px; padding-top: 9px; border-top: 1px solid var(--border);
+      font-size: 10px; line-height: 1.45; color: var(--muted-foreground);
+    }
+    .ficha-note b { color: var(--foreground); }
+
+    .field { margin-bottom: 12px; }
+    .field label { display: block; margin-bottom: 5px; font-size: 11px; font-weight: 700; color: var(--muted-foreground); }
+    .field input {
+      width: 100%; height: 48px; padding: 0 13px;
+      border: 1px solid var(--border); border-radius: var(--control-radius);
+      background: var(--surface); color: var(--foreground); font-size: 16px; outline: none;
+    }
+    .field input:focus-visible {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .field .hint { margin-top: 5px; font-size: 10px; color: var(--muted-foreground); }
+    .field .error { margin-top: 5px; font-size: 10px; color: var(--destructive); }
+
+    .btn {
+      width: 100%; height: 48px; border: 0; border-radius: var(--control-radius);
+      background: var(--primary); color: var(--primary-foreground);
+      font-size: 15px; font-weight: 800;
+    }
+    .btn.accent { background: var(--accent); color: var(--accent-foreground); }
+    .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--foreground); }
+    .btn + .btn { margin-top: 8px; }
+    .text-link {
+      display: inline-block; color: var(--accent); font-size: 12px; font-weight: 800;
+      text-decoration: none; background: none; border: 0; padding: 0;
+    }
+    .text-link:hover { text-decoration: underline; }
+    .link-row { display: flex; justify-content: center; margin-top: 10px; }
+
+    .alert {
+      margin: 0 0 12px; padding: 10px 12px; border-radius: 10px;
+      background: var(--destructive-subtle); color: var(--destructive);
+      font-size: 11px; line-height: 1.45;
+    }
+    .alert.info { background: color-mix(in srgb, var(--accent) 9%, var(--surface)); color: var(--foreground); border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border)); }
+    .alert.warn { background: color-mix(in srgb, var(--warning) 9%, var(--surface)); color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 25%, var(--border)); }
+    .alert b { display: block; margin-bottom: 2px; }
+
+    .note { margin: 14px 0 0; font-size: 11px; line-height: 1.55; color: var(--muted-foreground); }
+    .note strong { color: var(--foreground); }
+    .spinner {
+      width: 28px; height: 28px; margin: 42px auto 0;
+      border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .state-card {
+      border: 1px solid var(--border); border-radius: var(--card-radius);
+      background: var(--surface); padding: 20px 16px; text-align: center;
+    }
+    .state-icon {
+      width: 46px; height: 46px; margin: 0 auto 12px; border-radius: 50%;
+      display: grid; place-items: center; font-size: 20px; font-weight: 900;
+      background: var(--muted); color: var(--foreground);
+    }
+    .state-card h3 { margin: 0 0 6px; font-size: 18px; letter-spacing: -.02em; }
+    .state-card p { margin: 0 0 16px; font-size: 12px; line-height: 1.55; color: var(--muted-foreground); }
+    .state-card .actions { display: grid; gap: 8px; }
+
+    .divider { height: 1px; background: var(--border); margin: 14px 0; }
+    .meta { display: flex; justify-content: space-between; gap: 10px; font-size: 10px; color: var(--muted-foreground); }
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 7px; border-radius: 999px; font-size: 9px; font-weight: 800;
+      background: var(--muted); color: var(--muted-foreground);
+    }
+    .badge.accent { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); }
+    .badge.success { background: var(--success-subtle); color: var(--success); }
+
+    .web-card {
+      border: 1px solid var(--border); border-radius: 12px;
+      background: var(--surface); padding: 18px;
+    }
+    .web-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 22px; align-items: start; }
+    .web-title { margin: 0 0 6px; font-size: 30px; line-height: 1.08; letter-spacing: -.03em; }
+    .web-lead { margin: 0 0 18px; font-size: 14px; line-height: 1.55; color: var(--muted-foreground); }
+    .web-lead strong { color: var(--foreground); }
+    .web-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
+    .web-actions .btn { width: auto; min-width: 170px; padding: 0 16px; }
+    .web-actions .btn + .btn { margin-top: 0; }
+    .web-note { margin: 12px 0 0; font-size: 11px; line-height: 1.5; color: var(--muted-foreground); }
+    .notice {
+      border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+      background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+      border-radius: 10px; padding: 11px 12px; margin: 0 0 14px;
+      font-size: 12px; line-height: 1.5;
+    }
+    .notice b { display: block; margin-bottom: 2px; }
+    .steps { display: flex; gap: 6px; margin: 0 0 16px; }
+    .steps span {
+      flex: 1; height: 4px; border-radius: 999px; background: var(--border);
+    }
+    .steps span.on { background: var(--accent); }
+
+    .qr-card {
+      border: 1px solid var(--border); border-radius: 12px;
+      background: var(--surface); padding: 16px; text-align: center;
+    }
+    .qr-card h4 { margin: 0 0 4px; font-size: 14px; }
+    .qr-card p { margin: 0 0 12px; font-size: 11px; color: var(--muted-foreground); line-height: 1.45; }
+    .qr-white {
+      background: #FFFFFF; border-radius: 12px; padding: 12px;
+      display: inline-block; border: 1px solid #E3E5E8;
+    }
+    .qr { width: 190px; height: 190px; display: grid; grid-template-columns: repeat(25, 1fr); grid-template-rows: repeat(25, 1fr); gap: 1px; background: #FFFFFF; }
+    .qr i { background: #FFFFFF; }
+    .qr i.on { background: #111111; }
+    .qr-caption { margin-top: 9px; font-size: 10px; color: var(--muted-foreground); }
+    .countdown {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin: 12px 0 0; font-size: 11px; color: var(--muted-foreground);
+    }
+    .countdown b { color: var(--foreground); font-variant-numeric: tabular-nums; }
+    .bar { height: 5px; border-radius: 999px; background: var(--border); overflow: hidden; margin-top: 8px; }
+    .bar i { display: block; height: 100%; width: 68%; background: var(--accent); border-radius: 999px; }
+
+    .scanner {
+      border-radius: 16px; background: #0F1114; color: #F7F8F8;
+      padding: 18px; margin-bottom: 14px; position: relative; overflow: hidden;
+    }
+    .scanner .view {
+      height: 230px; border-radius: 12px; border: 1px solid rgba(255,255,255,.18);
+      display: grid; place-items: center; position: relative;
+      background: radial-gradient(circle at 50% 45%, rgba(28,194,159,.16), transparent 55%);
+    }
+    .scanner .corner { position: absolute; width: 24px; height: 24px; border: 3px solid #1CC29F; }
+    .scanner .corner.tl { top: 18px; left: 18px; border-right: 0; border-bottom: 0; border-radius: 4px 0 0 0; }
+    .scanner .corner.tr { top: 18px; right: 18px; border-left: 0; border-bottom: 0; border-radius: 0 4px 0 0; }
+    .scanner .corner.bl { bottom: 18px; left: 18px; border-right: 0; border-top: 0; border-radius: 0 0 0 4px; }
+    .scanner .corner.br { bottom: 18px; right: 18px; border-left: 0; border-top: 0; border-radius: 0 0 4px 0; }
+    .scanner .view .qr { width: 120px; height: 120px; opacity: .55; }
+    .scanner .view .hint { position: absolute; bottom: 14px; font-size: 10px; color: rgba(255,255,255,.65); }
+    .scanner .scanner-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; font-size: 11px; color: rgba(255,255,255,.7); }
+
+    .email {
+      width: 100%; max-width: 560px; margin: 0 auto; background: #FFFFFF; color: #17191C;
+      border: 1px solid #E3E5E8; border-radius: 12px; overflow: hidden;
+    }
+    .email-head { padding: 16px 20px; border-bottom: 1px solid #E3E5E8; font-size: 11px; color: #5B6472; }
+    .email-head b { display: block; color: #17191C; font-size: 13px; margin-bottom: 2px; }
+    .email-body { padding: 20px; }
+    .email-body h3 { margin: 0 0 8px; font-size: 20px; letter-spacing: -.02em; }
+    .email-body p { margin: 0 0 12px; font-size: 13px; line-height: 1.55; color: #5B6472; }
+    .email-cta {
+      display: inline-block; background: #09795F; color: #FFFFFF; text-decoration: none;
+      padding: 11px 18px; border-radius: 8px; font-size: 13px; font-weight: 800; margin: 4px 0 14px;
+    }
+    .email-fallback { font-size: 10px; color: #5B6472; word-break: break-all; line-height: 1.5; }
+    .email-fallback a { color: #09795F; }
+    .email-note { background: #ECEEF0; border-radius: 8px; padding: 9px 11px; font-size: 11px; color: #17191C; margin: 12px 0; line-height: 1.45; }
+    .email-foot { padding: 12px 20px 18px; font-size: 10px; color: #5B6472; line-height: 1.5; }
+
+    .review {
+      max-width: 1200px; margin: 0 auto; padding: 0 20px 48px;
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px;
+    }
+    .review section {
+      border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 14px 16px;
+    }
+    .review h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-foreground); }
+    .review p, .review li { font-size: 12px; line-height: 1.55; }
+    .review ul { margin: 0; padding-left: 18px; }
+    .review li + li { margin-top: 4px; }
+    .review .state-title { font-size: 15px; font-weight: 800; margin: 0 0 4px; }
+    .review .state-sub { font-size: 11px; color: var(--muted-foreground); margin: 0 0 10px; }
+    .review code { font-size: 11px; background: var(--muted); padding: 1px 4px; border-radius: 4px; }
+
+    /* Modo captura: sin toolbar ni notas, solo el marco del producto. */
+    body.embed .toolbar,
+    body.embed .review,
+    body.embed .frame-head { display: none; }
+    body.embed .stage { padding: 0; min-height: 100vh; align-items: center; }
+    body.embed .phone { margin: 0 auto; }
+    body.embed .browser { margin: 0 auto; }
+
+    @media (max-width: 900px) {
+      .review { grid-template-columns: 1fr; }
+      .browser { height: auto; min-height: 620px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <div>
+      <strong>027Apps · Mockup de invitación, sesión y migración</strong>
+      <span class="muted">Sprint 16 · tarea 02 · revisión del propietario (P2). No es UI implementada.</span>
+    </div>
+    <div class="controls">
+      <label>Superficie
+        <select id="surface">
+          <option value="app">App · invitación</option>
+          <option value="web">Web · wizard</option>
+          <option value="qr">Migración · QR</option>
+          <option value="reset">Recuperación</option>
+        </select>
+      </label>
+      <label>Estado
+        <select id="state"></select>
+      </label>
+      <button class="theme-toggle" id="theme" aria-pressed="false">Tema: claro</button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage" aria-live="polite"></main>
+  <section class="review">
+    <section>
+      <h3>Qué muestra esta pantalla</h3>
+      <p class="state-title" id="state-title"></p>
+      <p class="state-sub" id="state-sub"></p>
+      <ul id="notes"></ul>
+    </section>
+    <section>
+      <h3>Cómo revisar</h3>
+      <ul>
+        <li>Cambia de <b>superficie</b>, <b>estado</b> y <b>tema</b> arriba. La URL guarda la selección (<code>?surface=app&amp;state=new&amp;theme=dark</code>).</li>
+        <li>Los datos son de demo: <b>Ana</b>, <b>Familia Pérez</b>, <b>Eric</b>. No hay datos de la familia.</li>
+        <li>Los campos de la invitación son <b>ficha</b>, no inputs; solo las contraseñas se escriben. El nombre y el email se pueden copiar.</li>
+        <li>El QR es <b>de ejemplo</b>, no escaneable. La implementación usará un QR real en tarjeta blanca con quiet zone.</li>
+        <li>El copy está en español para revisar tono; la implementación publica los 9 idiomas.</li>
+      </ul>
+    </section>
+  </section>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const brand = (sub) => `
+      <div class="brand-lockup">
+        <div class="brand-mark">027</div>
+        <div><strong>027Apps</strong><span>${sub || 'Familia Pérez'}</span></div>
+      </div>`;
+
+    const details = ({ role = 'Usuario', existing = false }) => `
+      <div class="invite-card">
+        <p class="card-label">Tu invitación</p>
+        <div class="invite-row"><span class="k">Email</span><span class="v">ana@example.com</span></div>
+        <div class="invite-row"><span class="k">Nombre</span><span class="v">Ana</span></div>
+        <div class="invite-row"><span class="k">Instancia</span><span class="v">Familia Pérez</span></div>
+        <div class="invite-row"><span class="k">Te invita</span><span class="v">Eric</span></div>
+        <div class="invite-row"><span class="k">Caduca</span><span class="v">domingo, 23 nov 2026<small>19:00 · Europe/Madrid</small></span></div>
+        <div class="invite-row"><span class="k">Rol</span><span class="v">${role}</span></div>
+        <div class="ficha-note"><span aria-hidden="true">🔒</span><span>Estos datos los fija la invitación. <b>No se pueden cambiar aquí.</b> Solo eliges tu contraseña${existing ? ' actual' : ''}.</span></div>
+      </div>`;
+
+    const passwordFields = ({ existing = false, confirm = true } = {}) => existing ? `
+      <div class="field">
+        <label for="invite-password-current">Contraseña actual</label>
+        <input id="invite-password-current" type="password" value="············" autocomplete="current-password" aria-describedby="invite-password-current-hint">
+        <div id="invite-password-current-hint" class="hint">La que ya usas en esta instancia. No se cambia al aceptar.</div>
+      </div>
+      <div class="link-row"><a class="text-link" href="#">¿Olvidaste tu contraseña?</a></div>
+    ` : `
+      <div class="field">
+        <label for="invite-password">Contraseña</label>
+        <input id="invite-password" type="password" value="" placeholder="Al menos 12 caracteres" autocomplete="new-password" minlength="12" aria-describedby="invite-password-hint">
+        <div id="invite-password-hint" class="hint">Al menos 12 caracteres.</div>
+      </div>
+      ${confirm ? `<div class="field">
+        <label for="invite-confirmation">Confirmar contraseña</label>
+        <input id="invite-confirmation" type="password" value="" placeholder="Repite la contraseña" autocomplete="new-password" minlength="12">
+      </div>` : ''}
+    `;
+
+    const appFrame = (content) => `
+      <div class="frame">
+        <div class="frame-head"><h2>Android · 390 px</h2><p>App 027Apps</p></div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span class="pill"></span><span>▮▮▮</span></div>
+          <div class="app"><div class="scroll">${content}</div></div>
+        </div>
+      </div>`;
+
+    const mobileWebFrame = (content, url = '027apps.ericrf.com/invite/027_inv_…') => `
+      <div class="frame">
+        <div class="frame-head"><h2>Web · móvil</h2><p>Navegador, 390 px</p></div>
+        <div class="phone web">
+          <div class="web-top"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">${url}</span></div>
+          <div class="web-page">${content}</div>
+        </div>
+      </div>`;
+
+    const desktopFrame = (content, url = '027apps.ericrf.com/invite/027_inv_…') => `
+      <div class="frame">
+        <div class="frame-head"><h2>Web · escritorio</h2><p>Navegador, 1100 px</p></div>
+        <div class="browser">
+          <div class="chrome"><span class="lights"><i></i><i></i><i></i></span><span class="url">${url}</span></div>
+          <div class="page">${content}</div>
+        </div>
+      </div>`;
+
+    const qrGrid = () => {
+      let seed = 20261116;
+      const rand = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+      const n = 25;
+      const cells = [];
+      const finder = (r, c) => {
+        const inBox = (r0, c0) => r >= r0 && r < r0 + 7 && c >= c0 && c < c0 + 7;
+        const ring = (r0, c0) => (r === r0 || r === r0 + 6 || c === c0 || c === c0 + 6) ||
+          (r >= r0 + 2 && r <= r0 + 4 && c >= c0 + 2 && c <= c0 + 4);
+        if (inBox(0, 0)) return ring(0, 0);
+        if (inBox(0, n - 7)) return ring(0, n - 7);
+        if (inBox(n - 7, 0)) return ring(n - 7, 0);
+        return null;
+      };
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          const f = finder(r, c);
+          const on = f === null ? rand() > 0.52 : f;
+          cells.push(`<i class="${on ? 'on' : ''}"></i>`);
+        }
+      }
+      return `<div class="qr" aria-label="Código QR de ejemplo, no escaneable">${cells.join('')}</div>`;
+    };
+
+    const appStates = {
+      loading: {
+        label: 'Cargando la invitación',
+        notes: ['El enlace abre la app y se consulta el preview público; se muestra el wordmark y la instancia mientras carga.', 'No se pide email ni nombre: los trae la invitación.'],
+        render: () => appFrame(`${brand('Familia Pérez')}<div class="spinner"></div><p class="note" style="text-align:center">Cargando tu invitación…</p>`)
+      },
+      new: {
+        label: 'Cuenta nueva · formulario',
+        notes: ['Email, nombre, instancia, invitador, caducidad y rol son una ficha bloqueada; solo contraseña y confirmación son inputs.', 'El nombre no es editable (A5). La confirmación evita erratas.', 'El botón principal dice «Aceptar invitación»; al enviar se crea la cuenta y se inicia sesión.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <h1 class="auth-title">Acepta tu invitación</h1>
+          <p class="auth-lead">Te ha invitado <strong>Eric</strong> a <strong>Familia Pérez</strong>. Elige una contraseña para entrar.</p>
+          ${details({ role: 'Usuario' })}
+          ${passwordFields({})}
+          <button class="btn accent">Aceptar invitación</button>
+          <button class="btn ghost">Ahora no</button>
+          <p class="note">Al aceptar se crea tu cuenta y entras directamente. El enlace solo se puede usar una vez.</p>
+        `)
+      },
+      existing: {
+        label: 'Cuenta existente · contraseña actual',
+        notes: ['La cuenta ya existe: se pide la contraseña actual, no una nueva.', '«¿Olvidaste tu contraseña?» abre la web de la instancia; la invitación sigue pendiente.', 'La app firma primero y luego canjea con la sesión; la contraseña no se envía a nuestro servidor (D21).'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <h1 class="auth-title">Acepta tu invitación</h1>
+          <p class="auth-lead">Ya tienes cuenta en <strong>Familia Pérez</strong>. Usa tu contraseña de siempre para aceptar.</p>
+          ${details({ role: 'Usuario', existing: true })}
+          ${passwordFields({ existing: true })}
+          <button class="btn accent">Entrar y aceptar</button>
+          <button class="btn ghost">Ahora no</button>
+          <p class="note">Tu contraseña, tu nombre y tu rol no cambian. Solo se añaden el acceso y los módulos de la invitación.</p>
+        `)
+      },
+      expired: {
+        label: 'Invitación caducada',
+        notes: ['No se muestra formulario: no hay nada que canjear.', 'El panel puede renovarla; la app dice a quién pedirla.', 'El mismo estado existe en web.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">⌛</div>
+            <h3>Esta invitación caducó</h3>
+            <p>Pidió una nueva a <b>Eric</b>. La invitación anterior ya no se puede aceptar.</p>
+            <div class="actions"><button class="btn accent">Pedir otra invitación</button><button class="btn ghost">Volver</button></div>
+          </div>
+        `)
+      },
+      used: {
+        label: 'Invitación ya aceptada',
+        notes: ['Si ya se aceptó, no se repite el canje: se ofrece iniciar sesión.', 'El enlace no se reutiliza.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">✓</div>
+            <h3>Ya se aceptó esta invitación</h3>
+            <p>La cuenta ya está creada. Inicia sesión para entrar; si no recuerdas la contraseña, puedes recuperarla.</p>
+            <div class="actions"><button class="btn accent">Iniciar sesión</button><button class="btn ghost">Recuperar contraseña</button></div>
+          </div>
+        `)
+      },
+      invalid: {
+        label: 'Enlace inválido o revocado',
+        notes: ['Un token desconocido o revocado no se distingue: misma tarjeta, sin enumerar.', 'No se muestra el email de la invitación.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">!</div>
+            <h3>Este enlace no es válido</h3>
+            <p>Puede que la invitación se haya revocado o que el enlace esté incompleto. Pide uno nuevo a un administrador.</p>
+            <div class="actions"><button class="btn accent">Volver al inicio</button></div>
+          </div>
+        `)
+      },
+      network: {
+        label: 'Error de red al cargar',
+        notes: ['La sesión no se toca: un fallo de red no es una revocación.', 'Se puede reintentar sin volver a pedir la contraseña.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">↻</div>
+            <h3>No pudimos cargar la invitación</h3>
+            <p>Comprueba la conexión. Tu sesión, si ya existía, sigue guardada.</p>
+            <div class="actions"><button class="btn accent">Reintentar</button></div>
+          </div>
+        `)
+      },
+      success: {
+        label: 'Canje correcto · auto-login',
+        notes: ['Cuenta nueva: canje → login automático → shell. No hay una segunda pantalla de login.', 'Cuenta existente: la app ya estaba firmada antes de canjear.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon" style="background:var(--success-subtle);color:var(--success)">✓</div>
+            <h3>Ya estás dentro</h3>
+            <p>Tu cuenta está creada y la sesión está iniciada. Te llevamos al inicio.</p>
+            <div class="actions"><button class="btn accent">Ir al inicio</button></div>
+          </div>
+        `)
+      },
+      'signin-failed': {
+        label: 'Canje ok, login fallido',
+        notes: ['El canje ya consumió la invitación: no se reintenta; se pide iniciar sesión.', 'La contraseña elegida es la de la cuenta nueva; el fallo solo puede ser de red o de sesión.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">!</div>
+            <h3>Tu cuenta se creó</h3>
+            <p>No pudimos iniciar la sesión automáticamente. Inicia sesión con la contraseña que acabas de elegir.</p>
+            <div class="actions"><button class="btn accent">Iniciar sesión</button></div>
+          </div>
+        `)
+      },
+      'offline-shell': {
+        label: 'Shell sin conexión',
+        notes: ['La sesión sigue guardada; no se pide login por un fallo de red.', 'El refresh token vive cifrado en el Keystore y se renovará al volver la red.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">☁︎</div>
+            <h3>Sin conexión</h3>
+            <p>Tu sesión sigue guardada. Cuando vuelva la conexión, entraremos sin pedirte la contraseña.</p>
+            <div class="actions"><button class="btn accent">Reintentar</button></div>
+          </div>
+        `)
+      },
+      revoked: {
+        label: 'Sesión revocada',
+        notes: ['Una desactivación, borrado o revocación de dispositivo termina la sesión.', 'Se limpia la sesión local y se pide login; no se confunde con un error de red.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">🔒</div>
+            <h3>Este teléfono ya no tiene sesión</h3>
+            <p>Un administrador ha revocado el acceso o la cuenta se ha desactivado. Vuelve a iniciar sesión o pide acceso.</p>
+            <div class="actions"><button class="btn accent">Volver a entrar</button></div>
+          </div>
+        `)
+      }
+    };
+
+    const webStates = {
+      'android-welcome': {
+        label: 'Android sin app · paso 1',
+        notes: ['Aviso literal: solo hay app Android (8+); en iPhone u ordenador se acepta en el navegador.', '«Continuar en el navegador» está siempre visible: el wizard no es una puerta.', '«Abrir en la app» no redirige solo al cargar; solo tras el clic y con timeout.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <div class="notice"><b>La app es solo para Android (8+).</b>En iPhone u ordenador puedes aceptar la invitación en el navegador.</div>
+          <h1 class="auth-title" style="font-size:24px">Acepta tu invitación</h1>
+          <p class="auth-lead">Te ha invitado <strong>Eric</strong> a <strong>Familia Pérez</strong>.</p>
+          ${details({ role: 'Usuario' })}
+          <div class="web-actions" style="display:grid">
+            <button class="btn accent">Abrir en la app</button>
+            <button class="btn ghost">Descargar para Android</button>
+            <button class="btn ghost">Continuar en el navegador</button>
+          </div>
+          <p class="web-note">Si no se abre la app, usa una de las opciones de abajo.</p>
+        `)
+      },
+      'android-download': {
+        label: 'Android sin app · paso 2 descarga',
+        notes: ['El APK se sirve desde la instancia (`/download/android`), no desde un enlace externo.', 'Se indica el tamaño, la versión y cómo permitir orígenes desconocidos.', 'Después de instalar se vuelve a intentar abrir la invitación.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <div class="steps"><span class="on"></span><span class="on"></span><span></span><span></span></div>
+          <h1 class="auth-title" style="font-size:23px">Instala 027Apps</h1>
+          <p class="auth-lead">La app es la forma recomendada de entrar. Después, vuelve a abrir la invitación.</p>
+          <div class="invite-card">
+            <p class="card-label">027Apps para Android</p>
+            <div class="invite-row"><span class="k">Versión</span><span class="v">0.18.1</span></div>
+            <div class="invite-row"><span class="k">Archivo</span><span class="v">27 MB · APK</span></div>
+            <div class="invite-row"><span class="k">Android</span><span class="v">8.0 o superior</span></div>
+          </div>
+          <div class="alert info">Al instalar, Android puede pedirte permitir «orígenes desconocidos» para el navegador. Es normal en un APK: la app no está en Play Store.</div>
+          <div class="web-actions" style="display:grid">
+            <button class="btn accent">Descargar APK</button>
+            <button class="btn ghost">Ya la he instalado</button>
+            <button class="btn ghost">Volver</button>
+          </div>
+          <p class="web-note">Si prefieres no instalar nada, puedes <a class="text-link" href="#">continuar en el navegador</a>.</p>
+        `)
+      },
+      'android-retry': {
+        label: 'Android sin app · paso 3 reintento',
+        notes: ['El botón intenta el esquema propio con timeout de 1,5 s; si no abre, se queda en esta pantalla.', 'Nunca hay bucle: siempre se puede reintentar, volver a descargar o continuar en el navegador.', 'El token sigue en la URL; no se consume al intentar abrir la app.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <div class="steps"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+          <h1 class="auth-title" style="font-size:23px">Abre la invitación en la app</h1>
+          <p class="auth-lead">Si la app está instalada, este botón la abre con tu invitación.</p>
+          <div class="alert info">Si no se abre nada, no pasa nada: puedes reintentar, volver a descargar o continuar aquí.</div>
+          <div class="web-actions" style="display:grid">
+            <button class="btn accent">Abrir en la app</button>
+            <button class="btn ghost">Volver a descargar</button>
+            <button class="btn ghost">Continuar en el navegador</button>
+          </div>
+        `)
+      },
+      'android-form-new': {
+        label: 'Android · formulario cuenta nueva',
+        notes: ['Mismos datos bloqueados que en la app; el formulario web no es una puerta de segunda clase.', 'Contraseña + confirmación; nombre bloqueado.', 'Al aceptar, si A1 aplica, el panel entra directamente; un `user` va a bienvenida.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <h1 class="auth-title" style="font-size:24px">Acepta tu invitación</h1>
+          <p class="auth-lead">Te ha invitado <strong>Eric</strong> a <strong>Familia Pérez</strong>.</p>
+          ${details({ role: 'Usuario' })}
+          ${passwordFields({})}
+          <button class="btn accent">Aceptar invitación</button>
+          <p class="web-note">¿Ya tienes cuenta? <a class="text-link" href="#">Inicia sesión</a>.</p>
+        `)
+      },
+      'android-form-existing': {
+        label: 'Android · formulario cuenta existente',
+        notes: ['Cuenta existente: solo contraseña actual, sin confirmación.', '«¿Olvidaste tu contraseña?» lleva a `/forgot-password`; la invitación sigue pendiente.', 'La contraseña incorrecta no consume la invitación.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <h1 class="auth-title" style="font-size:24px">Acepta tu invitación</h1>
+          <p class="auth-lead">Ya tienes cuenta en <strong>Familia Pérez</strong>. Usa tu contraseña de siempre.</p>
+          ${details({ role: 'Usuario', existing: true })}
+          ${passwordFields({ existing: true })}
+          <button class="btn accent">Entrar y aceptar</button>
+        `)
+      },
+      iphone: {
+        label: 'iPhone · sin app',
+        notes: ['No se ofrece descarga: la app solo existe para Android.', 'Se dice claramente que se puede aceptar en el navegador.', 'Mismo formulario que Android.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <div class="notice"><b>La app es solo para Android.</b>En iPhone puedes aceptar la invitación aquí, en el navegador.</div>
+          <h1 class="auth-title" style="font-size:24px">Acepta tu invitación</h1>
+          <p class="auth-lead">Te ha invitado <strong>Eric</strong> a <strong>Familia Pérez</strong>.</p>
+          ${details({ role: 'Usuario' })}
+          <div class="web-actions" style="display:grid"><button class="btn accent">Continuar en el navegador</button></div>
+        `)
+      },
+      desktop: {
+        label: 'Escritorio · QR + canje web',
+        notes: ['En escritorio se ofrece pasar al móvil con QR o aceptar aquí; no se obliga a lo uno ni a lo otro.', 'El QR codifica la misma URL de invitación y se pinta en tarjeta blanca.', 'El canje web es completo: si el rol es de panel, auto-login; si es `user`, bienvenida.'],
+        render: () => desktopFrame(`
+          <div class="web-grid">
+            <div>
+              ${brand('Familia Pérez')}
+              <h1 class="web-title">Acepta tu invitación</h1>
+              <p class="web-lead">Te ha invitado <strong>Eric</strong> a <strong>Familia Pérez</strong>. Puedes aceptar aquí o abrirla en tu móvil.</p>
+              ${details({ role: 'Usuario' })}
+              ${passwordFields({})}
+              <div class="web-actions"><button class="btn accent">Aceptar invitación</button></div>
+              <p class="web-note">¿Ya tienes cuenta? <a class="text-link" href="#">Inicia sesión</a>.</p>
+            </div>
+            <div class="qr-card">
+              <h4>Ábrela en tu móvil</h4>
+              <p>Escanea el QR con la cámara del teléfono. Si tienes la app, se abre directamente.</p>
+              <div class="qr-white">${qrGrid()}</div>
+              <div class="qr-caption">027apps.ericrf.com/invite/…</div>
+              <p class="web-note">También puedes aceptar en este navegador; el QR es una comodidad, no un requisito.</p>
+            </div>
+          </div>
+        `)
+      },
+      expired: {
+        label: 'Web · invitación caducada',
+        notes: ['No hay formulario. Se dice a quién pedir otra; el panel puede renovarla.', 'Mismo copy que en la app.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">⌛</div>
+            <h3>Esta invitación caducó</h3>
+            <p>Pide una nueva a <b>Eric</b>. La invitación anterior ya no se puede aceptar.</p>
+            <div class="actions"><button class="btn accent">Volver al inicio</button></div>
+          </div>
+        `)
+      },
+      used: {
+        label: 'Web · invitación ya aceptada',
+        notes: ['Se ofrece iniciar sesión; no se repite el canje.', 'Si la cuenta es un `user`, el panel no le sirve: se le puede ofrecer la app.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">✓</div>
+            <h3>Ya se aceptó esta invitación</h3>
+            <p>La cuenta ya está creada. Inicia sesión para entrar.</p>
+            <div class="actions"><button class="btn accent">Iniciar sesión</button><button class="btn ghost">Recuperar contraseña</button></div>
+          </div>
+        `)
+      },
+      invalid: {
+        label: 'Web · enlace inválido',
+        notes: ['Misma tarjeta para desconocido y revocado; no se enumera.', 'No se muestra PII.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">!</div>
+            <h3>Este enlace no es válido</h3>
+            <p>Puede que la invitación se haya revocado o que el enlace esté incompleto. Pide uno nuevo a un administrador.</p>
+            <div class="actions"><button class="btn accent">Volver al inicio</button></div>
+          </div>
+        `)
+      },
+      welcome: {
+        label: 'Web · bienvenida (rol user)',
+        notes: ['Un `user` no tiene páginas de panel: se le dice que la cuenta está creada, se le ofrece la app y el login.', 'No se deja una cookie de panel a quien no puede usarlo.', 'Si A1 no aplica, esta pantalla no se usa.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon" style="background:var(--success-subtle);color:var(--success)">✓</div>
+            <h3>Tu cuenta está creada</h3>
+            <p>Ya puedes usar 027Apps en el móvil. El panel web es solo para administradores.</p>
+            <div class="actions"><button class="btn accent">Descargar para Android</button><button class="btn ghost">Iniciar sesión</button></div>
+          </div>
+        `, '027apps.ericrf.com/welcome')
+      }
+    };
+
+    const qrStates = {
+      old: {
+        label: 'Móvil viejo · mostrar QR',
+        notes: ['El viejo muestra el QR, la cuenta y la instancia; el nuevo escanea y entra sin contraseña.', 'El QR se autoregenera a los ~45 s mientras la pantalla está abierta; el código anterior sigue válido hasta su TTL de 60 s.', 'La pantalla lleva FLAG_SECURE: sin capturas ni miniatura en recientes (no se puede enseñar en el mockup).'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <h1 class="auth-title" style="font-size:22px">Mover a otro teléfono</h1>
+          <p class="auth-lead">Abre 027Apps en el móvil nuevo y escanea este código. El viejo quedará fuera.</p>
+          <div class="qr-card" style="padding:14px">
+            <div class="qr-white">${qrGrid()}</div>
+            <div class="countdown"><span>El código cambia en <b>42 s</b></span><span class="badge success">se actualiza solo</span></div>
+            <div class="bar"><i></i></div>
+          </div>
+          <div class="invite-card" style="margin-top:14px">
+            <div class="invite-row"><span class="k">Cuenta</span><span class="v">ana@example.com</span></div>
+            <div class="invite-row"><span class="k">Instancia</span><span class="v">Familia Pérez</span></div>
+          </div>
+          <button class="btn ghost">Generar otro código</button>
+          <p class="note">Solo Android. El código caduca a los 60 s y no se puede reutilizar. No contiene tu contraseña ni el refresh token.</p>
+        `)
+      },
+      'new-scan': {
+        label: 'Móvil nuevo · escáner',
+        notes: ['El escáner vive dentro de la app (ZXing/CameraX, sin Google Play Services); la cámara del sistema también vale porque el QR es un App Link.', 'Antes de canjear se ve la instancia; el email aparece al canjear.', 'Si ya hay sesión en el nuevo, se pide cerrar sesión primero: no se cambia de cuenta en silencio.'],
+        render: () => appFrame(`
+          <h1 class="auth-title" style="font-size:22px">Mover desde otro teléfono</h1>
+          <p class="auth-lead">Apunta al QR del móvil viejo. Se moverá <strong>ana@example.com</strong> a <strong>Familia Pérez</strong>.</p>
+          <div class="scanner">
+            <div class="view">
+              <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+              ${qrGrid()}
+              <span class="hint">Apunta al QR del móvil viejo</span>
+            </div>
+            <div class="scanner-meta"><span>Familia Pérez</span><span>027apps.ericrf.com</span></div>
+          </div>
+          <button class="btn accent">Escanear</button>
+          <button class="btn ghost">Ya tengo sesión: cerrar sesión</button>
+          <p class="note">El QR caduca a los 60 s. Si no funciona, genera otro en el móvil viejo.</p>
+        `)
+      },
+      'new-success': {
+        label: 'Móvil nuevo · migración correcta',
+        notes: ['El nuevo canjea el QR por un magic link de un solo uso, entra y registra su push.', 'Después revoca los otros dispositivos y hace `signOut(OTHERS)`; el viejo queda fuera.', 'El viejo borra su sesión al ver `used`; si estaba cerrado, el siguiente arranque recibe 401.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon" style="background:var(--success-subtle);color:var(--success)">✓</div>
+            <h3>Ya estás en este teléfono</h3>
+            <p>La cuenta <b>ana@example.com</b> se ha movido a este móvil. El teléfono viejo se ha cerrado.</p>
+            <div class="actions"><button class="btn accent">Ir al inicio</button></div>
+          </div>
+        `)
+      },
+      'new-signed-in': {
+        label: 'Móvil nuevo · ya con sesión',
+        notes: ['Si el móvil nuevo ya tiene una sesión, no se reemplaza en silencio.', 'Se pide cerrar sesión o usar esa cuenta; el QR no cambia de cuenta sin avisar.'],
+        render: () => appFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">!</div>
+            <h3>Este teléfono ya tiene sesión</h3>
+            <p>Para mover la cuenta de otro teléfono, cierra la sesión actual primero. Así no se mezclan dos cuentas.</p>
+            <div class="actions"><button class="btn accent">Cerrar sesión y escanear</button><button class="btn ghost">Cancelar</button></div>
+          </div>
+        `)
+      }
+    };
+
+    const resetStates = {
+      login: {
+        label: 'Login localizado',
+        notes: ['El login deja de estar en inglés; muestra wordmark, instancia y los avisos de sesión.', '«¿Olvidaste tu contraseña?» abre el flujo nuevo.', 'La contraseña se envía por la server action de login; el móvil no ve tokens.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <h1 class="auth-title" style="font-size:24px">Entra en 027Apps</h1>
+          <p class="auth-lead">Usa tu email y tu contraseña de <strong>Familia Pérez</strong>.</p>
+          <div class="field"><label for="login-email">Email</label><input id="login-email" type="email" value="ana@example.com" autocomplete="email"></div>
+          <div class="field"><label for="login-password">Contraseña</label><input id="login-password" type="password" value="············" autocomplete="current-password"></div>
+          <button class="btn accent">Entrar</button>
+          <div class="link-row"><a class="text-link" href="#">¿Olvidaste tu contraseña?</a></div>
+          <p class="web-note">Si vienes de una invitación aceptada, entra con la contraseña que elegiste.</p>
+        `, '027apps.ericrf.com/login')
+      },
+      forgot: {
+        label: 'Recuperar · solicitud',
+        notes: ['El mensaje es neutro exista o no el email; no se enumera.', 'Límite por IP y por email; el enlace caduca en 1 h.', 'El email se envía con la plantilla propia en 9 idiomas, no con la de Supabase.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <h1 class="auth-title" style="font-size:24px">Recupera tu contraseña</h1>
+          <p class="auth-lead">Escribe el email de tu cuenta. Si existe, te enviaremos un enlace para elegir una nueva.</p>
+          <div class="field"><label for="forgot-email">Email</label><input id="forgot-email" type="email" placeholder="tu@email.com" autocomplete="email"></div>
+          <button class="btn accent">Enviar enlace</button>
+          <div class="link-row"><a class="text-link" href="#">Volver al login</a></div>
+          <p class="web-note">Por seguridad, no te diremos si el email tiene cuenta o no.</p>
+        `, '027apps.ericrf.com/forgot-password')
+      },
+      sent: {
+        label: 'Recuperar · enviado',
+        notes: ['Misma respuesta para email existente y desconocido.', 'Se dice que se revise el correo y el spam; no se revela nada más.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">✉︎</div>
+            <h3>Revisa tu correo</h3>
+            <p>Si ese email tiene cuenta, te hemos enviado un enlace. Caduca en 1 hora y solo se puede usar una vez.</p>
+            <div class="actions"><button class="btn accent">Volver al login</button></div>
+          </div>
+          <p class="web-note">¿No llega? Mira en spam o pide otro en unos minutos.</p>
+        `, '027apps.ericrf.com/forgot-password')
+      },
+      email: {
+        label: 'Email de recuperación (9 idiomas)',
+        notes: ['Plantilla propia con wordmark, instancia y CTA; se traduce a los 9 idiomas.', 'El enlace lleva a `/auth/confirm`, que primero muestra un botón; un escáner de enlaces no consume el token.', 'El enlace caduca en 1 h; si no lo pediste, no cambia nada.'],
+        render: () => `
+          <div class="frame" style="max-width:640px">
+            <div class="frame-head"><h2>Email · recuperación</h2><p>Resend · 9 idiomas · claro/oscuro del cliente</p></div>
+            <div class="email">
+              <div class="email-head"><b>027Apps · Familia Pérez</b>para ana@example.com · ahora</div>
+              <div class="email-body">
+                <h3>Recupera tu contraseña</h3>
+                <p>Hola Ana: hemos recibido una solicitud para cambiar la contraseña de tu cuenta en <b>Familia Pérez</b>.</p>
+                <a class="email-cta" href="#">Elegir nueva contraseña</a>
+                <p class="email-fallback">Si el botón no funciona, copia este enlace:<br><a href="#">https://027apps.ericrf.com/auth/confirm?token_hash=…&amp;type=recovery&amp;next=%2Freset-password</a></p>
+                <div class="email-note">El enlace caduca en 1 hora y solo se puede usar una vez.</div>
+                <p class="email-fallback">Si no pediste el cambio, ignora este email: tu contraseña no cambia.</p>
+              </div>
+              <div class="email-foot">027Apps · Familia Pérez · Este email se envía desde la instancia de tu familia.</div>
+            </div>
+          </div>`
+      },
+      confirm: {
+        label: 'Email · confirmar el enlace',
+        notes: ['El GET de `/auth/confirm` solo pinta esta pantalla; no consume el token.', 'El botón «Continuar» verifica en POST y fija la sesión de recuperación.', 'Un token inválido o caducado muestra un enlace a pedir otro.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon">🔗</div>
+            <h3>Confirma el enlace</h3>
+            <p>Vamos a comprobar tu enlace de recuperación y llevarte a elegir una contraseña nueva.</p>
+            <div class="actions"><button class="btn accent">Continuar</button><button class="btn ghost">Pedir otro enlace</button></div>
+          </div>
+          <p class="web-note">Este paso evita que un escáner de correo gaste el enlace antes de que lo uses tú.</p>
+        `, '027apps.ericrf.com/auth/confirm?token_hash=…')
+      },
+      reset: {
+        label: 'Nueva contraseña',
+        notes: ['Exige la sesión de recuperación; sin ella redirige a pedir otro enlace.', 'Contraseña + confirmación, 12–200.', 'Al guardar se revocan las demás sesiones y se vuelve al login con aviso.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <h1 class="auth-title" style="font-size:24px">Elige una contraseña nueva</h1>
+          <p class="auth-lead">Para <strong>ana@example.com</strong> en <strong>Familia Pérez</strong>.</p>
+          <div class="field"><label for="reset-password">Nueva contraseña</label><input id="reset-password" type="password" placeholder="Al menos 12 caracteres" autocomplete="new-password" minlength="12" aria-describedby="reset-password-hint"><div id="reset-password-hint" class="hint">Al menos 12 caracteres.</div></div>
+          <div class="field"><label for="reset-confirmation">Confirmar contraseña</label><input id="reset-confirmation" type="password" placeholder="Repite la contraseña" autocomplete="new-password" minlength="12"></div>
+          <button class="btn accent">Guardar contraseña</button>
+          <p class="web-note">Al guardarla, se cerrarán las demás sesiones, incluido el móvil. Después vuelve a entrar.</p>
+        `, '027apps.ericrf.com/reset-password')
+      },
+      success: {
+        label: 'Contraseña actualizada',
+        notes: ['Se cierra la sesión de recuperación y se vuelve al login con aviso.', 'Las demás sesiones quedan revocadas; el móvil pedirá login una vez.'],
+        render: () => mobileWebFrame(`
+          ${brand('Familia Pérez')}
+          <div class="state-card">
+            <div class="state-icon" style="background:var(--success-subtle);color:var(--success)">✓</div>
+            <h3>Contraseña actualizada</h3>
+            <p>Ya puedes entrar con la contraseña nueva. Las demás sesiones se han cerrado por seguridad.</p>
+            <div class="actions"><button class="btn accent">Entrar</button></div>
+          </div>
+        `, '027apps.ericrf.com/login?notice=password-reset')
+      }
+    };
+
+    const surfaces = {
+      app: { states: appStates, title: 'App · aceptación de la invitación' },
+      web: { states: webStates, title: 'Web · wizard y canje' },
+      qr: { states: qrStates, title: 'Migración de teléfono' },
+      reset: { states: resetStates, title: 'Recuperación de contraseña' }
+    };
+
+    let current = { surface: 'app', state: 'new', theme: 'light' };
+
+    function applyUrl() {
+      const p = new URLSearchParams(location.search);
+      if (p.get('surface') && surfaces[p.get('surface')]) current.surface = p.get('surface');
+      if (p.get('theme') === 'dark' || p.get('theme') === 'light') current.theme = p.get('theme');
+      const states = surfaces[current.surface].states;
+      current.state = p.get('state') && states[p.get('state')] ? p.get('state') : Object.keys(states)[0];
+      document.body.classList.toggle('embed', p.get('embed') === '1');
+    }
+
+    function syncUrl() {
+      const p = new URLSearchParams();
+      p.set('surface', current.surface);
+      p.set('state', current.state);
+      p.set('theme', current.theme);
+      if (document.body.classList.contains('embed')) p.set('embed', '1');
+      history.replaceState(null, '', '?' + p.toString());
+    }
+
+    function fillStateSelect() {
+      const select = $('state');
+      select.innerHTML = '';
+      const states = surfaces[current.surface].states;
+      for (const [id, state] of Object.entries(states)) {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = state.label;
+        option.selected = id === current.state;
+        select.appendChild(option);
+      }
+    }
+
+    function render() {
+      document.documentElement.dataset.theme = current.theme;
+      $('theme').textContent = 'Tema: ' + (current.theme === 'dark' ? 'oscuro' : 'claro');
+      $('theme').setAttribute('aria-pressed', current.theme === 'dark' ? 'true' : 'false');
+      $('surface').value = current.surface;
+      fillStateSelect();
+      const surface = surfaces[current.surface];
+      const state = surface.states[current.state];
+      $('stage').innerHTML = state.render();
+      $('state-title').textContent = state.label;
+      $('state-sub').textContent = surface.title;
+      $('notes').innerHTML = state.notes.map((note) => `<li>${note}</li>`).join('');
+      syncUrl();
+    }
+
+    $('surface').addEventListener('change', (event) => {
+      current.surface = event.target.value;
+      current.state = Object.keys(surfaces[current.surface].states)[0];
+      render();
+    });
+    $('state').addEventListener('change', (event) => {
+      current.state = event.target.value;
+      render();
+    });
+    $('theme').addEventListener('click', () => {
+      current.theme = current.theme === 'dark' ? 'light' : 'dark';
+      render();
+    });
+
+    applyUrl();
+    render();
+  </script>
+</body>
+</html>

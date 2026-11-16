@@ -125,7 +125,8 @@ que más cambian el producto:
 
 1. **Aprobar esta spec y el plan** (P1), incluidas D1–D20 — hecho 2026-11-16; D21 resuelto como
    sesión primero.
-2. **Aprobar los mockups** de app, wizard, QR y reset (P2).
+2. **Aprobar los mockups** de app, wizard, QR y reset (P2) — entregados 2026-11-16 en
+   `docs/mockups/invitation-flow/`; pendientes de revisión.
 3. **Poner `ANDROID_APP_SHA256`** en Vercel Production (y Preview si se prueba) y redesplegar (P3).
 4. **Facilitar un Android real** para App Links y **dos** para el QR (P4).
 5. **Confirmar la recuperación** y las credenciales de Resend en producción (P5).

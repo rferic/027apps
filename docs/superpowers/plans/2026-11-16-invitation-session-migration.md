@@ -21,7 +21,8 @@ cuenta a un teléfono nuevo por QR, todo con i18n, OpenAPI y auditoría.
       **sesión primero** (la app y la web firman antes de canjear; el Core valida la sesión y no
       verifica contraseñas) — 2026-11-16.
 - [ ] **P2** El propietario aprueba los mockups de `docs/mockups/invitation-flow/` (app, wizard,
-      QR y reset) antes de escribir UI nueva.
+      QR y reset) antes de escribir UI nueva. **Entregados 2026-11-16**; pendiente de revisión y
+      aprobación.
 - [x] **P10** El propietario confirma que «Time-box user sessions» e «Inactivity timeout» no se
       activaron en `027apps-dev` ni `027apps-prod` (valores por defecto: off) — 2026-11-16. La
       prueba real de sesión sin usar la app lo valida en la tarea 11.
@@ -87,7 +88,7 @@ de producto.
 
 ### 02.1 Entregables
 
-- [ ] `docs/mockups/invitation-flow/index.html` (HTML+JS, 390 px app y web, claro y oscuro) con:
+- [x] `docs/mockups/invitation-flow/index.html` (HTML+JS, 390 px app y web, claro y oscuro) con:
   - app: invitación cargando, cuenta nueva (email/nombre/instancia/invitador/caducidad/rol
     bloqueados + contraseña + confirmación), cuenta existente (solo contraseña actual), caducada,
     usada, inválida, error de red, canje ok y login fallido, aviso de sesión revocada;
@@ -97,13 +98,17 @@ de producto.
     «cierra sesión primero» + éxito);
   - reset: login con «¿Olvidaste tu contraseña?», solicitud, email (9 idiomas), confirmación,
     nueva contraseña, aviso de éxito.
-- [ ] `docs/mockups/invitation-flow/README.md`: pantallas, estados, copy, tokens, contraste AA,
+- [x] `docs/mockups/invitation-flow/README.md`: pantallas, estados, copy, tokens, contraste AA,
       decisiones y qué queda fuera.
-- [ ] Capturas PNG a 390 px y 1440 px (claro/oscuro) para revisión rápida.
-- [ ] Tokens de `apps/admin/tokens.json`; nada de hex libres.
+- [x] Capturas PNG de las superficies principales (app 390 px de contenido, web 1440 px, QR y
+      email) para revisión rápida.
+- [x] Tokens de `apps/admin/tokens.json`; nada de hex libres en la UI; el email usa su propia
+      plantilla.
 
 ### 02.2 Puerta
 
+- [x] `docs/mockups/invitation-flow/index.html` entregado el 2026-11-16; cuatro superficies y sus
+      estados, claro/oscuro, con notas de decisión.
 - [ ] `open docs/mockups/invitation-flow/index.html` y recorrido del propietario.
 - [ ] **P2**: aprobación escrita. Si cambia el flujo, se actualiza la spec antes de implementar.
 
