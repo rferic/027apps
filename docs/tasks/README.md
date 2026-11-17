@@ -20,7 +20,7 @@ estable: no se reutiliza ni se reordena. Este índice es la fuente del orden rea
 | 13 | `sprint-13-staging-prod` | 2026-11-08 | finalizada |
 | 14 | `sprint-14-mejoras` | 2026-11-10 | finalizada |
 | 15 | `sprint-15-app-y-finanzas` | 2026-11-12 | finalizada 2026-11-15 (12 tareas) · PR #97 |
-| 16 | `sprint-16-invitation-session-and-migration` | 2026-11-16 | en curso · 03 aceptada (sesión y expulsión); 04 en test; 07 aceptada en escritorio; 06 validada en emulador, pendiente móvil; siguiente 05/P3 |
+| 16 | `sprint-16-invitation-session-and-migration` | 2026-11-16 | en curso · 03 aceptada; 04, 06, 07 y 08 en test; siguiente 09, 10 y 11 |
 | 17 | `sprint-17-panel-y-notificaciones` | 2026-11-16 (renumerado) | pendiente de aprobación (5 tareas) · antes sprint 16 |
 
 > **Renumeración del 16:** el plan de «panel y notificaciones» vivía en `origin/docs/sprint-16` sin

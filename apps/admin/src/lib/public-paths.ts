@@ -15,6 +15,8 @@ const PUBLIC_PAGES = new Set([
   "/robots.txt",
   "/sitemap.xml",
   "/welcome",
+  "/forgot-password",
+  "/auth/confirm",
 ]);
 
 const INVITE_PATH = /^\/invite\/([^/]+)$/;

@@ -53,4 +53,22 @@ describe("LoginForm", () => {
     expect(html).toContain("Invitation accepted.");
     expect(html).toContain("Wrong email or password");
   });
+
+  it("links to the password recovery page", () => {
+    const html = renderToStaticMarkup(<LoginForm />);
+    expect(html).toContain('href="/forgot-password"');
+    expect(html).toContain("Forgot your password?");
+  });
+
+  it("explains a completed password reset and a revoked access", () => {
+    search.current = "notice=password-reset";
+    expect(renderToStaticMarkup(<LoginForm />)).toContain(
+      "Your password has been changed. Sign in with the new one.",
+    );
+
+    search.current = "reason=access_revoked";
+    expect(renderToStaticMarkup(<LoginForm />)).toContain(
+      "Your access has been revoked. Ask an administrator.",
+    );
+  });
 });

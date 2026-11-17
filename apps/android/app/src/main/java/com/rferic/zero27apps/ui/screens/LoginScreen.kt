@@ -1,5 +1,7 @@
 package com.rferic.zero27apps.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +34,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.rferic.zero27apps.ui.theme.appGradient
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -117,6 +120,7 @@ fun LoginScreen(
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     val palette = LocalPalette.current
     val strings = LocalStrings.current
+    val context = LocalContext.current
     val valid = email.isNotBlank() && password.isNotEmpty()
 
     if (showPicker) {
@@ -257,6 +261,17 @@ fun LoginScreen(
 
             Spacer(Modifier.height(14.dp))
             UpdateNotice(update, onInstallUpdate)
+            TextButton(
+                onClick = {
+                    val url = instance.trimEnd('/') + "/forgot-password"
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    }
+                },
+                enabled = !state.pending,
+            ) {
+                Text(strings.forgotPassword, fontSize = 12.sp)
+            }
             TextButton(onClick = { showPicker = true }) { Text(strings.changeInstance) }
 
         }

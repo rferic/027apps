@@ -50,6 +50,31 @@ export interface InvitationEmailInput {
   role?: "user" | "admin";
 }
 
+/** Copy of the password-recovery email, per locale. */
+export interface RecoveryCopy {
+  subject: string;
+  preheader: string;
+  greeting: string;
+  lead: string;
+  cta: string;
+  fallback: string;
+  expiry: string;
+  security: string;
+  footer: string;
+}
+
+export interface RecoveryEmailInput {
+  locale: EmailLocale;
+  /** Display name of the account, or its email when the profile has none. */
+  name: string;
+  /** `instance.name` setting. */
+  instanceName: string;
+  /** `instance.public_url`, without a trailing slash (logo and base URL). */
+  publicUrl: string;
+  /** Absolute `/auth/confirm?...` link with the token hash. */
+  link: string;
+}
+
 export function isEmailLocale(value: unknown): value is EmailLocale {
   return typeof value === "string" && (EMAIL_LOCALES as readonly string[]).includes(value);
 }
