@@ -10,6 +10,7 @@ import com.rferic.zero27apps.InstanceStore
 import com.rferic.zero27apps.ServerUrl
 import com.rferic.zero27apps.auth.EncryptedStringStore
 import com.rferic.zero27apps.auth.InvitationLink
+import com.rferic.zero27apps.auth.MigrationLink
 import com.rferic.zero27apps.auth.KeystoreSecretCipher
 import com.rferic.zero27apps.auth.SupabaseFactory
 import com.rferic.zero27apps.auth.refreshOutcome
@@ -18,6 +19,7 @@ import com.rferic.zero27apps.data.ApiException
 import com.rferic.zero27apps.data.PatchMeRequest
 import com.rferic.zero27apps.data.RedeemRequest
 import com.rferic.zero27apps.data.RefreshResult
+import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.SignOutScope
 import com.rferic.zero27apps.prefs.PrefsStringStore
 import com.rferic.zero27apps.update.UpdateThrottle
@@ -28,6 +30,9 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,9 +82,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _invite = MutableStateFlow(InviteState())
     val invite: StateFlow<InviteState> = _invite.asStateFlow()
 
+    private val _migration = MutableStateFlow(MigrationState())
+    val migration: StateFlow<MigrationState> = _migration.asStateFlow()
+
     private var pendingLink: InvitationLink? = null
     /** The boot in flight; a deep link cancels it so it cannot overwrite the invite. */
     private var bootJob: Job? = null
+    private var migrationWatchJob: Job? = null
 
     /** Instances the chooser offers: the build default plus the saved ones. */
     private val _instances = MutableStateFlow(instanceStore.known())
@@ -142,6 +151,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** The signed-in API client, for module screens (null before boot). */
     fun api(): ApiClient? = client
 
+    /** Email of the current Supabase session, for the migration QR card. */
+    fun currentEmail(): String? = supabase?.auth?.currentUserOrNull()?.email
+
     /** The active instance, for screens that are not signed in yet. */
     fun currentInstance(): String = instanceStore.current()
 
@@ -175,6 +187,152 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         pendingLink = null
         _invite.value = InviteState()
         refresh()
+    }
+
+    /**
+     * Old phone: mints a 60-second QR and polls its state while the screen is
+     * open. A used code means the new phone entered; the old session is then
+     * revoked server-side by the new phone.
+     */
+    fun startMigration() {
+        val api = client ?: return
+        if (_state.value !is AppState.SignedIn) return
+        migrationWatchJob?.cancel()
+        _migration.value = MigrationState(loading = true)
+        viewModelScope.launch {
+            try {
+                val created = api.createDeviceTransfer()
+                _migration.value = MigrationState(
+                    token = created.token,
+                    transferId = created.transfer.id,
+                    expiresAt = created.transfer.expiresAt,
+                )
+                watchMigration(api, created.transfer.id)
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _migration.value = MigrationState(
+                    error = if (error.isNetworkFailure()) MigrationError.NETWORK else MigrationError.GENERIC,
+                )
+            }
+        }
+    }
+
+    private fun watchMigration(api: ApiClient, id: String) {
+        migrationWatchJob?.cancel()
+        migrationWatchJob = viewModelScope.launch {
+            while (true) {
+                delay(2_000)
+                val status = runCatching { api.deviceTransferStatus(id) }.getOrNull() ?: continue
+                _migration.value = _migration.value.copy(state = status.state)
+                if (status.state != "pending") break
+            }
+        }
+    }
+
+    /** Leaving the QR screen stops polling and forgets the code. */
+    fun stopMigration() {
+        migrationWatchJob?.cancel()
+        migrationWatchJob = null
+        _migration.value = MigrationState()
+    }
+
+    /**
+     * New phone: a `/migrate` deep link accepts directly; a signed-in app
+     * refuses. False means the link was not a migration one and the caller
+     * should try the invitation parser.
+     */
+    fun onMigrationLink(raw: String): Boolean {
+        val link = MigrationLink.parse(raw) ?: return false
+        // The link wins over a boot that is still resolving the session.
+        bootJob?.cancel()
+        if (_state.value is AppState.SignedIn) {
+            _migration.value = MigrationState(error = MigrationError.SIGNED_IN)
+            return true
+        }
+        acceptMigration(link)
+        return true
+    }
+
+    /**
+     * New phone: exchange the code for a Supabase magic-link hash, verify it,
+     * open the shell, register this device, revoke the other devices and sign
+     * the old phone's sessions out. No password and no refresh token travel.
+     */
+    fun acceptMigration(link: MigrationLink) {
+        bootJob?.cancel()
+        if (_state.value is AppState.SignedIn) {
+            _migration.value = MigrationState(error = MigrationError.SIGNED_IN)
+            return
+        }
+        _migration.value = MigrationState(loading = true)
+        viewModelScope.launch {
+            try {
+                val api = apiFor(link.instance)
+                val exchanged = api.exchangeDeviceTransfer(link.token)
+                if (instanceStore.current() != link.instance) {
+                    sessionStore.clear()
+                    supabase = null
+                }
+                val instance = api.instance()
+                val auth = instance.auth ?: throw ApiException("auth_unavailable", 503)
+                val supabaseClient = supabaseFactory.create(auth.supabaseUrl, auth.supabaseAnonKey)
+                supabase = supabaseClient
+                supabaseClient.auth.awaitInitialization()
+                supabaseClient.auth.verifyEmailOtp(
+                    OtpType.Email.MAGIC_LINK,
+                    exchanged.tokenHash,
+                )
+                api.resetSessionState()
+                val me = api.me()
+                val modules = api.myModules().modules
+                val widgets = runCatching { api.dashboard("app").widgets }.getOrDefault(emptyList())
+                instanceStore.save(link.instance)
+                _instances.value = instanceStore.known()
+                _migration.value = MigrationState(email = exchanged.email)
+                _state.value = AppState.SignedIn(link.instance, me, modules, widgets)
+
+                // The old phone is expelled only after this one is fully in:
+                // the new push device stays, the others are revoked and the old
+                // sessions are signed out.
+                val deviceId = registerPushAndWait(link.instance, supabaseClient)
+                if (deviceId != null) runCatching { api.revokeOtherDevices(deviceId) }
+                runCatching { supabaseClient.auth.signOut(SignOutScope.OTHERS) }
+            } catch (error: ApiException) {
+                _migration.value = MigrationState(
+                    error = when {
+                        // A code that is unknown, used or expired is a 404 by
+                        // design; a revoked session is a 401.
+                        error.status == 404 || error.status == 401 -> MigrationError.AUTH
+                        error.network -> MigrationError.NETWORK
+                        else -> MigrationError.GENERIC
+                    },
+                )
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _migration.value = MigrationState(
+                    error = if (error.isNetworkFailure()) MigrationError.NETWORK else MigrationError.GENERIC,
+                )
+            }
+        }
+    }
+
+    /** Registers this install and waits for the server device id (push may fail). */
+    private suspend fun registerPushAndWait(
+        instance: String,
+        client: SupabaseClient?,
+    ): String? = suspendCancellableCoroutine { continuation ->
+        val jwt = client?.auth?.currentSessionOrNull()?.accessToken
+        if (jwt == null) {
+            continuation.resume(null)
+            return@suspendCancellableCoroutine
+        }
+        FcmRegistrar(getApplication()).configure(instance, jwt) { result ->
+            if (continuation.isActive) {
+                continuation.resume(
+                    if (result.isSuccess) FcmRegistrar(getApplication()).deviceId() else null,
+                )
+            }
+        }
     }
 
     /**

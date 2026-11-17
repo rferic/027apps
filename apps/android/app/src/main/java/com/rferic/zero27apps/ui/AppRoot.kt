@@ -57,11 +57,14 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.rferic.zero27apps.ui.components.AppAlertDialog
 import com.rferic.zero27apps.ui.components.BrandTile
 import com.rferic.zero27apps.ui.components.BrandWordmark
 import com.rferic.zero27apps.ui.components.GridIcon
 import com.rferic.zero27apps.ui.i18n.AppStrings
 import com.rferic.zero27apps.ui.i18n.LocalStrings
+import com.rferic.zero27apps.ui.migration.MigrationQrScreen
+import com.rferic.zero27apps.ui.migration.MigrationScanScreen
 import com.rferic.zero27apps.ui.screens.HomeScreen
 import com.rferic.zero27apps.ui.screens.InviteScreen
 import com.rferic.zero27apps.ui.screens.LoginScreen
@@ -96,9 +99,13 @@ fun AppRoot(
     val instances by viewModel.instances.collectAsStateWithLifecycle()
     val privacyMasked by viewModel.privacyMasked.collectAsStateWithLifecycle()
     val update by viewModel.update.collectAsStateWithLifecycle()
+    val migration by viewModel.migration.collectAsStateWithLifecycle()
+    var scanningMigration by rememberSaveable { mutableStateOf(false) }
+    var showingMigrationQr by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(deepLink) {
-        if (deepLink != null) viewModel.onInviteLink(deepLink)
+        val link = deepLink ?: return@LaunchedEffect
+        if (!viewModel.onMigrationLink(link)) viewModel.onInviteLink(link)
     }
 
     // Coming back to the app is the natural moment to ask for a newer build and
@@ -131,24 +138,55 @@ fun AppRoot(
             ) {
                 when (val current = state) {
                     AppState.Loading -> Splash(viewModel.currentInstance())
-                    is AppState.NeedsLogin -> LoginScreen(
-                        instance = current.instance,
-                        knownInstances = instances,
-                        state = login,
-                        update = update,
-                        notice = current.notice,
-                        onLogin = viewModel::login,
-                        onRememberInstance = viewModel::rememberInstance,
-                        onChangeInstance = viewModel::changeInstance,
-                        onInstallUpdate = viewModel::installUpdate,
-                    )
+                    is AppState.NeedsLogin -> if (scanningMigration) {
+                        MigrationScanScreen(
+                            state = migration,
+                            onScanned = { link ->
+                                scanningMigration = false
+                                viewModel.acceptMigration(link)
+                            },
+                            onCancel = { scanningMigration = false },
+                        )
+                    } else {
+                        LoginScreen(
+                            instance = current.instance,
+                            knownInstances = instances,
+                            state = login,
+                            update = update,
+                            notice = current.notice,
+                            onLogin = viewModel::login,
+                            onScanMigration = { scanningMigration = true },
+                            onRememberInstance = viewModel::rememberInstance,
+                            onChangeInstance = viewModel::changeInstance,
+                            onInstallUpdate = viewModel::installUpdate,
+                        )
+                    }
                     is AppState.NeedsInvite -> InviteScreen(
                         link = current.link,
                         state = invite,
                         onSubmit = viewModel::acceptInvite,
                         onCancel = viewModel::cancelInvite,
                     )
-                    is AppState.SignedIn -> Shell(current, viewModel, instances, update, startAction, startGroup)
+                    is AppState.SignedIn -> if (showingMigrationQr) {
+                        MigrationQrScreen(
+                            instance = current.instance,
+                            email = viewModel.currentEmail() ?: current.user.displayName,
+                            state = migration,
+                            onStart = viewModel::startMigration,
+                            onStop = viewModel::stopMigration,
+                            onClose = { showingMigrationQr = false },
+                        )
+                    } else {
+                        Shell(
+                            current,
+                            viewModel,
+                            instances,
+                            update,
+                            startAction,
+                            startGroup,
+                            onMigrate = { showingMigrationQr = true },
+                        )
+                    }
                     is AppState.Failure -> FailureScreen(
                         reason = current.reason,
                         knownInstances = instances,
@@ -156,6 +194,32 @@ fun AppRoot(
                         onRememberInstance = viewModel::rememberInstance,
                         onChangeInstance = viewModel::changeInstance,
                         onRetry = viewModel::refresh,
+                    )
+                }
+
+                // A migration link that could not finish (this phone is already
+                // signed in, or the code was used or expired) says why, instead
+                // of silently ignoring the link.
+                val migrationError = migration.error
+                if (migrationError != null && !scanningMigration && !showingMigrationQr) {
+                    AppAlertDialog(
+                        onDismissRequest = viewModel::stopMigration,
+                        title = { Text(strings.migrationTitle) },
+                        text = {
+                            Text(
+                                when (migrationError) {
+                                    MigrationError.SIGNED_IN -> strings.migrationSignedIn
+                                    MigrationError.AUTH -> strings.migrationInvalid
+                                    MigrationError.NETWORK -> strings.failureNetwork
+                                    MigrationError.GENERIC -> strings.inviteFailed
+                                },
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = viewModel::stopMigration) {
+                                Text(strings.migrationClose)
+                            }
+                        },
                     )
                 }
             }
@@ -246,6 +310,7 @@ private fun Shell(
     update: UpdateState,
     initialAction: String? = null,
     initialGroup: String? = null,
+    onMigrate: () -> Unit,
 ) {
     val pushStatus by viewModel.pushStatus.collectAsStateWithLifecycle()
     // D18: the shell restores the last place, but a module always opens at its root.
@@ -431,6 +496,7 @@ private fun Shell(
                     lastCheckAt = viewModel.lastUpdateCheckAt(),
                     onTheme = { viewModel.updateProfile(theme = it) },
                     onLocale = { viewModel.updateProfile(locale = it) },
+                    onMigrate = onMigrate,
                     onSignOut = viewModel::signOut,
                 )
                 else -> HomeScreen(

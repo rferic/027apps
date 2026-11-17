@@ -78,6 +78,7 @@ fun SettingsScreen(
     onInstallUpdate: () -> Unit,
     onTheme: (String) -> Unit,
     onLocale: (String) -> Unit,
+    onMigrate: () -> Unit,
     onSignOut: () -> Unit,
 ) {
     val palette = LocalPalette.current
@@ -282,6 +283,24 @@ fun SettingsScreen(
                 Text(strings.changelogNote, color = palette.mutedForeground, fontSize = 12.sp)
             }
             Text("›", fontSize = 18.sp, color = palette.mutedForeground)
+        }
+
+        // Move the account to a new phone
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(palette.surface, RoundedCornerShape(16.dp))
+                .border(1.dp, palette.border, RoundedCornerShape(16.dp))
+                .clickable(onClick = onMigrate)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(strings.migrationTitle, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(strings.migrationQrLead, color = palette.mutedForeground, fontSize = 12.sp)
+            }
+            Icon(Icons.Filled.KeyboardArrowRight, contentDescription = null, tint = palette.mutedForeground)
         }
 
         // Sign out

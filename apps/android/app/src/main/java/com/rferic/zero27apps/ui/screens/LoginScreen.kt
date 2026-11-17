@@ -110,6 +110,7 @@ fun LoginScreen(
     update: UpdateState,
     notice: LoginNotice? = null,
     onLogin: (email: String, password: String) -> Unit,
+    onScanMigration: () -> Unit,
     onRememberInstance: (String) -> String?,
     onChangeInstance: (String) -> Boolean,
     onInstallUpdate: () -> Unit,
@@ -271,6 +272,9 @@ fun LoginScreen(
                 enabled = !state.pending,
             ) {
                 Text(strings.forgotPassword, fontSize = 12.sp)
+            }
+            TextButton(onClick = onScanMigration, enabled = !state.pending) {
+                Text(strings.migrationFromOther, fontSize = 12.sp)
             }
             TextButton(onClick = { showPicker = true }) { Text(strings.changeInstance) }
 

@@ -65,3 +65,19 @@ data class InviteState(
     val pending: Boolean = false,
     val error: InviteError? = null,
 )
+
+/** Old<->new phone migration (QR); the screens render from this one value. */
+enum class MigrationError { NETWORK, GENERIC, SIGNED_IN, AUTH }
+
+data class MigrationState(
+    val loading: Boolean = false,
+    /** New phone: a code was exchanged or a migration is in flight. */
+    val email: String? = null,
+    /** Old phone: the QR being shown. */
+    val token: String? = null,
+    val transferId: String? = null,
+    val expiresAt: String? = null,
+    /** pending | used | expired, polled by the old phone. */
+    val state: String = "pending",
+    val error: MigrationError? = null,
+)

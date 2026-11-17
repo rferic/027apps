@@ -14,6 +14,8 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="zero27apps-dev" android:host="invite" />
                 <data android:scheme="027apps-dev" android:host="invite" />
+                <data android:scheme="zero27apps-dev" android:host="migrate" />
+                <data android:scheme="027apps-dev" android:host="migrate" />
             </intent-filter>
         </activity>
     </application>
