@@ -2,7 +2,7 @@
 id: sprint-16-task-04
 titulo: Contrato de invitación — preview (A2), rol (A6) y cuenta existente (A7)
 area: core + bd + panel
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0004, 0007, 0008]
@@ -11,6 +11,42 @@ adrs: [0004, 0007, 0008]
 **Tarea**: ampliar el contrato de invitaciones **antes** de construir los formularios: vista previa
 pública por token (A2), rol en la invitación con guardrails (A6) y flujo para un email que ya tiene
 cuenta (A7). Incluye la variante de email y la migración de datos.
+
+**Implementación completa 2026-11-17; en revisión/QA y auditoría de seguridad antes de
+`finalizada`.**
+
+- Migración `0035_invitation_role_ttl.sql` aplicada y verificada: rol `user`/`admin`, duración
+  original con backfill real (`ceil`, 1..365) y default 7.
+- `previewInvitation` + `GET /api/v1/invitations/{token}/preview` (público, 60/min por IP): estado
+  pending/used/expired, `account_exists`, `role_applies`, nombre e idioma de la invitación,
+  `inviter_name` (null con clave), `instance_name` y `timezone`. Revocada y desconocida → mismo 404;
+  sin id, hash, módulos, categoría ni rol actual de una cuenta existente.
+- `createInvitation` acepta `role` (guard en el servicio: sesión `super_admin` o clave de servicio
+  con `roleCap: super_admin`; delegada nunca; `admin` → 403; `super_admin` → 400), guarda
+  `expires_in_days`, ya no rechaza un email registrado y devuelve `account_exists`. Respuesta 201
+  con rol y `account_exists`.
+- `redeemInvitation` recibe el `Caller`: una cuenta existente exige **su** sesión (D21) y sin ella
+  o con otra devuelve `409 existing_account_signin_required` sin consumir; conserva nombre, rol y
+  contraseña; una cuenta nueva toma el rol y el nombre de la invitación e ignora `display_name`; el
+  `password` solo es obligatorio para la cuenta nueva. La ruta usa el resolvedor de auth real.
+- `renewInvitation` + `POST /api/v1/invitations/{id}/renew`: solo caducadas, rota el token, reusa
+  `expires_in_days`, limpia los intentos de email y comparte el cooldown de 60 s sin rotar cuando
+  devuelve 429.
+- Email con variantes de cuenta existente (D16) y rol admin en 9 idiomas; el mailer calcula
+  `accountExists`. Panel: selector de rol solo para `super_admin`, rol visible en lista y ficha, y
+  el panel de creación explica cuenta existente y rol admin.
+- OpenAPI regenerado (preview, renew, `Invitation` con `role`/`expires_in_days`, `RedeemResult` con
+  `role`, `InvitationCreated` con `account_exists`).
+
+**Evidencia**: `pnpm --filter @027apps/core test` (504), `pnpm --filter admin test` (1208),
+`pnpm tsc`, `pnpm lint`, `pnpm i18n:check` y `pnpm check:openapi` en verde; `db-tests` de
+invitaciones 31/31 en local con `SUPABASE_DB_URL`; CI en verde en `f71727c` (incluye `supabase` con
+la migración y los `db-tests`). Prueba real contra el `next dev` local: preview de una invitación
+nueva devuelve el contrato de §6.2 y `account_exists: true` + `role_applies: false` para una cuenta
+existente; token desconocido → 404.
+
+Pendiente: auditoría de seguridad (preview público, guardrail de rol, sesión primero, single-use y
+logs) y la revisión/QA antes de `finalizada`.
 
 **Punto de partida (verificado)**
 - `createInvitation` rechaza un email registrado con `email_registered`.

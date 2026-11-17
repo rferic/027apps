@@ -299,6 +299,15 @@ describe("invitations API", () => {
       expect(allowed.status).toBe(201);
       const body = (await allowed.json()) as { invitation: { role: string } };
       expect(body.invitation.role).toBe("admin");
+
+      // `super_admin` is never a valid invitation role: 400 before the service.
+      const escalated = await createInvitationRoute(deps(c, who))(
+        new Request(
+          "http://local/api/v1/invitations",
+          post({ email: email("root-escalates"), name: "Root", role: "super_admin" }),
+        ),
+      );
+      expect(escalated.status).toBe(400);
     });
   });
 
