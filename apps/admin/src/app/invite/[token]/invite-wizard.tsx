@@ -6,6 +6,8 @@ import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
 import { cancelClass } from "@/components/ui/form";
+import { SignInIcon } from "@/components/ui/sign-in-icon";
+import { AndroidIcon } from "@/components/landing/android-icon";
 import type { InviteVariant } from "@/lib/invite-variant";
 import { InviteDetails, type InvitePublicView } from "./invite-details";
 import { InviteForm } from "./invite-form";
@@ -68,7 +70,8 @@ function FormStep({
     <>
       <InviteDetails view={view} messages={messages} />
       <InviteForm token={token} view={view} messages={messages} />
-      <Link href="/login" className={cancelClass}>
+      <Link href="/login" className={`${cancelClass} gap-1`}>
+        <SignInIcon />
         {t("Sign in", messages)}
       </Link>
     </>
@@ -229,8 +232,9 @@ export function InviteWizard({
         <div className="flex flex-col gap-2">
           <a
             href="/download/android"
-            className="inline-flex min-h-11 items-center justify-center rounded-control bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-control bg-android px-4 text-sm font-semibold text-android-foreground hover:opacity-90"
           >
+            <AndroidIcon />
             {t("Download APK", messages)}
           </a>
           <Button variant="secondary" className="min-h-11" onClick={() => setStep("retry")}>
@@ -298,7 +302,12 @@ export function InviteWizard({
       <InviteDetails view={view} messages={messages} />
       <div className="flex flex-col gap-2">
         <OpenButton opening={opening} onOpen={openApp} messages={messages} />
-        <Button variant="secondary" className="min-h-11" onClick={() => setStep("download")}>
+        <Button
+          variant="secondary"
+          className="min-h-11 border-android bg-android text-android-foreground hover:opacity-90"
+          onClick={() => setStep("download")}
+        >
+          <AndroidIcon />
           {t("Download for Android", messages)}
         </Button>
         <Button variant="ghost" className="min-h-11" onClick={() => setStep("form")}>

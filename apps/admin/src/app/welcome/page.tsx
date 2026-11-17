@@ -6,6 +6,8 @@ import { t } from "@027apps/i18n/t.js";
 import { BrandLogo } from "@/components/brand-logo";
 import { DocumentLang } from "@/components/document-lang";
 import { APP_NAME } from "@/lib/brand";
+import { AndroidIcon } from "@/components/landing/android-icon";
+import { SignInIcon } from "@/components/ui/sign-in-icon";
 import { LOCALE_COOKIE, resolveLocale } from "@/lib/locale";
 
 export const metadata: Metadata = {
@@ -21,9 +23,9 @@ interface WelcomePageProps {
 }
 
 const primaryLink =
-  "inline-flex min-h-11 items-center justify-center rounded-control bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90";
+  "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-control bg-android px-4 text-sm font-semibold text-android-foreground hover:opacity-90";
 const secondaryLink =
-  "inline-flex min-h-11 items-center justify-center rounded-control border border-border bg-muted px-4 text-sm font-semibold text-foreground hover:bg-muted/80";
+  "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-control border border-border bg-muted px-4 text-sm font-semibold text-foreground hover:bg-muted/80";
 
 /**
  * Public landing after a plain member redeems an invitation (D2). It holds no
@@ -68,9 +70,11 @@ export default async function WelcomePage({ searchParams }: WelcomePageProps) {
 
         <div className="flex flex-col gap-2">
           <Link href="/download/android" className={primaryLink}>
+            <AndroidIcon />
             {t("Download for Android", messages)}
           </Link>
           <Link href="/login" className={secondaryLink}>
+            <SignInIcon />
             {t("Sign in", messages)}
           </Link>
         </div>

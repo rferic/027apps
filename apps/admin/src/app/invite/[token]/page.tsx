@@ -10,6 +10,7 @@ import { t } from "@027apps/i18n/t.js";
 import { BrandLogo } from "@/components/brand-logo";
 import { DocumentLang } from "@/components/document-lang";
 import { cancelClass } from "@/components/ui/form";
+import { SignInIcon } from "@/components/ui/sign-in-icon";
 import { getInfra } from "@/lib/api/door";
 import { latestAndroidRelease } from "@/lib/android-release";
 import { APP_NAME } from "@/lib/brand";
@@ -90,7 +91,8 @@ function StateCard({
     <section className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4">
       <p className="text-sm font-semibold text-destructive">{title}</p>
       <p className="text-sm text-muted-foreground">{body}</p>
-      <Link href="/login" className={cancelClass}>
+      <Link href="/login" className={`${cancelClass} gap-1`}>
+        <SignInIcon />
         {t("Sign in", messages)}
       </Link>
     </section>

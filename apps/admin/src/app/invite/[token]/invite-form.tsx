@@ -7,6 +7,7 @@ import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
 import { FormActions, FormAlert, FormField, cancelClass, inputClass } from "@/components/ui/form";
+import { SignInIcon } from "@/components/ui/sign-in-icon";
 import { inviteErrorHeading } from "@/lib/invite-errors";
 import {
   MAX_PASSWORD,
@@ -226,7 +227,8 @@ export function InviteForm({
       {failure && <InviteFailureAlert failure={failure} messages={messages} />}
 
       <FormActions>
-        <Link href="/login" className={cancelClass}>
+        <Link href="/login" className={`${cancelClass} gap-1`}>
+          <SignInIcon />
           {t("Sign in", messages)}
         </Link>
         <Button type="submit" variant="primary" className="min-h-11" disabled={submitting}>
@@ -243,7 +245,11 @@ export function InviteForm({
       {!existing && (
         <p className="text-xs text-muted-foreground">
           {t("Already have an account?", messages)}{" "}
-          <Link href="/login" className="font-semibold text-accent hover:underline">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1 font-semibold text-accent hover:underline"
+          >
+            <SignInIcon />
             {t("Sign in", messages)}
           </Link>
         </p>

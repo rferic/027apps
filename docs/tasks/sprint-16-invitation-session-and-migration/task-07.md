@@ -38,6 +38,9 @@ con QR en escritorio y auto-login para roles de panel.
   guarda el idioma de la invitación en la cookie `027_locale`, así `/welcome` y el panel siguen en
   ese idioma en vez de caer al del navegador.
 - Dependencia `qrcode` (MIT) + `@types/qrcode`; sin CSP nueva.
+- Descargas de Android con el icono de Android y su verde propio (token `android`, también en
+  `/welcome`), y enlaces de «Iniciar sesión» con un icono de acceso en el formulario, las tarjetas
+  de estado y la bienvenida.
 - i18n de todo (42 claves nuevas en 9 idiomas) y `pnpm i18n:check` en verde.
 
 **Tests**: página (locale del preview, invalid/404/used/expired, rate limit, Android/iPhone/
