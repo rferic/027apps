@@ -40,6 +40,9 @@ terminar):
    no contiene `Runtime error`, `Application error` ni `relation "…" does not exist`.
 3. **La API responde** con esa sesión (`/api/v1/me`, `/api/v1/modules` y los endpoints del
    módulo que declara el script).
+4. **Las páginas públicas abren sin sesión** (`/login`, `/forgot-password` y
+   `/migrate/<token>` con un token de forma válida) y su HTML no trae un error de ejecución: son
+   la primera puerta de quien acepta una invitación, recupera la contraseña o migra de teléfono.
 
 Rutas extra: `scripts/verify-local.sh http://127.0.0.1:3003 /panel/users /panel/settings`.
 

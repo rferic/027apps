@@ -14,12 +14,27 @@ gates mecánicos, evidencia real y auditoría de seguridad. Sin esto ninguna tar
 
 **En curso (2026-11-17)**
 
-- App Android a `0.19.0`/`1900` con la entrada de `Changelog.kt` del sprint (español e inglés); el
-  test del changelog exige la entrada de la versión en curso y pasa.
-- Pendiente de este cierre: flujos (`invitations.md`, `password-recovery.md`, `cicd.md`),
-  verificación local, auditorías de seguridad y de UX por otros agentes, y el release firmado
-  (tag sobre `main`, lo firma CI con el keystore en secrets: es una puerta del propietario y
-  ocurre después del merge).
+- App Android a `0.19.0`/`1900`. `Changelog.kt` lleva la entrada del sprint en **los nueve
+  idiomas** (`Changelog.shippedLocales`), y `ChangelogTest` falla si la versión en curso no está en
+  todos; las entradas antiguas siguen en es/en y la pantalla cae a inglés para ellas.
+- Flujos nuevos: `docs/flows/invitations.md` (estados, preview, canje de cuenta nueva y existente,
+  app-first, renovar/revocar, invariantes, prueba local) y `docs/flows/password-recovery.md`
+  (camino completo, 700 ms, 5/h IP y 3/h email, GET que no consume, operación).
+- `scripts/verify-local.sh` comprueba también las páginas públicas sin sesión (`/login`,
+  `/forgot-password`, `/migrate/<token>`) y que su HTML no traiga error de ejecución; ejecutado
+  contra la instancia local: todo en verde.
+- `docs/flows/pre-delivery-verification.md` documenta esa comprobación.
+- Gates en local: `pnpm lint` (0 errores), `pnpm tsc`, `pnpm i18n:check` (1027 strings, 9 locales),
+  `pnpm check:openapi` (106/106), `pnpm --filter admin build`, tests de `core` (531), `i18n` (26),
+  `owe-no` (26) y `admin` (1233) en verde, y `./gradlew :app:testDebugUnitTest :app:assembleDebug`.
+  `db-tests` **no** se puede dar por verde en local: la instancia del propietario ya está montada y
+  sus datos hacen fallar las suites de setup/RLS (CI la ejecuta sobre base limpia).
+- Auditorías de seguridad y de UX despachadas a agentes distintos del autor; el resultado y sus
+  correcciones se añaden aquí.
+- Pendiente: `docs/flows/cicd.md` con la parte de `/migrate/` (va con la tarea 05, que es quien
+  añade el App Link al manifest de release), el release firmado (tag sobre `main`, lo firma CI con
+  el keystore en secrets: puerta del propietario, posterior al merge) y la prueba con dos móviles
+  reales.
 
 **Punto de partida**: las tareas 03–10 implementadas y aceptadas por sus criterios.
 
