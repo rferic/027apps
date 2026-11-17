@@ -7,6 +7,8 @@ import { redeemInvitation } from "@027apps/core/invitations/service.js";
 import type { InvitationPreview } from "@027apps/core/invitations/service.js";
 import type { Locale } from "@027apps/i18n/types.js";
 import { getInfra } from "@/lib/api/door";
+import { clientIp } from "@/lib/client-ip";
+import { requestHost } from "@/lib/same-origin";
 import { invitationServiceDeps } from "@/lib/invitation-service-deps";
 import type { SubmitInvitationResult } from "@/lib/invite-action-types";
 import { loadInvitePreview } from "@/lib/invite-preview";
@@ -35,13 +37,6 @@ function originHost(value: string): string | null {
   }
 }
 
-function requestIp(requestHeaders: Headers): string {
-  return (
-    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    requestHeaders.get("x-real-ip") ||
-    "unknown"
-  );
-}
 
 /** Same-origin check plus the per-IP budget, before any database work. */
 function blocked(reason: string): SubmitInvitationResult {
@@ -51,7 +46,7 @@ function blocked(reason: string): SubmitInvitationResult {
 async function requestBlocked(): Promise<SubmitInvitationResult | null> {
   const requestHeaders = await headers();
   const origin = requestHeaders.get("origin");
-  const host = requestHeaders.get("host");
+  const host = requestHost(requestHeaders);
   if (!origin || !host || originHost(origin) !== host) {
     return blocked("validation_failed");
   }
@@ -60,7 +55,7 @@ async function requestBlocked(): Promise<SubmitInvitationResult | null> {
   const now = Date.now();
   const windowStart = new Date(Math.floor(now / 60_000) * 60_000);
   const { count } = await deps.rateLimitStorage.increment(
-    `redeem-action:${requestIp(requestHeaders)}`,
+    `redeem-action:${clientIp(requestHeaders)}`,
     windowStart,
     new Date(windowStart.getTime() + 120_000),
   );

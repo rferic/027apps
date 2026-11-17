@@ -1103,7 +1103,14 @@ export const deviceTransferExchangeSchema = component(
 
 export const revokeOtherDevicesSchema = component(
   "RevokeOtherDevicesRequest",
-  z.object({ keep_device_id: z.uuid() }).strict(),
+  z
+    .object({
+      keep_device_id: z
+        .uuid()
+        .nullable()
+        .describe("Device to keep; null when the new phone could not register push."),
+    })
+    .strict(),
 );
 
 export const revokeOtherDevicesResponseSchema = component(

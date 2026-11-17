@@ -73,6 +73,9 @@ data class MigrationState(
     val loading: Boolean = false,
     /** New phone: a code was exchanged or a migration is in flight. */
     val email: String? = null,
+    /** A link points at another instance; the person must confirm it first. */
+    val confirmInstance: String? = null,
+    val pendingLink: com.rferic.zero27apps.auth.MigrationLink? = null,
     /** Old phone: the QR being shown. */
     val token: String? = null,
     val transferId: String? = null,

@@ -81,6 +81,7 @@ jobs:
             -e 'eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}' \
             -e 'SERVICE_ROLE_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9_-]{20,}' \
             -e '027_(svc|usr)_[A-Za-z0-9_-]{20,}' \
+            -e '027_(inv|mig)_[A-Za-z0-9_-]{32,}' \
             -e 'SETTINGS_ENCRYPTION_KEY[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9+/=]{20,}' || true)
           if [ -n "$hits" ]; then
             echo "::error::Secret-like values found in:"; echo "$hits"; fail=1

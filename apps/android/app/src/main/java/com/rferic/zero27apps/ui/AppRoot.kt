@@ -165,6 +165,7 @@ fun AppRoot(
                         link = current.link,
                         state = invite,
                         onSubmit = viewModel::acceptInvite,
+                        onRetry = viewModel::retryInvitePreview,
                         onCancel = viewModel::cancelInvite,
                     )
                     is AppState.SignedIn -> if (showingMigrationQr) {
@@ -197,6 +198,34 @@ fun AppRoot(
                     )
                 }
 
+                // A link from a browser may name any host: when it is not the
+                // instance this install uses, the person confirms first.
+                val confirmInstance = migration.confirmInstance
+                if (confirmInstance != null) {
+                    AppAlertDialog(
+                        onDismissRequest = viewModel::stopMigration,
+                        title = { Text(strings.migrationTitle) },
+                        text = {
+                            Text(
+                                strings.migrationConfirmInstance.replace(
+                                    "{instance}",
+                                    confirmInstance.removePrefix("https://").removePrefix("http://"),
+                                ),
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = viewModel::confirmMigrationLink) {
+                                Text(strings.confirm)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = viewModel::stopMigration) {
+                                Text(strings.cancel)
+                            }
+                        },
+                    )
+                }
+
                 // A migration link that could not finish (this phone is already
                 // signed in, or the code was used or expired) says why, instead
                 // of silently ignoring the link.
@@ -216,9 +245,24 @@ fun AppRoot(
                             )
                         },
                         confirmButton = {
-                            TextButton(onClick = viewModel::stopMigration) {
-                                Text(strings.migrationClose)
+                            if (migrationError == MigrationError.SIGNED_IN) {
+                                TextButton(onClick = viewModel::signOutAndMigrate) {
+                                    Text(strings.migrationSignOutAndScan)
+                                }
+                            } else {
+                                TextButton(onClick = viewModel::stopMigration) {
+                                    Text(strings.migrationClose)
+                                }
                             }
+                        },
+                        dismissButton = if (migrationError == MigrationError.SIGNED_IN) {
+                            {
+                                TextButton(onClick = viewModel::stopMigration) {
+                                    Text(strings.cancel)
+                                }
+                            }
+                        } else {
+                            null
                         },
                     )
                 }

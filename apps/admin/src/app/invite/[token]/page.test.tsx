@@ -107,6 +107,15 @@ describe("invite page", () => {
     expect(previewMock).toHaveBeenCalledWith("027_inv_abc123");
   });
 
+  it("shows the invitation details exactly once on the form step", async () => {
+    const html = await render();
+
+    // The card is read-only data the token already carries: a second copy (the
+    // form used to render its own) duplicated the email and every row.
+    expect(html.split("ana@example.com").length - 1).toBe(1);
+    expect(html.split("grid-cols-1 gap-3 rounded-card").length - 1).toBe(1);
+  });
+
   it("is not indexable and sends no referrer", () => {
     expect(metadata.robots).toEqual({ index: false, follow: false });
     expect(metadata.referrer).toBe("no-referrer");

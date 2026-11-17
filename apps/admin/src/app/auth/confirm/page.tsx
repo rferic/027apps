@@ -4,7 +4,7 @@ import { getDictionary } from "@027apps/i18n/dictionary.js";
 import { t } from "@027apps/i18n/t.js";
 import { BrandLogo } from "@/components/brand-logo";
 import { DocumentLang } from "@/components/document-lang";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/app/(auth)/submit-button";
 import { requestLocale } from "@/lib/request-locale";
 import { confirmRecoveryAction } from "./actions";
 
@@ -56,9 +56,12 @@ export default async function ConfirmRecoveryPage({ searchParams }: ConfirmPageP
               <input type="hidden" name="token_hash" value={tokenHash} />
               <input type="hidden" name="type" value="recovery" />
               <input type="hidden" name="next" value="/reset-password" />
-              <Button type="submit" variant="primary" className="min-h-11 w-full">
-                {t("Continue", messages)}
-              </Button>
+              <SubmitButton
+                label={t("Continue", messages)}
+                pendingLabel={t("Continuing…", messages)}
+                variant="primary"
+                className="min-h-11 w-full"
+              />
             </form>
           </>
         ) : (

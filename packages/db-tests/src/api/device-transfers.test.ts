@@ -179,4 +179,36 @@ describe("device transfer routes", () => {
       expect(kept).toBeDefined();
     });
   });
+
+  it("revokes every device when the new phone could not register push", async () => {
+    await inRollback(async (c) => {
+      const value = email("revoke-all");
+      const { id } = await createTestUser(c, { email: value });
+      const who: Caller = { kind: "session", userId: id, role: "user" };
+      const route = deps(c, who, value);
+
+      await registerDeviceRoute(route)(
+        new Request(
+          "http://local/api/v1/devices",
+          post({ platform: "android", push_token: "push-token-old-123" }),
+        ),
+      );
+
+      const revoked = await revokeOtherDevicesRoute(route)(
+        new Request(
+          "http://local/api/v1/me/devices/revoke-others",
+          post({ keep_device_id: null }),
+        ),
+      );
+      expect(revoked.status).toBe(200);
+      expect(await revoked.json()).toEqual({ revoked: 1 });
+
+      const { rows } = await query(
+        c,
+        "select revoked_at from public.devices where user_id = $1",
+        [id],
+      );
+      expect(rows.every((row) => row.revoked_at !== null)).toBe(true);
+    });
+  });
 });

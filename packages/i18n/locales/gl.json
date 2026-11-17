@@ -997,7 +997,7 @@
   "You have been invited to join": "Convidáronte a unirte a",
   "Your account is ready": "A túa conta está lista",
   "Your current role": "O teu rol actual",
-  "Back to sign in": "Volver a iniciar sesión",
+  "Back to sign in": "Volver ao inicio de sesión",
   "Choose a new password": "Escolle un contrasinal novo",
   "Confirm that you want to choose a new password.": "Confirma que queres escoller un contrasinal novo.",
   "Continue": "Continuar",
@@ -1025,5 +1025,8 @@
   "We couldn't renew the invitation.": "Non se puido renovar a invitación.",
   "Move to a new phone": "Mover a un teléfono novo",
   "This link is not valid.": "Esta ligazón non é válida.",
-  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Esta ligazón move a túa conta a un teléfono novo. Ábrea no teléfono que queiras usar, coa app 027Apps instalada."
+  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Esta ligazón move a túa conta a un teléfono novo. Ábrea no teléfono que queiras usar, coa app 027Apps instalada.",
+  "Only the 027Apps app for Android can open it. The code lasts 60 seconds: if it has expired, generate a new one on the old phone.": "Só a app 027Apps para Android pode abrirlo. O código dura 60 segundos: se caducou, xera un novo no móbil vello.",
+  "Signing in…": "Entrando…",
+  "Continuing…": "Continuando…"
 }

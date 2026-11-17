@@ -117,8 +117,17 @@ class OweWidgetWorker(
                     updatedAt = System.currentTimeMillis(),
                 ),
             )
+        } catch (error: com.rferic.zero27apps.data.ApiException) {
+            // A revoked session is not a network blip: the widget must stop
+            // showing the balances of an account that was expelled.
+            if (error.status == 401 || error.code == "unauthorized") {
+                sessionStore.clear()
+                return finish(context, store, WidgetSnapshot())
+            }
+            // Anything else keeps the previous snapshot: a network blip must
+            // not blank the widget.
+            Result.retry()
         } catch (_: Exception) {
-            // Keep the previous snapshot: a network blip must not blank the widget.
             Result.retry()
         } finally {
             api?.close()

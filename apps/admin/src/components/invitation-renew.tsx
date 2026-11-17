@@ -67,7 +67,9 @@ export function InvitationRenew({
     setToken(result.token);
     setEmail(result.email ?? null);
     setConfirming(false);
-    router.refresh();
+    // No `router.refresh()` here: the invitation is now `pending`, so the page
+    // would unmount this section and throw away the only copy of the new link.
+    // The "done" action below refreshes once the admin has taken it.
   }
 
   async function copy() {
@@ -137,6 +139,15 @@ export function InvitationRenew({
               {copied ? t("Copied.", messages) : t("Copy link", messages)}
             </Button>
           </div>
+          {/* Refreshing is what removes this section (the invitation is pending
+              again), so it waits until the admin says the link is safe. */}
+          <Button
+            variant="ghost"
+            className="min-h-11 self-start"
+            onClick={() => router.refresh()}
+          >
+            {t("Done", messages)}
+          </Button>
         </div>
       )}
     </section>

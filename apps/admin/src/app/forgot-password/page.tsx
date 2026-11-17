@@ -4,7 +4,7 @@ import { getDictionary } from "@027apps/i18n/dictionary.js";
 import { t } from "@027apps/i18n/t.js";
 import { BrandLogo } from "@/components/brand-logo";
 import { DocumentLang } from "@/components/document-lang";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/app/(auth)/submit-button";
 import { inputClass } from "@/components/ui/form";
 import { requestLocale } from "@/lib/request-locale";
 import { requestResetAction } from "./actions";
@@ -78,9 +78,12 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
                 className={inputClass}
               />
             </label>
-            <Button type="submit" variant="primary" className="min-h-11">
-              {t("Send link", messages)}
-            </Button>
+            <SubmitButton
+              label={t("Send link", messages)}
+              pendingLabel={t("Sending…", messages)}
+              variant="primary"
+              className="min-h-11"
+            />
           </form>
         )}
 

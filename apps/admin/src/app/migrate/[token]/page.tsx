@@ -3,9 +3,11 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { getDictionary } from "@027apps/i18n/dictionary.js";
 import { t } from "@027apps/i18n/t.js";
+import { AndroidIcon } from "@/components/landing/android-icon";
 import { BrandLogo } from "@/components/brand-logo";
 import { DocumentLang } from "@/components/document-lang";
 import { cancelClass } from "@/components/ui/form";
+import { loadPanelSettings, publicUrlFromSettings } from "@/lib/panel-settings";
 import { requestLocale } from "@/lib/request-locale";
 
 export const instant = false;
@@ -20,7 +22,12 @@ interface MigratePageProps {
   params: Promise<{ token: string }>;
 }
 
-function requestOrigin(headerStore: { get(name: string): string | null }): string {
+/** Where the link points: the configured public URL wins over the request's Host. */
+function requestOrigin(
+  publicUrl: string | null,
+  headerStore: { get(name: string): string | null },
+): string {
+  if (publicUrl) return publicUrl.replace(/\/+$/, "");
   const host = headerStore.get("host");
   if (!host) return "";
   const proto =
@@ -40,8 +47,8 @@ export default async function MigratePage({ params }: MigratePageProps) {
     requestLocale(),
   ]);
   const messages = getDictionary(locale);
-  const origin = requestOrigin(headerStore);
-  const valid = token.startsWith("027_mig_") && token.length <= 200;
+  const origin = requestOrigin(publicUrlFromSettings(await loadPanelSettings()), headerStore);
+  const valid = /^027_mig_[A-Za-z0-9_-]{1,200}$/.test(token);
   const appHref = origin
     ? `zero27apps://migrate/${encodeURIComponent(token)}?instance=${encodeURIComponent(origin)}`
     : null;
@@ -63,18 +70,27 @@ export default async function MigratePage({ params }: MigratePageProps) {
         </div>
 
         {valid && appHref && (
-          <a
-            href={appHref}
-            className="inline-flex min-h-11 items-center justify-center rounded-control bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90"
-          >
-            {t("Open in the app", messages)}
-          </a>
+          <>
+            <a
+              href={appHref}
+              className="inline-flex min-h-11 items-center justify-center rounded-control bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            >
+              {t("Open in the app", messages)}
+            </a>
+            <p className="text-xs text-muted-foreground">
+              {t(
+                "Only the 027Apps app for Android can open it. The code lasts 60 seconds: if it has expired, generate a new one on the old phone.",
+                messages,
+              )}
+            </p>
+          </>
         )}
 
         <a
           href="/download/android"
-          className="inline-flex min-h-11 items-center justify-center rounded-control border border-border bg-muted px-4 text-sm font-semibold text-foreground hover:bg-muted/80"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-android px-4 text-sm font-semibold text-android-foreground hover:opacity-90"
         >
+          <AndroidIcon />
           {t("Download for Android", messages)}
         </a>
 

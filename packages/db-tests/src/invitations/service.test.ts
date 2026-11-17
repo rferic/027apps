@@ -487,7 +487,25 @@ describe("invitations service", () => {
       const rejected = attempts.find((result) => result.status === "rejected") as
         | PromiseRejectedResult
         | undefined;
-      expect(rejected?.reason).toMatchObject({ code: "invitation_used" });
+      // The loser either finds the invitation already used or, when it is the
+      // request that did not create the Auth user, is told to sign in instead
+      // (the anonymous path never reuses an existing account, D21).
+      expect(["invitation_used", "existing_account_signin_required"]).toContain(
+        (rejected?.reason as { code?: string } | undefined)?.code,
+      );
+
+      // The winner's account must survive: a rollback that deleted the Auth
+      // user would leave the invitation consumed and the person with nothing.
+      await withClient(async (c) => {
+        const { rows: users } = await query(c, "select id from auth.users where email = $1", [
+          inviteEmail,
+        ]);
+        expect(users).toHaveLength(1);
+        const { rows: profiles } = await query(c, "select id from public.profiles where id = $1", [
+          users[0].id,
+        ]);
+        expect(profiles).toHaveLength(1);
+      });
     } finally {
       await withClient(async (c) => {
         await c.query("delete from public.invitations where email = $1", [inviteEmail]);

@@ -14,6 +14,7 @@ import { SignInIcon } from "@/components/ui/sign-in-icon";
 import { getInfra } from "@/lib/api/door";
 import { latestAndroidRelease } from "@/lib/android-release";
 import { APP_NAME } from "@/lib/brand";
+import { clientIp } from "@/lib/client-ip";
 import { isValidInviteToken } from "@/lib/invite-form";
 import { loadInvitePreview } from "@/lib/invite-preview";
 import { inviteVariant } from "@/lib/invite-variant";
@@ -37,9 +38,6 @@ interface InvitePageProps {
   params: Promise<{ token: string }>;
 }
 
-function clientIp(value: string | null): string {
-  return value?.split(",")[0]?.trim() || "unknown";
-}
 
 /** The public page has its own budget: rendering it is not rate limited by the API. */
 async function overPageLimit(ip: string): Promise<boolean> {
@@ -131,7 +129,9 @@ async function wizardChrome(
     variant === "desktop" && origin
       ? await QRCode.toString(`${origin}/invite/${encodeURIComponent(token)}`, {
           type: "svg",
-          margin: 2,
+          // Four modules of quiet zone: scanners need it, and the card behind
+          // is dark in the dark theme.
+          margin: 4,
           width: 176,
           // A QR must stay pure black on white in both themes: a palette token
           // would make it unscannable, and the library only accepts hex.
@@ -168,7 +168,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
     );
   }
 
-  if (await overPageLimit(clientIp(headerStore.get("x-forwarded-for")))) {
+  if (await overPageLimit(clientIp(headerStore))) {
     const messages = getDictionary(cookieLocale);
     return (
       <PageFrame locale={cookieLocale}>

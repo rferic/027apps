@@ -21,6 +21,8 @@ import io.ktor.serialization.kotlinx.json.json
 import java.io.Closeable
 import java.io.IOException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * The Core API client. It carries the Supabase access token, retries exactly
@@ -268,12 +270,17 @@ class ApiClient(
         read(request(HttpMethod.Post, "/api/v1/device-transfers/$token/exchange"))
 
     /** New phone: revoke every other push device, keeping this one. */
-    suspend fun revokeOtherDevices(keepDeviceId: String): RevokeOthersResponse =
+    /**
+     * `keepDeviceId` null revokes every device: the new phone has no push
+     * device to keep. Built as a JSON object because the serializer drops null
+     * fields and the endpoint requires the key.
+     */
+    suspend fun revokeOtherDevices(keepDeviceId: String?): RevokeOthersResponse =
         read(
             request(
                 HttpMethod.Post,
                 "/api/v1/me/devices/revoke-others",
-                RevokeOthersRequest(keepDeviceId),
+                buildJsonObject { put("keep_device_id", keepDeviceId) },
             ),
         )
 
@@ -332,6 +339,22 @@ class ApiClient(
             throw ApiException.networkFailure(error)
         }
 
+    /**
+     * The path as it may be logged: UUIDs and bearer tokens (invitations
+     * `027_inv_`, migrations `027_mig_`, anything long and opaque) become
+     * placeholders, so a debug log never carries a credential.
+     */
+    internal fun redactPath(encodedPath: String): String =
+        encodedPath
+            .replace(
+                Regex("/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"),
+                "/:id",
+            )
+            // 24+ characters is the server's own rule; the two token prefixes
+            // are listed so a shorter code still never reaches the log.
+            .replace(Regex("/027_(?:inv|mig)_[A-Za-z0-9_-]+"), "/:token")
+            .replace(Regex("/[A-Za-z0-9_-]{24,}"), "/:token")
+
     private suspend fun expectSuccess(response: HttpResponse) {
         if (!response.status.isSuccess()) throw errorOf(response)
     }
@@ -346,11 +369,7 @@ class ApiClient(
         if (BuildConfig.DEBUG) {
             // Status and a path with ids redacted; never the body (it can carry a token).
             runCatching {
-                val path = response.call.request.url.encodedPath.replace(
-                    Regex("/[0-9a-f-]{16,}"),
-                    "/:id",
-                )
-                android.util.Log.w("027api", "HTTP $status $path")
+                android.util.Log.w("027api", "HTTP $status ${redactPath(response.call.request.url.encodedPath)}")
             }
         }
         val envelope = runCatching { response.body<ErrorEnvelope>() }.getOrNull()

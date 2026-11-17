@@ -298,7 +298,7 @@ fun SettingsScreen(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(strings.migrationTitle, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                Text(strings.migrationQrLead, color = palette.mutedForeground, fontSize = 12.sp)
+                Text(strings.migrationSettingsNote, color = palette.mutedForeground, fontSize = 12.sp)
             }
             Icon(Icons.Filled.KeyboardArrowRight, contentDescription = null, tint = palette.mutedForeground)
         }

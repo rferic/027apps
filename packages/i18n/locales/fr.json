@@ -568,7 +568,7 @@
   "Send by email": "Envoyer par email",
   "Send test email": "Envoyer un e-mail de test",
   "Sender ID": "ID de l'expéditeur",
-  "Sending…": "Envoi en cours…",
+  "Sending…": "Envoi…",
   "Sentry": "Sentry",
   "Service": "Service",
   "Service account JSON": "JSON du compte de service",
@@ -1025,5 +1025,8 @@
   "We couldn't renew the invitation.": "Nous n'avons pas pu renouveler l'invitation.",
   "Move to a new phone": "Passer à un nouveau téléphone",
   "This link is not valid.": "Ce lien n'est pas valide.",
-  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Ce lien déplace votre compte vers un nouveau téléphone. Ouvrez-le sur le téléphone que vous souhaitez utiliser, avec l'application 027Apps installée."
+  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Ce lien déplace votre compte vers un nouveau téléphone. Ouvrez-le sur le téléphone que vous souhaitez utiliser, avec l'application 027Apps installée.",
+  "Only the 027Apps app for Android can open it. The code lasts 60 seconds: if it has expired, generate a new one on the old phone.": "Seule l'app 027Apps pour Android peut l'ouvrir. Le code dure 60 secondes : s'il a expiré, générez-en un nouveau sur l'ancien téléphone.",
+  "Signing in…": "Connexion…",
+  "Continuing…": "Suite…"
 }

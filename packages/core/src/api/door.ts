@@ -331,9 +331,10 @@ async function runDoor(
 
     if (options.rateLimit) {
       const identity = identityFor(authorizedCaller, req, options.rateLimit.identity);
+      const bucket = options.rateLimit.bucket ?? options.rateLimit.identity;
       const result = await checkRateLimit(
         deps.rateLimitStorage,
-        `${options.rateLimit.identity}:${identity}`,
+        `${bucket}:${identity}`,
         { limit: options.rateLimit.limit, windowSeconds: WINDOW_SECONDS },
       );
       if (!result.allowed) {

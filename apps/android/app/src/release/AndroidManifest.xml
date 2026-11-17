@@ -17,6 +17,12 @@
                     android:scheme="https"
                     android:host="027apps.ericrf.com"
                     android:pathPrefix="/invite/" />
+                <!-- Phone migration: the QR and the /migrate landing hand the
+                     one-shot code to the new phone without a browser round trip. -->
+                <data
+                    android:scheme="https"
+                    android:host="027apps.ericrf.com"
+                    android:pathPrefix="/migrate/" />
             </intent-filter>
         </activity>
     </application>

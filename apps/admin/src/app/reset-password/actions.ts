@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { isActiveProfile } from "@/lib/active-profile";
 import { getInfra } from "@/lib/api/door";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -40,6 +41,10 @@ export async function resetPasswordAction(formData: FormData): Promise<void> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/forgot-password");
+  if (!(await isActiveProfile(data.user.id))) {
+    await supabase.auth.signOut({ scope: "local" });
+    redirect("/forgot-password?notice=invalid");
+  }
   if (await overLimit(data.user.id)) fail("rate_limited");
 
   const { error } = await supabase.auth.updateUser({ password });

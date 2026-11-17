@@ -173,9 +173,21 @@ export async function revokeDevice(
 export async function revokeOtherDevices(
   deps: DevicesDeps,
   caller: Caller,
-  keepDeviceId: string,
+  keepDeviceId: string | null,
 ): Promise<{ revoked: number }> {
   const userId = actorUserId(caller);
+  if (keepDeviceId === null) {
+    // The new phone has no push device to keep (no Play Services or FCM off):
+    // the old phone still has to stop receiving notifications.
+    const { rows } = await deps.db.query(
+      `update public.devices set revoked_at = now()
+        where user_id = $1 and revoked_at is null
+        returning id`,
+      [userId],
+    );
+    return { revoked: rows.length };
+  }
+
   const { rows: keep } = await deps.db.query(
     "select id from public.devices where id = $1 and user_id = $2",
     [keepDeviceId, userId],

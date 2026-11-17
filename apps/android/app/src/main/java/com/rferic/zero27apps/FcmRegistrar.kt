@@ -76,8 +76,14 @@ class FcmRegistrar(private val context: Context) {
     /** The server device id of this install, when push registration succeeded. */
     fun deviceId(): String? = prefs.getString("device_id", null)
 
-    fun revoke() {        val baseUrl = instanceUrl
-        val jwt = sessionToken
+    /**
+     * `accessToken` is the live Supabase token: the one kept from `configure`
+     * expires after 15 minutes, and sending it would leave the device
+     * registered forever. Falls back to the stored one when none is given.
+     */
+    fun revoke(accessToken: String? = null) {
+        val baseUrl = instanceUrl
+        val jwt = accessToken ?: sessionToken
         val deviceId = prefs.getString("device_id", null)
         val token = prefs.getString("push_token", null)
         if (baseUrl != null && jwt != null) {

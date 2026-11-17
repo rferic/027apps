@@ -6,9 +6,10 @@ import { getDictionary } from "@027apps/i18n/dictionary.js";
 import { t } from "@027apps/i18n/t.js";
 import { BrandLogo } from "@/components/brand-logo";
 import { DocumentLang } from "@/components/document-lang";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/app/(auth)/submit-button";
 import { inputClass } from "@/components/ui/form";
 import { requestLocale } from "@/lib/request-locale";
+import { isActiveProfile } from "@/lib/active-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resetPasswordAction } from "./actions";
 
@@ -41,6 +42,10 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
     requestLocale(),
   ]);
   if (!data.user) redirect("/forgot-password");
+  if (!(await isActiveProfile(data.user.id))) {
+    await supabase.auth.signOut({ scope: "local" });
+    redirect("/forgot-password?notice=invalid");
+  }
 
   const messages = getDictionary(locale);
   const rawError = typeof params.error === "string" ? params.error : "";
@@ -94,9 +99,12 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
               className={inputClass}
             />
           </label>
-          <Button type="submit" variant="primary" className="min-h-11">
-            {t("Save password", messages)}
-          </Button>
+          <SubmitButton
+            label={t("Save password", messages)}
+            pendingLabel={t("Saving…", messages)}
+            variant="primary"
+            className="min-h-11"
+          />
         </form>
 
         <Link href="/forgot-password" className="text-xs font-semibold text-accent hover:underline">

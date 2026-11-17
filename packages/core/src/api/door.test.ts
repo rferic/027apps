@@ -215,6 +215,20 @@ describe('withDoor — rate limiting', () => {
     expect(storage.calls[0]).toBe('user:u1');
   });
 
+  it('separates the budget of a route with its own bucket', async () => {
+    const storage = makeStorage(1);
+    const res = await withDoor(
+      new Request(URL_BASE),
+      makeOptions({ rateLimit: { identity: 'user', limit: 5, bucket: 'device-transfers-create' } }),
+      makeDeps({ rateLimitStorage: storage }),
+      async () => ({ ok: true }),
+    );
+
+    expect(res.status).toBe(200);
+    // The polling route spends `user:<id>`; a user action must not inherit it.
+    expect(storage.calls[0]).toBe('device-transfers-create:u1');
+  });
+
   it('runs the handler when the request is within the limit', async () => {
     const storage = makeStorage(2);
     const res = await withDoor(

@@ -4,13 +4,10 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requestPasswordReset } from "@027apps/core/auth/password-recovery.js";
+import { clientIp } from "@/lib/client-ip";
 import { passwordRecoveryDeps } from "@/lib/password-recovery-deps";
 
 const emailSchema = z.string().trim().email().max(320);
-
-function clientIp(value: string | null): string {
-  return value?.split(",")[0]?.trim() || "unknown";
-}
 
 /**
  * Request a recovery email. Every path ends on the same neutral page: an
@@ -24,7 +21,7 @@ export async function requestResetAction(formData: FormData): Promise<void> {
     try {
       await requestPasswordReset(await passwordRecoveryDeps(), {
         email: parsed.data,
-        ip: clientIp(requestHeaders.get("x-forwarded-for")),
+        ip: clientIp(requestHeaders),
       });
     } catch {
       // The service is already silent; this is the last line of defence.

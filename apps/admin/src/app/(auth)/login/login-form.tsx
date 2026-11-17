@@ -86,7 +86,7 @@ export function LoginForm({ messages = {}, instanceName = "027Apps" }: LoginForm
         <p className="text-xs text-destructive">{t("Wrong email or password", messages)}</p>
       )}
 
-      <SubmitButton label={t("Sign in", messages)} />
+      <SubmitButton label={t("Sign in", messages)} pendingLabel={t("Signing in…", messages)} />
       <Link
         href="/forgot-password"
         className="text-center text-xs font-semibold text-accent hover:underline"

@@ -135,6 +135,7 @@ fun InviteScreen(
     link: InvitationLink,
     state: InviteState,
     onSubmit: (password: String) -> Unit,
+    onRetry: () -> Unit,
     onCancel: () -> Unit,
 ) {
     val palette = LocalPalette.current
@@ -199,6 +200,12 @@ fun InviteScreen(
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center,
                     )
+                    Spacer(Modifier.height(10.dp))
+                    // A momentary failure (offline, server restart) must not
+                    // force the person back to the email to open the link again.
+                    Button(onClick = onRetry, shape = RoundedCornerShape(12.dp)) {
+                        Text(strings.tryAgain)
+                    }
                     TextButton(onClick = onCancel) { Text(strings.inviteClose) }
                 }
 

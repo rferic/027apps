@@ -5,9 +5,13 @@ import type { TranslationMap } from "@027apps/i18n/types.js";
 import { cn } from "@/lib/cn";
 import { panelErrorCodeLabel } from "@/lib/panel-errors";
 
-/** Native control classes shared by the panel forms: 44 px tall, token colours. */
+/**
+ * Native control classes shared by the panel forms: 44 px tall, token colours.
+ * 16 px on phones (`text-base`) because iOS Safari zooms the page when a
+ * smaller field takes focus; it goes back to 14 px from the `sm` breakpoint.
+ */
 export const inputClass =
-  "min-h-11 rounded-control border border-border bg-background px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "min-h-11 rounded-control border border-border bg-background px-2.5 text-base text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:text-sm";
 
 /** Cancel link of a form: same 44 px target and focus ring as its submit. */
 export const cancelClass =

@@ -1025,5 +1025,8 @@
   "We couldn't renew the invitation.": "Ezin izan da gonbidapena berritu.",
   "Move to a new phone": "Mugitu telefono berri batera",
   "This link is not valid.": "Esteka hau ez da baliozkoa.",
-  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Esteka honek zure kontua telefono berri batera eramaten du. Ireki erabili nahi duzun telefonoan, 027Apps aplikazioa instalatuta."
+  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Esteka honek zure kontua telefono berri batera eramaten du. Ireki erabili nahi duzun telefonoan, 027Apps aplikazioa instalatuta.",
+  "Only the 027Apps app for Android can open it. The code lasts 60 seconds: if it has expired, generate a new one on the old phone.": "Androiderako 027Apps appak bakarrik dezake ireki. Kodeak 60 segundo irauten du: iraungi bada, sortu berri bat telefono zaharrean.",
+  "Signing in…": "Saioa hasten ari da…",
+  "Continuing…": "Jarraitzen…"
 }

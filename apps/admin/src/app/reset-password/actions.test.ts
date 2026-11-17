@@ -31,6 +31,10 @@ vi.mock("@/lib/api/door", () => ({
   }),
 }));
 
+vi.mock("@/lib/active-profile", () => ({
+  isActiveProfile: async () => true,
+}));
+
 import { resetPasswordAction } from "./actions";
 
 function form(password: string, confirmation: string): FormData {

@@ -189,7 +189,4 @@ data class DeviceTransferExchangeDto(
 )
 
 @Serializable
-data class RevokeOthersRequest(@SerialName("keep_device_id") val keepDeviceId: String)
-
-@Serializable
 data class RevokeOthersResponse(val revoked: Int = 0)

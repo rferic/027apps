@@ -19,7 +19,7 @@ import { submitInvite } from "@/lib/invite-submit";
 import type { MutationFailure } from "@/lib/mutation-result";
 import { submitOnce } from "@/lib/submit-guard";
 import { submitInvitation } from "./actions";
-import { InviteDetails, type InvitePublicView } from "./invite-details";
+import type { InvitePublicView } from "./invite-details";
 
 function fieldMessage(
   error: InviteFieldError | undefined,
@@ -93,6 +93,8 @@ export function InviteFailureAlert({
  * request path; it is never rendered, stored or logged. The email comes from
  * the invitation card, never from an editable input.
  */
+type SubmitOutcome = Awaited<ReturnType<typeof submitInvite>>;
+
 export function InviteForm({
   token,
   view,
@@ -118,17 +120,28 @@ export function InviteForm({
     setFieldErrors({});
     setSubmitting(true);
 
-    const outcome = await submitOnce(inFlight, () =>
-      submitInvite(
-        {
-          token,
-          password: String(data.get("password") ?? ""),
-          confirmation: String(data.get("confirmation") ?? ""),
-          accountExists: existing,
-        },
-        { submit: submitInvitation },
-      ),
-    );
+    // A transport failure (offline, 503) rejects instead of returning an
+    // outcome; without this the button stays on "Accepting…" forever.
+    let outcome: SubmitOutcome | undefined;
+    try {
+      outcome = await submitOnce(inFlight, () =>
+        submitInvite(
+          {
+            token,
+            password: String(data.get("password") ?? ""),
+            confirmation: String(data.get("confirmation") ?? ""),
+            accountExists: existing,
+          },
+          { submit: submitInvitation },
+        ),
+      );
+    } catch {
+      // The action never reached the server: offer the generic retry instead
+      // of leaving the form stuck.
+      setSubmitting(false);
+      setFailure({ ok: false });
+      return;
+    }
 
     if (outcome?.kind === "redeemed") {
       const href = outcome.signInFailed
@@ -150,8 +163,6 @@ export function InviteForm({
       noValidate
       className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4"
     >
-      <InviteDetails view={view} messages={messages} />
-
       {existing ? (
         <>
           <FormField
@@ -227,10 +238,12 @@ export function InviteForm({
       {failure && <InviteFailureAlert failure={failure} messages={messages} />}
 
       <FormActions>
-        <Link href="/login" className={`${cancelClass} gap-1`}>
-          <SignInIcon />
-          {t("Sign in", messages)}
-        </Link>
+        {existing ? (
+          <Link href="/login" className={`${cancelClass} gap-1`}>
+            <SignInIcon />
+            {t("Sign in", messages)}
+          </Link>
+        ) : null}
         <Button type="submit" variant="primary" className="min-h-11" disabled={submitting}>
           {submitting
             ? t("Accepting…", messages)

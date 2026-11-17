@@ -62,7 +62,7 @@ export const EMAIL_COPY: Record<EmailLocale, EmailCopy> = {
     greeting: "Ola, {name}",
     lead: "{inviter} convidoute a unirte a {instance}.",
     cta: "Aceptar invitación",
-    existingLead: "Xa tes unha conta en {instance}. Entra coa túa contrasinal de sempre para aceptar a invitación.",
+    existingLead: "Xa tes unha conta en {instance}. Entra co teu contrasinal de sempre para aceptar a invitación.",
     existingCta: "Entra e acepta",
     passwordNote: "O teu contrasinal non cambia.",
     adminNote: "Entrarás como administrador.",

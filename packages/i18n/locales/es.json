@@ -1025,5 +1025,8 @@
   "We couldn't renew the invitation.": "No se pudo renovar la invitación.",
   "Move to a new phone": "Mover a un teléfono nuevo",
   "This link is not valid.": "Este enlace no es válido.",
-  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Este enlace mueve tu cuenta a un teléfono nuevo. Ábrelo en el teléfono que quieras usar, con la app 027Apps instalada."
+  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Este enlace mueve tu cuenta a un teléfono nuevo. Ábrelo en el teléfono que quieras usar, con la app 027Apps instalada.",
+  "Only the 027Apps app for Android can open it. The code lasts 60 seconds: if it has expired, generate a new one on the old phone.": "Solo la app 027Apps para Android puede abrirlo. El código dura 60 segundos: si ha caducado, genera uno nuevo en el móvil viejo.",
+  "Signing in…": "Entrando…",
+  "Continuing…": "Continuando…"
 }

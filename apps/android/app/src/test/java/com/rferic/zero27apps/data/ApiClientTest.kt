@@ -291,3 +291,35 @@ class ApiClientTest {
         assertTrue(error.network)
     }
 }
+
+/** The debug log must never carry a credential: only ids and tokens are redacted. */
+class ApiPathRedactionTest {
+    private val client = ApiClient(
+        "https://example.test",
+        MockEngine { respond("{}", HttpStatusCode.OK) },
+        { "token" },
+        { RefreshResult.NoSession },
+        {},
+    )
+
+    @Test
+    fun `invitation and migration tokens become a placeholder`() {
+        assertEquals(
+            "/api/v1/invitations/:token/redeem",
+            client.redactPath("/api/v1/invitations/027_inv_abcdEFGH123456789012345/redeem"),
+        )
+        assertEquals(
+            "/api/v1/device-transfers/:token/exchange",
+            client.redactPath("/api/v1/device-transfers/027_mig_abcdEFGH123456789012345/exchange"),
+        )
+    }
+
+    @Test
+    fun `ids become a placeholder and short routes stay readable`() {
+        assertEquals(
+            "/api/v1/me/device-transfers/:id",
+            client.redactPath("/api/v1/me/device-transfers/0fc652bc-e7fd-401e-af76-a0332f71d27b"),
+        )
+        assertEquals("/api/v1/me", client.redactPath("/api/v1/me"))
+    }
+}

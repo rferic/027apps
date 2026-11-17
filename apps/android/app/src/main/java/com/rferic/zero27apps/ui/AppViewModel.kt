@@ -183,6 +183,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** The invitation preview failed (usually offline); try it again. */
+    fun retryInvitePreview() {
+        val link = pendingLink ?: return
+        _invite.value = InviteState(loading = true)
+        viewModelScope.launch {
+            try {
+                val preview = apiFor(link.instance).invitationPreview(link.token)
+                _invite.value = InviteState(preview = preview)
+            } catch (error: ApiException) {
+                _invite.value = InviteState(error = inviteError(error))
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _invite.value = InviteState(error = InviteError.GENERIC)
+            }
+        }
+    }
+
     fun cancelInvite() {
         pendingLink = null
         _invite.value = InviteState()
@@ -198,7 +215,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val api = client ?: return
         if (_state.value !is AppState.SignedIn) return
         migrationWatchJob?.cancel()
-        _migration.value = MigrationState(loading = true)
+        // Keep the code on screen while the renewal is in flight: the previous
+        // one stays valid until its own TTL, so there is nothing to hide.
+        _migration.value = _migration.value.copy(loading = true, error = null)
         viewModelScope.launch {
             try {
                 val created = api.createDeviceTransfer()
@@ -226,6 +245,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 _migration.value = _migration.value.copy(state = status.state)
                 if (status.state != "pending") break
             }
+            // A used code means the new phone is in. This one forgets the
+            // session now instead of waiting for the token to be rejected: a
+            // phone left signed in would keep its widget and its data visible.
+            if (_migration.value.state == "used") {
+                migrationWatchJob = null
+                endSession(revoked = true)
+            }
         }
     }
 
@@ -243,6 +269,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun onMigrationLink(raw: String): Boolean {
         val link = MigrationLink.parse(raw) ?: return false
+        if (hasStoredSession()) {
+            _migration.value = MigrationState(error = MigrationError.SIGNED_IN, pendingLink = link)
+            return true
+        }
+        // An external link can name any host: when it does not match the
+        // instance this install already uses, the person confirms the target
+        // first (a browser link must not be able to move the account).
+        if (link.instance != instanceStore.current()) {
+            _migration.value = MigrationState(confirmInstance = link.instance, pendingLink = link)
+            return true
+        }
         // The link wins over a boot that is still resolving the session.
         bootJob?.cancel()
         if (_state.value is AppState.SignedIn) {
@@ -253,6 +290,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         return true
     }
 
+    /** The scan flow and the confirmation dialog land here; both are explicit. */
+    fun confirmMigrationLink() {
+        val link = _migration.value.pendingLink ?: return
+        _migration.value = MigrationState()
+        acceptMigration(link)
+    }
+
+    /**
+     * A session on disk counts even while `boot()` is still running: on a cold
+     * start the state is `Loading`, and a link processed in that window used to
+     * clear the stored session before the app noticed it existed.
+     */
+    private fun hasStoredSession(): Boolean =
+        _state.value is AppState.SignedIn ||
+            runCatching { sessionStore.load() != null }.getOrDefault(false)
+
     /**
      * New phone: exchange the code for a Supabase magic-link hash, verify it,
      * open the shell, register this device, revoke the other devices and sign
@@ -260,7 +313,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun acceptMigration(link: MigrationLink) {
         bootJob?.cancel()
-        if (_state.value is AppState.SignedIn) {
+        if (hasStoredSession()) {
             _migration.value = MigrationState(error = MigrationError.SIGNED_IN)
             return
         }
@@ -270,7 +323,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val api = apiFor(link.instance)
                 val exchanged = api.exchangeDeviceTransfer(link.token)
                 if (instanceStore.current() != link.instance) {
-                    sessionStore.clear()
                     supabase = null
                 }
                 val instance = api.instance()
@@ -295,7 +347,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 // the new push device stays, the others are revoked and the old
                 // sessions are signed out.
                 val deviceId = registerPushAndWait(link.instance, supabaseClient)
-                if (deviceId != null) runCatching { api.revokeOtherDevices(deviceId) }
+                // Without a device id (no Play Services, FCM off) the old
+                // phone still has to stop receiving push.
+                runCatching { api.revokeOtherDevices(deviceId) }
                 runCatching { supabaseClient.auth.signOut(SignOutScope.OTHERS) }
             } catch (error: ApiException) {
                 _migration.value = MigrationState(
@@ -492,6 +546,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
+     * The migration dialog's "sign out and scan": the person accepted losing
+     * this session, so the code they opened is redeemed right after.
+     */
+    fun signOutAndMigrate() {
+        val link = _migration.value.pendingLink ?: return
+        viewModelScope.launch {
+            endSession(revoked = false)
+            _migration.value = MigrationState()
+            acceptMigration(link)
+        }
+    }
+
+    /**
      * Ends the session in this device only. `revoked` explains it on the login
      * screen: the account was deactivated, deleted or its device revoked, so
      * the user did not log out.
@@ -504,7 +571,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (!revoked) {
             // Revoke the device while the session is still valid: otherwise the
             // server keeps pushing a signed-out account's groups to this phone.
-            FcmRegistrar(getApplication()).revoke()
+            FcmRegistrar(getApplication()).revoke(
+                supabase?.auth?.currentSessionOrNull()?.accessToken,
+            )
             runCatching { supabase?.auth?.signOut(SignOutScope.LOCAL) }
         }
         // Either way this device forgets the session, in memory and on disk.
@@ -630,7 +699,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun changeInstance(raw: String): Boolean {
         val normalized = ServerUrl.normalize(raw, requireHttps = !BuildConfig.DEBUG) ?: return false
         viewModelScope.launch {
-            FcmRegistrar(getApplication()).revoke()
+            FcmRegistrar(getApplication()).revoke(
+                supabase?.auth?.currentSessionOrNull()?.accessToken,
+            )
             runCatching { supabase?.auth?.signOut(SignOutScope.LOCAL) }
             sessionStore.clear()
             clearWidget()

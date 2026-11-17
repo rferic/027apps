@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { isActiveProfile } from "@/lib/active-profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const NEXT = "/reset-password";
@@ -24,6 +25,13 @@ export async function confirmRecoveryAction(formData: FormData): Promise<void> {
     token_hash: tokenHash,
   });
   if (error) redirect("/forgot-password?notice=invalid");
+
+  // The link outlives a deactivation: the session it just created must not.
+  const { data } = await supabase.auth.getUser();
+  if (!data.user || !(await isActiveProfile(data.user.id))) {
+    await supabase.auth.signOut({ scope: "local" });
+    redirect("/forgot-password?notice=invalid");
+  }
 
   redirect(NEXT);
 }

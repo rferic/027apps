@@ -546,7 +546,7 @@
   "Save anyway": "Trotzdem speichern",
   "Save changes": "Änderungen speichern",
   "Save failed": "Speichern fehlgeschlagen",
-  "Saving…": "Wird gespeichert…",
+  "Saving…": "Speichern…",
   "Scheduled jobs": "Geplante Aufgaben",
   "School": "Schule",
   "Scopes": "Bereiche",
@@ -568,7 +568,7 @@
   "Send by email": "Per E-Mail senden",
   "Send test email": "Test-E-Mail senden",
   "Sender ID": "Absender-ID",
-  "Sending…": "Senden läuft…",
+  "Sending…": "Senden…",
   "Sentry": "Sentry",
   "Service": "Dienst",
   "Service account JSON": "JSON des Dienstkontos",
@@ -1025,5 +1025,8 @@
   "We couldn't renew the invitation.": "Die Einladung konnte nicht erneuert werden.",
   "Move to a new phone": "Auf ein neues Telefon umziehen",
   "This link is not valid.": "Dieser Link ist nicht gültig.",
-  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Dieser Link verschiebt dein Konto auf ein neues Telefon. Öffne ihn auf dem Telefon, das du nutzen möchtest, mit installierter 027Apps-App."
+  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Dieser Link verschiebt dein Konto auf ein neues Telefon. Öffne ihn auf dem Telefon, das du nutzen möchtest, mit installierter 027Apps-App.",
+  "Only the 027Apps app for Android can open it. The code lasts 60 seconds: if it has expired, generate a new one on the old phone.": "Nur die 027Apps-App für Android kann ihn öffnen. Der Code gilt 60 Sekunden: Ist er abgelaufen, erzeuge auf dem alten Telefon einen neuen.",
+  "Signing in…": "Anmeldung läuft…",
+  "Continuing…": "Weiter…"
 }

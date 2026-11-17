@@ -75,11 +75,15 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-private fun migrationErrorText(error: MigrationError, strings: Strings): String = when (error) {
+private fun migrationErrorText(
+    error: MigrationError,
+    strings: Strings,
+    fallback: String,
+): String = when (error) {
     MigrationError.NETWORK -> strings.failureNetwork
-    MigrationError.AUTH -> strings.inviteFailed
+    MigrationError.AUTH -> strings.migrationInvalid
     MigrationError.SIGNED_IN -> strings.migrationSignedIn
-    MigrationError.GENERIC -> strings.inviteFailed
+    MigrationError.GENERIC -> fallback
 }
 
 /**
@@ -155,13 +159,20 @@ fun MigrationQrScreen(
             Text(strings.migrationTitle, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(6.dp))
             Text(
-                strings.migrationQrLead,
+                strings.migrationQrCaption,
                 fontSize = 13.sp,
                 color = palette.mutedForeground,
                 textAlign = TextAlign.Center,
             )
 
             when {
+                // Renewing with a code still on screen: keep it and show a
+                // quiet progress line, so nobody loses the code mid-scan.
+                state.loading && bitmap != null -> {
+                    Spacer(Modifier.height(12.dp))
+                    CircularProgressIndicator(color = palette.accent, modifier = Modifier.size(20.dp))
+                }
+
                 state.loading -> {
                     Spacer(Modifier.height(24.dp))
                     CircularProgressIndicator(color = palette.accent)
@@ -179,10 +190,24 @@ fun MigrationQrScreen(
                     )
                 }
 
+                // A dead code must not look scannable: the server already says
+                // `expired`, so the screen hides it and offers a new one.
+                state.state == "expired" -> {
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        strings.migrationExpired,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        fontSize = 13.sp,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = onStart) { Text(strings.migrationGenerate) }
+                }
+
                 state.error != null -> {
                     Spacer(Modifier.height(24.dp))
                     Text(
-                        migrationErrorText(state.error, strings),
+                        migrationErrorText(state.error, strings, strings.migrationCreateFailed),
                         color = MaterialTheme.colorScheme.error,
                         textAlign = TextAlign.Center,
                         fontSize = 13.sp,
@@ -217,6 +242,13 @@ fun MigrationQrScreen(
                         instance.removePrefix("https://").removePrefix("http://"),
                         fontSize = 11.sp,
                         color = palette.mutedForeground,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        strings.migrationScreenSecure,
+                        fontSize = 11.sp,
+                        color = palette.mutedForeground,
+                        textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(10.dp))
                     Button(onClick = onStart) { Text(strings.migrationGenerate) }
@@ -320,16 +352,37 @@ fun MigrationScanScreen(
             Text(
                 when (state.error) {
                     null -> if (granted) strings.migrationScanLead else strings.migrationCameraDenied
-                    else -> migrationErrorText(state.error, strings)
+                    else -> migrationErrorText(state.error, strings, strings.migrationMoveFailed)
                 },
                 fontSize = 13.sp,
                 color = if (state.error == null) palette.mutedForeground else MaterialTheme.colorScheme.error,
                 textAlign = TextAlign.Center,
             )
             if (state.loading) CircularProgressIndicator(color = palette.accent)
+            // A denied permission is not a dead end: Android stops showing the
+            // dialog after "don't ask again", so offer the app's settings too.
+            if (!granted && state.error == null) {
+                Button(onClick = {
+                    permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                }, shape = RoundedCornerShape(12.dp)) {
+                    Text(strings.tryAgain)
+                }
+                TextButton(onClick = { context.openAppSettings() }) {
+                    Text(strings.migrationOpenSettings)
+                }
+            }
             TextButton(onClick = onCancel) { Text(strings.migrationClose) }
         }
     }
+}
+
+/** Opens this app's system settings page, where a blocked permission is undone. */
+private fun Context.openAppSettings() {
+    val intent = android.content.Intent(
+        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+        android.net.Uri.fromParts("package", packageName, null),
+    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { startActivity(intent) }
 }
 
 /** CameraX provider as a suspend value (the future only completes on the main thread). */

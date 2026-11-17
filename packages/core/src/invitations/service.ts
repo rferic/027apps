@@ -900,8 +900,13 @@ export async function redeemInvitation(
       };
     });
   } catch (err) {
-    // Never leave an Auth user behind when the database transaction fails.
-    if (createdUserId) await deps.auth.deleteUser(createdUserId).catch(() => undefined);
+    // Never leave an Auth user behind when the database transaction fails —
+    // unless another redemption won the race: deleting then would remove the
+    // profile that request just created and leave the invitation consumed.
+    const lostRace = err instanceof DomainError && err.code === "invitation_used";
+    if (createdUserId && !lostRace) {
+      await deps.auth.deleteUser(createdUserId).catch(() => undefined);
+    }
     throw err;
   }
 }

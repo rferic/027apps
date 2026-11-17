@@ -36,8 +36,12 @@ export interface DoorOptions {
    */
   moduleKey?: string;
   auth: (req: Request) => Promise<Caller>;
-  /** Fixed one-minute window. Identity is derived from the caller. */
-  rateLimit?: { identity: 'user' | 'key' | 'ip'; limit: number };
+  /**
+   * Fixed one-minute window. Identity is derived from the caller. `bucket`
+   * separates budgets of routes that share an identity: the shell's background
+   * polling must never spend the budget a user action needs.
+   */
+  rateLimit?: { identity: 'user' | 'key' | 'ip'; limit: number; bucket?: string };
   /** Omit to skip CORS handling entirely. */
   cors?: CorsOptions;
   /** Validates bodies of POST/PATCH/PUT with `.safeParse()` (strictness lives in the schema). */

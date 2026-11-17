@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { t } from "@027apps/i18n/t.js";
 import type { TranslationMap } from "@027apps/i18n/types.js";
 import { Button } from "@/components/ui/button";
-import { cancelClass } from "@/components/ui/form";
-import { SignInIcon } from "@/components/ui/sign-in-icon";
 import { AndroidIcon } from "@/components/landing/android-icon";
 import { inviteAppScheme, type InviteVariant } from "@/lib/invite-variant";
 import { InviteDetails, type InvitePublicView } from "./invite-details";
@@ -70,10 +67,6 @@ function FormStep({
     <>
       <InviteDetails view={view} messages={messages} />
       <InviteForm token={token} view={view} messages={messages} />
-      <Link href="/login" className={`${cancelClass} gap-1`}>
-        <SignInIcon />
-        {t("Sign in", messages)}
-      </Link>
     </>
   );
 }
@@ -116,7 +109,12 @@ function QrCard({
       </p>
       {qrSvg && (
         <div
-          className="flex justify-center rounded-card p-2"
+          // The SVG paints its own white background plus the quiet zone
+          // (`margin: 4` when it is generated), so no card colour is needed and
+          // the dark theme cannot eat the margin scanners rely on.
+          className="flex justify-center p-2"
+          role="img"
+          aria-label={t("Invitation link", messages)}
           // Locally generated SVG for the invitation URL: no user HTML. The SVG
           // paints its own white background and quiet zone.
           dangerouslySetInnerHTML={{ __html: qrSvg }}

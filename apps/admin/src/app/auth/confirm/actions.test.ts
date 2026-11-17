@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
   verifyOtp: vi.fn(),
+  getUser: vi.fn(),
+  signOut: vi.fn(),
+  isActiveProfile: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -13,7 +16,17 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: async () => ({ auth: { verifyOtp: mocks.verifyOtp } }),
+  createSupabaseServerClient: async () => ({
+    auth: {
+      verifyOtp: mocks.verifyOtp,
+      getUser: mocks.getUser,
+      signOut: mocks.signOut,
+    },
+  }),
+}));
+
+vi.mock("@/lib/active-profile", () => ({
+  isActiveProfile: () => mocks.isActiveProfile(),
 }));
 
 import { confirmRecoveryAction } from "./actions";
@@ -38,6 +51,11 @@ beforeEach(() => {
   mocks.redirect.mockReset();
   mocks.verifyOtp.mockReset();
   mocks.verifyOtp.mockResolvedValue({ error: null });
+  mocks.getUser.mockReset();
+  mocks.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+  mocks.signOut.mockReset();
+  mocks.isActiveProfile.mockReset();
+  mocks.isActiveProfile.mockResolvedValue(true);
 });
 
 describe("confirmRecoveryAction", () => {
@@ -77,6 +95,15 @@ describe("confirmRecoveryAction", () => {
 
     await run(form(VALID));
 
+    expect(mocks.redirect).toHaveBeenCalledWith("/forgot-password?notice=invalid");
+  });
+
+  it("signs out when the account was deactivated after the link was sent", async () => {
+    mocks.isActiveProfile.mockResolvedValue(false);
+
+    await run(form(VALID));
+
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
     expect(mocks.redirect).toHaveBeenCalledWith("/forgot-password?notice=invalid");
   });
 });

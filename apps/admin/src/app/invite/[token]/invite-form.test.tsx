@@ -31,13 +31,11 @@ function form(view: InvitePublicView = VIEW) {
 }
 
 describe("InviteForm", () => {
-  it("shows the invitation as a card, not as editable inputs", () => {
+  it("leaves the invitation card to the wizard, so it renders once", () => {
     const html = renderToStaticMarkup(form());
 
-    expect(html).toContain("ana@example.com");
-    expect(html).toContain("Ana");
-    expect(html).toContain("Familia Pérez");
-    expect(html).toContain("Eric");
+    expect(html).not.toContain("ana@example.com");
+    expect(html).not.toContain("Familia Pérez");
     expect(html).not.toContain('name="email"');
     expect(html).not.toContain('name="name"');
   });
@@ -61,7 +59,6 @@ describe("InviteForm", () => {
     expect(html).not.toContain('name="confirmation"');
     expect(html).toContain("Sign in and accept");
     expect(html).toContain('href="/forgot-password"');
-    expect(html).toContain("Your current role");
   });
 
   it("links to the login page as the way out", () => {

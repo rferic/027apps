@@ -182,7 +182,12 @@ fun LoginScreen(
                         LoginNotice.INVITATION_ACCEPTED -> strings.loginInvitationAccepted
                     },
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.error,
+                    // A created account is good news; only a revocation is red.
+                    color = if (it == LoginNotice.INVITATION_ACCEPTED) {
+                        palette.accent
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(palette.surface, RoundedCornerShape(10.dp))

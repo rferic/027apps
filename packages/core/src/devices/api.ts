@@ -10,10 +10,12 @@ import {
   revokeOtherDevices,
   type DevicesDeps,
 } from "./service";
+import { checkRateLimit } from "../api/rate-limit";
 import {
   createDeviceTransfer,
   exchangeDeviceTransfer,
   getDeviceTransferStatus,
+  hashDeviceTransferToken,
   type DeviceTransfersDeps,
 } from "./transfers";
 
@@ -33,6 +35,7 @@ export interface DevicesRouteDeps {
     transferCreate?: number;
     transferStatus?: number;
     transferExchange?: number;
+    transferToken?: number;
   };
 }
 
@@ -123,8 +126,13 @@ export function revokeDeviceRoute(deps: DevicesRouteDeps) {
     });
 }
 
+/**
+ * `keep_device_id: null` is the new phone that could not register push (no
+ * Google Play Services, FCM off): every other device is revoked, because the
+ * old phone must stop receiving notifications either way.
+ */
 export const keepDeviceSchema = z
-  .object({ keep_device_id: z.string().uuid() })
+  .object({ keep_device_id: z.string().uuid().nullable() })
   .strict();
 
 const NO_STORE_HEADERS: Record<string, string> = {
@@ -146,7 +154,7 @@ export function revokeOtherDevicesRoute(deps: DevicesRouteDeps) {
       options(deps, ["devices:revoke"], keepDeviceSchema),
       deps.door,
       async (ctx) => {
-        const body = ctx.body as { keep_device_id: string };
+        const body = ctx.body as { keep_device_id: string | null };
         return revokeOtherDevices(deps.devices, ctx.caller, body.keep_device_id);
       },
     );
@@ -164,6 +172,8 @@ export function createDeviceTransferRoute(deps: DevicesRouteDeps) {
         rateLimit: {
           identity: "user" as const,
           limit: deps.rateLimits?.transferCreate ?? 5,
+          // Its own budget: the QR renews itself while the old phone polls.
+          bucket: "device-transfers-create",
         },
       },
       deps.door,
@@ -183,6 +193,7 @@ export function deviceTransferStatusRoute(deps: DevicesRouteDeps) {
         rateLimit: {
           identity: "user" as const,
           limit: deps.rateLimits?.transferStatus ?? 60,
+          bucket: "device-transfers-status",
         },
       },
       deps.door,
@@ -196,7 +207,11 @@ export function deviceTransferStatusRoute(deps: DevicesRouteDeps) {
     );
 }
 
-/** New-phone exchange: public, per-IP budget, no session and no token in logs. */
+/**
+ * New-phone exchange: public, per-IP budget, no session and no token in logs.
+ * The code is also counted per token (spec §6.6): a leaked code cannot be
+ * attempted from a botnet where every address has its own budget.
+ */
 export function exchangeDeviceTransferRoute(deps: DevicesRouteDeps) {
   return (req: Request, token: string): Promise<Response> =>
     withDoor(
@@ -208,9 +223,18 @@ export function exchangeDeviceTransferRoute(deps: DevicesRouteDeps) {
         rateLimit: {
           identity: "ip" as const,
           limit: deps.rateLimits?.transferExchange ?? 10,
+          bucket: "device-transfers-exchange",
         },
       },
       deps.door,
-      async () => noStore(await exchangeDeviceTransfer(deps.transfers, token)),
+      async () => {
+        const attempts = await checkRateLimit(
+          deps.door.rateLimitStorage,
+          `device-transfer-token:${hashDeviceTransferToken(token).slice(0, 16)}`,
+          { limit: deps.rateLimits?.transferToken ?? 5, windowSeconds: 60 },
+        );
+        if (!attempts.allowed) throw new DomainError("rate_limited");
+        return noStore(await exchangeDeviceTransfer(deps.transfers, token));
+      },
     );
 }
