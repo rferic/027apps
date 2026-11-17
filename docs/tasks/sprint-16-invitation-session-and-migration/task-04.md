@@ -2,7 +2,7 @@
 id: sprint-16-task-04
 titulo: Contrato de invitación — preview (A2), rol (A6) y cuenta existente (A7)
 area: core + bd + panel
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0004, 0007, 0008]

@@ -21,8 +21,8 @@ real, la revisión/QA y la auditoría de seguridad antes de `finalizada`.**
 - Modo avión → la app conserva la sesión y no pide login. ✔
 - Reinicio → la app sigue dentro. ✔
 
-Pendiente: desactivación/borrado/revocación y actualización (puntos 4–5), revisión/QA y
-auditoría antes de `finalizada`.
+Pendiente: aceptación del login tras logout y de la actualización con la build firmada `0.19.0`,
+la revisión/QA y la auditoría antes de `finalizada`.
 
 **Corrección 2026-11-17 (expulsión con la app abierta)**: la aceptación detectó que, con la app
 abierta, una desactivación solo se notaba al reiniciar. `ApiClient` avisa ahora con
@@ -34,8 +34,8 @@ aviso) y por `:app:testDebugUnitTest` + `:app:assembleDebug`; CI en verde en `9e
 
 **Expulsión aceptada (2026-11-17, APK debug `9e7cce2`, instancia local)**: con la app abierta y
 un módulo a la vista, desactivar al usuario desde el panel cerró la sesión de la app
-automáticamente, sin reiniciarla. Pendiente confirmar el texto del aviso en el siguiente build y
-el caso de cuenta borrada (no puede volver a entrar).
+automáticamente, sin reiniciarla, y mostró el aviso «Tu sesión se ha revocado». ✔ Pendiente el
+caso de cuenta borrada (no puede volver a entrar), cubierto por el mismo camino del Core.
 
 **Corrección 2026-11-17 (login tras logout)**: `endSession` cerraba el cliente de API y el de
 Supabase y `login()` empezaba con `client ?: return`, así que tras un logout el formulario no
