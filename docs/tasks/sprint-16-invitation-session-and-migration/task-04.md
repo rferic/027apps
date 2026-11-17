@@ -48,6 +48,26 @@ existente; token desconocido → 404.
 Pendiente: auditoría de seguridad (preview público, guardrail de rol, sesión primero, single-use y
 logs) y la revisión/QA antes de `finalizada`.
 
+**Auditoría de seguridad (2026-11-17)**
+
+- A01 acceso: el preview es público solo por token (60/min por IP) y no enumera: revocada y
+  desconocida comparten 404; crear y renovar exigen sesión y `invitations:write`; el rol se valida
+  en el servicio (sesión `super_admin` o clave de servicio con `roleCap: super_admin`, delegada
+  nunca) y una cuenta existente exige **su** sesión.
+- A02 cripto/exposición: el token sigue solo como SHA-256; el preview no devuelve id, hash,
+  módulos, categoría ni el rol actual de una cuenta existente. Se añadieron `cache-control:
+  no-store`, `x-robots-tag: noindex` y `referrer-policy: no-referrer` a las respuestas de preview y
+  canje (antes solo los llevaba la página), con test. `routeOf` redacta el token en las rutas
+  nuevas (`/preview`, `/redeem`) y hay test.
+- A03 inyección: zod en el borde (rol `super_admin` → 400), SQL parametrizado y el escapado del
+  email intacto.
+- A04 abuso: límites por IP en preview/canje, cooldown de 60 s en renovación **antes** de rotar
+  (un 429 no invalida el enlace), single-use con `for update` sin cambios.
+- A07 autenticación: sesión primero (D21); el puerto de Auth no tiene `verifyPassword` y el Core
+  nunca verifica contraseñas; una cuenta existente conserva nombre, rol y contraseña.
+- Veredicto: sin hallazgos abiertos; el único hueco encontrado (cabeceras de las respuestas con
+  token) queda corregido. Pendiente la revisión independiente.
+
 **Punto de partida (verificado)**
 - `createInvitation` rechaza un email registrado con `email_registered`.
 - `redeemInvitation` reutiliza una cuenta existente y conserva su contraseña, pero **no la
