@@ -14,6 +14,16 @@ la app confundan un error de red con una sesión revocada.
 **Implementación web, Core y Android completa 2026-11-16; pendiente la aceptación en dispositivo
 real, la revisión/QA y la auditoría de seguridad antes de `finalizada`.**
 
+**Aceptación del propietario (2026-11-17, instancia local, APK debug 0.18.2):**
+
+- Logout en la web local → la app sigue dentro. ✔
+- Logout en la app → la web local sigue dentro. ✔
+- Modo avión → la app conserva la sesión y no pide login. ✔
+- Reinicio → la app sigue dentro. ✔
+
+Pendiente: desactivación/borrado/revocación y actualización (puntos 4–5), revisión/QA y
+auditoría antes de `finalizada`.
+
 **Punto de partida (verificado)**
 - `apps/admin/src/app/(auth)/actions.ts` hace `signOut()` sin scope; en JS el default es `global`,
   así que el logout del panel revoca también la sesión del móvil.
