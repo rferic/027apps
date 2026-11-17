@@ -2,7 +2,7 @@
 id: sprint-16-task-10
 titulo: Migración de teléfono por QR (solo Android)
 area: app + core + bd
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 mockup: docs/mockups/invitation-flow/index.html
@@ -30,10 +30,40 @@ el código: el viejo lo muestra, el nuevo lo escanea, entra y expulsa al viejo.
 - Tests: Core del servicio y API contra la base real (crear/poll/canjear una vez/otro usuario/
   revoke-others) en verde.
 
-Pendiente: `MigrationLink`, pantalla QR del viejo con ZXing (tarjeta blanca, `FLAG_SECURE`,
-autoregeneración ~45 s), escáner del nuevo, `acceptMigration` (exchange → `verifyOtp` → `me` →
-push → revoke-others → `signOut(OTHERS)`), entradas en Ajustes/login, permiso de cámara,
-`FcmRegistrar.deviceId()` y `Changelog.kt` 0.19.0.
+**Android hecho (2026-11-17, `a371aca`)**
+
+- `MigrationLink`: lee `zero27apps://migrate/<token>?instance=…` (y `-dev`), https con instancia
+  propia y la misma regla de instancia que la invitación; token `027_mig_[A-Za-z0-9_-]{1,200}`.
+- Ajustes («Mover a otro teléfono») y login («Mover desde otro teléfono») ya abren sus pantallas;
+  el manifest principal y el de debug declaran `migrate` para que el enlace llegue a la app.
+- `MigrationQrScreen`: tarjeta blanca, email e instancia visibles, cuenta atrás, `FLAG_SECURE`,
+  polling cada 2 s, «el móvil nuevo ya está dentro» y regeneración a los ≤15 s restantes.
+- `MigrationScanScreen`: CameraX + ZXing sobre el plano Y (sin Play Services), permiso de cámara
+  al abrir y mensaje si se deniega; cancelar no deja la cámara abierta.
+- `acceptMigration`: exchange → `verifyEmailOtp` → `me`/módulos/widgets → push (espera el
+  `device_id`) → `revokeOtherDevices` → `signOut(OTHERS)`. Un enlace en un móvil con sesión, o un
+  código usado/caducado (404) o una sesión revocada (401), se explican en un diálogo en vez de
+  ignorarse; el enlace cancela el boot en curso para que no lo pise.
+- `Strings` pasa a estar respaldada por un mapa: el constructor con ~256 campos superaba el límite
+  del JVM (`ClassFormatError` en CI) y ahora las claves se comprueban con el test de reflexión.
+- Tests: `MigrationQrTest` cubre el contenido del QR en https y http local, y decodifica un plano Y
+  con padding real de cámara de vuelta al mismo enlace.
+
+**Verificado en dos emuladores (APK de debug del sprint)**
+
+- 5554 con sesión → Ajustes → QR: se genera (caduca en 55 s), email e instancia en pantalla;
+  `screencap` sale vacío por `FLAG_SECURE`, que es lo esperado.
+- 5558 sin sesión recibe el enlace `zero27apps-dev://migrate/…`: canjea y entra como «App Test»;
+  la fila de `device_transfers` queda `used_at` a los 6 s y el viejo, al volver, muestra «Tu sesión
+  fue revocada. Vuelve a entrar.».
+- Código inválido → «Este código ya no es válido…»; enlace con sesión iniciada → «Cierra la sesión
+  primero…»; el escáner pide el permiso de cámara y CameraX abre la cámara.
+- En local no hay FCM configurado, así que el `device_id` es nulo y `revokeOtherDevices` no se
+  llama: la expulsión se comprobó por `signOut(OTHERS)`. La revocación de push se prueba con el
+  APK firmado contra una instancia con FCM.
+
+Pendiente: la aceptación con dos móviles reales (P4) escaneando el QR con la cámara, la
+revocación de push en una instancia con FCM y `Changelog.kt` 0.19.0 (tarea 11).
 
 **Punto de partida**
 - La app tiene sesión cifrada, `signOut` y registro FCM; `FcmRegistrar` guarda el `device_id`.
