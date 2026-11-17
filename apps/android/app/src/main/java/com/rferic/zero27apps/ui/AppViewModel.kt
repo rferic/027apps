@@ -84,6 +84,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private var supabase: SupabaseClient? = null
     private var client: ApiClient? = null
+    private var revalidating = false
 
     init {
         refresh()
@@ -227,16 +228,56 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun signOut() {
-        viewModelScope.launch {
+        viewModelScope.launch { endSession(revoked = false) }
+    }
+
+    /**
+     * Ends the session in this device only. `revoked` explains it on the login
+     * screen: the account was deactivated, deleted or its device revoked, so
+     * the user did not log out.
+     */
+    private suspend fun endSession(revoked: Boolean) {
+        if (revoked) {
+            // The session is already dead: no network call, just drop the
+            // client that still holds it in memory.
+            runCatching { client?.close() }
+            runCatching { supabase?.close() }
+        } else {
             // Revoke the device while the session is still valid: otherwise the
             // server keeps pushing a signed-out account's groups to this phone.
             FcmRegistrar(getApplication()).revoke()
             runCatching { supabase?.auth?.signOut(SignOutScope.LOCAL) }
-            sessionStore.clear()
-            clearWidget()
-            prefs.remove(LOCATION_KEY)
-            _login.value = LoginState()
-            awaitLogin()
+            runCatching { client?.close() }
+            runCatching { supabase?.close() }
+        }
+        client = null
+        supabase = null
+        sessionStore.clear()
+        clearWidget()
+        prefs.remove(LOCATION_KEY)
+        _login.value = LoginState()
+        awaitLogin(if (revoked) LoginNotice.SESSION_REVOKED else null)
+    }
+
+    /**
+     * Coming back to the app is when a revoked session should disappear: the
+     * Core already rejects a deactivated profile on every request, but a screen
+     * that fetches nothing would keep showing old data until the next launch.
+     */
+    fun revalidateSession() {
+        if (revalidating) return
+        if (_state.value !is AppState.SignedIn) return
+        val api = client ?: return
+        revalidating = true
+        viewModelScope.launch {
+            try {
+                api.me()
+            } catch (_: ApiException) {
+                // A network failure keeps the session; a revoked one already
+                // ended it through the ApiClient callback.
+            } finally {
+                revalidating = false
+            }
         }
     }
 
@@ -437,6 +478,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
             },
+            onSessionEnded = { endSession(revoked = true) },
         )
         client = api
         return api

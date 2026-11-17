@@ -26,7 +26,8 @@ class ApiClientTest {
         engine: MockEngine,
         token: () -> String? = { "token" },
         refresh: suspend () -> RefreshResult = { RefreshResult.NoSession },
-    ) = ApiClient("https://example.test", engine, token, refresh)
+        onSessionEnded: suspend () -> Unit = {},
+    ) = ApiClient("https://example.test", engine, token, refresh, onSessionEnded)
 
     @Test
     fun `parses instance with the auth block and ignores unknown keys`() = runTest {
@@ -179,6 +180,40 @@ class ApiClientTest {
         assertTrue(error is ApiException)
         assertEquals("network_error", (error as ApiException).code)
         assertTrue((error as ApiException).network)
+    }
+
+    @Test
+    fun `a revoked refresh ends the session once`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        var ended = 0
+        val api = client(engine, onSessionEnded = { ended++ })
+
+        repeat(2) { runCatching { api.me() } }
+
+        assertEquals(1, ended)
+    }
+
+    @Test
+    fun `a 401 that survives the refresh ends the session`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        var ended = 0
+        val error = runCatching {
+            client(engine, refresh = { RefreshResult.Refreshed }, onSessionEnded = { ended++ }).me()
+        }.exceptionOrNull()
+
+        assertEquals(1, ended)
+        assertEquals("unauthorized", (error as ApiException).code)
+    }
+
+    @Test
+    fun `a network refresh never ends the session`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        var ended = 0
+        runCatching {
+            client(engine, refresh = { RefreshResult.Network }, onSessionEnded = { ended++ }).me()
+        }
+
+        assertEquals(0, ended)
     }
 
     @Test

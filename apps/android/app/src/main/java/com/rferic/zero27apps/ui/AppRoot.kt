@@ -101,12 +101,16 @@ fun AppRoot(
         if (deepLink != null) viewModel.onInviteLink(deepLink)
     }
 
-    // Coming back to the app is the natural moment to ask for a newer build;
-    // the view model throttles it, so a quick app switch costs nothing.
+    // Coming back to the app is the natural moment to ask for a newer build and
+    // to notice that the session was revoked while the app was in the
+    // background; the view model throttles the update check.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_START) viewModel.checkForUpdate()
+            if (event == Lifecycle.Event.ON_START) {
+                viewModel.checkForUpdate()
+                viewModel.revalidateSession()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }

@@ -34,7 +34,16 @@ class ApiClient(
     engine: HttpClientEngine,
     private val token: () -> String?,
     private val refresh: suspend () -> RefreshResult,
+    /**
+     * Runs once when the session is definitively gone: the refresh token was
+     * rejected, or the Core still answers 401 after refreshing. The app clears
+     * what it stored and explains it on the login screen. A callback failure
+     * never hides the [ApiException] the caller still gets.
+     */
+    private val onSessionEnded: suspend () -> Unit = {},
 ) : Closeable {
+    /** A screen can have several requests in flight; the app hears it once. */
+    private val sessionEnded = java.util.concurrent.atomic.AtomicBoolean(false)
     private val json = Json {
         ignoreUnknownKeys = true
         explicitNulls = false
@@ -244,16 +253,31 @@ class ApiClient(
         return when (refresh()) {
             RefreshResult.Refreshed -> {
                 val second = send(method, path, body)
-                if (second.status == HttpStatusCode.Unauthorized) {
-                    throw ApiException("unauthorized", 401, "Session revoked")
-                }
+                if (second.status == HttpStatusCode.Unauthorized) sessionRevoked()
                 second
             }
-            RefreshResult.NoSession ->
-                throw ApiException("unauthorized", 401, "Session revoked")
+            RefreshResult.NoSession -> sessionRevoked()
             RefreshResult.Network ->
                 throw ApiException.networkFailure(IOException("network while refreshing the session"))
         }
+    }
+
+    /**
+     * Ends the session in the app, then fails the request. The two are
+     * separate: the app must learn the session is gone even if the screen that
+     * made the call only knows how to show an error.
+     */
+    private suspend fun sessionRevoked(): Nothing {
+        if (sessionEnded.compareAndSet(false, true)) {
+            try {
+                onSessionEnded()
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                // Clearing the session must not depend on the callback's health.
+            }
+        }
+        throw ApiException("unauthorized", 401, "Session revoked")
     }
 
     private suspend fun send(method: HttpMethod, path: String, body: Any?): HttpResponse =
