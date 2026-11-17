@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { getDictionary } from "@027apps/i18n/dictionary.js";
 import { t } from "@027apps/i18n/t.js";
 import { BrandLogo } from "@/components/brand-logo";
@@ -32,6 +33,7 @@ const ERROR_KEYS: Record<string, string> = {
 };
 
 export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
+  await connection();
   const supabase = await createSupabaseServerClient();
   const [{ data }, params, locale] = await Promise.all([
     supabase.auth.getUser(),

@@ -4,7 +4,12 @@ package com.rferic.zero27apps.ui.i18n
  * The app copy in the nine locales the product supports. The device language
  * picks one at launch; anything else falls back to English.
  */
-data class Strings(
+/**
+ * Every UI string in one immutable holder. A plain class, not a `data class`:
+ * with ~200 fields the generated `equals`/`hashCode`/`toString` grow past the
+ * JVM method size limit and the class fails to load on CI.
+ */
+class Strings(
     val email: String,
     val password: String,
     val signIn: String,
