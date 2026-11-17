@@ -21,6 +21,7 @@ class Strings(private val values: Map<String, String>) {
     val add: String get() = values.getValue("add")
     val use: String get() = values.getValue("use")
     val cancel: String get() = values.getValue("cancel")
+    val edit: String get() = values.getValue("edit")
     val invalidUrl: String get() = values.getValue("invalidUrl")
     val tryAgain: String get() = values.getValue("tryAgain")
     val failureNetwork: String get() = values.getValue("failureNetwork")
@@ -123,6 +124,7 @@ class Strings(private val values: Map<String, String>) {
     val splitWith: String get() = values.getValue("splitWith")
     val withPeople: String get() = values.getValue("withPeople")
     val search: String get() = values.getValue("search")
+    val noResults: String get() = values.getValue("noResults")
     val pushEvent: String get() = values.getValue("pushEvent")
     val owedToYouLabel: String get() = values.getValue("owedToYouLabel")
     val payerNotParticipant: String get() = values.getValue("payerNotParticipant")
@@ -294,6 +296,7 @@ object AppStrings {
         "add" to "Add",
         "use" to "Use",
         "cancel" to "Cancel",
+        "edit" to "Edit",
         "invalidUrl" to "That is not a valid URL for this build.",
         "tryAgain" to "Try again",
         "failureNetwork" to "Can't reach the instance. Check the connection and try again.",
@@ -396,6 +399,7 @@ object AppStrings {
         "splitWith" to "Split",
         "withPeople" to "With {names}",
         "search" to "Search",
+        "noResults" to "No results",
         "pushEvent" to "You have a new update in your groups.",
         "owedToYouLabel" to "Owed to you",
         "payerNotParticipant" to "{name} paid but does not take part: the whole amount is owed back.",
@@ -556,6 +560,7 @@ object AppStrings {
         "add" to "Añadir",
         "use" to "Usar",
         "cancel" to "Cancelar",
+        "edit" to "Editar",
         "invalidUrl" to "Esa URL no es válida para esta versión.",
         "tryAgain" to "Reintentar",
         "failureNetwork" to "No se puede conectar con la instancia. Comprueba la conexión e inténtalo de nuevo.",
@@ -658,6 +663,7 @@ object AppStrings {
         "splitWith" to "Se reparte",
         "withPeople" to "Con {names}",
         "search" to "Buscar",
+        "noResults" to "Sin resultados",
         "pushEvent" to "Tienes una novedad en tus grupos.",
         "owedToYouLabel" to "Te deben",
         "payerNotParticipant" to "{name} pagó pero no participa: se le debe el importe completo.",
@@ -818,6 +824,7 @@ object AppStrings {
         "add" to "Afegeix",
         "use" to "Fes servir",
         "cancel" to "Cancel·la",
+        "edit" to "Edita",
         "invalidUrl" to "Aquesta URL no és vàlida per a aquesta versió.",
         "tryAgain" to "Torna-ho a provar",
         "failureNetwork" to "No es pot connectar amb la instància. Comprova la connexió i torna-ho a provar.",
@@ -920,6 +927,7 @@ object AppStrings {
         "splitWith" to "Es reparteix",
         "withPeople" to "Amb {names}",
         "search" to "Cerca",
+        "noResults" to "Sense resultats",
         "pushEvent" to "Tens una novetat als teus grups.",
         "owedToYouLabel" to "Et deuen",
         "payerNotParticipant" to "{name} va pagar però no hi participa: se li deu l\'import complet.",
@@ -1080,6 +1088,7 @@ object AppStrings {
         "add" to "Aggiungi",
         "use" to "Usa",
         "cancel" to "Annulla",
+        "edit" to "Modifica",
         "invalidUrl" to "Questo URL non è valido per questa versione.",
         "tryAgain" to "Riprova",
         "failureNetwork" to "Impossibile raggiungere l'istanza. Controlla la connessione e riprova.",
@@ -1182,6 +1191,7 @@ object AppStrings {
         "splitWith" to "Si divide",
         "withPeople" to "Con {names}",
         "search" to "Cerca",
+        "noResults" to "Nessun risultato",
         "pushEvent" to "Hai una novità nei tuoi gruppi.",
         "owedToYouLabel" to "Ti devono",
         "payerNotParticipant" to "{name} ha pagato ma non partecipa: gli è dovuto l\'intero importo.",
@@ -1342,6 +1352,7 @@ object AppStrings {
         "add" to "Ajouter",
         "use" to "Utiliser",
         "cancel" to "Annuler",
+        "edit" to "Modifier",
         "invalidUrl" to "Cette URL n'est pas valide pour cette version.",
         "tryAgain" to "Réessayer",
         "failureNetwork" to "Impossible de joindre l'instance. Vérifiez la connexion et réessayez.",
@@ -1444,6 +1455,7 @@ object AppStrings {
         "splitWith" to "Réparti",
         "withPeople" to "Avec {names}",
         "search" to "Rechercher",
+        "noResults" to "Aucun résultat",
         "pushEvent" to "Tu as du nouveau dans tes groupes.",
         "owedToYouLabel" to "On te doit",
         "payerNotParticipant" to "{name} a payé mais ne participe pas : le montant total lui est dû.",
@@ -1604,6 +1616,7 @@ object AppStrings {
         "add" to "Hinzufügen",
         "use" to "Verwenden",
         "cancel" to "Abbrechen",
+        "edit" to "Bearbeiten",
         "invalidUrl" to "Diese URL ist für diese Version ungültig.",
         "tryAgain" to "Erneut versuchen",
         "failureNetwork" to "Die Instanz ist nicht erreichbar. Prüfe die Verbindung und versuche es erneut.",
@@ -1706,6 +1719,7 @@ object AppStrings {
         "splitWith" to "Aufgeteilt",
         "withPeople" to "Mit {names}",
         "search" to "Suchen",
+        "noResults" to "Keine Ergebnisse",
         "pushEvent" to "Es gibt etwas Neues in deinen Gruppen.",
         "owedToYouLabel" to "Dir geschuldet",
         "payerNotParticipant" to "{name} hat bezahlt, nimmt aber nicht teil: der ganze Betrag steht ihm zu.",
@@ -1866,6 +1880,7 @@ object AppStrings {
         "add" to "Adicionar",
         "use" to "Usar",
         "cancel" to "Cancelar",
+        "edit" to "Editar",
         "invalidUrl" to "Este URL não é válido para esta versão.",
         "tryAgain" to "Tentar novamente",
         "failureNetwork" to "Não é possível contactar a instância. Verifica a ligação e tenta novamente.",
@@ -1968,6 +1983,7 @@ object AppStrings {
         "splitWith" to "Divide-se",
         "withPeople" to "Com {names}",
         "search" to "Procurar",
+        "noResults" to "Sem resultados",
         "pushEvent" to "Tens uma novidade nos teus grupos.",
         "owedToYouLabel" to "Devem-te",
         "payerNotParticipant" to "{name} pagou mas não participa: deve-se-lhe o valor total.",
@@ -2128,6 +2144,7 @@ object AppStrings {
         "add" to "Engadir",
         "use" to "Usar",
         "cancel" to "Cancelar",
+        "edit" to "Editar",
         "invalidUrl" to "Ese URL non é válido para esta versión.",
         "tryAgain" to "Tentar de novo",
         "failureNetwork" to "Non se pode conectar coa instancia. Comproba a conexión e téntao de novo.",
@@ -2230,6 +2247,7 @@ object AppStrings {
         "splitWith" to "Divide-se",
         "withPeople" to "Con {names}",
         "search" to "Buscar",
+        "noResults" to "Sen resultados",
         "pushEvent" to "Tes unha novidade nos teus grupos.",
         "owedToYouLabel" to "Débenche",
         "payerNotParticipant" to "{name} pagou pero non participa: débeselle o importe completo.",
@@ -2390,6 +2408,7 @@ object AppStrings {
         "add" to "Gehitu",
         "use" to "Erabili",
         "cancel" to "Utzi",
+        "edit" to "Editatu",
         "invalidUrl" to "URL hori ez da baliozkoa bertsio honetarako.",
         "tryAgain" to "Saiatu berriro",
         "failureNetwork" to "Ezin da instantziarekin konektatu. Egiaztatu konexioa eta saiatu berriro.",
@@ -2492,6 +2511,7 @@ object AppStrings {
         "splitWith" to "eta banatuta",
         "withPeople" to "{names} kideekin",
         "search" to "Bilatu",
+        "noResults" to "Emaitzarik ez",
         "pushEvent" to "Berritasunik badago zure taldeetan.",
         "owedToYouLabel" to "Zor dizute",
         "payerNotParticipant" to "{name}(e)k ordaindu du baina ez du parte hartzen: zenbateko osoa zor zaio.",
