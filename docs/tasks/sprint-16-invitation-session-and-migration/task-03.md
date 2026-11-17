@@ -32,6 +32,19 @@ abierta, una desactivación solo se notaba al reiniciar. `ApiClient` avisa ahora
 sesión. Cubierto por tests de `MockEngine` (aviso una sola vez, 401 tras refrescar, red sin
 aviso) y por `:app:testDebugUnitTest` + `:app:assembleDebug`; CI en verde en `9e7cce2`.
 
+**Expulsión aceptada (2026-11-17, APK debug `9e7cce2`, instancia local)**: con la app abierta y
+un módulo a la vista, desactivar al usuario desde el panel cerró la sesión de la app
+automáticamente, sin reiniciarla. Pendiente confirmar el texto del aviso en el siguiente build y
+el caso de cuenta borrada (no puede volver a entrar).
+
+**Corrección 2026-11-17 (login tras logout)**: `endSession` cerraba el cliente de API y el de
+Supabase y `login()` empezaba con `client ?: return`, así que tras un logout el formulario no
+hacía nada, en silencio, hasta reiniciar la app. Los clientes son del ámbito de la instancia y
+ahora sobreviven al logout; `ensureAuth()` reconstruye lo que falte y `login()` nunca sale sin
+respuesta. La sesión se olvida con `auth.clearSession()` (memoria y disco, sin ida y vuelta) y
+`ApiClient.resetSessionState()` rearma el aviso para una segunda expulsión. Test de `MockEngine`
+para el rearme; CI en verde en `b107e62`.
+
 **Punto de partida (verificado)**
 - `apps/admin/src/app/(auth)/actions.ts` hace `signOut()` sin scope; en JS el default es `global`,
   así que el logout del panel revoca también la sesión del móvil.
