@@ -30,6 +30,9 @@ propietario y el App Link https de la tarea 05.**
   `NeedsLogin(invitation_accepted)` una sola vez, sin reintentar el canje.
 - Si el enlace apunta a otra instancia, la sesión guardada no se reutiliza ni se cambia en
   silencio: se limpia antes de crear el cliente Supabase de esa instancia.
+- El botón web «Abrir en la app» usa `zero27apps://` (un esquema de URL válido: no puede empezar
+  por un dígito, y Chrome convertía `027apps://` en una ruta relativa con un 404). La app sigue
+  aceptando `027apps://` y `027apps-dev://` para enlaces y `adb` ya existentes.
 - Aviso `invitation_accepted` en el login y strings nuevos en los 9 idiomas.
 - Paleta Android con los tokens `android`/`android-foreground` para mantener la paridad con
   `tokens.json`.

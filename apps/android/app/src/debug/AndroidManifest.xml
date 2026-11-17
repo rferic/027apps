@@ -12,6 +12,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="zero27apps-dev" android:host="invite" />
                 <data android:scheme="027apps-dev" android:host="invite" />
             </intent-filter>
         </activity>

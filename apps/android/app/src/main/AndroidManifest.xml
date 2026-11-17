@@ -24,11 +24,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Fallback for any instance: the app's own scheme. -->
+            <!-- Fallback for any instance: the app's own scheme. `zero27apps`
+                 is browser-valid (a scheme cannot start with a digit), so the
+                 web "Open in the app" can use it; the old `027apps` stays for
+                 links and adb commands that already exist. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="zero27apps" android:host="invite" />
                 <data android:scheme="027apps" android:host="invite" />
             </intent-filter>
         </activity>

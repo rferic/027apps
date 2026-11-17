@@ -30,7 +30,7 @@ data class InvitationLink(val token: String, val instance: String) {
          * scheme is matched by hand; the https App Link goes through URI.
          */
         private val CUSTOM = Regex(
-            "^(027apps|027apps-dev)://invite/?([^?#]*)(?:\\?([^#]*))?$",
+            "^(zero27apps|zero27apps-dev|027apps|027apps-dev)://invite/?([^?#]*)(?:\\?([^#]*))?$",
             RegexOption.IGNORE_CASE,
         )
 

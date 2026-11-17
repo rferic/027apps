@@ -157,7 +157,9 @@ export function InviteWizard({
     setAttempted(true);
     setOpening(true);
     try {
-      window.location.href = `027apps://invite/${encodeURIComponent(token)}?instance=${encodeURIComponent(origin)}`;
+      // A valid scheme (a letter first): Chrome refuses `027apps://` and turns
+      // it into a relative path. The app also accepts the old scheme via intents.
+      window.location.href = `zero27apps://invite/${encodeURIComponent(token)}?instance=${encodeURIComponent(origin)}`;
     } catch {
       // A browser that refuses the scheme stays on this page.
     }
