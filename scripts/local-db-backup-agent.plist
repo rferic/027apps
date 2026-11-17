@@ -29,6 +29,13 @@
   </array>
   <key>WorkingDirectory</key>
   <string>__REPO__</string>
+  <!-- launchd starts with a minimal PATH: without this, `docker` is not found
+       and the job exits 2 without dumping anything. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
   <key>StartInterval</key>
   <integer>3600</integer>
   <key>RunAtLoad</key>
