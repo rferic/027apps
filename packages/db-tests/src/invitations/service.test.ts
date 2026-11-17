@@ -5,7 +5,9 @@ import {
   createInvitation,
   hashInvitationToken,
   listInvitations,
+  previewInvitation,
   redeemInvitation,
+  renewInvitation,
   revokeInvitation,
   type InvitationStatusFilter,
   type InvitationsAuth,
@@ -238,7 +240,9 @@ describe("invitations service", () => {
         display_name: "Redeem Real",
       });
       expect(result.invitation_id).toBe(inv.invitation.id);
-      expect(result.user.display_name).toBe("Redeem Real");
+      // `display_name` is obsolete: the invitation's name always wins (A5).
+      expect(result.user.display_name).toBe("Redeem");
+      expect(result.user.role).toBe("user");
 
       const { rows: profile } = await query(c, "select role from public.profiles where id = $1", [
         result.user.id,
@@ -346,9 +350,11 @@ describe("invitations service", () => {
     await inRollback(async (c) => {
       const who = await admin(c);
       const existingEmail = email("existing");
-      const existing = await createTestUser(c, { email: existingEmail });
-      // Creation refuses an email that already belongs to a member, so the
-      // invitation has to predate the account (the race redemption guards).
+      const existing = await createTestUser(c, {
+        email: existingEmail,
+        role: "admin",
+        displayName: "Existing",
+      });
       const inv = await createInvitation(deps(c, authPort(c).port), who, {
         email: existingEmail,
         name: "Existing",
@@ -356,11 +362,45 @@ describe("invitations service", () => {
       const auth = authPort(c, [{ id: existing.id, email: existingEmail }]);
       const d = deps(c, auth.port);
 
-      const result = await redeemInvitation(d, inv.token, {
-        email: inv.invitation.email,
-        password: "correct-horse-battery",
-      });
+      const result = await redeemInvitation(
+        d,
+        inv.token,
+        { email: inv.invitation.email },
+        { kind: "session", userId: existing.id, role: "admin" },
+      );
       expect(result.user.id).toBe(existing.id);
+      // D6: the account keeps its own role and name.
+      expect(result.user.role).toBe("admin");
+      const { rows: kept } = await query(
+        c,
+        "select display_name, role from public.profiles where id = $1",
+        [existing.id],
+      );
+      expect(kept[0]).toMatchObject({ display_name: "Existing", role: "admin" });
+      expect(auth.created).toHaveLength(0);
+    });
+  });
+
+  it("refuses an existing account without its own session and does not consume", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      const existingEmail = email("needs-session");
+      const existing = await createTestUser(c, { email: existingEmail });
+      const inv = await createInvitation(deps(c, authPort(c).port), who, {
+        email: existingEmail,
+        name: "Needs session",
+      });
+      const auth = authPort(c, [{ id: existing.id, email: existingEmail }]);
+      const d = deps(c, auth.port);
+
+      await expect(
+        redeemInvitation(d, inv.token, { email: inv.invitation.email }),
+      ).rejects.toMatchObject({ code: "existing_account_signin_required" });
+
+      const { rows } = await query(c, "select used_at from public.invitations where id = $1", [
+        inv.invitation.id,
+      ]);
+      expect(rows[0]!.used_at).toBeNull();
       expect(auth.created).toHaveLength(0);
     });
   });
@@ -379,10 +419,12 @@ describe("invitations service", () => {
       const d = deps(c, auth.port);
 
       await expect(
-        redeemInvitation(d, inv.token, {
-          email: inv.invitation.email,
-          password: "correct-horse-battery",
-        }),
+        redeemInvitation(
+          d,
+          inv.token,
+          { email: inv.invitation.email },
+          { kind: "session", userId: existing.id, role: "user" },
+        ),
       ).rejects.toMatchObject({ code: "conflict" });
       expect(auth.created).toHaveLength(0);
     });
@@ -487,27 +529,27 @@ describe("createInvitation rules", () => {
     });
   });
 
-  it("rejects an email that already belongs to a member", async () => {
+  it("allows an email that already belongs to a member and reports it", async () => {
     await inRollback(async (c) => {
       const who = await admin(c);
       const memberEmail = email("member");
       const member = await createTestUser(c, { email: memberEmail });
       const auth = authPort(c, [{ id: member.id, email: memberEmail }]);
 
-      await expect(
-        createInvitation(deps(c, auth.port), who, { email: memberEmail, name: "Member" }),
-      ).rejects.toMatchObject({
-        code: "conflict",
-        message: "That email already belongs to a member",
-        details: { code: "email_registered" },
+      const created = await createInvitation(deps(c, auth.port), who, {
+        email: memberEmail,
+        name: "Member",
       });
+
+      expect(created.account_exists).toBe(true);
+      expect(created.invitation.role).toBe("user");
 
       const { rows } = await query(
         c,
         "select count(*)::int as n from public.invitations where email = $1",
         [memberEmail],
       );
-      expect(rows[0]!.n).toBe(0);
+      expect(rows[0]!.n).toBe(1);
     });
   });
 
@@ -640,5 +682,160 @@ describe("createInvitation rules", () => {
         }
       });
     }
+  });
+});
+
+describe("invitation preview and renewal", () => {
+  it("previews a pending invitation without internal fields", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      const created = await createInvitation(deps(c, authPort(c).port), who, {
+        email: email("preview"),
+        name: "Preview",
+        role: "admin",
+        expires_in_days: 30,
+      });
+
+      const preview = await previewInvitation(deps(c, authPort(c).port), created.token);
+
+      expect(preview).toMatchObject({
+        state: "pending",
+        email: created.invitation.email,
+        name: "Preview",
+        role: "admin",
+        role_applies: true,
+        account_exists: false,
+        expires_at: created.invitation.expires_at,
+      });
+      expect(preview.inviter_name).toBeTruthy();
+      expect(typeof preview.instance_name).toBe("string");
+      expect(typeof preview.timezone).toBe("string");
+      expect(preview).not.toHaveProperty("id");
+      expect(preview).not.toHaveProperty("modules");
+      expect(preview).not.toHaveProperty("user_category_id");
+    });
+  });
+
+  it("marks an existing account and hides its current role", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      const existingEmail = email("preview-existing");
+      const existing = await createTestUser(c, { email: existingEmail, role: "admin" });
+      const created = await createInvitation(deps(c, authPort(c).port), who, {
+        email: existingEmail,
+        name: "Existing",
+        role: "user",
+      });
+
+      const preview = await previewInvitation(
+        deps(c, authPort(c, [{ id: existing.id, email: existingEmail }]).port),
+        created.token,
+      );
+
+      expect(preview.account_exists).toBe(true);
+      expect(preview.role_applies).toBe(false);
+      // The invitation's role, never the account's current one.
+      expect(preview.role).toBe("user");
+    });
+  });
+
+  it("explains used and expired invitations and hides revoked ones", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      const auth = authPort(c);
+      const d = deps(c, auth.port);
+
+      const usedOne = await createInvitation(d, who, { email: email("used"), name: "Used" });
+      await query(c, "update public.invitations set used_at = now() where id = $1", [
+        usedOne.invitation.id,
+      ]);
+      expect((await previewInvitation(d, usedOne.token)).state).toBe("used");
+
+      const expired = await createInvitation(d, who, { email: email("expired"), name: "Expired" });
+      await query(
+        c,
+        "update public.invitations set created_at = now() - interval '2 days', expires_at = now() - interval '1 day' where id = $1",
+        [expired.invitation.id],
+      );
+      expect((await previewInvitation(d, expired.token)).state).toBe("expired");
+
+      const revoked = await createInvitation(d, who, { email: email("revoked"), name: "Revoked" });
+      await revokeInvitation(d, revoked.invitation.id);
+      await expect(previewInvitation(d, revoked.token)).rejects.toMatchObject({
+        code: "not_found",
+      });
+    });
+  });
+
+  it("renews an expired invitation, rotates the token and keeps the duration", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      const auth = authPort(c);
+      const d = deps(c, auth.port);
+      const created = await createInvitation(d, who, {
+        email: email("renew"),
+        name: "Renew",
+        expires_in_days: 30,
+      });
+      await query(
+        c,
+        "update public.invitations set created_at = now() - interval '2 days', expires_at = now() - interval '1 day' where id = $1",
+        [created.invitation.id],
+      );
+
+      const renewed = await renewInvitation(d, created.invitation.id);
+
+      expect(renewed.token).not.toBe(created.token);
+      expect(renewed.invitation.expires_in_days).toBe(30);
+      expect(new Date(renewed.invitation.expires_at).getTime()).toBeGreaterThan(Date.now());
+      await expect(previewInvitation(d, created.token)).rejects.toMatchObject({
+        code: "not_found",
+      });
+      expect((await previewInvitation(d, renewed.token)).state).toBe("pending");
+    });
+  });
+
+  it("refuses to renew a pending or a used invitation", async () => {
+    await inRollback(async (c) => {
+      const who = await admin(c);
+      const auth = authPort(c);
+      const d = deps(c, auth.port);
+
+      const pending = await createInvitation(d, who, { email: email("renew-pending"), name: "P" });
+      await expect(renewInvitation(d, pending.invitation.id)).rejects.toMatchObject({
+        code: "invitation_not_expired",
+      });
+
+      const usedOne = await createInvitation(d, who, { email: email("renew-used"), name: "U" });
+      await query(c, "update public.invitations set used_at = now() where id = $1", [
+        usedOne.invitation.id,
+      ]);
+      await expect(renewInvitation(d, usedOne.invitation.id)).rejects.toMatchObject({
+        code: "invitation_used",
+      });
+    });
+  });
+
+  it("lets only a super_admin invite an admin", async () => {
+    await inRollback(async (c) => {
+      const { id } = await createTestUser(c, { email: email("plain-admin"), role: "admin" });
+      const plainAdmin: Caller = { kind: "session", userId: id, role: "admin" };
+
+      await expect(
+        createInvitation(deps(c, authPort(c).port), plainAdmin, {
+          email: email("escalation"),
+          name: "Escalation",
+          role: "admin",
+        }),
+      ).rejects.toMatchObject({ code: "insufficient_scope" });
+
+      const who = await admin(c);
+      const created = await createInvitation(deps(c, authPort(c).port), who, {
+        email: email("allowed-admin"),
+        name: "Allowed",
+        role: "admin",
+      });
+      expect(created.invitation.role).toBe("admin");
+    });
   });
 });

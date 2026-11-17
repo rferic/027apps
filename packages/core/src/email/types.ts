@@ -17,6 +17,13 @@ export interface EmailCopy {
   greeting: string;
   lead: string;
   cta: string;
+  /** The address already has an account: sign in instead of choosing a password. */
+  existingLead: string;
+  existingCta: string;
+  /** Shown in the note box for an existing account (D16). */
+  passwordNote: string;
+  /** Shown in the note box when the invitation grants an admin role (A6). */
+  adminNote: string;
   fallback: string;
   expiry: string;
   security: string;
@@ -37,6 +44,10 @@ export interface InvitationEmailInput {
   timeZone: string;
   token: string;
   expiresAt: Date;
+  /** The address already has an account: send the "sign in" variant. */
+  accountExists?: boolean;
+  /** Role the invitation grants; `admin` adds a note. */
+  role?: "user" | "admin";
 }
 
 export function isEmailLocale(value: unknown): value is EmailLocale {

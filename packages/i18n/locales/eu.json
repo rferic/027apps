@@ -951,5 +951,8 @@
   "Categories and Splitwise import": "Kategoriak eta Splitwise inportazioa",
   "Food · 62%": "Elikagaiak · 62%",
   "All history": "Historial osoa",
-  "All categories in the group, with their historical expenses.": "Taldeko kategoria guztiak, beren gastu historikoekin."
+  "All categories in the group, with their historical expenses.": "Taldeko kategoria guztiak, beren gastu historikoekin.",
+  "That email already has an account. Sign in with it to accept the invitation.": "Posta elektroniko horrek badauka kontu bat. Sartu harekin gonbidapena onartzeko.",
+  "That email already has an account. The email asks it to sign in with its usual password.": "Posta elektroniko horrek badauka kontu bat. Mezuak betiko pasahitzarekin sartzeko eskatzen dio.",
+  "They will join as an administrator.": "Administratzaile gisa sartuko da."
 }

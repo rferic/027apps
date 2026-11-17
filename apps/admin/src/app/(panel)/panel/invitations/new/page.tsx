@@ -71,6 +71,7 @@ export default async function NewInvitationPage() {
       <InvitationCreateForm
         categories={categoryRows.map((category) => ({ id: category.id, name: category.name }))}
         modules={moduleChoices.ok ? moduleChoices.modules : []}
+        canInviteAdmin={gate.user.role === "super_admin"}
         optionsUnavailable={!categories.ok || !moduleChoices.ok}
         defaultLocale={locale}
         publicUrl={publicUrl}

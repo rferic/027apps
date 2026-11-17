@@ -96,7 +96,7 @@ async function postToResend(
  */
 export function createInvitationMailer(): InvitationsMailer {
   return {
-    async sendInvitation({ invitation, token }): Promise<InvitationDelivery> {
+    async sendInvitation({ invitation, token, accountExists }): Promise<InvitationDelivery> {
       const key = process.env.RESEND_API_KEY;
       if (!key) return { status: "skipped", code: "email_not_configured" };
 
@@ -113,6 +113,8 @@ export function createInvitationMailer(): InvitationsMailer {
           timeZone: context.timeZone,
           token,
           expiresAt: new Date(invitation.expires_at),
+          accountExists,
+          role: invitation.role,
         });
         const from = fromHeader(
           process.env.EMAIL_FROM_NAME?.trim() || context.instanceName,

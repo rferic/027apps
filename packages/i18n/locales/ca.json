@@ -951,5 +951,8 @@
   "Categories and Splitwise import": "Categories i importació de Splitwise",
   "Food · 62%": "Aliments · 62%",
   "All history": "Tot l’historial",
-  "All categories in the group, with their historical expenses.": "Totes les categories del grup, amb les seves despeses històriques."
+  "All categories in the group, with their historical expenses.": "Totes les categories del grup, amb les seves despeses històriques.",
+  "That email already has an account. Sign in with it to accept the invitation.": "Aquest correu ja té un compte. Entra-hi per acceptar la invitació.",
+  "That email already has an account. The email asks it to sign in with its usual password.": "Aquest correu ja té un compte. El correu li demana que entri amb la seva contrasenya de sempre.",
+  "They will join as an administrator.": "Entrarà com a administrador."
 }

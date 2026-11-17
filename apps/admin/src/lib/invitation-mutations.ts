@@ -9,6 +9,7 @@ import {
 export interface CreateInvitationInput {
   email: string;
   name: string;
+  role?: "user" | "admin";
   user_category_id?: string;
   modules?: string[];
   expires_in_days?: number;
@@ -23,7 +24,15 @@ export interface InvitationDelivery {
 }
 
 export type CreateInvitationResult =
-  | { ok: true; token?: string; invitationId?: string; email?: InvitationDelivery }
+  | {
+      ok: true;
+      token?: string;
+      invitationId?: string;
+      email?: InvitationDelivery;
+      /** The address already has an account: the email asks it to sign in. */
+      accountExists?: boolean;
+      role?: "user" | "admin";
+    }
   | MutationFailure;
 
 /** A reissued token, plus the email outcome when the action sends one. */
@@ -50,6 +59,7 @@ async function bodyOrFailure(res: Response): Promise<MutationFailure> {
 
 function requestBody(input: CreateInvitationInput): Record<string, unknown> {
   const body: Record<string, unknown> = { email: input.email, name: input.name };
+  if (input.role) body.role = input.role;
   if (input.user_category_id) body.user_category_id = input.user_category_id;
   if (input.modules && input.modules.length > 0) body.modules = input.modules;
   if (input.expires_in_days !== undefined) body.expires_in_days = input.expires_in_days;
@@ -73,11 +83,14 @@ function createdResult(parsed: unknown, headerRequestId: string | undefined): Cr
   const invitation = isRecord(parsed.invitation) ? parsed.invitation : {};
   const invitationId = readString(invitation.id);
   const email = readDelivery(parsed.email);
+  const role = invitation.role === "admin" ? "admin" : invitation.role === "user" ? "user" : undefined;
   return {
     ok: true,
     ...(token ? { token } : {}),
     ...(invitationId ? { invitationId } : {}),
     ...(email ? { email } : {}),
+    ...(parsed.account_exists === true ? { accountExists: true } : {}),
+    ...(role ? { role } : {}),
   };
 }
 

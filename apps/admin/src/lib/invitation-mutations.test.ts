@@ -96,7 +96,7 @@ describe("createInvitation", () => {
             code: "conflict",
             message: "State conflict",
             request_id: "req-409",
-            details: { code: "email_registered" },
+            details: { code: "pending_invitation" },
           },
         },
         409,
@@ -108,7 +108,7 @@ describe("createInvitation", () => {
         ok: false,
         code: "conflict",
         requestId: "req-409",
-        details: { code: "email_registered" },
+        details: { code: "pending_invitation" },
       },
     );
   });

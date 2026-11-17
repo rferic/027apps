@@ -951,5 +951,8 @@
   "Categories and Splitwise import": "Kategorien und Splitwise-Import",
   "Food · 62%": "Lebensmittel · 62%",
   "All history": "Gesamter Verlauf",
-  "All categories in the group, with their historical expenses.": "Alle Kategorien der Gruppe mit ihren historischen Ausgaben."
+  "All categories in the group, with their historical expenses.": "Alle Kategorien der Gruppe mit ihren historischen Ausgaben.",
+  "That email already has an account. Sign in with it to accept the invitation.": "Diese E-Mail hat bereits ein Konto. Melde dich damit an, um die Einladung anzunehmen.",
+  "That email already has an account. The email asks it to sign in with its usual password.": "Diese E-Mail hat bereits ein Konto. Die E-Mail bittet darum, sich mit dem gewohnten Passwort anzumelden.",
+  "They will join as an administrator.": "Die Person tritt als Administrator bei."
 }

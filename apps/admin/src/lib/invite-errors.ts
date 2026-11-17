@@ -20,6 +20,8 @@ export function inviteErrorHeading(
       return t("This invitation has expired. Ask an administrator for a new one.", messages);
     case "invitation_used":
       return t("This invitation has already been used.", messages);
+    case "existing_account_signin_required":
+      return t("That email already has an account. Sign in with it to accept the invitation.", messages);
     case "conflict":
       return t("This account is deactivated. Contact an administrator.", messages);
     case "validation_failed":

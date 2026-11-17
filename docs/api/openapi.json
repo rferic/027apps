@@ -1778,6 +1778,8 @@
                   "already_setup",
                   "invitation_expired",
                   "invitation_used",
+                  "invitation_not_expired",
+                  "existing_account_signin_required",
                   "currency_not_enabled",
                   "locale_not_available",
                   "cors_origin_not_allowed",
@@ -2007,6 +2009,11 @@
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "type": "string"
           },
+          "expires_in_days": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
           "id": {
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -2055,6 +2062,13 @@
               }
             ]
           },
+          "role": {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string"
+          },
           "status": {
             "enum": [
               "pending",
@@ -2093,6 +2107,8 @@
           "id",
           "email",
           "name",
+          "role",
+          "expires_in_days",
           "user_category_id",
           "modules",
           "status",
@@ -2155,6 +2171,13 @@
             "minLength": 1,
             "type": "string"
           },
+          "role": {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string"
+          },
           "user_category_id": {
             "anyOf": [
               {
@@ -2177,6 +2200,9 @@
       "InvitationCreated": {
         "additionalProperties": false,
         "properties": {
+          "account_exists": {
+            "type": "boolean"
+          },
           "email": {
             "additionalProperties": false,
             "properties": {
@@ -2245,6 +2271,11 @@
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                 "type": "string"
               },
+              "expires_in_days": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
               "id": {
                 "format": "uuid",
                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -2293,6 +2324,13 @@
                   }
                 ]
               },
+              "role": {
+                "enum": [
+                  "user",
+                  "admin"
+                ],
+                "type": "string"
+              },
               "status": {
                 "enum": [
                   "pending",
@@ -2331,6 +2369,8 @@
               "id",
               "email",
               "name",
+              "role",
+              "expires_in_days",
               "user_category_id",
               "modules",
               "status",
@@ -2353,6 +2393,7 @@
         "required": [
           "invitation",
           "token",
+          "account_exists",
           "email"
         ],
         "type": "object"
@@ -2430,6 +2471,11 @@
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "type": "string"
           },
+          "expires_in_days": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
           "id": {
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -2478,6 +2524,13 @@
               }
             ]
           },
+          "role": {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string"
+          },
           "status": {
             "enum": [
               "pending",
@@ -2516,6 +2569,8 @@
           "id",
           "email",
           "name",
+          "role",
+          "expires_in_days",
           "user_category_id",
           "modules",
           "status",
@@ -2608,6 +2663,11 @@
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                 "type": "string"
               },
+              "expires_in_days": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
               "id": {
                 "format": "uuid",
                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -2656,6 +2716,13 @@
                   }
                 ]
               },
+              "role": {
+                "enum": [
+                  "user",
+                  "admin"
+                ],
+                "type": "string"
+              },
               "status": {
                 "enum": [
                   "pending",
@@ -2694,6 +2761,8 @@
               "id",
               "email",
               "name",
+              "role",
+              "expires_in_days",
               "user_category_id",
               "modules",
               "status",
@@ -2787,6 +2856,11 @@
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                 "type": "string"
               },
+              "expires_in_days": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
               "id": {
                 "format": "uuid",
                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -2835,6 +2909,13 @@
                   }
                 ]
               },
+              "role": {
+                "enum": [
+                  "user",
+                  "admin"
+                ],
+                "type": "string"
+              },
               "status": {
                 "enum": [
                   "pending",
@@ -2873,6 +2954,8 @@
               "id",
               "email",
               "name",
+              "role",
+              "expires_in_days",
               "user_category_id",
               "modules",
               "status",
@@ -2950,6 +3033,11 @@
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                   "type": "string"
                 },
+                "expires_in_days": {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                },
                 "id": {
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -2998,6 +3086,13 @@
                     }
                   ]
                 },
+                "role": {
+                  "enum": [
+                    "user",
+                    "admin"
+                  ],
+                  "type": "string"
+                },
                 "status": {
                   "enum": [
                     "pending",
@@ -3036,6 +3131,8 @@
                 "id",
                 "email",
                 "name",
+                "role",
+                "expires_in_days",
                 "user_category_id",
                 "modules",
                 "status",
@@ -3077,6 +3174,173 @@
         ],
         "type": "object"
       },
+      "InvitationPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "account_exists": {
+            "type": "boolean"
+          },
+          "email": {
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "type": "string"
+          },
+          "instance_name": {
+            "type": "string"
+          },
+          "inviter_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "locale": {
+            "enum": [
+              "en",
+              "es",
+              "ca",
+              "gl",
+              "eu",
+              "pt",
+              "fr",
+              "it",
+              "de"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string"
+          },
+          "role_applies": {
+            "type": "boolean"
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "expired",
+              "used"
+            ],
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "email",
+          "name",
+          "role",
+          "role_applies",
+          "account_exists",
+          "locale",
+          "expires_at",
+          "inviter_name",
+          "instance_name",
+          "timezone"
+        ],
+        "type": "object"
+      },
+      "InvitationPreviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "invitation": {
+            "additionalProperties": false,
+            "properties": {
+              "account_exists": {
+                "type": "boolean"
+              },
+              "email": {
+                "format": "email",
+                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                "type": "string"
+              },
+              "expires_at": {
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "type": "string"
+              },
+              "instance_name": {
+                "type": "string"
+              },
+              "inviter_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "locale": {
+                "enum": [
+                  "en",
+                  "es",
+                  "ca",
+                  "gl",
+                  "eu",
+                  "pt",
+                  "fr",
+                  "it",
+                  "de"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "role": {
+                "enum": [
+                  "user",
+                  "admin"
+                ],
+                "type": "string"
+              },
+              "role_applies": {
+                "type": "boolean"
+              },
+              "state": {
+                "enum": [
+                  "pending",
+                  "expired",
+                  "used"
+                ],
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "state",
+              "email",
+              "name",
+              "role",
+              "role_applies",
+              "account_exists",
+              "locale",
+              "expires_at",
+              "inviter_name",
+              "instance_name",
+              "timezone"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "invitation"
+        ],
+        "type": "object"
+      },
       "InvitationRedeem": {
         "additionalProperties": false,
         "properties": {
@@ -3098,8 +3362,204 @@
           }
         },
         "required": [
-          "email",
-          "password"
+          "email"
+        ],
+        "type": "object"
+      },
+      "InvitationRenewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "sent",
+                  "failed",
+                  "skipped"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "status"
+            ],
+            "type": "object"
+          },
+          "invitation": {
+            "additionalProperties": false,
+            "properties": {
+              "created_at": {
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "type": "string"
+              },
+              "email": {
+                "format": "email",
+                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                "type": "string"
+              },
+              "email_error": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "email_failed_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "email_sent_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "expires_at": {
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "type": "string"
+              },
+              "expires_in_days": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "locale": {
+                "enum": [
+                  "en",
+                  "es",
+                  "ca",
+                  "gl",
+                  "eu",
+                  "pt",
+                  "fr",
+                  "it",
+                  "de"
+                ],
+                "type": "string"
+              },
+              "mode": {
+                "enum": [
+                  "sent",
+                  "failed",
+                  "not_sent"
+                ],
+                "type": "string"
+              },
+              "modules": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              },
+              "revoked_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "role": {
+                "enum": [
+                  "user",
+                  "admin"
+                ],
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "pending",
+                  "used",
+                  "expired",
+                  "revoked"
+                ],
+                "type": "string"
+              },
+              "used_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "user_category_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "name",
+              "role",
+              "expires_in_days",
+              "user_category_id",
+              "modules",
+              "status",
+              "locale",
+              "mode",
+              "expires_at",
+              "used_at",
+              "revoked_at",
+              "email_sent_at",
+              "email_failed_at",
+              "email_error",
+              "created_at"
+            ],
+            "type": "object"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invitation",
+          "token",
+          "email"
         ],
         "type": "object"
       },
@@ -6334,12 +6794,20 @@
                 "format": "uuid",
                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
                 "type": "string"
+              },
+              "role": {
+                "enum": [
+                  "user",
+                  "admin"
+                ],
+                "type": "string"
               }
             },
             "required": [
               "id",
               "email",
-              "display_name"
+              "display_name",
+              "role"
             ],
             "type": "object"
           }
@@ -8438,6 +8906,44 @@
         ]
       }
     },
+    "/invitations/{id}/preview": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [],
+        "summary": "Public preview of an invitation by token (no session)."
+      }
+    },
     "/invitations/{id}/redeem": {
       "post": {
         "parameters": [
@@ -8484,6 +8990,54 @@
         },
         "security": [],
         "summary": "Redeem an invitation with its single-use token (public)."
+      }
+    },
+    "/invitations/{id}/renew": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationRenewResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "Renew an expired invitation: rotate the token and resend it.",
+        "x-027-scopes": [
+          "invitations:write"
+        ]
       }
     },
     "/invitations/{id}/resend-email": {

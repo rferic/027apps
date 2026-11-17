@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { invitationConflictError, panelErrorCodeLabel, slugConflictError } from "./panel-errors";
 
 describe("invitationConflictError", () => {
-  it("names a registered member as the cause of a create conflict", () => {
+  it("leaves an existing account out: it is not a conflict anymore (A7)", () => {
     expect(
       invitationConflictError({ code: "conflict", details: { code: "email_registered" } }, {}),
-    ).toBe("That email already belongs to a member.");
+    ).toBeUndefined();
   });
 
   it("names the pending invitation as the cause of a create conflict", () => {

@@ -4,7 +4,9 @@ import type { Caller } from "../api/types.js";
 import {
   createInvitation,
   getInvitation,
+  previewInvitation,
   redeemInvitation,
+  renewInvitation,
   resendCooldownSeconds,
   rotateInvitationToken,
   RESEND_COOLDOWN_MS,
@@ -38,8 +40,8 @@ interface RecordedQuery {
  */
 function fakeDb(input: {
   settings: { key: string; value: unknown }[];
-  profile?: { display_name: string } | null;
-  invitation?: { locale: string | null };
+  profile?: { display_name: string; role?: string } | null;
+  invitation?: { locale?: string | null; role?: string };
 }): { db: QueryClient; queries: RecordedQuery[] } {
   const queries: RecordedQuery[] = [];
   const db: QueryClient = {
@@ -66,8 +68,15 @@ function fakeDb(input: {
       if (sql.includes("insert into public.event_outbox")) {
         return { rows: [] };
       }
-      if (sql.includes("select display_name from public.profiles")) {
-        return { rows: [{ display_name: input.profile?.display_name ?? "Ana" }] };
+      if (sql.includes("select display_name")) {
+        return {
+          rows: [
+            {
+              display_name: input.profile?.display_name ?? "Ana",
+              role: input.profile?.role ?? input.invitation?.role ?? "user",
+            },
+          ],
+        };
       }
       return { rows: [] };
     },
@@ -111,7 +120,7 @@ describe("redeemInvitation localization", () => {
     const insert = profileInsert(fake.queries);
     expect(insert?.sql).toContain("locale");
     expect(insert?.sql).toContain("timezone");
-    expect(insert?.params).toEqual(["u1", "Ana", "es", "Europe/Madrid"]);
+    expect(insert?.params).toEqual(["u1", "Ana", "user", "es", "Europe/Madrid"]);
   });
 
   it("falls back to en/UTC when the settings are missing or null", async () => {
@@ -128,7 +137,7 @@ describe("redeemInvitation localization", () => {
       password: "correct-horse-battery",
     });
 
-    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "en", "UTC"]);
+    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "en", "UTC"]);
   });
 
   it("falls back per key when only one of the two settings is usable", async () => {
@@ -142,7 +151,7 @@ describe("redeemInvitation localization", () => {
       password: "correct-horse-battery",
     });
 
-    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "gl", "UTC"]);
+    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "gl", "UTC"]);
   });
 
   it("prefers the invitation's locale over the instance default", async () => {
@@ -160,7 +169,7 @@ describe("redeemInvitation localization", () => {
       password: "correct-horse-battery",
     });
 
-    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "ca", "Europe/Madrid"]);
+    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "ca", "Europe/Madrid"]);
   });
 
   it("ignores an unsupported invitation locale and keeps the default", async () => {
@@ -175,7 +184,7 @@ describe("redeemInvitation localization", () => {
       password: "correct-horse-battery",
     });
 
-    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "gl", "UTC"]);
+    expect(profileInsert(fake.queries)?.params).toEqual(["u1", "Ana", "user", "gl", "UTC"]);
   });
 
   it("keeps a deactivated account check before the localization read", async () => {
@@ -208,6 +217,8 @@ interface StoredInvitation {
   id: string;
   email: string;
   name: string;
+  role: string;
+  expires_in_days: number;
   user_category_id: string | null;
   locale?: string;
   expires_at: string;
@@ -223,6 +234,8 @@ const stored = (overrides: Partial<StoredInvitation> = {}): StoredInvitation => 
   id: `i-${Math.random().toString(36).slice(2)}`,
   email: "ana@example.com",
   name: "Ana",
+  role: "user",
+  expires_in_days: 7,
   user_category_id: null,
   expires_at: "2099-01-01T00:00:00.000Z",
   used_at: null,
@@ -275,12 +288,14 @@ function invitationTable(seed: StoredInvitation[] = []) {
         }
         if (sql.includes("insert into public.invitations")) {
           seq += 1;
-          const [email, name, categoryId, , locale, expiresAt] = params as [
+          const [email, name, role, categoryId, , locale, days, expiresAt] = params as [
+            string,
             string,
             string,
             string | null,
             string,
             string,
+            number,
             string,
           ];
           const id = `i-new-${seq}`;
@@ -288,6 +303,8 @@ function invitationTable(seed: StoredInvitation[] = []) {
             id,
             email,
             name,
+            role,
+            expires_in_days: days,
             user_category_id: categoryId,
             locale,
             expires_at: expiresAt,
@@ -358,18 +375,98 @@ describe("createInvitation rules", () => {
     expect(table.rows).toHaveLength(1);
   });
 
-  it("rejects an email that already belongs to a member", async () => {
+  it("allows an email that already belongs to a member and reports it", async () => {
     const table = invitationTable();
     const deps = createDeps(table, "user-1");
 
-    await expect(
-      createInvitation(deps, ADMIN, { email: "ana@example.com", name: "Ana" }),
-    ).rejects.toMatchObject({
-      code: "conflict",
-      message: "That email already belongs to a member",
-      details: { code: "email_registered" },
+    const created = await createInvitation(deps, ADMIN, {
+      email: "ana@example.com",
+      name: "Ana",
     });
+
+    expect(created.account_exists).toBe(true);
+    expect(created.invitation).toMatchObject({
+      email: "ana@example.com",
+      role: "user",
+      expires_in_days: 7,
+      status: "pending",
+    });
+    expect(table.rows).toHaveLength(1);
+  });
+
+  it("reports account_exists false for a new address", async () => {
+    const table = invitationTable();
+    const created = await createInvitation(createDeps(table), ADMIN, {
+      email: "new@example.com",
+      name: "Nueva",
+    });
+
+    expect(created.account_exists).toBe(false);
+  });
+
+  it("rejects admin invitations from an admin session", async () => {
+    const table = invitationTable();
+
+    await expect(
+      createInvitation(createDeps(table), ADMIN, {
+        email: "ana@example.com",
+        name: "Ana",
+        role: "admin",
+      }),
+    ).rejects.toMatchObject({ code: "insufficient_scope" });
     expect(table.rows).toHaveLength(0);
+  });
+
+  it("allows admin invitations from a super_admin session", async () => {
+    const table = invitationTable();
+    const superAdmin: Caller = { kind: "session", userId: "root", role: "super_admin" };
+
+    const created = await createInvitation(createDeps(table), superAdmin, {
+      email: "ana@example.com",
+      name: "Ana",
+      role: "admin",
+      expires_in_days: 30,
+    });
+
+    expect(created.invitation.role).toBe("admin");
+    expect(created.invitation.expires_in_days).toBe(30);
+  });
+
+  it("allows admin invitations from a service key capped at super_admin", async () => {
+    const table = invitationTable();
+    const service: Caller = {
+      kind: "service",
+      keyId: "key-1",
+      scopes: ["invitations:write"],
+      roleCap: "super_admin",
+    };
+
+    const created = await createInvitation(createDeps(table), service, {
+      email: "ana@example.com",
+      name: "Ana",
+      role: "admin",
+    });
+
+    expect(created.invitation.role).toBe("admin");
+  });
+
+  it("never lets a delegated key invite an admin", async () => {
+    const table = invitationTable();
+    const delegated: Caller = {
+      kind: "delegated",
+      keyId: "key-1",
+      scopes: ["invitations:write"],
+      roleCap: "super_admin",
+      userId: "u-1",
+    };
+
+    await expect(
+      createInvitation(createDeps(table), delegated, {
+        email: "ana@example.com",
+        name: "Ana",
+        role: "admin",
+      }),
+    ).rejects.toMatchObject({ code: "insufficient_scope" });
   });
 
   it("allows the email of a used or an expired invitation", async () => {
@@ -590,5 +687,314 @@ describe("resendCooldownSeconds", () => {
     expect(
       resendCooldownSeconds({ email_sent_at: null, email_failed_at: null } as InvitationView, new Date()),
     ).toBe(0);
+  });
+});
+
+const PREVIEW_ROW = {
+  email: "ana@example.com",
+  name: "Ana",
+  role: "user",
+  locale: "es",
+  expires_at: "2026-11-24T12:00:00.000Z",
+  used_at: null,
+  revoked_at: null,
+  inviter_name: "Eric",
+};
+
+function previewDeps(input: {
+  row?: Record<string, unknown> | null;
+  existing?: { id: string } | null;
+  settings?: { key: string; value: unknown }[];
+}): InvitationsDeps {
+  const db = {
+    async query(sql: string) {
+      if (sql.includes("from public.invitations i")) return { rows: input.row ? [input.row] : [] };
+      if (sql.includes("from public.settings")) return { rows: input.settings ?? [] };
+      return { rows: [] };
+    },
+  };
+  return {
+    db,
+    now: () => new Date("2026-11-17T12:00:00.000Z"),
+    auth: {
+      async findUserByEmail() {
+        return input.existing ?? null;
+      },
+      async createUser() {
+        throw new Error("preview must not create users");
+      },
+      async deleteUser() {
+        throw new Error("preview must not delete users");
+      },
+    },
+  };
+}
+
+describe("previewInvitation", () => {
+  it("returns the public contract for a pending invitation", async () => {
+    const preview = await previewInvitation(
+      previewDeps({
+        row: PREVIEW_ROW,
+        settings: [
+          { key: "instance.name", value: "Familia Pérez" },
+          { key: "localization.timezone", value: "Europe/Madrid" },
+        ],
+      }),
+      "027_inv_valid",
+    );
+
+    expect(preview).toEqual({
+      state: "pending",
+      email: "ana@example.com",
+      name: "Ana",
+      role: "user",
+      role_applies: true,
+      account_exists: false,
+      locale: "es",
+      expires_at: "2026-11-24T12:00:00.000Z",
+      inviter_name: "Eric",
+      instance_name: "Familia Pérez",
+      timezone: "Europe/Madrid",
+    });
+  });
+
+  it("marks an existing account and says the role does not apply", async () => {
+    const preview = await previewInvitation(
+      previewDeps({
+        row: { ...PREVIEW_ROW, role: "admin" },
+        existing: { id: "u1" },
+      }),
+      "027_inv_valid",
+    );
+
+    expect(preview.account_exists).toBe(true);
+    expect(preview.role_applies).toBe(false);
+    expect(preview.role).toBe("admin");
+  });
+
+  it("explains a used invitation", async () => {
+    const preview = await previewInvitation(
+      previewDeps({ row: { ...PREVIEW_ROW, used_at: "2026-11-18T00:00:00.000Z" } }),
+      "027_inv_valid",
+    );
+    expect(preview.state).toBe("used");
+  });
+
+  it("explains an expired invitation", async () => {
+    const preview = await previewInvitation(
+      previewDeps({ row: { ...PREVIEW_ROW, expires_at: "2026-11-01T00:00:00.000Z" } }),
+      "027_inv_valid",
+    );
+    expect(preview.state).toBe("expired");
+  });
+
+  it("hides a revoked invitation behind not_found", async () => {
+    await expect(
+      previewInvitation(
+        previewDeps({ row: { ...PREVIEW_ROW, revoked_at: "2026-11-18T00:00:00.000Z" } }),
+        "027_inv_valid",
+      ),
+    ).rejects.toMatchObject({ code: "not_found" });
+  });
+
+  it("rejects an unknown or malformed token with the same not_found", async () => {
+    await expect(
+      previewInvitation(previewDeps({ row: null }), "027_inv_unknown"),
+    ).rejects.toMatchObject({ code: "not_found" });
+    await expect(previewInvitation(previewDeps({ row: PREVIEW_ROW }), "nope")).rejects.toMatchObject({
+      code: "not_found",
+    });
+  });
+
+  it("keeps the inviter null for a key-created invitation and the instance defaults", async () => {
+    const preview = await previewInvitation(
+      previewDeps({
+        row: { ...PREVIEW_ROW, inviter_name: null, locale: null },
+      }),
+      "027_inv_valid",
+    );
+
+    expect(preview.inviter_name).toBeNull();
+    expect(preview.instance_name).toBe("027Apps");
+    expect(preview.timezone).toBe("UTC");
+    expect(preview.locale).toBe("en");
+  });
+});
+
+function renewDeps(row: Record<string, unknown>) {
+  const updates: unknown[][] = [];
+  const db = {
+    async query(sql: string, params: unknown[] = []) {
+      if (sql.includes("for update")) return { rows: [row] };
+      if (sql.includes("update public.invitations")) {
+        updates.push(params);
+        return { rows: [] };
+      }
+      if (sql.includes("from public.invitation_modules")) return { rows: [] };
+      return { rows: [] };
+    },
+  };
+  const deps: InvitationsDeps = {
+    db,
+    now: () => NOW,
+    auth: auth(),
+  };
+  return { deps, updates };
+}
+
+describe("renewInvitation", () => {
+  const expired = {
+    ...stored({ expires_at: "2026-11-01T00:00:00.000Z" }),
+    expires_in_days: 30,
+    email_sent_at: "2026-10-01T00:00:00.000Z",
+    email_failed_at: null,
+    email_error: null,
+  };
+
+  it("rotates the token and reuses the original duration", async () => {
+    const { deps, updates } = renewDeps(expired);
+
+    const renewed = await renewInvitation(deps, "i1");
+
+    expect(renewed.token).toMatch(/^027_inv_/);
+    expect(renewed.invitation.expires_in_days).toBe(30);
+    // NOW is 2026-11-08; 30 days later is 2026-12-08.
+    expect(renewed.invitation.expires_at).toBe("2026-12-08T12:00:00.000Z");
+    expect(renewed.invitation.mode).toBe("not_sent");
+    expect(updates).toHaveLength(1);
+    expect(String(updates[0]?.[0])).toMatch(/^[0-9a-f]{64}$/);
+    expect(updates[0]?.[2]).toBe("i1");
+  });
+
+  it("refuses an invitation that has not expired", async () => {
+    const { deps } = renewDeps({ ...expired, expires_at: "2099-01-01T00:00:00.000Z" });
+    await expect(renewInvitation(deps, "i1")).rejects.toMatchObject({
+      code: "invitation_not_expired",
+    });
+  });
+
+  it("refuses a redeemed invitation", async () => {
+    const { deps } = renewDeps({ ...expired, used_at: "2026-11-02T00:00:00.000Z" });
+    await expect(renewInvitation(deps, "i1")).rejects.toMatchObject({ code: "invitation_used" });
+  });
+
+  it("hides a revoked invitation", async () => {
+    const { deps } = renewDeps({ ...expired, revoked_at: "2026-11-02T00:00:00.000Z" });
+    await expect(renewInvitation(deps, "i1")).rejects.toMatchObject({ code: "not_found" });
+  });
+});
+
+function existingAccountDeps(input: {
+  existingId: string;
+  profileRole?: string;
+  invitationRole?: string;
+}): { deps: InvitationsDeps; queries: RecordedQuery[] } {
+  const fake = fakeDb({
+    settings: [],
+    profile: { display_name: "Nombre guardado", role: input.profileRole ?? "admin" },
+    invitation: { locale: "es", role: input.invitationRole ?? "user" },
+  });
+  return {
+    queries: fake.queries,
+    deps: {
+      db: fake.db,
+      now: () => new Date("2026-11-17T12:00:00.000Z"),
+      auth: {
+        async findUserByEmail() {
+          return { id: input.existingId };
+        },
+        async createUser() {
+          throw new Error("an existing account must not be created again");
+        },
+        async deleteUser() {
+          throw new Error("an existing account must not be deleted");
+        },
+      },
+    },
+  };
+}
+
+describe("redeemInvitation for an existing account", () => {
+  it("requires the session of that same account", async () => {
+    const { deps, queries } = existingAccountDeps({ existingId: "u-existing" });
+
+    await expect(
+      redeemInvitation(deps, "027_inv_valid", { email: "ana@example.com" }),
+    ).rejects.toMatchObject({ code: "existing_account_signin_required" });
+
+    await expect(
+      redeemInvitation(
+        deps,
+        "027_inv_valid",
+        { email: "ana@example.com" },
+        { kind: "session", userId: "someone-else", role: "admin" },
+      ),
+    ).rejects.toMatchObject({ code: "existing_account_signin_required" });
+
+    // Neither attempt touched the invitation.
+    expect(queries.some((entry) => entry.sql.includes("update public.invitations"))).toBe(false);
+  });
+
+  it("accepts with the session of the invited account and keeps its name and role", async () => {
+    const { deps, queries } = existingAccountDeps({ existingId: "u-existing" });
+
+    const result = await redeemInvitation(
+      deps,
+      "027_inv_valid",
+      { email: "ana@example.com" },
+      { kind: "session", userId: "u-existing", role: "user" },
+    );
+
+    expect(result.user).toMatchObject({
+      id: "u-existing",
+      display_name: "Nombre guardado",
+      role: "admin",
+    });
+    const insert = profileInsert(queries);
+    // `on conflict do nothing`: a new row would still take the invitation role.
+    expect(insert?.params).toEqual(["u-existing", "Ana", "user", "es", "UTC"]);
+    expect(queries.some((entry) => entry.sql.includes("update public.invitations set used_at"))).toBe(
+      true,
+    );
+  });
+
+  it("ignores the obsolete display_name and uses the invitation name", async () => {
+    const fake = fakeDb({ settings: [] });
+    const result = await redeemInvitation(
+      { db: fake.db, auth: auth() },
+      "027_inv_valid",
+      {
+        email: "ana@example.com",
+        password: "correct-horse-battery",
+        display_name: "Otro nombre",
+      },
+    );
+
+    expect(profileInsert(fake.queries)?.params?.[1]).toBe("Ana");
+    expect(result.user.display_name).toBe("Ana");
+  });
+
+  it("needs a password to create a new account", async () => {
+    const fake = fakeDb({ settings: [] });
+
+    await expect(
+      redeemInvitation({ db: fake.db, auth: auth() }, "027_inv_valid", {
+        email: "ana@example.com",
+      }),
+    ).rejects.toMatchObject({ code: "validation_failed" });
+    expect(profileInsert(fake.queries)).toBeUndefined();
+  });
+
+  it("creates a new profile with the invitation role", async () => {
+    const fake = fakeDb({ settings: [], invitation: { locale: "es", role: "admin" } });
+
+    const result = await redeemInvitation(
+      { db: fake.db, auth: auth() },
+      "027_inv_valid",
+      { email: "ana@example.com", password: "correct-horse-battery" },
+    );
+
+    expect(profileInsert(fake.queries)?.params?.[2]).toBe("admin");
+    expect(result.user.role).toBe("admin");
   });
 });

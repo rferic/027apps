@@ -17,6 +17,8 @@ export interface InvitationRow {
   id: string;
   email: string;
   name: string;
+  role: "user" | "admin";
+  expires_in_days: number;
   user_category_id: string | null;
   modules: string[];
   status: InvitationStatus;
@@ -198,6 +200,14 @@ function readEmailMeta(value: Record<string, unknown>): {
   };
 }
 
+function readRole(value: unknown): "user" | "admin" {
+  return value === "admin" ? "admin" : "user";
+}
+
+function readTtl(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value) ? value : 7;
+}
+
 function readInvitation(value: unknown): InvitationRow | null {
   if (!isRecord(value)) return null;
   const base = readInvitationBase(value);
@@ -216,6 +226,8 @@ function readInvitation(value: unknown): InvitationRow | null {
   if (email === null) return null;
   return {
     ...base,
+    role: readRole(value.role),
+    expires_in_days: readTtl(value.expires_in_days),
     user_category_id: categoryId,
     modules,
     status,

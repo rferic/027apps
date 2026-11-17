@@ -30,6 +30,9 @@ export interface InvitationsAuth {
 
 export type InvitationStatus = "pending" | "used" | "expired" | "revoked";
 
+/** Role the invitation gives a new profile; `super_admin` is never allowed. */
+export type InvitationRole = "user" | "admin";
+
 /** `all` is the explicit "no status filter"; every list defaults to it. */
 export type InvitationStatusFilter = InvitationStatus | "all";
 
@@ -37,6 +40,8 @@ export type InvitationView = {
   id: string;
   email: string;
   name: string;
+  role: InvitationRole;
+  expires_in_days: number;
   user_category_id: string | null;
   modules: string[];
   status: InvitationStatus;
@@ -59,6 +64,8 @@ export type InvitationDetail = InvitationView & {
 export interface CreateInvitationInput {
   email: string;
   name: string;
+  /** Role of the profile created on redemption; defaults to `user`. */
+  role?: InvitationRole;
   user_category_id?: string | null;
   modules?: string[];
   expires_in_days?: number;
@@ -68,14 +75,33 @@ export interface CreateInvitationInput {
 
 export interface RedeemInput {
   email: string;
-  password: string;
+  /** Required for a new account; never sent for an existing one (D21). */
+  password?: string;
+  /** Obsolete: the name always comes from the invitation (A5). */
   display_name?: string;
 }
 
 export type RedeemResult = {
-  user: { id: string; email: string; display_name: string };
+  user: { id: string; email: string; display_name: string; role: InvitationRole };
   invitation_id: string;
 };
+
+/** Public contract of `GET /invitations/{token}/preview` (spec §6.2). */
+export type InvitationPreview = {
+  state: "pending" | "expired" | "used";
+  email: string;
+  name: string;
+  role: InvitationRole;
+  /** False for an existing account: redeeming keeps its role (D6). */
+  role_applies: boolean;
+  account_exists: boolean;
+  locale: EmailLocale;
+  expires_at: string;
+  /** Null when a service key created the invitation: no person to name. */
+  inviter_name: string | null;
+  instance_name: string;
+  timezone: string;
+}
 
 /** One page of invitations plus the total across every page. */
 export interface InvitationList {
@@ -101,6 +127,32 @@ const toIsoOrNull = (value: unknown): string | null =>
   value === null || value === undefined ? null : toIso(value);
 
 const normalizeEmail = (value: string): string => value.trim().toLowerCase();
+
+function roleOf(value: unknown): InvitationRole {
+  return value === "admin" ? "admin" : "user";
+}
+
+/** Validates the requested role; `super_admin` is a 400, never a downgrade. */
+function invitationRole(value: InvitationRole | undefined): InvitationRole {
+  if (value === undefined) return "user";
+  if (value !== "user" && value !== "admin") {
+    throw new DomainError("validation_failed", "invalid invitation role");
+  }
+  return value;
+}
+
+/**
+ * `admin` is reserved for a super_admin session or a service key capped at
+ * super_admin. A delegated key never escalates, even if its cap says so, and an
+ * `admin` session inviting an `admin` is a 403 (C7).
+ */
+function assertCanInviteRole(caller: Caller, role: InvitationRole): void {
+  if (role === "user") return;
+  const allowed =
+    (caller.kind === "session" && caller.role === "super_admin") ||
+    (caller.kind === "service" && caller.roleCap === "super_admin");
+  if (!allowed) throw new DomainError("insufficient_scope");
+}
 
 export function hashInvitationToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -194,6 +246,8 @@ function toView(row: Record<string, unknown>, modules: string[], now: Date): Inv
     id: String(row.id),
     email: String(row.email),
     name: String(row.name),
+    role: roleOf(row.role),
+    expires_in_days: Number(row.expires_in_days ?? DEFAULT_TTL_DAYS),
     user_category_id: row.user_category_id === null ? null : String(row.user_category_id),
     modules,
     status: statusOf(row, now),
@@ -257,8 +311,10 @@ export async function createInvitation(
   deps: InvitationsDeps,
   caller: Caller,
   input: CreateInvitationInput,
-): Promise<{ invitation: InvitationView; token: string }> {
+): Promise<{ invitation: InvitationView; token: string; account_exists: boolean }> {
   const actor = actorFor(caller);
+  const role = invitationRole(input.role);
+  assertCanInviteRole(caller, role);
   const modules = moduleKeys(input.modules);
   const days = ttlDays(input.expires_in_days);
   const now = deps.now?.() ?? new Date();
@@ -269,13 +325,10 @@ export async function createInvitation(
 
   if (input.user_category_id) await assertCategory(deps.db, input.user_category_id);
 
-  // An account cannot be invited again: redemption would only reattach it.
+  // An email that already has an account can be invited: the redeem flow then
+  // requires that account's session (A7). The panel explains `account_exists`.
   const existingUser = await deps.auth.findUserByEmail(email);
-  if (existingUser) {
-    throw new DomainError("conflict", "That email already belongs to a member", {
-      code: "email_registered",
-    });
-  }
+  const accountExists = existingUser !== null;
 
   const invitationId = await withTx(deps, async (db) => {
     // The check and the insert share the transaction, and the advisory lock
@@ -300,15 +353,18 @@ export async function createInvitation(
     const { rows } = await db
       .query(
         `insert into public.invitations
-           (email, name, user_category_id, token_hash, locale, expires_at, created_by, created_by_key)
-         values ($1, $2, $3, $4, $5, $6, $7, $8)
+           (email, name, role, user_category_id, token_hash, locale, expires_in_days,
+            expires_at, created_by, created_by_key)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          returning id`,
         [
           email,
           input.name.trim(),
+          role,
           input.user_category_id ?? null,
           hashInvitationToken(token),
           locale,
+          days,
           expiresAt.toISOString(),
           actor.by,
           actor.byKey,
@@ -344,12 +400,12 @@ export async function createInvitation(
   });
 
   const { rows } = await deps.db.query(
-    `select id, email, name, user_category_id, locale, expires_at, used_at, revoked_at,
-            email_sent_at, email_failed_at, email_error, created_at
+    `select id, email, name, role, expires_in_days, user_category_id, locale, expires_at,
+            used_at, revoked_at, email_sent_at, email_failed_at, email_error, created_at
        from public.invitations where id = $1`,
     [invitationId],
   );
-  return { invitation: toView(rows[0]!, modules, now), token };
+  return { invitation: toView(rows[0]!, modules, now), token, account_exists: accountExists };
 }
 
 export async function listInvitations(
@@ -362,8 +418,8 @@ export async function listInvitations(
   // paginator and the panel agree on how many rows the list really has.
   const { rows } = await deps.db.query(
     `with filtered as (
-       select id, email, name, user_category_id, locale, expires_at, used_at, revoked_at,
-              email_sent_at, email_failed_at, email_error, created_at
+       select id, email, name, role, expires_in_days, user_category_id, locale, expires_at,
+              used_at, revoked_at, email_sent_at, email_failed_at, email_error, created_at
          from public.invitations
         where $3::text = 'all'
            or ($3::text = 'used' and used_at is not null)
@@ -403,9 +459,10 @@ export async function getInvitation(
 ): Promise<InvitationDetail> {
   const now = deps.now?.() ?? new Date();
   const { rows } = await deps.db.query(
-    `select i.id, i.email, i.name, i.user_category_id, i.locale, i.expires_at, i.used_at,
-            i.revoked_at, i.email_sent_at, i.email_failed_at, i.email_error,
-            i.created_at, p.id as created_by_id, p.display_name as created_by_display_name
+    `select i.id, i.email, i.name, i.role, i.expires_in_days, i.user_category_id, i.locale,
+            i.expires_at, i.used_at, i.revoked_at, i.email_sent_at, i.email_failed_at,
+            i.email_error, i.created_at, p.id as created_by_id,
+            p.display_name as created_by_display_name
        from public.invitations i
        left join public.profiles p on p.id = i.created_by
       where i.id = $1`,
@@ -426,8 +483,86 @@ export async function getInvitation(
   return { ...toView(row, modules.get(invitationId) ?? [], now), created_by: creator };
 }
 
-export async function revokeInvitation(deps: InvitationsDeps, id: string): Promise<void> {
+/** Instance identity and defaults the public preview shows without a session. */
+async function instanceContext(db: QueryClient): Promise<{
+  instanceName: string;
+  timezone: string;
+  defaultLocale: EmailLocale;
+}> {
+  const { rows } = await db.query(
+    "select key, value from public.settings where key = any($1::text[])",
+    [["instance.name", "localization.timezone", "localization.default_locale"]],
+  );
+  const values = new Map<string, unknown>();
+  for (const row of rows) values.set(String(row.key), row.value);
+  const locale = values.get("localization.default_locale");
+  return {
+    instanceName: readSettingString(values.get("instance.name")) ?? "027Apps",
+    timezone: readSettingString(values.get("localization.timezone")) ?? "UTC",
+    defaultLocale: isEmailLocale(locale) ? locale : "en",
+  };
+}
+
+/**
+ * Public preview by token (A2, spec §6.2). Revoked and unknown tokens are the
+ * same 404 on purpose: the caller already holds the token, so `used` and
+ * `expired` are explained with 200 because it is the same invitation.
+ *
+ * It never returns the id, the token hash, the modules, the category or the
+ * current role of an existing account.
+ */
+export async function previewInvitation(
+  deps: InvitationsDeps,
+  rawToken: string,
+): Promise<InvitationPreview> {
+  if (!rawToken.startsWith(TOKEN_PREFIX) || rawToken.length > 200) {
+    throw new DomainError("not_found");
+  }
+  const now = deps.now?.() ?? new Date();
   const { rows } = await deps.db.query(
+    `select i.email, i.name, i.role, i.locale, i.expires_at, i.used_at, i.revoked_at,
+            p.display_name as inviter_name
+       from public.invitations i
+       left join public.profiles p on p.id = i.created_by
+      where i.token_hash = $1`,
+    [hashInvitationToken(rawToken)],
+  );
+  const row = rows[0];
+  if (!row) throw new DomainError("not_found");
+  if (row.revoked_at !== null && row.revoked_at !== undefined) throw new DomainError("not_found");
+
+  const email = String(row.email);
+  const [account, context] = await Promise.all([
+    deps.auth.findUserByEmail(email),
+    instanceContext(deps.db),
+  ]);
+  const accountExists = account !== null;
+  const state =
+    row.used_at !== null && row.used_at !== undefined
+      ? "used"
+      : new Date(String(row.expires_at)).getTime() <= now.getTime()
+        ? "expired"
+        : "pending";
+
+  return {
+    state,
+    email,
+    name: String(row.name),
+    role: roleOf(row.role),
+    role_applies: !accountExists,
+    account_exists: accountExists,
+    locale: isEmailLocale(row.locale) ? row.locale : context.defaultLocale,
+    expires_at: toIso(row.expires_at),
+    inviter_name:
+      row.inviter_name === null || row.inviter_name === undefined
+        ? null
+        : String(row.inviter_name),
+    instance_name: context.instanceName,
+    timezone: context.timezone,
+  };
+}
+
+export async function revokeInvitation(deps: InvitationsDeps, id: string): Promise<void> {  const { rows } = await deps.db.query(
     `update public.invitations set revoked_at = now()
       where id = $1 and used_at is null and revoked_at is null
       returning id`,
@@ -477,8 +612,8 @@ export async function rotateInvitationToken(
 
   const row = await withTx(deps, async (db) => {
     const { rows } = await db.query(
-      `select id, email, name, user_category_id, locale, expires_at, used_at, revoked_at,
-              email_sent_at, email_failed_at, email_error, created_at
+      `select id, email, name, role, expires_in_days, user_category_id, locale, expires_at,
+              used_at, revoked_at, email_sent_at, email_failed_at, email_error, created_at
          from public.invitations where id = $1 for update`,
       [id],
     );
@@ -487,6 +622,69 @@ export async function rotateInvitationToken(
     assertPending(current, now);
     await db.query("update public.invitations set token_hash = $1 where id = $2", [tokenHash, id]);
     return current;
+  });
+
+  const modules = await modulesFor(deps.db, [id]);
+  return { invitation: toView(row, modules.get(id) ?? [], now), token };
+}
+
+export interface RenewedInvitation {
+  invitation: InvitationView;
+  token: string;
+}
+
+/**
+ * Renews an expired invitation (A3, spec §6.5): rotates the token, restores the
+ * duration it was created with and clears the last email attempt so the route
+ * can send it again. A used invitation is `invitation_used`, a pending one is
+ * `invitation_not_expired` and a revoked one stays indistinguishable from a
+ * missing one.
+ */
+export async function renewInvitation(
+  deps: InvitationsDeps,
+  id: string,
+  now: Date = deps.now?.() ?? new Date(),
+): Promise<RenewedInvitation> {
+  const token = newInvitationToken();
+  const row = await withTx(deps, async (db) => {
+    const { rows } = await db.query(
+      `select id, email, name, role, expires_in_days, user_category_id, locale, expires_at,
+              used_at, revoked_at, email_sent_at, email_failed_at, email_error, created_at
+         from public.invitations where id = $1 for update`,
+      [id],
+    );
+    const current = rows[0];
+    if (!current) throw new DomainError("not_found");
+    if (current.revoked_at !== null && current.revoked_at !== undefined) {
+      throw new DomainError("not_found");
+    }
+    if (current.used_at !== null && current.used_at !== undefined) {
+      throw new DomainError("invitation_used");
+    }
+    if (new Date(String(current.expires_at)).getTime() > now.getTime()) {
+      throw new DomainError("invitation_not_expired");
+    }
+
+    const days = ttlDays(
+      current.expires_in_days === null || current.expires_in_days === undefined
+        ? undefined
+        : Number(current.expires_in_days),
+    );
+    const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    await db.query(
+      `update public.invitations
+          set token_hash = $1, expires_at = $2, email_sent_at = null,
+              email_failed_at = null, email_error = null
+        where id = $3`,
+      [hashInvitationToken(token), expiresAt.toISOString(), id],
+    );
+    return {
+      ...current,
+      expires_at: expiresAt.toISOString(),
+      email_sent_at: null,
+      email_failed_at: null,
+      email_error: null,
+    };
   });
 
   const modules = await modulesFor(deps.db, [id]);
@@ -550,6 +748,7 @@ export async function redeemInvitation(
   deps: InvitationsDeps,
   token: string,
   input: RedeemInput,
+  caller: Caller = { kind: "anon" },
 ): Promise<RedeemResult> {
   if (!token.startsWith(TOKEN_PREFIX) || token.length > 200) throw new DomainError("not_found");
   const tokenHash = hashInvitationToken(token);
@@ -559,7 +758,7 @@ export async function redeemInvitation(
   // Preflight without locks: fail fast before touching Auth. The shared pool
   // must not be held during the external Auth HTTP call.
   const { rows: preview } = await deps.db.query(
-    `select id, email, name, expires_at, used_at, revoked_at
+    `select id, email, name, role, expires_at, used_at, revoked_at
        from public.invitations where token_hash = $1`,
     [tokenHash],
   );
@@ -567,13 +766,28 @@ export async function redeemInvitation(
   if (!pre) throw new DomainError("not_found");
   assertRedeemable(pre, email, now());
 
-  const displayName = (input.display_name?.trim() || String(pre.name)).slice(0, 80);
+  // The name always comes from the invitation (A5); `display_name` is obsolete
+  // and deliberately ignored.
+  const displayName = String(pre.name).slice(0, 80);
   let userId: string;
   let createdUserId: string | null = null;
   const existing = await deps.auth.findUserByEmail(email);
   if (existing) {
+    // Session first (D21): the account holder signs in and the Core only
+    // checks that the session belongs to the invited account. No password
+    // ever reaches this endpoint for an existing account.
+    if (caller.kind !== "session" || caller.userId !== existing.id) {
+      throw new DomainError("existing_account_signin_required");
+    }
     userId = existing.id;
   } else {
+    if (
+      input.password === undefined ||
+      input.password.length < 12 ||
+      input.password.length > 200
+    ) {
+      throw new DomainError("validation_failed", "password must be 12-200 characters");
+    }
     const created = await deps.auth.createUser({
       email,
       password: input.password,
@@ -588,7 +802,7 @@ export async function redeemInvitation(
   try {
     return await withTx(deps, async (db) => {
       const { rows } = await db.query(
-        `select id, email, name, user_category_id, locale, expires_at, used_at, revoked_at,
+        `select id, email, name, role, user_category_id, locale, expires_at, used_at, revoked_at,
                 created_by, created_by_key
            from public.invitations
           where token_hash = $1
@@ -619,11 +833,13 @@ export async function redeemInvitation(
       const profileLocale = isEmailLocale(invitation.locale)
         ? (invitation.locale as string)
         : localization.locale;
+      // A new profile takes the invitation's role; an existing one keeps its
+      // own name and role (`on conflict do nothing`).
       await db.query(
         `insert into public.profiles (id, display_name, role, locale, timezone)
-         values ($1, $2, 'user', $3, $4)
+         values ($1, $2, $3, $4, $5)
          on conflict (id) do nothing`,
-        [userId, displayName, profileLocale, localization.timezone],
+        [userId, displayName, roleOf(invitation.role), profileLocale, localization.timezone],
       );
 
       if (invitation.user_category_id) {
@@ -657,9 +873,10 @@ export async function redeemInvitation(
         payload: { user_id: userId },
       });
 
-      // Existing accounts keep their stored name; new ones use the invite name.
+      // Existing accounts keep their stored name and role; new ones use the
+      // invitation's name and role.
       const { rows: profileRows } = await db.query(
-        "select display_name from public.profiles where id = $1",
+        "select display_name, role from public.profiles where id = $1",
         [userId],
       );
 
@@ -668,6 +885,7 @@ export async function redeemInvitation(
           id: userId,
           email,
           display_name: String(profileRows[0]?.display_name ?? displayName),
+          role: roleOf(profileRows[0]?.role ?? invitation.role),
         },
         invitation_id: invitationId,
       };
