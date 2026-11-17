@@ -1,13 +1,15 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "android";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "border-transparent bg-primary text-primary-foreground hover:opacity-90",
   secondary: "border-border bg-muted text-foreground hover:bg-muted/80",
   ghost: "border-transparent text-accent hover:underline",
   destructive: "border-destructive text-destructive hover:bg-destructive/10",
+  // Platform action: the Android brand green, always with its glyph.
+  android: "border-transparent bg-android text-android-foreground hover:opacity-90",
 };
 
 const baseClasses =

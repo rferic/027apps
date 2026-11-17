@@ -302,11 +302,7 @@ export function InviteWizard({
       <InviteDetails view={view} messages={messages} />
       <div className="flex flex-col gap-2">
         <OpenButton opening={opening} onOpen={openApp} messages={messages} />
-        <Button
-          variant="secondary"
-          className="min-h-11 border-android bg-android text-android-foreground hover:opacity-90"
-          onClick={() => setStep("download")}
-        >
+        <Button variant="android" className="min-h-11" onClick={() => setStep("download")}>
           <AndroidIcon />
           {t("Download for Android", messages)}
         </Button>
