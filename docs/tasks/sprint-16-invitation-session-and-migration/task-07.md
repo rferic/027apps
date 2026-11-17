@@ -50,6 +50,20 @@ escritorio, QR, token no pintado), formulario (ficha, nueva vs existente, límit
 (1211), `pnpm --filter admin lint`, `pnpm --filter admin tsc`, `pnpm --filter admin build`,
 `pnpm i18n:check`.
 
+**Aceptación del propietario (2026-11-17, escritorio, instancia local):**
+
+- Cuenta nueva `user` → `/welcome` en español, con descarga Android verde e icono de acceso. ✔
+- Cuenta nueva `admin` → auto-login directo en `/panel`. ✔
+- Cuenta existente (`super_admin`) → pide la contraseña actual; con la buena entra en `/panel`
+  conservando rol, nombre y contraseña. ✔ (El caso de contraseña incorrecta sin consumir está
+  cubierto por los tests de la action; no se repitió a mano.)
+- QR de escritorio con la URL de la instancia. ✔ (visible; el escaneo desde el móvil abre la
+  variante Android de la web).
+- La corrección del rol efectivo `super_admin` se validó después (`9542f57`).
+
+Pendiente: revisión/QA y la variante Android del wizard en un móvil real; el formulario dentro de
+la app es la tarea 06.
+
 **Auditoría de seguridad (2026-11-17)**
 
 - A01/A07: el canje web de una cuenta existente exige su contraseña (Supabase) y después su sesión;
