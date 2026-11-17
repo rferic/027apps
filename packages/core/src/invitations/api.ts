@@ -91,6 +91,22 @@ function uuid(value: string, field: string): string {
   return value;
 }
 
+/**
+ * Responses that carry an invitation token or invitee PII must not be stored,
+ * indexed or leaked through the Referer (spec §6.1). The door clones the
+ * Response and adds the request id, so these headers survive.
+ */
+const TOKEN_RESPONSE_HEADERS: Record<string, string> = {
+  "content-type": "application/json",
+  "cache-control": "no-store",
+  "x-robots-tag": "noindex, nofollow",
+  "referrer-policy": "no-referrer",
+};
+
+function tokenResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), { status, headers: TOKEN_RESPONSE_HEADERS });
+}
+
 function options(deps: InvitationsRouteDeps, scopes: string[], schema?: z.ZodType) {
   return {
     scopes,
@@ -195,7 +211,7 @@ export function invitationPreviewRoute(deps: InvitationsRouteDeps) {
         rateLimit: { identity: "ip" as const, limit: deps.rateLimits?.preview ?? 60 },
       },
       deps.door,
-      async () => ({ invitation: await previewInvitation(deps.invitations, rawToken) }),
+      async () => tokenResponse({ invitation: await previewInvitation(deps.invitations, rawToken) }),
     );
 }
 
@@ -270,14 +286,10 @@ export function redeemInvitationRoute(deps: InvitationsRouteDeps) {
         rateLimit: { identity: "ip" as const, limit: deps.rateLimits?.redeem ?? 30 },
       },
       deps.door,
-      async (ctx: RequestContext) => ({
-        status: 201,
-        body: await redeemInvitation(
-          deps.invitations,
-          token,
-          ctx.body as RedeemInput,
-          ctx.caller,
+      async (ctx: RequestContext) =>
+        tokenResponse(
+          await redeemInvitation(deps.invitations, token, ctx.body as RedeemInput, ctx.caller),
+          201,
         ),
-      }),
     );
 }

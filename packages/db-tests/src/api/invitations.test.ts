@@ -178,6 +178,8 @@ describe("invitations API", () => {
         token,
       );
       expect(redeemed.status).toBe(201);
+      expect(redeemed.headers.get("cache-control")).toBe("no-store");
+      expect(redeemed.headers.get("referrer-policy")).toBe("no-referrer");
       const redeemedBody = (await redeemed.json()) as {
         user: { id: string; display_name: string; role: string };
       };
@@ -260,6 +262,9 @@ describe("invitations API", () => {
         createdBody.token,
       );
       expect(preview.status).toBe(200);
+      expect(preview.headers.get("cache-control")).toBe("no-store");
+      expect(preview.headers.get("x-robots-tag")).toContain("noindex");
+      expect(preview.headers.get("referrer-policy")).toBe("no-referrer");
       const previewBody = (await preview.json()) as {
         invitation: { state: string; email: string; role_applies: boolean };
       };
