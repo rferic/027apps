@@ -22,6 +22,11 @@ alter table public.device_transfers enable row level security;
 
 revoke all on public.device_transfers from anon, authenticated;
 
+-- The server connects as service_role: the grant has to be explicit, because
+-- default privileges of a table created by the migration runner are not
+-- guaranteed in every environment (CI runs `supabase db reset`).
+grant select, insert, update, delete on public.device_transfers to service_role;
+
 create index device_transfers_user_recent_idx
   on public.device_transfers (user_id, created_at desc);
 
