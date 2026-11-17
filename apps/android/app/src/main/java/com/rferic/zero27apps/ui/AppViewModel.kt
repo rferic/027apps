@@ -264,6 +264,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             FcmRegistrar(getApplication()).revoke()
             runCatching { supabase?.auth?.signOut(SignOutScope.LOCAL) }
         }
+        // Either way this device forgets the session, in memory and on disk.
+        // After a revocation a network sign-out would only fail against the
+        // dead token, so `clearSession` does the local part without the round trip.
+        runCatching { supabase?.auth?.clearSession() }
         sessionStore.clear()
         clearWidget()
         prefs.remove(LOCATION_KEY)
