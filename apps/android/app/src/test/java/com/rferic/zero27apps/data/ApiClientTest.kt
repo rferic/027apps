@@ -111,7 +111,59 @@ class ApiClientTest {
 
         assertEquals("/api/v1/invitations/027_inv_abcdefghijklmnop/redeem", seenPath)
         assertTrue(seenBody.contains("a@example.test"))
-        assertEquals("i1", result.invitation_id)
+        assertEquals("i1", result.invitationId)
+        assertEquals("u1", result.user.id)
+    }
+
+    @Test
+    fun `parses the public invitation preview`() = runTest {
+        var seenPath = ""
+        val engine = MockEngine { request ->
+            seenPath = request.url.encodedPath
+            respond(
+                content = """
+                    {"invitation":{"state":"pending","email":"ana@example.test","name":"Ana",
+                     "role":"admin","role_applies":true,"account_exists":false,"locale":"es",
+                     "expires_at":"2026-11-24T12:00:00.000Z","inviter_name":"Eric",
+                     "instance_name":"Familia Pérez","timezone":"Europe/Madrid"}}
+                """,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        val preview = client(engine, token = { null })
+            .invitationPreview("027_inv_abcdefghijklmnop")
+
+        assertEquals("/api/v1/invitations/027_inv_abcdefghijklmnop/preview", seenPath)
+        assertEquals("pending", preview.state)
+        assertEquals("ana@example.test", preview.email)
+        assertEquals("admin", preview.role)
+        assertTrue(preview.roleApplies)
+        assertEquals(false, preview.accountExists)
+        assertEquals("Familia Pérez", preview.instanceName)
+        assertEquals("Europe/Madrid", preview.timezone)
+    }
+
+    @Test
+    fun `an existing account redeems without a password`() = runTest {
+        var seenBody = ""
+        val engine = MockEngine { request ->
+            seenBody = (request.body as io.ktor.http.content.TextContent).text
+            respond(
+                content = """{"user":{"id":"u1","email":"a@example.test","role":"user"},"invitation_id":"i1"}""",
+                status = HttpStatusCode.Created,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        client(engine).redeemInvitation(
+            "027_inv_abcdefghijklmnop",
+            RedeemRequest(email = "a@example.test"),
+        )
+
+        assertTrue(seenBody.contains("a@example.test"))
+        assertEquals(false, seenBody.contains("password"))
     }
 
     @Test

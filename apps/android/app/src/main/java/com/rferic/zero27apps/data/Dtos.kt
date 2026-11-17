@@ -109,14 +109,42 @@ data class PatchMeRequest(
 @Serializable
 data class RedeemRequest(
     val email: String,
-    val password: String,
-    @SerialName("display_name") val displayName: String? = null,
+    /** Only for a new account; an existing one signs in first (D21). */
+    val password: String? = null,
+)
+
+@Serializable
+data class RedeemUserDto(
+    val id: String = "",
+    val email: String = "",
+    @SerialName("display_name") val displayName: String = "",
+    val role: String = "user",
 )
 
 @Serializable
 data class RedeemResponse(
-    val invitation_id: String = "",
+    @SerialName("invitation_id") val invitationId: String = "",
+    val user: RedeemUserDto = RedeemUserDto(),
 )
+
+/** Public invitation preview (A2): the form is rendered from this, not the link. */
+@Serializable
+data class InvitationPreviewDto(
+    val state: String = "pending",
+    val email: String = "",
+    val name: String = "",
+    val role: String = "user",
+    @SerialName("role_applies") val roleApplies: Boolean = false,
+    @SerialName("account_exists") val accountExists: Boolean = false,
+    val locale: String = "en",
+    @SerialName("expires_at") val expiresAt: String = "",
+    @SerialName("inviter_name") val inviterName: String? = null,
+    @SerialName("instance_name") val instanceName: String = "027Apps",
+    val timezone: String = "UTC",
+)
+
+@Serializable
+data class InvitationPreviewResponse(val invitation: InvitationPreviewDto)
 
 @Serializable
 data class AndroidReleaseDto(

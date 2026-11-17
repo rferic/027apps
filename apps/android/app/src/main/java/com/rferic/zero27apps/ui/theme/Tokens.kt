@@ -37,6 +37,8 @@ data class Palette(
     val destructiveForeground: Color,
     val success: Color,
     val successSubtle: Color,
+    val android: Color,
+    val androidForeground: Color,
 ) {
     /** The same tokens as ARGB ints, for the parity test against the JSON. */
     fun argb(): Map<String, Int> = mapOf(
@@ -55,6 +57,8 @@ data class Palette(
         "destructive-foreground" to destructiveForeground.toArgb(),
         "success" to success.toArgb(),
         "success-subtle" to successSubtle.toArgb(),
+        "android" to android.toArgb(),
+        "android-foreground" to androidForeground.toArgb(),
     )
 }
 
@@ -75,6 +79,8 @@ object Tokens {
         destructiveForeground = Color(0xFFFFFFFF),
         success = Color(0xFF15803D),
         successSubtle = Color(0xFFE4F8EC),
+        android = Color(0xFF3DDC84),
+        androidForeground = Color(0xFF073042),
     )
 
     val dark = Palette(
@@ -93,5 +99,7 @@ object Tokens {
         destructiveForeground = Color(0xFF2A0A10),
         success = Color(0xFF4ADE80),
         successSubtle = Color(0xFF102318),
+        android = Color(0xFF3DDC84),
+        androidForeground = Color(0xFF073042),
     )
 }

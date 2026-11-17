@@ -1,6 +1,7 @@
 package com.rferic.zero27apps.ui
 
 import com.rferic.zero27apps.auth.InvitationLink
+import com.rferic.zero27apps.data.InvitationPreviewDto
 import com.rferic.zero27apps.data.ModuleDto
 import com.rferic.zero27apps.data.WidgetDto
 import com.rferic.zero27apps.data.UserDto
@@ -40,9 +41,27 @@ fun String.toThemePreference(): ThemePreference = when (this) {
 enum class FailureReason { NETWORK, AUTH_UNAVAILABLE, UNKNOWN }
 
 /** A one-line explanation on the login screen after an involuntary logout. */
-enum class LoginNotice { SESSION_REVOKED }
+enum class LoginNotice { SESSION_REVOKED, INVITATION_ACCEPTED }
 
-/** Result of the last invitation attempt. */
-enum class InviteError { EXPIRED, USED, NOT_FOUND, EMAIL_MISMATCH, NETWORK, GENERIC }
+/** Result of the last invitation preview or redemption attempt. */
+enum class InviteError {
+    EXPIRED,
+    USED,
+    NOT_FOUND,
+    NETWORK,
+    WRONG_CREDENTIALS,
+    EXISTING_SIGNIN_REQUIRED,
+    RATE_LIMITED,
+    CONFLICT,
+    GENERIC,
+}
 
-data class InviteState(val pending: Boolean = false, val error: InviteError? = null)
+data class InviteState(
+    /** The preview is being fetched from the link's instance. */
+    val loading: Boolean = false,
+    /** Public contract of the invitation; the form renders from it. */
+    val preview: InvitationPreviewDto? = null,
+    /** A redemption is in flight. */
+    val pending: Boolean = false,
+    val error: InviteError? = null,
+)

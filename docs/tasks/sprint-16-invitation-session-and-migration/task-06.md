@@ -2,7 +2,7 @@
 id: sprint-16-task-06
 titulo: Aceptación en la app — precarga, bloqueo, confirmación y auto-login
 area: app
-estado: pendiente
+estado: test
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 mockup: docs/mockups/invitation-flow/index.html
@@ -12,6 +12,48 @@ adrs: [0002, 0004, 0007, 0008]
 **Tarea**: convertir la pantalla de invitación en el formulario aprobado: todos los datos
 precargados y bloqueados salvo contraseña y confirmación, cuenta existente con contraseña actual y
 auto-login tras el canje, con estados idénticos a la web.
+
+**Implementación completa 2026-11-17; validada en emulador, pendiente la aceptación en el móvil del
+propietario y el App Link https de la tarea 05.**
+
+- `InvitationPreviewDto` + `ApiClient.invitationPreview` (GET público); `RedeemRequest` con
+  contraseña opcional y `RedeemResponse.user.role` (rol efectivo, `super_admin` incluido).
+- `onInviteLink` carga el preview al abrir el enlace; **cancela el boot en curso** para que no
+  sobrescriba la invitación con el login. Estados de carga, inválida/404, caducada, usada y error
+  de red; el idioma sale del `locale` del preview.
+- `InviteScreen`: ficha bloqueada (email, nombre, instancia, invitador, rol, caducidad); cuenta
+  nueva con contraseña + confirmación; existente con contraseña actual y «¿Olvidaste tu
+  contraseña?» (abre la web de la instancia); errores accionables; el token no se pinta.
+- Sesión primero (D21): una cuenta existente firma con Supabase **antes** de canjear y una
+  contraseña mala no llama al canje ni lo consume; una buena canjea con esa sesión y no repite
+  login. Una cuenta nueva canjea, firma y abre el shell; si el login posterior falla, va a
+  `NeedsLogin(invitation_accepted)` una sola vez, sin reintentar el canje.
+- Si el enlace apunta a otra instancia, la sesión guardada no se reutiliza ni se cambia en
+  silencio: se limpia antes de crear el cliente Supabase de esa instancia.
+- Aviso `invitation_accepted` en el login y strings nuevos en los 9 idiomas.
+- Paleta Android con los tokens `android`/`android-foreground` para mantener la paridad con
+  `tokens.json`.
+
+**Evidencia (emulador Android, instancia local `http://10.0.2.2:3003`):**
+
+- Enlace `027apps-dev://invite/<token>?instance=…` → formulario precargado y bloqueado, en el
+  idioma de la invitación. ✔
+- Cuenta nueva: contraseña + confirmación → cuenta creada, auto-login y shell. ✔
+- Cuenta existente: pide la contraseña actual; una mala muestra «La contraseña no es correcta» y
+  la invitación sigue pendiente; la buena entra al shell y la consume. ✔
+- Token desconocido → tarjeta «This invitation does not exist.» sin formulario. ✔
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug` en verde; incluye preview, canje sin
+  contraseña para cuenta existente y el aviso del login.
+
+**Auditoría de seguridad (2026-11-17)**
+
+- A02/A11: el token viaja en el path del enlace y en la petición, nunca se pinta ni se registra;
+  `allowBackup=false` y el Keystore cifran la sesión (sin cambios).
+- A07: sesión primero; el cliente Supabase se crea para la instancia del enlace; una sesión de otra
+  instancia se descarta; el canje no se reintenta tras un 201.
+- El formulario no permite editar email ni nombre (ficha, no inputs); solo contraseña/confirmación.
+- Veredicto: sin hallazgos abiertos. Pendiente el App Link https (05) y la prueba en el móvil del
+  propietario.
 
 **Punto de partida (verificado)**
 - `InviteScreen.kt` pide email, nombre y contraseña; el nombre es editable.

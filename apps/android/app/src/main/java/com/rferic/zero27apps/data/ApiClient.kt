@@ -244,6 +244,12 @@ class ApiClient(
     suspend fun androidApp(): AndroidReleaseDto = read(request(HttpMethod.Get, "/api/v1/app/android"))
 
     /** Public invitation redemption; the token travels in the path, never logged. */
+    /** Public invitation preview; the token travels in the path only. */
+    suspend fun invitationPreview(token: String): InvitationPreviewDto =
+        read<InvitationPreviewResponse>(
+            request(HttpMethod.Get, "/api/v1/invitations/$token/preview"),
+        ).invitation
+
     suspend fun redeemInvitation(token: String, request: RedeemRequest): RedeemResponse =
         read(request(HttpMethod.Post, "/api/v1/invitations/$token/redeem", request))
 

@@ -27,6 +27,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.ktor.client.engine.okhttp.OkHttp
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,6 +78,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val invite: StateFlow<InviteState> = _invite.asStateFlow()
 
     private var pendingLink: InvitationLink? = null
+    /** The boot in flight; a deep link cancels it so it cannot overwrite the invite. */
+    private var bootJob: Job? = null
 
     /** Instances the chooser offers: the build default plus the saved ones. */
     private val _instances = MutableStateFlow(instanceStore.known())
@@ -143,15 +146,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun currentInstance(): String = instanceStore.current()
 
     fun refresh() {
-        viewModelScope.launch { boot() }
+        bootJob?.cancel()
+        bootJob = viewModelScope.launch { boot() }
     }
 
     /** Entry point for an invitation deep link, from either activity callback. */
     fun onInviteLink(raw: String) {
         val link = InvitationLink.parse(raw) ?: return
+        // The link wins over a boot that is still resolving the session.
+        bootJob?.cancel()
         pendingLink = link
-        _invite.value = InviteState()
+        _invite.value = InviteState(loading = true)
         _state.value = AppState.NeedsInvite(link)
+        viewModelScope.launch {
+            try {
+                val preview = apiFor(link.instance).invitationPreview(link.token)
+                _invite.value = InviteState(preview = preview)
+            } catch (error: ApiException) {
+                _invite.value = InviteState(error = inviteError(error))
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _invite.value = InviteState(error = InviteError.GENERIC)
+            }
+        }
     }
 
     fun cancelInvite() {
@@ -161,48 +178,116 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Redeems the invitation on the link's own instance, then signs the new
-     * account in and loads the shell. The instance is remembered, so the next
-     * launch opens there.
+     * Redeems the invitation on the link's own instance and opens the shell.
+     *
+     * Session first (D21): an existing account signs in with its current
+     * password **before** the redemption, so a wrong password never consumes
+     * the invitation. A new account redeems first and signs in afterwards; if
+     * that sign-in fails the account still exists and the user is sent to login
+     * once, never a second redemption.
      */
-    fun acceptInvite(email: String, password: String, displayName: String?) {
+    fun acceptInvite(password: String) {
         val link = pendingLink ?: return
-        _invite.value = InviteState(pending = true)
+        val preview = _invite.value.preview ?: return
+        if (preview.state != "pending" || _invite.value.pending) return
+        _invite.value = _invite.value.copy(pending = true, error = null)
+
         viewModelScope.launch {
             try {
-                val api = apiFor(link.instance)
+                val api = client ?: apiFor(link.instance)
+                // A session from another instance is never reused or switched silently.
+                if (instanceStore.current() != link.instance) {
+                    sessionStore.clear()
+                    supabase = null
+                }
+
+                if (preview.accountExists) {
+                    val supabaseClient = try {
+                        signInForInvite(api, preview.email, password)
+                    } catch (error: Exception) {
+                        if (error is kotlinx.coroutines.CancellationException) throw error
+                        _invite.value = InviteState(
+                            preview = preview,
+                            error = when {
+                                isWrongCredentials(error) -> InviteError.WRONG_CREDENTIALS
+                                error.isNetworkFailure() -> InviteError.NETWORK
+                                else -> InviteError.GENERIC
+                            },
+                        )
+                        return@launch
+                    }
+                    api.resetSessionState()
+                    api.redeemInvitation(link.token, RedeemRequest(email = preview.email))
+                    openInvitationSession(api, link, supabaseClient)
+                    return@launch
+                }
+
                 api.redeemInvitation(
                     link.token,
-                    RedeemRequest(
-                        email = email.trim(),
-                        password = password,
-                        displayName = displayName?.trim()?.takeIf { it.isNotEmpty() },
-                    ),
+                    RedeemRequest(email = preview.email, password = password),
                 )
-                val instance = api.instance()
-                val auth = instance.auth ?: throw ApiException("auth_unavailable", 503)
-                val supabaseClient = supabaseFactory.create(auth.supabaseUrl, auth.supabaseAnonKey)
-                supabase = supabaseClient
-                supabaseClient.auth.awaitInitialization()
-                supabaseClient.auth.signInWith(Email) {
-                    this.email = email.trim()
-                    this.password = password
+                val supabaseClient = try {
+                    signInForInvite(api, preview.email, password)
+                } catch (error: Exception) {
+                    if (error is kotlinx.coroutines.CancellationException) throw error
+                    // The account exists: a failed sign-in is a login notice, not
+                    // another redemption attempt.
+                    _invite.value = InviteState()
+                    instanceStore.save(link.instance)
+                    _instances.value = instanceStore.known()
+                    _state.value = AppState.NeedsLogin(
+                        link.instance,
+                        LoginNotice.INVITATION_ACCEPTED,
+                    )
+                    return@launch
                 }
-                val me = api.me()
-                val modules = api.myModules().modules
-                val widgets = runCatching { api.dashboard("app").widgets }.getOrDefault(emptyList())
-                instanceStore.save(link.instance)
-                _instances.value = instanceStore.known()
-                pendingLink = null
-                _invite.value = InviteState()
-                _state.value = AppState.SignedIn(link.instance, me, modules, widgets)
-                registerPush(link.instance, supabaseClient)
+                api.resetSessionState()
+                openInvitationSession(api, link, supabaseClient)
             } catch (error: ApiException) {
-                _invite.value = InviteState(error = inviteError(error))
-            } catch (_: Exception) {
-                _invite.value = InviteState(error = InviteError.GENERIC)
+                _invite.value = InviteState(preview = preview, error = inviteError(error))
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _invite.value = InviteState(
+                    preview = preview,
+                    error = if (error.isNetworkFailure()) InviteError.NETWORK else InviteError.GENERIC,
+                )
             }
         }
+    }
+
+    /** Creates the link instance's Supabase client and signs in with its password. */
+    private suspend fun signInForInvite(
+        api: ApiClient,
+        email: String,
+        password: String,
+    ): SupabaseClient {
+        val instance = api.instance()
+        val auth = instance.auth ?: throw ApiException("auth_unavailable", 503)
+        val supabaseClient = supabaseFactory.create(auth.supabaseUrl, auth.supabaseAnonKey)
+        supabase = supabaseClient
+        supabaseClient.auth.awaitInitialization()
+        supabaseClient.auth.signInWith(Email) {
+            this.email = email
+            this.password = password
+        }
+        return supabaseClient
+    }
+
+    /** Loads the shell after a redemption and remembers the link's instance. */
+    private suspend fun openInvitationSession(
+        api: ApiClient,
+        link: InvitationLink,
+        supabaseClient: SupabaseClient,
+    ) {
+        val me = api.me()
+        val modules = api.myModules().modules
+        val widgets = runCatching { api.dashboard("app").widgets }.getOrDefault(emptyList())
+        instanceStore.save(link.instance)
+        _instances.value = instanceStore.known()
+        pendingLink = null
+        _invite.value = InviteState()
+        _state.value = AppState.SignedIn(link.instance, me, modules, widgets)
+        registerPush(link.instance, supabaseClient)
     }
 
     fun login(email: String, password: String) {
@@ -510,10 +595,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         error.code == "invitation_expired" -> InviteError.EXPIRED
         error.code == "invitation_used" -> InviteError.USED
         error.code == "not_found" -> InviteError.NOT_FOUND
-        error.code == "email_mismatch" -> InviteError.EMAIL_MISMATCH
+        error.code == "existing_account_signin_required" -> InviteError.EXISTING_SIGNIN_REQUIRED
+        error.code == "rate_limited" -> InviteError.RATE_LIMITED
+        error.code == "conflict" -> InviteError.CONFLICT
         error.network -> InviteError.NETWORK
         else -> InviteError.GENERIC
     }
+
+    /** Supabase Auth says the password is wrong (as opposed to a network error). */
+    private fun isWrongCredentials(error: Exception): Boolean {
+        val text = error.message.orEmpty()
+        return text.contains("Invalid login", ignoreCase = true) ||
+            text.contains("invalid_grant", ignoreCase = true) ||
+            text.contains("Invalid credentials", ignoreCase = true)
+    }
+
+    private fun Exception.isNetworkFailure(): Boolean =
+        this is java.io.IOException || cause is java.io.IOException
 
     private fun loginError(error: Exception): LoginError {
         val text = error.message.orEmpty()

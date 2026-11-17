@@ -174,6 +174,7 @@ fun LoginScreen(
                 Text(
                     when (it) {
                         LoginNotice.SESSION_REVOKED -> strings.sessionRevoked
+                        LoginNotice.INVITATION_ACCEPTED -> strings.loginInvitationAccepted
                     },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.error,
