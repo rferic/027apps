@@ -41,6 +41,9 @@ propietario y el App Link https de la tarea 05.**
 
 - Enlace `027apps-dev://invite/<token>?instance=…` → formulario precargado y bloqueado, en el
   idioma de la invitación. ✔
+- La app acepta el mismo contrato de token que el Core (prefijo `027_inv_` + 1..200), no un mínimo
+  de 8: un token de prueba corto funcionaba en web/API y la app lo descartaba sin avisar. ✔
+- Un boot que termina después del enlace ya no reemplaza la invitación por el login/shell. ✔
 - Cuenta nueva: contraseña + confirmación → cuenta creada, auto-login y shell. ✔
 - Cuenta existente: pide la contraseña actual; una mala muestra «La contraseña no es correcta» y
   la invitación sigue pendiente; la buena entra al shell y la consume. ✔
