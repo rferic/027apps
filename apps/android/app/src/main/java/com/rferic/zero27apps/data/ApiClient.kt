@@ -253,6 +253,30 @@ class ApiClient(
     suspend fun redeemInvitation(token: String, request: RedeemRequest): RedeemResponse =
         read(request(HttpMethod.Post, "/api/v1/invitations/$token/redeem", request))
 
+    /** Old phone: mint a 60-second migration code; the token is returned once. */
+    suspend fun createDeviceTransfer(): DeviceTransferCreatedDto =
+        read(request(HttpMethod.Post, "/api/v1/me/device-transfers"))
+
+    /** Old phone: state of the code while the QR is on screen. */
+    suspend fun deviceTransferStatus(id: String): DeviceTransferStatusDto =
+        read<DeviceTransferStatusResponse>(
+            request(HttpMethod.Get, "/api/v1/me/device-transfers/$id"),
+        ).transfer
+
+    /** New phone: exchange the code for a Supabase magic-link hash (public). */
+    suspend fun exchangeDeviceTransfer(token: String): DeviceTransferExchangeDto =
+        read(request(HttpMethod.Post, "/api/v1/device-transfers/$token/exchange"))
+
+    /** New phone: revoke every other push device, keeping this one. */
+    suspend fun revokeOtherDevices(keepDeviceId: String): RevokeOthersResponse =
+        read(
+            request(
+                HttpMethod.Post,
+                "/api/v1/me/devices/revoke-others",
+                RevokeOthersRequest(keepDeviceId),
+            ),
+        )
+
     suspend fun patchMe(patch: PatchMeRequest): UserDto =
         read<MeResponse>(request(HttpMethod.Patch, "/api/v1/me", patch)).user
 

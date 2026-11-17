@@ -154,3 +154,42 @@ data class AndroidReleaseDto(
     @SerialName("apk_url") val apkUrl: String,
     val sha256: String? = null,
 )
+
+@Serializable
+data class DeviceTransferCreatedDto(
+    @SerialName("transfer") val transfer: DeviceTransferIdDto,
+    val token: String = "",
+    val path: String = "",
+)
+
+@Serializable
+data class DeviceTransferIdDto(
+    val id: String = "",
+    @SerialName("expires_at") val expiresAt: String = "",
+)
+
+@Serializable
+data class DeviceTransferStatusDto(
+    val id: String = "",
+    val state: String = "pending",
+    @SerialName("expires_at") val expiresAt: String = "",
+    @SerialName("used_at") val usedAt: String? = null,
+)
+
+@Serializable
+data class DeviceTransferStatusResponse(val transfer: DeviceTransferStatusDto)
+
+/** The exchange returns a magic-link hash, never a session or refresh token. */
+@Serializable
+data class DeviceTransferExchangeDto(
+    @SerialName("transfer_id") val transferId: String = "",
+    val email: String = "",
+    @SerialName("token_hash") val tokenHash: String = "",
+    @SerialName("expires_at") val expiresAt: String = "",
+)
+
+@Serializable
+data class RevokeOthersRequest(@SerialName("keep_device_id") val keepDeviceId: String)
+
+@Serializable
+data class RevokeOthersResponse(val revoked: Int = 0)

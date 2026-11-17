@@ -73,8 +73,10 @@ class FcmRegistrar(private val context: Context) {
      * had the token and kept sending a former account's groups to this phone.
      * It runs before the session is dropped, so the JWT is still valid.
      */
-    fun revoke() {
-        val baseUrl = instanceUrl
+    /** The server device id of this install, when push registration succeeded. */
+    fun deviceId(): String? = prefs.getString("device_id", null)
+
+    fun revoke() {        val baseUrl = instanceUrl
         val jwt = sessionToken
         val deviceId = prefs.getString("device_id", null)
         val token = prefs.getString("push_token", null)
