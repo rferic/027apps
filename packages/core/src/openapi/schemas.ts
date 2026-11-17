@@ -1060,3 +1060,53 @@ export const errorResponseSchema = component(
     })
     .strict() satisfies z.ZodType<ErrorEnvelope>,
 );
+
+export const deviceTransferStatusSchema = component(
+  "DeviceTransferStatus",
+  z
+    .object({
+      id: z.uuid(),
+      state: z.enum(["pending", "used", "expired"]),
+      expires_at: isoDate,
+      used_at: nullableDate,
+    })
+    .strict(),
+);
+
+export const deviceTransferStatusResponseSchema = component(
+  "DeviceTransferStatusResponse",
+  z.object({ transfer: deviceTransferStatusSchema }).strict(),
+);
+
+export const deviceTransferCreatedSchema = component(
+  "DeviceTransferCreated",
+  z
+    .object({
+      transfer: z.object({ id: z.uuid(), expires_at: isoDate }).strict(),
+      token: z.string(),
+      path: z.string(),
+    })
+    .strict(),
+);
+
+export const deviceTransferExchangeSchema = component(
+  "DeviceTransferExchange",
+  z
+    .object({
+      transfer_id: z.uuid(),
+      email: z.email(),
+      token_hash: z.string(),
+      expires_at: isoDate,
+    })
+    .strict(),
+);
+
+export const revokeOtherDevicesSchema = component(
+  "RevokeOtherDevicesRequest",
+  z.object({ keep_device_id: z.uuid() }).strict(),
+);
+
+export const revokeOtherDevicesResponseSchema = component(
+  "RevokeOtherDevicesResponse",
+  z.object({ revoked: z.number().int() }).strict(),
+);

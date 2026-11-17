@@ -163,3 +163,30 @@ export async function revokeDevice(
     await deps.revokeSessions(owner).catch(() => undefined);
   }
 }
+
+/**
+ * Revokes every other push device of the caller, keeping the one the new phone
+ * just registered. It does **not** touch `auth.sessions`: the client signs the
+ * old phone out with `signOut({ scope: "OTHERS" })`, so the server cannot
+ * accidentally revoke the session it just created.
+ */
+export async function revokeOtherDevices(
+  deps: DevicesDeps,
+  caller: Caller,
+  keepDeviceId: string,
+): Promise<{ revoked: number }> {
+  const userId = actorUserId(caller);
+  const { rows: keep } = await deps.db.query(
+    "select id from public.devices where id = $1 and user_id = $2",
+    [keepDeviceId, userId],
+  );
+  if (!keep[0]) throw new DomainError("not_found");
+
+  const { rows } = await deps.db.query(
+    `update public.devices set revoked_at = now()
+      where user_id = $1 and id <> $2 and revoked_at is null
+      returning id`,
+    [userId, keepDeviceId],
+  );
+  return { revoked: rows.length };
+}

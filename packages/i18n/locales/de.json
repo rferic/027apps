@@ -1022,5 +1022,8 @@
   "This invitation expired. Renew it to send a new link with the same duration; the previous link stops working.": "Diese Einladung ist abgelaufen. Erneuere sie, um einen neuen Link mit derselben Dauer zu senden; der vorherige Link funktioniert nicht mehr.",
   "This invitation has not expired yet.": "Diese Einladung ist noch nicht abgelaufen.",
   "Wait a moment before renewing.": "Warte einen Moment, bevor du erneuerst.",
-  "We couldn't renew the invitation.": "Die Einladung konnte nicht erneuert werden."
+  "We couldn't renew the invitation.": "Die Einladung konnte nicht erneuert werden.",
+  "Move to a new phone": "Auf ein neues Telefon umziehen",
+  "This link is not valid.": "Dieser Link ist nicht gültig.",
+  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Dieser Link verschiebt dein Konto auf ein neues Telefon. Öffne ihn auf dem Telefon, das du nutzen möchtest, mit installierter 027Apps-App."
 }

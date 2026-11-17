@@ -27,6 +27,17 @@ function deps(
       db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
       ...(revokeSessions ? { revokeSessions } : {}),
     },
+    transfers: {
+      db: { query: (sql: string, params: unknown[] = []) => query(c, sql, params) },
+      auth: {
+        async getUserEmail() {
+          return null;
+        },
+        async createMagicLink() {
+          return { tokenHash: "magic-hash" };
+        },
+      },
+    },
   };
 }
 

@@ -2,7 +2,7 @@
 id: sprint-16-task-10
 titulo: Migración de teléfono por QR (solo Android)
 area: app + core + bd
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 mockup: docs/mockups/invitation-flow/index.html
@@ -11,6 +11,29 @@ adrs: [0004, 0007, 0010]
 
 **Tarea**: mover la cuenta a un teléfono nuevo con un QR de 60 s, sin contraseña ni refresh token en
 el código: el viejo lo muestra, el nuevo lo escanea, entra y expulsa al viejo.
+
+**En curso (2026-11-17): backend y web hechos; falta la UI del QR en la app.**
+
+- Migración `0036_device_transfers.sql` aplicada en local: hash único, TTL, `used_at`, RLS sin
+  grants a `anon`/`authenticated`.
+- Core `createDeviceTransfer`/`getDeviceTransferStatus`/`exchangeDeviceTransfer`: token `027_mig_`
+  (solo SHA-256), 60 s, single-use con `for update`, perfil activo, magic link de Supabase y
+  respuesta `{transfer_id,email,token_hash,expires_at}` sin sesión, sin `action_link`, con
+  `no-store`; la limpieza es oportunista al crear.
+- `revokeOtherDevices` conserva el dispositivo nuevo y **no** toca `auth.sessions` (el cliente hace
+  `signOut(OTHERS)`).
+- Rutas `POST/GET /me/device-transfers`, `POST /device-transfers/{token}/exchange` (pública,
+  10/min IP) y `POST /me/devices/revoke-others`, con OpenAPI (106/106 operaciones).
+- `/migrate/[token]` pública: solo explica que se abra en el móvil nuevo y ofrece «Abrir en la app»
+  (esquema del build) y descarga; **no canjea** en navegador. Añadida a `public-paths.ts`, noindex/
+  no-referrer, 9 idiomas.
+- Tests: Core del servicio y API contra la base real (crear/poll/canjear una vez/otro usuario/
+  revoke-others) en verde.
+
+Pendiente: `MigrationLink`, pantalla QR del viejo con ZXing (tarjeta blanca, `FLAG_SECURE`,
+autoregeneración ~45 s), escáner del nuevo, `acceptMigration` (exchange → `verifyOtp` → `me` →
+push → revoke-others → `signOut(OTHERS)`), entradas en Ajustes/login, permiso de cámara,
+`FcmRegistrar.deviceId()` y `Changelog.kt` 0.19.0.
 
 **Punto de partida**
 - La app tiene sesión cifrada, `signOut` y registro FCM; `FcmRegistrar` guarda el `device_id`.

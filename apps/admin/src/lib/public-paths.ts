@@ -21,13 +21,19 @@ const PUBLIC_PAGES = new Set([
 
 const INVITE_PATH = /^\/invite\/([^/]+)$/;
 
+/** The migration landing page is public too: it only explains and links. */
+const MIGRATE_PATH = /^\/migrate\/([^/]+)$/;
+
 export function isPublicPath(pathname: string): boolean {
   const normalized = pathname.replace(/\/+$/, "") || "/";
   if (PUBLIC_PAGES.has(normalized)) return true;
   if (PUBLIC_HELP_PATHS.has(normalized)) return true;
 
-  const invite = INVITE_PATH.exec(normalized);
-  if (!invite) return false;
-  const segment = invite[1];
-  return segment !== "." && segment !== "..";
+  for (const pattern of [INVITE_PATH, MIGRATE_PATH]) {
+    const match = pattern.exec(normalized);
+    if (!match) continue;
+    const segment = match[1];
+    return segment !== "." && segment !== "..";
+  }
+  return false;
 }

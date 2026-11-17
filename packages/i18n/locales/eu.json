@@ -1022,5 +1022,8 @@
   "This invitation expired. Renew it to send a new link with the same duration; the previous link stops working.": "Gonbidapen hau iraungi da. Berritu esteka berri bat bidaltzeko iraupen berarekin; aurreko esteka ez da gehiago ibiliko.",
   "This invitation has not expired yet.": "Gonbidapen hau ez da oraindik iraungi.",
   "Wait a moment before renewing.": "Itxaron une bat berritu aurretik.",
-  "We couldn't renew the invitation.": "Ezin izan da gonbidapena berritu."
+  "We couldn't renew the invitation.": "Ezin izan da gonbidapena berritu.",
+  "Move to a new phone": "Mugitu telefono berri batera",
+  "This link is not valid.": "Esteka hau ez da baliozkoa.",
+  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Esteka honek zure kontua telefono berri batera eramaten du. Ireki erabili nahi duzun telefonoan, 027Apps aplikazioa instalatuta."
 }

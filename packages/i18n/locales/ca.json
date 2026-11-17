@@ -1022,5 +1022,8 @@
   "This invitation expired. Renew it to send a new link with the same duration; the previous link stops working.": "Aquesta invitació ha caducat. Renova-la per enviar un enllaç nou amb la mateixa durada; l'enllaç anterior deixarà de funcionar.",
   "This invitation has not expired yet.": "Aquesta invitació encara no ha caducat.",
   "Wait a moment before renewing.": "Espera un moment abans de renovar.",
-  "We couldn't renew the invitation.": "No s'ha pogut renovar la invitació."
+  "We couldn't renew the invitation.": "No s'ha pogut renovar la invitació.",
+  "Move to a new phone": "Mou a un telèfon nou",
+  "This link is not valid.": "Aquest enllaç no és vàlid.",
+  "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Aquest enllaç mou el teu compte a un telèfon nou. Obre'l al telèfon que vulguis fer servir, amb l'app 027Apps instal·lada."
 }
