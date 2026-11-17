@@ -3,7 +3,7 @@ export type SubmitInvitationResult =
   | {
       ok: true;
       /** Effective role of the profile, which decides panel or welcome. */
-      role: "user" | "admin";
+      role: "super_admin" | "admin" | "user";
       /** The account was redeemed but the automatic sign-in failed. */
       signInFailed?: boolean;
     }

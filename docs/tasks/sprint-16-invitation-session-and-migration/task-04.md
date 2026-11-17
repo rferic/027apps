@@ -25,6 +25,8 @@ cuenta (A7). Incluye la variante de email y la migración de datos.
   con `roleCap: super_admin`; delegada nunca; `admin` → 403; `super_admin` → 400), guarda
   `expires_in_days`, ya no rechaza un email registrado y devuelve `account_exists`. Respuesta 201
   con rol y `account_exists`.
+- `RedeemResult.user.role` es el rol **efectivo** del perfil, `super_admin` incluido: canjear
+  una cuenta existente nunca lo degrada (D6) y la web decide panel/bienvenida con ese valor.
 - `redeemInvitation` recibe el `Caller`: una cuenta existente exige **su** sesión (D21) y sin ella
   o con otra devuelve `409 existing_account_signin_required` sin consumir; conserva nombre, rol y
   contraseña; una cuenta nueva toma el rol y el nombre de la invitación e ignora `display_name`; el

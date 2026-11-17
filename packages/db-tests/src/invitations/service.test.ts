@@ -352,7 +352,7 @@ describe("invitations service", () => {
       const existingEmail = email("existing");
       const existing = await createTestUser(c, {
         email: existingEmail,
-        role: "admin",
+        role: "super_admin",
         displayName: "Existing",
       });
       const inv = await createInvitation(deps(c, authPort(c).port), who, {
@@ -366,17 +366,17 @@ describe("invitations service", () => {
         d,
         inv.token,
         { email: inv.invitation.email },
-        { kind: "session", userId: existing.id, role: "admin" },
+        { kind: "session", userId: existing.id, role: "super_admin" },
       );
       expect(result.user.id).toBe(existing.id);
       // D6: the account keeps its own role and name.
-      expect(result.user.role).toBe("admin");
+      expect(result.user.role).toBe("super_admin");
       const { rows: kept } = await query(
         c,
         "select display_name, role from public.profiles where id = $1",
         [existing.id],
       );
-      expect(kept[0]).toMatchObject({ display_name: "Existing", role: "admin" });
+      expect(kept[0]).toMatchObject({ display_name: "Existing", role: "super_admin" });
       expect(auth.created).toHaveLength(0);
     });
   });

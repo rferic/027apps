@@ -6797,8 +6797,9 @@
               },
               "role": {
                 "enum": [
-                  "user",
-                  "admin"
+                  "super_admin",
+                  "admin",
+                  "user"
                 ],
                 "type": "string"
               }

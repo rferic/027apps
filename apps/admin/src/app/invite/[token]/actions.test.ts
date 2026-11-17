@@ -60,7 +60,7 @@ const PREVIEW = {
   timezone: "Europe/Madrid",
 };
 
-function redeemed(role: "user" | "admin") {
+function redeemed(role: "super_admin" | "admin" | "user") {
   return {
     user: { id: "u1", email: PREVIEW.email, display_name: "Ana", role },
     invitation_id: "i1",
@@ -104,6 +104,17 @@ describe("submitInvitation", () => {
       "es",
       expect.objectContaining({ path: "/" }),
     );
+  });
+
+  it("keeps a super_admin account in the panel and does not sign it out", async () => {
+    mocks.preview.mockResolvedValue({ ...PREVIEW, account_exists: true });
+    mocks.profileQuery.mockResolvedValue({ rows: [{ role: "super_admin" }] });
+    mocks.redeem.mockResolvedValue(redeemed("super_admin"));
+
+    const result = await submitInvitation({ token: TOKEN, password: "root-password" });
+
+    expect(result).toEqual({ ok: true, role: "super_admin" });
+    expect(mocks.signOut).not.toHaveBeenCalled();
   });
 
   it("does not redeem when the existing password is wrong", async () => {

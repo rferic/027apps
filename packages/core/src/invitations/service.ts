@@ -33,6 +33,9 @@ export type InvitationStatus = "pending" | "used" | "expired" | "revoked";
 /** Role the invitation gives a new profile; `super_admin` is never allowed. */
 export type InvitationRole = "user" | "admin";
 
+/** Effective role of an existing profile; a redemption never changes it (D6). */
+export type ProfileRole = "super_admin" | "admin" | "user";
+
 /** `all` is the explicit "no status filter"; every list defaults to it. */
 export type InvitationStatusFilter = InvitationStatus | "all";
 
@@ -82,7 +85,7 @@ export interface RedeemInput {
 }
 
 export type RedeemResult = {
-  user: { id: string; email: string; display_name: string; role: InvitationRole };
+  user: { id: string; email: string; display_name: string; role: ProfileRole };
   invitation_id: string;
 };
 
@@ -129,6 +132,12 @@ const toIsoOrNull = (value: unknown): string | null =>
 const normalizeEmail = (value: string): string => value.trim().toLowerCase();
 
 function roleOf(value: unknown): InvitationRole {
+  return value === "admin" ? "admin" : "user";
+}
+
+/** The profile's own role, including the root role a redemption must preserve. */
+function profileRoleOf(value: unknown): ProfileRole {
+  if (value === "super_admin") return "super_admin";
   return value === "admin" ? "admin" : "user";
 }
 
@@ -885,7 +894,7 @@ export async function redeemInvitation(
           id: userId,
           email,
           display_name: String(profileRows[0]?.display_name ?? displayName),
-          role: roleOf(profileRows[0]?.role ?? invitation.role),
+          role: profileRoleOf(profileRows[0]?.role ?? invitation.role),
         },
         invitation_id: invitationId,
       };

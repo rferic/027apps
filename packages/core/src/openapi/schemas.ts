@@ -335,7 +335,7 @@ export const redeemResultSchema = component(
           id: z.uuid(),
           email: z.email(),
           display_name: z.string(),
-          role: z.enum(["user", "admin"]),
+          role: z.enum(["super_admin", "admin", "user"]),
         })
         .strict(),
       invitation_id: z.uuid(),

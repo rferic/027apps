@@ -9,7 +9,11 @@ export type InviteSubmitInput = InviteFormInput & { token: string };
 
 export type InviteSubmitOutcome =
   | { kind: "invalid"; fieldErrors: InviteFieldErrors }
-  | { kind: "redeemed"; role: "user" | "admin"; signInFailed?: boolean }
+  | {
+      kind: "redeemed";
+      role: "super_admin" | "admin" | "user";
+      signInFailed?: boolean;
+    }
   | { kind: "failed"; failure: MutationFailure };
 
 export interface InviteSubmitOptions {

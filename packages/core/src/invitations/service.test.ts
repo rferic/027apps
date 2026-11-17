@@ -958,6 +958,22 @@ describe("redeemInvitation for an existing account", () => {
     );
   });
 
+  it("keeps the super_admin role of an existing account", async () => {
+    const { deps } = existingAccountDeps({
+      existingId: "u-root",
+      profileRole: "super_admin",
+    });
+
+    const result = await redeemInvitation(
+      deps,
+      "027_inv_valid",
+      { email: "ana@example.com" },
+      { kind: "session", userId: "u-root", role: "super_admin" },
+    );
+
+    expect(result.user.role).toBe("super_admin");
+  });
+
   it("ignores the obsolete display_name and uses the invitation name", async () => {
     const fake = fakeDb({ settings: [] });
     const result = await redeemInvitation(
