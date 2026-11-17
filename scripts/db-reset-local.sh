@@ -41,7 +41,9 @@ if [ "$backup" = "1" ]; then
 fi
 
 echo "== supabase db reset${args[*]+ ${args[*]}}"
-npx supabase db reset ${args[@]+"${args[@]}"}
+# Through the tripwire shim when it is installed: it logs the caller and only
+# allows a reset with this marker, so no other process can wipe the stack.
+SUPABASE_ALLOW_LOCAL_RESET=1 supabase db reset ${args[@]+"${args[@]}"}
 
 echo
 if [ -n "$dump" ]; then

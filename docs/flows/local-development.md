@@ -51,6 +51,12 @@ pnpm db:restore .local/db-backups/local-<fecha>.dump   # vuelve al estado anteri
   una lleva la fecha en el nombre.
 - La restauración vacía `public` y `auth` y carga el dump: es un punto en el tiempo, no una mezcla.
   El esquema y el registro de migraciones no se tocan (vienen de las migraciones aplicadas).
+- **Tripwire**: `pnpm db:shim` instala `scripts/shims/supabase` delante del CLI real (en
+  `~/.local/bin` y en `node_modules/.bin`, para cubrir también `npx`). Registra cada invocación
+  (fecha, pid, padre, directorio y argumentos) en `~/.local/state/027apps/supabase-guard.log` y
+  **bloquea `db reset`** salvo que lo pida el envoltorio con `SUPABASE_ALLOW_LOCAL_RESET=1`. Así,
+  si un automatismo vuelve a intentarlo, falla en voz alta y deja su rastro en vez de borrar datos.
+  Se quita con `scripts/install-supabase-guard.sh --remove`.
 - Opcional, para que la pérdida máxima sea de una hora aunque el reset lo lance otra cosa: hay un
   LaunchAgent listo en `scripts/local-db-backup-agent.plist` (instrucciones en el propio fichero).
   Es un cambio en tu máquina y se desinstala con dos comandos.
