@@ -2,7 +2,7 @@
 id: sprint-16-task-07
 titulo: Wizard web, aviso Android 8+ y auto-login A1
 area: web
-estado: pendiente
+estado: test
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 mockup: docs/mockups/invitation-flow/index.html
@@ -12,6 +12,51 @@ adrs: [0002, 0004, 0007, 0008]
 **Tarea**: convertir `/invite/[token]` en un wizard app-first que no sea una puerta: aviso de que
 solo hay app Android (8+), descarga del APK, reintento de apertura sin bucle y canje web completo,
 con QR en escritorio y auto-login para roles de panel.
+
+**Implementación completa 2026-11-17; en revisión/QA y aceptación del propietario antes de
+`finalizada`.**
+
+- La página resuelve el preview en el servidor (`instant = false` + `connection()`), aplica 60/min
+  por IP antes de la base de datos, usa el idioma de la invitación (cookie solo como fallback) y
+  elige Android/iPhone/escritorio por user-agent. Estados `used`/`expired`/invalid/404 con la
+  misma tarjeta genérica para desconocida y revocada.
+- Wizard Android: aviso literal, «Abrir en la app» (esquema `027apps://invite/<token>?instance=…`
+  con timeout de 1,5 s y sin navegación automática), descarga con versión, reintento y
+  «Continuar en el navegador» en todos los pasos. iPhone: aviso y canje web. Escritorio: formulario
+  completo + QR generado en el servidor con `qrcode` (SVG en blanco y negro, sin servicio externo
+  ni `data:`), con la URL de la instancia desde `instance.public_url`.
+- Formulario: los datos de la invitación son una ficha (email, nombre, instancia, invitador, rol,
+  caducidad), nunca inputs editables; cuenta nueva pide contraseña + confirmación; cuenta existente
+  pide la contraseña actual, enlaza a `/forgot-password` y no la cambia.
+- Server action `submitInvitation`: zod + origen + 30/min por IP (`redeem-action:<ip>`),
+  re-resuelve el preview y, para una cuenta existente, **firma primero** con Supabase (contraseña
+  mala → error inline, sin canjear) y canjea con esa sesión; para una nueva canjea y luego firma.
+  Rol de panel → `/panel`; `user` → cierre local y `/welcome`; login automático fallido →
+  `/welcome?notice=signin_failed`. La web ya no usa el endpoint público.
+- `/welcome`: página pública con «cuenta creada», descarga Android, enlace a login y explicación de
+  que el panel es solo para administradores; añadida a `public-paths.ts`.
+- Dependencia `qrcode` (MIT) + `@types/qrcode`; sin CSP nueva.
+- i18n de todo (42 claves nuevas en 9 idiomas) y `pnpm i18n:check` en verde.
+
+**Tests**: página (locale del preview, invalid/404/used/expired, rate limit, Android/iPhone/
+escritorio, QR, token no pintado), formulario (ficha, nueva vs existente, límites, forgot),
+`submitInvite`/`submitOnce` y action (firma primero, contraseña mala sin canjear, rol de panel vs
+`user`, fallo de auto-login, used/expired, rate limit, validación). `pnpm --filter admin test`
+(1211), `pnpm --filter admin lint`, `pnpm --filter admin tsc`, `pnpm --filter admin build`,
+`pnpm i18n:check`.
+
+**Auditoría de seguridad (2026-11-17)**
+
+- A01/A07: el canje web de una cuenta existente exige su contraseña (Supabase) y después su sesión;
+  la action no acepta el rol del cliente y usa el del perfil. Un `user` no conserva cookie de panel.
+- A03: zod en la action y en el Core, SQL parametrizado, sin HTML sin escapar; la única inyección
+  de HTML es el SVG del QR generado localmente (sin datos del usuario).
+- A04: 60/min por IP en la página y 30/min en la action; token de un solo uso en el Core; sin
+  redirección automática al abrir la app (sin bucle).
+- A05/A10: `qrcode` es local (no hay servicio externo ni `data:`), `public_url` solo desde ajustes,
+  destinos de navegación constantes (sin open redirect), token solo en la URL/acción.
+- Veredicto: sin hallazgos abiertos. Pendiente la aceptación del propietario en escritorio y
+  Android (06 para el formulario de la app y 05 para el App Link https).
 
 **Punto de partida (verificado)**
 - La página actual muestra directamente un formulario con email editable; éxito →
