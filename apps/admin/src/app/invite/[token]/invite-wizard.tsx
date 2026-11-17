@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cancelClass } from "@/components/ui/form";
 import { SignInIcon } from "@/components/ui/sign-in-icon";
 import { AndroidIcon } from "@/components/landing/android-icon";
-import type { InviteVariant } from "@/lib/invite-variant";
+import { inviteAppScheme, type InviteVariant } from "@/lib/invite-variant";
 import { InviteDetails, type InvitePublicView } from "./invite-details";
 import { InviteForm } from "./invite-form";
 
@@ -158,8 +158,11 @@ export function InviteWizard({
     setOpening(true);
     try {
       // A valid scheme (a letter first): Chrome refuses `027apps://` and turns
-      // it into a relative path. The app also accepts the old scheme via intents.
-      window.location.href = `zero27apps://invite/${encodeURIComponent(token)}?instance=${encodeURIComponent(origin)}`;
+      // it into a relative path. A page over plain HTTP is a local instance, so
+      // its app is the debug build and only registers the `-dev` scheme; the
+      // stable app also handles the production scheme and would steal the link.
+      const scheme = inviteAppScheme(window.location.protocol);
+      window.location.href = `${scheme}://invite/${encodeURIComponent(token)}?instance=${encodeURIComponent(origin)}`;
     } catch {
       // A browser that refuses the scheme stays on this page.
     }
