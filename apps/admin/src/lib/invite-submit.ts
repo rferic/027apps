@@ -1,42 +1,40 @@
+import type { SubmitInvitationResult } from "./invite-action-types";
 import { validateInviteForm, type InviteFieldErrors, type InviteFormInput } from "./invite-form";
-import { redeemInvitation } from "./invite-redeem";
 import type { MutationFailure } from "./mutation-result";
 
-/** Leaves the token out of the browser history once the account exists. */
-export const LOGIN_AFTER_REDEEM = "/login?notice=invitation-redeemed";
+/** The web form calls the server action in process; tests inject a fake. */
+export type SubmitInvitation = (input: { token: string; password: string }) => Promise<SubmitInvitationResult>;
 
 export type InviteSubmitInput = InviteFormInput & { token: string };
 
 export type InviteSubmitOutcome =
   | { kind: "invalid"; fieldErrors: InviteFieldErrors }
-  | { kind: "redeemed" }
+  | { kind: "redeemed"; role: "user" | "admin"; signInFailed?: boolean }
   | { kind: "failed"; failure: MutationFailure };
 
 export interface InviteSubmitOptions {
-  fetcher?: typeof fetch;
-  /** `router.replace`, so the token is replaced instead of pushed. */
-  replace?: (href: string) => void;
+  /** The server action; the component passes `submitInvitation`. */
+  submit: SubmitInvitation;
 }
 
 /**
- * Validates the form, redeems the invitation and, on success, replaces the
- * current history entry with the login notice. Split from the component so the
- * flow is testable without a DOM.
+ * Validates the form, asks the server action to redeem the invitation and
+ * reports the effective role. Navigation belongs to the component: the token
+ * leaves the history only after the account exists.
  */
 export async function submitInvite(
   input: InviteSubmitInput,
-  options: InviteSubmitOptions = {},
+  options: InviteSubmitOptions,
 ): Promise<InviteSubmitOutcome> {
   const fieldErrors = validateInviteForm(input);
   if (Object.keys(fieldErrors).length > 0) return { kind: "invalid", fieldErrors };
 
-  const result = await redeemInvitation(
-    { token: input.token, email: input.email, password: input.password },
-    options.fetcher,
-  );
+  const result = await options.submit({ token: input.token, password: input.password });
+  if (!result.ok) return { kind: "failed", failure: { ok: false, code: result.code } };
 
-  if (!result.ok) return { kind: "failed", failure: result };
-
-  options.replace?.(LOGIN_AFTER_REDEEM);
-  return { kind: "redeemed" };
+  return {
+    kind: "redeemed",
+    role: result.role,
+    ...(result.signInFailed ? { signInFailed: true } : {}),
+  };
 }

@@ -1,75 +1,66 @@
 import { describe, expect, it, vi } from "vitest";
-import { LOGIN_AFTER_REDEEM, submitInvite } from "./invite-submit";
+import { submitInvite } from "./invite-submit";
 
 const VALID = {
   token: "027_inv_abc123",
-  email: "ana@example.com",
   password: "correct horse battery",
   confirmation: "correct horse battery",
 };
 
-function jsonResponse(body: unknown, status: number) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
-}
-
 describe("submitInvite", () => {
-  it("replaces the history with the login notice after a 201", async () => {
-    const fetcher = vi.fn(async () => jsonResponse({ user: { id: "u1" } }, 201));
-    const replace = vi.fn();
+  it("reports the effective role after a redemption", async () => {
+    const submit = vi.fn(async () => ({ ok: true as const, role: "admin" as const }));
 
-    const outcome = await submitInvite(VALID, { fetcher, replace });
+    const outcome = await submitInvite(VALID, { submit });
 
-    expect(outcome).toEqual({ kind: "redeemed" });
-    expect(replace).toHaveBeenCalledWith(LOGIN_AFTER_REDEEM);
-    expect(LOGIN_AFTER_REDEEM).toBe("/login?notice=invitation-redeemed");
+    expect(outcome).toEqual({ kind: "redeemed", role: "admin" });
+    expect(submit).toHaveBeenCalledWith({ token: VALID.token, password: VALID.password });
+  });
+
+  it("passes the welcome notice when the automatic sign-in failed", async () => {
+    const submit = vi.fn(async () => ({
+      ok: true as const,
+      role: "admin" as const,
+      signInFailed: true,
+    }));
+
+    const outcome = await submitInvite(VALID, { submit });
+
+    expect(outcome).toEqual({ kind: "redeemed", role: "admin", signInFailed: true });
   });
 
   it("does not send anything when the confirmation differs", async () => {
-    const fetcher = vi.fn();
-    const replace = vi.fn();
+    const submit = vi.fn();
 
     const outcome = await submitInvite(
       { ...VALID, confirmation: "different password" },
-      { fetcher, replace },
+      { submit },
     );
 
     expect(outcome).toEqual({
       kind: "invalid",
       fieldErrors: { confirmation: "password_mismatch" },
     });
-    expect(fetcher).not.toHaveBeenCalled();
-    expect(replace).not.toHaveBeenCalled();
+    expect(submit).not.toHaveBeenCalled();
   });
 
-  it("does not send anything when the email is missing", async () => {
-    const fetcher = vi.fn();
+  it("returns the failure code without a navigation", async () => {
+    const submit = vi.fn(async () => ({ ok: false as const, code: "rate_limited" }));
 
-    const outcome = await submitInvite({ ...VALID, email: "" }, { fetcher });
-
-    expect(outcome).toEqual({ kind: "invalid", fieldErrors: { email: "email_required" } });
-    expect(fetcher).not.toHaveBeenCalled();
-  });
-
-  it("returns the failure envelope without navigating", async () => {
-    const fetcher = vi.fn(async () => jsonResponse({ error: { code: "rate_limited" } }, 429));
-    const replace = vi.fn();
-
-    const outcome = await submitInvite(VALID, { fetcher, replace });
+    const outcome = await submitInvite(VALID, { submit });
 
     expect(outcome).toEqual({ kind: "failed", failure: { ok: false, code: "rate_limited" } });
-    expect(replace).not.toHaveBeenCalled();
   });
 
-  it("returns a codeless failure when the network drops", async () => {
-    const fetcher = vi.fn(async () => {
-      throw new TypeError("fetch failed");
-    });
+  it("does not ask for a confirmation when the account exists", async () => {
+    const submit = vi.fn(async () => ({ ok: true as const, role: "user" as const }));
 
-    const outcome = await submitInvite(VALID, { fetcher });
+    const outcome = await submitInvite(
+      { token: VALID.token, password: "old-pass", confirmation: "", accountExists: true },
+      { submit },
+    );
 
-    expect(outcome).toEqual({ kind: "failed", failure: { ok: false } });
+    expect(outcome).toEqual({ kind: "redeemed", role: "user" });
+    expect(submit).toHaveBeenCalledWith({ token: VALID.token, password: "old-pass" });
   });
 });
