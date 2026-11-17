@@ -2,7 +2,7 @@
 id: sprint-16-task-11
 titulo: Cierre — i18n, docs, gates, auditoría y verificación real
 area: docs + infra
-estado: pendiente
+estado: en curso
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0002, 0004, 0007, 0008, 0010]
@@ -11,6 +11,15 @@ adrs: [0002, 0004, 0007, 0008, 0010]
 **Tarea**: cerrar el sprint con todo verificado y auditable: i18n completo, flujos actualizados,
 gates mecánicos, evidencia real y auditoría de seguridad. Sin esto ninguna tarea pasa a
 `finalizada`.
+
+**En curso (2026-11-17)**
+
+- App Android a `0.19.0`/`1900` con la entrada de `Changelog.kt` del sprint (español e inglés); el
+  test del changelog exige la entrada de la versión en curso y pasa.
+- Pendiente de este cierre: flujos (`invitations.md`, `password-recovery.md`, `cicd.md`),
+  verificación local, auditorías de seguridad y de UX por otros agentes, y el release firmado
+  (tag sobre `main`, lo firma CI con el keystore en secrets: es una puerta del propietario y
+  ocurre después del merge).
 
 **Punto de partida**: las tareas 03–10 implementadas y aceptadas por sus criterios.
 

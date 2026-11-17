@@ -13,6 +13,28 @@ data class ChangelogEntry(
 object Changelog {
     val entries: List<ChangelogEntry> = listOf(
         ChangelogEntry(
+            version = "0.19.0",
+            date = "2026-11-17",
+            notes = mapOf(
+                "es" to listOf(
+                    "Acepta una invitación desde la app, también si ya tenías cuenta: entras con tu contraseña y no se crea otra.",
+                    "La invitación dice qué grupo y qué papel te dan, y cuándo caduca; si expira, se renueva desde el panel sin perder el enlace.",
+                    "Recupera tu contraseña desde la pantalla de entrada: te llega un enlace por correo y vuelves a la app.",
+                    "Mueve tu cuenta a un teléfono nuevo con un QR: el viejo lo muestra, el nuevo lo escanea y el viejo queda fuera.",
+                    "La sesión sigue abierta al cerrar la app y te avisa si el administrador la revoca.",
+                    "Todo en los nueve idiomas del producto.",
+                ),
+                "en" to listOf(
+                    "Accept an invitation from the app, even if you already had an account: you sign in with your password and no duplicate is created.",
+                    "The invitation says which group and role it grants, and when it expires; if it does, the panel renews it without losing the link.",
+                    "Recover your password from the sign-in screen: a link arrives by email and brings you back to the app.",
+                    "Move your account to a new phone with a QR: the old one shows it, the new one scans it and the old one is signed out.",
+                    "The session survives closing the app and warns you if an administrator revokes it.",
+                    "All of it in the nine languages the product supports.",
+                ),
+            ),
+        ),
+        ChangelogEntry(
             version = "0.18.1",
             date = "2026-11-16",
             notes = mapOf(
