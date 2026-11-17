@@ -35,6 +35,28 @@ Para aplicar los cambios sin perder datos de la base de datos (los volúmenes se
 supabase stop && supabase start
 ```
 
+### Reset de la base local: siempre con copia
+
+`supabase db reset` borra **todas** las cuentas locales, invitaciones, módulos y datos de demo. Es
+la herramienta correcta para validar migraciones, pero cuesta una tarde si se lanza sin querer (ya
+pasó: un watcher o un comando suelto dejó el stack vacío). Por eso el camino sancionado es:
+
+```bash
+pnpm db:reset      # copia primero (scripts/db-local-backup.sh) y después resetea
+pnpm db:backup     # copia suelta, por si vas a hacer algo delicado
+pnpm db:restore .local/db-backups/local-<fecha>.dump   # vuelve al estado anterior
+```
+
+- Las copias viven en `.local/db-backups/` (ignorado por git); se conservan las 20 últimas y cada
+  una lleva la fecha en el nombre.
+- La restauración vacía `public` y `auth` y carga el dump: es un punto en el tiempo, no una mezcla.
+  El esquema y el registro de migraciones no se tocan (vienen de las migraciones aplicadas).
+- Opcional, para que la pérdida máxima sea de una hora aunque el reset lo lance otra cosa: hay un
+  LaunchAgent listo en `scripts/local-db-backup-agent.plist` (instrucciones en el propio fichero).
+  Es un cambio en tu máquina y se desinstala con dos comandos.
+- `db reset --remote` no se usa nunca desde un checkout: producción solo cambia por
+  `.github/workflows/migrations.yml`. `pnpm check:destructive-db` lo comprueba en CI.
+
 ---
 
 ## 3. Arranque del servidor de desarrollo

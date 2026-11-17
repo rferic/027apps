@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Hourly dump of the local Supabase database (macOS LaunchAgent).
+
+  `supabase db reset` — or any watcher that runs it — deletes every local
+  account, invitation and module row. This agent keeps the loss under an hour
+  without anyone remembering to run anything: when the stack is down the job
+  exits silently, so it costs nothing.
+
+  Install (it is a change to your machine, on purpose):
+    sed "s#__REPO__#$PWD#g" scripts/local-db-backup-agent.plist \
+      > ~/Library/LaunchAgents/com.027apps.local-db-backup.plist
+    launchctl load ~/Library/LaunchAgents/com.027apps.local-db-backup.plist
+
+  Check:  launchctl list | grep 027apps
+  Remove: launchctl unload ~/Library/LaunchAgents/com.027apps.local-db-backup.plist
+          rm ~/Library/LaunchAgents/com.027apps.local-db-backup.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.027apps.local-db-backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__REPO__/scripts/db-local-backup.sh</string>
+    <string>--keep</string>
+    <string>48</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__REPO__</string>
+  <key>StartInterval</key>
+  <integer>3600</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/027apps-db-backup.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/027apps-db-backup.log</string>
+</dict>
+</plist>

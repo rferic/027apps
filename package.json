@@ -9,6 +9,9 @@
     "check:openapi": "node scripts/check-openapi.mjs",
     "i18n:scan": "pnpm --filter @027apps/i18n scan",
     "i18n:check": "pnpm --filter @027apps/i18n check",
-    "check:destructive-db": "bash scripts/check-destructive-db.sh"
+    "check:destructive-db": "bash scripts/check-destructive-db.sh",
+    "db:backup": "bash scripts/db-local-backup.sh",
+    "db:reset": "bash scripts/db-reset-local.sh",
+    "db:restore": "bash scripts/db-local-restore.sh"
   }
 }
