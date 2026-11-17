@@ -217,6 +217,19 @@ class ApiClientTest {
     }
 
     @Test
+    fun `a new session re-arms the revoked signal`() = runTest {
+        val engine = MockEngine { respondError(HttpStatusCode.Unauthorized) }
+        var ended = 0
+        val api = client(engine, onSessionEnded = { ended++ })
+
+        runCatching { api.me() }
+        api.resetSessionState()
+        runCatching { api.me() }
+
+        assertEquals(2, ended)
+    }
+
+    @Test
     fun `reports a network failure separately from an API error`() = runTest {
         val engine = MockEngine { throw IOException("offline") }
         val error = runCatching { client(engine).instance() }.exceptionOrNull()

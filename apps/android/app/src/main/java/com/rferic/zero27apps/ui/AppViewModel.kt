@@ -206,15 +206,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun login(email: String, password: String) {
-        val api = client ?: return
         _login.value = LoginState(pending = true)
         viewModelScope.launch {
             try {
+                val api = ensureAuth()
                 val auth = supabase ?: error("Supabase client is not ready")
                 auth.auth.signInWith(Email) {
                     this.email = email.trim()
                     this.password = password
                 }
+                api.resetSessionState()
                 val me = api.me()
                 val modules = api.myModules().modules
                 val widgets = runCatching { api.dashboard("app").widgets }.getOrDefault(emptyList())
@@ -227,6 +228,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * The login screen can outlive the clients (a logout, an instance change or
+     * a session that ended while the app was open). Rebuilds whatever is
+     * missing for the current instance instead of signing in against nothing.
+     */
+    private suspend fun ensureAuth(): ApiClient {
+        client?.let { api -> if (supabase != null) return api }
+        val api = client ?: apiFor(instanceStore.current())
+        val instance = api.instance()
+        val auth = instance.auth ?: throw ApiException("auth_unavailable", 503)
+        val created = supabaseFactory.create(auth.supabaseUrl, auth.supabaseAnonKey)
+        supabase = created
+        created.auth.awaitInitialization()
+        return api
+    }
+
     fun signOut() {
         viewModelScope.launch { endSession(revoked = false) }
     }
@@ -235,23 +252,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * Ends the session in this device only. `revoked` explains it on the login
      * screen: the account was deactivated, deleted or its device revoked, so
      * the user did not log out.
+     *
+     * The API and Supabase clients belong to the instance, not to the session:
+     * they stay alive so the login screen can sign in again. Closing them here
+     * left `login()` without a client and it returned in silence.
      */
     private suspend fun endSession(revoked: Boolean) {
-        if (revoked) {
-            // The session is already dead: no network call, just drop the
-            // client that still holds it in memory.
-            runCatching { client?.close() }
-            runCatching { supabase?.close() }
-        } else {
+        if (!revoked) {
             // Revoke the device while the session is still valid: otherwise the
             // server keeps pushing a signed-out account's groups to this phone.
             FcmRegistrar(getApplication()).revoke()
             runCatching { supabase?.auth?.signOut(SignOutScope.LOCAL) }
-            runCatching { client?.close() }
-            runCatching { supabase?.close() }
         }
-        client = null
-        supabase = null
         sessionStore.clear()
         clearWidget()
         prefs.remove(LOCATION_KEY)
