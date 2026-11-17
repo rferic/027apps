@@ -13,7 +13,7 @@ import java.net.URI
 data class InvitationLink(val token: String, val instance: String) {
     companion object {
         /** The Core's token prefix plus base64url; no separators or spaces. */
-        private val TOKEN = Regex("^027_inv_[A-Za-z0-9_-]{8,200}$")
+        private val TOKEN = Regex("^027_inv_[A-Za-z0-9_-]{1,200}$")
         private const val PRODUCTION_HOST = "027apps.ericrf.com"
         private const val PATH_PREFIX = "/invite/"
 

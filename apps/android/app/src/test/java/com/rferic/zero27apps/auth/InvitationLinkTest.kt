@@ -41,6 +41,15 @@ class InvitationLinkTest {
     }
 
     @Test
+    fun `accepts a short token the server would accept`() {
+        val link = InvitationLink.parse(
+            "zero27apps-dev://invite/027_inv_apptest?instance=http%3A%2F%2F10.0.2.2%3A3003",
+        )
+        assertEquals("027_inv_apptest", link?.token)
+        assertEquals("http://10.0.2.2:3003", link?.instance)
+    }
+
+    @Test
     fun `falls back to production when the scheme carries no instance`() {
         val link = InvitationLink.parse("027apps://invite/$token")
         assertEquals("https://027apps.ericrf.com", link?.instance)

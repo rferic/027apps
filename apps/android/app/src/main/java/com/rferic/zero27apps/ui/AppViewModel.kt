@@ -488,7 +488,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun boot() {
+        // A pending invitation wins over the session boot: a boot that finishes
+        // after the link must not replace the invite screen with the shell.
+        if (pendingLink != null) return
         _state.value = AppState.Loading
+        try {
+            bootInternal()
+        } finally {
+            pendingLink?.let { link ->
+                if (_state.value !is AppState.NeedsInvite) {
+                    _state.value = AppState.NeedsInvite(link)
+                }
+            }
+        }
+    }
+
+    private suspend fun bootInternal() {
         // Pin on first boot so an update never moves the install to another
         // instance just because the new build compiled a different default.
         val base = instanceStore.pinDefault()
