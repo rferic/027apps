@@ -1016,5 +1016,11 @@
   "Your access has been revoked. Ask an administrator.": "Votre accès a été révoqué. Contactez un administrateur.",
   "Your password": "Votre mot de passe",
   "Your password has been changed. Sign in with the new one.": "Votre mot de passe a été modifié. Connectez-vous avec le nouveau.",
-  "Your session has ended. Sign in again.": "Votre session est terminée. Reconnectez-vous."
+  "Your session has ended. Sign in again.": "Votre session est terminée. Reconnectez-vous.",
+  "Renew invitation": "Renouveler l'invitation",
+  "Renewing…": "Renouvellement…",
+  "This invitation expired. Renew it to send a new link with the same duration; the previous link stops working.": "Cette invitation a expiré. Renouvelez-la pour envoyer un nouveau lien avec la même durée ; le lien précédent cessera de fonctionner.",
+  "This invitation has not expired yet.": "Cette invitation n'a pas encore expiré.",
+  "Wait a moment before renewing.": "Attendez un instant avant de renouveler.",
+  "We couldn't renew the invitation.": "Nous n'avons pas pu renouveler l'invitation."
 }

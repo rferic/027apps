@@ -1016,5 +1016,11 @@
   "Your access has been revoked. Ask an administrator.": "O teu acceso foi revogado. Fala cun administrador.",
   "Your password": "O teu contrasinal",
   "Your password has been changed. Sign in with the new one.": "O teu contrasinal cambiou. Entra co novo.",
-  "Your session has ended. Sign in again.": "A túa sesión rematou. Volve entrar."
+  "Your session has ended. Sign in again.": "A túa sesión rematou. Volve entrar.",
+  "Renew invitation": "Renovar a invitación",
+  "Renewing…": "Renovando…",
+  "This invitation expired. Renew it to send a new link with the same duration; the previous link stops working.": "Esta invitación caducou. Renóvaa para enviar unha ligazón nova coa mesma duración; a ligazón anterior deixará de funcionar.",
+  "This invitation has not expired yet.": "Esta invitación aínda non caducou.",
+  "Wait a moment before renewing.": "Espera un momento antes de renovar.",
+  "We couldn't renew the invitation.": "Non se puido renovar a invitación."
 }

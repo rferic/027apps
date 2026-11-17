@@ -2,7 +2,7 @@
 id: sprint-16-task-09
 titulo: Renovación A3 y cierre de coherencia A3–A7
 area: core + web + app
-estado: pendiente
+estado: test
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0002, 0004, 0007, 0008]
@@ -10,6 +10,30 @@ adrs: [0002, 0004, 0007, 0008]
 
 **Tarea**: permitir renovar una invitación caducada desde el panel y cerrar la coherencia de A4
 (marca/instancia), A5 (paridad), A6 (rol) y A7 (cuenta existente) en email, web y app.
+
+**Implementación completa 2026-11-17; pendiente la revisión de capturas y la aceptación del panel.**
+
+- `renewInvitation` en `invitation-mutations` (POST `/invitations/{id}/renew`) y componente
+  `InvitationRenew` en el detalle: solo aparece con `status = expired`, avisa de que el enlace
+  anterior dejará de funcionar y pide confirmación; al renovar muestra el token una vez con copiar
+  y el estado del email, y refresca la página (la invitación vuelve a `pending`).
+- El cooldown de 60 s, la rotación del token y la duración original los aplica el Core (tarea 04);
+  una usada/revocada no ofrece renovación.
+- Revisión de coherencia A4–A7 (misma invitación vista en email, web y app):
+  - A4: nombre de instancia y wordmark en las tres; invitador (o instancia si es una clave) y
+    caducidad en el email y en las fichas; rol visible.
+  - A5: estados pending/used/expired/invalid equivalentes; email y nombre bloqueados (ficha, no
+    inputs); contraseña + confirmación en cuenta nueva en web y app.
+  - A6: guardrails en el servicio (sesión `super_admin` o clave con `roleCap: super_admin`; nunca
+    super_admin), selector solo para `super_admin`, rol visible; email con nota de administrador.
+  - A7: cuenta existente con sesión primero; conserva nombre, rol y contraseña; el panel explica
+    `account_exists`; web y app piden la contraseña actual.
+- Tests: mutación de renovación (ruta, token, 409 `invitation_not_expired`), componente de
+  renovación y suites existentes de invitaciones.
+
+**Pendiente**: capturas de contraste claro/oscuro (web 375 px, app 390 px) y la aceptación del
+propietario en el panel. Auditoría de seguridad de la renovación (admin, token rotado, cooldown,
+sin token en logs) cubierta por la tarea 04 y revisada aquí.
 
 **Punto de partida**
 - `renewInvitation` y su ruta llegan en la tarea 04; aquí se cablea el panel.

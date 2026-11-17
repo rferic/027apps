@@ -6,6 +6,7 @@ import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { InvitationActions } from "@/components/invitation-actions";
 import { InvitationRevokeButton } from "@/components/invitation-revoke-button";
+import { InvitationRenew } from "@/components/invitation-renew";
 import { PanelError } from "@/components/panel-error";
 import { PanelForbidden } from "@/components/panel-forbidden";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
@@ -310,6 +311,10 @@ export default async function InvitationPage({ params }: { params: Promise<{ id:
       />
       {invitation.status === "pending" && (
         <InvitationActions id={invitation.id} publicUrl={publicUrl} messages={messages} />
+      )}
+
+      {invitation.status === "expired" && (
+        <InvitationRenew id={invitation.id} publicUrl={publicUrl} messages={messages} />
       )}
 
       {invitation.status === "pending" && (

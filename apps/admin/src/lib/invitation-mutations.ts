@@ -189,3 +189,11 @@ export function regenerateInvitationLink(
 ): Promise<InvitationActionResult> {
   return postAction(`/api/v1/invitations/${encodeURIComponent(id)}/link`, fetcher);
 }
+
+/** Renews an expired invitation, rotating its token and reusing its duration. */
+export function renewInvitation(
+  id: string,
+  fetcher: typeof fetch = fetch,
+): Promise<InvitationActionResult> {
+  return postAction(`/api/v1/invitations/${encodeURIComponent(id)}/renew`, fetcher);
+}

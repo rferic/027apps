@@ -1016,5 +1016,11 @@
   "Your access has been revoked. Ask an administrator.": "El teu accés ha estat revocat. Parla amb un administrador.",
   "Your password": "La teva contrasenya",
   "Your password has been changed. Sign in with the new one.": "La teva contrasenya ha canviat. Entra amb la nova.",
-  "Your session has ended. Sign in again.": "La teva sessió ha acabat. Torna a entrar."
+  "Your session has ended. Sign in again.": "La teva sessió ha acabat. Torna a entrar.",
+  "Renew invitation": "Renova la invitació",
+  "Renewing…": "S'està renovant…",
+  "This invitation expired. Renew it to send a new link with the same duration; the previous link stops working.": "Aquesta invitació ha caducat. Renova-la per enviar un enllaç nou amb la mateixa durada; l'enllaç anterior deixarà de funcionar.",
+  "This invitation has not expired yet.": "Aquesta invitació encara no ha caducat.",
+  "Wait a moment before renewing.": "Espera un moment abans de renovar.",
+  "We couldn't renew the invitation.": "No s'ha pogut renovar la invitació."
 }
