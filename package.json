@@ -8,6 +8,7 @@
     "test": "pnpm -r --if-present run test",
     "check:openapi": "node scripts/check-openapi.mjs",
     "i18n:scan": "pnpm --filter @027apps/i18n scan",
-    "i18n:check": "pnpm --filter @027apps/i18n check"
+    "i18n:check": "pnpm --filter @027apps/i18n check",
+    "check:destructive-db": "bash scripts/check-destructive-db.sh"
   }
 }

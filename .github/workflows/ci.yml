@@ -89,6 +89,11 @@ jobs:
 
           exit $fail
 
+      - name: No destructive remote database commands
+        # `supabase db reset --remote` cleans the linked project; production
+        # changes only through migrations.yml (db push, required reviewer).
+        run: bash scripts/check-destructive-db.sh
+
   supabase:
     runs-on: ubuntu-24.04
     steps:

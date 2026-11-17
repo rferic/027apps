@@ -125,6 +125,17 @@ Hay migraciones `0001`–`0019` en `supabase/migrations/`. Cada entorno aplica l
 7. **Antes del keep-alive**: el keep-alive diario solo valida salud tras migrar; si la migración falla el job queda en rojo y el siguiente ping no enmascara el problema.
 8. Las migraciones deben ser compatibles hacia atrás con la versión anterior del admin (expand → migrate → contract): el admin nuevo ya está desplegado cuando se aplica la migración y un rollback de código debe seguir funcionando.
 
+### `db reset` es local y `db reset --remote` está prohibido
+
+El CLI de Supabase **sí puede limpiar un proyecto remoto**: desde 2.x, `supabase db reset --remote[=<ref>]` borra el esquema del proyecto enlazado (o del que se nombre) y reaplica las migraciones. En local es la herramienta correcta; contra `027apps-prod` sería una pérdida de datos. Por eso:
+
+- **La automatización no puede hacerlo.** `scripts/check-destructive-db.sh` (job `guard-secrets` de CI y `pnpm check:destructive-db`) falla si un workflow, un script o un `package.json` contiene `db reset` con `--remote`/`--linked`/`--db-url`, o `db push`/`db pull`/`migration up` con `--db-url`. Producción cambia solo con `migrations.yml` (`db push --linked`, Environment `production` con revisor).
+- **La credencial no está en los portátiles.** La contraseña de `027apps-prod` y el `SUPABASE_ACCESS_TOKEN` viven en el Environment `production` (dos reglas de protección); en local no hay `~/.supabase/access-token` ni `SUPABASE_DB_URL` remoto en `.env.local`. El proyecto enlazado en un checkout es `027apps-dev`. Sin esas dos cosas, `--remote` no tiene con qué autenticarse.
+- **La restauración pide permiso.** `scripts/backup/restore.sh` limpia el esquema destino: se niega a tocar un host que no sea loopback/LAN salvo `--yes`.
+- **Si aun así pasara**, hay backup lógico diario (`backup.yml`, verde) y simulacro trimestral (`restore-drill.yml`); el runbook está en [`docs/infrastructure.md`](../infrastructure.md#4-backups).
+
+Regla para cualquier persona o agente: **`supabase db reset` solo en local y avisando** (borra los datos de desarrollo); contra un proyecto enlazado, nunca.
+
 ## Backups
 
 El backup **no** vive en Supabase: es un dump lógico diario, cifrado con restic y guardado
