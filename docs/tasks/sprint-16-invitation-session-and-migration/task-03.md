@@ -24,6 +24,14 @@ real, la revisión/QA y la auditoría de seguridad antes de `finalizada`.**
 Pendiente: desactivación/borrado/revocación y actualización (puntos 4–5), revisión/QA y
 auditoría antes de `finalizada`.
 
+**Corrección 2026-11-17 (expulsión con la app abierta)**: la aceptación detectó que, con la app
+abierta, una desactivación solo se notaba al reiniciar. `ApiClient` avisa ahora con
+`onSessionEnded` en el primer 401 definitivo (refresh rechazado o segundo 401 tras refrescar) y
+`AppViewModel.endSession` cierra la sesión en el acto con el aviso «Tu sesión se ha revocado»;
+`ON_START` revalida con `me()` al volver del segundo plano. Un fallo de red nunca cierra la
+sesión. Cubierto por tests de `MockEngine` (aviso una sola vez, 401 tras refrescar, red sin
+aviso) y por `:app:testDebugUnitTest` + `:app:assembleDebug`; CI en verde en `9e7cce2`.
+
 **Punto de partida (verificado)**
 - `apps/admin/src/app/(auth)/actions.ts` hace `signOut()` sin scope; en JS el default es `global`,
   así que el logout del panel revoca también la sesión del móvil.
@@ -48,7 +56,10 @@ auditoría antes de `finalizada`.
     `awaitInitialization`, un refresco inicial, `me()`, 401, red y 5xx; `Offline`/`Failure`
     conservan la sesión; `NeedsLogin(reason)`; `signOut`/`changeInstance` con
     `SignOutScope.LOCAL` y `FcmRegistrar.revoke()` con `sessions=local`; avisos en login y copy
-    «Sin conexión. Tu sesión sigue guardada.» en el estado de red (no pedir login).
+    «Sin conexión. Tu sesión sigue guardada.» en el estado de red (no pedir login). Un 401
+    definitivo (refresh rechazado o segundo 401 tras refrescar) cierra la sesión en el acto
+    mediante `ApiClient.onSessionEnded`, sin esperar al siguiente arranque, y `ON_START`
+    revalida con `me()` la sesión de una app que vuelve del segundo plano.
   - Documentar el límite de 15 min del access JWT tras revocar un dispositivo/sesión (la
     desactivación y el borrado son inmediatos por el perfil); la migración fuerza refresco al
     arrancar y el viejo borra al ver `used` (S4).
