@@ -1,14 +1,16 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import { DomainError } from "@027apps/core/errors.js";
 import { redeemInvitation } from "@027apps/core/invitations/service.js";
 import type { InvitationPreview } from "@027apps/core/invitations/service.js";
+import type { Locale } from "@027apps/i18n/types.js";
 import { getInfra } from "@/lib/api/door";
 import { invitationServiceDeps } from "@/lib/invitation-service-deps";
 import type { SubmitInvitationResult } from "@/lib/invite-action-types";
 import { loadInvitePreview } from "@/lib/invite-preview";
+import { LOCALE_COOKIE } from "@/lib/locale";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const ACTION_LIMIT = 30;
@@ -137,6 +139,17 @@ async function redeemNew(ctx: RedeemContext): Promise<SubmitInvitationResult> {
   return error ? { ok: true, role, signInFailed: true } : { ok: true, role };
 }
 
+/** Keeps the invitation's language for `/welcome` and the panel after accepting. */
+async function rememberLocale(locale: Locale): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(LOCALE_COOKIE, locale, {
+    path: "/",
+    sameSite: "lax",
+    maxAge: 31_536_000,
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
 /** Server action behind the web form. The token never leaves the server logs. */
 export async function submitInvitation(raw: unknown): Promise<SubmitInvitationResult> {
   const parsed = submitSchema.safeParse(raw);
@@ -157,7 +170,11 @@ export async function submitInvitation(raw: unknown): Promise<SubmitInvitationRe
     const supabase = await createSupabaseServerClient();
     const serviceDeps = await invitationServiceDeps();
     const context = { token, preview, password, supabase, serviceDeps };
-    return preview.account_exists ? redeemExisting(context) : redeemNew(context);
+    const result = preview.account_exists
+      ? await redeemExisting(context)
+      : await redeemNew(context);
+    if (result.ok) await rememberLocale(preview.locale);
+    return result;
   } catch (error) {
     return blocked(error instanceof DomainError ? error.code : "internal");
   }

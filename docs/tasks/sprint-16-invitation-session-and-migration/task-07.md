@@ -34,7 +34,9 @@ con QR en escritorio y auto-login para roles de panel.
   Rol de panel → `/panel`; `user` → cierre local y `/welcome`; login automático fallido →
   `/welcome?notice=signin_failed`. La web ya no usa el endpoint público.
 - `/welcome`: página pública con «cuenta creada», descarga Android, enlace a login y explicación de
-  que el panel es solo para administradores; añadida a `public-paths.ts`.
+  que el panel es solo para administradores; añadida a `public-paths.ts`. Al canjear, la action
+  guarda el idioma de la invitación en la cookie `027_locale`, así `/welcome` y el panel siguen en
+  ese idioma en vez de caer al del navegador.
 - Dependencia `qrcode` (MIT) + `@types/qrcode`; sin CSP nueva.
 - i18n de todo (42 claves nuevas en 9 idiomas) y `pnpm i18n:check` en verde.
 

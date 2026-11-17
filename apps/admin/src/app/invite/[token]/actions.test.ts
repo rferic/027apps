@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signOut: vi.fn(),
   profileQuery: vi.fn(),
+  setCookie: vi.fn(),
 }));
 
 vi.mock("@027apps/core/invitations/service.js", async (importOriginal) => {
@@ -39,6 +40,7 @@ vi.mock("next/headers", () => ({
       host: "familia.test",
       "x-forwarded-for": "203.0.113.9",
     }),
+  cookies: async () => ({ set: mocks.setCookie }),
 }));
 
 import { submitInvitation } from "./actions";
@@ -77,6 +79,7 @@ beforeEach(() => {
   mocks.signOut.mockReset();
   mocks.profileQuery.mockReset();
   mocks.profileQuery.mockResolvedValue({ rows: [{ role: "admin" }] });
+  mocks.setCookie.mockReset();
 });
 
 describe("submitInvitation", () => {
@@ -96,6 +99,11 @@ describe("submitInvitation", () => {
       { kind: "session", userId: "u-existing", role: "admin" },
     );
     expect(result).toEqual({ ok: true, role: "admin" });
+    expect(mocks.setCookie).toHaveBeenCalledWith(
+      "027_locale",
+      "es",
+      expect.objectContaining({ path: "/" }),
+    );
   });
 
   it("does not redeem when the existing password is wrong", async () => {
@@ -106,6 +114,7 @@ describe("submitInvitation", () => {
 
     expect(result).toEqual({ ok: false, code: "wrong_credentials" });
     expect(mocks.redeem).not.toHaveBeenCalled();
+    expect(mocks.setCookie).not.toHaveBeenCalled();
   });
 
   it("redeems a new account and signs a panel role in", async () => {
