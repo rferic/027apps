@@ -13,6 +13,7 @@ y su rama original no se borra ni se pisa.
 **Spec:** [`2026-11-16-invitation-session-migration-design.md`](../../superpowers/specs/2026-11-16-invitation-session-migration-design.md)
 **Plan:** [`2026-11-16-invitation-session-migration.md`](../../superpowers/plans/2026-11-16-invitation-session-migration.md)
 **Revisión pre-implementación (seguridad y UX):** [`pre-implementation-review.md`](pre-implementation-review.md)
+**Qué queda por revisar:** [`pendientes.md`](pendientes.md) — checklist único de aceptación.
 
 ## Por qué este sprint
 

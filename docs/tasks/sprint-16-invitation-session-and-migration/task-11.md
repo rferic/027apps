@@ -39,8 +39,10 @@ gates mecánicos, evidencia real y auditoría de seguridad. Sin esto ninguna tar
   propietario (P3/P4 y orden de merge/tag), reescrito en inglés para GitHub.
 - Landing pública sin cambios de copy en este sprint: los módulos y su catálogo no cambian; queda
   constancia aquí en vez de tocar `docs/ai/landing.md`.
-- Revisión de estilo por un agente distinto del autor: en curso; sus hallazgos se aplican antes de
-  cerrar.
+- Revisión de estilo por un agente distinto del autor: hecha y aplicada (imports muertos, KDoc
+  duplicado, `contentDescription` del QR, comentario de los colores de email, códigos de auditoría
+  fuera del código, casos públicos de `/migrate`, test de `revokeSessions`, ruta del plan).
+- Checklist de aceptación y lo que falta, en [`pendientes.md`](pendientes.md).
 - Pendiente: el release firmado (tag sobre `main`, lo firma CI con el keystore en secrets: puerta
   del propietario, posterior al merge) y la prueba con dos móviles reales.
 
