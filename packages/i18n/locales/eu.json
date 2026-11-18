@@ -1028,5 +1028,12 @@
   "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Esteka honek zure kontua telefono berri batera eramaten du. Ireki erabili nahi duzun telefonoan, 027Apps aplikazioa instalatuta.",
   "Only the 027Apps app for Android can open it. The code lasts 60 seconds: if it has expired, generate a new one on the old phone.": "Androiderako 027Apps appak bakarrik dezake ireki. Kodeak 60 segundo irauten du: iraungi bada, sortu berri bat telefono zaharrean.",
   "Signing in…": "Saioa hasten ari da…",
-  "Continuing…": "Jarraitzen…"
+  "Continuing…": "Jarraitzen…",
+  "Who can use it": "Nork erabil dezake",
+  "Every user (public module)": "Erabiltzaile guztiek (modulu publikoa)",
+  "A public module appears in every user's app, with its widgets and its API access, without individual grants. A private module needs a member or a category grant.": "Modulu publiko bat erabiltzaile guztien appan agertzen da, bere widgetekin eta API sarbidearekin, banakako baimenik gabe. Modulu pribatu batek kide edo kategoria baten baimena behar du.",
+  "We couldn't save that change.": "Ezin izan genuen aldaketa hori gorde.",
+  "Action": "Ekintza",
+  "Screen": "Pantaila",
+  "The app sends the key and opens the screen. Read-only.": "Appak klabea bidaltzen du eta pantaila irekitzen du. Irakurtzeko soilik."
 }

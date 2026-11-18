@@ -1028,5 +1028,12 @@
   "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Aquest enllaç mou el teu compte a un telèfon nou. Obre'l al telèfon que vulguis fer servir, amb l'app 027Apps instal·lada.",
   "Only the 027Apps app for Android can open it. The code lasts 60 seconds: if it has expired, generate a new one on the old phone.": "Només l'app 027Apps per a Android el pot obrir. El codi dura 60 segons: si ha caducat, genera'n un de nou al mòbil vell.",
   "Signing in…": "Entrant…",
-  "Continuing…": "Continuant…"
+  "Continuing…": "Continuant…",
+  "Who can use it": "Qui el pot fer servir",
+  "Every user (public module)": "Tothom (mòdul públic)",
+  "A public module appears in every user's app, with its widgets and its API access, without individual grants. A private module needs a member or a category grant.": "Un mòdul públic apareix a l'app de tots els usuaris, amb els seus widgets i el seu accés a l'API, sense concessions individuals. Un mòdul privat necessita una concessió a un membre o a una categoria.",
+  "We couldn't save that change.": "No hem pogut desar aquest canvi.",
+  "Action": "Acció",
+  "Screen": "Pantalla",
+  "The app sends the key and opens the screen. Read-only.": "L'app envia la clau i obre la pantalla. Només lectura."
 }

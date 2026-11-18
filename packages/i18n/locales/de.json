@@ -1028,5 +1028,12 @@
   "This link moves your account to a new phone. Open it on the phone you want to use, with the 027Apps app installed.": "Dieser Link verschiebt dein Konto auf ein neues Telefon. Öffne ihn auf dem Telefon, das du nutzen möchtest, mit installierter 027Apps-App.",
   "Only the 027Apps app for Android can open it. The code lasts 60 seconds: if it has expired, generate a new one on the old phone.": "Nur die 027Apps-App für Android kann ihn öffnen. Der Code gilt 60 Sekunden: Ist er abgelaufen, erzeuge auf dem alten Telefon einen neuen.",
   "Signing in…": "Anmeldung läuft…",
-  "Continuing…": "Weiter…"
+  "Continuing…": "Weiter…",
+  "Who can use it": "Wer es nutzen kann",
+  "Every user (public module)": "Alle Nutzer (öffentliches Modul)",
+  "A public module appears in every user's app, with its widgets and its API access, without individual grants. A private module needs a member or a category grant.": "Ein öffentliches Modul erscheint in der App aller Nutzer, mit seinen Widgets und seinem API-Zugriff, ohne einzelne Freigaben. Ein privates Modul braucht eine Freigabe für ein Mitglied oder eine Kategorie.",
+  "We couldn't save that change.": "Die Änderung konnte nicht gespeichert werden.",
+  "Action": "Aktion",
+  "Screen": "Bildschirm",
+  "The app sends the key and opens the screen. Read-only.": "Die App sendet den Schlüssel und öffnet den Bildschirm. Nur Lesen."
 }

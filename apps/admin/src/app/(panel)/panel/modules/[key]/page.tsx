@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { t } from "@027apps/i18n/t.js";
 import type { Locale, TranslationMap } from "@027apps/i18n/types.js";
 import { ModuleActions } from "@/components/module-actions";
+import { ModuleAccess } from "@/components/module-access";
 import { ModuleDemoCard } from "@/components/module-demo-card";
 import { ModuleJobRunButton } from "@/components/module-job-run-button";
 import { PanelError } from "@/components/panel-error";
@@ -514,23 +515,53 @@ export default async function ModulePage({ params }: { params: Promise<{ key: st
           <h2 id="module-app-actions-title" className="text-sm font-semibold">
             {t("App actions", messages)}
           </h2>
-          <ul className="flex flex-col gap-2 text-xs">
-            {manifest.app_actions.map((action) => (
-              <li
-                key={action.key}
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
-              >
-                <span className="font-semibold">{action.label}</span>
-                <code className="font-mono text-[11px] text-muted-foreground">{action.key}</code>
-                <code className="text-[11px] text-muted-foreground">{action.screen}</code>
-              </li>
-            ))}
-          </ul>
+          {/* Three labelled columns instead of three floating values: the key
+              and the screen are what the app sends and opens, and "owe_expense"
+              on its own read as a second, unexplained action. */}
+          <table className="w-full text-xs">
+            <caption className="sr-only">{t("App actions", messages)}</caption>
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                <th scope="col" className="pb-1 pr-3 font-medium">
+                  {t("Action", messages)}
+                </th>
+                <th scope="col" className="pb-1 pr-3 font-medium">
+                  {t("Key", messages)}
+                </th>
+                <th scope="col" className="pb-1 font-medium">
+                  {t("Screen", messages)}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {manifest.app_actions.map((action) => (
+                <tr key={action.key} className="border-t border-border align-top">
+                  <td className="py-2 pr-3 font-semibold">{action.label}</td>
+                  <td className="py-2 pr-3">
+                    <code className="font-mono text-[11px] text-muted-foreground">
+                      {action.key}
+                    </code>
+                  </td>
+                  <td className="py-2">
+                    <code className="font-mono text-[11px] text-muted-foreground">
+                      {action.screen}
+                    </code>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           <p className="text-xs text-muted-foreground">
-            {t("Read-only: the app composes its add button from these actions.", messages)}
+            {t("The app sends the key and opens the screen. Read-only.", messages)}
           </p>
         </section>
       ) : null}
+
+      <ModuleAccess
+        moduleKey={installedModule.key}
+        isPublic={installedModule.is_public}
+        messages={messages}
+      />
 
       {grants.ok ? (
         <ModuleGrants grants={grants.grants} messages={messages} />

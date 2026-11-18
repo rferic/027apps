@@ -154,6 +154,12 @@ Ejemplo completo:
 - `app`: `{ "visible": boolean }`, por defecto `true`. Un módulo con `visible: false` es de
   **fondo**: no aparece en el lanzador de la app ni tiene pantallas móviles, pero conserva panel,
   ajustes, eventos y workers. `is_public` sigue siendo visibilidad de acceso, no de UI.
+- **Quién puede usar el módulo** se cambia desde `/panel/modules/<key>` («Quién puede usarlo»,
+  `PATCH /api/v1/modules/<key>` con `{ "is_public": true }`). Un módulo público y activo aparece en
+  la app de **todos** los usuarios —listado, widgets y scopes de su API— sin concesión individual;
+  uno privado necesita una concesión a un miembro o a una categoría. El valor del panel sobrevive a
+  una actualización (`upgrade` no lo toca); una **reinstalación** vuelve a tomar el `is_public` del
+  manifest, así que un módulo que nace público lo declara ahí.
 - `requires`: lista de `{ key, version }`; la versión es un **mínimo** (`1.2.0`, no rangos).
   Instalar exige que la dependencia esté **instalada** (y con versión suficiente); activar, que
   esté **activa**. Desactivar o desinstalar se niega mientras otro módulo instalado la requiera.

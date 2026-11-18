@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { activateModule, deactivateModule, runModuleJob, uninstallModule, upgradeModule } from "./module-mutations";
+import {
+  activateModule,
+  deactivateModule,
+  runModuleJob,
+  setModulePublic,
+  uninstallModule,
+  upgradeModule,
+} from "./module-mutations";
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), { status, headers });
@@ -144,5 +151,32 @@ describe("uninstallModule", () => {
     const fetcher = vi.fn(async () => new Response("<html></html>", { status: 200 }));
 
     await expect(uninstallModule("inventory", false, fetcher)).resolves.toEqual({ ok: false });
+  });
+});
+
+describe("setModulePublic", () => {
+  it("PATCHes the module with the new visibility and the session cookie", async () => {
+    const fetcher = vi.fn(async () => json({ module: { key: "owe-no" } }));
+
+    await expect(setModulePublic("owe-no", true, fetcher)).resolves.toEqual({ ok: true });
+
+    const [url, init] = call(fetcher);
+    expect(url).toBe("/api/v1/modules/owe-no");
+    expect(init.method).toBe("PATCH");
+    expect(init.credentials).toBe("same-origin");
+    expect(init.headers).toEqual({ "content-type": "application/json" });
+    expect(init.body).toBe(JSON.stringify({ is_public: true }));
+  });
+
+  it("maps a refused change to a failure", async () => {
+    const fetcher = vi.fn(async () =>
+      json({ error: { code: "insufficient_scope", request_id: "req-403" } }, 403),
+    );
+
+    await expect(setModulePublic("owe-no", false, fetcher)).resolves.toMatchObject({
+      ok: false,
+      code: "insufficient_scope",
+      requestId: "req-403",
+    });
   });
 });
