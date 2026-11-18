@@ -2,7 +2,7 @@
 id: sprint-16-invitation-session-and-migration
 titulo: Invitación app-first, sesión duradera, recuperación y migración de teléfono
 area: producto
-estado: aprobado (2026-11-16)
+estado: cerrada (2026-11-18)
 ---
 
 Sprint **aprobado** por el propietario el 2026-11-16. Toma el número 16 porque el anterior «panel y
