@@ -2,7 +2,7 @@
 id: sprint-16-task-11
 titulo: Cierre — i18n, docs, gates, auditoría y verificación real
 area: docs + infra
-estado: en curso
+estado: test
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0002, 0004, 0007, 0008, 0010]
@@ -43,8 +43,14 @@ gates mecánicos, evidencia real y auditoría de seguridad. Sin esto ninguna tar
   duplicado, `contentDescription` del QR, comentario de los colores de email, códigos de auditoría
   fuera del código, casos públicos de `/migrate`, test de `revokeSessions`, ruta del plan).
 - Checklist de aceptación y lo que falta, en [`pendientes.md`](pendientes.md).
-- Pendiente: el release firmado (tag sobre `main`, lo firma CI con el keystore en secrets: puerta
-  del propietario, posterior al merge) y la prueba con dos móviles reales.
+- **Release 0.19.0 publicado** (`v0.19.0`): APK firmado, huella verificada contra
+  `ANDROID_APP_SHA256`, versión `1900`, App Links `/invite/` y `/migrate/` en el manifest.
+- Verificación real del propietario: invitación app-first en producción (correo y cámara), cuenta
+  existente, wizard web, migración de un móvil con revocación de sesión en servidor, actualización
+  in-app 0.18.2 → 0.19.0 y recuperación de contraseña con email real.
+- **Única comprobación pendiente**: revocación de **push** en el móvil viejo y escaneo entre dos
+  dispositivos reales (P4); exige un segundo Android con FCM y un evento con push. Documentada en
+  `task-10.md`.
 
 **Punto de partida**: las tareas 03–10 implementadas y aceptadas por sus criterios.
 
