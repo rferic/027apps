@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
      */
     private fun consumeIntent(intent: Intent?) {
         val group = intent?.getStringExtra(EXTRA_GROUP)?.takeIf(::isUuid)
-        deepLink.value = intent?.dataString
+        deepLink.value = freshDeepLink(intent?.dataString)
         startAction.value = intent?.getStringExtra(EXTRA_START)?.takeIf { it in START_ACTIONS }
         startGroup.value = group
         intent?.removeExtra(EXTRA_START)
@@ -59,9 +59,29 @@ class MainActivity : ComponentActivity() {
 
     private fun isUuid(value: String): Boolean = UUID_PATTERN.matches(value)
 
+    /**
+     * Android re-delivers the launch intent when the activity is recreated
+     * right after a crash, which made an already-used invitation show its
+     * "used" screen again on the next open. A link handled seconds ago is
+     * ignored; opening it later on purpose still gets the honest answer.
+     */
+    private fun freshDeepLink(link: String?): String? {
+        if (link == null) return null
+        val prefs = getSharedPreferences("027apps", MODE_PRIVATE)
+        val previous = prefs.getString(LINK_KEY, null)
+        val handledAt = prefs.getLong(LINK_AT_KEY, 0L)
+        val now = System.currentTimeMillis()
+        if (link == previous && now - handledAt < LINK_REPLAY_MS) return null
+        prefs.edit().putString(LINK_KEY, link).putLong(LINK_AT_KEY, now).apply()
+        return link
+    }
+
     private companion object {
         const val EXTRA_START = "start"
         const val EXTRA_GROUP = "group"
+        const val LINK_KEY = "handled_deep_link"
+        const val LINK_AT_KEY = "handled_deep_link_at"
+        const val LINK_REPLAY_MS = 15_000L
         val START_ACTIONS = setOf("owe_group", "owe_expense", "modules", "settings")
         val UUID_PATTERN =
             Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
