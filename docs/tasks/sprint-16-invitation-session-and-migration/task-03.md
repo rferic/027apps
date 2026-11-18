@@ -2,7 +2,7 @@
 id: sprint-16-task-03
 titulo: Ciclo de sesión (logout local, expulsión limpia y errores reintentables)
 area: web + app + core
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 adrs: [0004, 0007, 0010]
@@ -21,8 +21,12 @@ real, la revisión/QA y la auditoría de seguridad antes de `finalizada`.**
 - Modo avión → la app conserva la sesión y no pide login. ✔
 - Reinicio → la app sigue dentro. ✔
 
-Pendiente: aceptación del login tras logout y de la actualización con la build firmada `0.19.0`,
-la revisión/QA y la auditoría antes de `finalizada`.
+**Verificado (2026-11-18)**
+- Logout en la app (release y debug): vuelve al login sin cerrarse; el crash de Firebase en
+  instancias sin FCM quedó corregido.
+- **Actualización in-app** con el APK firmado: 0.18.2 (1802) → aviso «Update available · v0.19.0» →
+  permiso de origen → instalador → 0.19.0 (1900), sin errores.
+- Revisión/QA y auditoría: `task-11-audits.md`.
 
 **Corrección 2026-11-17 (expulsión con la app abierta)**: la aceptación detectó que, con la app
 abierta, una desactivación solo se notaba al reiniciar. `ApiClient` avisa ahora con

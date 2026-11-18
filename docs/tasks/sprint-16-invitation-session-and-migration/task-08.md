@@ -2,7 +2,7 @@
 id: sprint-16-task-08
 titulo: Recuperación de contraseña (web + enlace desde la app)
 area: web + core + app
-estado: test
+estado: finalizada
 plan: docs/superpowers/plans/2026-11-16-invitation-session-migration.md
 fuente: docs/superpowers/specs/2026-11-16-invitation-session-migration-design.md
 mockup: docs/mockups/invitation-flow/index.html
@@ -55,7 +55,11 @@ Verificado en local: `/forgot-password` 200, `/auth/confirm` 200, `/reset-passwo
   al terminar.
 - A05/A07: la recuperación usa el cliente SSR con cookies; `generateLink` solo en el servidor con
   la service role; tras el reset se revocan las demás sesiones y la local.
-- Veredicto: sin hallazgos abiertos. Pendiente la prueba con un email real (P5) y la revisión.
+- Veredicto: sin hallazgos abiertos.
+- **Prueba con email real (P5, 2026-11-18)**: en producción, `/forgot-password` con una cuenta
+  nueva creada por invitación; el correo llegó, el botón de `/auth/confirm` no gastó el enlace en el
+  GET, el POST sí, se eligió contraseña nueva y se entró con ella. Respuesta neutra en todos los
+  casos.
 
 **Punto de partida (verificado)**
 - No hay «¿Olvidaste tu contraseña?», ni página de reset, ni `/auth/confirm`.
