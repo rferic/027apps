@@ -11,6 +11,7 @@ import com.rferic.zero27apps.ServerUrl
 import com.rferic.zero27apps.auth.EncryptedStringStore
 import com.rferic.zero27apps.auth.InvitationLink
 import com.rferic.zero27apps.auth.MigrationLink
+import com.rferic.zero27apps.auth.sessionIdOf
 import com.rferic.zero27apps.auth.KeystoreSecretCipher
 import com.rferic.zero27apps.auth.SupabaseFactory
 import com.rferic.zero27apps.auth.refreshOutcome
@@ -269,25 +270,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun onMigrationLink(raw: String): Boolean {
         val link = MigrationLink.parse(raw) ?: return false
+        beginMigration(link)
+        return true
+    }
+
+    /**
+     * Scanner entry. A QR is a user action, but the host is not visible on it:
+     * the same confirmation as an external link applies before moving the
+     * account to a different instance.
+     */
+    fun onScannedMigration(link: MigrationLink) {
+        beginMigration(link)
+    }
+
+    private fun beginMigration(link: MigrationLink) {
         if (hasStoredSession()) {
             _migration.value = MigrationState(error = MigrationError.SIGNED_IN, pendingLink = link)
-            return true
+            return
         }
-        // An external link can name any host: when it does not match the
-        // instance this install already uses, the person confirms the target
-        // first (a browser link must not be able to move the account).
         if (link.instance != instanceStore.current()) {
             _migration.value = MigrationState(confirmInstance = link.instance, pendingLink = link)
-            return true
+            return
         }
         // The link wins over a boot that is still resolving the session.
         bootJob?.cancel()
-        if (_state.value is AppState.SignedIn) {
-            _migration.value = MigrationState(error = MigrationError.SIGNED_IN)
-            return true
-        }
         acceptMigration(link)
-        return true
     }
 
     /** The scan flow and the confirmation dialog land here; both are explicit. */
@@ -350,6 +357,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 // Without a device id (no Play Services, FCM off) the old
                 // phone still has to stop receiving push.
                 runCatching { api.revokeOtherDevices(deviceId) }
+                // The old phone's session is ended **on the server**: a real
+                // migration showed the client-side signOut(OTHERS) leaving the
+                // old refresh token alive. The session id in this JWT is what
+                // keeps our own session out of the delete.
+                val sessionId = sessionIdOf(supabaseClient.auth.currentSessionOrNull()?.accessToken)
+                if (sessionId != null) runCatching { api.revokeOtherSessions(sessionId) }
                 runCatching { supabaseClient.auth.signOut(SignOutScope.OTHERS) }
             } catch (error: ApiException) {
                 _migration.value = MigrationState(

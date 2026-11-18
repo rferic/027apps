@@ -1113,6 +1113,16 @@ export const revokeOtherDevicesSchema = component(
     .strict(),
 );
 
+export const revokeOtherSessionsSchema = component(
+  "RevokeOtherSessionsRequest",
+  z.object({ keep_session_id: z.uuid() }).strict(),
+);
+
+export const revokeOtherSessionsResponseSchema = component(
+  "RevokeOtherSessionsResponse",
+  z.object({ revoked: z.number().int() }).strict(),
+);
+
 export const revokeOtherDevicesResponseSchema = component(
   "RevokeOtherDevicesResponse",
   z.object({ revoked: z.number().int() }).strict(),

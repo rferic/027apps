@@ -62,8 +62,20 @@ el código: el viejo lo muestra, el nuevo lo escanea, entra y expulsa al viejo.
   llama: la expulsión se comprobó por `signOut(OTHERS)`. La revocación de push se prueba con el
   APK firmado contra una instancia con FCM.
 
-Pendiente: la aceptación con dos móviles reales (P4) escaneando el QR con la cámara, la
-revocación de push en una instancia con FCM y `Changelog.kt` 0.19.0 (tarea 11).
+**Aceptación real con un móvil (2026-11-18)**
+
+- El móvil escaneó un QR servido desde el portátil (mismo contenido que genera el viejo). La app
+  pidió confirmación del host antes de cambiar de instancia: el escáner pasaba antes directo al
+  canje y se saltaba ese paso; ahora comparte el camino con cualquier enlace (`onScannedMigration`).
+- Durante el canje se ve una pantalla de progreso («Moviendo tu cuenta…») en vez del formulario de
+  login, que parecía un fallo en redes lentas.
+- **La sesión vieja seguía viva**: el `signOut(OTHERS)` del cliente no revocó el refresh token
+  (comprobado: seguía refrescando). Se añadió `POST /api/v1/me/sessions/revoke-others`, que borra
+  las sesiones del usuario salvo la que llama (el id sale del claim `session_id` del JWT). Tras
+  repetir la prueba: refresh viejo → **400** y una sola sesión en `auth.sessions`.
+
+Pendiente: la revocación de push en una instancia con FCM y la prueba con dos móviles reales a la
+vez (P4).
 
 **Punto de partida**
 - La app tiene sesión cifrada, `signOut` y registro FCM; `FcmRegistrar` guarda el `device_id`.

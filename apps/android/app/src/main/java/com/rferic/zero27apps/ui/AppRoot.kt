@@ -59,6 +59,7 @@ import com.rferic.zero27apps.ui.components.BrandWordmark
 import com.rferic.zero27apps.ui.components.GridIcon
 import com.rferic.zero27apps.ui.i18n.AppStrings
 import com.rferic.zero27apps.ui.i18n.LocalStrings
+import com.rferic.zero27apps.ui.migration.MigrationProgressScreen
 import com.rferic.zero27apps.ui.migration.MigrationQrScreen
 import com.rferic.zero27apps.ui.migration.MigrationScanScreen
 import com.rferic.zero27apps.ui.screens.HomeScreen
@@ -139,10 +140,14 @@ fun AppRoot(
                             state = migration,
                             onScanned = { link ->
                                 scanningMigration = false
-                                viewModel.acceptMigration(link)
+                                viewModel.onScannedMigration(link)
                             },
                             onCancel = { scanningMigration = false },
                         )
+                    } else if (migration.loading) {
+                        // The exchange takes a moment: showing the login form
+                        // while it happens reads as "it failed".
+                        MigrationProgressScreen()
                     } else {
                         LoginScreen(
                             instance = current.instance,

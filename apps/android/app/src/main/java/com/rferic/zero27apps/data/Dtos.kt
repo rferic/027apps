@@ -189,4 +189,7 @@ data class DeviceTransferExchangeDto(
 )
 
 @Serializable
+data class RevokeOtherSessionsRequest(@SerialName("keep_session_id") val keepSessionId: String)
+
+@Serializable
 data class RevokeOthersResponse(val revoked: Int = 0)

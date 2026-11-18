@@ -7015,6 +7015,34 @@
         ],
         "type": "object"
       },
+      "RevokeOtherSessionsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "keep_session_id": {
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "keep_session_id"
+        ],
+        "type": "object"
+      },
+      "RevokeOtherSessionsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "revoked": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revoked"
+        ],
+        "type": "object"
+      },
       "Setting": {
         "additionalProperties": false,
         "properties": {
@@ -9826,6 +9854,54 @@
         "summary": "Modules the caller can open: public plus granted, or every active one for admins.",
         "x-027-scopes": [
           "profile:read"
+        ]
+      }
+    },
+    "/me/sessions/revoke-others": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeOtherSessionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeOtherSessionsResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error envelope (ADR 0007)."
+          }
+        },
+        "security": [
+          {
+            "sessionAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "summary": "End every other session of the caller, keeping the one that asks.",
+        "x-027-scopes": [
+          "devices:revoke"
         ]
       }
     },

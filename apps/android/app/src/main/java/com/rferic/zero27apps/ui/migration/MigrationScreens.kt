@@ -257,6 +257,36 @@ fun MigrationQrScreen(
 }
 
 /**
+ * New phone: the exchange is in flight. A spinner with the product mark says
+ * "working", where the login form made a slow network look like a failure.
+ */
+@Composable
+fun MigrationProgressScreen() {
+    val palette = LocalPalette.current
+    val strings = LocalStrings.current
+    Box(
+        modifier = Modifier.fillMaxSize().background(appGradient(palette)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(32.dp),
+        ) {
+            BrandTile(size = 56.dp)
+            BrandWordmark(height = 26.dp)
+            CircularProgressIndicator(color = palette.accent)
+            Text(
+                strings.migrationMoving,
+                fontSize = 14.sp,
+                color = palette.mutedForeground,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+/**
  * New phone: scans the old phone's QR with CameraX + ZXing (no Play Services).
  * The link's instance is taken from the QR, never from the current app.
  */

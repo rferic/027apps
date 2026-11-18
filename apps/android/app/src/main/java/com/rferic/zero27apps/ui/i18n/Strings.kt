@@ -50,6 +50,7 @@ class Strings(private val values: Map<String, String>) {
     val migrationScreenSecure: String get() = values.getValue("migrationScreenSecure")
     val migrationQrDescription: String get() = values.getValue("migrationQrDescription")
     val migrationOpenSettings: String get() = values.getValue("migrationOpenSettings")
+    val migrationMoving: String get() = values.getValue("migrationMoving")
     val remove: String get() = values.getValue("remove")
     val removeInstanceTitle: String get() = values.getValue("removeInstanceTitle")
     val removeInstanceBody: String get() = values.getValue("removeInstanceBody")
@@ -338,6 +339,7 @@ object AppStrings {
         "migrationScreenSecure" to "For security this screen can't be captured. The code renews itself.",
         "migrationQrDescription" to "QR code to move this account to the new phone",
         "migrationOpenSettings" to "Open settings",
+        "migrationMoving" to "Moving your account…",
         "remove" to "Remove",
         "removeInstanceTitle" to "Remove instance?",
         "removeInstanceBody" to "This phone will forget {instance}. You can add it again later.",
@@ -615,6 +617,7 @@ object AppStrings {
         "migrationScreenSecure" to "Por seguridad, esta pantalla no se puede capturar. El código se renueva solo.",
         "migrationQrDescription" to "Código QR para mover esta cuenta al móvil nuevo",
         "migrationOpenSettings" to "Abrir ajustes",
+        "migrationMoving" to "Moviendo tu cuenta…",
         "remove" to "Quitar",
         "removeInstanceTitle" to "¿Quitar la instancia?",
         "removeInstanceBody" to "Este teléfono olvidará {instance}. Podrás volver a añadirla más adelante.",
@@ -892,6 +895,7 @@ object AppStrings {
         "migrationScreenSecure" to "Per seguretat, aquesta pantalla no es pot capturar. El codi es renova sol.",
         "migrationQrDescription" to "Codi QR per moure aquest compte al mòbil nou",
         "migrationOpenSettings" to "Obre els ajustos",
+        "migrationMoving" to "Movent el teu compte…",
         "remove" to "Treu",
         "removeInstanceTitle" to "Vols treure la instància?",
         "removeInstanceBody" to "Aquest telèfon oblidarà {instance}. Podràs tornar a afegir-la més endavant.",
@@ -1169,6 +1173,7 @@ object AppStrings {
         "migrationScreenSecure" to "Per sicurezza questa schermata non può essere catturata. Il codice si rinnova da solo.",
         "migrationQrDescription" to "Codice QR per spostare questo account sul nuovo telefono",
         "migrationOpenSettings" to "Apri impostazioni",
+        "migrationMoving" to "Spostamento dell'account…",
         "remove" to "Rimuovi",
         "removeInstanceTitle" to "Rimuovere l'istanza?",
         "removeInstanceBody" to "Questo telefono dimenticherà {instance}. Potrai aggiungerla di nuovo più tardi.",
@@ -1446,6 +1451,7 @@ object AppStrings {
         "migrationScreenSecure" to "Pour des raisons de sécurité, cet écran ne peut pas être capturé. Le code se renouvelle tout seul.",
         "migrationQrDescription" to "Code QR pour déplacer ce compte vers le nouveau téléphone",
         "migrationOpenSettings" to "Ouvrir les réglages",
+        "migrationMoving" to "Déplacement de votre compte…",
         "remove" to "Retirer",
         "removeInstanceTitle" to "Retirer cette instance ?",
         "removeInstanceBody" to "Ce téléphone oubliera {instance}. Vous pourrez l'ajouter à nouveau plus tard.",
@@ -1723,6 +1729,7 @@ object AppStrings {
         "migrationScreenSecure" to "Aus Sicherheitsgründen kann dieser Bildschirm nicht aufgenommen werden. Der Code erneuert sich selbst.",
         "migrationQrDescription" to "QR-Code, um dieses Konto auf das neue Telefon umzuziehen",
         "migrationOpenSettings" to "Einstellungen öffnen",
+        "migrationMoving" to "Konto wird umgezogen…",
         "remove" to "Entfernen",
         "removeInstanceTitle" to "Instanz entfernen?",
         "removeInstanceBody" to "Dieses Telefon vergisst {instance}. Du kannst sie später wieder hinzufügen.",
@@ -2000,6 +2007,7 @@ object AppStrings {
         "migrationScreenSecure" to "Por segurança, este ecrã não pode ser capturado. O código renova-se sozinho.",
         "migrationQrDescription" to "Código QR para mover esta conta para o telemóvel novo",
         "migrationOpenSettings" to "Abrir definições",
+        "migrationMoving" to "A mover a tua conta…",
         "remove" to "Remover",
         "removeInstanceTitle" to "Remover a instância?",
         "removeInstanceBody" to "Este telemóvel vai esquecer {instance}. Podes voltar a adicioná-la mais tarde.",
@@ -2277,6 +2285,7 @@ object AppStrings {
         "migrationScreenSecure" to "Por seguridade, esta pantalla non se pode capturar. O código renovase só.",
         "migrationQrDescription" to "Código QR para mover esta conta ao móbil novo",
         "migrationOpenSettings" to "Abrir axustes",
+        "migrationMoving" to "Movendo a túa conta…",
         "remove" to "Quitar",
         "removeInstanceTitle" to "Quitar a instancia?",
         "removeInstanceBody" to "Este teléfono esquecerá {instance}. Poder volver a engadila máis adiante.",
@@ -2554,6 +2563,7 @@ object AppStrings {
         "migrationScreenSecure" to "Segurtasunagatik, pantaila hau ezin da harrapatu. Kodea berez berritzen da.",
         "migrationQrDescription" to "Kode QR kontu hau telefono berrira mugitzeko",
         "migrationOpenSettings" to "Ireki ezarpenak",
+        "migrationMoving" to "Zure kontua mugitzen…",
         "remove" to "Kendu",
         "removeInstanceTitle" to "Instantziat kendu?",
         "removeInstanceBody" to "Telefono honek {instance} ahaztuko du. Geroago berriro gehitu ahal izango duzu.",

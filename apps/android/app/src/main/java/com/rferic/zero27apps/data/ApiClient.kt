@@ -283,6 +283,19 @@ class ApiClient(
             ),
         )
 
+    /**
+     * Ends every other session of this account, keeping the one whose id is
+     * sent. Used after phone migration: the old phone must stop refreshing.
+     */
+    suspend fun revokeOtherSessions(keepSessionId: String): RevokeOthersResponse =
+        read(
+            request(
+                HttpMethod.Post,
+                "/api/v1/me/sessions/revoke-others",
+                RevokeOtherSessionsRequest(keepSessionId),
+            ),
+        )
+
     suspend fun patchMe(patch: PatchMeRequest): UserDto =
         read<MeResponse>(request(HttpMethod.Patch, "/api/v1/me", patch)).user
 
